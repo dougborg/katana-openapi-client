@@ -1,0 +1,275 @@
+from http import HTTPStatus
+from typing import Any, Optional, Union
+
+import httpx
+
+from ... import errors
+from ...client import AuthenticatedClient, Client
+from ...models.link_variant_default_storage_bins_response_401 import (
+    LinkVariantDefaultStorageBinsResponse401,
+)
+from ...models.link_variant_default_storage_bins_response_422 import (
+    LinkVariantDefaultStorageBinsResponse422,
+)
+from ...models.link_variant_default_storage_bins_response_429 import (
+    LinkVariantDefaultStorageBinsResponse429,
+)
+from ...models.link_variant_default_storage_bins_response_500 import (
+    LinkVariantDefaultStorageBinsResponse500,
+)
+from ...models.variant_default_storage_bin_link import VariantDefaultStorageBinLink
+from ...models.variant_default_storage_bin_link_list_response import (
+    VariantDefaultStorageBinLinkListResponse,
+)
+from ...types import Response
+
+
+def _get_kwargs(
+    *,
+    body: VariantDefaultStorageBinLink,
+) -> dict[str, Any]:
+    headers: dict[str, Any] = {}
+
+    _kwargs: dict[str, Any] = {
+        "method": "post",
+        "url": "/variant_bin_locations",
+    }
+
+    _kwargs["json"] = body.to_dict()
+
+    headers["Content-Type"] = "application/json"
+
+    _kwargs["headers"] = headers
+    return _kwargs
+
+
+def _parse_response(
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        LinkVariantDefaultStorageBinsResponse401,
+        LinkVariantDefaultStorageBinsResponse422,
+        LinkVariantDefaultStorageBinsResponse429,
+        LinkVariantDefaultStorageBinsResponse500,
+        VariantDefaultStorageBinLinkListResponse,
+    ]
+]:
+    if response.status_code == 200:
+        response_200 = VariantDefaultStorageBinLinkListResponse.from_dict(
+            response.json()
+        )
+
+        return response_200
+    if response.status_code == 401:
+        response_401 = LinkVariantDefaultStorageBinsResponse401.from_dict(
+            response.json()
+        )
+
+        return response_401
+    if response.status_code == 422:
+        response_422 = LinkVariantDefaultStorageBinsResponse422.from_dict(
+            response.json()
+        )
+
+        return response_422
+    if response.status_code == 429:
+        response_429 = LinkVariantDefaultStorageBinsResponse429.from_dict(
+            response.json()
+        )
+
+        return response_429
+    if response.status_code == 500:
+        response_500 = LinkVariantDefaultStorageBinsResponse500.from_dict(
+            response.json()
+        )
+
+        return response_500
+    if client.raise_on_unexpected_status:
+        raise errors.UnexpectedStatus(response.status_code, response.content)
+    else:
+        return None
+
+
+def _build_response(
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[
+    Union[
+        LinkVariantDefaultStorageBinsResponse401,
+        LinkVariantDefaultStorageBinsResponse422,
+        LinkVariantDefaultStorageBinsResponse429,
+        LinkVariantDefaultStorageBinsResponse500,
+        VariantDefaultStorageBinLinkListResponse,
+    ]
+]:
+    return Response(
+        status_code=HTTPStatus(response.status_code),
+        content=response.content,
+        headers=response.headers,
+        parsed=_parse_response(client=client, response=response),
+    )
+
+
+def sync_detailed(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: VariantDefaultStorageBinLink,
+) -> Response[
+    Union[
+        LinkVariantDefaultStorageBinsResponse401,
+        LinkVariantDefaultStorageBinsResponse422,
+        LinkVariantDefaultStorageBinsResponse429,
+        LinkVariantDefaultStorageBinsResponse500,
+        VariantDefaultStorageBinLinkListResponse,
+    ]
+]:
+    """Link variant default storage bins
+
+     Bulk operation for linking variants with the default storage bins.
+    In case the default storage bin doesn't yet exist, it will be created and linked to the variant.
+    This endpoint can also be used for changing existing links of the variants to different storage
+    bins.
+
+    The endpoint accepts up to 500 variant storage bin objects.
+
+    Args:
+        body (VariantDefaultStorageBinLink):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Response[Union[LinkVariantDefaultStorageBinsResponse401, LinkVariantDefaultStorageBinsResponse422, LinkVariantDefaultStorageBinsResponse429, LinkVariantDefaultStorageBinsResponse500, VariantDefaultStorageBinLinkListResponse]]
+    """
+
+    kwargs = _get_kwargs(
+        body=body,
+    )
+
+    response = client.get_httpx_client().request(
+        **kwargs,
+    )
+
+    return _build_response(client=client, response=response)
+
+
+def sync(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: VariantDefaultStorageBinLink,
+) -> Optional[
+    Union[
+        LinkVariantDefaultStorageBinsResponse401,
+        LinkVariantDefaultStorageBinsResponse422,
+        LinkVariantDefaultStorageBinsResponse429,
+        LinkVariantDefaultStorageBinsResponse500,
+        VariantDefaultStorageBinLinkListResponse,
+    ]
+]:
+    """Link variant default storage bins
+
+     Bulk operation for linking variants with the default storage bins.
+    In case the default storage bin doesn't yet exist, it will be created and linked to the variant.
+    This endpoint can also be used for changing existing links of the variants to different storage
+    bins.
+
+    The endpoint accepts up to 500 variant storage bin objects.
+
+    Args:
+        body (VariantDefaultStorageBinLink):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Union[LinkVariantDefaultStorageBinsResponse401, LinkVariantDefaultStorageBinsResponse422, LinkVariantDefaultStorageBinsResponse429, LinkVariantDefaultStorageBinsResponse500, VariantDefaultStorageBinLinkListResponse]
+    """
+
+    return sync_detailed(
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: VariantDefaultStorageBinLink,
+) -> Response[
+    Union[
+        LinkVariantDefaultStorageBinsResponse401,
+        LinkVariantDefaultStorageBinsResponse422,
+        LinkVariantDefaultStorageBinsResponse429,
+        LinkVariantDefaultStorageBinsResponse500,
+        VariantDefaultStorageBinLinkListResponse,
+    ]
+]:
+    """Link variant default storage bins
+
+     Bulk operation for linking variants with the default storage bins.
+    In case the default storage bin doesn't yet exist, it will be created and linked to the variant.
+    This endpoint can also be used for changing existing links of the variants to different storage
+    bins.
+
+    The endpoint accepts up to 500 variant storage bin objects.
+
+    Args:
+        body (VariantDefaultStorageBinLink):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Response[Union[LinkVariantDefaultStorageBinsResponse401, LinkVariantDefaultStorageBinsResponse422, LinkVariantDefaultStorageBinsResponse429, LinkVariantDefaultStorageBinsResponse500, VariantDefaultStorageBinLinkListResponse]]
+    """
+
+    kwargs = _get_kwargs(
+        body=body,
+    )
+
+    response = await client.get_async_httpx_client().request(**kwargs)
+
+    return _build_response(client=client, response=response)
+
+
+async def asyncio(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: VariantDefaultStorageBinLink,
+) -> Optional[
+    Union[
+        LinkVariantDefaultStorageBinsResponse401,
+        LinkVariantDefaultStorageBinsResponse422,
+        LinkVariantDefaultStorageBinsResponse429,
+        LinkVariantDefaultStorageBinsResponse500,
+        VariantDefaultStorageBinLinkListResponse,
+    ]
+]:
+    """Link variant default storage bins
+
+     Bulk operation for linking variants with the default storage bins.
+    In case the default storage bin doesn't yet exist, it will be created and linked to the variant.
+    This endpoint can also be used for changing existing links of the variants to different storage
+    bins.
+
+    The endpoint accepts up to 500 variant storage bin objects.
+
+    Args:
+        body (VariantDefaultStorageBinLink):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Union[LinkVariantDefaultStorageBinsResponse401, LinkVariantDefaultStorageBinsResponse422, LinkVariantDefaultStorageBinsResponse429, LinkVariantDefaultStorageBinsResponse500, VariantDefaultStorageBinLinkListResponse]
+    """
+
+    return (
+        await asyncio_detailed(
+            client=client,
+            body=body,
+        )
+    ).parsed

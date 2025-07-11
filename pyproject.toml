@@ -1,0 +1,409 @@
+[project]
+name = "katana-openapi-client"
+version = "0.1.1"
+description = "A modern, pythonic Katana Manufacturing ERP API client with automatic retries, rate limiting, and smart pagination"
+authors = [
+    {name = "Doug Borg", email = "dougborg@dougborg.org"},
+]
+maintainers = [
+    {name = "Doug Borg", email = "dougborg@dougborg.org"},
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.11,<4.0"
+keywords = [
+  "katana",
+  "manufacturing",
+  "erp",
+  "api-client",
+  "openapi",
+  "async",
+  "retry",
+  "pagination",
+  "rate-limiting",
+  "httpx",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Office/Business",
+  "Typing :: Typed",
+]
+dependencies = [
+  # Generated client dependencies
+  "httpx>=0.28.0",
+  "attrs>=22.2.0",
+  "python-dateutil>=2.8.0",
+  # Enhanced client dependencies
+  "tenacity>=9.0.0",
+  "python-dotenv>=1.0.0",
+  # Legacy dependencies (keeping for compatibility)
+  "urllib3>=2.5.0,<4.0.0",
+  "pydantic>=2,<3",
+  "typing-extensions>=4.7.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/dougborg/katana-openapi-client"
+Repository = "https://github.com/dougborg/katana-openapi-client"
+Documentation = "https://github.com/dougborg/katana-openapi-client/blob/main/docs/README.md"
+"Bug Tracker" = "https://github.com/dougborg/katana-openapi-client/issues"
+Changelog = "https://github.com/dougborg/katana-openapi-client/blob/main/docs/CHANGELOG.md"
+
+[project.scripts]
+katana-version = "semantic_release.cli:main"
+katana-release = "semantic_release.cli:main"
+
+[project.optional-dependencies]
+dev = [
+  # Testing
+  "pytest>=7.2.0",
+  "pytest-asyncio>=0.21.0",
+  "pytest-cov>=2.8.0",
+  "pytest-mock>=3.10.0",
+  "pytest-timeout>=2.1.0",
+  "tox>=4.0.0",
+  # Code quality and linting
+  "ruff>=0.12.0",
+  "mypy>=1.16.0",
+  # Task runner
+  "poethepoet>=0.36.0",
+  # Build tools
+  "build>=1.0.0",
+  # YAML linting
+  "yamllint>=1.37.0",
+  # Markdown formatting
+  "mdformat>=0.7.17",
+  "mdformat-gfm>=0.3.0",
+  "mdformat-tables>=0.4.0",
+  "mdformat-toc>=0.3.0",
+  # Type stubs
+  "types-python-dateutil>=2.8.0",
+  "types-PyYAML>=6.0.0",
+  "types-urllib3>=1.26.0",
+  # OpenAPI tools
+  "openapi-spec-validator>=0.7.1",
+  "openapi-python-client>=0.25.2",
+  "PyYAML>=6.0",
+  # Semantic release
+  "python-semantic-release>=9.0.0",
+  "mypy-extensions>=1.1.0",
+]
+
+[tool.poetry]
+# Keep Poetry section for package discovery and build configuration
+packages = [{ include = "katana_public_api_client" }]
+include = ["katana_public_api_client/py.typed", "katana-openapi.yaml"]
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+files = ["katana_public_api_client", "tests", "scripts"]
+exclude = [
+  "tests/conftest.py",                     # Avoid duplicate module name issue
+  "katana_public_api_client/generated/.*", # Exclude generated code
+]
+# TODO: enable "strict" once all these individual checks are passing
+# strict = true
+
+# List from: https://mypy.readthedocs.io/en/stable/existing_code.html#introduce-stricter-options
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+## Getting these passing should be easy
+strict_equality = true
+extra_checks = true
+
+## Strongly recommend enabling this one as soon as you can
+check_untyped_defs = true
+
+## These shouldn't be too much additional work, but may be tricky to
+## get passing if you use a lot of untyped libraries
+disallow_subclassing_any = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+
+### These next few are various gradations of forcing use of type annotations
+#disallow_untyped_calls = true
+#disallow_incomplete_defs = true
+#disallow_untyped_defs = true
+#
+### This one isn't too hard to get passing, but return on investment is lower
+#no_implicit_reexport = true
+#
+### This one can be tricky to get passing if you use a lot of untyped libraries
+#warn_return_any = true
+
+[[tool.mypy.overrides]]
+module = ["katana_openapi_client.configuration"]
+warn_unused_ignores = true
+strict_equality = true
+extra_checks = true
+check_untyped_defs = true
+disallow_subclassing_any = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+disallow_untyped_calls = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+no_implicit_reexport = true
+warn_return_any = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+  "-ra",
+  "--strict-markers",
+  "--strict-config",
+  "--timeout=30",     # 30 second timeout for tests
+]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+  "slow: marks tests as slow",
+  "integration: marks tests as integration tests",
+  "unit: marks tests as unit tests",
+  "asyncio: marks tests as async tests",
+]
+
+[tool.coverage.run]
+source = ["katana_public_api_client"]
+omit = ["*/tests/*", "*/test_*", "*/conftest.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "if self.debug:",
+  "if settings.DEBUG",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if 0:",
+  "if __name__ == .__main__.:",
+  "class .*\\bProtocol\\):",
+  "@(abc\\.)?abstractmethod",
+]
+
+[tool.ruff]
+line-length = 88
+src = ["katana_public_api_client", "tests", "scripts"]
+target-version = "py311"  # Updated to reflect minimum Python version
+fix = true
+show-fixes = true
+output-format = "grouped"
+extend-exclude = ["katana_public_api_client/generated/**"]
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 72
+indent-style = "space"
+line-ending = "lf"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings  
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "SIM",    # flake8-simplify
+    "RUF",    # ruff-specific rules
+    "PLE",    # pylint errors
+    "PLW",    # pylint warnings
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+    "C901",   # too complex
+    "SIM108", # use ternary operator instead of if-else
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004"]  # magic value used in comparison
+"katana_public_api_client/generated/*" = ["ALL"]  # ignore generated code
+
+[tool.ruff.lint.isort]
+known-first-party = ["katana_public_api_client"]
+combine-as-imports = true
+force-wrap-aliases = true
+split-on-trailing-comma = true
+
+[tool.mdformat]
+# Basic formatting options
+wrap = 88
+number = false
+# Enable useful plugins
+extensions = [
+  "gfm",    # GitHub Flavored Markdown
+  "tables", # Table formatting
+  "toc",    # Table of contents
+]
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+version_variables = ["katana_public_api_client/__init__.py:__version__"]
+dist_path = "dist/"
+upload_to_pypi = false
+upload_to_repository = false
+remove_dist = false
+commit_author = "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+commit_message = "chore(release): {version}"
+build_command = "echo 'Starting build_command...' && pip install mdformat mdformat-gfm mdformat-tables mdformat-toc && echo 'Formatting changelog...' && python -m mdformat docs/CHANGELOG.md --wrap 88 && echo 'Build command completed successfully'"
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = [
+  "build",
+  "chore",
+  "ci",
+  "docs",
+  "feat",
+  "fix",
+  "perf",
+  "style",
+  "refactor",
+  "test",
+]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
+
+[tool.semantic_release.changelog]
+template_dir = "templates"
+exclude_commit_patterns = []
+changelog_file = "docs/CHANGELOG.md"
+
+[tool.semantic_release.changelog.default_templates]
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease_token = "rc"
+prerelease = false
+
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
+
+# =============================================================================
+# Task Runner Configuration (poethepoet)
+# =============================================================================
+
+[tool.poe.tasks]
+
+# -----------------------------------------------------------------------------
+# Code Formatting Tasks
+# -----------------------------------------------------------------------------
+format-python = "ruff format ."
+format-python-check = "ruff format --check ."
+
+format-markdown = "mdformat *.md docs/ --wrap 88"
+format-markdown-check = "mdformat --check *.md docs/"
+
+format = ["format-python", "format-markdown"]
+format-check = ["format-python-check", "format-markdown-check"]
+
+# -----------------------------------------------------------------------------
+# Linting and Type Checking Tasks
+# -----------------------------------------------------------------------------
+lint-mypy = "mypy katana_public_api_client tests scripts"
+lint-ruff = "ruff check ."
+lint-ruff-fix = "ruff check --fix ."
+lint-yaml = "yamllint ."
+
+lint = ["lint-ruff", "lint-mypy", "lint-yaml"]
+
+# -----------------------------------------------------------------------------
+# Testing Tasks
+# -----------------------------------------------------------------------------
+test = "pytest"
+test-verbose = "pytest -v"
+test-coverage = "pytest --cov=katana_public_api_client --cov-report=term-missing"
+test-coverage-html = "pytest --cov=katana_public_api_client --cov-report=html"
+test-unit = "pytest -m unit"
+test-integration = "pytest -m integration"
+
+# -----------------------------------------------------------------------------
+# OpenAPI and Code Generation Tasks
+# -----------------------------------------------------------------------------
+regenerate-client = "python scripts/regenerate_client.py"
+validate-openapi = "openapi-spec-validator katana-openapi.yaml"
+
+# -----------------------------------------------------------------------------
+# Combined Workflow Tasks
+# -----------------------------------------------------------------------------
+check = ["format-check", "lint", "test"]
+fix = ["format", "lint-ruff-fix"]
+ci = ["format-check", "lint", "test-coverage"]
+prepare = ["format", "lint", "test", "validate-openapi"]
+# AST-based consistency check for generated client
+check-generated-ast = "python scripts/check_generated_client_ast.py"
+
+# -----------------------------------------------------------------------------
+# Release Tasks
+# -----------------------------------------------------------------------------
+version-check = "semantic-release version --dry-run"
+release-dry = "semantic-release publish --dry-run"
+
+# Task help
+[tool.poe.tasks.help]
+help = "Show available tasks"
+shell = """
+echo "🛠️  Available Tasks (run with 'poetry run poe <task>'):"
+echo ""
+echo "📁 Code Formatting:"
+echo "   poe format              - Format all code (Python, imports, markdown)"
+echo "   poe format-check        - Check if code is properly formatted"
+echo "   poe format-python       - Format Python code with ruff"
+echo "   poe format-markdown     - Format markdown files"
+echo ""
+echo "📁 Linting & Type Checking:"
+echo "   poe lint                - Run all linters (mypy, ruff, yaml)"
+echo "   poe lint-mypy           - Type checking with mypy"
+echo "   poe lint-ruff           - Fast linting with ruff"
+echo "   poe lint-yaml           - YAML file linting"
+echo ""
+echo "📁 Testing:"
+echo "   poe test                - Run all tests"
+echo "   poe test-coverage       - Run tests with coverage report"
+echo "   poe test-unit           - Run unit tests only"
+echo "   poe test-integration    - Run integration tests only"
+echo ""
+echo "📁 Development:"
+echo "   poe check               - Quick check: format-check + lint + test"
+echo "   poe ci                  - Full CI pipeline"
+echo "   poe fix                 - Auto-fix formatting and linting issues"
+echo "   poe prepare             - Prepare code for commit"
+echo ""
+echo "📁 OpenAPI:"
+echo "   poe regenerate-client   - Regenerate API client from OpenAPI spec"
+echo "   poe validate-openapi    - Validate OpenAPI specification"
+echo "   poe check-generated-ast  - Check AST consistency of generated client"
+echo ""
+echo "📁 Utilities:"
+echo "   poe clean               - Clean build artifacts and cache"
+echo "   poe help                - Show this help message"
+echo ""
+"""
+
+[tool.poe.tasks.clean]
+help = "Clean up build artifacts and cache files"
+shell = """
+echo "🧹 Cleaning build artifacts and cache files..."
+rm -rf .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov dist build *.egg-info
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+echo "✨ Workspace cleaned!"
+"""

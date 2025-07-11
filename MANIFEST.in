@@ -1,0 +1,20 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include katana-openapi.yaml
+include pyproject.toml
+include poetry.lock
+
+recursive-include katana_public_api_client *.py
+recursive-include katana_public_api_client *.typed
+recursive-include docs *.md
+recursive-exclude tests *
+recursive-exclude .github *
+recursive-exclude scripts *
+
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *~
+global-exclude __pycache__
+global-exclude .pytest_cache
+global-exclude .mypy_cache

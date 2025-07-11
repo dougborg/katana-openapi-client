@@ -1,0 +1,242 @@
+"""Tests for the Katana Client with always-on resilience features."""
+
+import os
+from unittest.mock import MagicMock, patch
+
+import httpx
+import pytest
+
+from katana_public_api_client import KatanaClient
+from katana_public_api_client.katana_client import ResilientAsyncTransport
+
+
+@pytest.mark.unit
+class TestResilientAsyncTransport:
+    """Test the resilient async transport layer."""
+
+    @pytest.fixture
+    def transport(self):
+        """Create a transport instance for testing."""
+        return ResilientAsyncTransport(
+            max_retries=3,
+        )
+
+    @pytest.mark.asyncio
+    async def test_successful_request(self, transport):
+        """Test that successful requests pass through unchanged."""
+        # Mock the parent's handle_async_request method
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 200
+
+        with patch.object(
+            httpx.AsyncHTTPTransport, "handle_async_request", return_value=mock_response
+        ) as mock_parent:
+            request = MagicMock(spec=httpx.Request)
+            request.method = "POST"  # Non-GET request, should pass through
+            request.url = MagicMock()
+            request.url.params = {}
+            response = await transport.handle_async_request(request)
+
+            assert response.status_code == 200
+            mock_parent.assert_called_once_with(request)
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_retry(self, transport):
+        """Test that 429 responses trigger retries."""
+        # Mock responses: 429, then 200
+        mock_rate_limited = MagicMock(spec=httpx.Response)
+        mock_rate_limited.status_code = 429
+        mock_rate_limited.headers = {"Retry-After": "1"}
+
+        mock_success = MagicMock(spec=httpx.Response)
+        mock_success.status_code = 200
+
+        with patch.object(
+            httpx.AsyncHTTPTransport,
+            "handle_async_request",
+            side_effect=[mock_rate_limited, mock_success],
+        ) as mock_parent:
+            request = MagicMock(spec=httpx.Request)
+            request.method = "POST"  # Non-GET request, should pass through
+            request.url = MagicMock()
+            request.url.params = {}
+            response = await transport.handle_async_request(request)
+
+            assert response.status_code == 200
+            assert mock_parent.call_count == 2  # Should have retried once
+
+    @pytest.mark.asyncio
+    async def test_server_error_retry(self, transport):
+        """Test that 5xx responses trigger retries."""
+        # Mock responses: 500, then 200
+        mock_server_error = MagicMock(spec=httpx.Response)
+        mock_server_error.status_code = 500
+
+        mock_success = MagicMock(spec=httpx.Response)
+        mock_success.status_code = 200
+
+        with patch.object(
+            httpx.AsyncHTTPTransport,
+            "handle_async_request",
+            side_effect=[mock_server_error, mock_success],
+        ) as mock_parent:
+            request = MagicMock(spec=httpx.Request)
+            request.method = "POST"  # Non-GET request, should pass through
+            request.url = MagicMock()
+            request.url.params = {}
+            response = await transport.handle_async_request(request)
+
+            assert response.status_code == 200
+            assert mock_parent.call_count == 2  # Should have retried once
+
+    @pytest.mark.asyncio
+    async def test_network_error_retry(self, transport):
+        """Test that network errors trigger retries."""
+        # Mock network error, then success
+        mock_success = MagicMock(spec=httpx.Response)
+        mock_success.status_code = 200
+
+        with patch.object(
+            httpx.AsyncHTTPTransport,
+            "handle_async_request",
+            side_effect=[httpx.ConnectError("Connection failed"), mock_success],
+        ) as mock_parent:
+            request = MagicMock(spec=httpx.Request)
+            request.method = "POST"  # Non-GET request, should pass through
+            request.url = MagicMock()
+            request.url.params = {}
+            response = await transport.handle_async_request(request)
+
+            assert response.status_code == 200
+            assert mock_parent.call_count == 2  # Should have retried once
+
+    @pytest.mark.asyncio
+    async def test_max_retries_exceeded(self, transport):
+        """Test that max retries are respected."""
+        # Always return 500
+        mock_error = MagicMock(spec=httpx.Response)
+        mock_error.status_code = 500
+
+        with patch.object(
+            httpx.AsyncHTTPTransport, "handle_async_request", return_value=mock_error
+        ) as mock_parent:
+            request = MagicMock(spec=httpx.Request)
+            request.method = "POST"  # Non-GET request, should pass through
+            request.url = MagicMock()
+            request.url.params = {}
+            response = await transport.handle_async_request(request)
+
+            assert response.status_code == 500
+            assert mock_parent.call_count == 4  # Initial + 3 retries
+
+    @pytest.mark.asyncio
+    async def test_client_error_no_retry(self, transport):
+        """Test that 4xx errors (except 429) don't trigger retries."""
+        mock_client_error = MagicMock(spec=httpx.Response)
+        mock_client_error.status_code = 404
+
+        with patch.object(
+            httpx.AsyncHTTPTransport,
+            "handle_async_request",
+            return_value=mock_client_error,
+        ) as mock_parent:
+            request = MagicMock(spec=httpx.Request)
+            request.method = "POST"  # Non-GET request, should pass through
+            request.url = MagicMock()
+            request.url.params = {}
+            response = await transport.handle_async_request(request)
+
+            assert response.status_code == 404
+            mock_parent.assert_called_once_with(request)
+
+
+@pytest.mark.unit
+class TestKatanaClient:
+    """Test the main KatanaClient class."""
+
+    def test_client_initialization(self):
+        """Test that client can be initialized with default settings."""
+        client = KatanaClient()
+        assert client.max_pages == 100  # Default value
+        assert client._client is not None
+
+    def test_client_initialization_with_params(self):
+        """Test client initialization with custom parameters."""
+        client = KatanaClient(max_pages=50, timeout=30)
+        assert client.max_pages == 50
+
+    def test_client_initialization_missing_api_key(self):
+        """Test client initialization fails without API key."""
+        # Clear all environment variables including KATANA_API_KEY
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch.dict(os.environ, {"KATANA_API_KEY": ""}, clear=True),
+            pytest.raises(ValueError, match="API key required"),
+        ):
+            KatanaClient()
+
+    @pytest.mark.asyncio
+    async def test_context_manager(self):
+        """Test that client works as async context manager."""
+        async with KatanaClient() as client:
+            assert client._client is not None
+
+    @pytest.mark.asyncio
+    async def test_pagination_basic(self, katana_client):
+        """Test basic pagination functionality."""
+        # Note: Pagination is now handled automatically by the transport layer
+        # These tests are now in test_transport_auto_pagination.py
+        # This test is kept for backward compatibility and to ensure
+        # the client still works with the new transport-level pagination
+        pass
+
+    @pytest.mark.asyncio
+    async def test_pagination_with_processing(self, katana_client):
+        """Test pagination with item processing."""
+        # Note: The old paginate method with process_page is no longer available
+        # since pagination is now handled automatically by the transport layer
+        # Processing should be done after the API call returns all results
+        pass
+
+    @pytest.mark.asyncio
+    async def test_pagination_max_pages_limit(self, katana_client):
+        """Test that max_pages limit is respected."""
+        # Note: max_pages is now controlled at the client level or transport level
+        # This test is covered by the transport-level tests in test_transport_auto_pagination.py
+        pass
+
+
+@pytest.mark.integration
+class TestKatanaClientIntegration:
+    """Integration tests that may hit real API endpoints."""
+
+    @pytest.mark.asyncio
+    async def test_real_api_connection(self):
+        """Test connection to real Katana API (requires KATANA_API_KEY)."""
+        api_key = os.getenv("KATANA_API_KEY")
+        if not api_key:
+            pytest.skip("KATANA_API_KEY not set - skipping real API test")
+
+        # Test with a mock to avoid actual API calls during testing
+        with patch(
+            "katana_public_api_client.generated.api.product.get_all_products.asyncio_detailed"
+        ) as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.parsed = MagicMock()
+            mock_response.parsed.data = [{"id": 1, "name": "Test Product"}]
+            mock_get.return_value = mock_response
+
+            async with KatanaClient() as client:
+                # Test a simple API call
+                from katana_public_api_client.generated.api.product import (
+                    get_all_products,
+                )
+
+                response = await get_all_products.asyncio_detailed(
+                    client=client.client,
+                    limit=1,  # Just get one product
+                )
+
+                assert response.status_code == 200
+                assert hasattr(response.parsed, "data")

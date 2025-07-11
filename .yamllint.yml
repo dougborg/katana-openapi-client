@@ -1,0 +1,29 @@
+---
+extends: default
+
+rules:
+  line-length:
+    max: 200  # Very lenient for OpenAPI specs with long descriptions
+  document-start: disable
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no', 'True', 'False']
+  comments:
+    min-spaces-from-content: 1
+  indentation:
+    spaces: 2
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+
+ignore: |
+  .github/
+  .venv/
+  node_modules/
+  dist/
+  build/
+  *.egg-info/
+  katana_public_api_client/generated/
+  docs/original openapi files/
