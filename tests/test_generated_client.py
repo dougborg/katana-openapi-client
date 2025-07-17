@@ -38,7 +38,7 @@ class TestGeneratedClientStructure:
         # KatanaClient now inherits from AuthenticatedClient directly
         
         # The client should have expected attributes from AuthenticatedClient
-        assert hasattr(katana_client, "_async_client")
+        assert katana_client.get_async_httpx_client() is not None
         assert hasattr(katana_client, "get_async_httpx_client")
         
         # Should be able to access client properties
