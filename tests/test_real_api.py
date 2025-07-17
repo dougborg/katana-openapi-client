@@ -79,9 +79,7 @@ class TestRealAPIIntegration:
         # Test both with explicit parameters and environment variables
         async with KatanaClient(api_key=api_key, base_url=base_url) as client:
             # Direct API call - automatic resilience built-in
-            response = await get_all_products.asyncio_detailed(
-                client=client, limit=1
-            )
+            response = await get_all_products.asyncio_detailed(client=client, limit=1)
 
             # Should get a response
             assert response.status_code in [

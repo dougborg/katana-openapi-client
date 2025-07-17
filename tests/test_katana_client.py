@@ -159,9 +159,9 @@ class TestKatanaClient:
         client = KatanaClient()
         assert client.max_pages == 100  # Default value
         # KatanaClient now inherits from AuthenticatedClient - test that it has the expected attributes
-        assert hasattr(client, 'token')
-        assert hasattr(client, 'get_async_httpx_client')
-        assert client.token == 'test-key'  # Set by conftest.py fixture
+        assert hasattr(client, "token")
+        assert hasattr(client, "get_async_httpx_client")
+        assert client.token == "test-key"  # Set by conftest.py fixture
 
     def test_client_initialization_with_params(self):
         """Test client initialization with custom parameters."""
@@ -183,7 +183,7 @@ class TestKatanaClient:
         """Test that client works as async context manager."""
         async with KatanaClient() as client:
             # KatanaClient now inherits from AuthenticatedClient - test that it can be used directly
-            assert hasattr(client, 'get_async_httpx_client')
+            assert hasattr(client, "get_async_httpx_client")
             # Test that the async client is created when entering context
             async_client = client.get_async_httpx_client()
             assert async_client is not None

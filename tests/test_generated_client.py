@@ -29,18 +29,18 @@ class TestGeneratedClientStructure:
         """Test that Katana client inherits from AuthenticatedClient."""
         # KatanaClient now inherits from AuthenticatedClient directly
         assert isinstance(katana_client, AuthenticatedClient)
-        assert hasattr(katana_client, 'token')
-        assert hasattr(katana_client, 'get_async_httpx_client')
+        assert hasattr(katana_client, "token")
+        assert hasattr(katana_client, "get_async_httpx_client")
 
     def test_api_modules_structure(self, katana_client):
         """Test that the API modules have the expected structure."""
         # This is a structural test to ensure we're not breaking the generated code
         # KatanaClient now inherits from AuthenticatedClient directly
-        
+
         # The client should have expected attributes from AuthenticatedClient
         assert katana_client.get_async_httpx_client() is not None
         assert hasattr(katana_client, "get_async_httpx_client")
-        
+
         # Should be able to access client properties
         assert katana_client is not None
 
@@ -59,9 +59,7 @@ class TestGeneratedMethodCompatibility:
 
         # Test that we can call the method directly through the client
         # The transport layer automatically handles resilience
-        result = await mock_generated_method(
-            client=katana_client, id=123, limit=100
-        )
+        result = await mock_generated_method(client=katana_client, id=123, limit=100)
 
         # Verify the method works correctly
         assert result is not None
@@ -190,7 +188,7 @@ class TestConfigurationCompatibility:
         # Should create successfully with custom configuration
         assert client is not None
         # KatanaClient now inherits from AuthenticatedClient directly
-        assert hasattr(client, 'get_async_httpx_client')
+        assert hasattr(client, "get_async_httpx_client")
 
     def test_timeout_configuration(self, mock_api_credentials):
         """Test that timeout configuration works."""

@@ -259,7 +259,7 @@ class TestMemoryUsage:
         # After cleanup, client should still be accessible
         # KatanaClient now inherits from AuthenticatedClient
         assert katana_client is not None
-        assert hasattr(katana_client, 'get_async_httpx_client')
+        assert hasattr(katana_client, "get_async_httpx_client")
 
 
 class TestConcurrencyAndRaceConditions:
