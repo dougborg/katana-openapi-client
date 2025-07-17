@@ -56,12 +56,42 @@ poetry run poe ci
 poetry run poe help
 ```
 
+### Pre-commit Hooks (ALWAYS Use)
+
+Pre-commit hooks are **mandatory** for development - they automatically format and check code before commits:
+
+```bash
+# Install pre-commit hooks (run once after clone)
+poetry run poe pre-commit-install
+
+# Run pre-commit on all files (for testing)
+poetry run poe pre-commit-run
+
+# Update pre-commit hook versions
+poetry run poe pre-commit-update
+```
+
+**CRITICAL**: Pre-commit hooks run automatically on `git commit` and will:
+- Format code with ruff
+- Fix trailing whitespace and file endings
+- Check YAML syntax
+- Validate large files and merge conflicts
+
+**If pre-commit fails**: Fix the issues and commit again. Never use `git commit --no-verify` to bypass hooks.
+
+**Development Workflow with Pre-commit**:
+1. Make code changes
+2. `git add .` (stage changes)
+3. `git commit -m "message"` (pre-commit runs automatically)
+4. If pre-commit fails: fix issues, `git add .`, commit again
+5. If pre-commit passes: commit succeeds
+
 ### Testing Strategy
 
 Run tests in this order for debugging:
 
 1. `poetry run poe test` - Run all tests
-2. `poetry run poe test-unit` - Unit tests only  
+2. `poetry run poe test-unit` - Unit tests only
 3. `poetry run poe test-integration` - Integration tests only
 4. `poetry run poe test-coverage` - Tests with coverage report
 
@@ -179,6 +209,8 @@ Generated code is excluded from formatting via `pyproject.toml` config. When edi
 3. **Use `.client` not `._client`** - The property provides the correct interface
 4. **Generated imports may change** - Import API methods dynamically in tests if needed
 5. **Rate limiting is handled** - Don't add additional retry logic on top
+6. **Always install pre-commit hooks** - Run `poetry run poe pre-commit-install` after cloning
+7. **Never bypass pre-commit** - Don't use `git commit --no-verify` to skip formatting checks
 
 
 ## Version Support Policy
