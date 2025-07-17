@@ -378,7 +378,8 @@ poetry run poe clean
 
 ## 📊 OpenTracing Support
 
-The client includes optional OpenTracing support for distributed tracing. When enabled, all API requests are automatically traced with detailed spans.
+The client includes optional OpenTracing support for distributed tracing. When enabled,
+all API requests are automatically traced with detailed spans.
 
 ### Installation
 
@@ -417,8 +418,9 @@ async with KatanaClient(tracer=tracer) as client:
 ### Span Details
 
 Each API request creates a span with:
+
 - **Operation Name**: `katana_client.{HTTP_METHOD}`
-- **Tags**: 
+- **Tags**:
   - `component`: "katana-openapi-client"
   - `http.method`: HTTP method (GET, POST, etc.)
   - `http.url`: Full request URL
@@ -446,6 +448,7 @@ with tracer.start_span("business_operation") as parent_span:
 ### Framework Compatibility
 
 Works with any OpenTracing-compatible tracer:
+
 - **Jaeger**: Recommended for most use cases
 - **Zipkin**: For legacy systems
 - **Datadog**: For Datadog APM users
