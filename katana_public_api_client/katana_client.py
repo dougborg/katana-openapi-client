@@ -313,13 +313,12 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
         return 60.0
 
 
-class KatanaClient:
+class KatanaClient(AuthenticatedClient):
     """
     The pythonic Katana API client with automatic resilience and pagination.
 
-    This client uses httpx's native transport layer to provide automatic retries,
-    rate limiting, error handling, and smart pagination for all API calls. Just
-    call the generated API methods directly - no manual pagination or helpers needed.
+    This client inherits from AuthenticatedClient and can be passed directly to
+    generated API methods without needing the .client property.
 
     Features:
     - Automatic retries on network errors and server errors (5xx)
@@ -335,13 +334,13 @@ class KatanaClient:
 
             # This automatically collects all pages if pagination is detected
             response = await get_all_products.asyncio_detailed(
-                client=client.client,
+                client=client,  # Pass client directly - no .client needed!
                 limit=50  # All pages collected automatically
             )
 
             # Get specific page only (add page=X to disable auto-pagination)
             response = await get_all_products.asyncio_detailed(
-                client=client.client,
+                client=client,
                 page=1,      # Get specific page
                 limit=100    # Set page size
             )
@@ -363,12 +362,12 @@ class KatanaClient:
         load_dotenv()
 
         # Setup credentials
-        self.api_key = api_key or os.getenv("KATANA_API_KEY")
-        self.base_url = (
+        api_key = api_key or os.getenv("KATANA_API_KEY")
+        base_url = (
             base_url or os.getenv("KATANA_BASE_URL") or "https://api.katanamrp.com/v1"
         )
 
-        if not self.api_key:
+        if not api_key:
             raise ValueError(
                 "API key required (KATANA_API_KEY env var or api_key param)"
             )
@@ -400,10 +399,10 @@ class KatanaClient:
             else:
                 event_hooks[event] = hooks if isinstance(hooks, list) else [hooks]
 
-        # Create the client with custom transport and hooks
-        self._client = AuthenticatedClient(
-            base_url=self.base_url,
-            token=self.api_key,
+        # Initialize the parent AuthenticatedClient
+        super().__init__(
+            base_url=base_url,
+            token=api_key,
             timeout=httpx.Timeout(timeout),
             httpx_args={
                 "transport": transport,
@@ -412,24 +411,8 @@ class KatanaClient:
             },
         )
 
-    async def __aenter__(self) -> "KatanaClient":
-        await self._client.__aenter__()
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        await self._client.__aexit__(exc_type, exc_val, exc_tb)
-
-    @property
-    def client(self) -> AuthenticatedClient:
-        """
-        Access to the underlying generated client with automatic resilience.
-
-        All API calls made through this client will automatically have:
-        - Retry logic for network errors and server errors
-        - Rate limit handling with Retry-After header support
-        - Rich logging and observability
-        """
-        return self._client
+    # Remove the client property since we inherit from AuthenticatedClient
+    # Users can now pass the KatanaClient instance directly to API methods
 
     # Event hooks for observability
     async def _capture_pagination_metadata(self, response: httpx.Response) -> None:
@@ -479,7 +462,7 @@ async def demo_katana_client():
         # Direct API usage with automatic pagination
         print("1. Direct API call with automatic pagination:")
         response = await get_all_products.asyncio_detailed(
-            client=client.client,
+            client=client,
             limit=50,  # Will automatically paginate if needed
         )
         print(f"   Response status: {response.status_code}")
@@ -496,7 +479,7 @@ async def demo_katana_client():
         # Single page only
         print("2. Single page only (disable auto-pagination):")
         response = await get_all_products.asyncio_detailed(
-            client=client.client,
+            client=client,
             page=1,
             limit=25,  # page=X disables auto-pagination
         )
@@ -516,7 +499,7 @@ async def demo_katana_client():
         limited_client = KatanaClient(max_pages=2)  # Limit to 2 pages max
         async with limited_client as api_client:
             response = await get_all_products.asyncio_detailed(
-                client=api_client.client, limit=25
+                client=api_client, limit=25
             )
             print(f"   Response status: {response.status_code}")
             if (

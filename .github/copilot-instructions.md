@@ -25,12 +25,13 @@ limiting, and pagination without any code changes needed in the generated client
 
 ```python
 # Generated API methods work transparently with resilience:
-from katana_public_api_client.api.product import get_all_products
+from katana_public_api_client import KatanaClient
+from katana_public_api_client.generated.api.product import get_all_products
 
 async with KatanaClient() as client:
     # This call automatically gets retries, rate limiting, pagination:
     response = await get_all_products.asyncio_detailed(
-        client=client.client, limit=50  # Will auto-paginate if needed
+        client=client, limit=50  # Will auto-paginate if needed
     )
 ```
 
@@ -145,14 +146,13 @@ PEP 621 standards for modern Python packaging.
 
 ### Client Usage Pattern
 
-**Always use the pattern**: `KatanaClient` → access via `.client` property → use
-generated API methods directly.
+**Always use the pattern**: `KatanaClient` can be passed directly to generated API methods.
 
 ```python
 # CORRECT pattern:
 async with KatanaClient() as client:
     response = await some_api_method.asyncio_detailed(
-        client=client.client,  # Note: .client property, not ._client
+        client=client,  # Pass KatanaClient directly
         param=value
     )
 
@@ -183,8 +183,8 @@ except Exception as e:
 
 ### Don't Edit (Generated)
 
-- `katana_public_api_client/api/**/*.py`
-- `katana_public_api_client/models/**/*.py`
+- `katana_public_api_client/generated/api/**/*.py`
+- `katana_public_api_client/generated/models/**/*.py`
 
 ### Format Exclusions
 
