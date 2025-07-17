@@ -31,14 +31,14 @@ class TestOpenTracingIntegration:
     def test_client_initialization_without_tracer(self, mock_api_credentials):
         """Test that client can be initialized without tracer."""
         client = KatanaClient(**mock_api_credentials)
-        # Transport should be created but tracer should be None
-        assert hasattr(client, '_client')
+        # Client should inherit from AuthenticatedClient
+        assert hasattr(client, '_httpx_args')
 
     def test_client_initialization_with_none_tracer(self, mock_api_credentials):
         """Test that client can be initialized with None tracer."""
         client = KatanaClient(tracer=None, **mock_api_credentials)
-        # Transport should be created but tracer should be None
-        assert hasattr(client, '_client')
+        # Client should inherit from AuthenticatedClient
+        assert hasattr(client, '_httpx_args')
 
     @patch('katana_public_api_client.katana_client.OPENTRACING_AVAILABLE', False)
     def test_transport_warns_when_tracer_provided_but_not_available(self, caplog):

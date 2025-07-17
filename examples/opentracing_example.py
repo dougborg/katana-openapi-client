@@ -54,7 +54,7 @@ async def example_without_tracing():
         # Simulate making an API call
         # In a real scenario, you would call actual API methods like:
         # from katana_public_api_client.generated.api.product import get_all_products
-        # response = await get_all_products.asyncio_detailed(client=client.client)
+        # response = await get_all_products.asyncio_detailed(client=client)
         
         logger.info("API calls would work normally without any tracing overhead")
 
@@ -89,7 +89,7 @@ async def example_with_tracing():
         
         # In a real scenario, you would call API methods like:
         # from katana_public_api_client.generated.api.product import get_all_products
-        # response = await get_all_products.asyncio_detailed(client=client.client)
+        # response = await get_all_products.asyncio_detailed(client=client)
         
         logger.info("API calls would be automatically traced with detailed spans")
 
@@ -120,7 +120,7 @@ async def example_with_custom_spans():
             logger.info("Client API calls will be traced as child spans")
             
             # In a real scenario:
-            # response = await get_all_products.asyncio_detailed(client=client.client)
+            # response = await get_all_products.asyncio_detailed(client=client)
             # The above call would create a span like:
             # - operation_name: "katana_client.GET"
             # - parent: "business_operation"

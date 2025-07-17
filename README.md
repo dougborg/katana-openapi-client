@@ -411,7 +411,7 @@ async with KatanaClient(tracer=tracer) as client:
     from katana_public_api_client.api.product import get_all_products
     
     # This request will be automatically traced
-    response = await get_all_products.asyncio_detailed(client=client.client)
+    response = await get_all_products.asyncio_detailed(client=client)
 ```
 
 ### Span Details
@@ -440,7 +440,7 @@ with tracer.start_span("business_operation") as parent_span:
     # Client requests will be child spans
     async with KatanaClient(tracer=tracer) as client:
         # This will be traced as a child of "business_operation"
-        response = await get_all_products.asyncio_detailed(client=client.client)
+        response = await get_all_products.asyncio_detailed(client=client)
 ```
 
 ### Framework Compatibility
