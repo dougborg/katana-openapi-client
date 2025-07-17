@@ -96,6 +96,12 @@ dev = [
   # Semantic release
   "python-semantic-release>=9.0.0",
   "mypy-extensions>=1.1.0",
+  # Documentation generation
+  "sphinx>=7.0.0",
+  "sphinx-rtd-theme>=2.0.0",
+  "sphinx-autoapi>=3.0.0",
+  "myst-parser>=2.0.0",
+  "linkify-it-py>=2.0.0",
 ]
 
 [tool.poetry]
@@ -343,6 +349,14 @@ regenerate-client = "python scripts/regenerate_client.py"
 validate-openapi = "openapi-spec-validator katana-openapi.yaml"
 
 # -----------------------------------------------------------------------------
+# Documentation Tasks
+# -----------------------------------------------------------------------------
+docs-build = "sphinx-build -b html docs docs/_build/html"
+docs-clean = "rm -rf docs/_build"
+docs-serve = "python -m http.server 8000 -d docs/_build/html"
+docs-autobuild = "sphinx-autobuild docs docs/_build/html --open-browser"
+
+# -----------------------------------------------------------------------------
 # Combined Workflow Tasks
 # -----------------------------------------------------------------------------
 check = ["format-check", "lint", "test"]
@@ -382,6 +396,12 @@ echo "   poe test-coverage       - Run tests with coverage report"
 echo "   poe test-unit           - Run unit tests only"
 echo "   poe test-integration    - Run integration tests only"
 echo ""
+echo "📁 Documentation:"
+echo "   poe docs-build          - Build Sphinx documentation"
+echo "   poe docs-clean          - Clean documentation build files"
+echo "   poe docs-serve          - Serve documentation locally"
+echo "   poe docs-autobuild      - Auto-rebuild docs on changes"
+echo ""
 echo "📁 Development:"
 echo "   poe check               - Quick check: format-check + lint + test"
 echo "   poe ci                  - Full CI pipeline"
@@ -403,7 +423,7 @@ echo ""
 help = "Clean up build artifacts and cache files"
 shell = """
 echo "🧹 Cleaning build artifacts and cache files..."
-rm -rf .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov dist build *.egg-info
+rm -rf .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov dist build *.egg-info docs/_build
 find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 echo "✨ Workspace cleaned!"
 """
