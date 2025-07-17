@@ -104,6 +104,9 @@ packages = [{ include = "katana_public_api_client" }]
 include = ["katana_public_api_client/py.typed", "katana-openapi.yaml"]
 
 
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^4.2.0"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
@@ -216,7 +219,7 @@ skip-magic-trailing-comma = false
 [tool.ruff.lint]
 select = [
     "E",      # pycodestyle errors
-    "W",      # pycodestyle warnings  
+    "W",      # pycodestyle warnings
     "F",      # pyflakes
     "I",      # isort
     "B",      # flake8-bugbear
@@ -343,6 +346,14 @@ regenerate-client = "python scripts/regenerate_client.py"
 validate-openapi = "openapi-spec-validator katana-openapi.yaml"
 
 # -----------------------------------------------------------------------------
+# Pre-commit Tasks
+# -----------------------------------------------------------------------------
+pre-commit-install = "pre-commit install"
+pre-commit-uninstall = "pre-commit uninstall"
+pre-commit-run = "pre-commit run --all-files"
+pre-commit-update = "pre-commit autoupdate"
+
+# -----------------------------------------------------------------------------
 # Combined Workflow Tasks
 # -----------------------------------------------------------------------------
 check = ["format-check", "lint", "test"]
@@ -381,6 +392,11 @@ echo "   poe test                - Run all tests"
 echo "   poe test-coverage       - Run tests with coverage report"
 echo "   poe test-unit           - Run unit tests only"
 echo "   poe test-integration    - Run integration tests only"
+echo ""
+echo "📁 Pre-commit:"
+echo "   poe pre-commit-install  - Install pre-commit hooks"
+echo "   poe pre-commit-run      - Run pre-commit on all files"
+echo "   poe pre-commit-update   - Update pre-commit hooks"
 echo ""
 echo "📁 Development:"
 echo "   poe check               - Quick check: format-check + lint + test"

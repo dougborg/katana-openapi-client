@@ -277,6 +277,9 @@ poetry run poe test-integration    # Integration tests only
 # Install dependencies
 poetry install
 
+# Install pre-commit hooks (important!)
+poetry run poe pre-commit-install
+
 # See all available tasks
 poetry run poe help
 
@@ -294,6 +297,9 @@ poetry run poe fix
 ```bash
 # Install dependencies
 poetry install
+
+# Install pre-commit hooks (important!)
+poetry run poe pre-commit-install
 
 # See all available tasks
 poetry run poe help
@@ -336,6 +342,19 @@ poetry run poe validate-openapi
 
 # Full preparation workflow
 poetry run poe prepare             # Format + lint + test + validate
+```
+
+### Pre-commit Hooks
+
+```bash
+# Install pre-commit hooks (run once after clone)
+poetry run poe pre-commit-install
+
+# Run pre-commit on all files manually
+poetry run poe pre-commit-run
+
+# Update pre-commit hook versions
+poetry run poe pre-commit-update
 ```
 
 ### CI/Development Workflows
