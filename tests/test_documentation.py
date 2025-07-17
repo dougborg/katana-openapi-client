@@ -14,7 +14,8 @@ def test_documentation_builds_successfully():
         # Run the docs build command directly with poethepoet
         result = subprocess.run(
             ["poe", "docs-build"],
-            check=False, capture_output=True,
+            check=False,
+            capture_output=True,
             text=True,
             timeout=120,
             cwd=Path(__file__).parent.parent,
@@ -51,7 +52,8 @@ def test_documentation_has_api_reference():
     if not build_dir.exists():
         subprocess.run(
             ["poe", "docs-build"],
-            check=False, cwd=Path(__file__).parent.parent,
+            check=False,
+            cwd=Path(__file__).parent.parent,
             timeout=120,
         )
 
@@ -78,7 +80,8 @@ def test_documentation_search_functionality():
     if not build_dir.exists():
         subprocess.run(
             ["poe", "docs-build"],
-            check=False, cwd=Path(__file__).parent.parent,
+            check=False,
+            cwd=Path(__file__).parent.parent,
             timeout=120,
         )
 
