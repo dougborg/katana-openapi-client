@@ -53,16 +53,16 @@ The modern, pythonic client with automatic resilience:
 
 ```python
 import asyncio
+
 from katana_public_api_client import KatanaClient
+from katana_public_api_client.generated.api.product import get_all_products
+from katana_public_api_client.generated.api.sales_order import get_all_sales_orders
 
 async def main():
     # Automatic configuration from .env file
     async with KatanaClient() as client:
-        # Direct API usage - automatic retries & rate limiting built-in
-        from katana_public_api_client.api.product import get_all_products
-
         response = await get_all_products.asyncio_detailed(
-            client=client.client,
+            client=client,
             limit=50
         )
         print(f"Status: {response.status_code}")
@@ -70,16 +70,14 @@ async def main():
 
         # Automatic pagination happens transparently
         all_products_response = await get_all_products.asyncio_detailed(
-            client=client.client,
+            client=client,
             is_sellable=True
         )
         print(f"Total sellable products: {len(all_products_response.parsed.data)}")
 
         # Direct API usage with automatic resilience
-        from katana_public_api_client.api.sales_order import get_all_sales_orders
-
         orders_response = await get_all_sales_orders.asyncio_detailed(
-            client=client.client,
+            client=client,
             status="open"
         )
         orders = orders_response.parsed.data if orders_response.parsed else []
@@ -93,8 +91,10 @@ asyncio.run(main())
 For maximum control and custom resilience patterns:
 
 ```python
+import asyncio
+
 from katana_public_api_client import AuthenticatedClient
-from katana_public_api_client.api.product import get_all_products
+from katana_public_api_client.generated.api.product import get_all_products
 
 async def main():
     client = AuthenticatedClient(
@@ -146,7 +146,7 @@ Every API call through `KatanaClient` automatically includes:
 async with KatanaClient() as client:
     # Just use the generated API methods directly
     response = await get_all_products.asyncio_detailed(
-        client=client.client,
+        client=client,
         limit=100
     )
     # Automatic retries, rate limiting, logging - all transparent!
@@ -166,8 +166,9 @@ Uses httpx's native transport layer for resilience - the most pythonic approach:
 ### Custom Configuration
 
 ```python
-from katana_public_api_client import KatanaClient
 import logging
+
+from katana_public_api_client import KatanaClient
 
 # Custom configuration
 async with KatanaClient(
@@ -184,10 +185,13 @@ async with KatanaClient(
 ### Automatic Pagination
 
 ```python
+from katana_public_api_client import KatanaClient
+from katana_public_api_client.generated.api.product import get_all_products
+
 async with KatanaClient() as client:
     # Get all products with automatic pagination
     all_products_response = await get_all_products.asyncio_detailed(
-        client=client.client,
+        client=client,
         is_sellable=True
     )
     sellable_products = all_products_response.parsed.data
@@ -197,35 +201,33 @@ async with KatanaClient() as client:
 ### Direct API Usage
 
 ```python
+from katana_public_api_client import KatanaClient
+from katana_public_api_client.generated.api.inventory import get_all_inventory_points
+from katana_public_api_client.generated.api.manufacturing_order import get_all_manufacturing_orders
+from katana_public_api_client.generated.api.product import get_all_products, get_product
+from katana_public_api_client.generated.api.sales_order import get_all_sales_orders, get_sales_order
+
 async with KatanaClient() as client:
     # Direct API methods with automatic pagination and resilience
-    from katana_public_api_client.api.product import get_all_products
-    from katana_public_api_client.api.sales_order import get_all_sales_orders
-    from katana_public_api_client.api.inventory import get_all_inventory_points
-    from katana_public_api_client.api.manufacturing_order import get_all_manufacturing_orders
-
     products = await get_all_products.asyncio_detailed(
-        client=client.client, is_sellable=True
+        client=client, is_sellable=True
     )
     orders = await get_all_sales_orders.asyncio_detailed(
-        client=client.client, status="open"
+        client=client, status="open"
     )
     inventory = await get_all_inventory_points.asyncio_detailed(
-        client=client.client
+        client=client
     )
     manufacturing = await get_all_manufacturing_orders.asyncio_detailed(
-        client=client.client, status="planned"
+        client=client, status="planned"
     )
 
     # Individual item lookup
-    from katana_public_api_client.api.product import get_product
-    from katana_public_api_client.api.sales_order import get_sales_order
-
     product = await get_product.asyncio_detailed(
-        client=client.client, id=123
+        client=client, id=123
     )
     order = await get_sales_order.asyncio_detailed(
-        client=client.client, id=456
+        client=client, id=456
     )
 ```
 

@@ -26,21 +26,23 @@ class TestGeneratedClientStructure:
         assert hasattr(client, "_client")  # httpx client
 
     def test_katana_client_wraps_generated_client(self, katana_client):
-        """Test that Katana client properly wraps the generated client."""
-        assert isinstance(katana_client._client, AuthenticatedClient)
-        assert katana_client.client is katana_client._client
+        """Test that Katana client inherits from AuthenticatedClient."""
+        # KatanaClient now inherits from AuthenticatedClient directly
+        assert isinstance(katana_client, AuthenticatedClient)
+        assert hasattr(katana_client, 'token')
+        assert hasattr(katana_client, 'get_async_httpx_client')
 
     def test_api_modules_structure(self, katana_client):
         """Test that the API modules have the expected structure."""
         # This is a structural test to ensure we're not breaking the generated code
-        underlying_client = katana_client._client
-
-        # The client should have expected attributes
-        # Note: Exact structure depends on the generated code
-        assert hasattr(underlying_client, "_client")
-
+        # KatanaClient now inherits from AuthenticatedClient directly
+        
+        # The client should have expected attributes from AuthenticatedClient
+        assert hasattr(katana_client, "_async_client")
+        assert hasattr(katana_client, "get_async_httpx_client")
+        
         # Should be able to access client properties
-        assert underlying_client is not None
+        assert katana_client is not None
 
 
 class TestGeneratedMethodCompatibility:
@@ -58,7 +60,7 @@ class TestGeneratedMethodCompatibility:
         # Test that we can call the method directly through the client
         # The transport layer automatically handles resilience
         result = await mock_generated_method(
-            client=katana_client.client, id=123, limit=100
+            client=katana_client, id=123, limit=100
         )
 
         # Verify the method works correctly
@@ -116,11 +118,13 @@ class TestTypeSystemCompatibility:
         )  # Python may optimize these away
 
         # Key properties should be present and accessible
-        assert hasattr(katana_client, "client")
+        # KatanaClient now inherits from AuthenticatedClient directly
+        assert hasattr(katana_client, "token")
+        assert hasattr(katana_client, "get_async_httpx_client")
 
         # Properties should be accessible
-        client_property = katana_client.client
-        assert client_property is not None
+        assert katana_client.token is not None
+        assert katana_client.get_async_httpx_client is not None
 
     @pytest.mark.asyncio
     async def test_method_enhancement_preserves_types(self, katana_client):
@@ -134,7 +138,7 @@ class TestTypeSystemCompatibility:
 
         # Call the method directly through the client
         # The transport layer handles resilience automatically
-        result = await typed_method(client=katana_client.client, id=123)
+        result = await typed_method(client=katana_client, id=123)
 
         assert result is not None
         assert result["id"] == 123
@@ -185,7 +189,8 @@ class TestConfigurationCompatibility:
 
         # Should create successfully with custom configuration
         assert client is not None
-        assert client._client is not None
+        # KatanaClient now inherits from AuthenticatedClient directly
+        assert hasattr(client, 'get_async_httpx_client')
 
     def test_timeout_configuration(self, mock_api_credentials):
         """Test that timeout configuration works."""

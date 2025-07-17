@@ -8,8 +8,8 @@ This is a production-ready Python client for the Katana Manufacturing ERP API bu
 
 - **`katana_public_api_client/katana_client.py`**: Main client with `ResilientAsyncTransport` - all resilience features happen here automatically
 - **`katana_public_api_client/client.py`**: Generated OpenAPI client (base classes)
-- **`katana_public_api_client/api/`**: 76+ generated API endpoint modules (don't edit directly)
-- **`katana_public_api_client/models/`**: 150+ generated data models (don't edit directly)
+- **`katana_public_api_client/generated/api/`**: 76+ generated API endpoint modules (don't edit directly)
+- **`katana_public_api_client/generated/models/`**: 150+ generated data models (don't edit directly)
 
 ### The Transport Layer Pattern
 
@@ -17,12 +17,13 @@ This is a production-ready Python client for the Katana Manufacturing ERP API bu
 
 ```python
 # Generated API methods work transparently with resilience:
-from katana_public_api_client.api.product import get_all_products
+from katana_public_api_client import KatanaClient
+from katana_public_api_client.generated.api.product import get_all_products
 
 async with KatanaClient() as client:
     # This call automatically gets retries, rate limiting, pagination:
     response = await get_all_products.asyncio_detailed(
-        client=client.client, limit=50  # Will auto-paginate if needed
+        client=client, limit=50  # Will auto-paginate if needed
     )
 ```
 
@@ -96,13 +97,13 @@ No separate `mypy.ini`, `pytest.ini`, or `.flake8` files are used. The project f
 
 ### Client Usage Pattern
 
-**Always use the pattern**: `KatanaClient` → access via `.client` property → use generated API methods directly.
+**Always use the pattern**: `KatanaClient` can be passed directly to generated API methods.
 
 ```python
 # CORRECT pattern:
 async with KatanaClient() as client:
     response = await some_api_method.asyncio_detailed(
-        client=client.client,  # Note: .client property, not ._client
+        client=client,  # Pass KatanaClient directly
         param=value
     )
 
@@ -133,8 +134,8 @@ except Exception as e:
 
 ### Don't Edit (Generated)
 
-- `katana_public_api_client/api/**/*.py`
-- `katana_public_api_client/models/**/*.py`
+- `katana_public_api_client/generated/api/**/*.py`
+- `katana_public_api_client/generated/models/**/*.py`
 
 ### Format Exclusions
 
