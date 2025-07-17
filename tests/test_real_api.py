@@ -79,9 +79,7 @@ class TestRealAPIIntegration:
         # Test both with explicit parameters and environment variables
         async with KatanaClient(api_key=api_key, base_url=base_url) as client:
             # Direct API call - automatic resilience built-in
-            response = await get_all_products.asyncio_detailed(
-                client=client.client, limit=1
-            )
+            response = await get_all_products.asyncio_detailed(client=client, limit=1)
 
             # Should get a response
             assert response.status_code in [
@@ -101,14 +99,14 @@ class TestRealAPIIntegration:
         # This tests the new default behavior where base_url defaults to official URL
         async with KatanaClient() as client:
             # Should work without explicit parameters since we have .env file
-            assert client.api_key is not None
-            assert client.base_url is not None
+            assert client.token is not None
+            assert client._base_url is not None
             # Base URL should be either from .env file or the default
             expected_urls = [
                 "https://api.katanamrp.com/v1",  # Default
                 os.getenv("KATANA_BASE_URL"),  # From .env file
             ]
-            assert client.base_url in expected_urls
+            assert client._base_url in expected_urls
 
     @pytest.mark.asyncio
     @pytest.mark.integration
@@ -130,7 +128,7 @@ class TestRealAPIIntegration:
 
                     # Test automatic pagination (now built into transport layer)
                     response = await get_all_products.asyncio_detailed(
-                        client=client.client,
+                        client=client,
                         limit=5,  # Small limit to test automatic pagination
                     )
                     return response
@@ -226,7 +224,7 @@ class TestRealAPIIntegration:
             # Should still be able to create client if API key is available
             if original_key:
                 client = KatanaClient(api_key=original_key)
-                assert client.base_url == "https://api.katanamrp.com/v1"
+                assert client._base_url == "https://api.katanamrp.com/v1"
 
         finally:
             # Restore original values
@@ -268,7 +266,7 @@ class TestRealAPIIntegration:
 
                 # Direct API call with invalid key - automatic resilience built-in
                 response = await get_all_products.asyncio_detailed(
-                    client=client.client, limit=1
+                    client=client, limit=1
                 )
                 # Should handle error gracefully - either error status or the response itself
                 if hasattr(response, "status_code"):

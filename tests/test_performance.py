@@ -52,7 +52,7 @@ class TestPerformance:
         try:
             with patch("asyncio.sleep", new_callable=AsyncMock):  # Skip sleep delays
                 response = await get_all_products.asyncio_detailed(
-                    client=katana_client._client, limit=250
+                    client=katana_client, limit=250
                 )
 
             end_time = time.time()
@@ -166,7 +166,7 @@ class TestRetryBehavior:
         enhanced_method = mock_api_method
 
         # The method should be callable with the client
-        result = await enhanced_method(client=katana_client.client)
+        result = await enhanced_method(client=katana_client)
         assert result is not None
 
     @pytest.mark.asyncio
@@ -185,7 +185,7 @@ class TestRetryBehavior:
             return mock_response
 
         # Call through the client (transport layer handles this)
-        result = await mock_api_method(client=katana_client.client)
+        result = await mock_api_method(client=katana_client)
 
         # Should only be called once (no retries for 404)
         assert call_count == 1
@@ -234,7 +234,7 @@ class TestMemoryUsage:
         try:
             with patch("asyncio.sleep", new_callable=AsyncMock):  # Skip delays
                 response = await get_all_products.asyncio_detailed(
-                    client=katana_client._client, limit=100
+                    client=katana_client, limit=100
                 )
 
             # Should successfully handle request (even if it fails due to network)
@@ -254,10 +254,12 @@ class TestMemoryUsage:
         # Test that the client has proper cleanup (async context manager)
         async with katana_client:
             # Should be able to use the client
-            assert katana_client.client is not None
+            assert katana_client is not None
 
         # After cleanup, client should still be accessible
-        assert katana_client._client is not None
+        # KatanaClient now inherits from AuthenticatedClient
+        assert katana_client is not None
+        assert hasattr(katana_client, "get_async_httpx_client")
 
 
 class TestConcurrencyAndRaceConditions:

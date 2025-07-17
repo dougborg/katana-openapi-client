@@ -158,7 +158,10 @@ class TestKatanaClient:
         """Test that client can be initialized with default settings."""
         client = KatanaClient()
         assert client.max_pages == 100  # Default value
-        assert client._client is not None
+        # KatanaClient now inherits from AuthenticatedClient - test that it has the expected attributes
+        assert hasattr(client, "token")
+        assert hasattr(client, "get_async_httpx_client")
+        assert client.token == "test-key"  # Set by conftest.py fixture
 
     def test_client_initialization_with_params(self):
         """Test client initialization with custom parameters."""
@@ -179,7 +182,11 @@ class TestKatanaClient:
     async def test_context_manager(self):
         """Test that client works as async context manager."""
         async with KatanaClient() as client:
-            assert client._client is not None
+            # KatanaClient now inherits from AuthenticatedClient - test that it can be used directly
+            assert hasattr(client, "get_async_httpx_client")
+            # Test that the async client is created when entering context
+            async_client = client.get_async_httpx_client()
+            assert async_client is not None
 
     @pytest.mark.asyncio
     async def test_pagination_basic(self, katana_client):
@@ -234,7 +241,7 @@ class TestKatanaClientIntegration:
                 )
 
                 response = await get_all_products.asyncio_detailed(
-                    client=client.client,
+                    client=client,  # Pass KatanaClient directly
                     limit=1,  # Just get one product
                 )
 

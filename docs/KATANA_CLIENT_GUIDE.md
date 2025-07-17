@@ -30,16 +30,16 @@ echo "KATANA_BASE_URL=https://api.katanamrp.com/v1" >> .env
 
 ```python
 import asyncio
+
 from katana_public_api_client import KatanaClient
+from katana_public_api_client.generated.api.product import get_all_products
 
 async def main():
     # Automatic configuration from .env file
     async with KatanaClient() as client:
         # Direct API usage - automatic resilience built-in
-        from katana_public_api_client.api.product import get_all_products
-
         response = await get_all_products.asyncio_detailed(
-            client=client.client,
+            client=client,
             limit=50
         )
 
@@ -65,7 +65,7 @@ Every API call through `KatanaClient` automatically includes:
 async with KatanaClient(max_retries=5) as client:
     # This call will automatically retry on failures
     response = await get_all_products.asyncio_detailed(
-        client=client.client,
+        client=client,
         limit=100
     )
     # No decorators or wrapper methods needed!
@@ -79,7 +79,7 @@ async with KatanaClient() as client:
     # These calls will automatically be rate limited
     for i in range(100):
         response = await get_all_products.asyncio_detailed(
-            client=client.client,
+            client=client,
             page=i,
             limit=50
         )
@@ -97,7 +97,7 @@ logging.basicConfig(level=logging.INFO)
 async with KatanaClient() as client:
     # Automatic error recovery with detailed logging
     response = await get_all_products.asyncio_detailed(
-        client=client.client,
+        client=client,
         limit=100
     )
     # Logs will show retry attempts and recovery
@@ -113,7 +113,7 @@ All pagination is now handled automatically and transparently:
 async with KatanaClient() as client:
     # Get ALL products across all pages automatically
     all_products = await get_all_products.asyncio_detailed(
-        client=client.client,
+        client=client,
         is_sellable=True  # API filter parameters
     )
     print(f"Total products: {len(all_products.parsed.data)}")
@@ -125,7 +125,7 @@ async with KatanaClient() as client:
 async with KatanaClient() as client:
     # Built-in safety limits and automatic pagination
     products = await get_all_products.asyncio_detailed(
-        client=client.client,
+        client=client,
         limit=250  # Optimize page size - automatically paginated
     )
     # All pages are automatically collected into a single response
@@ -221,7 +221,7 @@ logging.basicConfig(
 async with KatanaClient() as client:
     # All resilience actions are logged
     response = await get_all_products.asyncio_detailed(
-        client=client.client,
+        client=client,
         limit=100
     )
 ```
@@ -249,7 +249,7 @@ async with KatanaClient(
 ) as client:
     # Your custom hooks are called alongside built-in ones
     response = await get_all_products.asyncio_detailed(
-        client=client.client,
+        client=client,
         limit=10
     )
 ```
@@ -269,7 +269,7 @@ async def test_api_integration():
     with patch.dict('os.environ', {'KATANA_API_KEY': 'test-key'}):
         async with KatanaClient() as client:
             # Mock the underlying httpx client
-            with patch.object(client.client, 'get_async_httpx_client') as mock_httpx:
+            with patch.object(client, 'get_async_httpx_client') as mock_httpx:
                 mock_response = AsyncMock()
                 mock_response.status_code = 200
                 mock_response.json.return_value = {"data": [{"id": 1}]}
@@ -277,9 +277,9 @@ async def test_api_integration():
                 mock_httpx.return_value.request = AsyncMock(return_value=mock_response)
 
                 # Test your API logic here
-                from katana_public_api_client.api.product import get_all_products
+                from katana_public_api_client.generated.api.product import get_all_products
                 response = await get_all_products.asyncio_detailed(
-                    client=client.client,
+                    client=client,
                     limit=10
                 )
 
@@ -290,8 +290,11 @@ async def test_api_integration():
 
 ```python
 import os
+
 import pytest
+
 from katana_public_api_client import KatanaClient
+from katana_public_api_client.generated.api.product import get_all_products
 
 @pytest.mark.integration
 @pytest.mark.asyncio
@@ -302,10 +305,8 @@ async def test_real_api():
         pytest.skip("KATANA_API_KEY not set")
 
     async with KatanaClient() as client:
-        from katana_public_api_client.api.product import get_all_products
-
         response = await get_all_products.asyncio_detailed(
-            client=client.client,
+            client=client,
             limit=1
         )
 
@@ -324,7 +325,7 @@ from katana_public_api_client import EnhancedKatanaClient
 async with EnhancedKatanaClient() as client:
     # Required decorators for resilience
     resilient_method = client.with_resilience(get_all_products.asyncio_detailed)
-    response = await resilient_method(client=client.client, limit=50)
+    response = await resilient_method(client=client, limit=50)
 ```
 
 ### New Way (Transport Layer)
@@ -336,7 +337,7 @@ from katana_public_api_client import KatanaClient
 async with KatanaClient() as client:
     # No decorators needed - automatic resilience!
     response = await get_all_products.asyncio_detailed(
-        client=client.client,
+        client=client,
         limit=50
     )
 ```
@@ -408,7 +409,7 @@ from katana_public_api_client.errors import UnexpectedStatus
 async with KatanaClient() as client:
     try:
         response = await get_all_products.asyncio_detailed(
-            client=client.client,
+            client=client,
             limit=50
         )
 
@@ -434,14 +435,14 @@ async with KatanaClient() as client:
 # ✅ Good: Properly manages connections
 async with KatanaClient() as client:
     response = await get_all_products.asyncio_detailed(
-        client=client.client,
+        client=client,
         limit=50
     )
 
 # ❌ Bad: Doesn't close connections
 client = KatanaClient()
 response = await get_all_products.asyncio_detailed(
-    client=client.client,
+    client=client,
     limit=50
 )
 ```
@@ -465,7 +466,7 @@ async with KatanaClient(timeout=1.0) as client:
 ```python
 # ✅ Good: Automatic pagination for large datasets
 all_products = await get_all_products.asyncio_detailed(
-    client=client.client,
+    client=client,
     # Automatically handles all pages with built-in safety limits
 )
 
@@ -473,7 +474,7 @@ all_products = await get_all_products.asyncio_detailed(
 page = 1
 while True:  # Could run forever!
     response = await get_all_products.asyncio_detailed(
-        client=client.client,
+        client=client,
         page=page,
         limit=100
     )
@@ -486,7 +487,7 @@ while True:  # Could run forever!
 ```python
 async with KatanaClient() as client:
     response = await get_all_products.asyncio_detailed(
-        client=client.client,
+        client=client,
         limit=50
     )
 
@@ -511,7 +512,7 @@ async with KatanaClient() as client:
 # ❌ Okay but more verbose: Direct API calls
 async with KatanaClient() as client:
     all_products = await get_all_products.asyncio_detailed(
-        client=client.client,
+        client=client,
         is_sellable=True
     )
 ```
@@ -540,19 +541,19 @@ for operation in [get_products, get_orders, get_inventory]:
 ```python
 # ✅ Good: Reasonable page size
 products = await get_all_products.asyncio_detailed(
-    client=client.client,
+    client=client,
     limit=250  # Good balance of efficiency and memory - automatically paginated
 )
 
 # ❌ Bad: Too small (many requests)
 products = await get_all_products.asyncio_detailed(
-    client=client.client,
+    client=client,
     limit=10   # Will make many small requests
 )
 
 # ❌ Bad: Too large (may hit API limits)
 products = await get_all_products.asyncio_detailed(
-    client=client.client,
+    client=client,
     limit=10000  # May exceed API limits
 )
 ```
