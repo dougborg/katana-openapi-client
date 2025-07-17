@@ -146,8 +146,7 @@ PEP 621 standards for modern Python packaging.
 
 ### Client Usage Pattern
 
-**Always use the pattern**: `KatanaClient` → access via `.client` property → use
-generated API methods directly.
+**Always use the pattern**: `KatanaClient` can be passed directly to generated API methods.
 
 ```python
 # CORRECT pattern:
