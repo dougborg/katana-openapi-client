@@ -54,7 +54,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/dougborg/katana-openapi-client"
 Repository = "https://github.com/dougborg/katana-openapi-client"
-Documentation = "https://github.com/dougborg/katana-openapi-client/blob/main/docs/README.md"
+Documentation = "https://dougborg.github.io/katana-openapi-client/"
 "Bug Tracker" = "https://github.com/dougborg/katana-openapi-client/issues"
 Changelog = "https://github.com/dougborg/katana-openapi-client/blob/main/docs/CHANGELOG.md"
 
@@ -96,6 +96,12 @@ dev = [
   # Semantic release
   "python-semantic-release>=9.0.0",
   "mypy-extensions>=1.1.0",
+  # Documentation generation
+  "sphinx>=7.0.0",
+  "sphinx-rtd-theme>=2.0.0",
+  "sphinx-autoapi>=3.0.0",
+  "myst-parser>=2.0.0",
+  "linkify-it-py>=2.0.0",
 ]
 tracing = [
   # OpenTracing support
@@ -108,6 +114,9 @@ tracing = [
 packages = [{ include = "katana_public_api_client" }]
 include = ["katana_public_api_client/py.typed", "katana-openapi.yaml"]
 
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^4.2.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -221,7 +230,7 @@ skip-magic-trailing-comma = false
 [tool.ruff.lint]
 select = [
     "E",      # pycodestyle errors
-    "W",      # pycodestyle warnings  
+    "W",      # pycodestyle warnings
     "F",      # pyflakes
     "I",      # isort
     "B",      # flake8-bugbear
@@ -348,11 +357,27 @@ regenerate-client = "python scripts/regenerate_client.py"
 validate-openapi = "openapi-spec-validator katana-openapi.yaml"
 
 # -----------------------------------------------------------------------------
+# Documentation Tasks
+# -----------------------------------------------------------------------------
+docs-build = "sphinx-build -b html docs docs/_build/html"
+docs-clean = "rm -rf docs/_build"
+docs-serve = "python -m http.server 8000 -d docs/_build/html"
+docs-autobuild = "sphinx-autobuild docs docs/_build/html --open-browser"
+
+# -----------------------------------------------------------------------------
+# Pre-commit Tasks
+# -----------------------------------------------------------------------------
+pre-commit-install = "pre-commit install"
+pre-commit-uninstall = "pre-commit uninstall"
+pre-commit-run = "pre-commit run --all-files"
+pre-commit-update = "pre-commit autoupdate"
+
+# -----------------------------------------------------------------------------
 # Combined Workflow Tasks
 # -----------------------------------------------------------------------------
 check = ["format-check", "lint", "test"]
 fix = ["format", "lint-ruff-fix"]
-ci = ["format-check", "lint", "test-coverage"]
+ci = ["format-check", "lint", "test-coverage", "docs-build"]
 prepare = ["format", "lint", "test", "validate-openapi"]
 # AST-based consistency check for generated client
 check-generated-ast = "python scripts/check_generated_client_ast.py"
@@ -387,6 +412,17 @@ echo "   poe test-coverage       - Run tests with coverage report"
 echo "   poe test-unit           - Run unit tests only"
 echo "   poe test-integration    - Run integration tests only"
 echo ""
+echo "📁 Documentation:"
+echo "   poe docs-build          - Build Sphinx documentation"
+echo "   poe docs-clean          - Clean documentation build files"
+echo "   poe docs-serve          - Serve documentation locally"
+echo "   poe docs-autobuild      - Auto-rebuild docs on changes"
+echo ""
+echo "📁 Pre-commit:"
+echo "   poe pre-commit-install  - Install pre-commit hooks"
+echo "   poe pre-commit-run      - Run pre-commit on all files"
+echo "   poe pre-commit-update   - Update pre-commit hooks"
+echo ""
 echo "📁 Development:"
 echo "   poe check               - Quick check: format-check + lint + test"
 echo "   poe ci                  - Full CI pipeline"
@@ -408,7 +444,7 @@ echo ""
 help = "Clean up build artifacts and cache files"
 shell = """
 echo "🧹 Cleaning build artifacts and cache files..."
-rm -rf .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov dist build *.egg-info
+rm -rf .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov dist build *.egg-info docs/_build
 find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 echo "✨ Workspace cleaned!"
 """
