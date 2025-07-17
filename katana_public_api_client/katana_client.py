@@ -54,6 +54,21 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
         logger: logging.Logger | None = None,
         **kwargs: Any,
     ):
+        """
+        Initialize the resilient HTTP transport with automatic retry and pagination.
+
+        Args:
+            max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
+            max_pages: Maximum number of pages to collect during auto-pagination. Defaults to 100.
+            logger: Logger instance for capturing transport operations. If None, creates a default logger.
+            **kwargs: Additional arguments passed to the underlying httpx AsyncHTTPTransport.
+
+        Note:
+            This transport automatically handles:
+            - Retries on network errors and 5xx server errors
+            - Rate limiting with Retry-After header support
+            - Auto-pagination for GET requests with 'page' or 'limit' parameters
+        """
         super().__init__(**kwargs)
         self.max_retries = max_retries
         self.max_pages = max_pages
@@ -61,9 +76,23 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         """
-        Handle the request with automatic retries, rate limiting, and pagination.
+        Handle HTTP requests with automatic retries, rate limiting, and pagination.
 
-        This method is called for every HTTP request made through the client.
+        This method is called for every HTTP request made through the client and provides
+        the core resilience functionality of the transport layer.
+
+        Args:
+            request: The HTTP request to handle.
+
+        Returns:
+            The HTTP response, potentially with combined data from multiple pages
+            if auto-pagination was triggered.
+
+        Note:
+            - GET requests with 'page' or 'limit' parameters trigger auto-pagination
+            - Requests with explicit 'page' parameter disable auto-pagination
+            - All requests get automatic retry logic for network and server errors
+            - Rate limiting is handled automatically with Retry-After header support
         """
         # Check if this is a paginated request (has 'page' or 'limit' param)
         # Smart pagination: automatically detect based on request parameters
@@ -81,7 +110,19 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             return await self._handle_single_request(request)
 
     async def _handle_single_request(self, request: httpx.Request) -> httpx.Response:
-        """Handle a single request with retries using tenacity."""
+        """
+        Handle a single request with retries using tenacity.
+
+        Args:
+            request: The HTTP request to handle.
+
+        Returns:
+            The HTTP response from the server.
+
+        Raises:
+            RetryError: If all retry attempts are exhausted.
+            httpx.HTTPError: For unrecoverable HTTP errors.
+        """
 
         # Define a properly typed retry decorator
         def _make_retry_decorator() -> Callable[
@@ -168,7 +209,26 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             raise
 
     async def _handle_paginated_request(self, request: httpx.Request) -> httpx.Response:
-        """Handle a paginated request automatically collecting all pages."""
+        """
+        Handle paginated requests by automatically collecting all pages.
+
+        This method detects paginated responses and automatically collects all available
+        pages up to the configured maximum. It preserves the original request structure
+        while combining data from multiple pages.
+
+        Args:
+            request: The HTTP request to handle (must be a GET request with pagination parameters).
+
+        Returns:
+            A combined HTTP response containing data from all collected pages with
+            pagination metadata in the response body.
+
+        Note:
+            - Only GET requests with 'limit' parameter trigger auto-pagination
+            - Requests with explicit 'page' parameter are treated as single-page requests
+            - The response contains an 'auto_paginated' flag in the pagination metadata
+            - Data from all pages is combined into a single 'data' array
+        """
         all_data = []
         current_page = 1
         total_pages = None
@@ -360,6 +420,26 @@ class KatanaClient:
         logger: logging.Logger | None = None,
         **httpx_kwargs: Any,
     ):
+        """
+        Initialize the Katana API client with automatic resilience features.
+
+        Args:
+            api_key: Katana API key. If None, will try to load from KATANA_API_KEY env var.
+            base_url: Base URL for the Katana API. Defaults to https://api.katanamrp.com/v1
+            timeout: Request timeout in seconds. Defaults to 30.0.
+            max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
+            max_pages: Maximum number of pages to collect during auto-pagination. Defaults to 100.
+            logger: Logger instance for capturing client operations. If None, creates a default logger.
+            **httpx_kwargs: Additional arguments passed to the underlying httpx client.
+
+        Raises:
+            ValueError: If no API key is provided and KATANA_API_KEY env var is not set.
+
+        Example:
+            >>> async with KatanaClient() as client:
+            ...     # All API calls through client.client get automatic resilience
+            ...     response = await some_api_method.asyncio_detailed(client=client.client)
+        """
         load_dotenv()
 
         # Setup credentials

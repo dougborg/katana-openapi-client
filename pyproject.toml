@@ -54,7 +54,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/dougborg/katana-openapi-client"
 Repository = "https://github.com/dougborg/katana-openapi-client"
-Documentation = "https://github.com/dougborg/katana-openapi-client/blob/main/docs/README.md"
+Documentation = "https://dougborg.github.io/katana-openapi-client/"
 "Bug Tracker" = "https://github.com/dougborg/katana-openapi-client/issues"
 Changelog = "https://github.com/dougborg/katana-openapi-client/blob/main/docs/CHANGELOG.md"
 
@@ -361,7 +361,7 @@ docs-autobuild = "sphinx-autobuild docs docs/_build/html --open-browser"
 # -----------------------------------------------------------------------------
 check = ["format-check", "lint", "test"]
 fix = ["format", "lint-ruff-fix"]
-ci = ["format-check", "lint", "test-coverage"]
+ci = ["format-check", "lint", "test-coverage", "docs-build"]
 prepare = ["format", "lint", "test", "validate-openapi"]
 # AST-based consistency check for generated client
 check-generated-ast = "python scripts/check_generated_client_ast.py"
