@@ -1,14 +1,17 @@
 # Katana OpenAPI Client Documentation
 
-Welcome to the **Katana OpenAPI Client** documentation. This is a modern, pythonic client for the Katana Manufacturing ERP API with automatic resilience features.
+Welcome to the **Katana OpenAPI Client** documentation. This is a modern, pythonic
+client for the Katana Manufacturing ERP API with automatic resilience features.
 
 ## Features
 
-- **Transport-layer resilience**: Automatic retries, rate limiting, and smart pagination at the HTTP transport level
+- **Transport-layer resilience**: Automatic retries, rate limiting, and smart pagination
+  at the HTTP transport level
 - **Type-safe**: Full type hints and mypy compatibility
 - **Async/await support**: Built on httpx for modern Python async patterns
 - **Production-ready**: Comprehensive error handling and logging
-- **Zero-wrapper philosophy**: All resilience features work transparently with the generated API client
+- **Zero-wrapper philosophy**: All resilience features work transparently with the
+  generated API client
 
 ## Quick Start
 
@@ -31,7 +34,9 @@ async def main():
 
 ## Architecture
 
-The client uses a **transport-layer resilience** approach where all resilience features (retries, rate limiting, pagination) are implemented at the HTTP transport level rather than as decorators or wrapper methods. This means:
+The client uses a **transport-layer resilience** approach where all resilience features
+(retries, rate limiting, pagination) are implemented at the HTTP transport level rather
+than as decorators or wrapper methods. This means:
 
 - All 150+ generated API methods automatically get resilience features
 - No code changes needed when the OpenAPI spec is updated
@@ -75,7 +80,8 @@ CODE_OF_CONDUCT
 
 ## API Reference
 
-The API reference documentation is automatically generated from the source code docstrings and includes:
+The API reference documentation is automatically generated from the source code
+docstrings and includes:
 
 - **Main Client Classes**: `KatanaClient`, `ResilientAsyncTransport`
 - **Logging Utilities**: `setup_logging`, `get_logger`
@@ -118,4 +124,6 @@ async with KatanaClient(
 
 ## License
 
-MIT License - see [LICENSE](https://github.com/dougborg/katana-openapi-client/blob/main/LICENSE) for details.
+MIT License - see
+[LICENSE](https://github.com/dougborg/katana-openapi-client/blob/main/LICENSE) for
+details.

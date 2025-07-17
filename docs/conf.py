@@ -21,6 +21,7 @@ author = "Doug Borg"
 # Get version from package
 try:
     from katana_public_api_client import __version__
+
     version = __version__
     release = __version__
 except ImportError:

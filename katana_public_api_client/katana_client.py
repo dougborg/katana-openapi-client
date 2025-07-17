@@ -438,7 +438,9 @@ class KatanaClient:
         Example:
             >>> async with KatanaClient() as client:
             ...     # All API calls through client.client get automatic resilience
-            ...     response = await some_api_method.asyncio_detailed(client=client.client)
+            ...     response = await some_api_method.asyncio_detailed(
+            ...         client=client.client
+            ...     )
         """
         load_dotenv()
 
