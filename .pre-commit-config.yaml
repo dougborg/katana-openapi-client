@@ -27,6 +27,16 @@ repos:
       - id: mixed-line-ending
         args: [--fix=lf]
 
+  # Markdown formatting
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.22
+    hooks:
+      - id: mdformat
+        args: [--wrap=88]
+        additional_dependencies:
+          - mdformat-gfm
+          - mdformat-tables
+
   # YAML linting
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.37.1
