@@ -97,6 +97,11 @@ dev = [
   "python-semantic-release>=9.0.0",
   "mypy-extensions>=1.1.0",
 ]
+tracing = [
+  # OpenTracing support
+  "opentracing>=2.4.0",
+  "jaeger-client>=4.8.0",
+]
 
 [tool.poetry]
 # Keep Poetry section for package discovery and build configuration

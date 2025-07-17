@@ -31,6 +31,18 @@ else:
 
 from .generated.client import AuthenticatedClient
 
+# OpenTracing imports - conditional to avoid hard dependency
+try:
+    import opentracing
+    from opentracing import Tracer
+    from opentracing.ext import tags
+    OPENTRACING_AVAILABLE = True
+except ImportError:
+    opentracing = None
+    Tracer = None
+    tags = None
+    OPENTRACING_AVAILABLE = False
+
 
 class ResilientAsyncTransport(AsyncHTTPTransport):
     """
@@ -45,6 +57,7 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
     - Rate limiting detection and handling
     - Smart pagination based on response headers and request parameters
     - Request/response logging and metrics
+    - Optional OpenTracing support for distributed tracing
     """
 
     def __init__(
@@ -52,12 +65,21 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
         max_retries: int = 5,
         max_pages: int = 100,
         logger: logging.Logger | None = None,
+        tracer: "Tracer | None" = None,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self.max_retries = max_retries
         self.max_pages = max_pages
         self.logger = logger or logging.getLogger(__name__)
+        self.tracer = tracer
+        
+        # Warn if OpenTracing is requested but not available
+        if tracer is not None and not OPENTRACING_AVAILABLE:
+            self.logger.warning(
+                "OpenTracing tracer provided but opentracing library is not installed. "
+                "Install with: pip install 'katana-openapi-client[tracing]'"
+            )
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         """
@@ -65,6 +87,35 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
 
         This method is called for every HTTP request made through the client.
         """
+        # Create OpenTracing span if tracer is configured
+        if self.tracer is not None and OPENTRACING_AVAILABLE:
+            with self.tracer.start_span(
+                operation_name=f"katana_client.{request.method}",
+                tags={
+                    tags.COMPONENT: "katana-openapi-client",
+                    tags.HTTP_METHOD: request.method,
+                    tags.HTTP_URL: str(request.url),
+                    tags.SPAN_KIND: tags.SPAN_KIND_RPC_CLIENT,
+                }
+            ) as span:
+                try:
+                    response = await self._handle_request_with_span(request, span)
+                    # Tag successful responses
+                    span.set_tag(tags.HTTP_STATUS_CODE, response.status_code)
+                    if response.status_code >= 400:
+                        span.set_tag(tags.ERROR, True)
+                    return response
+                except Exception as e:
+                    # Tag errors
+                    span.set_tag(tags.ERROR, True)
+                    span.log_kv({"error": str(e)})
+                    raise
+        else:
+            # No tracing, use original logic
+            return await self._handle_request_with_span(request, None)
+    
+    async def _handle_request_with_span(self, request: httpx.Request, span: Any = None) -> httpx.Response:
+        """Handle the request with optional span context."""
         # Check if this is a paginated request (has 'page' or 'limit' param)
         # Smart pagination: automatically detect based on request parameters
         should_paginate = (
@@ -76,11 +127,13 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
         )
 
         if should_paginate:
-            return await self._handle_paginated_request(request)
+            if span is not None:
+                span.set_tag("katana.pagination.enabled", True)
+            return await self._handle_paginated_request(request, span)
         else:
-            return await self._handle_single_request(request)
+            return await self._handle_single_request(request, span)
 
-    async def _handle_single_request(self, request: httpx.Request) -> httpx.Response:
+    async def _handle_single_request(self, request: httpx.Request, span: Any = None) -> httpx.Response:
         """Handle a single request with retries using tenacity."""
 
         # Define a properly typed retry decorator
@@ -115,20 +168,28 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
                 self.logger.warning(
                     f"Rate limited, retrying after exponential backoff (server suggested {retry_after}s)"
                 )
+                if span is not None:
+                    span.log_kv({"event": "rate_limited", "retry_after": retry_after})
 
             elif 500 <= response.status_code < 600:
                 self.logger.warning(
                     f"Server error {response.status_code}, retrying with exponential backoff"
                 )
+                if span is not None:
+                    span.log_kv({"event": "server_error", "status_code": response.status_code})
 
             return response
 
         # Execute the request with retries
         try:
             response = await _make_request_with_retry()
+            if span is not None:
+                span.set_tag("katana.retry.success", True)
             return response
         except RetryError as e:
             # For retry errors (when server keeps returning 4xx/5xx), return the last response
+            if span is not None:
+                span.set_tag("katana.retry.exhausted", True)
             self.logger.error(
                 f"Request failed after {self.max_retries} retries, extracting last response"
             )
@@ -167,7 +228,7 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             self.logger.error(f"Unexpected error after {self.max_retries} retries: {e}")
             raise
 
-    async def _handle_paginated_request(self, request: httpx.Request) -> httpx.Response:
+    async def _handle_paginated_request(self, request: httpx.Request, span: Any = None) -> httpx.Response:
         """Handle a paginated request automatically collecting all pages."""
         all_data = []
         current_page = 1
@@ -193,7 +254,7 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             )
 
             # Make the request
-            response = await self._handle_single_request(paginated_request)
+            response = await self._handle_single_request(paginated_request, span)
 
             if response.status_code != 200:
                 # If we get an error, return the original response
@@ -267,6 +328,13 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
         self.logger.info(
             f"Auto-pagination complete: collected {len(all_data)} items from {page_num} pages"
         )
+        
+        # Add pagination tracing info
+        if span is not None:
+            span.set_tag("katana.pagination.pages_collected", page_num)
+            span.set_tag("katana.pagination.total_items", len(all_data))
+            if total_pages:
+                span.set_tag("katana.pagination.total_pages", total_pages)
 
         return combined_response
 
@@ -326,6 +394,7 @@ class KatanaClient:
     - Automatic rate limit handling with Retry-After header support
     - Smart auto-pagination that detects and handles paginated responses automatically
     - Rich logging and observability
+    - Optional OpenTracing support for distributed tracing
     - Minimal configuration - just works out of the box
 
     Usage:
@@ -348,6 +417,16 @@ class KatanaClient:
 
             # Control max pages globally
             client_limited = KatanaClient(max_pages=5)  # Limit to 5 pages max
+            
+        # With OpenTracing support
+        import opentracing
+        tracer = opentracing.tracer  # or configure your tracer
+        async with KatanaClient(tracer=tracer) as client:
+            # All requests will be automatically traced
+            response = await get_all_products.asyncio_detailed(
+                client=client.client,
+                limit=50
+            )
     """
 
     def __init__(
@@ -358,6 +437,7 @@ class KatanaClient:
         max_retries: int = 5,
         max_pages: int = 100,
         logger: logging.Logger | None = None,
+        tracer: "Tracer | None" = None,
         **httpx_kwargs: Any,
     ):
         load_dotenv()
@@ -378,7 +458,7 @@ class KatanaClient:
 
         # Create resilient transport with observability hooks
         transport = ResilientAsyncTransport(
-            max_retries=max_retries, max_pages=max_pages, logger=self.logger
+            max_retries=max_retries, max_pages=max_pages, logger=self.logger, tracer=tracer
         )
 
         # Event hooks for observability
