@@ -1,6 +1,6 @@
 """A client library for accessing Katana Public API"""
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 # Re-export generated modules for backward compatibility
 from .generated import api, models
