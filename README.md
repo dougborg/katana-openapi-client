@@ -5,7 +5,7 @@ A modern, pythonic Python client for the
 comprehensive OpenAPI 3.1.0 specification with 100% endpoint coverage and automatic
 resilience.
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Poetry](https://img.shields.io/badge/dependency--management-poetry-blue.svg)](https://python-poetry.org/)
 [![OpenAPI 3.1.0](https://img.shields.io/badge/OpenAPI-3.1.0-green.svg)](https://spec.openapis.org/oas/v3.1.0)
 
