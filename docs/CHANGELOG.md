@@ -2,7 +2,7 @@
 
 
 
-## v1.0.0 (2025-07-17)
+## v1.0.0 (2025-07-18)
 
 ### Breaking
 
@@ -22,6 +22,12 @@ Changes:
 - Update AI instructions to reflect new architecture ([`116ea04`](https://github.com/dougborg/katana-openapi-client/commit/116ea0431a0f0d3e61163ed7076f1b2dd539bfa5))
 
 ### Chore
+
+* chore(docs): Update README.md for python version support
+
+We support 3.11 and newer. ([`ba2aeb7`](https://github.com/dougborg/katana-openapi-client/commit/ba2aeb7cc3d4c412652f74b4d583db1775e354d0))
+
+* chore(release): 1.0.0 ([`b7af850`](https://github.com/dougborg/katana-openapi-client/commit/b7af8509ff9ec0805ff549290273f485d454d0f7))
 
 * chore: Add comprehensive documentation generation and GitHub Pages publishing (#4)
 
@@ -50,6 +56,13 @@ This resolves the CI formatting failure and provides clear guidelines
 to prevent incorrect conventional commit usage and establishes 
 consistent code quality enforcement across the development team 
 without changing any functional codebase behavior. ([`d6511e6`](https://github.com/dougborg/katana-openapi-client/commit/d6511e68949a95ba6871ad7e60b6b7b9e295a535))
+
+### Feature
+
+* feat: Add OpenTracing support for distributed tracing integration (#2)
+
+* Add OpenTracing support to Katana client with comprehensive tests and examples
+* Update README with comprehensive OpenTracing documentation and usage examples ([`289184b`](https://github.com/dougborg/katana-openapi-client/commit/289184b4c6817fefddb63b656b2beb7655af71e4))
 
 
 ## v0.1.0 (2025-07-16)
