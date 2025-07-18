@@ -37,7 +37,7 @@ class TestTransportAutoPagination:
             response = await transport.handle_async_request(request)
 
             # Should call the paginated handler
-            mock_paginated.assert_called_once_with(request)
+            mock_paginated.assert_called_once_with(request, None)
             assert response.status_code == 200
 
     @pytest.mark.asyncio
@@ -57,7 +57,7 @@ class TestTransportAutoPagination:
             response = await transport.handle_async_request(request)
 
             # Should call the single request handler
-            mock_single.assert_called_once_with(request)
+            mock_single.assert_called_once_with(request, None)
             assert response.status_code == 200
 
     @pytest.mark.asyncio
@@ -75,7 +75,7 @@ class TestTransportAutoPagination:
             response = await transport.handle_async_request(request)
 
             # Should call the single request handler
-            mock_single.assert_called_once_with(request)
+            mock_single.assert_called_once_with(request, None)
             assert response.status_code == 200
 
     @pytest.mark.asyncio

@@ -23,7 +23,7 @@ async def main():
     async with KatanaClient() as client:
         # This call automatically gets retries, rate limiting, and pagination
         response = await get_all_products.asyncio_detailed(
-            client=client.client,
+            client=client,
             limit=50  # Will auto-paginate if needed
         )
         
