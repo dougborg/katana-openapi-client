@@ -33,6 +33,7 @@ repos:
     hooks:
       - id: mdformat
         args: [--wrap=88]
+        exclude: '(CHANGELOG\.md|docs/CHANGELOG\.md)'
         additional_dependencies:
           - mdformat-gfm
           - mdformat-tables

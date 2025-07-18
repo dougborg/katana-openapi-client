@@ -298,7 +298,7 @@ upload_to_repository = false
 remove_dist = false
 commit_author = "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
 commit_message = "chore(release): {version}"
-build_command = "echo 'Starting build_command...' && pip install mdformat mdformat-gfm mdformat-tables mdformat-toc && echo 'Formatting changelog...' && python -m mdformat docs/CHANGELOG.md --wrap 88 && echo 'Build command completed successfully'"
+build_command = "echo 'Build command completed successfully'"
 
 [tool.semantic_release.commit_parser_options]
 allowed_tags = [
@@ -344,8 +344,8 @@ upload_to_vcs_release = true
 format-python = "ruff format ."
 format-python-check = "ruff format --check ."
 
-format-markdown = "mdformat *.md docs/ --wrap 88"
-format-markdown-check = "mdformat --check *.md docs/"
+format-markdown = "mdformat README.md docs/KATANA_CLIENT_GUIDE.md docs/POETRY_USAGE.md docs/README.md docs/TESTING_GUIDE.md docs/CONTRIBUTING.md docs/CODE_OF_CONDUCT.md docs/RELEASE_WORKFLOW.md docs/SEMANTIC_RELEASE_GUIDE.md docs/PYPI_SETUP.md docs/index.md --wrap 88"
+format-markdown-check = "mdformat --check README.md docs/KATANA_CLIENT_GUIDE.md docs/POETRY_USAGE.md docs/README.md docs/TESTING_GUIDE.md docs/CONTRIBUTING.md docs/CODE_OF_CONDUCT.md docs/RELEASE_WORKFLOW.md docs/SEMANTIC_RELEASE_GUIDE.md docs/PYPI_SETUP.md docs/index.md"
 
 format = ["format-python", "format-markdown"]
 format-check = ["format-python-check", "format-markdown-check"]

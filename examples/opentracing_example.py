@@ -7,6 +7,7 @@ trace all API requests.
 
 import asyncio
 import logging
+
 from katana_public_api_client import KatanaClient
 
 # Set up logging to see what's happening
@@ -49,7 +50,7 @@ async def example_without_tracing():
     # Create client without tracer (normal usage)
     async with KatanaClient(
         api_key="test-api-key", base_url="https://api.example.com/v1"
-    ) as client:
+    ) as _client:
         logger.info("Client created without tracing")
 
         # Simulate making an API call
@@ -74,7 +75,7 @@ async def example_with_tracing():
     # Create client with tracer
     async with KatanaClient(
         tracer=tracer, api_key="test-api-key", base_url="https://api.example.com/v1"
-    ) as client:
+    ) as _client:
         logger.info("Client created with OpenTracing enabled")
 
         # All API calls will now be automatically traced
@@ -110,7 +111,7 @@ async def example_with_custom_spans():
         # Create client with tracer
         async with KatanaClient(
             tracer=tracer, api_key="test-api-key", base_url="https://api.example.com/v1"
-        ) as client:
+        ) as _client:
             # The client will automatically create child spans
             # for each API request under the parent span
             logger.info("Client API calls will be traced as child spans")
@@ -135,7 +136,7 @@ async def example_error_tracing():
 
     async with KatanaClient(
         tracer=tracer, api_key="test-api-key", base_url="https://api.example.com/v1"
-    ) as client:
+    ) as _client:
         # If an API call fails, the span will be tagged with error information:
         # - error: true
         # - logs containing the error message

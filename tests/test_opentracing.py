@@ -1,13 +1,14 @@
 """Tests for OpenTracing integration in the Katana OpenAPI client."""
 
+from unittest.mock import MagicMock, patch
+
 import httpx
 import pytest
-from unittest.mock import MagicMock, patch
 
 from katana_public_api_client import KatanaClient
 from katana_public_api_client.katana_client import (
-    ResilientAsyncTransport,
     OPENTRACING_AVAILABLE,
+    ResilientAsyncTransport,
 )
 
 
@@ -98,7 +99,7 @@ class TestOpenTracingIntegration:
         with patch.object(
             transport, "_handle_request_with_span", return_value=mock_response
         ) as mock_handle:
-            response = await transport.handle_async_request(request)
+            _response = await transport.handle_async_request(request)
 
             # Verify tracer was called
             mock_tracer.start_span.assert_called_once()
@@ -195,7 +196,7 @@ class TestOpenTracingIntegration:
         with patch.object(
             transport, "_handle_request_with_span", return_value=mock_response
         ):
-            response = await transport.handle_async_request(request)
+            _response = await transport.handle_async_request(request)
 
             # Verify error was tagged for HTTP error status
             mock_span.set_tag.assert_any_call("http.status_code", 500)
@@ -258,7 +259,7 @@ class TestOpenTracingIntegration:
         with patch.object(
             transport, "_handle_paginated_request", return_value=mock_response
         ) as mock_paginated:
-            response = await transport.handle_async_request(request)
+            _response = await transport.handle_async_request(request)
 
             # Verify pagination was tagged
             mock_span.set_tag.assert_any_call("katana.pagination.enabled", True)

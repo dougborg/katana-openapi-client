@@ -1,8 +1,9 @@
 """Simple functional test for OpenTracing integration."""
 
 import asyncio
-from unittest.mock import MagicMock, patch
 from typing import cast
+from unittest.mock import patch
+
 import httpx
 import pytest
 
@@ -93,8 +94,8 @@ class TestOpenTracingFunctional:
         assert OPENTRACING_AVAILABLE is True
 
         # Verify we can import the libraries
-        import opentracing
         import jaeger_client
+        import opentracing
 
         assert opentracing is not None
         assert jaeger_client is not None
