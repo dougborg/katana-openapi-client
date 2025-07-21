@@ -48,12 +48,21 @@ autoapi_generate_api_docs = True
 autoapi_add_toctree_entry = True
 autoapi_member_order = "groupwise"
 autoapi_python_class_content = "both"
+autoapi_options = [
+    "members",
+    "undoc-members",
+    "show-inheritance",
+    "show-module-summary",
+    "imported-members",
+]
+autoapi_keep_files = True
 
-# Exclude generated client from AutoAPI (it's already documented)
+# Exclude only tests and cache files from AutoAPI, include generated client
 autoapi_ignore = [
-    "**/generated/**/*",
     "**/test*",
     "**/conftest.py",
+    "**/__pycache__/**/*",
+    "**/.*",
 ]
 
 # Napoleon settings (for Google/NumPy style docstrings)
