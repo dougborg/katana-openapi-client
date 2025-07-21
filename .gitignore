@@ -153,5 +153,6 @@ api_docs/
 openapi_docs/
 
 # Backup files
+backups/
 *.orig
 *.rej

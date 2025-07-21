@@ -7,7 +7,12 @@ This script:
 2. Backs up the existing client (if it exists)
 3. Generates a new client using openapi-python-client
 4. Moves the generated client to the main workspace
-5. Installs dependencies and runs tests
+5. Formats the generated code (now includes generated files)
+6. Runs linting checks on the generated code
+7. Installs dependencies and runs tests
+
+Note: Generated files are now included in formatting and linting,
+so they will be consistently styled according to project standards.
 
 Usage:
     python regenerate_client.py [--force] [--skip-validation] [--skip-tests]
@@ -286,14 +291,34 @@ def format_generated_code(workspace_path: Path) -> bool:
     """Format the generated code using the project's formatters."""
     print("✨ Formatting generated code...")
 
-    # Run the custom format command which handles both Python and Markdown
-    result = run_command(["poetry", "poe", "format"], cwd=workspace_path, check=False)
+    # Run the format command which now includes generated files
+    result = run_command(
+        ["poetry", "run", "poe", "format"], cwd=workspace_path, check=False
+    )
 
     if result.returncode != 0:
         print("⚠️  Formatting had issues but continuing")
         return True  # Don't fail the whole process for formatting issues
 
     print("✅ Code formatted successfully")
+    return True
+
+
+def run_lint_check(workspace_path: Path) -> bool:
+    """Run linting to check for any issues with the generated code."""
+    print("🔍 Running linting checks on generated code...")
+
+    # Run the lint command to check generated files
+    result = run_command(
+        ["poetry", "run", "poe", "lint-ruff"], cwd=workspace_path, check=False
+    )
+
+    if result.returncode != 0:
+        print("⚠️  Linting found issues but continuing")
+        print("💡 You may want to review and fix these issues manually")
+        return True  # Don't fail the whole process for linting issues
+
+    print("✅ Linting checks passed")
     return True
 
 
@@ -310,6 +335,11 @@ def main():
     )
     parser.add_argument(
         "--skip-tests", action="store_true", help="Skip running tests after generation"
+    )
+    parser.add_argument(
+        "--skip-format",
+        action="store_true",
+        help="Skip formatting and linting generated code",
     )
     parser.add_argument(
         "--spec-path",
@@ -376,8 +406,15 @@ def main():
         print("⏭️  Skipping tests")
 
     # Step 7: Format generated code
-    if not format_generated_code(workspace_path):
-        print("⚠️  Formatting had issues but continuing")
+    if not args.skip_format:
+        if not format_generated_code(workspace_path):
+            print("⚠️  Formatting had issues but continuing")
+
+        # Step 8: Run linting checks
+        if not run_lint_check(workspace_path):
+            print("⚠️  Linting had issues but continuing")
+    else:
+        print("⏭️  Skipping formatting and linting")
 
     print("\n" + "=" * 50)
     print("✅ Client regeneration completed successfully!")
@@ -386,6 +423,12 @@ def main():
     print("   2. Update your code imports if needed")
     print("   3. Test your application with the new client")
     print(f"   4. Backup was saved to: {backup_dir}")
+    if not args.skip_format:
+        print("   5. Generated files are now formatted and linted automatically")
+    else:
+        print(
+            "   5. Run 'poetry run poe format' and 'poetry run poe lint' manually if needed"
+        )
 
 
 if __name__ == "__main__":

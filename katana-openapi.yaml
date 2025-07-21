@@ -4180,13 +4180,15 @@ components:
         location_id:
           type: [integer, "null"]
         product_availability:
-          type: [string, "null"]
-          enum:
-            - IN_STOCK
-            - EXPECTED
-            - PICKED
-            - NOT_AVAILABLE
-            - NOT_APPLICABLE
+          anyOf:
+            - type: string
+              enum:
+                - IN_STOCK
+                - EXPECTED
+                - PICKED
+                - NOT_AVAILABLE
+                - NOT_APPLICABLE
+            - type: "null"
         product_expected_date:
           type: [string, "null"]
           format: date-time
@@ -4550,6 +4552,69 @@ components:
         - name
         - currency
 
+    CreatePriceListRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - currency
+      properties:
+        name:
+          type: string
+          description: Name of the price list
+        currency:
+          type: string
+          description: Currency code (e.g., USD, EUR)
+        is_default:
+          type: boolean
+          description: Whether this is the default price list
+        markup_percentage:
+          type: number
+          description: Markup percentage for the price list
+        start_date:
+          type: string
+          format: date-time
+          description: When the price list becomes active
+        end_date:
+          type: string
+          format: date-time
+          description: When the price list expires
+
+    CreatePriceListRowRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - price_list_id
+        - variant_id
+        - price
+      properties:
+        price_list_id:
+          type: integer
+          description: ID of the price list
+        variant_id:
+          type: integer
+          description: ID of the variant to set price for
+        price:
+          type: number
+          description: Price for the variant
+        currency:
+          type: string
+          description: Currency code (e.g., USD, EUR)
+
+    CreatePriceListCustomerRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - price_list_id
+        - customer_id
+      properties:
+        price_list_id:
+          type: integer
+          description: ID of the price list
+        customer_id:
+          type: integer
+          description: ID of the customer to assign to price list
+
     PriceListRow:
       type: object
       properties:
@@ -4855,6 +4920,178 @@ components:
         - serial_number
         - status
 
+    # Sales Return schemas
+    SalesReturn:
+      type: object
+      properties:
+        id:
+          type: integer
+        customer_id:
+          type: integer
+        sales_order_id:
+          type: [integer, "null"]
+        order_no:
+          type: string
+        return_location_id:
+          type: integer
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - RETURNED
+            - CANCELLED
+        currency:
+          type: string
+        return_date:
+          type: [string, "null"]
+          format: date-time
+        order_created_date:
+          type: string
+          format: date-time
+        additional_info:
+          type: [string, "null"]
+        refund_status:
+          type: [string, "null"]
+        sales_return_rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/SalesReturnRow"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: [string, "null"]
+          format: date-time
+      required:
+        - id
+        - customer_id
+        - order_no
+        - return_location_id
+        - status
+
+    CreateSalesReturnRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - customer_id
+        - order_no
+        - return_location_id
+        - sales_return_rows
+      properties:
+        customer_id:
+          type: integer
+          description: ID of the customer initiating the return
+        sales_order_id:
+          type: integer
+          description: ID of the original sales order being returned
+        order_no:
+          type: string
+          description: Return order reference number
+        return_location_id:
+          type: integer
+          description: ID of the location where items are being returned to
+        currency:
+          type: string
+          description: Currency code (e.g., USD, EUR)
+        order_created_date:
+          type: string
+          format: date-time
+          description: Date when the original order was created
+        additional_info:
+          type: string
+          description: Optional notes or comments about the return
+        sales_return_rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateSalesReturnRowRequest"
+          description: Array of items being returned
+
+    SalesReturnRow:
+      type: object
+      properties:
+        id:
+          type: integer
+        sales_return_id:
+          type: integer
+        variant_id:
+          type: integer
+        quantity:
+          type: number
+        return_reason_id:
+          type: [integer, "null"]
+        notes:
+          type: [string, "null"]
+        unit_price:
+          type: [number, "null"]
+        total_price:
+          type: [number, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - sales_return_id
+        - variant_id
+        - quantity
+
+    CreateSalesReturnRowRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - variant_id
+        - quantity
+      properties:
+        variant_id:
+          type: integer
+          description: ID of the variant being returned
+        quantity:
+          type: number
+          description: Quantity being returned
+        return_reason_id:
+          type: integer
+          description: ID of the return reason
+        notes:
+          type: string
+          description: Optional notes about this returned item
+
+    # User schemas
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+        last_login_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - first_name
+        - last_name
+        - email
+        - role
+
     # Missing list response schemas
     SalesOrderRowListResponse:
       type: object
@@ -4971,6 +5208,30 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SerialNumberStock"
+
+    SalesReturnListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SalesReturn"
+
+    SalesReturnRowListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SalesReturnRow"
+
+    UserListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
 
     # Missing schemas for new endpoints
     InventoryReorderPointListResponse:
@@ -5090,6 +5351,26 @@ components:
         updated_at:
           type: string
           format: date-time
+
+    CreateSalesOrderShippingFeeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - sales_order_id
+        - amount
+      properties:
+        sales_order_id:
+          type: integer
+          description: ID of the sales order to add shipping fee to
+        amount:
+          type: number
+          description: Shipping fee amount
+        currency:
+          type: string
+          description: Currency code (e.g., USD, EUR)
+        description:
+          type: string
+          description: Description of the shipping fee
           items:
             $ref: "#/components/schemas/SerialNumberStock"
 
@@ -9982,6 +10263,227 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  # Sales Returns endpoints
+  /sales_returns:
+    get:
+      summary: List all sales returns
+      tags:
+        - Sales return
+      description: Returns a list of sales returns you've previously created. The sales returns are returned in sorted order, with the most recent sales return appearing first.
+      operationId: getAllSalesReturns
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/ids"
+        - name: customer_id
+          in: query
+          description: Filter by customer ID
+          schema:
+            type: integer
+        - name: sales_order_id
+          in: query
+          description: Filter by original sales order ID
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: Filter by return status
+          schema:
+            type: string
+            enum: [DRAFT, RETURNED, CANCELLED]
+        - $ref: "#/components/parameters/include_deleted"
+      responses:
+        "200":
+          description: List of sales returns
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesReturnListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      summary: Create a sales return
+      tags:
+        - Sales return
+      description: Creates a new sales return object.
+      operationId: createSalesReturn
+      requestBody:
+        description: Sales return details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSalesReturnRequest"
+            example:
+              customer_id: 12345
+              sales_order_id: 67890
+              order_no: "RET-001"
+              return_location_id: 1
+              currency: "USD"
+              additional_info: "Items damaged during shipping"
+              sales_return_rows:
+                - variant_id: 11111
+                  quantity: 2
+                  return_reason_id: 1
+                  notes: "Defective items"
+      responses:
+        "201":
+          description: Sales return created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesReturn"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /sales_returns/{id}:
+    get:
+      summary: Retrieve a sales return
+      tags:
+        - Sales return
+      description: Retrieves a sales return by ID.
+      operationId: getSalesReturn
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales return ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sales return details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesReturn"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # Sales Return Rows endpoints
+  /sales_return_rows:
+    get:
+      summary: List all sales return rows
+      tags:
+        - Sales return row
+      description: Returns a list of sales return rows you've previously created. The sales return rows are returned in sorted order, with the most recent sales return row appearing first.
+      operationId: getAllSalesReturnRows
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+        - name: sales_return_id
+          in: query
+          description: Filter by sales return ID
+          schema:
+            type: integer
+        - name: variant_id
+          in: query
+          description: Filter by variant ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of sales return rows
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesReturnRowListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # Users endpoints
+  /users:
+    get:
+      summary: List all users
+      tags:
+        - User
+      description: Returns a list of active users in your account.
+      operationId: getAllUsers
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+        - name: role
+          in: query
+          description: Filter by user role
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by user status
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of users
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /services:
     get:
       summary: "Get All Services"
@@ -10877,6 +11379,62 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+    post:
+      summary: Create a price list
+      tags:
+        - Price list
+      description: Creates a new price list.
+      operationId: createPriceList
+      requestBody:
+        description: Price list details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePriceListRequest"
+            example:
+              name: "VIP Customer Pricing"
+              currency: "USD"
+              is_default: false
+              markup_percentage: 15.0
+              start_date: "2023-01-01T00:00:00.000Z"
+              end_date: "2023-12-31T23:59:59.999Z"
+      responses:
+        "201":
+          description: Price list created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceList"
+              example:
+                id: 12345
+                name: "VIP Customer Pricing"
+                currency: "USD"
+                is_default: false
+                markup_percentage: 15.0
+                start_date: "2023-01-01T00:00:00.000Z"
+                end_date: "2023-12-31T23:59:59.999Z"
+                created_at: "2023-10-21T10:37:05.085Z"
+                updated_at: "2023-10-21T10:37:05.085Z"
+                deleted_at: null
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /price_list_rows:
     get:
       summary: List price list rows
@@ -10918,6 +11476,57 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+    post:
+      summary: Create a price list row
+      tags:
+        - Price list row
+      description: Creates a new price list row.
+      operationId: createPriceListRow
+      requestBody:
+        description: Price list row details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePriceListRowRequest"
+            example:
+              price_list_id: 12345
+              variant_id: 67890
+              price: 29.99
+              currency: "USD"
+      responses:
+        "201":
+          description: Price list row created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListRow"
+              example:
+                id: 98765
+                price_list_id: 12345
+                variant_id: 67890
+                price: 29.99
+                currency: "USD"
+                created_at: "2023-10-21T10:37:05.085Z"
+                updated_at: "2023-10-21T10:37:05.085Z"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /price_list_customers:
     get:
       summary: List price list customers
@@ -10954,6 +11563,53 @@ paths:
                 $ref: "#/components/schemas/PriceListCustomerListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      summary: Create a price list customer assignment
+      tags:
+        - Price list customer
+      description: Assigns a customer to a price list.
+      operationId: createPriceListCustomer
+      requestBody:
+        description: Price list customer assignment details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePriceListCustomerRequest"
+            example:
+              price_list_id: 12345
+              customer_id: 67890
+      responses:
+        "201":
+          description: Price list customer assignment created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListCustomer"
+              example:
+                id: 98765
+                price_list_id: 12345
+                customer_id: 67890
+                created_at: "2023-10-21T10:37:05.085Z"
+                updated_at: "2023-10-21T10:37:05.085Z"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -11632,6 +12288,57 @@ paths:
                 $ref: "#/components/schemas/SalesOrderShippingFeeListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      summary: Create a sales order shipping fee
+      tags:
+        - Sales orders
+      description: Creates a sales order shipping fee and adds it to a sales order.
+      operationId: createSalesOrderShippingFee
+      requestBody:
+        description: Shipping fee details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSalesOrderShippingFeeRequest"
+            example:
+              sales_order_id: 12345
+              amount: 15.99
+              currency: "USD"
+              description: "Standard shipping"
+      responses:
+        "201":
+          description: Shipping fee created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderShippingFee"
+              example:
+                id: 67890
+                sales_order_id: 12345
+                amount: 15.99
+                currency: "USD"
+                description: "Standard shipping"
+                created_at: "2023-10-21T10:37:05.085Z"
+                updated_at: "2023-10-21T10:37:05.085Z"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
