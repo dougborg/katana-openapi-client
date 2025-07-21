@@ -1,6 +1,6 @@
 [project]
 name = "katana-openapi-client"
-version = "1.0.0"
+version = "0.2.0"
 description = "A modern, pythonic Katana Manufacturing ERP API client with automatic retries, rate limiting, and smart pagination"
 authors = [
     {name = "Doug Borg", email = "dougborg@dougborg.org"},
@@ -238,7 +238,6 @@ target-version = "py311"  # Updated to reflect minimum Python version
 fix = true
 show-fixes = true
 output-format = "grouped"
-extend-exclude = ["katana_public_api_client/generated/**"]
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -270,7 +269,6 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR2004"]  # magic value used in comparison
-"katana_public_api_client/generated/*" = ["ALL"]  # ignore generated code
 
 [tool.ruff.lint.isort]
 known-first-party = ["katana_public_api_client"]
@@ -299,6 +297,8 @@ remove_dist = false
 commit_author = "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
 commit_message = "chore(release): {version}"
 build_command = "echo 'Build command completed successfully'"
+major_on_zero = false
+allow_zero_version = true
 
 [tool.semantic_release.commit_parser_options]
 allowed_tags = [
