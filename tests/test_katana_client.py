@@ -149,6 +149,152 @@ class TestResilientAsyncTransport:
             assert response.status_code == 404
             mock_parent.assert_called_once_with(request)
 
+    @pytest.mark.asyncio
+    async def test_422_validation_error_logging(self, transport, caplog):
+        """Test detailed logging for 422 validation errors."""
+        # Mock a 422 validation error response
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 422
+        mock_response.json.return_value = {
+            "statusCode": 422,
+            "name": "UnprocessableEntityError",
+            "message": "The request body is invalid.",
+            "code": "VALIDATION_FAILED",
+            "details": [
+                {
+                    "path": ".name",
+                    "code": "maxLength",
+                    "message": "should NOT be longer than 10 characters",
+                    "info": {"limit": 10},
+                },
+                {
+                    "path": ".email",
+                    "code": "format",
+                    "message": 'should match format "email"',
+                    "info": {"format": "email"},
+                },
+            ],
+        }
+
+        # Mock request
+        mock_request = MagicMock(spec=httpx.Request)
+        mock_request.method = "POST"
+        mock_request.url = "https://api.katanamrp.com/v1/products"
+
+        # Test the error logging
+        await transport._log_client_error(mock_response, mock_request)
+
+        # Verify detailed error logging
+        error_logs = [
+            record for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert len(error_logs) == 1
+
+        error_message = error_logs[0].message
+        assert "Validation error 422" in error_message
+        assert "UnprocessableEntityError" in error_message
+        assert "VALIDATION_FAILED" in error_message
+        assert "Validation details (2 errors)" in error_message
+        assert "Path: .name" in error_message
+        assert "maxLength" in error_message
+        assert "Path: .email" in error_message
+        assert "format" in error_message
+
+    @pytest.mark.asyncio
+    async def test_400_general_error_logging(self, transport, caplog):
+        """Test logging for general 400-level errors."""
+        # Mock a 400 bad request error response
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 400
+        mock_response.json.return_value = {
+            "statusCode": 400,
+            "name": "BadRequest",
+            "message": "Invalid request parameters.",
+            "code": "INVALID_PARAMS",
+        }
+
+        # Mock request
+        mock_request = MagicMock(spec=httpx.Request)
+        mock_request.method = "GET"
+        mock_request.url = "https://api.katanamrp.com/v1/products?invalid=param"
+
+        # Test the error logging
+        await transport._log_client_error(mock_response, mock_request)
+
+        # Verify error logging
+        error_logs = [
+            record for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert len(error_logs) == 1
+
+        error_message = error_logs[0].message
+        assert "Client error 400" in error_message
+        assert "BadRequest" in error_message
+        assert "Invalid request parameters" in error_message
+        assert "INVALID_PARAMS" in error_message
+
+    @pytest.mark.asyncio
+    async def test_error_logging_with_invalid_json(self, transport, caplog):
+        """Test error logging when response contains invalid JSON."""
+        # Mock a response with invalid JSON
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 400
+        mock_response.json.side_effect = ValueError("Invalid JSON")
+        mock_response.text = "Invalid JSON response from server"
+
+        # Mock request
+        mock_request = MagicMock(spec=httpx.Request)
+        mock_request.method = "POST"
+        mock_request.url = "https://api.katanamrp.com/v1/products"
+
+        # Test the error logging
+        await transport._log_client_error(mock_response, mock_request)
+
+        # Verify fallback error logging
+        error_logs = [
+            record for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert len(error_logs) == 1
+
+        error_message = error_logs[0].message
+        assert "Client error 400" in error_message
+        assert "Failed to parse error details" in error_message
+
+    @pytest.mark.asyncio
+    async def test_error_logging_integration_with_request_handling(
+        self, transport, caplog
+    ):
+        """Test that error logging is triggered during actual request handling."""
+        # Mock a 422 response
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 422
+        mock_response.json.return_value = {
+            "statusCode": 422,
+            "name": "UnprocessableEntityError",
+            "message": "Validation failed",
+        }
+
+        with patch.object(
+            httpx.AsyncHTTPTransport, "handle_async_request", return_value=mock_response
+        ):
+            request = MagicMock(spec=httpx.Request)
+            request.method = "POST"
+            request.url = MagicMock()
+            request.url.params = {}
+
+            # Make the request - this should trigger error logging
+            response = await transport.handle_async_request(request)
+
+            # Verify the response is returned correctly
+            assert response.status_code == 422
+
+            # Verify error logging was triggered
+            error_logs = [
+                record for record in caplog.records if record.levelname == "ERROR"
+            ]
+            assert len(error_logs) == 1
+            assert "Validation error 422" in error_logs[0].message
+
 
 @pytest.mark.unit
 class TestKatanaClient:

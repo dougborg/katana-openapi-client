@@ -11,7 +11,7 @@ import json
 import logging
 import os
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import httpx
 from dotenv import load_dotenv
@@ -95,6 +95,222 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             self.logger.warning(
                 "OpenTracing tracer provided but opentracing library is not installed. "
                 "Install with: pip install 'katana-openapi-client[tracing]'"
+            )
+
+    async def _log_client_error(
+        self, response: httpx.Response, request: httpx.Request
+    ) -> None:
+        """
+        Log detailed information for 400-level client errors.
+
+        Provides enhanced logging for validation errors (422) and other client errors,
+        extracting and formatting error details from the response body.
+
+        Args:
+            response: The HTTP response with a 400-level status code
+            request: The original HTTP request that triggered the error
+        """
+        try:
+            # Get basic request information
+            method = request.method
+            url = str(request.url)
+            status_code = response.status_code
+
+            # Try to parse the JSON error response
+            try:
+                error_data = response.json()
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                # If JSON parsing fails, log the raw response
+                self.logger.error(
+                    f"Client error {status_code} for {method} {url} - "
+                    f"Response: {response.text[:500]}..."
+                )
+                return
+
+            # Format the error message based on the error structure
+            if status_code == 422 and isinstance(error_data, dict):
+                # Enhanced logging for 422 validation errors
+                self._log_validation_error(error_data, method, url, status_code)
+            else:
+                # General 400-level error logging
+                self._log_general_client_error(error_data, method, url, status_code)
+
+        except Exception as e:
+            # Fallback logging if error parsing fails
+            self.logger.error(
+                f"Client error {response.status_code} for {request.method} {request.url} - "
+                f"Failed to parse error details: {e}"
+            )
+
+    def _log_validation_error(
+        self, error_data: dict[str, Any], method: str, url: str, status_code: int
+    ) -> None:
+        """Log detailed validation error information for 422 responses."""
+        error_name = error_data.get("name", "UnprocessableEntityError")
+        error_message = error_data.get("message", "Validation failed")
+        error_code = error_data.get("code", "")
+        details = error_data.get("details", [])
+
+        # Start with the main error message
+        log_message = f"Validation error {status_code} for {method} {url}"
+        log_message += f"\n  Error: {error_name} - {error_message}"
+
+        if error_code:
+            log_message += f"\n  Code: {error_code}"
+
+        # Add detailed validation errors
+        if details and isinstance(details, list):
+            log_message += f"\n  Validation details ({len(details)} errors):"
+            for i, detail in enumerate(details, 1):
+                # Type check each detail item
+                if isinstance(detail, dict):
+                    # Cast to dict[str, Any] for proper type inference
+                    detail_dict = cast(dict[str, Any], detail)
+                    path = detail_dict.get("path", "unknown")
+                    code = detail_dict.get("code", "unknown")
+                    message = detail_dict.get("message", "")
+                    info = detail_dict.get("info", {})
+
+                    log_message += f"\n    {i}. Path: {path}"
+                    log_message += f"\n       Code: {code}"
+                    if message:
+                        log_message += f"\n       Message: {message}"
+                    if info and isinstance(info, dict):
+                        log_message += self._format_validation_info(info)
+                else:
+                    # Handle non-dict details gracefully
+                    log_message += f"\n    {i}. {detail}"
+
+        self.logger.error(log_message)
+
+    def _format_validation_info(self, info: dict[str, Any]) -> str:
+        """Format validation error info dictionary into a readable string."""
+        if not info:
+            return ""
+
+        formatted_parts = []
+
+        # Handle common validation info fields with nice formatting
+        if "provided_value" in info:
+            provided = info["provided_value"]
+            if provided is None:
+                formatted_parts.append("provided: null")
+            elif isinstance(provided, str):
+                formatted_parts.append(f"provided: '{provided}'")
+            else:
+                formatted_parts.append(f"provided: {provided}")
+
+        if "allowed_values" in info:
+            allowed = info["allowed_values"]
+            if isinstance(allowed, list):
+                if len(allowed) <= 5:
+                    # Show all values if 5 or fewer
+                    values_str = ", ".join(
+                        f"'{v}'" if isinstance(v, str) else str(v) for v in allowed
+                    )
+                    formatted_parts.append(f"allowed: [{values_str}]")
+                else:
+                    # Show first few and count for long lists
+                    first_few = allowed[:3]
+                    values_str = ", ".join(
+                        f"'{v}'" if isinstance(v, str) else str(v) for v in first_few
+                    )
+                    formatted_parts.append(
+                        f"allowed: [{values_str}... ({len(allowed)} total)]"
+                    )
+            else:
+                formatted_parts.append(f"allowed: {allowed}")
+
+        if "expected_type" in info:
+            formatted_parts.append(f"expected type: {info['expected_type']}")
+
+        if "min_value" in info:
+            formatted_parts.append(f"min: {info['min_value']}")
+
+        if "max_value" in info:
+            formatted_parts.append(f"max: {info['max_value']}")
+
+        if "min_length" in info:
+            formatted_parts.append(f"min length: {info['min_length']}")
+
+        if "max_length" in info:
+            formatted_parts.append(f"max length: {info['max_length']}")
+
+        if "pattern" in info:
+            formatted_parts.append(f"pattern: {info['pattern']}")
+
+        # Handle any other fields that weren't specifically formatted
+        handled_keys = {
+            "provided_value",
+            "allowed_values",
+            "expected_type",
+            "min_value",
+            "max_value",
+            "min_length",
+            "max_length",
+            "pattern",
+        }
+        other_fields = {k: v for k, v in info.items() if k not in handled_keys}
+
+        if other_fields:
+            for key, value in other_fields.items():
+                if isinstance(value, str):
+                    formatted_parts.append(f"{key}: '{value}'")
+                else:
+                    formatted_parts.append(f"{key}: {value}")
+
+        if formatted_parts:
+            return f"\n       Details: {', '.join(formatted_parts)}"
+        else:
+            return ""
+
+    def _log_general_client_error(
+        self, error_data: dict[str, Any], method: str, url: str, status_code: int
+    ) -> None:
+        """Log general client error information for non-422 4xx responses."""
+        if isinstance(error_data, dict):
+            error_name = error_data.get("name", f"ClientError{status_code}")
+            error_message = error_data.get("message", "Client error occurred")
+            error_code = error_data.get("code", "")
+
+            log_message = f"Client error {status_code} for {method} {url}"
+            log_message += f"\n  Error: {error_name} - {error_message}"
+
+            if error_code:
+                log_message += f"\n  Code: {error_code}"
+
+            # Log any additional fields that might be present
+            additional_fields = {
+                k: v
+                for k, v in error_data.items()
+                if k not in {"statusCode", "name", "message", "code"}
+            }
+            if additional_fields:
+                formatted_additional = []
+                for key, value in additional_fields.items():
+                    if isinstance(value, str):
+                        formatted_additional.append(f"{key}: '{value}'")
+                    elif isinstance(value, dict) and value:
+                        # Format nested dicts more nicely
+                        nested_items = []
+                        for nested_key, nested_value in value.items():
+                            if isinstance(nested_value, str):
+                                nested_items.append(f"{nested_key}: '{nested_value}'")
+                            else:
+                                nested_items.append(f"{nested_key}: {nested_value}")
+                        formatted_additional.append(
+                            f"{key}: {{{', '.join(nested_items)}}}"
+                        )
+                    else:
+                        formatted_additional.append(f"{key}: {value}")
+                log_message += f"\n  Additional info: {', '.join(formatted_additional)}"
+
+            self.logger.error(log_message)
+        else:
+            # If error_data is not a dict, log it as-is
+            self.logger.error(
+                f"Client error {status_code} for {method} {url} - "
+                f"Response: {error_data}"
             )
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
@@ -234,6 +450,11 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             response = await _make_request_with_retry()
             if span is not None:
                 span.set_tag("katana.retry.success", True)
+
+            # Log detailed information for 400-level client errors
+            if 400 <= response.status_code < 500:
+                await self._log_client_error(response, request)
+
             return response
         except RetryError as e:
             # For retry errors (when server keeps returning 4xx/5xx), return the last response
