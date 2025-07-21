@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -35,16 +35,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        DeleteManufacturingOrderOperationRowResponse204,
-        DeleteManufacturingOrderOperationRowResponse401,
-        DeleteManufacturingOrderOperationRowResponse404,
-        DeleteManufacturingOrderOperationRowResponse429,
-        DeleteManufacturingOrderOperationRowResponse500,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    DeleteManufacturingOrderOperationRowResponse204
+    | DeleteManufacturingOrderOperationRowResponse401
+    | DeleteManufacturingOrderOperationRowResponse404
+    | DeleteManufacturingOrderOperationRowResponse429
+    | DeleteManufacturingOrderOperationRowResponse500
+    | None
+):
     if response.status_code == 204:
         response_204 = DeleteManufacturingOrderOperationRowResponse204.from_dict(
             response.json()
@@ -82,15 +81,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        DeleteManufacturingOrderOperationRowResponse204,
-        DeleteManufacturingOrderOperationRowResponse401,
-        DeleteManufacturingOrderOperationRowResponse404,
-        DeleteManufacturingOrderOperationRowResponse429,
-        DeleteManufacturingOrderOperationRowResponse500,
-    ]
+    DeleteManufacturingOrderOperationRowResponse204
+    | DeleteManufacturingOrderOperationRowResponse401
+    | DeleteManufacturingOrderOperationRowResponse404
+    | DeleteManufacturingOrderOperationRowResponse429
+    | DeleteManufacturingOrderOperationRowResponse500
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -103,15 +100,13 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        DeleteManufacturingOrderOperationRowResponse204,
-        DeleteManufacturingOrderOperationRowResponse401,
-        DeleteManufacturingOrderOperationRowResponse404,
-        DeleteManufacturingOrderOperationRowResponse429,
-        DeleteManufacturingOrderOperationRowResponse500,
-    ]
+    DeleteManufacturingOrderOperationRowResponse204
+    | DeleteManufacturingOrderOperationRowResponse401
+    | DeleteManufacturingOrderOperationRowResponse404
+    | DeleteManufacturingOrderOperationRowResponse429
+    | DeleteManufacturingOrderOperationRowResponse500
 ]:
     """Delete a manufacturing order operation row
 
@@ -142,16 +137,15 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        DeleteManufacturingOrderOperationRowResponse204,
-        DeleteManufacturingOrderOperationRowResponse401,
-        DeleteManufacturingOrderOperationRowResponse404,
-        DeleteManufacturingOrderOperationRowResponse429,
-        DeleteManufacturingOrderOperationRowResponse500,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    DeleteManufacturingOrderOperationRowResponse204
+    | DeleteManufacturingOrderOperationRowResponse401
+    | DeleteManufacturingOrderOperationRowResponse404
+    | DeleteManufacturingOrderOperationRowResponse429
+    | DeleteManufacturingOrderOperationRowResponse500
+    | None
+):
     """Delete a manufacturing order operation row
 
      Deletes a single manufacturing order operation row by id.
@@ -176,15 +170,13 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        DeleteManufacturingOrderOperationRowResponse204,
-        DeleteManufacturingOrderOperationRowResponse401,
-        DeleteManufacturingOrderOperationRowResponse404,
-        DeleteManufacturingOrderOperationRowResponse429,
-        DeleteManufacturingOrderOperationRowResponse500,
-    ]
+    DeleteManufacturingOrderOperationRowResponse204
+    | DeleteManufacturingOrderOperationRowResponse401
+    | DeleteManufacturingOrderOperationRowResponse404
+    | DeleteManufacturingOrderOperationRowResponse429
+    | DeleteManufacturingOrderOperationRowResponse500
 ]:
     """Delete a manufacturing order operation row
 
@@ -213,16 +205,15 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        DeleteManufacturingOrderOperationRowResponse204,
-        DeleteManufacturingOrderOperationRowResponse401,
-        DeleteManufacturingOrderOperationRowResponse404,
-        DeleteManufacturingOrderOperationRowResponse429,
-        DeleteManufacturingOrderOperationRowResponse500,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    DeleteManufacturingOrderOperationRowResponse204
+    | DeleteManufacturingOrderOperationRowResponse401
+    | DeleteManufacturingOrderOperationRowResponse404
+    | DeleteManufacturingOrderOperationRowResponse429
+    | DeleteManufacturingOrderOperationRowResponse500
+    | None
+):
     """Delete a manufacturing order operation row
 
      Deletes a single manufacturing order operation row by id.

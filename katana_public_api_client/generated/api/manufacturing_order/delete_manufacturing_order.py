@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -38,17 +38,16 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        DeleteManufacturingOrderResponse204,
-        DeleteManufacturingOrderResponse401,
-        DeleteManufacturingOrderResponse404,
-        DeleteManufacturingOrderResponse422,
-        DeleteManufacturingOrderResponse429,
-        DeleteManufacturingOrderResponse500,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    DeleteManufacturingOrderResponse204
+    | DeleteManufacturingOrderResponse401
+    | DeleteManufacturingOrderResponse404
+    | DeleteManufacturingOrderResponse422
+    | DeleteManufacturingOrderResponse429
+    | DeleteManufacturingOrderResponse500
+    | None
+):
     if response.status_code == 204:
         response_204 = DeleteManufacturingOrderResponse204.from_dict(response.json())
 
@@ -80,16 +79,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        DeleteManufacturingOrderResponse204,
-        DeleteManufacturingOrderResponse401,
-        DeleteManufacturingOrderResponse404,
-        DeleteManufacturingOrderResponse422,
-        DeleteManufacturingOrderResponse429,
-        DeleteManufacturingOrderResponse500,
-    ]
+    DeleteManufacturingOrderResponse204
+    | DeleteManufacturingOrderResponse401
+    | DeleteManufacturingOrderResponse404
+    | DeleteManufacturingOrderResponse422
+    | DeleteManufacturingOrderResponse429
+    | DeleteManufacturingOrderResponse500
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -102,16 +99,14 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        DeleteManufacturingOrderResponse204,
-        DeleteManufacturingOrderResponse401,
-        DeleteManufacturingOrderResponse404,
-        DeleteManufacturingOrderResponse422,
-        DeleteManufacturingOrderResponse429,
-        DeleteManufacturingOrderResponse500,
-    ]
+    DeleteManufacturingOrderResponse204
+    | DeleteManufacturingOrderResponse401
+    | DeleteManufacturingOrderResponse404
+    | DeleteManufacturingOrderResponse422
+    | DeleteManufacturingOrderResponse429
+    | DeleteManufacturingOrderResponse500
 ]:
     """Delete a manufacturing order
 
@@ -142,17 +137,16 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        DeleteManufacturingOrderResponse204,
-        DeleteManufacturingOrderResponse401,
-        DeleteManufacturingOrderResponse404,
-        DeleteManufacturingOrderResponse422,
-        DeleteManufacturingOrderResponse429,
-        DeleteManufacturingOrderResponse500,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    DeleteManufacturingOrderResponse204
+    | DeleteManufacturingOrderResponse401
+    | DeleteManufacturingOrderResponse404
+    | DeleteManufacturingOrderResponse422
+    | DeleteManufacturingOrderResponse429
+    | DeleteManufacturingOrderResponse500
+    | None
+):
     """Delete a manufacturing order
 
      Deletes a single manufacturing order by id.
@@ -177,16 +171,14 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        DeleteManufacturingOrderResponse204,
-        DeleteManufacturingOrderResponse401,
-        DeleteManufacturingOrderResponse404,
-        DeleteManufacturingOrderResponse422,
-        DeleteManufacturingOrderResponse429,
-        DeleteManufacturingOrderResponse500,
-    ]
+    DeleteManufacturingOrderResponse204
+    | DeleteManufacturingOrderResponse401
+    | DeleteManufacturingOrderResponse404
+    | DeleteManufacturingOrderResponse422
+    | DeleteManufacturingOrderResponse429
+    | DeleteManufacturingOrderResponse500
 ]:
     """Delete a manufacturing order
 
@@ -215,17 +207,16 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        DeleteManufacturingOrderResponse204,
-        DeleteManufacturingOrderResponse401,
-        DeleteManufacturingOrderResponse404,
-        DeleteManufacturingOrderResponse422,
-        DeleteManufacturingOrderResponse429,
-        DeleteManufacturingOrderResponse500,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    DeleteManufacturingOrderResponse204
+    | DeleteManufacturingOrderResponse401
+    | DeleteManufacturingOrderResponse404
+    | DeleteManufacturingOrderResponse422
+    | DeleteManufacturingOrderResponse429
+    | DeleteManufacturingOrderResponse500
+    | None
+):
     """Delete a manufacturing order
 
      Deletes a single manufacturing order by id.

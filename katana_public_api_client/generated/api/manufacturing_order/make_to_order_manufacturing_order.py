@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -41,15 +41,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        MakeToOrderManufacturingOrderResponse401,
-        MakeToOrderManufacturingOrderResponse429,
-        MakeToOrderManufacturingOrderResponse500,
-        ManufacturingOrder,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    MakeToOrderManufacturingOrderResponse401
+    | MakeToOrderManufacturingOrderResponse429
+    | MakeToOrderManufacturingOrderResponse500
+    | ManufacturingOrder
+    | None
+):
     if response.status_code == 200:
         response_200 = ManufacturingOrder.from_dict(response.json())
 
@@ -79,14 +78,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        MakeToOrderManufacturingOrderResponse401,
-        MakeToOrderManufacturingOrderResponse429,
-        MakeToOrderManufacturingOrderResponse500,
-        ManufacturingOrder,
-    ]
+    MakeToOrderManufacturingOrderResponse401
+    | MakeToOrderManufacturingOrderResponse429
+    | MakeToOrderManufacturingOrderResponse500
+    | ManufacturingOrder
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -98,15 +95,13 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: MakeToOrderManufacturingOrderRequest,
 ) -> Response[
-    Union[
-        MakeToOrderManufacturingOrderResponse401,
-        MakeToOrderManufacturingOrderResponse429,
-        MakeToOrderManufacturingOrderResponse500,
-        ManufacturingOrder,
-    ]
+    MakeToOrderManufacturingOrderResponse401
+    | MakeToOrderManufacturingOrderResponse429
+    | MakeToOrderManufacturingOrderResponse500
+    | ManufacturingOrder
 ]:
     """Create a make-to-order manufacturing order
 
@@ -136,16 +131,15 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: MakeToOrderManufacturingOrderRequest,
-) -> Optional[
-    Union[
-        MakeToOrderManufacturingOrderResponse401,
-        MakeToOrderManufacturingOrderResponse429,
-        MakeToOrderManufacturingOrderResponse500,
-        ManufacturingOrder,
-    ]
-]:
+) -> (
+    MakeToOrderManufacturingOrderResponse401
+    | MakeToOrderManufacturingOrderResponse429
+    | MakeToOrderManufacturingOrderResponse500
+    | ManufacturingOrder
+    | None
+):
     """Create a make-to-order manufacturing order
 
      Creates a new manufacturing order object that is linked to a specific sales order row.
@@ -169,15 +163,13 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: MakeToOrderManufacturingOrderRequest,
 ) -> Response[
-    Union[
-        MakeToOrderManufacturingOrderResponse401,
-        MakeToOrderManufacturingOrderResponse429,
-        MakeToOrderManufacturingOrderResponse500,
-        ManufacturingOrder,
-    ]
+    MakeToOrderManufacturingOrderResponse401
+    | MakeToOrderManufacturingOrderResponse429
+    | MakeToOrderManufacturingOrderResponse500
+    | ManufacturingOrder
 ]:
     """Create a make-to-order manufacturing order
 
@@ -205,16 +197,15 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: MakeToOrderManufacturingOrderRequest,
-) -> Optional[
-    Union[
-        MakeToOrderManufacturingOrderResponse401,
-        MakeToOrderManufacturingOrderResponse429,
-        MakeToOrderManufacturingOrderResponse500,
-        ManufacturingOrder,
-    ]
-]:
+) -> (
+    MakeToOrderManufacturingOrderResponse401
+    | MakeToOrderManufacturingOrderResponse429
+    | MakeToOrderManufacturingOrderResponse500
+    | ManufacturingOrder
+    | None
+):
     """Create a make-to-order manufacturing order
 
      Creates a new manufacturing order object that is linked to a specific sales order row.

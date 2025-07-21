@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -34,16 +34,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        BatchResponse,
-        CreateBatchResponse401,
-        CreateBatchResponse422,
-        CreateBatchResponse429,
-        CreateBatchResponse500,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    BatchResponse
+    | CreateBatchResponse401
+    | CreateBatchResponse422
+    | CreateBatchResponse429
+    | CreateBatchResponse500
+    | None
+):
     if response.status_code == 200:
         response_200 = BatchResponse.from_dict(response.json())
 
@@ -71,15 +70,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        BatchResponse,
-        CreateBatchResponse401,
-        CreateBatchResponse422,
-        CreateBatchResponse429,
-        CreateBatchResponse500,
-    ]
+    BatchResponse
+    | CreateBatchResponse401
+    | CreateBatchResponse422
+    | CreateBatchResponse429
+    | CreateBatchResponse500
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -91,16 +88,14 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: Batch,
 ) -> Response[
-    Union[
-        BatchResponse,
-        CreateBatchResponse401,
-        CreateBatchResponse422,
-        CreateBatchResponse429,
-        CreateBatchResponse500,
-    ]
+    BatchResponse
+    | CreateBatchResponse401
+    | CreateBatchResponse422
+    | CreateBatchResponse429
+    | CreateBatchResponse500
 ]:
     """Create a batch
 
@@ -130,17 +125,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: Batch,
-) -> Optional[
-    Union[
-        BatchResponse,
-        CreateBatchResponse401,
-        CreateBatchResponse422,
-        CreateBatchResponse429,
-        CreateBatchResponse500,
-    ]
-]:
+) -> (
+    BatchResponse
+    | CreateBatchResponse401
+    | CreateBatchResponse422
+    | CreateBatchResponse429
+    | CreateBatchResponse500
+    | None
+):
     """Create a batch
 
      Creates a batch object.
@@ -164,16 +158,14 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: Batch,
 ) -> Response[
-    Union[
-        BatchResponse,
-        CreateBatchResponse401,
-        CreateBatchResponse422,
-        CreateBatchResponse429,
-        CreateBatchResponse500,
-    ]
+    BatchResponse
+    | CreateBatchResponse401
+    | CreateBatchResponse422
+    | CreateBatchResponse429
+    | CreateBatchResponse500
 ]:
     """Create a batch
 
@@ -201,17 +193,16 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: Batch,
-) -> Optional[
-    Union[
-        BatchResponse,
-        CreateBatchResponse401,
-        CreateBatchResponse422,
-        CreateBatchResponse429,
-        CreateBatchResponse500,
-    ]
-]:
+) -> (
+    BatchResponse
+    | CreateBatchResponse401
+    | CreateBatchResponse422
+    | CreateBatchResponse429
+    | CreateBatchResponse500
+    | None
+):
     """Create a batch
 
      Creates a batch object.

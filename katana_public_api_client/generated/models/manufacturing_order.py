@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..models.manufacturing_order_status import ManufacturingOrderStatus
@@ -47,37 +49,37 @@ class ManufacturingOrder:
         serial_numbers (Union[Unset, list['SerialNumber']]):
     """
 
-    id: Union[Unset, int] = UNSET
-    status: Union[Unset, ManufacturingOrderStatus] = UNSET
-    order_no: Union[Unset, str] = UNSET
-    variant_id: Union[Unset, int] = UNSET
-    planned_quantity: Union[Unset, float] = UNSET
-    actual_quantity: Union[None, Unset, float] = UNSET
-    location_id: Union[Unset, int] = UNSET
-    order_created_date: Union[Unset, datetime.datetime] = UNSET
-    production_deadline_date: Union[Unset, datetime.datetime] = UNSET
-    additional_info: Union[Unset, str] = UNSET
-    is_linked_to_sales_order: Union[Unset, bool] = UNSET
-    ingredient_availability: Union[Unset, str] = UNSET
-    total_cost: Union[Unset, float] = UNSET
-    total_actual_time: Union[Unset, float] = UNSET
-    total_planned_time: Union[Unset, float] = UNSET
-    sales_order_id: Union[Unset, int] = UNSET
-    sales_order_row_id: Union[Unset, int] = UNSET
-    sales_order_delivery_deadline: Union[Unset, datetime.datetime] = UNSET
-    material_cost: Union[Unset, float] = UNSET
-    subassemblies_cost: Union[Unset, float] = UNSET
-    operations_cost: Union[Unset, float] = UNSET
-    created_at: Union[Unset, datetime.datetime] = UNSET
-    updated_at: Union[Unset, datetime.datetime] = UNSET
-    deleted_at: Union[None, Unset, datetime.datetime] = UNSET
-    serial_numbers: Union[Unset, list["SerialNumber"]] = UNSET
+    id: Unset | int = UNSET
+    status: Unset | ManufacturingOrderStatus = UNSET
+    order_no: Unset | str = UNSET
+    variant_id: Unset | int = UNSET
+    planned_quantity: Unset | float = UNSET
+    actual_quantity: None | Unset | float = UNSET
+    location_id: Unset | int = UNSET
+    order_created_date: Unset | datetime.datetime = UNSET
+    production_deadline_date: Unset | datetime.datetime = UNSET
+    additional_info: Unset | str = UNSET
+    is_linked_to_sales_order: Unset | bool = UNSET
+    ingredient_availability: Unset | str = UNSET
+    total_cost: Unset | float = UNSET
+    total_actual_time: Unset | float = UNSET
+    total_planned_time: Unset | float = UNSET
+    sales_order_id: Unset | int = UNSET
+    sales_order_row_id: Unset | int = UNSET
+    sales_order_delivery_deadline: Unset | datetime.datetime = UNSET
+    material_cost: Unset | float = UNSET
+    subassemblies_cost: Unset | float = UNSET
+    operations_cost: Unset | float = UNSET
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
+    serial_numbers: Unset | list["SerialNumber"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        status: Union[Unset, str] = UNSET
+        status: Unset | str = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
@@ -87,7 +89,7 @@ class ManufacturingOrder:
 
         planned_quantity = self.planned_quantity
 
-        actual_quantity: Union[None, Unset, float]
+        actual_quantity: None | Unset | float
         if isinstance(self.actual_quantity, Unset):
             actual_quantity = UNSET
         else:
@@ -95,11 +97,11 @@ class ManufacturingOrder:
 
         location_id = self.location_id
 
-        order_created_date: Union[Unset, str] = UNSET
+        order_created_date: Unset | str = UNSET
         if not isinstance(self.order_created_date, Unset):
             order_created_date = self.order_created_date.isoformat()
 
-        production_deadline_date: Union[Unset, str] = UNSET
+        production_deadline_date: Unset | str = UNSET
         if not isinstance(self.production_deadline_date, Unset):
             production_deadline_date = self.production_deadline_date.isoformat()
 
@@ -119,7 +121,7 @@ class ManufacturingOrder:
 
         sales_order_row_id = self.sales_order_row_id
 
-        sales_order_delivery_deadline: Union[Unset, str] = UNSET
+        sales_order_delivery_deadline: Unset | str = UNSET
         if not isinstance(self.sales_order_delivery_deadline, Unset):
             sales_order_delivery_deadline = (
                 self.sales_order_delivery_deadline.isoformat()
@@ -131,15 +133,15 @@ class ManufacturingOrder:
 
         operations_cost = self.operations_cost
 
-        created_at: Union[Unset, str] = UNSET
+        created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: Union[None, Unset, str]
+        deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -147,7 +149,7 @@ class ManufacturingOrder:
         else:
             deleted_at = self.deleted_at
 
-        serial_numbers: Union[Unset, list[dict[str, Any]]] = UNSET
+        serial_numbers: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.serial_numbers, Unset):
             serial_numbers = []
             for serial_numbers_item_data in self.serial_numbers:
@@ -218,7 +220,7 @@ class ManufacturingOrder:
         id = d.pop("id", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: Union[Unset, ManufacturingOrderStatus]
+        status: Unset | ManufacturingOrderStatus
         if isinstance(_status, Unset):
             status = UNSET
         else:
@@ -230,26 +232,26 @@ class ManufacturingOrder:
 
         planned_quantity = d.pop("planned_quantity", UNSET)
 
-        def _parse_actual_quantity(data: object) -> Union[None, Unset, float]:
+        def _parse_actual_quantity(data: object) -> None | Unset | float:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, float], data)
+            return cast(None | Unset | float, data)
 
         actual_quantity = _parse_actual_quantity(d.pop("actual_quantity", UNSET))
 
         location_id = d.pop("location_id", UNSET)
 
         _order_created_date = d.pop("order_created_date", UNSET)
-        order_created_date: Union[Unset, datetime.datetime]
+        order_created_date: Unset | datetime.datetime
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:
             order_created_date = isoparse(_order_created_date)
 
         _production_deadline_date = d.pop("production_deadline_date", UNSET)
-        production_deadline_date: Union[Unset, datetime.datetime]
+        production_deadline_date: Unset | datetime.datetime
         if isinstance(_production_deadline_date, Unset):
             production_deadline_date = UNSET
         else:
@@ -272,7 +274,7 @@ class ManufacturingOrder:
         sales_order_row_id = d.pop("sales_order_row_id", UNSET)
 
         _sales_order_delivery_deadline = d.pop("sales_order_delivery_deadline", UNSET)
-        sales_order_delivery_deadline: Union[Unset, datetime.datetime]
+        sales_order_delivery_deadline: Unset | datetime.datetime
         if isinstance(_sales_order_delivery_deadline, Unset):
             sales_order_delivery_deadline = UNSET
         else:
@@ -285,20 +287,20 @@ class ManufacturingOrder:
         operations_cost = d.pop("operations_cost", UNSET)
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Union[Unset, datetime.datetime]
+        created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: Unset | datetime.datetime
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> Union[None, Unset, datetime.datetime]:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -311,7 +313,7 @@ class ManufacturingOrder:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, datetime.datetime], data)
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

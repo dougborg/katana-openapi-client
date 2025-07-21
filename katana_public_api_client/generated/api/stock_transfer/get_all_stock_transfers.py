@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -20,12 +20,12 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    from_location_id: Union[Unset, int] = UNSET,
-    to_location_id: Union[Unset, int] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    from_location_id: Unset | int = UNSET,
+    to_location_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -33,7 +33,7 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_ids: Union[Unset, list[int]] = UNSET
+    json_ids: Unset | list[int] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -57,15 +57,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetAllStockTransfersResponse401,
-        GetAllStockTransfersResponse429,
-        GetAllStockTransfersResponse500,
-        StockTransferListResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetAllStockTransfersResponse401
+    | GetAllStockTransfersResponse429
+    | GetAllStockTransfersResponse500
+    | StockTransferListResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = StockTransferListResponse.from_dict(response.json())
 
@@ -89,14 +88,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetAllStockTransfersResponse401,
-        GetAllStockTransfersResponse429,
-        GetAllStockTransfersResponse500,
-        StockTransferListResponse,
-    ]
+    GetAllStockTransfersResponse401
+    | GetAllStockTransfersResponse429
+    | GetAllStockTransfersResponse500
+    | StockTransferListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -108,20 +105,18 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    from_location_id: Union[Unset, int] = UNSET,
-    to_location_id: Union[Unset, int] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    from_location_id: Unset | int = UNSET,
+    to_location_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> Response[
-    Union[
-        GetAllStockTransfersResponse401,
-        GetAllStockTransfersResponse429,
-        GetAllStockTransfersResponse500,
-        StockTransferListResponse,
-    ]
+    GetAllStockTransfersResponse401
+    | GetAllStockTransfersResponse429
+    | GetAllStockTransfersResponse500
+    | StockTransferListResponse
 ]:
     """List all stock transfers
 
@@ -161,21 +156,20 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    from_location_id: Union[Unset, int] = UNSET,
-    to_location_id: Union[Unset, int] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-) -> Optional[
-    Union[
-        GetAllStockTransfersResponse401,
-        GetAllStockTransfersResponse429,
-        GetAllStockTransfersResponse500,
-        StockTransferListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    from_location_id: Unset | int = UNSET,
+    to_location_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
+) -> (
+    GetAllStockTransfersResponse401
+    | GetAllStockTransfersResponse429
+    | GetAllStockTransfersResponse500
+    | StockTransferListResponse
+    | None
+):
     """List all stock transfers
 
      Returns a list of stock transfers.
@@ -209,20 +203,18 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    from_location_id: Union[Unset, int] = UNSET,
-    to_location_id: Union[Unset, int] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    from_location_id: Unset | int = UNSET,
+    to_location_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> Response[
-    Union[
-        GetAllStockTransfersResponse401,
-        GetAllStockTransfersResponse429,
-        GetAllStockTransfersResponse500,
-        StockTransferListResponse,
-    ]
+    GetAllStockTransfersResponse401
+    | GetAllStockTransfersResponse429
+    | GetAllStockTransfersResponse500
+    | StockTransferListResponse
 ]:
     """List all stock transfers
 
@@ -260,21 +252,20 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    from_location_id: Union[Unset, int] = UNSET,
-    to_location_id: Union[Unset, int] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-) -> Optional[
-    Union[
-        GetAllStockTransfersResponse401,
-        GetAllStockTransfersResponse429,
-        GetAllStockTransfersResponse500,
-        StockTransferListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    from_location_id: Unset | int = UNSET,
+    to_location_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
+) -> (
+    GetAllStockTransfersResponse401
+    | GetAllStockTransfersResponse429
+    | GetAllStockTransfersResponse500
+    | StockTransferListResponse
+    | None
+):
     """List all stock transfers
 
      Returns a list of stock transfers.

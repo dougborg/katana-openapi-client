@@ -132,6 +132,33 @@ from .create_po_additional_cost_row_response_429 import (
 from .create_po_additional_cost_row_response_500 import (
     CreatePoAdditionalCostRowResponse500,
 )
+from .create_price_list_customer_request import CreatePriceListCustomerRequest
+from .create_price_list_customer_response_400 import CreatePriceListCustomerResponse400
+from .create_price_list_customer_response_401 import CreatePriceListCustomerResponse401
+from .create_price_list_customer_response_422 import CreatePriceListCustomerResponse422
+from .create_price_list_customer_response_422_details_item import (
+    CreatePriceListCustomerResponse422DetailsItem,
+)
+from .create_price_list_customer_response_429 import CreatePriceListCustomerResponse429
+from .create_price_list_customer_response_500 import CreatePriceListCustomerResponse500
+from .create_price_list_request import CreatePriceListRequest
+from .create_price_list_response_400 import CreatePriceListResponse400
+from .create_price_list_response_401 import CreatePriceListResponse401
+from .create_price_list_response_422 import CreatePriceListResponse422
+from .create_price_list_response_422_details_item import (
+    CreatePriceListResponse422DetailsItem,
+)
+from .create_price_list_response_429 import CreatePriceListResponse429
+from .create_price_list_response_500 import CreatePriceListResponse500
+from .create_price_list_row_request import CreatePriceListRowRequest
+from .create_price_list_row_response_400 import CreatePriceListRowResponse400
+from .create_price_list_row_response_401 import CreatePriceListRowResponse401
+from .create_price_list_row_response_422 import CreatePriceListRowResponse422
+from .create_price_list_row_response_422_details_item import (
+    CreatePriceListRowResponse422DetailsItem,
+)
+from .create_price_list_row_response_429 import CreatePriceListRowResponse429
+from .create_price_list_row_response_500 import CreatePriceListRowResponse500
 from .create_product_request import CreateProductRequest
 from .create_product_request_configs_item import CreateProductRequestConfigsItem
 from .create_product_request_variants_item import CreateProductRequestVariantsItem
@@ -191,6 +218,35 @@ from .create_sales_order_request_status import CreateSalesOrderRequestStatus
 from .create_sales_order_response_401 import CreateSalesOrderResponse401
 from .create_sales_order_response_429 import CreateSalesOrderResponse429
 from .create_sales_order_response_500 import CreateSalesOrderResponse500
+from .create_sales_order_shipping_fee_request import CreateSalesOrderShippingFeeRequest
+from .create_sales_order_shipping_fee_response_400 import (
+    CreateSalesOrderShippingFeeResponse400,
+)
+from .create_sales_order_shipping_fee_response_401 import (
+    CreateSalesOrderShippingFeeResponse401,
+)
+from .create_sales_order_shipping_fee_response_422 import (
+    CreateSalesOrderShippingFeeResponse422,
+)
+from .create_sales_order_shipping_fee_response_422_details_item import (
+    CreateSalesOrderShippingFeeResponse422DetailsItem,
+)
+from .create_sales_order_shipping_fee_response_429 import (
+    CreateSalesOrderShippingFeeResponse429,
+)
+from .create_sales_order_shipping_fee_response_500 import (
+    CreateSalesOrderShippingFeeResponse500,
+)
+from .create_sales_return_request import CreateSalesReturnRequest
+from .create_sales_return_response_400 import CreateSalesReturnResponse400
+from .create_sales_return_response_401 import CreateSalesReturnResponse401
+from .create_sales_return_response_422 import CreateSalesReturnResponse422
+from .create_sales_return_response_422_details_item import (
+    CreateSalesReturnResponse422DetailsItem,
+)
+from .create_sales_return_response_429 import CreateSalesReturnResponse429
+from .create_sales_return_response_500 import CreateSalesReturnResponse500
+from .create_sales_return_row_request import CreateSalesReturnRowRequest
 from .create_service_response_401 import CreateServiceResponse401
 from .create_service_response_429 import CreateServiceResponse429
 from .create_service_response_500 import CreateServiceResponse500
@@ -526,6 +582,13 @@ from .get_all_sales_orders_response_401 import GetAllSalesOrdersResponse401
 from .get_all_sales_orders_response_429 import GetAllSalesOrdersResponse429
 from .get_all_sales_orders_response_500 import GetAllSalesOrdersResponse500
 from .get_all_sales_orders_status import GetAllSalesOrdersStatus
+from .get_all_sales_return_rows_response_401 import GetAllSalesReturnRowsResponse401
+from .get_all_sales_return_rows_response_429 import GetAllSalesReturnRowsResponse429
+from .get_all_sales_return_rows_response_500 import GetAllSalesReturnRowsResponse500
+from .get_all_sales_returns_response_401 import GetAllSalesReturnsResponse401
+from .get_all_sales_returns_response_429 import GetAllSalesReturnsResponse429
+from .get_all_sales_returns_response_500 import GetAllSalesReturnsResponse500
+from .get_all_sales_returns_status import GetAllSalesReturnsStatus
 from .get_all_serial_numbers_response_401 import GetAllSerialNumbersResponse401
 from .get_all_serial_numbers_response_429 import GetAllSerialNumbersResponse429
 from .get_all_serial_numbers_response_500 import GetAllSerialNumbersResponse500
@@ -564,6 +627,9 @@ from .get_all_suppliers_response_500 import GetAllSuppliersResponse500
 from .get_all_tax_rates_response_401 import GetAllTaxRatesResponse401
 from .get_all_tax_rates_response_429 import GetAllTaxRatesResponse429
 from .get_all_tax_rates_response_500 import GetAllTaxRatesResponse500
+from .get_all_users_response_401 import GetAllUsersResponse401
+from .get_all_users_response_429 import GetAllUsersResponse429
+from .get_all_users_response_500 import GetAllUsersResponse500
 from .get_all_variants_extend_item import GetAllVariantsExtendItem
 from .get_all_variants_response_401 import GetAllVariantsResponse401
 from .get_all_variants_response_429 import GetAllVariantsResponse429
@@ -685,6 +751,10 @@ from .get_sales_order_shipping_fees_response_429 import (
 from .get_sales_order_shipping_fees_response_500 import (
     GetSalesOrderShippingFeesResponse500,
 )
+from .get_sales_return_response_401 import GetSalesReturnResponse401
+from .get_sales_return_response_404 import GetSalesReturnResponse404
+from .get_sales_return_response_429 import GetSalesReturnResponse429
+from .get_sales_return_response_500 import GetSalesReturnResponse500
 from .get_service_response_401 import GetServiceResponse401
 from .get_service_response_429 import GetServiceResponse429
 from .get_service_response_500 import GetServiceResponse500
@@ -862,10 +932,17 @@ from .sales_order_row import SalesOrderRow
 from .sales_order_row_attributes_item import SalesOrderRowAttributesItem
 from .sales_order_row_batch_transactions_item import SalesOrderRowBatchTransactionsItem
 from .sales_order_row_list_response import SalesOrderRowListResponse
-from .sales_order_row_product_availability import SalesOrderRowProductAvailability
+from .sales_order_row_product_availability_type_0 import (
+    SalesOrderRowProductAvailabilityType0,
+)
 from .sales_order_shipping_fee import SalesOrderShippingFee
 from .sales_order_shipping_fee_list_response import SalesOrderShippingFeeListResponse
 from .sales_order_status import SalesOrderStatus
+from .sales_return import SalesReturn
+from .sales_return_list_response import SalesReturnListResponse
+from .sales_return_row import SalesReturnRow
+from .sales_return_row_list_response import SalesReturnRowListResponse
+from .sales_return_status import SalesReturnStatus
 from .serial_number import SerialNumber
 from .serial_number_stock import SerialNumberStock
 from .serial_number_stock_list_response import SerialNumberStockListResponse
@@ -1115,6 +1192,8 @@ from .update_webhook_response_422_details_item import (
 )
 from .update_webhook_response_429 import UpdateWebhookResponse429
 from .update_webhook_response_500 import UpdateWebhookResponse500
+from .user import User
+from .user_list_response import UserListResponse
 from .variant import Variant
 from .variant_config_attributes_item import VariantConfigAttributesItem
 from .variant_default_storage_bin_link import VariantDefaultStorageBinLink
@@ -1221,6 +1300,27 @@ __all__ = (
     "CreatePoAdditionalCostRowResponse422DetailsItem",
     "CreatePoAdditionalCostRowResponse429",
     "CreatePoAdditionalCostRowResponse500",
+    "CreatePriceListCustomerRequest",
+    "CreatePriceListCustomerResponse400",
+    "CreatePriceListCustomerResponse401",
+    "CreatePriceListCustomerResponse422",
+    "CreatePriceListCustomerResponse422DetailsItem",
+    "CreatePriceListCustomerResponse429",
+    "CreatePriceListCustomerResponse500",
+    "CreatePriceListRequest",
+    "CreatePriceListResponse400",
+    "CreatePriceListResponse401",
+    "CreatePriceListResponse422",
+    "CreatePriceListResponse422DetailsItem",
+    "CreatePriceListResponse429",
+    "CreatePriceListResponse500",
+    "CreatePriceListRowRequest",
+    "CreatePriceListRowResponse400",
+    "CreatePriceListRowResponse401",
+    "CreatePriceListRowResponse422",
+    "CreatePriceListRowResponse422DetailsItem",
+    "CreatePriceListRowResponse429",
+    "CreatePriceListRowResponse500",
     "CreateProductRequest",
     "CreateProductRequestConfigsItem",
     "CreateProductRequestVariantsItem",
@@ -1256,6 +1356,21 @@ __all__ = (
     "CreateSalesOrderResponse401",
     "CreateSalesOrderResponse429",
     "CreateSalesOrderResponse500",
+    "CreateSalesOrderShippingFeeRequest",
+    "CreateSalesOrderShippingFeeResponse400",
+    "CreateSalesOrderShippingFeeResponse401",
+    "CreateSalesOrderShippingFeeResponse422",
+    "CreateSalesOrderShippingFeeResponse422DetailsItem",
+    "CreateSalesOrderShippingFeeResponse429",
+    "CreateSalesOrderShippingFeeResponse500",
+    "CreateSalesReturnRequest",
+    "CreateSalesReturnResponse400",
+    "CreateSalesReturnResponse401",
+    "CreateSalesReturnResponse422",
+    "CreateSalesReturnResponse422DetailsItem",
+    "CreateSalesReturnResponse429",
+    "CreateSalesReturnResponse500",
+    "CreateSalesReturnRowRequest",
     "CreateServiceResponse401",
     "CreateServiceResponse429",
     "CreateServiceResponse500",
@@ -1291,14 +1406,14 @@ __all__ = (
     "CreateWebhookResponse422DetailsItem",
     "CreateWebhookResponse429",
     "CreateWebhookResponse500",
+    "CustomFieldsCollection",
+    "CustomFieldsCollectionCustomFieldsItem",
+    "CustomFieldsCollectionListResponse",
     "Customer",
     "CustomerAddress",
     "CustomerAddressEntityType",
     "CustomerAddressListResponse",
     "CustomerListResponse",
-    "CustomFieldsCollection",
-    "CustomFieldsCollectionCustomFieldsItem",
-    "CustomFieldsCollectionListResponse",
     "DeleteBomRowResponse401",
     "DeleteBomRowResponse404",
     "DeleteBomRowResponse429",
@@ -1393,6 +1508,9 @@ __all__ = (
     "GetAllBomRowsResponse401",
     "GetAllBomRowsResponse429",
     "GetAllBomRowsResponse500",
+    "GetAllCustomFieldsCollectionsResponse401",
+    "GetAllCustomFieldsCollectionsResponse429",
+    "GetAllCustomFieldsCollectionsResponse500",
     "GetAllCustomerAddressesEntityType",
     "GetAllCustomerAddressesResponse401",
     "GetAllCustomerAddressesResponse429",
@@ -1400,9 +1518,6 @@ __all__ = (
     "GetAllCustomersResponse401",
     "GetAllCustomersResponse429",
     "GetAllCustomersResponse500",
-    "GetAllCustomFieldsCollectionsResponse401",
-    "GetAllCustomFieldsCollectionsResponse429",
-    "GetAllCustomFieldsCollectionsResponse500",
     "GetAllInventoryMovementsResourceType",
     "GetAllInventoryMovementsResponse401",
     "GetAllInventoryMovementsResponse429",
@@ -1473,6 +1588,13 @@ __all__ = (
     "GetAllSalesOrdersResponse429",
     "GetAllSalesOrdersResponse500",
     "GetAllSalesOrdersStatus",
+    "GetAllSalesReturnRowsResponse401",
+    "GetAllSalesReturnRowsResponse429",
+    "GetAllSalesReturnRowsResponse500",
+    "GetAllSalesReturnsResponse401",
+    "GetAllSalesReturnsResponse429",
+    "GetAllSalesReturnsResponse500",
+    "GetAllSalesReturnsStatus",
     "GetAllSerialNumbersResponse401",
     "GetAllSerialNumbersResponse429",
     "GetAllSerialNumbersResponse500",
@@ -1486,6 +1608,9 @@ __all__ = (
     "GetAllStockAdjustmentsResponse401",
     "GetAllStockAdjustmentsResponse429",
     "GetAllStockAdjustmentsResponse500",
+    "GetAllStockTransfersResponse401",
+    "GetAllStockTransfersResponse429",
+    "GetAllStockTransfersResponse500",
     "GetAllStocktakeRowsResponse401",
     "GetAllStocktakeRowsResponse429",
     "GetAllStocktakeRowsResponse500",
@@ -1493,9 +1618,6 @@ __all__ = (
     "GetAllStocktakesResponse429",
     "GetAllStocktakesResponse500",
     "GetAllStocktakesStatus",
-    "GetAllStockTransfersResponse401",
-    "GetAllStockTransfersResponse429",
-    "GetAllStockTransfersResponse500",
     "GetAllStorageBinsResponse401",
     "GetAllStorageBinsResponse429",
     "GetAllStorageBinsResponse500",
@@ -1505,6 +1627,9 @@ __all__ = (
     "GetAllTaxRatesResponse401",
     "GetAllTaxRatesResponse429",
     "GetAllTaxRatesResponse500",
+    "GetAllUsersResponse401",
+    "GetAllUsersResponse429",
+    "GetAllUsersResponse500",
     "GetAllVariantsExtendItem",
     "GetAllVariantsResponse401",
     "GetAllVariantsResponse429",
@@ -1576,6 +1701,10 @@ __all__ = (
     "GetSalesOrderShippingFeesResponse401",
     "GetSalesOrderShippingFeesResponse429",
     "GetSalesOrderShippingFeesResponse500",
+    "GetSalesReturnResponse401",
+    "GetSalesReturnResponse404",
+    "GetSalesReturnResponse429",
+    "GetSalesReturnResponse500",
     "GetServiceResponse401",
     "GetServiceResponse429",
     "GetServiceResponse500",
@@ -1691,10 +1820,15 @@ __all__ = (
     "SalesOrderRowAttributesItem",
     "SalesOrderRowBatchTransactionsItem",
     "SalesOrderRowListResponse",
-    "SalesOrderRowProductAvailability",
+    "SalesOrderRowProductAvailabilityType0",
     "SalesOrderShippingFee",
     "SalesOrderShippingFeeListResponse",
     "SalesOrderStatus",
+    "SalesReturn",
+    "SalesReturnListResponse",
+    "SalesReturnRow",
+    "SalesReturnRowListResponse",
+    "SalesReturnStatus",
     "SerialNumber",
     "SerialNumberStock",
     "SerialNumberStockListResponse",
@@ -1711,14 +1845,14 @@ __all__ = (
     "StockAdjustment",
     "StockAdjustmentListResponse",
     "StockAdjustmentStatus",
+    "StockTransfer",
+    "StockTransferListResponse",
+    "StockTransferStatus",
     "Stocktake",
     "StocktakeListResponse",
     "StocktakeRow",
     "StocktakeRowListResponse",
     "StocktakeStatus",
-    "StockTransfer",
-    "StockTransferListResponse",
-    "StockTransferStatus",
     "StorageBin",
     "StorageBinList",
     "SupplierAddressListResponse",
@@ -1856,6 +1990,8 @@ __all__ = (
     "UpdateWebhookResponse422DetailsItem",
     "UpdateWebhookResponse429",
     "UpdateWebhookResponse500",
+    "User",
+    "UserListResponse",
     "Variant",
     "VariantConfigAttributesItem",
     "VariantDefaultStorageBinLink",

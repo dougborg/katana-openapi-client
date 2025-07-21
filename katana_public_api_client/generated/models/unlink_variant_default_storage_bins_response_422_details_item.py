@@ -1,8 +1,10 @@
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 T = TypeVar("T", bound="UnlinkVariantDefaultStorageBinsResponse422DetailsItem")
 
@@ -24,9 +26,7 @@ class UnlinkVariantDefaultStorageBinsResponse422DetailsItem:
         d = dict(src_dict)
         unlink_variant_default_storage_bins_response_422_details_item = cls()
 
-        unlink_variant_default_storage_bins_response_422_details_item.additional_properties = (
-            d
-        )
+        unlink_variant_default_storage_bins_response_422_details_item.additional_properties = d
         return unlink_variant_default_storage_bins_response_422_details_item
 
     @property

@@ -1,8 +1,10 @@
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 T = TypeVar(
     "T", bound="UpdateManufacturingOrderProductionIngredientResponse422DetailsItem"
@@ -28,9 +30,7 @@ class UpdateManufacturingOrderProductionIngredientResponse422DetailsItem:
             cls()
         )
 
-        update_manufacturing_order_production_ingredient_response_422_details_item.additional_properties = (
-            d
-        )
+        update_manufacturing_order_production_ingredient_response_422_details_item.additional_properties = d
         return (
             update_manufacturing_order_production_ingredient_response_422_details_item
         )

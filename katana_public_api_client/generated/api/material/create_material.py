@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -34,16 +34,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        CreateMaterialResponse401,
-        CreateMaterialResponse422,
-        CreateMaterialResponse429,
-        CreateMaterialResponse500,
-        MaterialResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    CreateMaterialResponse401
+    | CreateMaterialResponse422
+    | CreateMaterialResponse429
+    | CreateMaterialResponse500
+    | MaterialResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = MaterialResponse.from_dict(response.json())
 
@@ -71,15 +70,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        CreateMaterialResponse401,
-        CreateMaterialResponse422,
-        CreateMaterialResponse429,
-        CreateMaterialResponse500,
-        MaterialResponse,
-    ]
+    CreateMaterialResponse401
+    | CreateMaterialResponse422
+    | CreateMaterialResponse429
+    | CreateMaterialResponse500
+    | MaterialResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -91,16 +88,14 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateMaterialRequest,
 ) -> Response[
-    Union[
-        CreateMaterialResponse401,
-        CreateMaterialResponse422,
-        CreateMaterialResponse429,
-        CreateMaterialResponse500,
-        MaterialResponse,
-    ]
+    CreateMaterialResponse401
+    | CreateMaterialResponse422
+    | CreateMaterialResponse429
+    | CreateMaterialResponse500
+    | MaterialResponse
 ]:
     """Create a material
 
@@ -130,17 +125,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateMaterialRequest,
-) -> Optional[
-    Union[
-        CreateMaterialResponse401,
-        CreateMaterialResponse422,
-        CreateMaterialResponse429,
-        CreateMaterialResponse500,
-        MaterialResponse,
-    ]
-]:
+) -> (
+    CreateMaterialResponse401
+    | CreateMaterialResponse422
+    | CreateMaterialResponse429
+    | CreateMaterialResponse500
+    | MaterialResponse
+    | None
+):
     """Create a material
 
      Creates a material object.
@@ -164,16 +158,14 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateMaterialRequest,
 ) -> Response[
-    Union[
-        CreateMaterialResponse401,
-        CreateMaterialResponse422,
-        CreateMaterialResponse429,
-        CreateMaterialResponse500,
-        MaterialResponse,
-    ]
+    CreateMaterialResponse401
+    | CreateMaterialResponse422
+    | CreateMaterialResponse429
+    | CreateMaterialResponse500
+    | MaterialResponse
 ]:
     """Create a material
 
@@ -201,17 +193,16 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateMaterialRequest,
-) -> Optional[
-    Union[
-        CreateMaterialResponse401,
-        CreateMaterialResponse422,
-        CreateMaterialResponse429,
-        CreateMaterialResponse500,
-        MaterialResponse,
-    ]
-]:
+) -> (
+    CreateMaterialResponse401
+    | CreateMaterialResponse422
+    | CreateMaterialResponse429
+    | CreateMaterialResponse500
+    | MaterialResponse
+    | None
+):
     """Create a material
 
      Creates a material object.

@@ -1,6 +1,6 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
@@ -23,17 +23,17 @@ class WebhookLogsExportRequest:
         created_at_max (Union[Unset, datetime.datetime]):
     """
 
-    webhook_id: Union[Unset, int] = UNSET
-    event: Union[Unset, WebhookEvent] = UNSET
-    status_code: Union[Unset, int] = UNSET
-    delivered: Union[Unset, bool] = UNSET
-    created_at_min: Union[Unset, datetime.datetime] = UNSET
-    created_at_max: Union[Unset, datetime.datetime] = UNSET
+    webhook_id: Unset | int = UNSET
+    event: Unset | WebhookEvent = UNSET
+    status_code: Unset | int = UNSET
+    delivered: Unset | bool = UNSET
+    created_at_min: Unset | datetime.datetime = UNSET
+    created_at_max: Unset | datetime.datetime = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         webhook_id = self.webhook_id
 
-        event: Union[Unset, str] = UNSET
+        event: Unset | str = UNSET
         if not isinstance(self.event, Unset):
             event = self.event.value
 
@@ -41,11 +41,11 @@ class WebhookLogsExportRequest:
 
         delivered = self.delivered
 
-        created_at_min: Union[Unset, str] = UNSET
+        created_at_min: Unset | str = UNSET
         if not isinstance(self.created_at_min, Unset):
             created_at_min = self.created_at_min.isoformat()
 
-        created_at_max: Union[Unset, str] = UNSET
+        created_at_max: Unset | str = UNSET
         if not isinstance(self.created_at_max, Unset):
             created_at_max = self.created_at_max.isoformat()
 
@@ -73,7 +73,7 @@ class WebhookLogsExportRequest:
         webhook_id = d.pop("webhook_id", UNSET)
 
         _event = d.pop("event", UNSET)
-        event: Union[Unset, WebhookEvent]
+        event: Unset | WebhookEvent
         if isinstance(_event, Unset):
             event = UNSET
         else:
@@ -84,14 +84,14 @@ class WebhookLogsExportRequest:
         delivered = d.pop("delivered", UNSET)
 
         _created_at_min = d.pop("created_at_min", UNSET)
-        created_at_min: Union[Unset, datetime.datetime]
+        created_at_min: Unset | datetime.datetime
         if isinstance(_created_at_min, Unset):
             created_at_min = UNSET
         else:
             created_at_min = isoparse(_created_at_min)
 
         _created_at_max = d.pop("created_at_max", UNSET)
-        created_at_max: Union[Unset, datetime.datetime]
+        created_at_max: Unset | datetime.datetime
         if isinstance(_created_at_max, Unset):
             created_at_max = UNSET
         else:

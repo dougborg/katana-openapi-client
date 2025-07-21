@@ -1,6 +1,6 @@
 import datetime
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -26,26 +26,26 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    ids: Union[Unset, list[int]] = UNSET,
-    status: Union[Unset, GetAllManufacturingOrderOperationRowsStatus] = UNSET,
-    manufacturing_order_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
+    ids: Unset | list[int] = UNSET,
+    status: Unset | GetAllManufacturingOrderOperationRowsStatus = UNSET,
+    manufacturing_order_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Union[Unset, list[int]] = UNSET
+    json_ids: Unset | list[int] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
     params["ids"] = json_ids
 
-    json_status: Union[Unset, str] = UNSET
+    json_status: Unset | str = UNSET
     if not isinstance(status, Unset):
         json_status = status.value
 
@@ -57,22 +57,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Union[Unset, str] = UNSET
+    json_created_at_min: Unset | str = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Union[Unset, str] = UNSET
+    json_created_at_max: Unset | str = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Union[Unset, str] = UNSET
+    json_updated_at_min: Unset | str = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Union[Unset, str] = UNSET
+    json_updated_at_max: Unset | str = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -91,15 +91,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetAllManufacturingOrderOperationRowsResponse401,
-        GetAllManufacturingOrderOperationRowsResponse429,
-        GetAllManufacturingOrderOperationRowsResponse500,
-        ManufacturingOrderOperationRowListResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetAllManufacturingOrderOperationRowsResponse401
+    | GetAllManufacturingOrderOperationRowsResponse429
+    | GetAllManufacturingOrderOperationRowsResponse500
+    | ManufacturingOrderOperationRowListResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = ManufacturingOrderOperationRowListResponse.from_dict(
             response.json()
@@ -131,14 +130,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetAllManufacturingOrderOperationRowsResponse401,
-        GetAllManufacturingOrderOperationRowsResponse429,
-        GetAllManufacturingOrderOperationRowsResponse500,
-        ManufacturingOrderOperationRowListResponse,
-    ]
+    GetAllManufacturingOrderOperationRowsResponse401
+    | GetAllManufacturingOrderOperationRowsResponse429
+    | GetAllManufacturingOrderOperationRowsResponse500
+    | ManufacturingOrderOperationRowListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -150,24 +147,22 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    status: Union[Unset, GetAllManufacturingOrderOperationRowsStatus] = UNSET,
-    manufacturing_order_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    status: Unset | GetAllManufacturingOrderOperationRowsStatus = UNSET,
+    manufacturing_order_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> Response[
-    Union[
-        GetAllManufacturingOrderOperationRowsResponse401,
-        GetAllManufacturingOrderOperationRowsResponse429,
-        GetAllManufacturingOrderOperationRowsResponse500,
-        ManufacturingOrderOperationRowListResponse,
-    ]
+    GetAllManufacturingOrderOperationRowsResponse401
+    | GetAllManufacturingOrderOperationRowsResponse429
+    | GetAllManufacturingOrderOperationRowsResponse500
+    | ManufacturingOrderOperationRowListResponse
 ]:
     """List all manufacturing order operation rows
 
@@ -217,25 +212,24 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    status: Union[Unset, GetAllManufacturingOrderOperationRowsStatus] = UNSET,
-    manufacturing_order_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-) -> Optional[
-    Union[
-        GetAllManufacturingOrderOperationRowsResponse401,
-        GetAllManufacturingOrderOperationRowsResponse429,
-        GetAllManufacturingOrderOperationRowsResponse500,
-        ManufacturingOrderOperationRowListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    status: Unset | GetAllManufacturingOrderOperationRowsStatus = UNSET,
+    manufacturing_order_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
+) -> (
+    GetAllManufacturingOrderOperationRowsResponse401
+    | GetAllManufacturingOrderOperationRowsResponse429
+    | GetAllManufacturingOrderOperationRowsResponse500
+    | ManufacturingOrderOperationRowListResponse
+    | None
+):
     """List all manufacturing order operation rows
 
      Returns a list of manufacturing order operation rows you've previously created.
@@ -279,24 +273,22 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    status: Union[Unset, GetAllManufacturingOrderOperationRowsStatus] = UNSET,
-    manufacturing_order_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    status: Unset | GetAllManufacturingOrderOperationRowsStatus = UNSET,
+    manufacturing_order_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> Response[
-    Union[
-        GetAllManufacturingOrderOperationRowsResponse401,
-        GetAllManufacturingOrderOperationRowsResponse429,
-        GetAllManufacturingOrderOperationRowsResponse500,
-        ManufacturingOrderOperationRowListResponse,
-    ]
+    GetAllManufacturingOrderOperationRowsResponse401
+    | GetAllManufacturingOrderOperationRowsResponse429
+    | GetAllManufacturingOrderOperationRowsResponse500
+    | ManufacturingOrderOperationRowListResponse
 ]:
     """List all manufacturing order operation rows
 
@@ -344,25 +336,24 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    status: Union[Unset, GetAllManufacturingOrderOperationRowsStatus] = UNSET,
-    manufacturing_order_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-) -> Optional[
-    Union[
-        GetAllManufacturingOrderOperationRowsResponse401,
-        GetAllManufacturingOrderOperationRowsResponse429,
-        GetAllManufacturingOrderOperationRowsResponse500,
-        ManufacturingOrderOperationRowListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    status: Unset | GetAllManufacturingOrderOperationRowsStatus = UNSET,
+    manufacturing_order_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
+) -> (
+    GetAllManufacturingOrderOperationRowsResponse401
+    | GetAllManufacturingOrderOperationRowsResponse429
+    | GetAllManufacturingOrderOperationRowsResponse500
+    | ManufacturingOrderOperationRowListResponse
+    | None
+):
     """List all manufacturing order operation rows
 
      Returns a list of manufacturing order operation rows you've previously created.

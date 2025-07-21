@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 import httpx
 
@@ -36,9 +36,7 @@ def _get_kwargs(
 
     _kwargs["json"] = []
     for componentsschemas_unlink_variant_bin_location_list_request_item_data in body:
-        componentsschemas_unlink_variant_bin_location_list_request_item = (
-            componentsschemas_unlink_variant_bin_location_list_request_item_data.to_dict()
-        )
+        componentsschemas_unlink_variant_bin_location_list_request_item = componentsschemas_unlink_variant_bin_location_list_request_item_data.to_dict()
         _kwargs["json"].append(
             componentsschemas_unlink_variant_bin_location_list_request_item
         )
@@ -50,16 +48,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        Any,
-        UnlinkVariantDefaultStorageBinsResponse401,
-        UnlinkVariantDefaultStorageBinsResponse422,
-        UnlinkVariantDefaultStorageBinsResponse429,
-        UnlinkVariantDefaultStorageBinsResponse500,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    Any
+    | UnlinkVariantDefaultStorageBinsResponse401
+    | UnlinkVariantDefaultStorageBinsResponse422
+    | UnlinkVariantDefaultStorageBinsResponse429
+    | UnlinkVariantDefaultStorageBinsResponse500
+    | None
+):
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
@@ -94,15 +91,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        Any,
-        UnlinkVariantDefaultStorageBinsResponse401,
-        UnlinkVariantDefaultStorageBinsResponse422,
-        UnlinkVariantDefaultStorageBinsResponse429,
-        UnlinkVariantDefaultStorageBinsResponse500,
-    ]
+    Any
+    | UnlinkVariantDefaultStorageBinsResponse401
+    | UnlinkVariantDefaultStorageBinsResponse422
+    | UnlinkVariantDefaultStorageBinsResponse429
+    | UnlinkVariantDefaultStorageBinsResponse500
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -114,16 +109,14 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: list["UnlinkVariantBinLocationRequest"],
 ) -> Response[
-    Union[
-        Any,
-        UnlinkVariantDefaultStorageBinsResponse401,
-        UnlinkVariantDefaultStorageBinsResponse422,
-        UnlinkVariantDefaultStorageBinsResponse429,
-        UnlinkVariantDefaultStorageBinsResponse500,
-    ]
+    Any
+    | UnlinkVariantDefaultStorageBinsResponse401
+    | UnlinkVariantDefaultStorageBinsResponse422
+    | UnlinkVariantDefaultStorageBinsResponse429
+    | UnlinkVariantDefaultStorageBinsResponse500
 ]:
     """Unlink variant default storage bins
 
@@ -155,17 +148,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: list["UnlinkVariantBinLocationRequest"],
-) -> Optional[
-    Union[
-        Any,
-        UnlinkVariantDefaultStorageBinsResponse401,
-        UnlinkVariantDefaultStorageBinsResponse422,
-        UnlinkVariantDefaultStorageBinsResponse429,
-        UnlinkVariantDefaultStorageBinsResponse500,
-    ]
-]:
+) -> (
+    Any
+    | UnlinkVariantDefaultStorageBinsResponse401
+    | UnlinkVariantDefaultStorageBinsResponse422
+    | UnlinkVariantDefaultStorageBinsResponse429
+    | UnlinkVariantDefaultStorageBinsResponse500
+    | None
+):
     """Unlink variant default storage bins
 
      Bulk operation for unlinking variants from the default storage bins available in a specific
@@ -191,16 +183,14 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: list["UnlinkVariantBinLocationRequest"],
 ) -> Response[
-    Union[
-        Any,
-        UnlinkVariantDefaultStorageBinsResponse401,
-        UnlinkVariantDefaultStorageBinsResponse422,
-        UnlinkVariantDefaultStorageBinsResponse429,
-        UnlinkVariantDefaultStorageBinsResponse500,
-    ]
+    Any
+    | UnlinkVariantDefaultStorageBinsResponse401
+    | UnlinkVariantDefaultStorageBinsResponse422
+    | UnlinkVariantDefaultStorageBinsResponse429
+    | UnlinkVariantDefaultStorageBinsResponse500
 ]:
     """Unlink variant default storage bins
 
@@ -230,17 +220,16 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: list["UnlinkVariantBinLocationRequest"],
-) -> Optional[
-    Union[
-        Any,
-        UnlinkVariantDefaultStorageBinsResponse401,
-        UnlinkVariantDefaultStorageBinsResponse422,
-        UnlinkVariantDefaultStorageBinsResponse429,
-        UnlinkVariantDefaultStorageBinsResponse500,
-    ]
-]:
+) -> (
+    Any
+    | UnlinkVariantDefaultStorageBinsResponse401
+    | UnlinkVariantDefaultStorageBinsResponse422
+    | UnlinkVariantDefaultStorageBinsResponse429
+    | UnlinkVariantDefaultStorageBinsResponse500
+    | None
+):
     """Unlink variant default storage bins
 
      Bulk operation for unlinking variants from the default storage bins available in a specific

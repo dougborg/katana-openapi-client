@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
@@ -26,9 +26,9 @@ class CreatePurchaseOrderAdditionalCostRowRequest:
     group_id: int
     tax_rate_id: int
     price: float
-    distribution_method: Union[
-        Unset, CreatePurchaseOrderAdditionalCostRowRequestDistributionMethod
-    ] = UNSET
+    distribution_method: (
+        Unset | CreatePurchaseOrderAdditionalCostRowRequestDistributionMethod
+    ) = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         additional_cost_id = self.additional_cost_id
@@ -39,7 +39,7 @@ class CreatePurchaseOrderAdditionalCostRowRequest:
 
         price = self.price
 
-        distribution_method: Union[Unset, str] = UNSET
+        distribution_method: Unset | str = UNSET
         if not isinstance(self.distribution_method, Unset):
             distribution_method = self.distribution_method.value
 
@@ -70,9 +70,9 @@ class CreatePurchaseOrderAdditionalCostRowRequest:
         price = d.pop("price")
 
         _distribution_method = d.pop("distribution_method", UNSET)
-        distribution_method: Union[
-            Unset, CreatePurchaseOrderAdditionalCostRowRequestDistributionMethod
-        ]
+        distribution_method: (
+            Unset | CreatePurchaseOrderAdditionalCostRowRequestDistributionMethod
+        )
         if isinstance(_distribution_method, Unset):
             distribution_method = UNSET
         else:

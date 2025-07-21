@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -30,15 +30,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetManufacturingOrderOperationRowResponse401,
-        GetManufacturingOrderOperationRowResponse429,
-        GetManufacturingOrderOperationRowResponse500,
-        ManufacturingOrderOperationRow,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetManufacturingOrderOperationRowResponse401
+    | GetManufacturingOrderOperationRowResponse429
+    | GetManufacturingOrderOperationRowResponse500
+    | ManufacturingOrderOperationRow
+    | None
+):
     if response.status_code == 200:
         response_200 = ManufacturingOrderOperationRow.from_dict(response.json())
 
@@ -68,14 +67,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetManufacturingOrderOperationRowResponse401,
-        GetManufacturingOrderOperationRowResponse429,
-        GetManufacturingOrderOperationRowResponse500,
-        ManufacturingOrderOperationRow,
-    ]
+    GetManufacturingOrderOperationRowResponse401
+    | GetManufacturingOrderOperationRowResponse429
+    | GetManufacturingOrderOperationRowResponse500
+    | ManufacturingOrderOperationRow
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -88,14 +85,12 @@ def _build_response(
 def sync_detailed(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        GetManufacturingOrderOperationRowResponse401,
-        GetManufacturingOrderOperationRowResponse429,
-        GetManufacturingOrderOperationRowResponse500,
-        ManufacturingOrderOperationRow,
-    ]
+    GetManufacturingOrderOperationRowResponse401
+    | GetManufacturingOrderOperationRowResponse429
+    | GetManufacturingOrderOperationRowResponse500
+    | ManufacturingOrderOperationRow
 ]:
     """Retrieve a manufacturing order operation row
 
@@ -126,15 +121,14 @@ def sync_detailed(
 def sync(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        GetManufacturingOrderOperationRowResponse401,
-        GetManufacturingOrderOperationRowResponse429,
-        GetManufacturingOrderOperationRowResponse500,
-        ManufacturingOrderOperationRow,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    GetManufacturingOrderOperationRowResponse401
+    | GetManufacturingOrderOperationRowResponse429
+    | GetManufacturingOrderOperationRowResponse500
+    | ManufacturingOrderOperationRow
+    | None
+):
     """Retrieve a manufacturing order operation row
 
      Retrieves the details of an existing manufacturing order operation row.
@@ -159,14 +153,12 @@ def sync(
 async def asyncio_detailed(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        GetManufacturingOrderOperationRowResponse401,
-        GetManufacturingOrderOperationRowResponse429,
-        GetManufacturingOrderOperationRowResponse500,
-        ManufacturingOrderOperationRow,
-    ]
+    GetManufacturingOrderOperationRowResponse401
+    | GetManufacturingOrderOperationRowResponse429
+    | GetManufacturingOrderOperationRowResponse500
+    | ManufacturingOrderOperationRow
 ]:
     """Retrieve a manufacturing order operation row
 
@@ -195,15 +187,14 @@ async def asyncio_detailed(
 async def asyncio(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        GetManufacturingOrderOperationRowResponse401,
-        GetManufacturingOrderOperationRowResponse429,
-        GetManufacturingOrderOperationRowResponse500,
-        ManufacturingOrderOperationRow,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    GetManufacturingOrderOperationRowResponse401
+    | GetManufacturingOrderOperationRowResponse429
+    | GetManufacturingOrderOperationRowResponse500
+    | ManufacturingOrderOperationRow
+    | None
+):
     """Retrieve a manufacturing order operation row
 
      Retrieves the details of an existing manufacturing order operation row.

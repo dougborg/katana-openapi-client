@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class SalesOrderRowProductAvailability(str, Enum):
+class SalesOrderRowProductAvailabilityType0(str, Enum):
     EXPECTED = "EXPECTED"
     IN_STOCK = "IN_STOCK"
     NOT_APPLICABLE = "NOT_APPLICABLE"

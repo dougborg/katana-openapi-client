@@ -1,8 +1,10 @@
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..types import UNSET, Unset
 
@@ -24,7 +26,7 @@ class ServiceResponse:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Union[Unset, dict[str, Any]] = UNSET
+        data: Unset | dict[str, Any] = UNSET
         if not isinstance(self.data, Unset):
             data = self.data.to_dict()
 
@@ -42,7 +44,7 @@ class ServiceResponse:
 
         d = dict(src_dict)
         _data = d.pop("data", UNSET)
-        data: Union[Unset, Service]
+        data: Unset | Service
         if isinstance(_data, Unset):
             data = UNSET
         else:

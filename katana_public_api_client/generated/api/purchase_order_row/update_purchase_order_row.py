@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -43,16 +43,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        PurchaseOrderRowResponse,
-        UpdatePurchaseOrderRowResponse401,
-        UpdatePurchaseOrderRowResponse422,
-        UpdatePurchaseOrderRowResponse429,
-        UpdatePurchaseOrderRowResponse500,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    PurchaseOrderRowResponse
+    | UpdatePurchaseOrderRowResponse401
+    | UpdatePurchaseOrderRowResponse422
+    | UpdatePurchaseOrderRowResponse429
+    | UpdatePurchaseOrderRowResponse500
+    | None
+):
     if response.status_code == 200:
         response_200 = PurchaseOrderRowResponse.from_dict(response.json())
 
@@ -80,15 +79,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        PurchaseOrderRowResponse,
-        UpdatePurchaseOrderRowResponse401,
-        UpdatePurchaseOrderRowResponse422,
-        UpdatePurchaseOrderRowResponse429,
-        UpdatePurchaseOrderRowResponse500,
-    ]
+    PurchaseOrderRowResponse
+    | UpdatePurchaseOrderRowResponse401
+    | UpdatePurchaseOrderRowResponse422
+    | UpdatePurchaseOrderRowResponse429
+    | UpdatePurchaseOrderRowResponse500
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -101,16 +98,14 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRowRequest,
 ) -> Response[
-    Union[
-        PurchaseOrderRowResponse,
-        UpdatePurchaseOrderRowResponse401,
-        UpdatePurchaseOrderRowResponse422,
-        UpdatePurchaseOrderRowResponse429,
-        UpdatePurchaseOrderRowResponse500,
-    ]
+    PurchaseOrderRowResponse
+    | UpdatePurchaseOrderRowResponse401
+    | UpdatePurchaseOrderRowResponse422
+    | UpdatePurchaseOrderRowResponse429
+    | UpdatePurchaseOrderRowResponse500
 ]:
     """Update a purchase order row
 
@@ -144,17 +139,16 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRowRequest,
-) -> Optional[
-    Union[
-        PurchaseOrderRowResponse,
-        UpdatePurchaseOrderRowResponse401,
-        UpdatePurchaseOrderRowResponse422,
-        UpdatePurchaseOrderRowResponse429,
-        UpdatePurchaseOrderRowResponse500,
-    ]
-]:
+) -> (
+    PurchaseOrderRowResponse
+    | UpdatePurchaseOrderRowResponse401
+    | UpdatePurchaseOrderRowResponse422
+    | UpdatePurchaseOrderRowResponse429
+    | UpdatePurchaseOrderRowResponse500
+    | None
+):
     """Update a purchase order row
 
      Updates the specified purchase order row by setting the values of the parameters passed.
@@ -182,16 +176,14 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRowRequest,
 ) -> Response[
-    Union[
-        PurchaseOrderRowResponse,
-        UpdatePurchaseOrderRowResponse401,
-        UpdatePurchaseOrderRowResponse422,
-        UpdatePurchaseOrderRowResponse429,
-        UpdatePurchaseOrderRowResponse500,
-    ]
+    PurchaseOrderRowResponse
+    | UpdatePurchaseOrderRowResponse401
+    | UpdatePurchaseOrderRowResponse422
+    | UpdatePurchaseOrderRowResponse429
+    | UpdatePurchaseOrderRowResponse500
 ]:
     """Update a purchase order row
 
@@ -223,17 +215,16 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRowRequest,
-) -> Optional[
-    Union[
-        PurchaseOrderRowResponse,
-        UpdatePurchaseOrderRowResponse401,
-        UpdatePurchaseOrderRowResponse422,
-        UpdatePurchaseOrderRowResponse429,
-        UpdatePurchaseOrderRowResponse500,
-    ]
-]:
+) -> (
+    PurchaseOrderRowResponse
+    | UpdatePurchaseOrderRowResponse401
+    | UpdatePurchaseOrderRowResponse422
+    | UpdatePurchaseOrderRowResponse429
+    | UpdatePurchaseOrderRowResponse500
+    | None
+):
     """Update a purchase order row
 
      Updates the specified purchase order row by setting the values of the parameters passed.

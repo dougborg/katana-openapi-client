@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -32,15 +32,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetPoAdditionalCostRowResponse401,
-        GetPoAdditionalCostRowResponse429,
-        GetPoAdditionalCostRowResponse500,
-        PurchaseOrderAdditionalCostRowResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetPoAdditionalCostRowResponse401
+    | GetPoAdditionalCostRowResponse429
+    | GetPoAdditionalCostRowResponse500
+    | PurchaseOrderAdditionalCostRowResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = PurchaseOrderAdditionalCostRowResponse.from_dict(response.json())
 
@@ -64,14 +63,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetPoAdditionalCostRowResponse401,
-        GetPoAdditionalCostRowResponse429,
-        GetPoAdditionalCostRowResponse500,
-        PurchaseOrderAdditionalCostRowResponse,
-    ]
+    GetPoAdditionalCostRowResponse401
+    | GetPoAdditionalCostRowResponse429
+    | GetPoAdditionalCostRowResponse500
+    | PurchaseOrderAdditionalCostRowResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -84,14 +81,12 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        GetPoAdditionalCostRowResponse401,
-        GetPoAdditionalCostRowResponse429,
-        GetPoAdditionalCostRowResponse500,
-        PurchaseOrderAdditionalCostRowResponse,
-    ]
+    GetPoAdditionalCostRowResponse401
+    | GetPoAdditionalCostRowResponse429
+    | GetPoAdditionalCostRowResponse500
+    | PurchaseOrderAdditionalCostRowResponse
 ]:
     """Retrieve a purchase order additional cost row
 
@@ -122,15 +117,14 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        GetPoAdditionalCostRowResponse401,
-        GetPoAdditionalCostRowResponse429,
-        GetPoAdditionalCostRowResponse500,
-        PurchaseOrderAdditionalCostRowResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    GetPoAdditionalCostRowResponse401
+    | GetPoAdditionalCostRowResponse429
+    | GetPoAdditionalCostRowResponse500
+    | PurchaseOrderAdditionalCostRowResponse
+    | None
+):
     """Retrieve a purchase order additional cost row
 
      Retrieves the details of an existing purchase order additional cost row based on ID
@@ -155,14 +149,12 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        GetPoAdditionalCostRowResponse401,
-        GetPoAdditionalCostRowResponse429,
-        GetPoAdditionalCostRowResponse500,
-        PurchaseOrderAdditionalCostRowResponse,
-    ]
+    GetPoAdditionalCostRowResponse401
+    | GetPoAdditionalCostRowResponse429
+    | GetPoAdditionalCostRowResponse500
+    | PurchaseOrderAdditionalCostRowResponse
 ]:
     """Retrieve a purchase order additional cost row
 
@@ -191,15 +183,14 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        GetPoAdditionalCostRowResponse401,
-        GetPoAdditionalCostRowResponse429,
-        GetPoAdditionalCostRowResponse500,
-        PurchaseOrderAdditionalCostRowResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    GetPoAdditionalCostRowResponse401
+    | GetPoAdditionalCostRowResponse429
+    | GetPoAdditionalCostRowResponse500
+    | PurchaseOrderAdditionalCostRowResponse
+    | None
+):
     """Retrieve a purchase order additional cost row
 
      Retrieves the details of an existing purchase order additional cost row based on ID

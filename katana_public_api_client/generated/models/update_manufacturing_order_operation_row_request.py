@@ -1,8 +1,10 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..types import UNSET, Unset
 
@@ -21,12 +23,12 @@ class UpdateManufacturingOrderOperationRowRequest:
         total_actual_time (Union[Unset, float]):
     """
 
-    completed_by_operators: Union[Unset, list["Operator"]] = UNSET
-    total_actual_time: Union[Unset, float] = UNSET
+    completed_by_operators: Unset | list["Operator"] = UNSET
+    total_actual_time: Unset | float = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        completed_by_operators: Union[Unset, list[dict[str, Any]]] = UNSET
+        completed_by_operators: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.completed_by_operators, Unset):
             completed_by_operators = []
             for completed_by_operators_item_data in self.completed_by_operators:

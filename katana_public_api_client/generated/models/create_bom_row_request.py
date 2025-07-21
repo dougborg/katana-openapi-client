@@ -1,8 +1,10 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..types import UNSET, Unset
 
@@ -22,7 +24,7 @@ class CreateBomRowRequest:
     product_variant_id: int
     ingredient_variant_id: int
     quantity: float
-    notes: Union[None, Unset, str] = UNSET
+    notes: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -32,7 +34,7 @@ class CreateBomRowRequest:
 
         quantity = self.quantity
 
-        notes: Union[None, Unset, str]
+        notes: None | Unset | str
         if isinstance(self.notes, Unset):
             notes = UNSET
         else:
@@ -61,12 +63,12 @@ class CreateBomRowRequest:
 
         quantity = d.pop("quantity")
 
-        def _parse_notes(data: object) -> Union[None, Unset, str]:
+        def _parse_notes(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 

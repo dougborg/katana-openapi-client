@@ -1,8 +1,10 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..types import UNSET, Unset
 
@@ -26,13 +28,11 @@ class DeleteManufacturingOrderResponse422:
         details (Union[Unset, list['DeleteManufacturingOrderResponse422DetailsItem']]):
     """
 
-    status_code: Union[Unset, float] = UNSET
-    name: Union[Unset, str] = UNSET
-    message: Union[Unset, str] = UNSET
-    code: Union[Unset, str] = UNSET
-    details: Union[Unset, list["DeleteManufacturingOrderResponse422DetailsItem"]] = (
-        UNSET
-    )
+    status_code: Unset | float = UNSET
+    name: Unset | str = UNSET
+    message: Unset | str = UNSET
+    code: Unset | str = UNSET
+    details: Unset | list["DeleteManufacturingOrderResponse422DetailsItem"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -44,7 +44,7 @@ class DeleteManufacturingOrderResponse422:
 
         code = self.code
 
-        details: Union[Unset, list[dict[str, Any]]] = UNSET
+        details: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.details, Unset):
             details = []
             for details_item_data in self.details:

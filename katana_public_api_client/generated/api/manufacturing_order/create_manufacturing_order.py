@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -39,15 +39,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        CreateManufacturingOrderResponse401,
-        CreateManufacturingOrderResponse429,
-        CreateManufacturingOrderResponse500,
-        ManufacturingOrder,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    CreateManufacturingOrderResponse401
+    | CreateManufacturingOrderResponse429
+    | CreateManufacturingOrderResponse500
+    | ManufacturingOrder
+    | None
+):
     if response.status_code == 200:
         response_200 = ManufacturingOrder.from_dict(response.json())
 
@@ -71,14 +70,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        CreateManufacturingOrderResponse401,
-        CreateManufacturingOrderResponse429,
-        CreateManufacturingOrderResponse500,
-        ManufacturingOrder,
-    ]
+    CreateManufacturingOrderResponse401
+    | CreateManufacturingOrderResponse429
+    | CreateManufacturingOrderResponse500
+    | ManufacturingOrder
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -90,15 +87,13 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRequest,
 ) -> Response[
-    Union[
-        CreateManufacturingOrderResponse401,
-        CreateManufacturingOrderResponse429,
-        CreateManufacturingOrderResponse500,
-        ManufacturingOrder,
-    ]
+    CreateManufacturingOrderResponse401
+    | CreateManufacturingOrderResponse429
+    | CreateManufacturingOrderResponse500
+    | ManufacturingOrder
 ]:
     """Create a manufacturing order
 
@@ -129,16 +124,15 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRequest,
-) -> Optional[
-    Union[
-        CreateManufacturingOrderResponse401,
-        CreateManufacturingOrderResponse429,
-        CreateManufacturingOrderResponse500,
-        ManufacturingOrder,
-    ]
-]:
+) -> (
+    CreateManufacturingOrderResponse401
+    | CreateManufacturingOrderResponse429
+    | CreateManufacturingOrderResponse500
+    | ManufacturingOrder
+    | None
+):
     """Create a manufacturing order
 
      Creates a new manufacturing order object. Manufacturing order recipe and
@@ -163,15 +157,13 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRequest,
 ) -> Response[
-    Union[
-        CreateManufacturingOrderResponse401,
-        CreateManufacturingOrderResponse429,
-        CreateManufacturingOrderResponse500,
-        ManufacturingOrder,
-    ]
+    CreateManufacturingOrderResponse401
+    | CreateManufacturingOrderResponse429
+    | CreateManufacturingOrderResponse500
+    | ManufacturingOrder
 ]:
     """Create a manufacturing order
 
@@ -200,16 +192,15 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRequest,
-) -> Optional[
-    Union[
-        CreateManufacturingOrderResponse401,
-        CreateManufacturingOrderResponse429,
-        CreateManufacturingOrderResponse500,
-        ManufacturingOrder,
-    ]
-]:
+) -> (
+    CreateManufacturingOrderResponse401
+    | CreateManufacturingOrderResponse429
+    | CreateManufacturingOrderResponse500
+    | ManufacturingOrder
+    | None
+):
     """Create a manufacturing order
 
      Creates a new manufacturing order object. Manufacturing order recipe and

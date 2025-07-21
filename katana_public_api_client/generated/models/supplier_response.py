@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -32,17 +34,17 @@ class SupplierResponse:
         addresses (Union[Unset, list['SupplierAddressResponse']]):
     """
 
-    id: Union[Unset, int] = UNSET
-    name: Union[Unset, str] = UNSET
-    email: Union[Unset, str] = UNSET
-    phone: Union[Unset, str] = UNSET
-    currency: Union[Unset, str] = UNSET
-    comment: Union[Unset, str] = UNSET
-    created_at: Union[Unset, datetime.datetime] = UNSET
-    updated_at: Union[Unset, datetime.datetime] = UNSET
-    deleted_at: Union[None, Unset, datetime.datetime] = UNSET
-    default_address_id: Union[Unset, int] = UNSET
-    addresses: Union[Unset, list["SupplierAddressResponse"]] = UNSET
+    id: Unset | int = UNSET
+    name: Unset | str = UNSET
+    email: Unset | str = UNSET
+    phone: Unset | str = UNSET
+    currency: Unset | str = UNSET
+    comment: Unset | str = UNSET
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
+    default_address_id: Unset | int = UNSET
+    addresses: Unset | list["SupplierAddressResponse"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -58,15 +60,15 @@ class SupplierResponse:
 
         comment = self.comment
 
-        created_at: Union[Unset, str] = UNSET
+        created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: Union[None, Unset, str]
+        deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -76,7 +78,7 @@ class SupplierResponse:
 
         default_address_id = self.default_address_id
 
-        addresses: Union[Unset, list[dict[str, Any]]] = UNSET
+        addresses: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.addresses, Unset):
             addresses = []
             for addresses_item_data in self.addresses:
@@ -129,20 +131,20 @@ class SupplierResponse:
         comment = d.pop("comment", UNSET)
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Union[Unset, datetime.datetime]
+        created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: Unset | datetime.datetime
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> Union[None, Unset, datetime.datetime]:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -155,7 +157,7 @@ class SupplierResponse:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, datetime.datetime], data)
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

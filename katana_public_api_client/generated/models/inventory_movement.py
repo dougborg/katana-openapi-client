@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..models.inventory_movement_resource_type import InventoryMovementResourceType
@@ -47,10 +49,10 @@ class InventoryMovement:
     average_cost_after: float
     created_at: datetime.datetime
     updated_at: datetime.datetime
-    resource_id: Union[Unset, int] = UNSET
-    caused_by_order_no: Union[Unset, str] = UNSET
-    caused_by_resource_id: Union[Unset, int] = UNSET
-    rank: Union[Unset, int] = UNSET
+    resource_id: Unset | int = UNSET
+    caused_by_order_no: Unset | str = UNSET
+    caused_by_resource_id: Unset | int = UNSET
+    rank: Unset | int = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

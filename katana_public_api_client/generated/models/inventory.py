@@ -1,8 +1,10 @@
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..types import UNSET, Unset
 
@@ -74,11 +76,11 @@ class Inventory:
 
         quantity_potential = self.quantity_potential
 
-        variant: Union[Unset, dict[str, Any]] = UNSET
+        variant: Unset | dict[str, Any] = UNSET
         if not isinstance(self.variant, Unset):
             variant = self.variant.to_dict()
 
-        location: Union[Unset, dict[str, Any]] = UNSET
+        location: Unset | dict[str, Any] = UNSET
         if not isinstance(self.location, Unset):
             location = self.location.to_dict()
 
@@ -132,14 +134,14 @@ class Inventory:
         quantity_potential = d.pop("quantity_potential")
 
         _variant = d.pop("variant", UNSET)
-        variant: Union[Unset, Variant]
+        variant: Unset | Variant
         if isinstance(_variant, Unset):
             variant = UNSET
         else:
             variant = Variant.from_dict(_variant)
 
         _location = d.pop("location", UNSET)
-        location: Union[Unset, Location]
+        location: Unset | Location
         if isinstance(_location, Unset):
             location = UNSET
         else:

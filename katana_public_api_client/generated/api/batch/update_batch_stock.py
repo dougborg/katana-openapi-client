@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -19,7 +19,7 @@ def _get_kwargs(
     batch_id: int,
     *,
     body: BatchStockUpdate,
-    location_id: Union[Unset, int] = UNSET,
+    location_id: Unset | int = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -44,17 +44,16 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        BatchStock,
-        UpdateBatchStockResponse401,
-        UpdateBatchStockResponse404,
-        UpdateBatchStockResponse422,
-        UpdateBatchStockResponse429,
-        UpdateBatchStockResponse500,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    BatchStock
+    | UpdateBatchStockResponse401
+    | UpdateBatchStockResponse404
+    | UpdateBatchStockResponse422
+    | UpdateBatchStockResponse429
+    | UpdateBatchStockResponse500
+    | None
+):
     if response.status_code == 200:
         response_200 = BatchStock.from_dict(response.json())
 
@@ -86,16 +85,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        BatchStock,
-        UpdateBatchStockResponse401,
-        UpdateBatchStockResponse404,
-        UpdateBatchStockResponse422,
-        UpdateBatchStockResponse429,
-        UpdateBatchStockResponse500,
-    ]
+    BatchStock
+    | UpdateBatchStockResponse401
+    | UpdateBatchStockResponse404
+    | UpdateBatchStockResponse422
+    | UpdateBatchStockResponse429
+    | UpdateBatchStockResponse500
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -108,18 +105,16 @@ def _build_response(
 def sync_detailed(
     batch_id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
-    location_id: Union[Unset, int] = UNSET,
+    location_id: Unset | int = UNSET,
 ) -> Response[
-    Union[
-        BatchStock,
-        UpdateBatchStockResponse401,
-        UpdateBatchStockResponse404,
-        UpdateBatchStockResponse422,
-        UpdateBatchStockResponse429,
-        UpdateBatchStockResponse500,
-    ]
+    BatchStock
+    | UpdateBatchStockResponse401
+    | UpdateBatchStockResponse404
+    | UpdateBatchStockResponse422
+    | UpdateBatchStockResponse429
+    | UpdateBatchStockResponse500
 ]:
     """Update batch details
 
@@ -157,19 +152,18 @@ def sync_detailed(
 def sync(
     batch_id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
-    location_id: Union[Unset, int] = UNSET,
-) -> Optional[
-    Union[
-        BatchStock,
-        UpdateBatchStockResponse401,
-        UpdateBatchStockResponse404,
-        UpdateBatchStockResponse422,
-        UpdateBatchStockResponse429,
-        UpdateBatchStockResponse500,
-    ]
-]:
+    location_id: Unset | int = UNSET,
+) -> (
+    BatchStock
+    | UpdateBatchStockResponse401
+    | UpdateBatchStockResponse404
+    | UpdateBatchStockResponse422
+    | UpdateBatchStockResponse429
+    | UpdateBatchStockResponse500
+    | None
+):
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
@@ -201,18 +195,16 @@ def sync(
 async def asyncio_detailed(
     batch_id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
-    location_id: Union[Unset, int] = UNSET,
+    location_id: Unset | int = UNSET,
 ) -> Response[
-    Union[
-        BatchStock,
-        UpdateBatchStockResponse401,
-        UpdateBatchStockResponse404,
-        UpdateBatchStockResponse422,
-        UpdateBatchStockResponse429,
-        UpdateBatchStockResponse500,
-    ]
+    BatchStock
+    | UpdateBatchStockResponse401
+    | UpdateBatchStockResponse404
+    | UpdateBatchStockResponse422
+    | UpdateBatchStockResponse429
+    | UpdateBatchStockResponse500
 ]:
     """Update batch details
 
@@ -248,19 +240,18 @@ async def asyncio_detailed(
 async def asyncio(
     batch_id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
-    location_id: Union[Unset, int] = UNSET,
-) -> Optional[
-    Union[
-        BatchStock,
-        UpdateBatchStockResponse401,
-        UpdateBatchStockResponse404,
-        UpdateBatchStockResponse422,
-        UpdateBatchStockResponse429,
-        UpdateBatchStockResponse500,
-    ]
-]:
+    location_id: Unset | int = UNSET,
+) -> (
+    BatchStock
+    | UpdateBatchStockResponse401
+    | UpdateBatchStockResponse404
+    | UpdateBatchStockResponse422
+    | UpdateBatchStockResponse429
+    | UpdateBatchStockResponse500
+    | None
+):
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters

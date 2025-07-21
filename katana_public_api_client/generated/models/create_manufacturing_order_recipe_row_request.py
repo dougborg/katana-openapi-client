@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -35,14 +37,14 @@ class CreateManufacturingOrderRecipeRowRequest:
     manufacturing_order_id: int
     variant_id: int
     planned_quantity_per_unit: float
-    notes: Union[Unset, str] = UNSET
-    total_actual_quantity: Union[Unset, float] = UNSET
-    ingredient_availability: Union[Unset, str] = UNSET
-    ingredient_expected_date: Union[Unset, datetime.datetime] = UNSET
-    batch_transactions: Union[
-        Unset, list["CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem"]
-    ] = UNSET
-    cost: Union[Unset, float] = UNSET
+    notes: Unset | str = UNSET
+    total_actual_quantity: Unset | float = UNSET
+    ingredient_availability: Unset | str = UNSET
+    ingredient_expected_date: Unset | datetime.datetime = UNSET
+    batch_transactions: (
+        Unset | list["CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem"]
+    ) = UNSET
+    cost: Unset | float = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -58,11 +60,11 @@ class CreateManufacturingOrderRecipeRowRequest:
 
         ingredient_availability = self.ingredient_availability
 
-        ingredient_expected_date: Union[Unset, str] = UNSET
+        ingredient_expected_date: Unset | str = UNSET
         if not isinstance(self.ingredient_expected_date, Unset):
             ingredient_expected_date = self.ingredient_expected_date.isoformat()
 
-        batch_transactions: Union[Unset, list[dict[str, Any]]] = UNSET
+        batch_transactions: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.batch_transactions, Unset):
             batch_transactions = []
             for batch_transactions_item_data in self.batch_transactions:
@@ -115,7 +117,7 @@ class CreateManufacturingOrderRecipeRowRequest:
         ingredient_availability = d.pop("ingredient_availability", UNSET)
 
         _ingredient_expected_date = d.pop("ingredient_expected_date", UNSET)
-        ingredient_expected_date: Union[Unset, datetime.datetime]
+        ingredient_expected_date: Unset | datetime.datetime
         if isinstance(_ingredient_expected_date, Unset):
             ingredient_expected_date = UNSET
         else:

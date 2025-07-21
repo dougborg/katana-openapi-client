@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
@@ -20,8 +20,8 @@ class PurchaseOrderRowRequest:
 
     quantity: float
     price_per_unit: float
-    purchase_uom_conversion_rate: Union[Unset, float] = UNSET
-    purchase_uom: Union[Unset, str] = UNSET
+    purchase_uom_conversion_rate: Unset | float = UNSET
+    purchase_uom: Unset | str = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         quantity = self.quantity

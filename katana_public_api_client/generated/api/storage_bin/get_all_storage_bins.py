@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -14,11 +14,11 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    location_id: Union[Unset, int] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    bin_name: Union[Unset, str] = UNSET,
+    location_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    bin_name: Unset | str = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -44,15 +44,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetAllStorageBinsResponse401,
-        GetAllStorageBinsResponse429,
-        GetAllStorageBinsResponse500,
-        StorageBinList,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetAllStorageBinsResponse401
+    | GetAllStorageBinsResponse429
+    | GetAllStorageBinsResponse500
+    | StorageBinList
+    | None
+):
     if response.status_code == 200:
         response_200 = StorageBinList.from_dict(response.json())
 
@@ -76,14 +75,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetAllStorageBinsResponse401,
-        GetAllStorageBinsResponse429,
-        GetAllStorageBinsResponse500,
-        StorageBinList,
-    ]
+    GetAllStorageBinsResponse401
+    | GetAllStorageBinsResponse429
+    | GetAllStorageBinsResponse500
+    | StorageBinList
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -95,19 +92,17 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    location_id: Union[Unset, int] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    bin_name: Union[Unset, str] = UNSET,
+    client: AuthenticatedClient | Client,
+    location_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    bin_name: Unset | str = UNSET,
 ) -> Response[
-    Union[
-        GetAllStorageBinsResponse401,
-        GetAllStorageBinsResponse429,
-        GetAllStorageBinsResponse500,
-        StorageBinList,
-    ]
+    GetAllStorageBinsResponse401
+    | GetAllStorageBinsResponse429
+    | GetAllStorageBinsResponse500
+    | StorageBinList
 ]:
     """List all storage bins
 
@@ -146,20 +141,19 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    location_id: Union[Unset, int] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    bin_name: Union[Unset, str] = UNSET,
-) -> Optional[
-    Union[
-        GetAllStorageBinsResponse401,
-        GetAllStorageBinsResponse429,
-        GetAllStorageBinsResponse500,
-        StorageBinList,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    location_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    bin_name: Unset | str = UNSET,
+) -> (
+    GetAllStorageBinsResponse401
+    | GetAllStorageBinsResponse429
+    | GetAllStorageBinsResponse500
+    | StorageBinList
+    | None
+):
     """List all storage bins
 
      Returns a list of storage bins you've previously created. The storage bins are returned in sorted
@@ -192,19 +186,17 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    location_id: Union[Unset, int] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    bin_name: Union[Unset, str] = UNSET,
+    client: AuthenticatedClient | Client,
+    location_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    bin_name: Unset | str = UNSET,
 ) -> Response[
-    Union[
-        GetAllStorageBinsResponse401,
-        GetAllStorageBinsResponse429,
-        GetAllStorageBinsResponse500,
-        StorageBinList,
-    ]
+    GetAllStorageBinsResponse401
+    | GetAllStorageBinsResponse429
+    | GetAllStorageBinsResponse500
+    | StorageBinList
 ]:
     """List all storage bins
 
@@ -241,20 +233,19 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    location_id: Union[Unset, int] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    bin_name: Union[Unset, str] = UNSET,
-) -> Optional[
-    Union[
-        GetAllStorageBinsResponse401,
-        GetAllStorageBinsResponse429,
-        GetAllStorageBinsResponse500,
-        StorageBinList,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    location_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    bin_name: Unset | str = UNSET,
+) -> (
+    GetAllStorageBinsResponse401
+    | GetAllStorageBinsResponse429
+    | GetAllStorageBinsResponse500
+    | StorageBinList
+    | None
+):
     """List all storage bins
 
      Returns a list of storage bins you've previously created. The storage bins are returned in sorted

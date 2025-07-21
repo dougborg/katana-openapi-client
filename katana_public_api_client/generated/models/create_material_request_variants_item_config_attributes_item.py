@@ -1,8 +1,10 @@
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 T = TypeVar("T", bound="CreateMaterialRequestVariantsItemConfigAttributesItem")
 
@@ -24,9 +26,7 @@ class CreateMaterialRequestVariantsItemConfigAttributesItem:
         d = dict(src_dict)
         create_material_request_variants_item_config_attributes_item = cls()
 
-        create_material_request_variants_item_config_attributes_item.additional_properties = (
-            d
-        )
+        create_material_request_variants_item_config_attributes_item.additional_properties = d
         return create_material_request_variants_item_config_attributes_item
 
     @property

@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -28,17 +30,17 @@ class SupplierAddressResponse:
         deleted_at (Union[None, Unset, datetime.datetime]):
     """
 
-    id: Union[Unset, int] = UNSET
-    supplier_id: Union[Unset, int] = UNSET
-    line_1: Union[Unset, str] = UNSET
-    line_2: Union[None, Unset, str] = UNSET
-    city: Union[None, Unset, str] = UNSET
-    state: Union[None, Unset, str] = UNSET
-    zip_: Union[None, Unset, str] = UNSET
-    country: Union[None, Unset, str] = UNSET
-    created_at: Union[Unset, datetime.datetime] = UNSET
-    updated_at: Union[Unset, datetime.datetime] = UNSET
-    deleted_at: Union[None, Unset, datetime.datetime] = UNSET
+    id: Unset | int = UNSET
+    supplier_id: Unset | int = UNSET
+    line_1: Unset | str = UNSET
+    line_2: None | Unset | str = UNSET
+    city: None | Unset | str = UNSET
+    state: None | Unset | str = UNSET
+    zip_: None | Unset | str = UNSET
+    country: None | Unset | str = UNSET
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -48,45 +50,45 @@ class SupplierAddressResponse:
 
         line_1 = self.line_1
 
-        line_2: Union[None, Unset, str]
+        line_2: None | Unset | str
         if isinstance(self.line_2, Unset):
             line_2 = UNSET
         else:
             line_2 = self.line_2
 
-        city: Union[None, Unset, str]
+        city: None | Unset | str
         if isinstance(self.city, Unset):
             city = UNSET
         else:
             city = self.city
 
-        state: Union[None, Unset, str]
+        state: None | Unset | str
         if isinstance(self.state, Unset):
             state = UNSET
         else:
             state = self.state
 
-        zip_: Union[None, Unset, str]
+        zip_: None | Unset | str
         if isinstance(self.zip_, Unset):
             zip_ = UNSET
         else:
             zip_ = self.zip_
 
-        country: Union[None, Unset, str]
+        country: None | Unset | str
         if isinstance(self.country, Unset):
             country = UNSET
         else:
             country = self.country
 
-        created_at: Union[Unset, str] = UNSET
+        created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: Union[None, Unset, str]
+        deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -131,66 +133,66 @@ class SupplierAddressResponse:
 
         line_1 = d.pop("line_1", UNSET)
 
-        def _parse_line_2(data: object) -> Union[None, Unset, str]:
+        def _parse_line_2(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         line_2 = _parse_line_2(d.pop("line_2", UNSET))
 
-        def _parse_city(data: object) -> Union[None, Unset, str]:
+        def _parse_city(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         city = _parse_city(d.pop("city", UNSET))
 
-        def _parse_state(data: object) -> Union[None, Unset, str]:
+        def _parse_state(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         state = _parse_state(d.pop("state", UNSET))
 
-        def _parse_zip_(data: object) -> Union[None, Unset, str]:
+        def _parse_zip_(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         zip_ = _parse_zip_(d.pop("zip", UNSET))
 
-        def _parse_country(data: object) -> Union[None, Unset, str]:
+        def _parse_country(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         country = _parse_country(d.pop("country", UNSET))
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Union[Unset, datetime.datetime]
+        created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: Unset | datetime.datetime
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> Union[None, Unset, datetime.datetime]:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -203,7 +205,7 @@ class SupplierAddressResponse:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, datetime.datetime], data)
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -35,16 +35,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        ProductResponse,
-        UpdateProductResponse401,
-        UpdateProductResponse422,
-        UpdateProductResponse429,
-        UpdateProductResponse500,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    ProductResponse
+    | UpdateProductResponse401
+    | UpdateProductResponse422
+    | UpdateProductResponse429
+    | UpdateProductResponse500
+    | None
+):
     if response.status_code == 200:
         response_200 = ProductResponse.from_dict(response.json())
 
@@ -72,15 +71,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        ProductResponse,
-        UpdateProductResponse401,
-        UpdateProductResponse422,
-        UpdateProductResponse429,
-        UpdateProductResponse500,
-    ]
+    ProductResponse
+    | UpdateProductResponse401
+    | UpdateProductResponse422
+    | UpdateProductResponse429
+    | UpdateProductResponse500
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -93,16 +90,14 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateProductRequest,
 ) -> Response[
-    Union[
-        ProductResponse,
-        UpdateProductResponse401,
-        UpdateProductResponse422,
-        UpdateProductResponse429,
-        UpdateProductResponse500,
-    ]
+    ProductResponse
+    | UpdateProductResponse401
+    | UpdateProductResponse422
+    | UpdateProductResponse429
+    | UpdateProductResponse500
 ]:
     """Update a product
 
@@ -136,17 +131,16 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateProductRequest,
-) -> Optional[
-    Union[
-        ProductResponse,
-        UpdateProductResponse401,
-        UpdateProductResponse422,
-        UpdateProductResponse429,
-        UpdateProductResponse500,
-    ]
-]:
+) -> (
+    ProductResponse
+    | UpdateProductResponse401
+    | UpdateProductResponse422
+    | UpdateProductResponse429
+    | UpdateProductResponse500
+    | None
+):
     """Update a product
 
      Updates the specified product by setting the values of the parameters passed.
@@ -174,16 +168,14 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateProductRequest,
 ) -> Response[
-    Union[
-        ProductResponse,
-        UpdateProductResponse401,
-        UpdateProductResponse422,
-        UpdateProductResponse429,
-        UpdateProductResponse500,
-    ]
+    ProductResponse
+    | UpdateProductResponse401
+    | UpdateProductResponse422
+    | UpdateProductResponse429
+    | UpdateProductResponse500
 ]:
     """Update a product
 
@@ -215,17 +207,16 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateProductRequest,
-) -> Optional[
-    Union[
-        ProductResponse,
-        UpdateProductResponse401,
-        UpdateProductResponse422,
-        UpdateProductResponse429,
-        UpdateProductResponse500,
-    ]
-]:
+) -> (
+    ProductResponse
+    | UpdateProductResponse401
+    | UpdateProductResponse422
+    | UpdateProductResponse429
+    | UpdateProductResponse500
+    | None
+):
     """Update a product
 
      Updates the specified product by setting the values of the parameters passed.

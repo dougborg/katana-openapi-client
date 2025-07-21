@@ -1,8 +1,10 @@
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 T = TypeVar("T", bound="CreateInventorySafetyStockLevelResponse422DetailsItem")
 
@@ -24,9 +26,7 @@ class CreateInventorySafetyStockLevelResponse422DetailsItem:
         d = dict(src_dict)
         create_inventory_safety_stock_level_response_422_details_item = cls()
 
-        create_inventory_safety_stock_level_response_422_details_item.additional_properties = (
-            d
-        )
+        create_inventory_safety_stock_level_response_422_details_item.additional_properties = d
         return create_inventory_safety_stock_level_response_422_details_item
 
     @property

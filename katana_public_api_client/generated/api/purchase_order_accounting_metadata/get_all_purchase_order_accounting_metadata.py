@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -22,10 +22,10 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    purchase_order_id: Union[Unset, float] = UNSET,
-    received_items_group_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
+    purchase_order_id: Unset | float = UNSET,
+    received_items_group_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -49,15 +49,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetAllPurchaseOrderAccountingMetadataResponse401,
-        GetAllPurchaseOrderAccountingMetadataResponse429,
-        GetAllPurchaseOrderAccountingMetadataResponse500,
-        PurchaseOrderAccountingMetadataListResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetAllPurchaseOrderAccountingMetadataResponse401
+    | GetAllPurchaseOrderAccountingMetadataResponse429
+    | GetAllPurchaseOrderAccountingMetadataResponse500
+    | PurchaseOrderAccountingMetadataListResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = PurchaseOrderAccountingMetadataListResponse.from_dict(
             response.json()
@@ -89,14 +88,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetAllPurchaseOrderAccountingMetadataResponse401,
-        GetAllPurchaseOrderAccountingMetadataResponse429,
-        GetAllPurchaseOrderAccountingMetadataResponse500,
-        PurchaseOrderAccountingMetadataListResponse,
-    ]
+    GetAllPurchaseOrderAccountingMetadataResponse401
+    | GetAllPurchaseOrderAccountingMetadataResponse429
+    | GetAllPurchaseOrderAccountingMetadataResponse500
+    | PurchaseOrderAccountingMetadataListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -108,18 +105,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    purchase_order_id: Union[Unset, float] = UNSET,
-    received_items_group_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
+    client: AuthenticatedClient | Client,
+    purchase_order_id: Unset | float = UNSET,
+    received_items_group_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
 ) -> Response[
-    Union[
-        GetAllPurchaseOrderAccountingMetadataResponse401,
-        GetAllPurchaseOrderAccountingMetadataResponse429,
-        GetAllPurchaseOrderAccountingMetadataResponse500,
-        PurchaseOrderAccountingMetadataListResponse,
-    ]
+    GetAllPurchaseOrderAccountingMetadataResponse401
+    | GetAllPurchaseOrderAccountingMetadataResponse429
+    | GetAllPurchaseOrderAccountingMetadataResponse500
+    | PurchaseOrderAccountingMetadataListResponse
 ]:
     """List all purchase order accounting metadata
 
@@ -155,19 +150,18 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    purchase_order_id: Union[Unset, float] = UNSET,
-    received_items_group_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Optional[
-    Union[
-        GetAllPurchaseOrderAccountingMetadataResponse401,
-        GetAllPurchaseOrderAccountingMetadataResponse429,
-        GetAllPurchaseOrderAccountingMetadataResponse500,
-        PurchaseOrderAccountingMetadataListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    purchase_order_id: Unset | float = UNSET,
+    received_items_group_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> (
+    GetAllPurchaseOrderAccountingMetadataResponse401
+    | GetAllPurchaseOrderAccountingMetadataResponse429
+    | GetAllPurchaseOrderAccountingMetadataResponse500
+    | PurchaseOrderAccountingMetadataListResponse
+    | None
+):
     """List all purchase order accounting metadata
 
      Returns a list of purchase order accounting metadata entries.
@@ -197,18 +191,16 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    purchase_order_id: Union[Unset, float] = UNSET,
-    received_items_group_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
+    client: AuthenticatedClient | Client,
+    purchase_order_id: Unset | float = UNSET,
+    received_items_group_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
 ) -> Response[
-    Union[
-        GetAllPurchaseOrderAccountingMetadataResponse401,
-        GetAllPurchaseOrderAccountingMetadataResponse429,
-        GetAllPurchaseOrderAccountingMetadataResponse500,
-        PurchaseOrderAccountingMetadataListResponse,
-    ]
+    GetAllPurchaseOrderAccountingMetadataResponse401
+    | GetAllPurchaseOrderAccountingMetadataResponse429
+    | GetAllPurchaseOrderAccountingMetadataResponse500
+    | PurchaseOrderAccountingMetadataListResponse
 ]:
     """List all purchase order accounting metadata
 
@@ -242,19 +234,18 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    purchase_order_id: Union[Unset, float] = UNSET,
-    received_items_group_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Optional[
-    Union[
-        GetAllPurchaseOrderAccountingMetadataResponse401,
-        GetAllPurchaseOrderAccountingMetadataResponse429,
-        GetAllPurchaseOrderAccountingMetadataResponse500,
-        PurchaseOrderAccountingMetadataListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    purchase_order_id: Unset | float = UNSET,
+    received_items_group_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> (
+    GetAllPurchaseOrderAccountingMetadataResponse401
+    | GetAllPurchaseOrderAccountingMetadataResponse429
+    | GetAllPurchaseOrderAccountingMetadataResponse500
+    | PurchaseOrderAccountingMetadataListResponse
+    | None
+):
     """List all purchase order accounting metadata
 
      Returns a list of purchase order accounting metadata entries.

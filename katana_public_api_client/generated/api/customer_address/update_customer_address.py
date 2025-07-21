@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 import httpx
 
@@ -42,16 +42,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        Any,
-        UpdateCustomerAddressResponse401,
-        UpdateCustomerAddressResponse404,
-        UpdateCustomerAddressResponse429,
-        UpdateCustomerAddressResponse500,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    Any
+    | UpdateCustomerAddressResponse401
+    | UpdateCustomerAddressResponse404
+    | UpdateCustomerAddressResponse429
+    | UpdateCustomerAddressResponse500
+    | None
+):
     if response.status_code == 200:
         response_200 = cast(Any, None)
         return response_200
@@ -78,15 +77,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        Any,
-        UpdateCustomerAddressResponse401,
-        UpdateCustomerAddressResponse404,
-        UpdateCustomerAddressResponse429,
-        UpdateCustomerAddressResponse500,
-    ]
+    Any
+    | UpdateCustomerAddressResponse401
+    | UpdateCustomerAddressResponse404
+    | UpdateCustomerAddressResponse429
+    | UpdateCustomerAddressResponse500
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -99,16 +96,14 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateCustomerAddressBody,
 ) -> Response[
-    Union[
-        Any,
-        UpdateCustomerAddressResponse401,
-        UpdateCustomerAddressResponse404,
-        UpdateCustomerAddressResponse429,
-        UpdateCustomerAddressResponse500,
-    ]
+    Any
+    | UpdateCustomerAddressResponse401
+    | UpdateCustomerAddressResponse404
+    | UpdateCustomerAddressResponse429
+    | UpdateCustomerAddressResponse500
 ]:
     """Update a customer address
 
@@ -141,17 +136,16 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateCustomerAddressBody,
-) -> Optional[
-    Union[
-        Any,
-        UpdateCustomerAddressResponse401,
-        UpdateCustomerAddressResponse404,
-        UpdateCustomerAddressResponse429,
-        UpdateCustomerAddressResponse500,
-    ]
-]:
+) -> (
+    Any
+    | UpdateCustomerAddressResponse401
+    | UpdateCustomerAddressResponse404
+    | UpdateCustomerAddressResponse429
+    | UpdateCustomerAddressResponse500
+    | None
+):
     """Update a customer address
 
      Updates a customer address.
@@ -178,16 +172,14 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateCustomerAddressBody,
 ) -> Response[
-    Union[
-        Any,
-        UpdateCustomerAddressResponse401,
-        UpdateCustomerAddressResponse404,
-        UpdateCustomerAddressResponse429,
-        UpdateCustomerAddressResponse500,
-    ]
+    Any
+    | UpdateCustomerAddressResponse401
+    | UpdateCustomerAddressResponse404
+    | UpdateCustomerAddressResponse429
+    | UpdateCustomerAddressResponse500
 ]:
     """Update a customer address
 
@@ -218,17 +210,16 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateCustomerAddressBody,
-) -> Optional[
-    Union[
-        Any,
-        UpdateCustomerAddressResponse401,
-        UpdateCustomerAddressResponse404,
-        UpdateCustomerAddressResponse429,
-        UpdateCustomerAddressResponse500,
-    ]
-]:
+) -> (
+    Any
+    | UpdateCustomerAddressResponse401
+    | UpdateCustomerAddressResponse404
+    | UpdateCustomerAddressResponse429
+    | UpdateCustomerAddressResponse500
+    | None
+):
     """Update a customer address
 
      Updates a customer address.

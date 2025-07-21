@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -23,10 +23,10 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    sales_order_id: Union[Unset, int] = UNSET,
-    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    sales_order_id: Unset | int = UNSET,
+    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -36,7 +36,7 @@ def _get_kwargs(
 
     params["sales_order_id"] = sales_order_id
 
-    json_entity_type: Union[Unset, str] = UNSET
+    json_entity_type: Unset | str = UNSET
     if not isinstance(entity_type, Unset):
         json_entity_type = entity_type.value
 
@@ -54,15 +54,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetAllSalesOrderAddressesResponse401,
-        GetAllSalesOrderAddressesResponse429,
-        GetAllSalesOrderAddressesResponse500,
-        SalesOrderAddressListResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetAllSalesOrderAddressesResponse401
+    | GetAllSalesOrderAddressesResponse429
+    | GetAllSalesOrderAddressesResponse500
+    | SalesOrderAddressListResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = SalesOrderAddressListResponse.from_dict(response.json())
 
@@ -86,14 +85,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetAllSalesOrderAddressesResponse401,
-        GetAllSalesOrderAddressesResponse429,
-        GetAllSalesOrderAddressesResponse500,
-        SalesOrderAddressListResponse,
-    ]
+    GetAllSalesOrderAddressesResponse401
+    | GetAllSalesOrderAddressesResponse429
+    | GetAllSalesOrderAddressesResponse500
+    | SalesOrderAddressListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -105,18 +102,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    sales_order_id: Union[Unset, int] = UNSET,
-    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    sales_order_id: Unset | int = UNSET,
+    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
 ) -> Response[
-    Union[
-        GetAllSalesOrderAddressesResponse401,
-        GetAllSalesOrderAddressesResponse429,
-        GetAllSalesOrderAddressesResponse500,
-        SalesOrderAddressListResponse,
-    ]
+    GetAllSalesOrderAddressesResponse401
+    | GetAllSalesOrderAddressesResponse429
+    | GetAllSalesOrderAddressesResponse500
+    | SalesOrderAddressListResponse
 ]:
     """List sales order addresses
 
@@ -152,19 +147,18 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    sales_order_id: Union[Unset, int] = UNSET,
-    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
-) -> Optional[
-    Union[
-        GetAllSalesOrderAddressesResponse401,
-        GetAllSalesOrderAddressesResponse429,
-        GetAllSalesOrderAddressesResponse500,
-        SalesOrderAddressListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    sales_order_id: Unset | int = UNSET,
+    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
+) -> (
+    GetAllSalesOrderAddressesResponse401
+    | GetAllSalesOrderAddressesResponse429
+    | GetAllSalesOrderAddressesResponse500
+    | SalesOrderAddressListResponse
+    | None
+):
     """List sales order addresses
 
      Returns a list of sales order addresses.
@@ -194,18 +188,16 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    sales_order_id: Union[Unset, int] = UNSET,
-    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    sales_order_id: Unset | int = UNSET,
+    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
 ) -> Response[
-    Union[
-        GetAllSalesOrderAddressesResponse401,
-        GetAllSalesOrderAddressesResponse429,
-        GetAllSalesOrderAddressesResponse500,
-        SalesOrderAddressListResponse,
-    ]
+    GetAllSalesOrderAddressesResponse401
+    | GetAllSalesOrderAddressesResponse429
+    | GetAllSalesOrderAddressesResponse500
+    | SalesOrderAddressListResponse
 ]:
     """List sales order addresses
 
@@ -239,19 +231,18 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    sales_order_id: Union[Unset, int] = UNSET,
-    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
-) -> Optional[
-    Union[
-        GetAllSalesOrderAddressesResponse401,
-        GetAllSalesOrderAddressesResponse429,
-        GetAllSalesOrderAddressesResponse500,
-        SalesOrderAddressListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    sales_order_id: Unset | int = UNSET,
+    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
+) -> (
+    GetAllSalesOrderAddressesResponse401
+    | GetAllSalesOrderAddressesResponse429
+    | GetAllSalesOrderAddressesResponse500
+    | SalesOrderAddressListResponse
+    | None
+):
     """List sales order addresses
 
      Returns a list of sales order addresses.

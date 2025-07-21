@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -46,16 +46,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        CreatePoAdditionalCostRowResponse401,
-        CreatePoAdditionalCostRowResponse422,
-        CreatePoAdditionalCostRowResponse429,
-        CreatePoAdditionalCostRowResponse500,
-        PurchaseOrderAdditionalCostRowResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    CreatePoAdditionalCostRowResponse401
+    | CreatePoAdditionalCostRowResponse422
+    | CreatePoAdditionalCostRowResponse429
+    | CreatePoAdditionalCostRowResponse500
+    | PurchaseOrderAdditionalCostRowResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = PurchaseOrderAdditionalCostRowResponse.from_dict(response.json())
 
@@ -83,15 +82,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        CreatePoAdditionalCostRowResponse401,
-        CreatePoAdditionalCostRowResponse422,
-        CreatePoAdditionalCostRowResponse429,
-        CreatePoAdditionalCostRowResponse500,
-        PurchaseOrderAdditionalCostRowResponse,
-    ]
+    CreatePoAdditionalCostRowResponse401
+    | CreatePoAdditionalCostRowResponse422
+    | CreatePoAdditionalCostRowResponse429
+    | CreatePoAdditionalCostRowResponse500
+    | PurchaseOrderAdditionalCostRowResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -103,16 +100,14 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreatePurchaseOrderAdditionalCostRowRequest,
 ) -> Response[
-    Union[
-        CreatePoAdditionalCostRowResponse401,
-        CreatePoAdditionalCostRowResponse422,
-        CreatePoAdditionalCostRowResponse429,
-        CreatePoAdditionalCostRowResponse500,
-        PurchaseOrderAdditionalCostRowResponse,
-    ]
+    CreatePoAdditionalCostRowResponse401
+    | CreatePoAdditionalCostRowResponse422
+    | CreatePoAdditionalCostRowResponse429
+    | CreatePoAdditionalCostRowResponse500
+    | PurchaseOrderAdditionalCostRowResponse
 ]:
     """Create a purchase order additional cost row
 
@@ -142,17 +137,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreatePurchaseOrderAdditionalCostRowRequest,
-) -> Optional[
-    Union[
-        CreatePoAdditionalCostRowResponse401,
-        CreatePoAdditionalCostRowResponse422,
-        CreatePoAdditionalCostRowResponse429,
-        CreatePoAdditionalCostRowResponse500,
-        PurchaseOrderAdditionalCostRowResponse,
-    ]
-]:
+) -> (
+    CreatePoAdditionalCostRowResponse401
+    | CreatePoAdditionalCostRowResponse422
+    | CreatePoAdditionalCostRowResponse429
+    | CreatePoAdditionalCostRowResponse500
+    | PurchaseOrderAdditionalCostRowResponse
+    | None
+):
     """Create a purchase order additional cost row
 
      Add a purchase order additional cost row to an existing group.
@@ -176,16 +170,14 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreatePurchaseOrderAdditionalCostRowRequest,
 ) -> Response[
-    Union[
-        CreatePoAdditionalCostRowResponse401,
-        CreatePoAdditionalCostRowResponse422,
-        CreatePoAdditionalCostRowResponse429,
-        CreatePoAdditionalCostRowResponse500,
-        PurchaseOrderAdditionalCostRowResponse,
-    ]
+    CreatePoAdditionalCostRowResponse401
+    | CreatePoAdditionalCostRowResponse422
+    | CreatePoAdditionalCostRowResponse429
+    | CreatePoAdditionalCostRowResponse500
+    | PurchaseOrderAdditionalCostRowResponse
 ]:
     """Create a purchase order additional cost row
 
@@ -213,17 +205,16 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreatePurchaseOrderAdditionalCostRowRequest,
-) -> Optional[
-    Union[
-        CreatePoAdditionalCostRowResponse401,
-        CreatePoAdditionalCostRowResponse422,
-        CreatePoAdditionalCostRowResponse429,
-        CreatePoAdditionalCostRowResponse500,
-        PurchaseOrderAdditionalCostRowResponse,
-    ]
-]:
+) -> (
+    CreatePoAdditionalCostRowResponse401
+    | CreatePoAdditionalCostRowResponse422
+    | CreatePoAdditionalCostRowResponse429
+    | CreatePoAdditionalCostRowResponse500
+    | PurchaseOrderAdditionalCostRowResponse
+    | None
+):
     """Create a purchase order additional cost row
 
      Add a purchase order additional cost row to an existing group.

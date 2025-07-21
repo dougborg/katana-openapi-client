@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -30,9 +32,9 @@ class BomRow:
     product_item_id: int
     ingredient_variant_id: int
     quantity: float
-    notes: Union[None, Unset, str] = UNSET
-    created_at: Union[Unset, datetime.datetime] = UNSET
-    updated_at: Union[Unset, datetime.datetime] = UNSET
+    notes: None | Unset | str = UNSET
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -46,17 +48,17 @@ class BomRow:
 
         quantity = self.quantity
 
-        notes: Union[None, Unset, str]
+        notes: None | Unset | str
         if isinstance(self.notes, Unset):
             notes = UNSET
         else:
             notes = self.notes
 
-        created_at: Union[Unset, str] = UNSET
+        created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
@@ -93,24 +95,24 @@ class BomRow:
 
         quantity = d.pop("quantity")
 
-        def _parse_notes(data: object) -> Union[None, Unset, str]:
+        def _parse_notes(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Union[Unset, datetime.datetime]
+        created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: Unset | datetime.datetime
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:

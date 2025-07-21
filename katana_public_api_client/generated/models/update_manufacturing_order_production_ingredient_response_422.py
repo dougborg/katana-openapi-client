@@ -1,8 +1,10 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..types import UNSET, Unset
 
@@ -26,14 +28,14 @@ class UpdateManufacturingOrderProductionIngredientResponse422:
         details (Union[Unset, list['UpdateManufacturingOrderProductionIngredientResponse422DetailsItem']]):
     """
 
-    status_code: Union[Unset, float] = UNSET
-    name: Union[Unset, str] = UNSET
-    message: Union[Unset, str] = UNSET
-    code: Union[Unset, str] = UNSET
-    details: Union[
-        Unset,
-        list["UpdateManufacturingOrderProductionIngredientResponse422DetailsItem"],
-    ] = UNSET
+    status_code: Unset | float = UNSET
+    name: Unset | str = UNSET
+    message: Unset | str = UNSET
+    code: Unset | str = UNSET
+    details: (
+        Unset
+        | list["UpdateManufacturingOrderProductionIngredientResponse422DetailsItem"]
+    ) = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -45,7 +47,7 @@ class UpdateManufacturingOrderProductionIngredientResponse422:
 
         code = self.code
 
-        details: Union[Unset, list[dict[str, Any]]] = UNSET
+        details: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.details, Unset):
             details = []
             for details_item_data in self.details:
@@ -100,9 +102,7 @@ class UpdateManufacturingOrderProductionIngredientResponse422:
             details=details,
         )
 
-        update_manufacturing_order_production_ingredient_response_422.additional_properties = (
-            d
-        )
+        update_manufacturing_order_production_ingredient_response_422.additional_properties = d
         return update_manufacturing_order_production_ingredient_response_422
 
     @property

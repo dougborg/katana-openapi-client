@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -44,16 +44,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        LinkVariantDefaultStorageBinsResponse401,
-        LinkVariantDefaultStorageBinsResponse422,
-        LinkVariantDefaultStorageBinsResponse429,
-        LinkVariantDefaultStorageBinsResponse500,
-        VariantDefaultStorageBinLinkListResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    LinkVariantDefaultStorageBinsResponse401
+    | LinkVariantDefaultStorageBinsResponse422
+    | LinkVariantDefaultStorageBinsResponse429
+    | LinkVariantDefaultStorageBinsResponse500
+    | VariantDefaultStorageBinLinkListResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = VariantDefaultStorageBinLinkListResponse.from_dict(
             response.json()
@@ -91,15 +90,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        LinkVariantDefaultStorageBinsResponse401,
-        LinkVariantDefaultStorageBinsResponse422,
-        LinkVariantDefaultStorageBinsResponse429,
-        LinkVariantDefaultStorageBinsResponse500,
-        VariantDefaultStorageBinLinkListResponse,
-    ]
+    LinkVariantDefaultStorageBinsResponse401
+    | LinkVariantDefaultStorageBinsResponse422
+    | LinkVariantDefaultStorageBinsResponse429
+    | LinkVariantDefaultStorageBinsResponse500
+    | VariantDefaultStorageBinLinkListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -111,16 +108,14 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: VariantDefaultStorageBinLink,
 ) -> Response[
-    Union[
-        LinkVariantDefaultStorageBinsResponse401,
-        LinkVariantDefaultStorageBinsResponse422,
-        LinkVariantDefaultStorageBinsResponse429,
-        LinkVariantDefaultStorageBinsResponse500,
-        VariantDefaultStorageBinLinkListResponse,
-    ]
+    LinkVariantDefaultStorageBinsResponse401
+    | LinkVariantDefaultStorageBinsResponse422
+    | LinkVariantDefaultStorageBinsResponse429
+    | LinkVariantDefaultStorageBinsResponse500
+    | VariantDefaultStorageBinLinkListResponse
 ]:
     """Link variant default storage bins
 
@@ -155,17 +150,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: VariantDefaultStorageBinLink,
-) -> Optional[
-    Union[
-        LinkVariantDefaultStorageBinsResponse401,
-        LinkVariantDefaultStorageBinsResponse422,
-        LinkVariantDefaultStorageBinsResponse429,
-        LinkVariantDefaultStorageBinsResponse500,
-        VariantDefaultStorageBinLinkListResponse,
-    ]
-]:
+) -> (
+    LinkVariantDefaultStorageBinsResponse401
+    | LinkVariantDefaultStorageBinsResponse422
+    | LinkVariantDefaultStorageBinsResponse429
+    | LinkVariantDefaultStorageBinsResponse500
+    | VariantDefaultStorageBinLinkListResponse
+    | None
+):
     """Link variant default storage bins
 
      Bulk operation for linking variants with the default storage bins.
@@ -194,16 +188,14 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: VariantDefaultStorageBinLink,
 ) -> Response[
-    Union[
-        LinkVariantDefaultStorageBinsResponse401,
-        LinkVariantDefaultStorageBinsResponse422,
-        LinkVariantDefaultStorageBinsResponse429,
-        LinkVariantDefaultStorageBinsResponse500,
-        VariantDefaultStorageBinLinkListResponse,
-    ]
+    LinkVariantDefaultStorageBinsResponse401
+    | LinkVariantDefaultStorageBinsResponse422
+    | LinkVariantDefaultStorageBinsResponse429
+    | LinkVariantDefaultStorageBinsResponse500
+    | VariantDefaultStorageBinLinkListResponse
 ]:
     """Link variant default storage bins
 
@@ -236,17 +228,16 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: VariantDefaultStorageBinLink,
-) -> Optional[
-    Union[
-        LinkVariantDefaultStorageBinsResponse401,
-        LinkVariantDefaultStorageBinsResponse422,
-        LinkVariantDefaultStorageBinsResponse429,
-        LinkVariantDefaultStorageBinsResponse500,
-        VariantDefaultStorageBinLinkListResponse,
-    ]
-]:
+) -> (
+    LinkVariantDefaultStorageBinsResponse401
+    | LinkVariantDefaultStorageBinsResponse422
+    | LinkVariantDefaultStorageBinsResponse429
+    | LinkVariantDefaultStorageBinsResponse500
+    | VariantDefaultStorageBinLinkListResponse
+    | None
+):
     """Link variant default storage bins
 
      Bulk operation for linking variants with the default storage bins.

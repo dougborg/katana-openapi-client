@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -42,16 +42,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        CreatePurchaseOrderRowResponse401,
-        CreatePurchaseOrderRowResponse422,
-        CreatePurchaseOrderRowResponse429,
-        CreatePurchaseOrderRowResponse500,
-        PurchaseOrderRowResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    CreatePurchaseOrderRowResponse401
+    | CreatePurchaseOrderRowResponse422
+    | CreatePurchaseOrderRowResponse429
+    | CreatePurchaseOrderRowResponse500
+    | PurchaseOrderRowResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = PurchaseOrderRowResponse.from_dict(response.json())
 
@@ -79,15 +78,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        CreatePurchaseOrderRowResponse401,
-        CreatePurchaseOrderRowResponse422,
-        CreatePurchaseOrderRowResponse429,
-        CreatePurchaseOrderRowResponse500,
-        PurchaseOrderRowResponse,
-    ]
+    CreatePurchaseOrderRowResponse401
+    | CreatePurchaseOrderRowResponse422
+    | CreatePurchaseOrderRowResponse429
+    | CreatePurchaseOrderRowResponse500
+    | PurchaseOrderRowResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -99,16 +96,14 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreatePurchaseOrderRowRequest,
 ) -> Response[
-    Union[
-        CreatePurchaseOrderRowResponse401,
-        CreatePurchaseOrderRowResponse422,
-        CreatePurchaseOrderRowResponse429,
-        CreatePurchaseOrderRowResponse500,
-        PurchaseOrderRowResponse,
-    ]
+    CreatePurchaseOrderRowResponse401
+    | CreatePurchaseOrderRowResponse422
+    | CreatePurchaseOrderRowResponse429
+    | CreatePurchaseOrderRowResponse500
+    | PurchaseOrderRowResponse
 ]:
     """Create a purchase order row
 
@@ -138,17 +133,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreatePurchaseOrderRowRequest,
-) -> Optional[
-    Union[
-        CreatePurchaseOrderRowResponse401,
-        CreatePurchaseOrderRowResponse422,
-        CreatePurchaseOrderRowResponse429,
-        CreatePurchaseOrderRowResponse500,
-        PurchaseOrderRowResponse,
-    ]
-]:
+) -> (
+    CreatePurchaseOrderRowResponse401
+    | CreatePurchaseOrderRowResponse422
+    | CreatePurchaseOrderRowResponse429
+    | CreatePurchaseOrderRowResponse500
+    | PurchaseOrderRowResponse
+    | None
+):
     """Create a purchase order row
 
      Creates a new purchase order row object.
@@ -172,16 +166,14 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreatePurchaseOrderRowRequest,
 ) -> Response[
-    Union[
-        CreatePurchaseOrderRowResponse401,
-        CreatePurchaseOrderRowResponse422,
-        CreatePurchaseOrderRowResponse429,
-        CreatePurchaseOrderRowResponse500,
-        PurchaseOrderRowResponse,
-    ]
+    CreatePurchaseOrderRowResponse401
+    | CreatePurchaseOrderRowResponse422
+    | CreatePurchaseOrderRowResponse429
+    | CreatePurchaseOrderRowResponse500
+    | PurchaseOrderRowResponse
 ]:
     """Create a purchase order row
 
@@ -209,17 +201,16 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreatePurchaseOrderRowRequest,
-) -> Optional[
-    Union[
-        CreatePurchaseOrderRowResponse401,
-        CreatePurchaseOrderRowResponse422,
-        CreatePurchaseOrderRowResponse429,
-        CreatePurchaseOrderRowResponse500,
-        PurchaseOrderRowResponse,
-    ]
-]:
+) -> (
+    CreatePurchaseOrderRowResponse401
+    | CreatePurchaseOrderRowResponse422
+    | CreatePurchaseOrderRowResponse429
+    | CreatePurchaseOrderRowResponse500
+    | PurchaseOrderRowResponse
+    | None
+):
     """Create a purchase order row
 
      Creates a new purchase order row object.

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -22,15 +22,14 @@ def _get_kwargs() -> dict[str, Any]:
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetAllServicesResponse401,
-        GetAllServicesResponse429,
-        GetAllServicesResponse500,
-        ServiceListResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetAllServicesResponse401
+    | GetAllServicesResponse429
+    | GetAllServicesResponse500
+    | ServiceListResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = ServiceListResponse.from_dict(response.json())
 
@@ -54,14 +53,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetAllServicesResponse401,
-        GetAllServicesResponse429,
-        GetAllServicesResponse500,
-        ServiceListResponse,
-    ]
+    GetAllServicesResponse401
+    | GetAllServicesResponse429
+    | GetAllServicesResponse500
+    | ServiceListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -73,14 +70,12 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        GetAllServicesResponse401,
-        GetAllServicesResponse429,
-        GetAllServicesResponse500,
-        ServiceListResponse,
-    ]
+    GetAllServicesResponse401
+    | GetAllServicesResponse429
+    | GetAllServicesResponse500
+    | ServiceListResponse
 ]:
     """Get All Services
 
@@ -106,15 +101,14 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        GetAllServicesResponse401,
-        GetAllServicesResponse429,
-        GetAllServicesResponse500,
-        ServiceListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    GetAllServicesResponse401
+    | GetAllServicesResponse429
+    | GetAllServicesResponse500
+    | ServiceListResponse
+    | None
+):
     """Get All Services
 
      Retrieve a list of all Service objects. (See: [Get All
@@ -135,14 +129,12 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        GetAllServicesResponse401,
-        GetAllServicesResponse429,
-        GetAllServicesResponse500,
-        ServiceListResponse,
-    ]
+    GetAllServicesResponse401
+    | GetAllServicesResponse429
+    | GetAllServicesResponse500
+    | ServiceListResponse
 ]:
     """Get All Services
 
@@ -166,15 +158,14 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        GetAllServicesResponse401,
-        GetAllServicesResponse429,
-        GetAllServicesResponse500,
-        ServiceListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    GetAllServicesResponse401
+    | GetAllServicesResponse429
+    | GetAllServicesResponse500
+    | ServiceListResponse
+    | None
+):
     """Get All Services
 
      Retrieve a list of all Service objects. (See: [Get All
