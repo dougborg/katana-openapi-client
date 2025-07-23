@@ -410,7 +410,7 @@ tracer = config.initialize_tracer()
 # Use the client with tracing
 async with KatanaClient(tracer=tracer) as client:
     from katana_public_api_client.api.product import get_all_products
-    
+
     # This request will be automatically traced
     response = await get_all_products.asyncio_detailed(client=client)
 ```

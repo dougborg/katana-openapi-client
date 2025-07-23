@@ -26,7 +26,7 @@ async def main():
             client=client,
             limit=50  # Will auto-paginate if needed
         )
-        
+
         if response.status_code == 200:
             products = response.parsed
             print(f"Found {len(products)} products")
