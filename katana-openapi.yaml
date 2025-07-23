@@ -943,6 +943,60 @@ components:
             message: Bad Request
 
   schemas:
+    # Common error response schemas
+    ErrorResponse:
+      type: object
+      description: Base error response schema
+      properties:
+        statusCode:
+          type: number
+          description: HTTP status code
+        name:
+          type: string
+          description: Error name/type
+        message:
+          type: string
+          description: Human-readable error message
+        code:
+          type: [string, "null"]
+          description: Application-specific error code
+      required:
+        - statusCode
+        - name
+        - message
+
+    ValidationErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - type: object
+          properties:
+            details:
+              type: array
+              description: Detailed validation error information
+              items:
+                $ref: "#/components/schemas/ValidationErrorDetail"
+
+    ValidationErrorDetail:
+      type: object
+      description: Individual validation error detail
+      properties:
+        path:
+          type: string
+          description: JSON path to the field with the error
+        code:
+          type: string
+          description: Validation error code
+        message:
+          type: string
+          description: Human-readable validation error message
+        info:
+          type: object
+          description: Additional validation context
+          additionalProperties: true
+      required:
+        - path
+        - code
+
     AdditionalCost:
       type: object
       properties:

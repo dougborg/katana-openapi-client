@@ -53,6 +53,13 @@ jobs:
         run: |
           poetry run poe docs-clean
           poetry run poe docs-build
+        env:
+          CI_DOCS_BUILD: "true"
+
+      - name: Test documentation
+        run: poetry run poe test-docs
+        env:
+          CI_DOCS_BUILD: "true"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

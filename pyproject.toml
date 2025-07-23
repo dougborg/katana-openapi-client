@@ -10,7 +10,7 @@ maintainers = [
 ]
 license = {text = "MIT"}
 readme = "README.md"
-requires-python = ">=3.11,<4.0"
+requires-python = ">=3.11,<3.14"
 keywords = [
   "katana",
   "manufacturing",
@@ -104,11 +104,6 @@ dev = [
   "myst-parser>=2.0.0",
   "linkify-it-py>=2.0.0",
 ]
-tracing = [
-  # OpenTracing support
-  "opentracing>=2.4.0",
-  "jaeger-client>=4.8.0",
-]
 
 [tool.poetry]
 # Keep Poetry section for package discovery and build configuration
@@ -126,11 +121,8 @@ mdformat-gfm = "^0.4.1"
 mdformat-tables = "^1.0.0"
 mdformat-toc = "^0.3.0"
 types-pyyaml = "^6.0.12.20250516"
-types-opentracing = "^2.4.10.20250622"
 pytest = "^8.4.1"
 pytest-asyncio = "^1.1.0"
-opentracing = "^2.4.0"
-jaeger-client = "^4.8.0"
 pytest-timeout = "^2.4.0"
 sphinx = "^8.2.3"
 sphinx-rtd-theme = "^3.0.2"
@@ -196,6 +188,11 @@ disallow_untyped_defs = true
 no_implicit_reexport = true
 warn_return_any = true
 
+[[tool.mypy.overrides]]
+module = ["katana_public_api_client.katana_client"]
+# Allow unknown types for JSON parsing methods
+disable_error_code = ["misc", "arg-type"]
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = [
@@ -212,6 +209,7 @@ markers = [
   "integration: marks tests as integration tests",
   "unit: marks tests as unit tests",
   "asyncio: marks tests as async tests",
+  "docs: marks tests as documentation tests (slow, only run in CI docs jobs)",
 ]
 
 [tool.coverage.run]
@@ -364,12 +362,15 @@ lint = ["lint-ruff", "lint-mypy", "lint-yaml"]
 # -----------------------------------------------------------------------------
 # Testing Tasks
 # -----------------------------------------------------------------------------
-test = "pytest"
-test-verbose = "pytest -v"
-test-coverage = "pytest --cov=katana_public_api_client --cov-report=term-missing"
-test-coverage-html = "pytest --cov=katana_public_api_client --cov-report=html"
+test = "pytest -m 'not docs'"
+test-verbose = "pytest -v -m 'not docs'"
+test-coverage = "pytest --cov=katana_public_api_client --cov-report=term-missing -m 'not docs'"
+test-coverage-html = "pytest --cov=katana_public_api_client --cov-report=html -m 'not docs'"
 test-unit = "pytest -m unit"
 test-integration = "pytest -m integration"
+test-docs = { shell = "CI_DOCS_BUILD=true pytest -m docs -v --timeout=600" }  # 10 minute timeout for docs
+test-no-docs = "pytest -m 'not docs'"
+test-all = "pytest"  # Run everything including docs (if CI_DOCS_BUILD is set)
 
 # -----------------------------------------------------------------------------
 # OpenAPI and Code Generation Tasks

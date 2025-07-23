@@ -63,13 +63,6 @@ incorrect conventional commit usage and establishes consistent code quality enfo
 across the development team without changing any functional codebase behavior.
 ([`d6511e6`](https://github.com/dougborg/katana-openapi-client/commit/d6511e68949a95ba6871ad7e60b6b7b9e295a535))
 
-### Feature
-
-* feat: Add OpenTracing support for distributed tracing integration (#2)
-
-* Add OpenTracing support to Katana client with comprehensive tests and examples
-* Update README with comprehensive OpenTracing documentation and usage examples ([`289184b`](https://github.com/dougborg/katana-openapi-client/commit/289184b4c6817fefddb63b656b2beb7655af71e4))
-
 ## v0.1.0 (2025-07-16)
 
 ### Chore

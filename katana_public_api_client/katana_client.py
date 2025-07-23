@@ -11,10 +11,11 @@ import json
 import logging
 import os
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
 
 import httpx
 from dotenv import load_dotenv
+from httpx import AsyncHTTPTransport
 from tenacity import (
     RetryError,
     retry,
@@ -24,25 +25,9 @@ from tenacity import (
     wait_exponential,
 )
 
-if TYPE_CHECKING:
-    from httpx import AsyncHTTPTransport
-else:
-    AsyncHTTPTransport = httpx.AsyncHTTPTransport
-
 from .generated.client import AuthenticatedClient
-
-# OpenTracing imports - conditional to avoid hard dependency
-try:
-    import opentracing
-    from opentracing import Tracer
-    from opentracing.ext import tags
-
-    OPENTRACING_AVAILABLE = True
-except ImportError:
-    opentracing = None  # type: ignore[assignment]
-    Tracer = None  # type: ignore[assignment,misc]
-    tags = None  # type: ignore[assignment]
-    OPENTRACING_AVAILABLE = False
+from .generated.models.error_response import ErrorResponse
+from .generated.models.validation_error_response import ValidationErrorResponse
 
 
 class ResilientAsyncTransport(AsyncHTTPTransport):
@@ -58,7 +43,6 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
     - Rate limiting detection and handling
     - Smart pagination based on response headers and request parameters
     - Request/response logging and metrics
-    - Optional OpenTracing support for distributed tracing
     """
 
     def __init__(
@@ -66,7 +50,6 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
         max_retries: int = 5,
         max_pages: int = 100,
         logger: logging.Logger | None = None,
-        tracer: "Tracer | None" = None,
         **kwargs: Any,
     ):
         """
@@ -88,23 +71,15 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
         self.max_retries = max_retries
         self.max_pages = max_pages
         self.logger = logger or logging.getLogger(__name__)
-        self.tracer = tracer
-
-        # Warn if OpenTracing is requested but not available
-        if tracer is not None and not OPENTRACING_AVAILABLE:
-            self.logger.warning(
-                "OpenTracing tracer provided but opentracing library is not installed. "
-                "Install with: pip install 'katana-openapi-client[tracing]'"
-            )
 
     async def _log_client_error(
         self, response: httpx.Response, request: httpx.Request
     ) -> None:
         """
-        Log detailed information for 400-level client errors.
+        Log detailed information for 400-level client errors using generated models.
 
-        Provides enhanced logging for validation errors (422) and other client errors,
-        extracting and formatting error details from the response body.
+        This method attempts to parse error responses using the generated OpenAPI client
+        models for better type safety and structured error handling.
 
         Args:
             response: The HTTP response with a 400-level status code
@@ -118,8 +93,14 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
 
             # Try to parse the JSON error response
             try:
-                error_data = response.json()
-            except (json.JSONDecodeError, UnicodeDecodeError):
+                # Read response content if it's streaming
+                if hasattr(response, "aread"):
+                    with contextlib.suppress(TypeError, AttributeError):
+                        # Skip aread if it's not async (e.g., in tests with mocks)
+                        await response.aread()
+
+                error_data: dict[str, Any] = response.json()
+            except (json.JSONDecodeError, UnicodeDecodeError, httpx.ResponseNotRead):
                 # If JSON parsing fails, log the raw response
                 self.logger.error(
                     f"Client error {status_code} for {method} {url} - "
@@ -127,70 +108,102 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
                 )
                 return
 
-            # Format the error message based on the error structure
-            if status_code == 422 and isinstance(error_data, dict):
-                # Enhanced logging for 422 validation errors
-                self._log_validation_error(error_data, method, url, status_code)
-            else:
-                # General 400-level error logging
-                self._log_general_client_error(error_data, method, url, status_code)
+            # Try to parse using common error models first
+            if status_code == 422:
+                # Try ValidationErrorResponse first
+                try:
+                    validation_error = ValidationErrorResponse.from_dict(error_data)
+                    self._log_validation_error_with_model(
+                        validation_error, method, url, status_code
+                    )
+                    return
+                except (ValueError, KeyError, TypeError):
+                    # Fall back to basic error parsing if validation model fails
+                    pass
 
-        except Exception as e:
-            # Fallback logging if error parsing fails
+            # Try basic ErrorResponse for other status codes
+            try:
+                error_response = ErrorResponse.from_dict(error_data)
+                self._log_error_with_model(error_response, method, url, status_code)
+                return
+            except (ValueError, KeyError, TypeError):
+                # Fall back to basic logging if model parsing fails
+                pass
+
+            # Fallback: log raw error data if model parsing fails
+            self._log_error_fallback(error_data, method, url, status_code)
+
+        except (
+            httpx.ConnectError,
+            httpx.TimeoutException,
+            json.JSONDecodeError,
+            ValueError,
+        ) as e:
+            # Handle specific known exceptions more precisely
             self.logger.error(
                 f"Client error {response.status_code} for {request.method} {request.url} - "
                 f"Failed to parse error details: {e}"
             )
 
-    def _log_validation_error(
-        self, error_data: dict[str, Any], method: str, url: str, status_code: int
+    def _log_validation_error_with_model(
+        self, error: ValidationErrorResponse, method: str, url: str, status_code: int
     ) -> None:
-        """Log detailed validation error information for 422 responses."""
-        error_name = error_data.get("name", "UnprocessableEntityError")
-        error_message = error_data.get("message", "Validation failed")
-        error_code = error_data.get("code", "")
-        details = error_data.get("details", [])
-
-        # Start with the main error message
+        """Log validation errors using the typed ValidationErrorResponse model."""
         log_message = f"Validation error {status_code} for {method} {url}"
-        log_message += f"\n  Error: {error_name} - {error_message}"
+        log_message += f"\n  Error: {error.name} - {error.message}"
 
-        if error_code:
-            log_message += f"\n  Code: {error_code}"
+        if error.code is not None:
+            log_message += f"\n  Code: {error.code}"
 
-        # Add detailed validation errors
-        if details and isinstance(details, list):
-            log_message += f"\n  Validation details ({len(details)} errors):"
-            for i, detail in enumerate(details, 1):
-                # Type check each detail item
-                if isinstance(detail, dict):
-                    # Cast to dict[str, Any] for proper type inference
-                    detail_dict = cast(dict[str, Any], detail)
-                    path = detail_dict.get("path", "unknown")
-                    code = detail_dict.get("code", "unknown")
-                    message = detail_dict.get("message", "")
-                    info = detail_dict.get("info", {})
-
-                    log_message += f"\n    {i}. Path: {path}"
-                    log_message += f"\n       Code: {code}"
-                    if message:
-                        log_message += f"\n       Message: {message}"
-                    if info and isinstance(info, dict):
-                        log_message += self._format_validation_info(info)
-                else:
-                    # Handle non-dict details gracefully
-                    log_message += f"\n    {i}. {detail}"
+        # Add detailed validation errors using the typed model
+        if error.details and len(error.details) > 0:
+            log_message += f"\n  Validation details ({len(error.details)} errors):"
+            for i, detail in enumerate(error.details, 1):
+                log_message += f"\n    {i}. Path: {detail.path}"
+                log_message += f"\n       Code: {detail.code}"
+                if detail.message:
+                    log_message += f"\n       Message: {detail.message}"
+                if detail.info:
+                    # Convert the typed info dict to structured format
+                    formatted_info = self._format_typed_validation_info(
+                        detail.info.additional_properties
+                    )
+                    if formatted_info:
+                        log_message += f"\n       Details: {formatted_info}"
 
         self.logger.error(log_message)
 
-    def _format_validation_info(self, info: dict[str, Any]) -> str:
-        """Format validation error info dictionary into a readable string."""
+    def _log_error_with_model(
+        self, error: ErrorResponse, method: str, url: str, status_code: int
+    ) -> None:
+        """Log general errors using the typed ErrorResponse model."""
+        log_message = f"Client error {status_code} for {method} {url}"
+        log_message += f"\n  Error: {error.name} - {error.message}"
+
+        if error.code is not None:
+            log_message += f"\n  Code: {error.code}"
+
+        # Log any additional properties
+        if error.additional_properties:
+            formatted_additional: list[str] = []
+            for key, value in error.additional_properties.items():
+                if isinstance(value, str):
+                    formatted_additional.append(f"{key}: '{value}'")
+                else:
+                    formatted_additional.append(f"{key}: {value}")
+            if formatted_additional:
+                log_message += f"\n  Additional info: {', '.join(formatted_additional)}"
+
+        self.logger.error(log_message)
+
+    def _format_typed_validation_info(self, info: dict[str, Any]) -> str:
+        """Format validation error info from typed model with explicit type handling."""
         if not info:
             return ""
 
-        formatted_parts = []
+        formatted_parts: list[str] = []
 
-        # Handle common validation info fields with nice formatting
+        # Handle common validation fields
         if "provided_value" in info:
             provided = info["provided_value"]
             if provided is None:
@@ -203,43 +216,40 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
         if "allowed_values" in info:
             allowed = info["allowed_values"]
             if isinstance(allowed, list):
-                if len(allowed) <= 5:
-                    # Show all values if 5 or fewer
-                    values_str = ", ".join(
-                        f"'{v}'" if isinstance(v, str) else str(v) for v in allowed
-                    )
-                    formatted_parts.append(f"allowed: [{values_str}]")
+                # Type-safe handling of list elements from OpenAPI models
+                # The elements are typed as Any since they come from dynamic JSON
+                allowed_list: list[Any] = allowed  # explicit annotation for clarity
+                if len(allowed_list) <= 5:
+                    values_list = [
+                        f"'{v}'" if isinstance(v, str) else str(v) for v in allowed_list
+                    ]
+                    formatted_parts.append(f"allowed: [{', '.join(values_list)}]")
                 else:
-                    # Show first few and count for long lists
-                    first_few = allowed[:3]
-                    values_str = ", ".join(
-                        f"'{v}'" if isinstance(v, str) else str(v) for v in first_few
-                    )
+                    first_three = allowed_list[:3]
+                    values_list = [
+                        f"'{v}'" if isinstance(v, str) else str(v) for v in first_three
+                    ]
                     formatted_parts.append(
-                        f"allowed: [{values_str}... ({len(allowed)} total)]"
+                        f"allowed: [{', '.join(values_list)}... ({len(allowed_list)} total)]"
                     )
             else:
                 formatted_parts.append(f"allowed: {allowed}")
 
-        if "expected_type" in info:
-            formatted_parts.append(f"expected type: {info['expected_type']}")
+        # Handle other validation fields
+        validation_fields = [
+            ("expected_type", "expected type"),
+            ("min_value", "min"),
+            ("max_value", "max"),
+            ("min_length", "min length"),
+            ("max_length", "max length"),
+            ("pattern", "pattern"),
+        ]
 
-        if "min_value" in info:
-            formatted_parts.append(f"min: {info['min_value']}")
+        for field_key, display_name in validation_fields:
+            if field_key in info:
+                formatted_parts.append(f"{display_name}: {info[field_key]}")
 
-        if "max_value" in info:
-            formatted_parts.append(f"max: {info['max_value']}")
-
-        if "min_length" in info:
-            formatted_parts.append(f"min length: {info['min_length']}")
-
-        if "max_length" in info:
-            formatted_parts.append(f"max length: {info['max_length']}")
-
-        if "pattern" in info:
-            formatted_parts.append(f"pattern: {info['pattern']}")
-
-        # Handle any other fields that weren't specifically formatted
+        # Handle any other fields
         handled_keys = {
             "provided_value",
             "allowed_values",
@@ -250,68 +260,36 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             "max_length",
             "pattern",
         }
-        other_fields = {k: v for k, v in info.items() if k not in handled_keys}
 
-        if other_fields:
-            for key, value in other_fields.items():
+        for key, value in info.items():
+            if key not in handled_keys:
                 if isinstance(value, str):
                     formatted_parts.append(f"{key}: '{value}'")
                 else:
                     formatted_parts.append(f"{key}: {value}")
 
-        if formatted_parts:
-            return f"\n       Details: {', '.join(formatted_parts)}"
-        else:
-            return ""
+        return ", ".join(formatted_parts)
 
-    def _log_general_client_error(
+    def _log_error_fallback(
         self, error_data: dict[str, Any], method: str, url: str, status_code: int
     ) -> None:
-        """Log general client error information for non-422 4xx responses."""
-        if isinstance(error_data, dict):
-            error_name = error_data.get("name", f"ClientError{status_code}")
-            error_message = error_data.get("message", "Client error occurred")
-            error_code = error_data.get("code", "")
+        """Fallback error logging when model parsing fails."""
+        error_name = error_data.get("name", f"ClientError{status_code}")
+        error_message = error_data.get("message", "Client error occurred")
 
-            log_message = f"Client error {status_code} for {method} {url}"
-            log_message += f"\n  Error: {error_name} - {error_message}"
+        log_message = f"Client error {status_code} for {method} {url}"
+        log_message += f"\n  Error: {error_name} - {error_message}"
 
-            if error_code:
-                log_message += f"\n  Code: {error_code}"
+        # Log basic additional fields
+        excluded_keys = {"statusCode", "name", "message"}
+        additional_fields = {
+            k: v for k, v in error_data.items() if k not in excluded_keys
+        }
 
-            # Log any additional fields that might be present
-            additional_fields = {
-                k: v
-                for k, v in error_data.items()
-                if k not in {"statusCode", "name", "message", "code"}
-            }
-            if additional_fields:
-                formatted_additional = []
-                for key, value in additional_fields.items():
-                    if isinstance(value, str):
-                        formatted_additional.append(f"{key}: '{value}'")
-                    elif isinstance(value, dict) and value:
-                        # Format nested dicts more nicely
-                        nested_items = []
-                        for nested_key, nested_value in value.items():
-                            if isinstance(nested_value, str):
-                                nested_items.append(f"{nested_key}: '{nested_value}'")
-                            else:
-                                nested_items.append(f"{nested_key}: {nested_value}")
-                        formatted_additional.append(
-                            f"{key}: {{{', '.join(nested_items)}}}"
-                        )
-                    else:
-                        formatted_additional.append(f"{key}: {value}")
-                log_message += f"\n  Additional info: {', '.join(formatted_additional)}"
+        if additional_fields:
+            log_message += f"\n  Additional data: {additional_fields}"
 
-            self.logger.error(log_message)
-        else:
-            # If error_data is not a dict, log it as-is
-            self.logger.error(
-                f"Client error {status_code} for {method} {url} - "
-                f"Response: {error_data}"
-            )
+        self.logger.error(log_message)
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         """
@@ -333,36 +311,9 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             - All requests get automatic retry logic for network and server errors
             - Rate limiting is handled automatically with Retry-After header support
         """
-        # Create OpenTracing span if tracer is configured
-        if self.tracer is not None and OPENTRACING_AVAILABLE:
-            with self.tracer.start_span(
-                operation_name=f"katana_client.{request.method}",
-                tags={
-                    tags.COMPONENT: "katana-openapi-client",
-                    tags.HTTP_METHOD: request.method,
-                    tags.HTTP_URL: str(request.url),
-                    tags.SPAN_KIND: tags.SPAN_KIND_RPC_CLIENT,
-                },
-            ) as span:
-                try:
-                    response = await self._handle_request_with_span(request, span)
-                    # Tag successful responses
-                    span.set_tag(tags.HTTP_STATUS_CODE, response.status_code)
-                    if response.status_code >= 400:
-                        span.set_tag(tags.ERROR, True)
-                    return response
-                except Exception as e:
-                    # Tag errors
-                    span.set_tag(tags.ERROR, True)
-                    span.log_kv({"error": str(e)})
-                    raise
-        else:
-            # No tracing, use original logic
-            return await self._handle_request_with_span(request, None)
+        return await self._handle_request_with_span(request)
 
-    async def _handle_request_with_span(
-        self, request: httpx.Request, span: Any = None
-    ) -> httpx.Response:
+    async def _handle_request_with_span(self, request: httpx.Request) -> httpx.Response:
         """Handle the request with optional span context."""
         # Check if this is a paginated request (has 'page' or 'limit' param)
         # Smart pagination: automatically detect based on request parameters
@@ -375,21 +326,16 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
         )
 
         if should_paginate:
-            if span is not None:
-                span.set_tag("katana.pagination.enabled", True)
-            return await self._handle_paginated_request(request, span)
+            return await self._handle_paginated_request(request)
         else:
-            return await self._handle_single_request(request, span)
+            return await self._handle_single_request(request)
 
-    async def _handle_single_request(
-        self, request: httpx.Request, span: Any = None
-    ) -> httpx.Response:
+    async def _handle_single_request(self, request: httpx.Request) -> httpx.Response:
         """
         Handle a single request with retries using tenacity.
 
         Args:
             request: The HTTP request to handle.
-            span: Optional OpenTracing span for distributed tracing.
 
         Returns:
             The HTTP response from the server.
@@ -429,27 +375,21 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             if response.status_code == 429:
                 retry_after = self._get_retry_after(response)
                 self.logger.warning(
-                    f"Rate limited, retrying after exponential backoff (server suggested {retry_after}s)"
+                    "Rate limited, retrying after exponential backoff (server suggested %ds)",
+                    retry_after,
                 )
-                if span is not None:
-                    span.log_kv({"event": "rate_limited", "retry_after": retry_after})
 
             elif 500 <= response.status_code < 600:
                 self.logger.warning(
-                    f"Server error {response.status_code}, retrying with exponential backoff"
+                    "Server error %d, retrying with exponential backoff",
+                    response.status_code,
                 )
-                if span is not None:
-                    span.log_kv(
-                        {"event": "server_error", "status_code": response.status_code}
-                    )
 
             return response
 
         # Execute the request with retries
         try:
             response = await _make_request_with_retry()
-            if span is not None:
-                span.set_tag("katana.retry.success", True)
 
             # Log detailed information for 400-level client errors
             if 400 <= response.status_code < 500:
@@ -458,49 +398,51 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             return response
         except RetryError as e:
             # For retry errors (when server keeps returning 4xx/5xx), return the last response
-            if span is not None:
-                span.set_tag("katana.retry.exhausted", True)
             self.logger.error(
-                f"Request failed after {self.max_retries} retries, extracting last response"
+                "Request failed after %d retries, extracting last response",
+                self.max_retries,
             )
 
             # Extract the last response - tenacity stores it in the last_attempt
             try:
-                if hasattr(e, "last_attempt") and e.last_attempt is not None:
+                if hasattr(e, "last_attempt"):
                     last_response = e.last_attempt.result()
-                    self.logger.debug(f"Got last response: {type(last_response)}")
+                    response_type = type(last_response).__name__
+                    self.logger.debug("Got last response: %s", response_type)
                     if isinstance(last_response, httpx.Response) or (
                         hasattr(last_response, "status_code")
                     ):
                         # Handle both real responses and mocks (for testing)
                         self.logger.debug(
-                            f"Returning last response with status {last_response.status_code}"
+                            "Returning last response with status %d",
+                            last_response.status_code,
                         )
                         return last_response
                     else:
                         self.logger.debug(
-                            f"Last response is not httpx.Response, it's {type(last_response)}"
+                            "Last response is not httpx.Response, it's %s",
+                            response_type,
                         )
                 else:
                     self.logger.debug("No last_attempt found in retry error")
-            except Exception as extract_error:
-                self.logger.debug(f"Error extracting last response: {extract_error}")
+            except (ValueError, AttributeError, TypeError) as extract_error:
+                self.logger.debug("Error extracting last response: %s", extract_error)
 
             # If we can't extract the response, re-raise
             self.logger.error("Could not extract last response from retry error")
             raise
         except (httpx.ConnectError, httpx.TimeoutException, httpx.ReadError) as e:
             # For network errors, we want to re-raise the exception
-            self.logger.error(f"Network error after {self.max_retries} retries: {e}")
+            self.logger.error("Network error after %d retries: %s", self.max_retries, e)
             raise
         except Exception as e:
             # For other unexpected errors, re-raise
-            self.logger.error(f"Unexpected error after {self.max_retries} retries: {e}")
+            self.logger.error(
+                "Unexpected error after %d retries: %s", self.max_retries, e
+            )
             raise
 
-    async def _handle_paginated_request(
-        self, request: httpx.Request, span: Any = None
-    ) -> httpx.Response:
+    async def _handle_paginated_request(self, request: httpx.Request) -> httpx.Response:
         """
         Handle paginated requests by automatically collecting all pages.
 
@@ -510,7 +452,6 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
 
         Args:
             request: The HTTP request to handle (must be a GET request with pagination parameters).
-            span: Optional OpenTracing span for distributed tracing.
 
         Returns:
             A combined HTTP response containing data from all collected pages with
@@ -522,15 +463,17 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             - The response contains an 'auto_paginated' flag in the pagination metadata
             - Data from all pages is combined into a single 'data' array
         """
-        all_data = []
+        all_data: list[Any] = []
         current_page = 1
-        total_pages = None
+        total_pages: int | None = None
+        page_num = 1
+        response: httpx.Response | None = None
 
         # Parse initial parameters
         url_params = dict(request.url.params)
         limit = int(url_params.get("limit", 50))
 
-        self.logger.info(f"Auto-paginating request: {request.url}")
+        self.logger.info("Auto-paginating request: %s", request.url)
 
         for page_num in range(1, self.max_pages + 1):
             # Update the page parameter
@@ -546,7 +489,7 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             )
 
             # Make the request
-            response = await self._handle_single_request(paginated_request, span)
+            response = await self._handle_single_request(paginated_request)
 
             if response.status_code != 200:
                 # If we get an error, return the original response
@@ -580,8 +523,11 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
                         break
 
                     self.logger.debug(
-                        f"Collected page {current_page}/{total_pages or '?'}, "
-                        f"items: {len(items)}, total so far: {len(all_data)}"
+                        "Collected page %s/%s, items: %d, total so far: %d",
+                        current_page,
+                        total_pages or "?",
+                        len(items),
+                        len(all_data),
                     )
                 else:
                     # No pagination info found, treat as single page
@@ -589,8 +535,13 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
                     break
 
             except (json.JSONDecodeError, KeyError) as e:
-                self.logger.warning(f"Failed to parse paginated response: {e}")
+                self.logger.warning("Failed to parse paginated response: %s", e)
                 return response
+
+        # Ensure we have a response at this point
+        if response is None:
+            msg = "No response available after pagination"
+            raise RuntimeError(msg)
 
         # Create a combined response
         combined_data: dict[str, Any] = {"data": all_data}
@@ -618,15 +569,10 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
         )
 
         self.logger.info(
-            f"Auto-pagination complete: collected {len(all_data)} items from {page_num} pages"
+            "Auto-pagination complete: collected %d items from %d pages",
+            len(all_data),
+            page_num,
         )
-
-        # Add pagination tracing info
-        if span is not None:
-            span.set_tag("katana.pagination.pages_collected", page_num)
-            span.set_tag("katana.pagination.total_items", len(all_data))
-            if total_pages:
-                span.set_tag("katana.pagination.total_pages", total_pages)
 
         return combined_response
 
@@ -634,7 +580,7 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
         self, response: httpx.Response, data: dict[str, Any]
     ) -> dict[str, Any] | None:
         """Extract pagination information from response headers or body."""
-        pagination_info = {}
+        pagination_info: dict[str, Any] = {}
 
         # Check for X-Pagination header (JSON format)
         if "X-Pagination" in response.headers:
@@ -651,11 +597,18 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             pagination_info["page"] = int(response.headers["X-Current-Page"])
 
         # Check for pagination in response body
-        if isinstance(data, dict):
-            if "pagination" in data:
-                pagination_info.update(data["pagination"])
-            elif "meta" in data and "pagination" in data["meta"]:
-                pagination_info.update(data["meta"]["pagination"])
+        if "pagination" in data:
+            page_data = data["pagination"]
+            if isinstance(page_data, dict):
+                pagination_info.update(cast(dict[str, Any], page_data))
+        elif (
+            "meta" in data
+            and isinstance(data["meta"], dict)
+            and "pagination" in data["meta"]
+        ):
+            meta_pagination = cast(Any, data["meta"]["pagination"])
+            if isinstance(meta_pagination, dict):
+                pagination_info.update(cast(dict[str, Any], meta_pagination))
 
         return pagination_info if pagination_info else None
 
@@ -685,7 +638,6 @@ class KatanaClient(AuthenticatedClient):
     - Automatic rate limit handling with Retry-After header support
     - Smart auto-pagination that detects and handles paginated responses automatically
     - Rich logging and observability
-    - Optional OpenTracing support for distributed tracing
     - Minimal configuration - just works out of the box
 
     Usage:
@@ -708,16 +660,6 @@ class KatanaClient(AuthenticatedClient):
 
             # Control max pages globally
             client_limited = KatanaClient(max_pages=5)  # Limit to 5 pages max
-
-        # With OpenTracing support
-        import opentracing
-        tracer = opentracing.tracer  # or configure your tracer
-        async with KatanaClient(tracer=tracer) as client:
-            # All requests will be automatically traced
-            response = await get_all_products.asyncio_detailed(
-                client=client,
-                limit=50
-            )
     """
 
     def __init__(
@@ -728,7 +670,6 @@ class KatanaClient(AuthenticatedClient):
         max_retries: int = 5,
         max_pages: int = 100,
         logger: logging.Logger | None = None,
-        tracer: "Tracer | None" = None,
         **httpx_kwargs: Any,
     ):
         """
@@ -741,7 +682,6 @@ class KatanaClient(AuthenticatedClient):
             max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
             max_pages: Maximum number of pages to collect during auto-pagination. Defaults to 100.
             logger: Logger instance for capturing client operations. If None, creates a default logger.
-            tracer: Optional OpenTracing tracer for distributed tracing support.
             **httpx_kwargs: Additional arguments passed to the underlying httpx client.
 
         Raises:
@@ -773,27 +713,28 @@ class KatanaClient(AuthenticatedClient):
             max_retries=max_retries,
             max_pages=max_pages,
             logger=self.logger,
-            tracer=tracer,
         )
 
-        # Event hooks for observability
-        event_hooks = {
+        # Event hooks for observability - start with our defaults
+        event_hooks: dict[str, list[Callable[[httpx.Response], Awaitable[None]]]] = {
             "response": [
                 self._capture_pagination_metadata,
                 self._log_response_metrics,
             ]
         }
 
-        # Merge with any user-provided event hooks
+        # Simply extend with user hooks if provided
         user_hooks = httpx_kwargs.pop("event_hooks", {})
         for event, hooks in user_hooks.items():
+            # Normalize to list and add to existing or create new event
+            hook_list = cast(
+                list[Callable[[httpx.Response], Awaitable[None]]],
+                hooks if isinstance(hooks, list) else [hooks],
+            )
             if event in event_hooks:
-                if isinstance(hooks, list):
-                    event_hooks[event].extend(hooks)
-                else:
-                    event_hooks[event].append(hooks)
+                event_hooks[event].extend(hook_list)
             else:
-                event_hooks[event] = hooks if isinstance(hooks, list) else [hooks]
+                event_hooks[event] = hook_list
 
         # Initialize the parent AuthenticatedClient
         super().__init__(
@@ -840,87 +781,3 @@ class KatanaClient(AuthenticatedClient):
             f"Response: {response.status_code} {response.request.method} "
             f"{response.request.url!s} ({duration:.2f}s)"
         )
-
-
-# Demo function to show usage
-async def demo_katana_client():
-    """Demonstrate the simplified KatanaClient usage."""
-
-    async with KatanaClient() as client:
-        from katana_public_api_client.generated.api.product import get_all_products
-
-        print("=== KatanaClient Demo ===")
-        print(
-            "All API calls automatically have auto-pagination - no manual setup needed!"
-        )
-        print()
-
-        # Direct API usage with automatic pagination
-        print("1. Direct API call with automatic pagination:")
-        response = await get_all_products.asyncio_detailed(
-            client=client,
-            limit=50,  # Will automatically paginate if needed
-        )
-        print(f"   Response status: {response.status_code}")
-        if (
-            hasattr(response, "parsed")
-            and response.parsed
-            and hasattr(response.parsed, "data")
-        ):
-            data = response.parsed.data
-            if isinstance(data, list):
-                print(f"   Total items collected: {len(data)}")
-        print()
-
-        # Single page only
-        print("2. Single page only (disable auto-pagination):")
-        response = await get_all_products.asyncio_detailed(
-            client=client,
-            page=1,
-            limit=25,  # page=X disables auto-pagination
-        )
-        print(f"   Response status: {response.status_code}")
-        if (
-            hasattr(response, "parsed")
-            and response.parsed
-            and hasattr(response.parsed, "data")
-        ):
-            data = response.parsed.data
-            if isinstance(data, list):
-                print(f"   Single page items: {len(data)}")
-        print()
-
-        # Limited pagination
-        print("3. Limited auto-pagination:")
-        limited_client = KatanaClient(max_pages=2)  # Limit to 2 pages max
-        async with limited_client as api_client:
-            response = await get_all_products.asyncio_detailed(
-                client=api_client, limit=25
-            )
-            print(f"   Response status: {response.status_code}")
-            if (
-                hasattr(response, "parsed")
-                and response.parsed
-                and hasattr(response.parsed, "data")
-            ):
-                data = response.parsed.data
-                if isinstance(data, list):
-                    print(f"   Total items collected (max 2 pages): {len(data)}")
-        print()
-
-        print(
-            "✨ That's it! No helpers, no manual pagination, just direct API calls with automatic resilience."
-        )
-
-
-if __name__ == "__main__":
-    import asyncio
-    import logging
-
-    # Set up logging to see the transport in action
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
-
-    asyncio.run(demo_katana_client())

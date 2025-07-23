@@ -2,14 +2,19 @@
 Test documentation generation to ensure it works in CI/CD.
 """
 
+import os
 import subprocess
 from pathlib import Path
 
 import pytest
 
 
+@pytest.mark.docs
 def test_documentation_builds_successfully():
     """Test that Sphinx documentation builds without errors."""
+    if os.getenv("CI_DOCS_BUILD", "false").lower() != "true":
+        pytest.skip("Documentation tests only run when CI_DOCS_BUILD=true")
+
     try:
         # Run the docs build command directly with poethepoet
         result = subprocess.run(
@@ -17,7 +22,7 @@ def test_documentation_builds_successfully():
             check=False,
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=300,  # 5 minutes for docs build
             cwd=Path(__file__).parent.parent,
         )
 
@@ -39,13 +44,17 @@ def test_documentation_builds_successfully():
         print(f"Build output: {build_dir}")
 
     except subprocess.TimeoutExpired:
-        pytest.fail("Documentation build timed out")
+        pytest.fail("Documentation build timed out after 5 minutes")
     except Exception as e:
         pytest.fail(f"Documentation build failed with error: {e}")
 
 
+@pytest.mark.docs
 def test_documentation_has_api_reference():
     """Test that API reference documentation is generated."""
+    if os.getenv("CI_DOCS_BUILD", "false").lower() != "true":
+        pytest.skip("Documentation tests only run when CI_DOCS_BUILD=true")
+
     build_dir = Path(__file__).parent.parent / "docs" / "_build" / "html"
 
     # Run docs build first if needed
@@ -54,7 +63,7 @@ def test_documentation_has_api_reference():
             ["poe", "docs-build"],
             check=False,
             cwd=Path(__file__).parent.parent,
-            timeout=120,
+            timeout=300,  # 5 minutes for docs build
         )
 
     # Check that API reference exists
@@ -72,8 +81,12 @@ def test_documentation_has_api_reference():
     print("✅ API reference documentation generated successfully!")
 
 
+@pytest.mark.docs
 def test_documentation_search_functionality():
     """Test that documentation search index is generated."""
+    if os.getenv("CI_DOCS_BUILD", "false").lower() != "true":
+        pytest.skip("Documentation tests only run when CI_DOCS_BUILD=true")
+
     build_dir = Path(__file__).parent.parent / "docs" / "_build" / "html"
 
     # Run docs build first if needed
@@ -82,7 +95,7 @@ def test_documentation_search_functionality():
             ["poe", "docs-build"],
             check=False,
             cwd=Path(__file__).parent.parent,
-            timeout=120,
+            timeout=300,  # 5 minutes for docs build
         )
 
     # Check that search files exist

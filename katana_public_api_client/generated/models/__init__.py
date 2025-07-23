@@ -413,6 +413,7 @@ from .delete_webhook_response_401 import DeleteWebhookResponse401
 from .delete_webhook_response_404 import DeleteWebhookResponse404
 from .delete_webhook_response_429 import DeleteWebhookResponse429
 from .delete_webhook_response_500 import DeleteWebhookResponse500
+from .error_response import ErrorResponse
 from .export_webhook_logs_response_401 import ExportWebhookLogsResponse401
 from .export_webhook_logs_response_422 import ExportWebhookLogsResponse422
 from .export_webhook_logs_response_422_details_item import (
@@ -1194,6 +1195,9 @@ from .update_webhook_response_429 import UpdateWebhookResponse429
 from .update_webhook_response_500 import UpdateWebhookResponse500
 from .user import User
 from .user_list_response import UserListResponse
+from .validation_error_detail import ValidationErrorDetail
+from .validation_error_detail_info import ValidationErrorDetailInfo
+from .validation_error_response import ValidationErrorResponse
 from .variant import Variant
 from .variant_config_attributes_item import VariantConfigAttributesItem
 from .variant_default_storage_bin_link import VariantDefaultStorageBinLink
@@ -1489,6 +1493,7 @@ __all__ = (
     "DeleteWebhookResponse404",
     "DeleteWebhookResponse429",
     "DeleteWebhookResponse500",
+    "ErrorResponse",
     "ExportWebhookLogsResponse401",
     "ExportWebhookLogsResponse422",
     "ExportWebhookLogsResponse422DetailsItem",
@@ -1992,6 +1997,9 @@ __all__ = (
     "UpdateWebhookResponse500",
     "User",
     "UserListResponse",
+    "ValidationErrorDetail",
+    "ValidationErrorDetailInfo",
+    "ValidationErrorResponse",
     "Variant",
     "VariantConfigAttributesItem",
     "VariantDefaultStorageBinLink",

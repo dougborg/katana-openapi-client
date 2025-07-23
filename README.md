@@ -18,7 +18,6 @@ resilience.
 - **🛡️ Transport-Layer Resilience**: httpx-native approach, no decorators needed
 - **⚡ Async/Sync Support**: Use with asyncio or traditional synchronous code
 - **🔍 Rich Observability**: Built-in logging and metrics
-- **📊 OpenTracing Support**: Optional distributed tracing integration
 
 ## 🚀 Quick Start
 
@@ -34,14 +33,9 @@ poetry install
 
 # Or with pip
 pip install -e .
-
-# Optional: Install with OpenTracing support
-poetry install --extras tracing
-# or
-pip install -e ".[tracing]"
 ```
 
-### Configuration
+### 📋 Configuration
 
 Create a `.env` file with your Katana API credentials:
 
@@ -376,91 +370,7 @@ poetry run poe prepare
 poetry run poe clean
 ```
 
-## 📊 OpenTracing Support
-
-The client includes optional OpenTracing support for distributed tracing. When enabled,
-all API requests are automatically traced with detailed spans.
-
-### Installation
-
-```bash
-# Install with OpenTracing support
-poetry install --extras tracing
-# or
-pip install -e ".[tracing]"
-```
-
-### Basic Usage
-
-```python
-from katana_public_api_client import KatanaClient
-from jaeger_client import Config
-
-# Configure your tracer (example with Jaeger)
-config = Config(
-    config={
-        'sampler': {'type': 'const', 'param': 1},
-        'logging': True,
-    },
-    service_name='my-katana-service',
-    validate=True,
-)
-tracer = config.initialize_tracer()
-
-# Use the client with tracing
-async with KatanaClient(tracer=tracer) as client:
-    from katana_public_api_client.api.product import get_all_products
-
-    # This request will be automatically traced
-    response = await get_all_products.asyncio_detailed(client=client)
-```
-
-### Span Details
-
-Each API request creates a span with:
-
-- **Operation Name**: `katana_client.{HTTP_METHOD}`
-- **Tags**:
-  - `component`: "katana-openapi-client"
-  - `http.method`: HTTP method (GET, POST, etc.)
-  - `http.url`: Full request URL
-  - `http.status_code`: Response status code
-  - `span.kind`: "client"
-  - `katana.pagination.enabled`: True if auto-pagination is used
-  - `katana.pagination.pages_collected`: Number of pages collected
-  - `katana.retry.success`: True if retries succeeded
-  - `katana.retry.exhausted`: True if retries were exhausted
-- **Logs**: Rate limiting events, retry attempts, and errors
-
-### Integration with Existing Spans
-
-The client integrates seamlessly with existing span contexts:
-
-```python
-# Your existing span context
-with tracer.start_span("business_operation") as parent_span:
-    # Client requests will be child spans
-    async with KatanaClient(tracer=tracer) as client:
-        # This will be traced as a child of "business_operation"
-        response = await get_all_products.asyncio_detailed(client=client)
-```
-
-### Framework Compatibility
-
-Works with any OpenTracing-compatible tracer:
-
-- **Jaeger**: Recommended for most use cases
-- **Zipkin**: For legacy systems
-- **Datadog**: For Datadog APM users
-- **Custom**: Any OpenTracing-compatible implementation
-
-### Zero Overhead
-
-- **No performance impact** when tracing is disabled
-- **Automatic detection** of OpenTracing availability
-- **Backward compatible** - existing code continues to work unchanged
-
-## 📋 Configuration
+## Configuration
 
 All tool configurations are consolidated in `pyproject.toml` following modern Python
 packaging standards:
