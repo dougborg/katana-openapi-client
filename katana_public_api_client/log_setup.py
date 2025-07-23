@@ -1,7 +1,7 @@
-"""
-Logging setup utilities for the Katana API client.
+"""Logging setup utilities for the Katana API client.
 
 This module provides logging configuration helpers for the enhanced Katana client.
+
 """
 
 import logging
@@ -27,8 +27,7 @@ def setup_logging(
     max_bytes: int = 10 * 1024 * 1024,  # 10MB
     backup_count: int = 5,
 ) -> logging.Logger:
-    """
-    Set up logging configuration for the Katana client.
+    """Set up logging configuration for the Katana client.
 
     Args:
         log_dir: Directory to store log files
@@ -40,6 +39,7 @@ def setup_logging(
 
     Returns:
         Configured logger instance
+
     """
     # Create log directory if it doesn't exist
     log_path = Path(log_dir)
@@ -87,13 +87,13 @@ def setup_logging(
 
 
 def get_logger(name: str | None = None) -> logging.Logger:
-    """
-    Get a logger instance.
+    """Get a logger instance.
 
     Args:
         name: Logger name (defaults to katana_client)
 
     Returns:
         Logger instance
+
     """
     return logging.getLogger(name or "katana_client")

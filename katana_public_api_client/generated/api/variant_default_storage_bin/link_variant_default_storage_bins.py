@@ -133,6 +133,7 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+
     Returns:
         Response[Union[LinkVariantDefaultStorageBinsResponse401, LinkVariantDefaultStorageBinsResponse422, LinkVariantDefaultStorageBinsResponse429, LinkVariantDefaultStorageBinsResponse500, VariantDefaultStorageBinLinkListResponse]]
     """
@@ -176,6 +177,7 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+
     Returns:
         Union[LinkVariantDefaultStorageBinsResponse401, LinkVariantDefaultStorageBinsResponse422, LinkVariantDefaultStorageBinsResponse429, LinkVariantDefaultStorageBinsResponse500, VariantDefaultStorageBinLinkListResponse]
     """
@@ -212,6 +214,7 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[LinkVariantDefaultStorageBinsResponse401, LinkVariantDefaultStorageBinsResponse422, LinkVariantDefaultStorageBinsResponse429, LinkVariantDefaultStorageBinsResponse500, VariantDefaultStorageBinLinkListResponse]]
@@ -253,6 +256,7 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[LinkVariantDefaultStorageBinsResponse401, LinkVariantDefaultStorageBinsResponse422, LinkVariantDefaultStorageBinsResponse429, LinkVariantDefaultStorageBinsResponse500, VariantDefaultStorageBinLinkListResponse]

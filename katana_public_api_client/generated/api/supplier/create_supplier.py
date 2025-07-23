@@ -108,6 +108,7 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+
     Returns:
         Response[Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, SupplierResponse]]
     """
@@ -146,6 +147,7 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+
     Returns:
         Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, SupplierResponse]
     """
@@ -177,6 +179,7 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, SupplierResponse]]
@@ -213,6 +216,7 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, SupplierResponse]

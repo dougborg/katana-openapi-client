@@ -116,6 +116,7 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+
     Returns:
         Response[Union[CreatePriceListRowResponse400, CreatePriceListRowResponse401, CreatePriceListRowResponse422, CreatePriceListRowResponse429, CreatePriceListRowResponse500, PriceListRow]]
     """
@@ -155,6 +156,7 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+
     Returns:
         Union[CreatePriceListRowResponse400, CreatePriceListRowResponse401, CreatePriceListRowResponse422, CreatePriceListRowResponse429, CreatePriceListRowResponse500, PriceListRow]
     """
@@ -187,6 +189,7 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[CreatePriceListRowResponse400, CreatePriceListRowResponse401, CreatePriceListRowResponse422, CreatePriceListRowResponse429, CreatePriceListRowResponse500, PriceListRow]]
@@ -224,6 +227,7 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[CreatePriceListRowResponse400, CreatePriceListRowResponse401, CreatePriceListRowResponse422, CreatePriceListRowResponse429, CreatePriceListRowResponse500, PriceListRow]

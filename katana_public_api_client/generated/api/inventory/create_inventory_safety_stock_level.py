@@ -126,6 +126,7 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+
     Returns:
         Response[Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevelResponse]]
     """
@@ -164,6 +165,7 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+
     Returns:
         Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevelResponse]
     """
@@ -195,6 +197,7 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevelResponse]]
@@ -231,6 +234,7 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevelResponse]

@@ -19,8 +19,9 @@ FileContent = IO[bytes] | bytes | str
 FileTypes = (
     # (filename, file (or bytes), content_type)
     tuple[str | None, FileContent, str | None]
+    |
     # (filename, file (or bytes), content_type, headers)
-    | tuple[str | None, FileContent, str | None, Mapping[str, str]]
+    tuple[str | None, FileContent, str | None, Mapping[str, str]],
 )
 RequestFiles = list[tuple[str, FileTypes]]
 
