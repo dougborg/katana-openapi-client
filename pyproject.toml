@@ -80,6 +80,9 @@ dev = [
   "build>=1.0.0",
   # YAML linting
   "yamllint>=1.37.0",
+  # OpenAPI validation
+  "pyyaml>=6.0.0",
+  "openapi-spec-validator>=0.7.0",
   # Markdown formatting
   "mdformat>=0.7.17",
   "mdformat-gfm>=0.3.0",
@@ -90,9 +93,7 @@ dev = [
   "types-PyYAML>=6.0.0",
   "types-urllib3>=1.26.0",
   # OpenAPI tools
-  "openapi-spec-validator>=0.7.1",
   "openapi-python-client>=0.25.2",
-  "PyYAML>=6.0",
   # Semantic release
   "python-semantic-release>=9.0.0",
   "mypy-extensions>=1.1.0",
@@ -269,7 +270,6 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR2004"]  # magic value used in comparison
-"katana_public_api_client/generated/*" = ["ALL"]  # ignore all rules for generated code
 
 [tool.ruff.lint.isort]
 known-first-party = ["katana_public_api_client"]

@@ -4,25 +4,27 @@ Regenerate the Katana OpenAPI client from the specification.
 
 This script:
 1. Validates the OpenAPI specification
-2. Backs up the existing client (if it exists)
-3. Generates a new client using openapi-python-client
-4. Moves the generated client to the main workspace
-5. Formats the generated code (now includes generated files)
-6. Runs linting checks on the generated code
-7. Installs dependencies and runs tests
+2. Generates a new client using openapi-python-client
+3. Moves the generated client to the main workspace
+4. Formats the generated code (now includes generated files)
+5. Runs linting checks on the generated code
+6. Installs dependencies and runs tests
 
 Note: Generated files are now included in formatting and linting,
 so they will be consistently styled according to project standards.
 
 Usage:
-    python regenerate_client.py [--force] [--skip-validation] [--skip-tests]
+    poetry run python regenerate_client.py [--force] [--skip-validation] [--skip-tests]
+
+The script should be run with 'poetry run python' to ensure all dependencies
+(including PyYAML and openapi-spec-validator) are available.
 """
 
 import argparse
+import re
 import shutil
 import subprocess
 import sys
-from datetime import datetime
 from pathlib import Path
 
 
@@ -52,39 +54,36 @@ def validate_openapi_spec(spec_path: Path) -> bool:
     """Validate the OpenAPI specification."""
     print("🔍 Validating OpenAPI specification...")
 
-    try:
-        result = run_command(
-            [
-                sys.executable,
-                "-c",
-                f"import yaml; from openapi_spec_validator import validate_spec; "
-                f"spec = yaml.safe_load(open('{spec_path}')); validate_spec(spec); print('✅ OpenAPI spec is valid')",
-            ],
-            check=False,
-        )
-
-        return result.returncode == 0
-    except Exception as e:
-        print(f"❌ Validation failed: {e}")
+    # First check if the spec file exists
+    if not spec_path.exists():
+        print(f"❌ OpenAPI spec file not found: {spec_path}")
         return False
 
-
-def backup_existing_client(client_path: Path, backup_dir: Path) -> bool:
-    """Backup the existing client if it exists."""
-    if not client_path.exists():
-        print("i  No existing client to backup")
-        return True
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_path = backup_dir / f"katana_public_api_client_backup_{timestamp}"
-
-    print(f"📦 Backing up existing client to: {backup_path}")
     try:
-        shutil.copytree(client_path, backup_path)
-        print("✅ Backup created successfully")
-        return True
-    except Exception as e:
-        print(f"❌ Backup failed: {e}")
+        # Import required validation dependencies
+        import yaml
+        from openapi_spec_validator import validate_spec as openapi_validate_spec
+
+        # Load and validate the spec
+        try:
+            with open(spec_path, encoding="utf-8") as f:
+                spec = yaml.safe_load(f)
+
+            openapi_validate_spec(spec)
+            print("✅ OpenAPI spec is valid")
+            return True
+
+        except yaml.YAMLError as e:
+            print(f"❌ YAML parsing error: {e}")
+            return False
+        except Exception as e:
+            print(f"❌ OpenAPI spec validation failed: {e}")
+            return False
+
+    except ImportError as e:
+        print("❌ Required validation dependencies missing:")
+        print(f"   Missing: {e.name}")
+        print("   Run: poetry add --group dev pyyaml openapi-spec-validator")
         return False
 
 
@@ -291,6 +290,11 @@ def format_generated_code(workspace_path: Path) -> bool:
     """Format the generated code using the project's formatters."""
     print("✨ Formatting generated code...")
 
+    # First, apply any custom post-processing to fix RST issues in generated files
+    print("🔧 Post-processing generated docstrings for better RST formatting...")
+    if not post_process_generated_docstrings(workspace_path):
+        print("⚠️  Post-processing had issues but continuing")
+
     # Run the format command which now includes generated files
     result = run_command(
         ["poetry", "run", "poe", "format"], cwd=workspace_path, check=False
@@ -304,17 +308,118 @@ def format_generated_code(workspace_path: Path) -> bool:
     return True
 
 
-def run_lint_check(workspace_path: Path) -> bool:
-    """Run linting to check for any issues with the generated code."""
-    print("🔍 Running linting checks on generated code...")
+def apply_generated_code_patches(workspace_path: Path) -> bool:
+    """Apply systematic patches to fix known issues in generated code.
 
-    # Run the lint command to check generated files
-    result = run_command(
+    This function applies patch files from the patches/ directory to fix
+    systematic issues that occur in generated OpenAPI client code.
+    """
+    patches_path = workspace_path / "patches"
+    if not patches_path.exists():
+        print("   📄 No patches directory found, skipping patch application")
+        return True
+
+    patch_files = list(patches_path.glob("*.patch"))
+    if not patch_files:
+        print("   📄 No patch files found, skipping patch application")
+        return True
+
+    print(f"   🩹 Found {len(patch_files)} patch files to apply")
+
+    for patch_file in sorted(patch_files):
+        try:
+            # Apply the patch using git apply (works even outside git repos)
+            result = subprocess.run(
+                ["git", "apply", "--ignore-whitespace", str(patch_file)],
+                cwd=workspace_path,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode == 0:
+                print(f"   ✅ Applied patch: {patch_file.name}")
+            else:
+                print(f"   ⚠️  Failed to apply patch {patch_file.name}: {result.stderr}")
+                # Don't fail the whole process, just log the issue
+
+        except (subprocess.SubprocessError, OSError) as e:
+            print(f"   ⚠️  Error applying patch {patch_file.name}: {e}")
+            # Don't fail the whole process
+
+    return True
+
+
+def post_process_generated_docstrings(workspace_path: Path) -> bool:
+    """Post-process generated Python files to improve RST docstring formatting.
+
+    This function applies targeted fixes to common RST formatting issues in
+    generated OpenAPI client code that cause Sphinx warnings.
+    """
+    generated_path = workspace_path / "katana_public_api_client" / "generated"
+    if not generated_path.exists():
+        return True
+
+    python_files = list(generated_path.rglob("*.py"))
+    processed_count = 0
+
+    for py_file in python_files:
+        try:
+            content = py_file.read_text(encoding="utf-8")
+            original_content = content
+
+            # Fix: Add blank line between docstring sections
+            # This fixes "Block quote ends without a blank line" warnings
+            # The issue is when Args section ends and Raises/Returns section begins
+            # without a blank line between them
+
+            # Pattern: Last line of Args section followed directly by Raises/Returns
+            content = re.sub(
+                r"(\n\s+\w+[^:]*:[^\n]*\.\n)(\s+)(Raises?:|Returns?:)",
+                r"\1\n\2\3",
+                content,
+            )
+
+            # Only write if we made changes
+            if content != original_content:
+                py_file.write_text(content, encoding="utf-8")
+                processed_count += 1
+
+        except (OSError, UnicodeError, FileNotFoundError) as e:
+            print(f"⚠️  Error processing {py_file}: {e}")
+            # Continue processing other files
+
+    print(
+        f"📝 Post-processed {processed_count} generated files for better RST formatting"
+    )
+    return True
+
+
+def run_lint_check(workspace_path: Path) -> bool:
+    """Run linting and auto-fix issues in the generated code."""
+    print("🔍 Running linting and auto-fix on generated code...")
+
+    # First, run ruff with --fix using the poe task to ensure consistency
+    print("🔧 Auto-fixing linting issues with ruff...")
+    run_command(
+        ["poetry", "run", "poe", "lint-ruff-fix"],
+        cwd=workspace_path,
+        check=False,
+    )
+
+    # Apply systematic patches to fix remaining issues that ruff can't handle
+    print("🩹 Applying patches to fix systematic issues in generated code...")
+    if not apply_generated_code_patches(workspace_path):
+        print("⚠️  Patch application had issues but continuing")
+
+    # Then run the lint command to check for any remaining issues
+    print("🔍 Checking for remaining linting issues...")
+    check_result = run_command(
         ["poetry", "run", "poe", "lint-ruff"], cwd=workspace_path, check=False
     )
 
-    if result.returncode != 0:
-        print("⚠️  Linting found issues but continuing")
+    if check_result.returncode != 0:
+        print("⚠️  Some linting issues remain but continuing")
         print("💡 You may want to review and fix these issues manually")
         return True  # Don't fail the whole process for linting issues
 
@@ -354,16 +459,12 @@ def main():
     workspace_path = Path.cwd()
     spec_path = workspace_path / args.spec_path
     client_path = workspace_path / "katana_public_api_client"
-    backup_dir = workspace_path / "backups"
 
     print("🚀 Katana OpenAPI Client Regeneration")
     print("=" * 50)
     print(f"📁 Workspace: {workspace_path}")
     print(f"📄 OpenAPI spec: {spec_path}")
     print(f"📦 Client path: {client_path}")
-
-    # Create backup directory
-    backup_dir.mkdir(exist_ok=True)
 
     # Step 1: Validate OpenAPI spec
     if not args.skip_validation:
@@ -378,39 +479,34 @@ def main():
     else:
         print("⏭️  Skipping OpenAPI spec validation")
 
-    # Step 2: Backup existing client
-    if not backup_existing_client(client_path, backup_dir):
-        print("❌ Failed to backup existing client")
-        sys.exit(1)
-
-    # Step 3: Generate new client
+    # Step 2: Generate new client
     if not generate_client(spec_path, workspace_path):
         print("❌ Failed to generate client")
         sys.exit(1)
 
-    # Step 4: Move client to workspace
+    # Step 3: Move client to workspace
     if not move_client_to_workspace(workspace_path):
         print("❌ Failed to move client to workspace")
         sys.exit(1)
 
-    # Step 5: Install dependencies
+    # Step 4: Install dependencies
     if not install_dependencies(workspace_path):
         print("❌ Failed to install dependencies")
         sys.exit(1)
 
-    # Step 6: Run tests
+    # Step 5: Run tests
     if not args.skip_tests:
         if not run_tests(workspace_path):
             print("⚠️  Tests had issues but continuing")
     else:
         print("⏭️  Skipping tests")
 
-    # Step 7: Format generated code
+    # Step 6: Format generated code
     if not args.skip_format:
         if not format_generated_code(workspace_path):
             print("⚠️  Formatting had issues but continuing")
 
-        # Step 8: Run linting checks
+        # Step 7: Run linting checks
         if not run_lint_check(workspace_path):
             print("⚠️  Linting had issues but continuing")
     else:
@@ -422,13 +518,6 @@ def main():
     print("   1. Review the generated client in ./katana_public_api_client/")
     print("   2. Update your code imports if needed")
     print("   3. Test your application with the new client")
-    print(f"   4. Backup was saved to: {backup_dir}")
-    if not args.skip_format:
-        print("   5. Generated files are now formatted and linted automatically")
-    else:
-        print(
-            "   5. Run 'poetry run poe format' and 'poetry run poe lint' manually if needed"
-        )
 
 
 if __name__ == "__main__":
