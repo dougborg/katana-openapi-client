@@ -62,6 +62,11 @@ venv/
 
 # Sphinx documentation
 docs/_build/
+docs/_static/
+docs/autoapi/
+docs/*.log
+docs/all_warnings.txt
+docs/full_build_output.txt
 
 # PyBuilder
 target/
@@ -153,6 +158,5 @@ api_docs/
 openapi_docs/
 
 # Backup files
-backups/
 *.orig
 *.rej
