@@ -39,32 +39,32 @@ We maintain high code quality standards. Before submitting changes:
 
 ```bash
 # Format code
-poetry run format
+poetry run poe format
 
 # Check formatting
-poetry run format-check
+poetry run poe format-check
 
 # Run type checking
-poetry run lint
+poetry run poe lint
 
 # Run tests
-poetry run pytest
+poetry run poe test
 ```
 
 ### Running Tests
 
 ```bash
 # Run all tests
-poetry run pytest
+poetry run poe test
 
 # Run with coverage
-poetry run pytest --cov=katana_public_api_client
+poetry run poe test-coverage
 
 # Run specific test file
-poetry run pytest tests/test_katana_client.py
+poetry run poe test tests/test_katana_client.py
 
 # Run integration tests (requires API credentials)
-poetry run pytest -m integration
+poetry run poe test-integration
 ```
 
 ### Code Style
@@ -73,7 +73,7 @@ poetry run pytest -m integration
 - [mypy](https://mypy.readthedocs.io/) for type checking
 - [mdformat](https://mdformat.readthedocs.io/) for Markdown formatting
 
-All formatting is automated via `poetry run format`.
+All formatting is automated via `poetry run poe format`.
 
 ## Submitting Changes
 
@@ -94,9 +94,9 @@ All formatting is automated via `poetry run format`.
 1. **Run the full test suite**
 
    ```bash
-   poetry run format
-   poetry run lint
-   poetry run pytest
+   poetry run poe format
+   poetry run poe lint
+   poetry run poe test
    ```
 
 1. **Commit your changes** with a clear commit message
@@ -134,9 +134,12 @@ katana-openapi-client/
 ├── katana_public_api_client/    # Main package
 │   ├── __init__.py
 │   ├── katana_client.py         # Main client implementation
-│   ├── client.py                # Generated client
-│   ├── api/                     # Generated API methods
-│   └── models/                  # Generated models
+│   ├── client.py                # Base client classes
+│   ├── log_setup.py             # Logging configuration
+│   └── generated/               # Generated client code
+│       ├── api/                 # Generated API methods
+│       ├── models/              # Generated models
+│       └── client.py            # Generated client
 ├── tests/                       # Test suite
 ├── docs/                        # Documentation
 ├── scripts/                     # Development scripts

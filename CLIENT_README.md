@@ -24,9 +24,9 @@ client = AuthenticatedClient(base_url="https://api.example.com", token="SuperSec
 Now call your endpoint and use your models:
 
 ```python
-from katana_public_api_client.models import MyDataModel
-from katana_public_api_client.api.my_tag import get_my_data_model
-from katana_public_api_client.types import Response
+from katana_public_api_client.generated.models import MyDataModel
+from katana_public_api_client.generated.api.my_tag import get_my_data_model
+from katana_public_api_client.generated.types import Response
 
 with client as client:
     my_data: MyDataModel = get_my_data_model.sync(client=client)
@@ -37,9 +37,9 @@ with client as client:
 Or do the same thing with an async version:
 
 ```python
-from katana_public_api_client.models import MyDataModel
-from katana_public_api_client.api.my_tag import get_my_data_model
-from katana_public_api_client.types import Response
+from katana_public_api_client.generated.models import MyDataModel
+from katana_public_api_client.generated.api.my_tag import get_my_data_model
+from katana_public_api_client.generated.types import Response
 
 async with client as client:
     my_data: MyDataModel = await get_my_data_model.asyncio(client=client)
