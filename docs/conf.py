@@ -193,10 +193,6 @@ logging.getLogger("sphinx.environment.collectors.asset").setLevel(logging.ERROR)
 logging.getLogger("docutils.parsers.rst").setLevel(logging.ERROR)
 logging.getLogger("docutils.utils").setLevel(logging.ERROR)
 
-# Add a notice that explains the remaining warnings are not critical
-print("Note: AutoAPI may show some duplicate object warnings due to changes in v3.2+")
-print("These warnings are cosmetic and do not affect the generated documentation quality.")
-
 # -- Source file parsers -----------------------------------------------------
 
 # MyST parser configuration
@@ -234,8 +230,6 @@ todo_include_todos = False
 
 # Set environment variables for documentation builds
 os.environ["SPHINX_BUILD"] = "1"
-# Reduce Sphinx warning verbosity for AutoAPI issues
-os.environ["SPHINXOPTS"] = "-Q"  # Quiet mode
 
 # Configure nitpick mode to be less strict about missing references
 nitpicky = False
@@ -250,74 +244,40 @@ nitpick_ignore_regex = [
     (r'.*', r'.*duplicate.*'),  # Ignore any duplicate-related warnings
 ]
 
-# -- Working solution to filter warnings -----------------------------------
+# -- Practical approach to AutoAPI duplicate warnings -----------------------
+
+# Since AutoAPI 3.2+ generates duplicate object warnings that are cosmetic
+# and don't affect documentation quality, we document this known issue
+# and provide guidance on handling it in CI/CD systems.
 
 def setup(app):
     """
-    Custom Sphinx setup to handle AutoAPI duplicate warnings.
+    Custom Sphinx setup for AutoAPI configuration.
     
-    This setup function filters out duplicate object description warnings that
-    are common with AutoAPI 3.2+ when it generates both class docstring attributes
-    and typed py:attribute directives for the same objects.
+    This addresses the known issue with AutoAPI 3.2+ where duplicate object
+    description warnings are generated due to both class docstring attributes
+    and typed py:attribute directives being created for the same objects.
+    
+    These warnings are cosmetic and do not affect the generated documentation.
+    They can be safely ignored in CI/CD systems by filtering stderr output.
     """
     
-    def handle_warning(app, node, message=None):
-        """Handle specific warning patterns to reduce noise."""
-        if message and isinstance(message, str):
-            # Filter out duplicate object warnings  
-            if "duplicate object description" in message:
-                return  # Suppress these warnings
-                
-            # Filter out docutils formatting warnings from generated content
-            if any(pattern in message for pattern in [
-                "Block quote ends without a blank line",
-                "Field list ends without a blank line",
-                "unexpected unindent"
-            ]):
-                return  # Suppress formatting warnings in generated files
-    
-    # Store the original env.warn method and replace it
-    original_env_warn = None
-    
-    def patch_env_warn(env):
-        """Patch the environment's warning method."""
-        nonlocal original_env_warn
-        if hasattr(env, 'warn') and original_env_warn is None:
-            original_env_warn = env.warn
-            
-            def filtered_env_warn(node, msg, **kwargs):
-                """Filter warnings at the environment level."""
-                if isinstance(msg, str):
-                    # Skip duplicate object warnings
-                    if "duplicate object description" in msg:
-                        return
-                    # Skip docutils formatting warnings
-                    if any(pattern in msg for pattern in [
-                        "Block quote ends without a blank line",
-                        "Field list ends without a blank line", 
-                        "unexpected unindent"
-                    ]):
-                        return
-                
-                # Call original warning method for other warnings
-                original_env_warn(node, msg, **kwargs)
-            
-            env.warn = filtered_env_warn
-    
-    def on_env_created(app, env, docnames):
-        """Patch warning handling when environment is created."""
-        patch_env_warn(env)
-    
-    def on_env_updated(app, env, updated):
-        """Patch warning handling when environment is updated."""  
-        patch_env_warn(env)
-    
-    # Connect to environment events
-    app.connect('env-before-read-docs', on_env_created)
-    app.connect('env-updated', on_env_updated)
+    # Log information about AutoAPI behavior
+    print("\n" + "="*60)
+    print("AUTOAPI DUPLICATE WARNINGS INFORMATION")
+    print("="*60)
+    print("AutoAPI 3.2+ generates duplicate object warnings due to:")
+    print("1. Class attributes documented in class docstrings")
+    print("2. The same attributes auto-generated as typed py:attribute directives")
+    print()
+    print("These warnings are COSMETIC and do not affect documentation quality.")
+    print()
+    print("For CI/CD systems, you can filter these warnings using:")
+    print("  sphinx-build ... 2>&1 | grep -v 'duplicate object description'")
+    print("="*60 + "\n")
     
     return {
-        'version': '0.1.0',
+        'version': '0.1.0', 
         'parallel_read_safe': True,
         'parallel_write_safe': True,
     }
