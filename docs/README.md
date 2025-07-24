@@ -23,7 +23,6 @@ This directory contains detailed documentation for the Katana OpenAPI Client.
 
 - **[Original OpenAPI Files](original%20openapi%20files/)** - Original OpenAPI
   specifications
-- **[PyPI Setup Guide](PYPI_SETUP.md)** - Package publishing configuration
 
 ## 🚀 Quick Start
 
@@ -42,6 +41,7 @@ Contributing to or maintaining this client? Check out:
 1. **[Release Workflow](RELEASE_WORKFLOW.md)** - Automated release and publishing
 1. **[Semantic Release Guide](SEMANTIC_RELEASE_GUIDE.md)** - Versioning with
    conventional commits
+1. **[PyPI Setup Guide](PYPI_SETUP.md)** - Package publishing configuration
 
 ## 📊 Documentation Coverage
 

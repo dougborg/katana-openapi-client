@@ -24,26 +24,26 @@ client = AuthenticatedClient(base_url="https://api.example.com", token="SuperSec
 Now call your endpoint and use your models:
 
 ```python
-from katana_public_api_client.generated.models import MyDataModel
-from katana_public_api_client.generated.api.my_tag import get_my_data_model
+from katana_public_api_client.generated.models import ProductListResponse
+from katana_public_api_client.generated.api.product import get_all_products
 from katana_public_api_client.generated.types import Response
 
 with client as client:
-    my_data: MyDataModel = get_my_data_model.sync(client=client)
+    products: ProductListResponse = get_all_products.sync(client=client)
     # or if you need more info (e.g. status_code)
-    response: Response[MyDataModel] = get_my_data_model.sync_detailed(client=client)
+    response: Response[ProductListResponse] = get_all_products.sync_detailed(client=client)
 ```
 
 Or do the same thing with an async version:
 
 ```python
-from katana_public_api_client.generated.models import MyDataModel
-from katana_public_api_client.generated.api.my_tag import get_my_data_model
+from katana_public_api_client.generated.models import ProductListResponse
+from katana_public_api_client.generated.api.product import get_all_products
 from katana_public_api_client.generated.types import Response
 
 async with client as client:
-    my_data: MyDataModel = await get_my_data_model.asyncio(client=client)
-    response: Response[MyDataModel] = await get_my_data_model.asyncio_detailed(client=client)
+    products: ProductListResponse = await get_all_products.asyncio(client=client)
+    response: Response[ProductListResponse] = await get_all_products.asyncio_detailed(client=client)
 ```
 
 By default, when you're calling an HTTPS API it will attempt to verify that SSL is
