@@ -26,24 +26,33 @@ Now call your endpoint and use your models:
 ```python
 from katana_public_api_client.generated.models import ProductListResponse
 from katana_public_api_client.generated.api.product import get_all_products
-from katana_public_api_client.generated.types import Response
 
-with client as client:
-    products: ProductListResponse = get_all_products.sync(client=client)
-    # or if you need more info (e.g. status_code)
-    response: Response[ProductListResponse] = get_all_products.sync_detailed(client=client)
+# Synchronous usage
+products: ProductListResponse = get_all_products.sync(client=client)
+
+# Asynchronous usage  
+products: ProductListResponse = await get_all_products.asyncio(client=client)
 ```
 
-Or do the same thing with an async version:
+## 📚 Complete Examples
 
-```python
-from katana_public_api_client.generated.models import ProductListResponse
-from katana_public_api_client.generated.api.product import get_all_products
-from katana_public_api_client.generated.types import Response
+For comprehensive usage examples with real models, error handling, and advanced features, see the **[examples/ directory](examples/)**:
 
-async with client as client:
-    products: ProductListResponse = await get_all_products.asyncio(client=client)
-    response: Response[ProductListResponse] = await get_all_products.asyncio_detailed(client=client)
+- **[`examples/basic_usage.py`](examples/basic_usage.py)** - Complete working examples with:
+  - Automatic pagination and resilience features
+  - Real Katana API models (`ProductListResponse`, product filtering)
+  - Proper error handling patterns
+  - Type-safe access to structured data
+
+- **[`examples/README.md`](examples/README.md)** - Detailed configuration options and patterns
+
+**Run the examples:**
+```bash
+# Set your API key
+export KATANA_API_KEY="your_api_key_here"
+
+# Run the comprehensive demo
+poetry run python examples/basic_usage.py
 ```
 
 By default, when you're calling an HTTPS API it will attempt to verify that SSL is
