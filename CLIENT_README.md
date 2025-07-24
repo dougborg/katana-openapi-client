@@ -38,12 +38,20 @@ products: ProductListResponse = await get_all_products.asyncio(client=client)
 
 For comprehensive usage examples with real models, error handling, and advanced features, see the **[examples/ directory](examples/)**:
 
-- **[`examples/basic_usage.py`](examples/basic_usage.py)** - Complete working examples with:
+### Asynchronous Examples
+- **[`examples/basic_usage.py`](examples/basic_usage.py)** - Complete async examples with:
   - Automatic pagination and resilience features
   - Real Katana API models (`ProductListResponse`, product filtering)
   - Proper error handling patterns
   - Type-safe access to structured data
 
+### Synchronous Examples  
+- **[`examples/sync_usage.py`](examples/sync_usage.py)** - Complete sync examples with:
+  - Same features as async examples but without async/await
+  - Simpler execution model for scripts and simple applications
+  - Direct return values instead of coroutines
+
+### Configuration & Patterns
 - **[`examples/README.md`](examples/README.md)** - Detailed configuration options and patterns
 
 **Run the examples:**
@@ -51,9 +59,26 @@ For comprehensive usage examples with real models, error handling, and advanced 
 # Set your API key
 export KATANA_API_KEY="your_api_key_here"
 
-# Run the comprehensive demo
+# Run the asynchronous demo
 poetry run python examples/basic_usage.py
+
+# Run the synchronous demo
+poetry run python examples/sync_usage.py
 ```
+
+### When to Use Async vs Sync
+
+**Use Asynchronous (`asyncio`) when:**
+- Building web applications (FastAPI, Django async views, etc.)
+- Making multiple concurrent API calls
+- Integrating with other async libraries
+- Need maximum performance for I/O-bound operations
+
+**Use Synchronous (`sync`) when:**
+- Writing simple scripts or command-line tools
+- Working in environments without async support
+- Prefer simpler, more traditional Python code patterns
+- Making only a few API calls sequentially
 
 By default, when you're calling an HTTPS API it will attempt to verify that SSL is
 working correctly. Using certificate verification is highly recommended most of the
