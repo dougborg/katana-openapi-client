@@ -1013,7 +1013,7 @@ components:
         deleted_at:
           type: [string, "null"]
 
-    AdditionalCostList:
+    AdditionalCostListResponse:
       type: object
       properties:
         data:
@@ -1087,7 +1087,7 @@ components:
         quantity_in_stock: "10.00000"
         batch_barcode: "0317"
 
-    BatchStockList:
+    BatchStockListResponse:
       type: object
       properties:
         data:
@@ -1152,7 +1152,7 @@ components:
         deleted_at:
           type: [string, "null"]
 
-    StorageBinList:
+    StorageBinListResponse:
       type: object
       properties:
         data:
@@ -1246,7 +1246,7 @@ components:
         - created_at
         - updated_at
 
-    InventoryMovementList:
+    InventoryMovementListResponse:
       type: object
       description: A list of inventory movement records.
       properties:
@@ -1464,7 +1464,7 @@ components:
         - quantity_missing_or_excess
         - quantity_potential
 
-    InventoryList:
+    InventoryListResponse:
       type: object
       properties:
         data:
@@ -2009,7 +2009,7 @@ components:
           type: string
           format: date-time
 
-    ManufacturingOrderList:
+    ManufacturingOrderListResponse:
       type: object
       properties:
         data:
@@ -5459,7 +5459,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AdditionalCostList"
+                $ref: "#/components/schemas/AdditionalCostListResponse"
               example:
                 data:
                   - id: 1
@@ -5548,7 +5548,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BatchStockList"
+                $ref: "#/components/schemas/BatchStockListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -5639,7 +5639,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StorageBinList"
+                $ref: "#/components/schemas/StorageBinListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -5679,7 +5679,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InventoryList"
+                $ref: "#/components/schemas/InventoryListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -5725,7 +5725,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InventoryMovementList"
+                $ref: "#/components/schemas/InventoryMovementListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -5961,7 +5961,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ManufacturingOrderList"
+                $ref: "#/components/schemas/ManufacturingOrderListResponse"
               example:
                 data:
                   - id: 21400
