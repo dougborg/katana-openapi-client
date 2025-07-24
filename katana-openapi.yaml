@@ -3055,7 +3055,7 @@ components:
             - BY_VALUE
             - NON_DISTRIBUTED
 
-    PurchaseOrderAdditionalCostRowResponse:
+    PurchaseOrderAdditionalCostRow:
       type: object
       properties:
         id:
@@ -3099,7 +3099,13 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/PurchaseOrderAdditionalCostRowResponse"
+            $ref: "#/components/schemas/PurchaseOrderAdditionalCostRow"
+
+    PurchaseOrderAdditionalCostRowResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/PurchaseOrderAdditionalCostRow"
 
     UpdatePurchaseOrderAdditionalCostRowRequest:
       type: object
@@ -3969,12 +3975,18 @@ components:
           type: string
           format: date-time
 
-    WebhookLogsExportResponse:
+    WebhookLogsExport:
       type: object
       properties:
         url:
           type: string
           format: uri
+
+    WebhookLogsExportResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/WebhookLogsExport"
 
     MakeToOrderManufacturingOrderRequest:
       type: object
@@ -5192,6 +5204,12 @@ components:
         - return_location_id
         - status
 
+    SalesReturnResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/SalesReturn"
+
     CreateSalesReturnRequest:
       type: object
       additionalProperties: false
@@ -5514,13 +5532,19 @@ components:
               rank:
                 type: integer
 
-    ProductOperationRerankResponse:
+    ProductOperationRerank:
       type: object
       properties:
         message:
           type: string
         success:
           type: boolean
+
+    ProductOperationRerankResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/ProductOperationRerank"
 
     SalesOrderAccountingMetadataListResponse:
       type: object
