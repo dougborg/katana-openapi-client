@@ -3820,7 +3820,7 @@ components:
         description:
           type: string
 
-    WebhookResponse:
+    Webhook:
       type: object
       properties:
         id:
@@ -3844,13 +3844,19 @@ components:
           type: string
           format: date-time
 
+    WebhookResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Webhook"
+
     WebhookListResponse:
       type: object
       properties:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/WebhookResponse"
+            $ref: "#/components/schemas/Webhook"
 
     WebhookLogsExportRequest:
       type: object
