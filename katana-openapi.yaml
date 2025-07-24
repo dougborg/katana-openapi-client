@@ -1021,6 +1021,12 @@ components:
           items:
             $ref: "#/components/schemas/AdditionalCost"
 
+    AdditionalCostResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/AdditionalCost"
+
     Batch:
       type: object
       additionalProperties: false
@@ -1480,6 +1486,12 @@ components:
       required:
         - data
 
+    InventoryResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Inventory"
+
     InventoryReorderPoint:
       type: object
       additionalProperties: false
@@ -1630,6 +1642,12 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SerialNumber"
+
+    ManufacturingOrderResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/ManufacturingOrder"
 
     UpdateManufacturingOrderRequest:
       type: object
@@ -4134,6 +4152,12 @@ components:
         - customer_id
         - entity_type
 
+    CustomerAddressResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/CustomerAddress"
+
     CustomerListResponse:
       type: object
       properties:
@@ -4678,6 +4702,12 @@ components:
         - name
         - currency
 
+    PriceListResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/PriceList"
+
     CreatePriceListRequest:
       type: object
       additionalProperties: false
@@ -4815,6 +4845,12 @@ components:
         - ingredient_variant_id
         - quantity
 
+    BomRowResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/BomRow"
+
     CreateBomRowRequest:
       type: object
       properties:
@@ -4874,6 +4910,20 @@ components:
         - name
         - currency
 
+    FactoryListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Factory"
+
+    FactoryResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Factory"
+
     # Operators (enhanced)
     Operator:
       type: object
@@ -4908,6 +4958,12 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Operator"
+
+    OperatorResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Operator"
 
     # Custom Fields Collections
     CustomFieldsCollection:
