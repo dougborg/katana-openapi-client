@@ -3362,7 +3362,7 @@ components:
           maximum: 999.999
           multipleOf: 0.001
 
-    TaxRateResponse:
+    TaxRate:
       type: object
       properties:
         id:
@@ -3384,13 +3384,19 @@ components:
           type: string
           format: date-time
 
+    TaxRateResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/TaxRate"
+
     TaxRateListResponse:
       type: object
       properties:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/TaxRateResponse"
+            $ref: "#/components/schemas/TaxRate"
 
     CreateVariantRequest:
       type: object
@@ -4023,6 +4029,12 @@ components:
         - id
         - name
 
+    CustomerResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Customer"
+
     CustomerAddress:
       type: object
       properties:
@@ -4338,6 +4350,12 @@ components:
         - id
         - sales_order_id
         - entity_type
+
+    SalesOrderResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/SalesOrder"
 
     SalesOrderListResponse:
       type: object
@@ -5145,6 +5163,12 @@ components:
         - last_name
         - email
         - role
+
+    UserResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/User"
 
     # Missing list response schemas
     SalesOrderRowListResponse:
