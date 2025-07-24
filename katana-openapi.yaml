@@ -1682,7 +1682,7 @@ components:
           items:
             $ref: "#/components/schemas/UpdateManufacturingOrderOperationRowRequest"
 
-    ManufacturingOrderProductionResponse:
+    ManufacturingOrderProduction:
       type: object
       properties:
         id:
@@ -1716,6 +1716,20 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SerialNumber"
+
+    ManufacturingOrderProductionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ManufacturingOrderProduction"
+
+    ManufacturingOrderProductionResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/ManufacturingOrderProduction"
 
     ManufacturingOrderProductionIngredient:
       type: object
@@ -2022,14 +2036,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ManufacturingOrder"
-
-    ManufacturingOrderProductionListResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: "#/components/schemas/ManufacturingOrderProductionResponse"
 
     UnlinkManufacturingOrderRequest:
       type: object
@@ -2367,7 +2373,7 @@ components:
           type: [integer, "null"]
           maximum: 2147483647
 
-    NegativeStockResponse:
+    NegativeStock:
       type: object
       properties:
         variant_id:
@@ -2390,7 +2396,13 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/NegativeStockResponse"
+            $ref: "#/components/schemas/NegativeStock"
+
+    NegativeStockResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/NegativeStock"
 
     CreateProductRequest:
       type: object
@@ -2856,7 +2868,7 @@ components:
         data:
           $ref: "#/components/schemas/PurchaseOrder"
 
-    PurchaseOrderRowResponse:
+    PurchaseOrderRow:
       type: object
       properties:
         id:
@@ -2916,6 +2928,20 @@ components:
         deleted_at:
           type: [string, "null"]
           format: date-time
+
+    PurchaseOrderRowListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/PurchaseOrderRow"
+
+    PurchaseOrderRowResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/PurchaseOrderRow"
 
     UpdatePurchaseOrderRequest:
       type: object
@@ -3122,14 +3148,6 @@ components:
         arrival_date:
           type: string
           description: "Optional arrival date in ISO 8601 format."
-
-    PurchaseOrderRowListResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: "#/components/schemas/PurchaseOrderRowResponse"
 
     UpdatePurchaseOrderRowRequest:
       type: object
