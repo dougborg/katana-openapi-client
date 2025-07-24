@@ -401,8 +401,7 @@ check = ["format-check", "lint", "test"]
 fix = ["format", "lint-ruff-fix"]
 ci = ["format-check", "lint", "test-coverage", "docs-build"]
 prepare = ["format", "lint", "test", "validate-openapi"]
-# AST-based consistency check for generated client
-check-generated-ast = "python scripts/check_generated_client_ast.py"
+
 
 # -----------------------------------------------------------------------------
 # Release Tasks
@@ -454,7 +453,6 @@ echo ""
 echo "📁 OpenAPI:"
 echo "   poe regenerate-client   - Regenerate API client from OpenAPI spec"
 echo "   poe validate-openapi    - Validate OpenAPI specification"
-echo "   poe check-generated-ast  - Check AST consistency of generated client"
 echo ""
 echo "📁 Utilities:"
 echo "   poe clean               - Clean build artifacts and cache"
