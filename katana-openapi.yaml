@@ -1425,6 +1425,12 @@ components:
             updated_at: "2020-10-23T10:37:05.085Z"
             deleted_at: null
 
+    LocationResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Location"
+
     Inventory:
       type: object
       properties:
@@ -3217,7 +3223,7 @@ components:
         country:
           type: string
 
-    SupplierResponse:
+    Supplier:
       type: object
       properties:
         id:
@@ -3248,13 +3254,19 @@ components:
           items:
             $ref: "#/components/schemas/SupplierAddressResponse"
 
+    SupplierResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Supplier"
+
     SupplierListResponse:
       type: object
       properties:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/SupplierResponse"
+            $ref: "#/components/schemas/Supplier"
 
     UpdateSupplierRequest:
       type: object
