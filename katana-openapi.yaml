@@ -2165,15 +2165,7 @@ components:
                 items:
                   type: object
 
-    MaterialListResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: "#/components/schemas/MaterialResponse"
-
-    MaterialResponse:
+    Material:
       type: object
       properties:
         id:
@@ -2304,6 +2296,20 @@ components:
             deleted_at:
               type: [string, "null"]
               format: date-time
+
+    MaterialListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Material"
+
+    MaterialResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Material"
 
     UpdateMaterialRequest:
       type: object
@@ -2546,7 +2552,7 @@ components:
           type: [integer, "null"]
           maximum: 2147483647
 
-    ProductResponse:
+    Product:
       type: object
       properties:
         id:
@@ -2694,7 +2700,13 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/ProductResponse"
+            $ref: "#/components/schemas/Product"
+
+    ProductResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Product"
 
     CreatePurchaseOrderRequest:
       type: object
@@ -2754,7 +2766,7 @@ components:
         purchase_uom:
           type: string
 
-    PurchaseOrderResponse:
+    PurchaseOrder:
       type: object
       properties:
         id:
@@ -2830,6 +2842,20 @@ components:
           items:
             $ref: "#/components/schemas/PurchaseOrderRowResponse"
 
+    PurchaseOrderListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/PurchaseOrder"
+
+    PurchaseOrderResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/PurchaseOrder"
+
     PurchaseOrderRowResponse:
       type: object
       properties:
@@ -2890,14 +2916,6 @@ components:
         deleted_at:
           type: [string, "null"]
           format: date-time
-
-    PurchaseOrderListResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: "#/components/schemas/PurchaseOrderResponse"
 
     UpdatePurchaseOrderRequest:
       type: object
