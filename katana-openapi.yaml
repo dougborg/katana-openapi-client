@@ -1111,6 +1111,12 @@ components:
             quantity_in_stock: "10.00000"
             batch_barcode: "0317"
 
+    BatchStockResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/BatchStock"
+
     BatchStockUpdate:
       type: object
       additionalProperties: false
@@ -1262,6 +1268,12 @@ components:
             $ref: "#/components/schemas/InventoryMovement"
       required:
         - data
+
+    InventoryMovementResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/InventoryMovement"
 
     Variant:
       type: object
@@ -1980,7 +1992,7 @@ components:
         cost:
           type: number
 
-    ManufacturingOrderRecipeRowResponse:
+    ManufacturingOrderRecipeRow:
       type: object
       properties:
         id:
@@ -2027,7 +2039,13 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/ManufacturingOrderRecipeRowResponse"
+            $ref: "#/components/schemas/ManufacturingOrderRecipeRow"
+
+    ManufacturingOrderRecipeRowResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/ManufacturingOrderRecipeRow"
 
     # Serial Number Schema
     SerialNumber:
@@ -2046,6 +2064,20 @@ components:
         transaction_date:
           type: string
           format: date-time
+
+    SerialNumberListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SerialNumber"
+
+    SerialNumberResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/SerialNumber"
 
     ManufacturingOrderListResponse:
       type: object
@@ -3338,7 +3370,7 @@ components:
         comment:
           type: string
 
-    SupplierAddressResponse:
+    SupplierAddress:
       type: object
       properties:
         id:
@@ -3373,7 +3405,13 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/SupplierAddressResponse"
+            $ref: "#/components/schemas/SupplierAddress"
+
+    SupplierAddressResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/SupplierAddress"
 
     CreateSupplierAddressRequest:
       type: object
