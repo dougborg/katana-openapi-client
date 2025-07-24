@@ -4164,37 +4164,43 @@ components:
         ecommerce_order_id:
           type: [string, "null"]
         product_availability:
-          type: [string, "null"]
-          enum:
-            - IN_STOCK
-            - EXPECTED
-            - PICKED
-            - NOT_AVAILABLE
-            - NOT_APPLICABLE
+          anyOf:
+            - type: string
+              enum:
+                - IN_STOCK
+                - EXPECTED
+                - PICKED
+                - NOT_AVAILABLE
+                - NOT_APPLICABLE
+            - type: "null"
         product_expected_date:
           type: [string, "null"]
           format: date-time
         ingredient_availability:
-          type: [string, "null"]
-          enum:
-            - PROCESSED
-            - IN_STOCK
-            - NOT_AVAILABLE
-            - EXPECTED
-            - NO_RECIPE
-            - NOT_APPLICABLE
+          anyOf:
+            - type: string
+              enum:
+                - PROCESSED
+                - IN_STOCK
+                - NOT_AVAILABLE
+                - EXPECTED
+                - NO_RECIPE
+                - NOT_APPLICABLE
+            - type: "null"
         ingredient_expected_date:
           type: [string, "null"]
           format: date-time
         production_status:
-          type: [string, "null"]
-          enum:
-            - NOT_STARTED
-            - NONE
-            - NOT_APPLICABLE
-            - IN_PROGRESS
-            - BLOCKED
-            - DONE
+          anyOf:
+            - type: string
+              enum:
+                - NOT_STARTED
+                - NONE
+                - NOT_APPLICABLE
+                - IN_PROGRESS
+                - BLOCKED
+                - DONE
+            - type: "null"
         created_at:
           type: string
           format: date-time
