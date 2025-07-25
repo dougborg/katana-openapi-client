@@ -25,7 +25,7 @@ resilience.
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/katana-openapi-client.git
+git clone https://github.com/dougborg/katana-openapi-client.git
 cd katana-openapi-client
 
 # Install with Poetry (recommended)
