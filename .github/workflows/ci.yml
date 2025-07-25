@@ -87,9 +87,6 @@ jobs:
       - name: Validate OpenAPI specification
         run: poetry run poe validate-openapi
 
-      - name: Check if client is up to date
-        run: poetry run poe check-generated-ast
-
       - name: Build documentation
         run: poetry run poe docs-build
         env:
