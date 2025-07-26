@@ -20,34 +20,6 @@ T = TypeVar("T", bound="ManufacturingOrder")
 
 @_attrs_define
 class ManufacturingOrder:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        status (Union[Unset, ManufacturingOrderStatus]):
-        order_no (Union[Unset, str]):
-        variant_id (Union[Unset, int]):
-        planned_quantity (Union[Unset, float]):
-        actual_quantity (Union[None, Unset, float]):
-        location_id (Union[Unset, int]):
-        order_created_date (Union[Unset, datetime.datetime]):
-        production_deadline_date (Union[Unset, datetime.datetime]):
-        additional_info (Union[Unset, str]):
-        is_linked_to_sales_order (Union[Unset, bool]):
-        ingredient_availability (Union[Unset, str]):
-        total_cost (Union[Unset, float]):
-        total_actual_time (Union[Unset, float]):
-        total_planned_time (Union[Unset, float]):
-        sales_order_id (Union[Unset, int]):
-        sales_order_row_id (Union[Unset, int]):
-        sales_order_delivery_deadline (Union[Unset, datetime.datetime]):
-        material_cost (Union[Unset, float]):
-        subassemblies_cost (Union[Unset, float]):
-        operations_cost (Union[Unset, float]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-        serial_numbers (Union[Unset, list['SerialNumber']]):
-    """
 
     id: Unset | int = UNSET
     status: Unset | ManufacturingOrderStatus = UNSET

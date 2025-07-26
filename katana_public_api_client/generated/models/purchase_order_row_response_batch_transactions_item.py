@@ -13,11 +13,6 @@ T = TypeVar("T", bound="PurchaseOrderRowResponseBatchTransactionsItem")
 
 @_attrs_define
 class PurchaseOrderRowResponseBatchTransactionsItem:
-    """
-    Attributes:
-        quantity (Union[Unset, float]):
-        batch_id (Union[Unset, int]):
-    """
 
     quantity: Unset | float = UNSET
     batch_id: Unset | int = UNSET

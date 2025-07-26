@@ -24,14 +24,6 @@ T = TypeVar("T", bound="CreateManufacturingOrderProductionRequest")
 
 @_attrs_define
 class CreateManufacturingOrderProductionRequest:
-    """
-    Attributes:
-        manufacturing_order_id (int):
-        quantity (float):
-        production_date (datetime.datetime):
-        ingredients (Union[Unset, list['ManufacturingOrderProductionIngredient']]):
-        operations (Union[Unset, list['ManufacturingOrderOperationRow']]):
-    """
 
     manufacturing_order_id: int
     quantity: float

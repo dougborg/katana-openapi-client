@@ -13,16 +13,6 @@ T = TypeVar("T", bound="LocationAddress")
 
 @_attrs_define
 class LocationAddress:
-    """
-    Attributes:
-        id (int):
-        city (str):
-        country (str):
-        line_1 (str):
-        state (str):
-        zip_ (str):
-        line_2 (Union[Unset, str]):
-    """
 
     id: int
     city: str

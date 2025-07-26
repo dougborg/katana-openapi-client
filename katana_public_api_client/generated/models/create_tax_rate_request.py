@@ -10,11 +10,6 @@ T = TypeVar("T", bound="CreateTaxRateRequest")
 
 @_attrs_define
 class CreateTaxRateRequest:
-    """
-    Attributes:
-        rate (float):
-        name (Union[Unset, str]):
-    """
 
     rate: float
     name: Unset | str = UNSET

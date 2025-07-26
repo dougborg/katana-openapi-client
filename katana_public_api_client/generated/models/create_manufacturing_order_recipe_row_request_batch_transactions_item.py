@@ -11,11 +11,6 @@ T = TypeVar("T", bound="CreateManufacturingOrderRecipeRowRequestBatchTransaction
 
 @_attrs_define
 class CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem:
-    """
-    Attributes:
-        batch_id (int):
-        quantity (float):
-    """
 
     batch_id: int
     quantity: float

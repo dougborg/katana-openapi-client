@@ -17,11 +17,6 @@ T = TypeVar("T", bound="ProductOperationRerankRequest")
 
 @_attrs_define
 class ProductOperationRerankRequest:
-    """
-    Attributes:
-        product_id (int):
-        operation_ranks (list['ProductOperationRerankRequestOperationRanksItem']):
-    """
 
     product_id: int
     operation_ranks: list["ProductOperationRerankRequestOperationRanksItem"]

@@ -13,10 +13,6 @@ T = TypeVar("T", bound="WebhookLogsExportResponse")
 
 @_attrs_define
 class WebhookLogsExportResponse:
-    """
-    Attributes:
-        url (Union[Unset, str]):
-    """
 
     url: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

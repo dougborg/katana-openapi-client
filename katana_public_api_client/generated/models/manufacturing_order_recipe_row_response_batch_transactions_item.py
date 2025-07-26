@@ -13,11 +13,6 @@ T = TypeVar("T", bound="ManufacturingOrderRecipeRowResponseBatchTransactionsItem
 
 @_attrs_define
 class ManufacturingOrderRecipeRowResponseBatchTransactionsItem:
-    """
-    Attributes:
-        batch_id (Union[Unset, int]):
-        quantity (Union[Unset, float]):
-    """
 
     batch_id: Unset | int = UNSET
     quantity: Unset | float = UNSET

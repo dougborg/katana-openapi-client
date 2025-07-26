@@ -20,20 +20,6 @@ T = TypeVar("T", bound="CreatePurchaseOrderRequest")
 
 @_attrs_define
 class CreatePurchaseOrderRequest:
-    """
-    Attributes:
-        order_no (str):
-        supplier_id (int):
-        location_id (int):
-        purchase_order_rows (list['PurchaseOrderRowRequest']):
-        entity_type (Union[Unset, CreatePurchaseOrderRequestEntityType]):
-        currency (Union[Unset, str]): Active ISO 4217 currency code (e.g. USD, EUR).
-        status (Union[Unset, CreatePurchaseOrderRequestStatus]):
-        expected_arrival_date (Union[Unset, str]):
-        order_created_date (Union[Unset, str]):
-        tracking_location_id (Union[Unset, int]): Submittable only when entity_type is outsourced
-        additional_info (Union[Unset, str]):
-    """
 
     order_no: str
     supplier_id: int

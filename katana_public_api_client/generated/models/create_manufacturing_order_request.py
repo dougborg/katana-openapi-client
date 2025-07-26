@@ -15,15 +15,6 @@ T = TypeVar("T", bound="CreateManufacturingOrderRequest")
 
 @_attrs_define
 class CreateManufacturingOrderRequest:
-    """
-    Attributes:
-        variant_id (int):
-        planned_quantity (float):
-        location_id (int):
-        order_created_date (Union[Unset, datetime.datetime]):
-        production_deadline_date (Union[Unset, datetime.datetime]):
-        additional_info (Union[Unset, str]):
-    """
 
     variant_id: int
     planned_quantity: float

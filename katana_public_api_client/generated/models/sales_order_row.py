@@ -25,29 +25,6 @@ T = TypeVar("T", bound="SalesOrderRow")
 
 @_attrs_define
 class SalesOrderRow:
-    """
-    Attributes:
-        id (int):
-        quantity (float):
-        variant_id (int):
-        tax_rate_id (Union[None, Unset, int]):
-        location_id (Union[None, Unset, int]):
-        product_availability (Union[None, SalesOrderRowProductAvailabilityType0, Unset]):
-        product_expected_date (Union[None, Unset, datetime.datetime]):
-        price_per_unit (Union[Unset, float]):
-        price_per_unit_in_base_currency (Union[Unset, float]):
-        total (Union[Unset, float]):
-        total_in_base_currency (Union[Unset, float]):
-        cogs_value (Union[None, Unset, float]):
-        attributes (Union[Unset, list['SalesOrderRowAttributesItem']]):
-        batch_transactions (Union[Unset, list['SalesOrderRowBatchTransactionsItem']]):
-        serial_numbers (Union[Unset, list[int]]):
-        linked_manufacturing_order_id (Union[None, Unset, int]):
-        conversion_rate (Union[None, Unset, float]):
-        conversion_date (Union[None, Unset, datetime.datetime]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
 
     id: int
     quantity: float

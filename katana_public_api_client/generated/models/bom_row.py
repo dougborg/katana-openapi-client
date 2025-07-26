@@ -15,17 +15,6 @@ T = TypeVar("T", bound="BomRow")
 
 @_attrs_define
 class BomRow:
-    """
-    Attributes:
-        id (int):
-        product_variant_id (int):
-        product_item_id (int):
-        ingredient_variant_id (int):
-        quantity (float):
-        notes (Union[None, Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
 
     id: int
     product_variant_id: int

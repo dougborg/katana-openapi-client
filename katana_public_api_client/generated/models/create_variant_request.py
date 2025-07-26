@@ -19,21 +19,6 @@ T = TypeVar("T", bound="CreateVariantRequest")
 
 @_attrs_define
 class CreateVariantRequest:
-    """
-    Attributes:
-        sku (str):
-        supplier_item_codes (list[str]):
-        sales_price (Union[Unset, float]):
-        purchase_price (Union[Unset, float]):
-        product_id (Union[None, Unset, int]):
-        material_id (Union[None, Unset, int]):
-        internal_barcode (Union[Unset, str]):
-        registered_barcode (Union[Unset, str]):
-        lead_time (Union[None, Unset, int]):
-        minimum_order_quantity (Union[Unset, float]):
-        config_attributes (Union[Unset, list['CreateVariantRequestConfigAttributesItem']]):
-        custom_fields (Union[Unset, list['CreateVariantRequestCustomFieldsItem']]):
-    """
 
     sku: str
     supplier_item_codes: list[str]

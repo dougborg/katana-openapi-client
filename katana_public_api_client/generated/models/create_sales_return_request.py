@@ -16,17 +16,6 @@ T = TypeVar("T", bound="CreateSalesReturnRequest")
 
 @_attrs_define
 class CreateSalesReturnRequest:
-    """
-    Attributes:
-        customer_id (int): ID of the customer initiating the return
-        order_no (str): Return order reference number
-        return_location_id (int): ID of the location where items are being returned to
-        sales_return_rows (list['CreateSalesReturnRowRequest']): Array of items being returned
-        sales_order_id (Union[Unset, int]): ID of the original sales order being returned
-        currency (Union[Unset, str]): Currency code (e.g., USD, EUR)
-        order_created_date (Union[Unset, datetime.datetime]): Date when the original order was created
-        additional_info (Union[Unset, str]): Optional notes or comments about the return
-    """
 
     customer_id: int
     order_no: str

@@ -13,13 +13,6 @@ T = TypeVar("T", bound="CustomFieldsCollectionCustomFieldsItem")
 
 @_attrs_define
 class CustomFieldsCollectionCustomFieldsItem:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        name (Union[Unset, str]):
-        field_type (Union[Unset, str]):
-        required (Union[Unset, bool]):
-    """
 
     id: Unset | int = UNSET
     name: Unset | str = UNSET

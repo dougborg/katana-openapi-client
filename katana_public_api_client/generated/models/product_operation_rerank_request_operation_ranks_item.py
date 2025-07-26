@@ -13,11 +13,6 @@ T = TypeVar("T", bound="ProductOperationRerankRequestOperationRanksItem")
 
 @_attrs_define
 class ProductOperationRerankRequestOperationRanksItem:
-    """
-    Attributes:
-        operation_id (Union[Unset, int]):
-        rank (Union[Unset, int]):
-    """
 
     operation_id: Unset | int = UNSET
     rank: Unset | int = UNSET

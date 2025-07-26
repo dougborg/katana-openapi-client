@@ -18,12 +18,6 @@ T = TypeVar("T", bound="ValidationErrorDetail")
 @_attrs_define
 class ValidationErrorDetail:
     """Individual validation error detail
-
-    Attributes:
-        path (str): JSON path to the field with the error
-        code (str): Validation error code
-        message (Union[Unset, str]): Human-readable validation error message
-        info (Union[Unset, ValidationErrorDetailInfo]): Additional validation context
     """
 
     path: str

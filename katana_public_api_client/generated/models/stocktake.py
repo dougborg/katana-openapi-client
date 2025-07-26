@@ -16,17 +16,6 @@ T = TypeVar("T", bound="Stocktake")
 
 @_attrs_define
 class Stocktake:
-    """
-    Attributes:
-        id (int):
-        reference_no (str):
-        location_id (int):
-        status (StocktakeStatus):
-        stocktake_date (Union[Unset, datetime.datetime]):
-        notes (Union[None, Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
 
     id: int
     reference_no: str

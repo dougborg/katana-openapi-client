@@ -382,7 +382,6 @@ validate-openapi = "openapi-spec-validator katana-openapi.yaml"
 # Documentation Tasks
 # -----------------------------------------------------------------------------
 docs-build = "sphinx-build -b html docs docs/_build/html"
-docs-build-quiet = { shell = "sphinx-build -b html docs docs/_build/html 2>&1 | grep -v 'duplicate object description'" }
 docs-clean = "rm -rf docs/_build"
 docs-serve = "python -m http.server 8000 -d docs/_build/html"
 docs-autobuild = "sphinx-autobuild docs docs/_build/html --open-browser"
@@ -437,7 +436,6 @@ echo "   poe test-integration    - Run integration tests only"
 echo ""
 echo "📁 Documentation:"
 echo "   poe docs-build          - Build Sphinx documentation"
-echo "   poe docs-build-quiet    - Build documentation with filtered warnings (for CI/CD)"
 echo "   poe docs-clean          - Clean documentation build files"
 echo "   poe docs-serve          - Serve documentation locally"
 echo "   poe docs-autobuild      - Auto-rebuild docs on changes"

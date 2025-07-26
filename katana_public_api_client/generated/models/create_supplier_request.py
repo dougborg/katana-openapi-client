@@ -14,15 +14,6 @@ T = TypeVar("T", bound="CreateSupplierRequest")
 
 @_attrs_define
 class CreateSupplierRequest:
-    """
-    Attributes:
-        name (str):
-        currency (Union[Unset, str]):
-        email (Union[Unset, str]):
-        phone (Union[Unset, str]):
-        comment (Union[Unset, str]):
-        addresses (Union[Unset, list['SupplierAddressRequest']]):
-    """
 
     name: str
     currency: Unset | str = UNSET

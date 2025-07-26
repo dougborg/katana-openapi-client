@@ -11,7 +11,6 @@ T = TypeVar("T", bound="VariantProductOrMaterialVariantsItem")
 
 @_attrs_define
 class VariantProductOrMaterialVariantsItem:
-    """ """
 
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

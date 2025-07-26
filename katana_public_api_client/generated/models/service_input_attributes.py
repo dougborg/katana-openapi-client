@@ -13,14 +13,6 @@ T = TypeVar("T", bound="ServiceInputAttributes")
 
 @_attrs_define
 class ServiceInputAttributes:
-    """
-    Attributes:
-        name (str): Name of the Service. Example: Screen Printing.
-        price (float): Price of the Service. Example: 150.0.
-        currency (str): Currency code for the price. Example: USD.
-        description (Union[Unset, str]): A brief description of the Service. Example: High quality screen printing
-            service..
-    """
 
     name: str
     price: float

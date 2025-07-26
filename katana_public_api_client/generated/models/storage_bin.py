@@ -15,15 +15,6 @@ T = TypeVar("T", bound="StorageBin")
 
 @_attrs_define
 class StorageBin:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        name (Union[Unset, str]):
-        location_id (Union[Unset, int]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, str]):
-    """
 
     id: Unset | int = UNSET
     name: Unset | str = UNSET

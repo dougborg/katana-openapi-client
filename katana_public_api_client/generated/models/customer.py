@@ -15,26 +15,6 @@ T = TypeVar("T", bound="Customer")
 
 @_attrs_define
 class Customer:
-    """
-    Attributes:
-        id (int):
-        name (str):
-        first_name (Union[None, Unset, str]):
-        last_name (Union[None, Unset, str]):
-        company (Union[None, Unset, str]):
-        email (Union[None, Unset, str]):
-        phone (Union[None, Unset, str]):
-        comment (Union[None, Unset, str]):
-        currency (Union[Unset, str]):
-        reference_id (Union[None, Unset, str]):
-        category (Union[None, Unset, str]):
-        discount_rate (Union[None, Unset, float]):
-        default_billing_id (Union[None, Unset, int]):
-        default_shipping_id (Union[None, Unset, int]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-    """
 
     id: int
     name: str

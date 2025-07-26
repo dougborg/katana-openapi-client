@@ -26,42 +26,6 @@ T = TypeVar("T", bound="SalesOrder")
 
 @_attrs_define
 class SalesOrder:
-    """
-    Attributes:
-        id (int):
-        customer_id (int):
-        order_no (str):
-        location_id (int):
-        status (SalesOrderStatus):
-        source (Union[None, Unset, str]):
-        order_created_date (Union[Unset, datetime.datetime]):
-        delivery_date (Union[None, Unset, datetime.datetime]):
-        picked_date (Union[None, Unset, datetime.datetime]):
-        currency (Union[Unset, str]):
-        conversion_rate (Union[None, Unset, float]):
-        conversion_date (Union[None, Unset, datetime.datetime]):
-        invoicing_status (Union[None, Unset, str]):
-        total (Union[Unset, float]):
-        total_in_base_currency (Union[Unset, float]):
-        additional_info (Union[None, Unset, str]):
-        customer_ref (Union[None, Unset, str]):
-        sales_order_rows (Union[Unset, list['SalesOrderRow']]):
-        ecommerce_order_type (Union[None, Unset, str]):
-        ecommerce_store_name (Union[None, Unset, str]):
-        ecommerce_order_id (Union[None, Unset, str]):
-        product_availability (Union[Unset, SalesOrderProductAvailability]):
-        product_expected_date (Union[None, Unset, datetime.datetime]):
-        ingredient_availability (Union[Unset, SalesOrderIngredientAvailability]):
-        ingredient_expected_date (Union[None, Unset, datetime.datetime]):
-        production_status (Union[Unset, SalesOrderProductionStatus]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        tracking_number (Union[None, Unset, str]):
-        tracking_number_url (Union[None, Unset, str]):
-        billing_address_id (Union[None, Unset, int]):
-        shipping_address_id (Union[None, Unset, int]):
-        addresses (Union[Unset, list['SalesOrderAddress']]):
-    """
 
     id: int
     customer_id: int

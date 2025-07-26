@@ -15,16 +15,6 @@ T = TypeVar("T", bound="PriceListRow")
 
 @_attrs_define
 class PriceListRow:
-    """
-    Attributes:
-        id (int):
-        price_list_id (int):
-        variant_id (int):
-        price (float):
-        currency (Union[Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
 
     id: int
     price_list_id: int

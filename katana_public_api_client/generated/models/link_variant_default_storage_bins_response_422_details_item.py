@@ -11,7 +11,6 @@ T = TypeVar("T", bound="LinkVariantDefaultStorageBinsResponse422DetailsItem")
 
 @_attrs_define
 class LinkVariantDefaultStorageBinsResponse422DetailsItem:
-    """ """
 
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

@@ -15,16 +15,6 @@ T = TypeVar("T", bound="SalesOrderAccountingMetadata")
 
 @_attrs_define
 class SalesOrderAccountingMetadata:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        sales_order_id (Union[Unset, int]):
-        external_id (Union[Unset, str]):
-        accounting_system (Union[Unset, str]):
-        sync_status (Union[Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
 
     id: Unset | int = UNSET
     sales_order_id: Unset | int = UNSET

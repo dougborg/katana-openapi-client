@@ -10,13 +10,6 @@ T = TypeVar("T", bound="CreateSalesOrderShippingFeeRequest")
 
 @_attrs_define
 class CreateSalesOrderShippingFeeRequest:
-    """
-    Attributes:
-        sales_order_id (int): ID of the sales order to add shipping fee to
-        amount (float): Shipping fee amount
-        currency (Union[Unset, str]): Currency code (e.g., USD, EUR)
-        description (Union[Unset, str]): Description of the shipping fee
-    """
 
     sales_order_id: int
     amount: float

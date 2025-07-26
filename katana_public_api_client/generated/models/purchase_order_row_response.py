@@ -21,31 +21,6 @@ T = TypeVar("T", bound="PurchaseOrderRowResponse")
 
 @_attrs_define
 class PurchaseOrderRowResponse:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        quantity (Union[Unset, float]):
-        variant_id (Union[Unset, int]):
-        tax_rate_id (Union[Unset, int]):
-        price_per_unit (Union[Unset, float]):
-        price_per_unit_in_base_currency (Union[Unset, float]):
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        purchase_uom (Union[Unset, str]):
-        currency (Union[Unset, str]):
-        conversion_rate (Union[None, Unset, float]):
-        total (Union[Unset, float]):
-        total_in_base_currency (Union[Unset, float]):
-        conversion_date (Union[None, Unset, datetime.datetime]):
-        received_date (Union[None, Unset, datetime.datetime]):
-        arrival_date (Union[None, Unset, datetime.datetime]):
-        batch_transactions (Union[Unset, list['PurchaseOrderRowResponseBatchTransactionsItem']]):
-        purchase_order_id (Union[Unset, int]):
-        landed_cost (Union[Unset, float, str]):
-        group_id (Union[Unset, int]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-    """
 
     id: Unset | int = UNSET
     quantity: Unset | float = UNSET

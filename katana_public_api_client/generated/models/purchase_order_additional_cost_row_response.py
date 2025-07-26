@@ -15,24 +15,6 @@ T = TypeVar("T", bound="PurchaseOrderAdditionalCostRowResponse")
 
 @_attrs_define
 class PurchaseOrderAdditionalCostRowResponse:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        additional_cost_id (Union[Unset, int]):
-        group_id (Union[Unset, int]):
-        name (Union[Unset, str]):
-        distribution_method (Union[Unset, str]):
-        tax_rate_id (Union[Unset, int]):
-        tax_rate (Union[Unset, float]):
-        price (Union[Unset, float]):
-        price_in_base (Union[Unset, float]):
-        currency (Union[Unset, str]):
-        currency_conversion_rate (Union[Unset, float]):
-        currency_conversion_rate_fix_date (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        created_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-    """
 
     id: Unset | int = UNSET
     additional_cost_id: Unset | int = UNSET

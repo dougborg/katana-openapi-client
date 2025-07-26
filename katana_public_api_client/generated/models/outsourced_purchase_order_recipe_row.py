@@ -15,16 +15,6 @@ T = TypeVar("T", bound="OutsourcedPurchaseOrderRecipeRow")
 
 @_attrs_define
 class OutsourcedPurchaseOrderRecipeRow:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        outsourced_purchase_order_id (Union[Unset, int]):
-        bom_row_id (Union[Unset, int]):
-        quantity (Union[Unset, float]):
-        status (Union[Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
 
     id: Unset | int = UNSET
     outsourced_purchase_order_id: Unset | int = UNSET

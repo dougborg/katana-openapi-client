@@ -18,12 +18,6 @@ T = TypeVar("T", bound="Service")
 
 @_attrs_define
 class Service:
-    """
-    Attributes:
-        id (Union[Unset, str]): Unique identifier of the Service. Example: srv_abc123.
-        type_ (Union[Unset, ServiceType]): Resource type - always 'services'.
-        attributes (Union[Unset, ServiceAttributes]):
-    """
 
     id: Unset | str = UNSET
     type_: Unset | ServiceType = UNSET

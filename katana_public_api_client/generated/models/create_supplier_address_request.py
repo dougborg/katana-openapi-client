@@ -10,16 +10,6 @@ T = TypeVar("T", bound="CreateSupplierAddressRequest")
 
 @_attrs_define
 class CreateSupplierAddressRequest:
-    """
-    Attributes:
-        supplier_id (int):
-        line_1 (str):
-        line_2 (Union[None, Unset, str]):
-        city (Union[None, Unset, str]):
-        state (Union[None, Unset, str]):
-        zip_ (Union[None, Unset, str]):
-        country (Union[None, Unset, str]):
-    """
 
     supplier_id: int
     line_1: str

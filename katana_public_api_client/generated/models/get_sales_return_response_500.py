@@ -13,12 +13,6 @@ T = TypeVar("T", bound="GetSalesReturnResponse500")
 
 @_attrs_define
 class GetSalesReturnResponse500:
-    """
-    Attributes:
-        status_code (Union[Unset, float]):
-        name (Union[Unset, str]):
-        message (Union[Unset, str]):
-    """
 
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET

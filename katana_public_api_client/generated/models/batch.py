@@ -10,14 +10,6 @@ T = TypeVar("T", bound="Batch")
 
 @_attrs_define
 class Batch:
-    """
-    Attributes:
-        batch_number (str):
-        variant_id (int):
-        expiration_date (Union[Unset, str]):
-        batch_created_date (Union[Unset, str]):
-        batch_barcode (Union[None, Unset, str]):
-    """
 
     batch_number: str
     variant_id: int

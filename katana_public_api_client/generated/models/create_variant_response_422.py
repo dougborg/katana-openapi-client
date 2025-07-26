@@ -19,14 +19,6 @@ T = TypeVar("T", bound="CreateVariantResponse422")
 
 @_attrs_define
 class CreateVariantResponse422:
-    """
-    Attributes:
-        status_code (Union[Unset, float]):
-        name (Union[Unset, str]):
-        message (Union[Unset, str]):
-        code (Union[Unset, str]):
-        details (Union[Unset, list['CreateVariantResponse422DetailsItem']]):
-    """
 
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET

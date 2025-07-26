@@ -13,11 +13,6 @@ T = TypeVar("T", bound="SalesOrderRowAttributesItem")
 
 @_attrs_define
 class SalesOrderRowAttributesItem:
-    """
-    Attributes:
-        key (Union[Unset, str]):
-        value (Union[Unset, str]):
-    """
 
     key: Unset | str = UNSET
     value: Unset | str = UNSET

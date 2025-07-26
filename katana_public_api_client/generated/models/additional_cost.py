@@ -15,14 +15,6 @@ T = TypeVar("T", bound="AdditionalCost")
 
 @_attrs_define
 class AdditionalCost:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        name (Union[Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, str]):
-    """
 
     id: Unset | int = UNSET
     name: Unset | str = UNSET

@@ -19,17 +19,6 @@ T = TypeVar("T", bound="CreateProductRequestVariantsItem")
 
 @_attrs_define
 class CreateProductRequestVariantsItem:
-    """
-    Attributes:
-        sku (str):
-        purchase_price (Union[None, Unset, float]):
-        sales_price (Union[None, Unset, float]):
-        config_attributes (Union[Unset, list['CreateProductRequestVariantsItemConfigAttributesItem']]):
-        internal_barcode (Union[Unset, str]):
-        registered_barcode (Union[Unset, str]):
-        supplier_item_codes (Union[Unset, list[str]]):
-        custom_fields (Union[Unset, list['CreateProductRequestVariantsItemCustomFieldsItem']]):
-    """
 
     sku: str
     purchase_price: None | Unset | float = UNSET

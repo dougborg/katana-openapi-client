@@ -20,27 +20,6 @@ T = TypeVar("T", bound="Variant")
 
 @_attrs_define
 class Variant:
-    """
-    Attributes:
-        id (int):
-        sku (str):
-        sales_price (Union[None, Unset, float]):
-        product_id (Union[None, Unset, int]):
-        material_id (Union[None, Unset, int]):
-        purchase_price (Union[Unset, float]):
-        product_or_material_name (Union[Unset, str]):
-        type_ (Union[Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-        internal_barcode (Union[Unset, str]):
-        registered_barcode (Union[Unset, str]):
-        supplier_item_codes (Union[Unset, list[str]]):
-        lead_time (Union[None, Unset, int]):
-        minimum_order_quantity (Union[None, Unset, float]):
-        config_attributes (Union[Unset, list['VariantConfigAttributesItem']]):
-        product_or_material (Union[Unset, VariantProductOrMaterial]):
-    """
 
     id: int
     sku: str

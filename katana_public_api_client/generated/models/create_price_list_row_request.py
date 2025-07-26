@@ -10,13 +10,6 @@ T = TypeVar("T", bound="CreatePriceListRowRequest")
 
 @_attrs_define
 class CreatePriceListRowRequest:
-    """
-    Attributes:
-        price_list_id (int): ID of the price list
-        variant_id (int): ID of the variant to set price for
-        price (float): Price for the variant
-        currency (Union[Unset, str]): Currency code (e.g., USD, EUR)
-    """
 
     price_list_id: int
     variant_id: int

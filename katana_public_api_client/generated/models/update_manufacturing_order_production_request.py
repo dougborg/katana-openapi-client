@@ -24,13 +24,6 @@ T = TypeVar("T", bound="UpdateManufacturingOrderProductionRequest")
 
 @_attrs_define
 class UpdateManufacturingOrderProductionRequest:
-    """
-    Attributes:
-        quantity (Union[Unset, float]):
-        production_date (Union[Unset, datetime.datetime]):
-        ingredients (Union[Unset, list['UpdateManufacturingOrderProductionIngredientRequest']]):
-        operations (Union[Unset, list['UpdateManufacturingOrderOperationRowRequest']]):
-    """
 
     quantity: Unset | float = UNSET
     production_date: Unset | datetime.datetime = UNSET

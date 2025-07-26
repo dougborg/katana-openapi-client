@@ -16,18 +16,6 @@ T = TypeVar("T", bound="StockAdjustment")
 
 @_attrs_define
 class StockAdjustment:
-    """
-    Attributes:
-        id (int):
-        reference_no (str):
-        location_id (int):
-        status (Union[Unset, StockAdjustmentStatus]):
-        adjustment_date (Union[Unset, datetime.datetime]):
-        additional_info (Union[None, Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-    """
 
     id: int
     reference_no: str

@@ -13,12 +13,6 @@ T = TypeVar("T", bound="UpdateBomRowBody")
 
 @_attrs_define
 class UpdateBomRowBody:
-    """
-    Attributes:
-        ingredient_variant_id (Union[Unset, int]):
-        quantity (Union[Unset, float]):
-        notes (Union[None, Unset, str]):
-    """
 
     ingredient_variant_id: Unset | int = UNSET
     quantity: Unset | float = UNSET

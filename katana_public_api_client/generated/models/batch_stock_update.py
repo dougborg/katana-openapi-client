@@ -16,13 +16,6 @@ class BatchStockUpdate:
     Example:
         {'batch_number': 'BAT-1', 'expiration_date': '2020-10-23T10:37:05.085Z', 'batch_created_date':
             '2020-10-23T10:37:05.085Z', 'variant_id': 1, 'batch_barcode': '0040'}
-
-    Attributes:
-        batch_number (str):
-        variant_id (int):
-        expiration_date (Union[Unset, datetime.datetime]):
-        batch_created_date (Union[Unset, datetime.datetime]):
-        batch_barcode (Union[None, Unset, str]):
     """
 
     batch_number: str

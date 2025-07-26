@@ -13,20 +13,6 @@ T = TypeVar("T", bound="UpdatePurchaseOrderRequest")
 
 @_attrs_define
 class UpdatePurchaseOrderRequest:
-    """
-    Attributes:
-        order_no (Union[Unset, str]): Updatable only when status is in NOT_RECEIVED or PARTIALLY_RECEIVED
-        supplier_id (Union[Unset, int]): Updatable only when status is in NOT_RECEIVED
-        currency (Union[Unset, str]): Updatable only when status is in NOT_RECEIVED
-        tracking_location_id (Union[Unset, int]): Updatable only when status is in NOT_RECEIVED and entity_type is
-            outsourced
-        status (Union[Unset, UpdatePurchaseOrderRequestStatus]):
-        expected_arrival_date (Union[Unset, str]): Updatable only when status is in NOT_RECEIVED or PARTIALLY_RECEIVED.
-            Update will override arrival_date on purchase order rows
-        order_created_date (Union[Unset, str]):
-        location_id (Union[Unset, int]): Updatable only when status is in NOT_RECEIVED
-        additional_info (Union[Unset, str]):
-    """
 
     order_no: Unset | str = UNSET
     supplier_id: Unset | int = UNSET

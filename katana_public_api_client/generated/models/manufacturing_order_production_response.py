@@ -25,19 +25,6 @@ T = TypeVar("T", bound="ManufacturingOrderProductionResponse")
 
 @_attrs_define
 class ManufacturingOrderProductionResponse:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        manufacturing_order_id (Union[Unset, int]):
-        quantity (Union[Unset, float]):
-        production_date (Union[Unset, datetime.datetime]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-        ingredients (Union[Unset, list['ManufacturingOrderProductionIngredient']]):
-        operations (Union[Unset, list['ManufacturingOrderOperationProduction']]):
-        serial_numbers (Union[Unset, list['SerialNumber']]):
-    """
 
     id: Unset | int = UNSET
     manufacturing_order_id: Unset | int = UNSET

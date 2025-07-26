@@ -13,12 +13,6 @@ T = TypeVar("T", bound="GetAllPriceListRowsResponse429")
 
 @_attrs_define
 class GetAllPriceListRowsResponse429:
-    """
-    Attributes:
-        status_code (Union[Unset, float]):
-        name (Union[Unset, str]):
-        message (Union[Unset, str]):
-    """
 
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET

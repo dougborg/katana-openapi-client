@@ -13,11 +13,6 @@ T = TypeVar("T", bound="CreateProductRequestVariantsItemConfigAttributesItem")
 
 @_attrs_define
 class CreateProductRequestVariantsItemConfigAttributesItem:
-    """
-    Attributes:
-        config_name (Union[Unset, str]):
-        config_value (Union[Unset, str]):
-    """
 
     config_name: Unset | str = UNSET
     config_value: Unset | str = UNSET

@@ -21,18 +21,6 @@ T = TypeVar("T", bound="CreateManufacturingOrderRecipeRowRequest")
 
 @_attrs_define
 class CreateManufacturingOrderRecipeRowRequest:
-    """
-    Attributes:
-        manufacturing_order_id (int):
-        variant_id (int):
-        planned_quantity_per_unit (float):
-        notes (Union[Unset, str]):
-        total_actual_quantity (Union[Unset, float]):
-        ingredient_availability (Union[Unset, str]):
-        ingredient_expected_date (Union[Unset, datetime.datetime]):
-        batch_transactions (Union[Unset, list['CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem']]):
-        cost (Union[Unset, float]):
-    """
 
     manufacturing_order_id: int
     variant_id: int

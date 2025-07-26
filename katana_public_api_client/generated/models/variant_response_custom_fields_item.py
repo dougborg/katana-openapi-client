@@ -13,11 +13,6 @@ T = TypeVar("T", bound="VariantResponseCustomFieldsItem")
 
 @_attrs_define
 class VariantResponseCustomFieldsItem:
-    """
-    Attributes:
-        field_name (Union[Unset, str]):
-        field_value (Union[Unset, str]):
-    """
 
     field_name: Unset | str = UNSET
     field_value: Unset | str = UNSET

@@ -16,9 +16,6 @@ T = TypeVar("T", bound="InventoryMovementList")
 @_attrs_define
 class InventoryMovementList:
     """A list of inventory movement records.
-
-    Attributes:
-        data (list['InventoryMovement']):
     """
 
     data: list["InventoryMovement"]

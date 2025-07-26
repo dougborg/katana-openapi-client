@@ -19,16 +19,6 @@ T = TypeVar("T", bound="CreateSalesOrderRequestSalesOrderRowsItem")
 
 @_attrs_define
 class CreateSalesOrderRequestSalesOrderRowsItem:
-    """
-    Attributes:
-        quantity (float):
-        variant_id (int):
-        tax_rate_id (Union[None, Unset, int]):
-        location_id (Union[None, Unset, int]):
-        price_per_unit (Union[None, Unset, float]):
-        total_discount (Union[None, Unset, float]):
-        attributes (Union[Unset, list['CreateSalesOrderRequestSalesOrderRowsItemAttributesItem']]):
-    """
 
     quantity: float
     variant_id: int

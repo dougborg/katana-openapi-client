@@ -354,7 +354,9 @@ def post_process_generated_docstrings(workspace_path: Path) -> bool:
     """Post-process generated Python files to improve RST docstring formatting.
 
     This function applies targeted fixes to common RST formatting issues in
-    generated OpenAPI client code that cause Sphinx warnings.
+    generated OpenAPI client code that cause Sphinx warnings. It also removes
+    "Attributes:" sections from class docstrings to prevent AutoAPI 3.2+ 
+    duplicate object warnings.
     """
     generated_path = workspace_path / "katana_public_api_client" / "generated"
     if not generated_path.exists():
@@ -367,6 +369,26 @@ def post_process_generated_docstrings(workspace_path: Path) -> bool:
         try:
             content = py_file.read_text(encoding="utf-8")
             original_content = content
+
+            # Fix: Remove "Attributes:" sections from class docstrings
+            # AutoAPI 3.2+ generates both docstring attributes and typed attribute 
+            # directives, causing duplicate object warnings. We remove the docstring
+            # attributes section since AutoAPI will auto-document typed attributes.
+            
+            # First, remove the Attributes section
+            content = re.sub(
+                r'(class\s+\w+[^:]*:\s*"""[^"]*?)(\s*Attributes:\s*.*?)(\s*""")',
+                r'\1\3',
+                content,
+                flags=re.DOTALL
+            )
+            
+            # Then, remove empty docstrings (just whitespace between triple quotes)
+            content = re.sub(
+                r'(class\s+\w+[^:]*:)\s*"""\s*"""',
+                r'\1',
+                content,
+            )
 
             # Fix: Add blank line between docstring sections
             # This fixes "Block quote ends without a blank line" warnings
@@ -390,7 +412,7 @@ def post_process_generated_docstrings(workspace_path: Path) -> bool:
             # Continue processing other files
 
     print(
-        f"📝 Post-processed {processed_count} generated files for better RST formatting"
+        f"📝 Post-processed {processed_count} generated files for better RST formatting and AutoAPI compatibility"
     )
     return True
 

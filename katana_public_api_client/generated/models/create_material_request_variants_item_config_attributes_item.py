@@ -11,7 +11,6 @@ T = TypeVar("T", bound="CreateMaterialRequestVariantsItemConfigAttributesItem")
 
 @_attrs_define
 class CreateMaterialRequestVariantsItemConfigAttributesItem:
-    """ """
 
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

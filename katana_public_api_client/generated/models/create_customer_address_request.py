@@ -16,22 +16,6 @@ T = TypeVar("T", bound="CreateCustomerAddressRequest")
 
 @_attrs_define
 class CreateCustomerAddressRequest:
-    """
-    Attributes:
-        customer_id (int):
-        entity_type (CreateCustomerAddressRequestEntityType):
-        first_name (Union[None, Unset, str]):
-        last_name (Union[None, Unset, str]):
-        company (Union[None, Unset, str]):
-        phone (Union[None, Unset, str]):
-        line_1 (Union[None, Unset, str]):
-        line_2 (Union[None, Unset, str]):
-        city (Union[None, Unset, str]):
-        state (Union[None, Unset, str]):
-        zip_ (Union[None, Unset, str]):
-        country (Union[None, Unset, str]):
-        is_default (Union[Unset, bool]):
-    """
 
     customer_id: int
     entity_type: CreateCustomerAddressRequestEntityType

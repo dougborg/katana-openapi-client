@@ -15,18 +15,6 @@ T = TypeVar("T", bound="User")
 
 @_attrs_define
 class User:
-    """
-    Attributes:
-        id (int):
-        first_name (str):
-        last_name (str):
-        email (str):
-        role (str):
-        status (Union[Unset, str]):
-        last_login_at (Union[None, Unset, datetime.datetime]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
 
     id: int
     first_name: str

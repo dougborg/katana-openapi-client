@@ -19,13 +19,6 @@ class InventorySafetyStockLevelResponse:
     Example:
         {'variant_id': 1, 'location_id': 1, 'value': 10, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at':
             '2020-10-23T10:37:05.085Z'}
-
-    Attributes:
-        location_id (int):
-        variant_id (int):
-        value (float):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
     """
 
     location_id: int

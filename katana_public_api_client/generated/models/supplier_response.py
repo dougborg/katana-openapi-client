@@ -19,20 +19,6 @@ T = TypeVar("T", bound="SupplierResponse")
 
 @_attrs_define
 class SupplierResponse:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        name (Union[Unset, str]):
-        email (Union[Unset, str]):
-        phone (Union[Unset, str]):
-        currency (Union[Unset, str]):
-        comment (Union[Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-        default_address_id (Union[Unset, int]):
-        addresses (Union[Unset, list['SupplierAddressResponse']]):
-    """
 
     id: Unset | int = UNSET
     name: Unset | str = UNSET

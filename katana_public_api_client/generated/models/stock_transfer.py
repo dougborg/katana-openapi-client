@@ -16,19 +16,6 @@ T = TypeVar("T", bound="StockTransfer")
 
 @_attrs_define
 class StockTransfer:
-    """
-    Attributes:
-        id (int):
-        reference_no (str):
-        from_location_id (int):
-        to_location_id (int):
-        status (Union[Unset, StockTransferStatus]):
-        transfer_date (Union[Unset, datetime.datetime]):
-        additional_info (Union[None, Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-    """
 
     id: int
     reference_no: str

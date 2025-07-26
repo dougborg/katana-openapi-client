@@ -13,12 +13,6 @@ T = TypeVar("T", bound="UpdateManufacturingOrderProductionIngredientResponse401"
 
 @_attrs_define
 class UpdateManufacturingOrderProductionIngredientResponse401:
-    """
-    Attributes:
-        status_code (Union[Unset, float]):
-        name (Union[Unset, str]):
-        message (Union[Unset, str]):
-    """
 
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET

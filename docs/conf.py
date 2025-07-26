@@ -47,7 +47,7 @@ autoapi_template_dir = "_templates"
 autoapi_generate_api_docs = True
 autoapi_add_toctree_entry = True
 autoapi_member_order = "groupwise"
-# Use "init" to only document __init__ method docstrings, avoiding
+# Use "init" to only document __init__ method docstrings, avoiding 
 # duplication between class docstring attributes and type annotations
 autoapi_python_class_content = "init"
 autoapi_options = [
@@ -97,6 +97,7 @@ html_theme_options = {
     "canonical_url": "",
     "analytics_id": "",
     "logo_only": False,
+    "display_version": True,
     "prev_next_buttons_location": "bottom",
     "style_external_links": False,
     "vcs_pageview_mode": "",
@@ -151,19 +152,6 @@ autodoc_member_order = "groupwise"
 
 # Controls whether functions documented by autodoc show their return type annotations.
 autodoc_typehints = "description"
-
-# -- Warning suppression ----------------------------------------------------
-
-# Suppress specific warnings to reduce noise in documentation builds
-suppress_warnings = [
-    # Suppress duplicate object description warnings from AutoAPI 3.2+
-    # These occur when both docstring attributes and type annotations
-    # generate documentation for the same object
-    "autodoc.duplicate_object",
-    # Suppress other common warnings that don't affect documentation quality
-    "ref.python",  # Missing Python cross-references
-    "misc.highlighting_failure",  # Syntax highlighting failures
-]
 
 # -- Source file parsers -----------------------------------------------------
 

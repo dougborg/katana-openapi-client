@@ -20,16 +20,6 @@ class BatchStock:
         {'batch_id': 1109, 'batch_number': 'B2', 'batch_created_date': '2020-09-29T11:40:29.628Z', 'expiration_date':
             '2021-04-30T10:35:00.000Z', 'location_id': 1433, 'variant_id': 350880, 'quantity_in_stock': '10.00000',
             'batch_barcode': '0317'}
-
-    Attributes:
-        batch_id (Union[Unset, int]):
-        batch_number (Union[Unset, str]):
-        batch_created_date (Union[Unset, datetime.datetime]):
-        expiration_date (Union[Unset, datetime.datetime]):
-        location_id (Union[Unset, int]):
-        variant_id (Union[Unset, int]):
-        quantity_in_stock (Union[Unset, str]):
-        batch_barcode (Union[Unset, str]):
     """
 
     batch_id: Unset | int = UNSET

@@ -15,12 +15,6 @@ T = TypeVar("T", bound="UpdateManufacturingOrderRequest")
 
 @_attrs_define
 class UpdateManufacturingOrderRequest:
-    """
-    Attributes:
-        planned_quantity (Union[Unset, float]):
-        additional_info (Union[Unset, str]):
-        production_deadline_date (Union[Unset, datetime.datetime]):
-    """
 
     planned_quantity: Unset | float = UNSET
     additional_info: Unset | str = UNSET

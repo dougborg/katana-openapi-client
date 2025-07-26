@@ -11,12 +11,6 @@ T = TypeVar("T", bound="CreateWebhookRequest")
 
 @_attrs_define
 class CreateWebhookRequest:
-    """
-    Attributes:
-        url (str):
-        subscribed_events (list[WebhookEvent]):
-        description (Union[Unset, str]):
-    """
 
     url: str
     subscribed_events: list[WebhookEvent]

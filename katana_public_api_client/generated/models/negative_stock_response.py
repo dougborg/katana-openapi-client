@@ -15,15 +15,6 @@ T = TypeVar("T", bound="NegativeStockResponse")
 
 @_attrs_define
 class NegativeStockResponse:
-    """
-    Attributes:
-        variant_id (Union[Unset, int]):
-        location_id (Union[Unset, int]):
-        latest_negative_stock_date (Union[Unset, datetime.datetime]):
-        name (Union[Unset, str]):
-        sku (Union[Unset, str]):
-        category (Union[Unset, str]):
-    """
 
     variant_id: Unset | int = UNSET
     location_id: Unset | int = UNSET

@@ -11,7 +11,6 @@ T = TypeVar("T", bound="CreateProductRequestVariantsItemCustomFieldsItem")
 
 @_attrs_define
 class CreateProductRequestVariantsItemCustomFieldsItem:
-    """ """
 
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

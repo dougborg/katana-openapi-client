@@ -21,32 +21,6 @@ T = TypeVar("T", bound="ProductResponse")
 
 @_attrs_define
 class ProductResponse:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        name (Union[Unset, str]):
-        uom (Union[Unset, str]):
-        category_name (Union[Unset, str]):
-        is_sellable (Union[Unset, bool]):
-        is_producible (Union[Unset, bool]):
-        is_purchasable (Union[Unset, bool]):
-        is_auto_assembly (Union[Unset, bool]):
-        default_supplier_id (Union[Unset, int]):
-        additional_info (Union[Unset, str]):
-        batch_tracked (Union[Unset, bool]):
-        serial_tracked (Union[Unset, bool]):
-        operations_in_sequence (Union[Unset, bool]):
-        type_ (Union[Unset, str]):
-        purchase_uom (Union[Unset, str]):
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        variants (Union[Unset, list['ProductResponseVariantsItem']]):
-        configs (Union[Unset, list['ProductResponseConfigsItem']]):
-        custom_field_collection_id (Union[Unset, int]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        archived_at (Union[None, Unset, datetime.datetime]):
-        supplier (Union[Unset, ProductResponseSupplier]):
-    """
 
     id: Unset | int = UNSET
     name: Unset | str = UNSET

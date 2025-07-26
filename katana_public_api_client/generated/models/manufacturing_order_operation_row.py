@@ -22,34 +22,6 @@ T = TypeVar("T", bound="ManufacturingOrderOperationRow")
 
 @_attrs_define
 class ManufacturingOrderOperationRow:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        status (Union[Unset, ManufacturingOrderOperationRowStatus]):
-        type_ (Union[Unset, str]):
-        rank (Union[Unset, float]):
-        manufacturing_order_id (Union[Unset, int]):
-        operation_id (Union[Unset, int]):
-        operation_name (Union[Unset, str]):
-        resource_id (Union[Unset, int]):
-        resource_name (Union[Unset, str]):
-        assigned_operators (Union[Unset, list['Operator']]):
-        completed_by_operators (Union[Unset, list['Operator']]):
-        active_operator_id (Union[Unset, float]):
-        planned_time_per_unit (Union[Unset, float]):
-        planned_time_parameter (Union[Unset, float]):
-        total_actual_time (Union[Unset, float]):
-        planned_cost_per_unit (Union[Unset, float]):
-        total_actual_cost (Union[Unset, float]):
-        cost_per_hour (Union[Unset, float]):
-        cost_parameter (Union[Unset, float]):
-        group_boundary (Union[Unset, float]):
-        is_status_actionable (Union[Unset, bool]):
-        completed_at (Union[None, Unset, datetime.datetime]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-    """
 
     id: Unset | int = UNSET
     status: Unset | ManufacturingOrderOperationRowStatus = UNSET

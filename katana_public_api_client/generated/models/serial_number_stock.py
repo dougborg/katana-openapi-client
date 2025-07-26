@@ -16,16 +16,6 @@ T = TypeVar("T", bound="SerialNumberStock")
 
 @_attrs_define
 class SerialNumberStock:
-    """
-    Attributes:
-        id (int):
-        variant_id (int):
-        location_id (int):
-        serial_number (str):
-        status (SerialNumberStockStatus):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
 
     id: int
     variant_id: int

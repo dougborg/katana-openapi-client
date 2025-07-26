@@ -13,16 +13,6 @@ T = TypeVar("T", bound="UpdateSalesOrderBody")
 
 @_attrs_define
 class UpdateSalesOrderBody:
-    """
-    Attributes:
-        order_no (Union[Unset, str]):
-        customer_id (Union[Unset, int]):
-        delivery_date (Union[None, Unset, str]):
-        additional_info (Union[None, Unset, str]):
-        customer_ref (Union[None, Unset, str]):
-        tracking_number (Union[None, Unset, str]):
-        tracking_number_url (Union[None, Unset, str]):
-    """
 
     order_no: Unset | str = UNSET
     customer_id: Unset | int = UNSET

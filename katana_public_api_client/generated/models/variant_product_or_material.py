@@ -19,21 +19,6 @@ T = TypeVar("T", bound="VariantProductOrMaterial")
 
 @_attrs_define
 class VariantProductOrMaterial:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        name (Union[Unset, str]):
-        uom (Union[Unset, str]):
-        category_name (Union[Unset, str]):
-        is_producible (Union[Unset, bool]):
-        default_supplier_id (Union[Unset, int]):
-        is_purchasable (Union[Unset, bool]):
-        type_ (Union[Unset, str]):
-        purchase_uom (Union[Unset, str]):
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        batch_tracked (Union[Unset, bool]):
-        variants (Union[Unset, list['VariantProductOrMaterialVariantsItem']]):
-    """
 
     id: Unset | int = UNSET
     name: Unset | str = UNSET

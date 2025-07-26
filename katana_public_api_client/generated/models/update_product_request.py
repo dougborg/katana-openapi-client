@@ -16,25 +16,6 @@ T = TypeVar("T", bound="UpdateProductRequest")
 
 @_attrs_define
 class UpdateProductRequest:
-    """
-    Attributes:
-        name (Union[Unset, str]):
-        uom (Union[Unset, str]):
-        category_name (Union[Unset, str]):
-        is_sellable (Union[Unset, bool]):
-        is_producible (Union[Unset, bool]):
-        is_purchasable (Union[Unset, bool]):
-        is_auto_assembly (Union[Unset, bool]):
-        default_supplier_id (Union[Unset, int]):
-        additional_info (Union[Unset, str]):
-        batch_tracked (Union[Unset, bool]):
-        serial_tracked (Union[Unset, bool]):
-        operations_in_sequence (Union[Unset, bool]):
-        purchase_uom (Union[Unset, str]):
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        configs (Union[Unset, list['UpdateProductRequestConfigsItem']]):
-        custom_field_collection_id (Union[None, Unset, int]):
-    """
 
     name: Unset | str = UNSET
     uom: Unset | str = UNSET

@@ -10,18 +10,6 @@ T = TypeVar("T", bound="CreatePurchaseOrderRowRequest")
 
 @_attrs_define
 class CreatePurchaseOrderRowRequest:
-    """
-    Attributes:
-        purchase_order_id (int):
-        quantity (float):
-        variant_id (int):
-        price_per_unit (float):
-        tax_rate_id (Union[Unset, int]):
-        group_id (Union[Unset, int]):
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        purchase_uom (Union[Unset, str]):
-        arrival_date (Union[Unset, str]): Optional arrival date in ISO 8601 format.
-    """
 
     purchase_order_id: int
     quantity: float

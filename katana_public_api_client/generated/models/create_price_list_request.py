@@ -12,15 +12,6 @@ T = TypeVar("T", bound="CreatePriceListRequest")
 
 @_attrs_define
 class CreatePriceListRequest:
-    """
-    Attributes:
-        name (str): Name of the price list
-        currency (str): Currency code (e.g., USD, EUR)
-        is_default (Union[Unset, bool]): Whether this is the default price list
-        markup_percentage (Union[Unset, float]): Markup percentage for the price list
-        start_date (Union[Unset, datetime.datetime]): When the price list becomes active
-        end_date (Union[Unset, datetime.datetime]): When the price list expires
-    """
 
     name: str
     currency: str

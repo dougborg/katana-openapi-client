@@ -15,17 +15,6 @@ T = TypeVar("T", bound="TaxRateResponse")
 
 @_attrs_define
 class TaxRateResponse:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        name (Union[Unset, str]):
-        rate (Union[Unset, float]):
-        is_default_sales (Union[Unset, bool]):
-        is_default_purchases (Union[Unset, bool]):
-        display_name (Union[Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
 
     id: Unset | int = UNSET
     name: Unset | str = UNSET

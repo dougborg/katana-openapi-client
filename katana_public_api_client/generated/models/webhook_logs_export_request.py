@@ -13,15 +13,6 @@ T = TypeVar("T", bound="WebhookLogsExportRequest")
 
 @_attrs_define
 class WebhookLogsExportRequest:
-    """
-    Attributes:
-        webhook_id (Union[Unset, int]):
-        event (Union[Unset, WebhookEvent]):
-        status_code (Union[Unset, int]):
-        delivered (Union[Unset, bool]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-    """
 
     webhook_id: Unset | int = UNSET
     event: Unset | WebhookEvent = UNSET

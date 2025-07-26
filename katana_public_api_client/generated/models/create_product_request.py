@@ -19,28 +19,6 @@ T = TypeVar("T", bound="CreateProductRequest")
 
 @_attrs_define
 class CreateProductRequest:
-    """
-    Attributes:
-        name (str):
-        variants (list['CreateProductRequestVariantsItem']):
-        uom (Union[Unset, str]):
-        category_name (Union[Unset, str]):
-        is_sellable (Union[Unset, bool]):
-        is_producible (Union[Unset, bool]):
-        is_purchasable (Union[Unset, bool]):
-        is_auto_assembly (Union[Unset, bool]):
-        default_supplier_id (Union[Unset, int]):
-        additional_info (Union[Unset, str]):
-        batch_tracked (Union[Unset, bool]):
-        serial_tracked (Union[Unset, bool]):
-        operations_in_sequence (Union[Unset, bool]):
-        purchase_uom (Union[Unset, str]):
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        lead_time (Union[None, Unset, int]):
-        minimum_order_quantity (Union[Unset, float]):
-        configs (Union[Unset, list['CreateProductRequestConfigsItem']]):
-        custom_field_collection_id (Union[None, Unset, int]):
-    """
 
     name: str
     variants: list["CreateProductRequestVariantsItem"]

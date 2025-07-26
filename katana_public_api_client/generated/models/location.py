@@ -29,19 +29,6 @@ class Location:
             'address_id': None, 'address': None, 'is_primary': False, 'sales_allowed': False, 'purchase_allowed': True,
             'manufacturing_allowed': False, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at':
             '2020-10-23T10:37:05.085Z', 'deleted_at': None}]}
-
-    Attributes:
-        id (int):
-        name (str):
-        legal_name (Union[Unset, str]):
-        address_id (Union[Unset, int]):
-        address (Union[Unset, LocationAddress]):
-        is_primary (Union[Unset, bool]):
-        sales_allowed (Union[Unset, bool]):
-        purchase_allowed (Union[Unset, bool]):
-        manufacturing_allowed (Union[Unset, bool]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
     """
 
     id: int

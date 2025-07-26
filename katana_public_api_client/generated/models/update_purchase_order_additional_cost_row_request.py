@@ -13,13 +13,6 @@ T = TypeVar("T", bound="UpdatePurchaseOrderAdditionalCostRowRequest")
 
 @_attrs_define
 class UpdatePurchaseOrderAdditionalCostRowRequest:
-    """
-    Attributes:
-        additional_cost_id (Union[Unset, int]):
-        tax_rate_id (Union[Unset, int]):
-        price (Union[Unset, float]):
-        distribution_method (Union[Unset, UpdatePurchaseOrderAdditionalCostRowRequestDistributionMethod]):
-    """
 
     additional_cost_id: Unset | int = UNSET
     tax_rate_id: Unset | int = UNSET

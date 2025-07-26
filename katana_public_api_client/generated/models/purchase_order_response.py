@@ -20,32 +20,6 @@ T = TypeVar("T", bound="PurchaseOrderResponse")
 
 @_attrs_define
 class PurchaseOrderResponse:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        status (Union[Unset, str]):
-        order_no (Union[Unset, str]):
-        entity_type (Union[Unset, str]):
-        default_group_id (Union[Unset, int]):
-        supplier_id (Union[Unset, int]):
-        currency (Union[Unset, str]):
-        expected_arrival_date (Union[Unset, str]):
-        order_created_date (Union[Unset, str]):
-        additional_info (Union[Unset, str]):
-        location_id (Union[Unset, int]):
-        tracking_location_id (Union[None, Unset, int]):
-        total (Union[Unset, float]):
-        total_in_base_currency (Union[Unset, float]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-        billing_status (Union[Unset, str]):
-        last_document_status (Union[Unset, str]):
-        ingredient_availability (Union[None, Unset, str]):
-        ingredient_expected_date (Union[None, Unset, str]):
-        supplier (Union[Unset, PurchaseOrderResponseSupplier]):
-        purchase_order_rows (Union[Unset, list['PurchaseOrderRowResponse']]):
-    """
 
     id: Unset | int = UNSET
     status: Unset | str = UNSET

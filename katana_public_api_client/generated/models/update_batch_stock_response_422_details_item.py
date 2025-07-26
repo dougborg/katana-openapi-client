@@ -11,7 +11,6 @@ T = TypeVar("T", bound="UpdateBatchStockResponse422DetailsItem")
 
 @_attrs_define
 class UpdateBatchStockResponse422DetailsItem:
-    """ """
 
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
