@@ -131,27 +131,6 @@ async with KatanaClient() as client:
     # All pages are automatically collected into a single response
 ```
 
-## 🎭 High-Level API
-
-The `KatanaAPI` class provides convenient methods for common operations:
-
-```python
-from katana_public_api_client import KatanaClient, KatanaAPI
-
-async with KatanaClient() as client:
-    api = KatanaAPI(client)
-
-    # High-level convenience methods (all with automatic resilience)
-    products = await api.get_all_products(is_sellable=True)
-    orders = await api.get_all_sales_orders(status="open")
-    inventory = await api.get_all_inventory_points()
-    manufacturing = await api.get_all_manufacturing_orders(status="planned")
-
-    # Individual item lookup
-    product = await api.get_product_by_id(123)
-    order = await api.get_sales_order_by_id(456)
-```
-
 ## ⚙️ Configuration
 
 ### Environment Variables

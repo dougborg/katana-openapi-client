@@ -31,13 +31,13 @@ poetry run poe test
 poetry run poe test-verbose
 
 # Run specific test file
-poetry run poe test tests/test_katana_client.py
+poetry run poe test -- tests/test_katana_client.py
 
 # Run specific test class
-poetry run poe test tests/test_katana_client.py::TestKatanaClient
+poetry run poe test -- tests/test_katana_client.py::TestKatanaClient
 
 # Run specific test method
-poetry run poe test tests/test_katana_client.py::TestKatanaClient::test_client_initialization
+poetry run poe test -- tests/test_katana_client.py::TestKatanaClient::test_client_initialization
 ```
 
 ### Test Categories

@@ -11,11 +11,13 @@ rather than as decorators or wrapper methods.
 
 - **`katana_public_api_client/katana_client.py`**: Main client with
   `ResilientAsyncTransport` - all resilience features happen here automatically
-- **`katana_public_api_client/client.py`**: Generated OpenAPI client (base classes)
-- **`katana_public_api_client/api/`**: 76+ generated API endpoint modules (don't edit
-  directly)
-- **`katana_public_api_client/models/`**: 150+ generated data models (don't edit
-  directly)
+- **`katana_public_api_client/client.py`**: Base client classes (enhanced functionality)
+- **`katana_public_api_client/generated/api/`**: 76+ generated API endpoint modules
+  (don't edit directly)
+- **`katana_public_api_client/generated/models/`**: 150+ generated data models (don't
+  edit directly)
+- **`katana_public_api_client/generated/client.py`**: Generated OpenAPI client (base
+  classes)
 
 ### The Transport Layer Pattern
 

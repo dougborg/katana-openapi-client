@@ -9,14 +9,20 @@ This directory contains detailed documentation for the Katana OpenAPI Client.
 - **[KatanaClient Guide](KATANA_CLIENT_GUIDE.md)** - Complete guide to the modern,
   pythonic KatanaClient with automatic resilience
 - **[Testing Guide](TESTING_GUIDE.md)** - Testing patterns and examples
-- **[Client README](CLIENT_README.md)** - Generated client documentation
+- **[Poetry Usage Guide](POETRY_USAGE.md)** - Development commands and task reference
+
+### Development Guides
+
+- **[Contributing Guide](CONTRIBUTING.md)** - Development setup and contribution
+  guidelines
+- **[Release Workflow](RELEASE_WORKFLOW.md)** - Automated release process
+- **[Semantic Release Guide](SEMANTIC_RELEASE_GUIDE.md)** - Conventional commits and
+  versioning
 
 ### Reference Materials
 
 - **[Original OpenAPI Files](original%20openapi%20files/)** - Original OpenAPI
   specifications
-- **[API Enhancements Summary](API_ENHANCEMENTS_SUMMARY.md)** - Summary of client
-  enhancements
 
 ## 🚀 Quick Start
 
@@ -25,30 +31,36 @@ New to the client? Start with these documents in order:
 1. **[KatanaClient Guide](KATANA_CLIENT_GUIDE.md)** - Learn about the production-ready
    KatanaClient with automatic resilience
 1. **[Testing Guide](TESTING_GUIDE.md)** - See testing patterns and examples
+1. **[Poetry Usage Guide](POETRY_USAGE.md)** - Development commands and workflows
 
 ## 🔧 For Developers
 
 Contributing to or maintaining this client? Check out:
 
-1. **[Enhanced Client Guide](ENHANCED_CLIENT_GUIDE.md)** - Includes regeneration and
-   development workflows
+1. **[Contributing Guide](CONTRIBUTING.md)** - Development setup and guidelines
+1. **[Release Workflow](RELEASE_WORKFLOW.md)** - Automated release and publishing
+1. **[Semantic Release Guide](SEMANTIC_RELEASE_GUIDE.md)** - Versioning with
+   conventional commits
+1. **[PyPI Setup Guide](PYPI_SETUP.md)** - Package publishing configuration
 
 ## 📊 Documentation Coverage
 
-| Topic                     | Status      | Document                                          |
-| ------------------------- | ----------- | ------------------------------------------------- |
-| **Enhanced Client Usage** | ✅ Complete | [Enhanced Client Guide](ENHANCED_CLIENT_GUIDE.md) |
-| **Basic Client Usage**    | ✅ Complete | [Katana Client Usage](KATANA_CLIENT_USAGE.md)     |
-| **Generated Client**      | ✅ Complete | [Client README](CLIENT_README.md)                 |
+| Topic                       | Status      | Document                                            |
+| --------------------------- | ----------- | --------------------------------------------------- |
+| **KatanaClient Usage**      | ✅ Complete | [KatanaClient Guide](KATANA_CLIENT_GUIDE.md)        |
+| **Testing Patterns**        | ✅ Complete | [Testing Guide](TESTING_GUIDE.md)                   |
+| **Development Workflow**    | ✅ Complete | [Poetry Usage Guide](POETRY_USAGE.md)               |
+| **Contributing Guidelines** | ✅ Complete | [Contributing Guide](CONTRIBUTING.md)               |
+| **Release Process**         | ✅ Complete | [Release Workflow](RELEASE_WORKFLOW.md)             |
+| **Conventional Commits**    | ✅ Complete | [Semantic Release Guide](SEMANTIC_RELEASE_GUIDE.md) |
 
 ## 💡 Tips
 
 - **First time using the API?** Start with the
-  [Enhanced Client Guide](ENHANCED_CLIENT_GUIDE.md)
-- **Need specific examples?** Check [Katana Client Usage](KATANA_CLIENT_USAGE.md)
-- **Working with generated client?** See [Client README](CLIENT_README.md)
-- **Developing or maintaining?** See regeneration info in
-  [Enhanced Client Guide](ENHANCED_CLIENT_GUIDE.md)
+  [KatanaClient Guide](KATANA_CLIENT_GUIDE.md)
+- **Need development commands?** Check [Poetry Usage Guide](POETRY_USAGE.md)
+- **Contributing to the project?** See [Contributing Guide](CONTRIBUTING.md)
+- **Setting up releases?** Check [Release Workflow](RELEASE_WORKFLOW.md)
 
 ______________________________________________________________________
 
