@@ -1013,7 +1013,7 @@ components:
         deleted_at:
           type: [string, "null"]
 
-    AdditionalCostList:
+    AdditionalCostListResponse:
       type: object
       properties:
         data:
@@ -1087,7 +1087,7 @@ components:
         quantity_in_stock: "10.00000"
         batch_barcode: "0317"
 
-    BatchStockList:
+    BatchStockListResponse:
       type: object
       properties:
         data:
@@ -1152,7 +1152,7 @@ components:
         deleted_at:
           type: [string, "null"]
 
-    StorageBinList:
+    StorageBinListResponse:
       type: object
       properties:
         data:
@@ -1246,7 +1246,7 @@ components:
         - created_at
         - updated_at
 
-    InventoryMovementList:
+    InventoryMovementListResponse:
       type: object
       description: A list of inventory movement records.
       properties:
@@ -1464,7 +1464,7 @@ components:
         - quantity_missing_or_excess
         - quantity_potential
 
-    InventoryList:
+    InventoryListResponse:
       type: object
       properties:
         data:
@@ -1676,7 +1676,7 @@ components:
           items:
             $ref: "#/components/schemas/UpdateManufacturingOrderOperationRowRequest"
 
-    ManufacturingOrderProductionResponse:
+    ManufacturingOrderProduction:
       type: object
       properties:
         id:
@@ -1710,6 +1710,14 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SerialNumber"
+
+    ManufacturingOrderProductionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ManufacturingOrderProduction"
 
     ManufacturingOrderProductionIngredient:
       type: object
@@ -1942,7 +1950,7 @@ components:
         cost:
           type: number
 
-    ManufacturingOrderRecipeRowResponse:
+    ManufacturingOrderRecipeRow:
       type: object
       properties:
         id:
@@ -1989,7 +1997,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/ManufacturingOrderRecipeRowResponse"
+            $ref: "#/components/schemas/ManufacturingOrderRecipeRow"
 
     # Serial Number Schema
     SerialNumber:
@@ -2009,21 +2017,21 @@ components:
           type: string
           format: date-time
 
-    ManufacturingOrderList:
+    SerialNumberListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SerialNumber"
+
+    ManufacturingOrderListResponse:
       type: object
       properties:
         data:
           type: array
           items:
             $ref: "#/components/schemas/ManufacturingOrder"
-
-    ManufacturingOrderProductionListResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: "#/components/schemas/ManufacturingOrderProductionResponse"
 
     UnlinkManufacturingOrderRequest:
       type: object
@@ -2063,7 +2071,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/ManufacturingOrderOperationRowResponse"
+            $ref: "#/components/schemas/ManufacturingOrderOperationRow"
 
     CreateMaterialRequest:
       type: object
@@ -2159,15 +2167,7 @@ components:
                 items:
                   type: object
 
-    MaterialListResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: "#/components/schemas/MaterialResponse"
-
-    MaterialResponse:
+    Material:
       type: object
       properties:
         id:
@@ -2299,6 +2299,14 @@ components:
               type: [string, "null"]
               format: date-time
 
+    MaterialListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Material"
+
     UpdateMaterialRequest:
       type: object
       additionalProperties: false
@@ -2355,7 +2363,7 @@ components:
           type: [integer, "null"]
           maximum: 2147483647
 
-    NegativeStockResponse:
+    NegativeStock:
       type: object
       properties:
         variant_id:
@@ -2378,7 +2386,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/NegativeStockResponse"
+            $ref: "#/components/schemas/NegativeStock"
 
     CreateProductRequest:
       type: object
@@ -2540,7 +2548,7 @@ components:
           type: [integer, "null"]
           maximum: 2147483647
 
-    ProductResponse:
+    Product:
       type: object
       properties:
         id:
@@ -2688,7 +2696,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/ProductResponse"
+            $ref: "#/components/schemas/Product"
 
     CreatePurchaseOrderRequest:
       type: object
@@ -2748,7 +2756,7 @@ components:
         purchase_uom:
           type: string
 
-    PurchaseOrderResponse:
+    PurchaseOrder:
       type: object
       properties:
         id:
@@ -2822,9 +2830,17 @@ components:
         purchase_order_rows:
           type: array
           items:
-            $ref: "#/components/schemas/PurchaseOrderRowResponse"
+            $ref: "#/components/schemas/PurchaseOrderRow"
 
-    PurchaseOrderRowResponse:
+    PurchaseOrderListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/PurchaseOrder"
+
+    PurchaseOrderRow:
       type: object
       properties:
         id:
@@ -2885,13 +2901,13 @@ components:
           type: [string, "null"]
           format: date-time
 
-    PurchaseOrderListResponse:
+    PurchaseOrderRowListResponse:
       type: object
       properties:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/PurchaseOrderResponse"
+            $ref: "#/components/schemas/PurchaseOrderRow"
 
     UpdatePurchaseOrderRequest:
       type: object
@@ -2955,7 +2971,7 @@ components:
             - BY_VALUE
             - NON_DISTRIBUTED
 
-    PurchaseOrderAdditionalCostRowResponse:
+    PurchaseOrderAdditionalCostRow:
       type: object
       properties:
         id:
@@ -2999,7 +3015,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/PurchaseOrderAdditionalCostRowResponse"
+            $ref: "#/components/schemas/PurchaseOrderAdditionalCostRow"
 
     UpdatePurchaseOrderAdditionalCostRowRequest:
       type: object
@@ -3098,14 +3114,6 @@ components:
         arrival_date:
           type: string
           description: "Optional arrival date in ISO 8601 format."
-
-    PurchaseOrderRowListResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: "#/components/schemas/PurchaseOrderRowResponse"
 
     UpdatePurchaseOrderRowRequest:
       type: object
@@ -3217,7 +3225,7 @@ components:
         country:
           type: string
 
-    SupplierResponse:
+    Supplier:
       type: object
       properties:
         id:
@@ -3246,7 +3254,7 @@ components:
         addresses:
           type: array
           items:
-            $ref: "#/components/schemas/SupplierAddressResponse"
+            $ref: "#/components/schemas/SupplierAddress"
 
     SupplierListResponse:
       type: object
@@ -3254,7 +3262,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/SupplierResponse"
+            $ref: "#/components/schemas/Supplier"
 
     UpdateSupplierRequest:
       type: object
@@ -3272,7 +3280,7 @@ components:
         comment:
           type: string
 
-    SupplierAddressResponse:
+    SupplierAddress:
       type: object
       properties:
         id:
@@ -3307,7 +3315,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/SupplierAddressResponse"
+            $ref: "#/components/schemas/SupplierAddress"
 
     CreateSupplierAddressRequest:
       type: object
@@ -3362,7 +3370,7 @@ components:
           maximum: 999.999
           multipleOf: 0.001
 
-    TaxRateResponse:
+    TaxRate:
       type: object
       properties:
         id:
@@ -3390,7 +3398,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/TaxRateResponse"
+            $ref: "#/components/schemas/TaxRate"
 
     CreateVariantRequest:
       type: object
@@ -3631,7 +3639,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/VariantResponse"
+            $ref: "#/components/schemas/Variant"
 
     VariantDefaultStorageBinLink:
       type: object
@@ -3678,7 +3686,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/VariantDefaultStorageBinLinkResponse"
+            $ref: "#/components/schemas/VariantDefaultStorageBinLink"
 
     UnlinkVariantBinLocationRequest:
       type: object
@@ -3802,7 +3810,7 @@ components:
         description:
           type: string
 
-    WebhookResponse:
+    Webhook:
       type: object
       properties:
         id:
@@ -3832,7 +3840,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/WebhookResponse"
+            $ref: "#/components/schemas/Webhook"
 
     WebhookLogsExportRequest:
       type: object
@@ -3853,7 +3861,7 @@ components:
           type: string
           format: date-time
 
-    WebhookLogsExportResponse:
+    WebhookLogsExport:
       type: object
       properties:
         url:
@@ -3920,12 +3928,6 @@ components:
             - services
         attributes:
           $ref: "#/components/schemas/ServiceAttributes"
-
-    ServiceResponse:
-      type: object
-      properties:
-        data:
-          $ref: "#/components/schemas/Service"
 
     ServiceListResponse:
       type: object
@@ -4612,6 +4614,12 @@ components:
         - name
         - currency
 
+    PriceListResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/PriceList"
+
     CreatePriceListRequest:
       type: object
       additionalProperties: false
@@ -4807,6 +4815,14 @@ components:
         - id
         - name
         - currency
+
+    FactoryListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Factory"
 
     # Operators (enhanced)
     Operator:
@@ -5348,7 +5364,7 @@ components:
               rank:
                 type: integer
 
-    ProductOperationRerankResponse:
+    ProductOperationRerank:
       type: object
       properties:
         message:
@@ -5465,7 +5481,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AdditionalCostList"
+                $ref: "#/components/schemas/AdditionalCostListResponse"
               example:
                 data:
                   - id: 1
@@ -5509,7 +5525,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BatchResponse"
+                $ref: "#/components/schemas/Batch"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "422":
@@ -5554,7 +5570,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BatchStockList"
+                $ref: "#/components/schemas/BatchStockListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -5645,7 +5661,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StorageBinList"
+                $ref: "#/components/schemas/StorageBinListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -5685,7 +5701,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InventoryList"
+                $ref: "#/components/schemas/InventoryListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -5731,7 +5747,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InventoryMovementList"
+                $ref: "#/components/schemas/InventoryMovementListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -5766,7 +5782,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InventorySafetyStockLevelResponse"
+                $ref: "#/components/schemas/InventorySafetyStockLevel"
 
         "401":
           $ref: "#/components/responses/UnauthorizedError"
@@ -5967,7 +5983,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ManufacturingOrderList"
+                $ref: "#/components/schemas/ManufacturingOrderListResponse"
               example:
                 data:
                   - id: 21400
@@ -6295,7 +6311,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ManufacturingOrderProductionResponse"
+                $ref: "#/components/schemas/ManufacturingOrderProduction"
               example:
                 id: 21300
                 manufacturing_order_id: 21400
@@ -6451,7 +6467,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ManufacturingOrderProductionResponse"
+                $ref: "#/components/schemas/ManufacturingOrderProduction"
               example:
                 id: 21300
                 manufacturing_order_id: 21400
@@ -6533,7 +6549,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ManufacturingOrderProductionResponse"
+                $ref: "#/components/schemas/ManufacturingOrderProduction"
               example:
                 id: 21300
                 manufacturing_order_id: 21400
@@ -6646,7 +6662,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ManufacturingOrderProductionIngredientResponse"
+                $ref: "#/components/schemas/ManufacturingOrderProductionIngredient"
               example:
                 id: 252
                 location_id: 321
@@ -6695,7 +6711,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ManufacturingOrderOperationRowResponse"
+                $ref: "#/components/schemas/ManufacturingOrderOperationRow"
               example:
                 id: 1
                 status: IN_PROGRESS
@@ -6833,7 +6849,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ManufacturingOrderOperationRowResponse"
+                $ref: "#/components/schemas/ManufacturingOrderOperationRow"
               example:
                 moOperationRowResponseExample:
                   id: 1
@@ -6906,7 +6922,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ManufacturingOrderOperationRowResponse"
+                $ref: "#/components/schemas/ManufacturingOrderOperationRow"
               example:
                 moOperationRowResponseExample:
                   id: 1
@@ -6997,7 +7013,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ManufacturingOrderRecipeRowResponse"
+                $ref: "#/components/schemas/ManufacturingOrderRecipeRow"
               example:
                 id: 1
                 manufacturing_order_id: 1
@@ -7111,7 +7127,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ManufacturingOrderRecipeRowResponse"
+                $ref: "#/components/schemas/ManufacturingOrderRecipeRow"
               example:
                 id: 1
                 manufacturing_order_id: 1
@@ -7172,7 +7188,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ManufacturingOrderRecipeRowResponse"
+                $ref: "#/components/schemas/ManufacturingOrderRecipeRow"
               example:
                 id: 1
                 manufacturing_order_id: 1
@@ -7249,7 +7265,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MaterialResponse"
+                $ref: "#/components/schemas/Material"
               example:
                 id: 1
                 name: Kyber Crystal
@@ -7436,7 +7452,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MaterialResponse"
+                $ref: "#/components/schemas/Material"
               example:
                 id: 1
                 name: Kyber Crystal
@@ -7535,7 +7551,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MaterialResponse"
+                $ref: "#/components/schemas/Material"
               example:
                 id: 1
                 name: Kyber Crystal
@@ -7700,7 +7716,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProductResponse"
+                $ref: "#/components/schemas/Product"
               example:
                 id: 1
                 name: Standard-hilt lightsaber
@@ -7900,7 +7916,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProductResponse"
+                $ref: "#/components/schemas/Product"
               example:
                 id: 1
                 name: Standard-hilt lightsaber
@@ -8001,7 +8017,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProductResponse"
+                $ref: "#/components/schemas/Product"
               example:
                 id: 1
                 name: Standard-hilt lightsaber
@@ -8118,7 +8134,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PurchaseOrderResponse"
+                $ref: "#/components/schemas/PurchaseOrder"
               example:
                 id: 1
                 status: NOT_RECEIVED
@@ -8301,7 +8317,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PurchaseOrderResponse"
+                $ref: "#/components/schemas/PurchaseOrder"
               example:
                 id: 1
                 status: NOT_RECEIVED
@@ -8399,7 +8415,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PurchaseOrderResponse"
+                $ref: "#/components/schemas/PurchaseOrder"
               example:
                 id: 1
                 status: NOT_RECEIVED
@@ -8487,7 +8503,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PurchaseOrderAdditionalCostRowResponse"
+                $ref: "#/components/schemas/PurchaseOrderAdditionalCostRow"
               example:
                 id: 1
                 additional_cost_id: 11
@@ -8599,7 +8615,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PurchaseOrderAdditionalCostRowResponse"
+                $ref: "#/components/schemas/PurchaseOrderAdditionalCostRow"
               example:
                 id: 1
                 additional_cost_id: 11
@@ -8657,7 +8673,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PurchaseOrderAdditionalCostRowResponse"
+                $ref: "#/components/schemas/PurchaseOrderAdditionalCostRow"
               example:
                 id: 1
                 additional_cost_id: 11
@@ -8779,7 +8795,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PurchaseOrderRowResponse"
+                $ref: "#/components/schemas/PurchaseOrderRow"
               example:
                 id: 1
                 quantity: 1
@@ -8905,7 +8921,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PurchaseOrderRowResponse"
+                $ref: "#/components/schemas/PurchaseOrderRow"
               example:
                 id: 1
                 quantity: 1
@@ -8972,7 +8988,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PurchaseOrderRowResponse"
+                $ref: "#/components/schemas/PurchaseOrderRow"
               example:
                 id: 1
                 quantity: 1
@@ -9110,7 +9126,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SupplierResponse"
+                $ref: "#/components/schemas/Supplier"
               example:
                 id: 1
                 name: Luke Skywalker
@@ -9246,7 +9262,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SupplierResponse"
+                $ref: "#/components/schemas/Supplier"
               example:
                 id: 1
                 name: Luke Skywalker
@@ -9387,7 +9403,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SupplierAddressResponse"
+                $ref: "#/components/schemas/SupplierAddress"
               example:
                 id: 2
                 supplier_id: 12345
@@ -9444,7 +9460,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SupplierAddressResponse"
+                $ref: "#/components/schemas/SupplierAddress"
               example:
                 id: 2
                 supplier_id: 12345
@@ -9523,7 +9539,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TaxRateResponse"
+                $ref: "#/components/schemas/TaxRate"
               example:
                 id: 1
                 name: 15% VAT
@@ -9624,7 +9640,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/VariantResponse"
+                $ref: "#/components/schemas/Variant"
               example:
                 id: 1
                 sku: EM
@@ -9797,7 +9813,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/VariantResponse"
+                $ref: "#/components/schemas/Variant"
               example:
                 id: 1
                 sku: EM
@@ -9901,7 +9917,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/VariantResponse"
+                $ref: "#/components/schemas/Variant"
               example:
                 id: 1
                 sku: EM
@@ -10086,7 +10102,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/WebhookResponse"
+                $ref: "#/components/schemas/Webhook"
               example:
                 id: 1
                 url: https://katanamrp.com
@@ -10180,7 +10196,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/WebhookResponse"
+                $ref: "#/components/schemas/Webhook"
               example:
                 id: 1
                 url: https://katanamrp.com
@@ -10230,7 +10246,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/WebhookResponse"
+                $ref: "#/components/schemas/Webhook"
               example:
                 id: 1
                 url: https://katanamrp.com
@@ -10311,7 +10327,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/WebhookLogsExportResponse"
+                $ref: "#/components/schemas/WebhookLogsExport"
               example:
                 url: https://katana-storage.com/your-file
         "401":
@@ -10584,7 +10600,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ServiceResponse"
+                $ref: "#/components/schemas/Service"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -10613,7 +10629,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ServiceResponse"
+                $ref: "#/components/schemas/Service"
         "404":
           description: "Service not found."
         "401":
@@ -10642,7 +10658,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ServiceResponse"
+                $ref: "#/components/schemas/Service"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "422":
@@ -12265,7 +12281,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProductOperationRerankResponse"
+                $ref: "#/components/schemas/ProductOperationRerank"
         "400":
           $ref: "#/components/responses/BadRequestError"
         "401":
