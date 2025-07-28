@@ -15,7 +15,6 @@ T = TypeVar("T", bound="SerialNumber")
 
 @_attrs_define
 class SerialNumber:
-
     id: Unset | int = UNSET
     transaction_id: Unset | str = UNSET
     serial_number: Unset | str = UNSET

@@ -15,7 +15,6 @@ T = TypeVar("T", bound="SalesOrderAccountingMetadata")
 
 @_attrs_define
 class SalesOrderAccountingMetadata:
-
     id: Unset | int = UNSET
     sales_order_id: Unset | int = UNSET
     external_id: Unset | str = UNSET

@@ -15,7 +15,6 @@ T = TypeVar("T", bound="AdditionalCost")
 
 @_attrs_define
 class AdditionalCost:
-
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     created_at: Unset | datetime.datetime = UNSET

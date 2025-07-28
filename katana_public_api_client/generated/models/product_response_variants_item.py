@@ -24,7 +24,6 @@ T = TypeVar("T", bound="ProductResponseVariantsItem")
 
 @_attrs_define
 class ProductResponseVariantsItem:
-
     id: Unset | int = UNSET
     sku: Unset | str = UNSET
     sales_price: None | Unset | float = UNSET

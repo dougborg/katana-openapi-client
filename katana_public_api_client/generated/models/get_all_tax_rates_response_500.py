@@ -13,7 +13,6 @@ T = TypeVar("T", bound="GetAllTaxRatesResponse500")
 
 @_attrs_define
 class GetAllTaxRatesResponse500:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

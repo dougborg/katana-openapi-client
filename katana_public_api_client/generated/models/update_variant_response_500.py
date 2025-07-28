@@ -13,7 +13,6 @@ T = TypeVar("T", bound="UpdateVariantResponse500")
 
 @_attrs_define
 class UpdateVariantResponse500:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

@@ -19,7 +19,6 @@ T = TypeVar("T", bound="VariantProductOrMaterial")
 
 @_attrs_define
 class VariantProductOrMaterial:
-
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     uom: Unset | str = UNSET

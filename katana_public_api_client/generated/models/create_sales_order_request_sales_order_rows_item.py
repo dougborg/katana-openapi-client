@@ -19,7 +19,6 @@ T = TypeVar("T", bound="CreateSalesOrderRequestSalesOrderRowsItem")
 
 @_attrs_define
 class CreateSalesOrderRequestSalesOrderRowsItem:
-
     quantity: float
     variant_id: int
     tax_rate_id: None | Unset | int = UNSET

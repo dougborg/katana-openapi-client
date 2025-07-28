@@ -13,7 +13,6 @@ T = TypeVar("T", bound="CreateCustomerRequest")
 
 @_attrs_define
 class CreateCustomerRequest:
-
     name: str
     first_name: None | Unset | str = UNSET
     last_name: None | Unset | str = UNSET

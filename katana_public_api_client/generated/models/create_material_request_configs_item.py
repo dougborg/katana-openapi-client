@@ -8,7 +8,6 @@ T = TypeVar("T", bound="CreateMaterialRequestConfigsItem")
 
 @_attrs_define
 class CreateMaterialRequestConfigsItem:
-
     name: str
     values: list[str]
 

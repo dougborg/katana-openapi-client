@@ -15,7 +15,6 @@ T = TypeVar("T", bound="PriceListRow")
 
 @_attrs_define
 class PriceListRow:
-
     id: int
     price_list_id: int
     variant_id: int

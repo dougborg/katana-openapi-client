@@ -17,7 +17,6 @@ T = TypeVar("T", bound="SerialNumberStockListResponse")
 
 @_attrs_define
 class SerialNumberStockListResponse:
-
     data: Unset | list["SerialNumberStock"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

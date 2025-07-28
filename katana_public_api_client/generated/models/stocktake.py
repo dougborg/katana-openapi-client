@@ -16,7 +16,6 @@ T = TypeVar("T", bound="Stocktake")
 
 @_attrs_define
 class Stocktake:
-
     id: int
     reference_no: str
     location_id: int

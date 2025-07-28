@@ -8,7 +8,6 @@ T = TypeVar("T", bound="UnlinkManufacturingOrderRequest")
 
 @_attrs_define
 class UnlinkManufacturingOrderRequest:
-
     sales_order_row_id: float
 
     def to_dict(self) -> dict[str, Any]:

@@ -13,7 +13,6 @@ T = TypeVar("T", bound="MaterialResponseConfigsItem")
 
 @_attrs_define
 class MaterialResponseConfigsItem:
-
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     values: Unset | list[str] = UNSET

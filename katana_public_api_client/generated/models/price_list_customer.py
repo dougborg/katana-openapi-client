@@ -15,7 +15,6 @@ T = TypeVar("T", bound="PriceListCustomer")
 
 @_attrs_define
 class PriceListCustomer:
-
     id: int
     price_list_id: int
     customer_id: int

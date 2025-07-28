@@ -21,7 +21,6 @@ T = TypeVar("T", bound="ManufacturingOrderRecipeRowResponse")
 
 @_attrs_define
 class ManufacturingOrderRecipeRowResponse:
-
     id: Unset | int = UNSET
     manufacturing_order_id: Unset | int = UNSET
     variant_id: Unset | int = UNSET

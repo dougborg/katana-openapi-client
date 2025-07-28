@@ -17,7 +17,6 @@ T = TypeVar("T", bound="VariantListResponse")
 
 @_attrs_define
 class VariantListResponse:
-
     data: Unset | list["VariantResponse"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

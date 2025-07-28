@@ -15,7 +15,6 @@ T = TypeVar("T", bound="NegativeStockResponse")
 
 @_attrs_define
 class NegativeStockResponse:
-
     variant_id: Unset | int = UNSET
     location_id: Unset | int = UNSET
     latest_negative_stock_date: Unset | datetime.datetime = UNSET

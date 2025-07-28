@@ -16,7 +16,6 @@ T = TypeVar("T", bound="UpdateCustomerAddressBody")
 
 @_attrs_define
 class UpdateCustomerAddressBody:
-
     entity_type: Unset | UpdateCustomerAddressBodyEntityType = UNSET
     first_name: None | Unset | str = UNSET
     last_name: None | Unset | str = UNSET

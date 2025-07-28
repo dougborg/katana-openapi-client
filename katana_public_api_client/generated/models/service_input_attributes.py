@@ -13,7 +13,6 @@ T = TypeVar("T", bound="ServiceInputAttributes")
 
 @_attrs_define
 class ServiceInputAttributes:
-
     name: str
     price: float
     currency: str

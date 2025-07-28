@@ -21,7 +21,6 @@ T = TypeVar("T", bound="ProductResponse")
 
 @_attrs_define
 class ProductResponse:
-
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     uom: Unset | str = UNSET

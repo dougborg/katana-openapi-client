@@ -21,7 +21,6 @@ T = TypeVar("T", bound="MaterialResponse")
 
 @_attrs_define
 class MaterialResponse:
-
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     uom: Unset | str = UNSET

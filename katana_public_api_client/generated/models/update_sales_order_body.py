@@ -13,7 +13,6 @@ T = TypeVar("T", bound="UpdateSalesOrderBody")
 
 @_attrs_define
 class UpdateSalesOrderBody:
-
     order_no: Unset | str = UNSET
     customer_id: Unset | int = UNSET
     delivery_date: None | Unset | str = UNSET

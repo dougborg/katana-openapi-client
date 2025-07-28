@@ -15,7 +15,6 @@ T = TypeVar("T", bound="PurchaseOrderAdditionalCostRowResponse")
 
 @_attrs_define
 class PurchaseOrderAdditionalCostRowResponse:
-
     id: Unset | int = UNSET
     additional_cost_id: Unset | int = UNSET
     group_id: Unset | int = UNSET

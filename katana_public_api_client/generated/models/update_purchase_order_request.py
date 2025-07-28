@@ -13,7 +13,6 @@ T = TypeVar("T", bound="UpdatePurchaseOrderRequest")
 
 @_attrs_define
 class UpdatePurchaseOrderRequest:
-
     order_no: Unset | str = UNSET
     supplier_id: Unset | int = UNSET
     currency: Unset | str = UNSET

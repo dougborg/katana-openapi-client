@@ -19,7 +19,6 @@ T = TypeVar("T", bound="UpdateVariantRequest")
 
 @_attrs_define
 class UpdateVariantRequest:
-
     sku: Unset | str = UNSET
     sales_price: Unset | float = UNSET
     purchase_price: Unset | float = UNSET

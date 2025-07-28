@@ -13,7 +13,6 @@ T = TypeVar("T", bound="ManufacturingOrderRecipeRowResponseBatchTransactionsItem
 
 @_attrs_define
 class ManufacturingOrderRecipeRowResponseBatchTransactionsItem:
-
     batch_id: Unset | int = UNSET
     quantity: Unset | float = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

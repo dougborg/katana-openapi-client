@@ -12,7 +12,6 @@ T = TypeVar("T", bound="CreatePriceListRequest")
 
 @_attrs_define
 class CreatePriceListRequest:
-
     name: str
     currency: str
     is_default: Unset | bool = UNSET

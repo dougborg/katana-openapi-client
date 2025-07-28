@@ -295,14 +295,29 @@ def format_generated_code(workspace_path: Path) -> bool:
     if not post_process_generated_docstrings(workspace_path):
         print("⚠️  Post-processing had issues but continuing")
 
-    # Run the format command which now includes generated files
+    # Run ruff format specifically on the generated code to ensure it's properly formatted
+    generated_path = workspace_path / "katana_public_api_client" / "generated"
+    if generated_path.exists():
+        print("🎨 Formatting generated Python files with ruff...")
+        result = run_command(
+            ["poetry", "run", "ruff", "format", str(generated_path)],
+            cwd=workspace_path,
+            check=False,
+        )
+
+        if result.returncode != 0:
+            print("❌ Failed to format generated files with ruff")
+            return False
+
+    # Run the full format command for any other files
+    print("🎨 Running full format command for all files...")
     result = run_command(
-        ["poetry", "run", "poe", "format"], cwd=workspace_path, check=False
+        ["poetry", "run", "poe", "format-python"], cwd=workspace_path, check=False
     )
 
     if result.returncode != 0:
-        print("⚠️  Formatting had issues but continuing")
-        return True  # Don't fail the whole process for formatting issues
+        print("❌ Failed to format files")
+        return False
 
     print("✅ Code formatted successfully")
     return True
@@ -355,7 +370,7 @@ def post_process_generated_docstrings(workspace_path: Path) -> bool:
 
     This function applies targeted fixes to common RST formatting issues in
     generated OpenAPI client code that cause Sphinx warnings. It also removes
-    "Attributes:" sections from class docstrings to prevent AutoAPI 3.2+ 
+    "Attributes:" sections from class docstrings to prevent AutoAPI 3.2+
     duplicate object warnings.
     """
     generated_path = workspace_path / "katana_public_api_client" / "generated"
@@ -371,22 +386,22 @@ def post_process_generated_docstrings(workspace_path: Path) -> bool:
             original_content = content
 
             # Fix: Remove "Attributes:" sections from class docstrings
-            # AutoAPI 3.2+ generates both docstring attributes and typed attribute 
+            # AutoAPI 3.2+ generates both docstring attributes and typed attribute
             # directives, causing duplicate object warnings. We remove the docstring
             # attributes section since AutoAPI will auto-document typed attributes.
-            
+
             # First, remove the Attributes section
             content = re.sub(
                 r'(class\s+\w+[^:]*:\s*"""[^"]*?)(\s*Attributes:\s*.*?)(\s*""")',
-                r'\1\3',
+                r"\1\3",
                 content,
-                flags=re.DOTALL
+                flags=re.DOTALL,
             )
-            
+
             # Then, remove empty docstrings (just whitespace between triple quotes)
             content = re.sub(
                 r'(class\s+\w+[^:]*:)\s*"""\s*"""',
-                r'\1',
+                r"\1",
                 content,
             )
 

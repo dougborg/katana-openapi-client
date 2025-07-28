@@ -19,7 +19,6 @@ T = TypeVar("T", bound="CreateVariantRequest")
 
 @_attrs_define
 class CreateVariantRequest:
-
     sku: str
     supplier_item_codes: list[str]
     sales_price: Unset | float = UNSET

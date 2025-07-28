@@ -15,7 +15,6 @@ T = TypeVar("T", bound="OutsourcedPurchaseOrderRecipeRow")
 
 @_attrs_define
 class OutsourcedPurchaseOrderRecipeRow:
-
     id: Unset | int = UNSET
     outsourced_purchase_order_id: Unset | int = UNSET
     bom_row_id: Unset | int = UNSET

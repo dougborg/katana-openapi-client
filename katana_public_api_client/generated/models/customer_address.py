@@ -16,7 +16,6 @@ T = TypeVar("T", bound="CustomerAddress")
 
 @_attrs_define
 class CustomerAddress:
-
     id: int
     customer_id: int
     entity_type: CustomerAddressEntityType

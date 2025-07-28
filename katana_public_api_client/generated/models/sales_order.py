@@ -26,7 +26,6 @@ T = TypeVar("T", bound="SalesOrder")
 
 @_attrs_define
 class SalesOrder:
-
     id: int
     customer_id: int
     order_no: str

@@ -15,7 +15,6 @@ T = TypeVar("T", bound="TaxRateResponse")
 
 @_attrs_define
 class TaxRateResponse:
-
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     rate: Unset | float = UNSET

@@ -17,8 +17,7 @@ T = TypeVar("T", bound="ValidationErrorDetail")
 
 @_attrs_define
 class ValidationErrorDetail:
-    """Individual validation error detail
-    """
+    """Individual validation error detail"""
 
     path: str
     code: str

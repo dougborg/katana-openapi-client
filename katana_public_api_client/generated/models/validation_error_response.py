@@ -17,7 +17,6 @@ T = TypeVar("T", bound="ValidationErrorResponse")
 
 @_attrs_define
 class ValidationErrorResponse:
-
     status_code: float
     name: str
     message: str

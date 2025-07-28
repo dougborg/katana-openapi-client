@@ -20,7 +20,6 @@ T = TypeVar("T", bound="PurchaseOrderResponse")
 
 @_attrs_define
 class PurchaseOrderResponse:
-
     id: Unset | int = UNSET
     status: Unset | str = UNSET
     order_no: Unset | str = UNSET

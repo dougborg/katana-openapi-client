@@ -17,7 +17,6 @@ T = TypeVar("T", bound="GetAllLocationsResponse200")
 
 @_attrs_define
 class GetAllLocationsResponse200:
-
     data: Unset | list["Location"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

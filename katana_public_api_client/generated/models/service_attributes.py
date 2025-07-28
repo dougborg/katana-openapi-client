@@ -15,7 +15,6 @@ T = TypeVar("T", bound="ServiceAttributes")
 
 @_attrs_define
 class ServiceAttributes:
-
     name: Unset | str = UNSET
     description: Unset | str = UNSET
     price: Unset | float = UNSET

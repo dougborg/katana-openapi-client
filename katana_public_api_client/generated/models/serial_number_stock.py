@@ -16,7 +16,6 @@ T = TypeVar("T", bound="SerialNumberStock")
 
 @_attrs_define
 class SerialNumberStock:
-
     id: int
     variant_id: int
     location_id: int

@@ -19,7 +19,6 @@ T = TypeVar("T", bound="CreateProductRequestVariantsItem")
 
 @_attrs_define
 class CreateProductRequestVariantsItem:
-
     sku: str
     purchase_price: None | Unset | float = UNSET
     sales_price: None | Unset | float = UNSET

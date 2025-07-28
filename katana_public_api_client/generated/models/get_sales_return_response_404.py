@@ -13,7 +13,6 @@ T = TypeVar("T", bound="GetSalesReturnResponse404")
 
 @_attrs_define
 class GetSalesReturnResponse404:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

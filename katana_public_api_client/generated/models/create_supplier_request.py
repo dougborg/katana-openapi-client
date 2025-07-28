@@ -14,7 +14,6 @@ T = TypeVar("T", bound="CreateSupplierRequest")
 
 @_attrs_define
 class CreateSupplierRequest:
-
     name: str
     currency: Unset | str = UNSET
     email: Unset | str = UNSET

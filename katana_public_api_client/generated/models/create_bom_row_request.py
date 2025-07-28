@@ -13,7 +13,6 @@ T = TypeVar("T", bound="CreateBomRowRequest")
 
 @_attrs_define
 class CreateBomRowRequest:
-
     product_variant_id: int
     ingredient_variant_id: int
     quantity: float

@@ -8,7 +8,6 @@ T = TypeVar("T", bound="CreateProductRequestConfigsItem")
 
 @_attrs_define
 class CreateProductRequestConfigsItem:
-
     name: str
     values: list[str]
 

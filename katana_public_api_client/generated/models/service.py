@@ -18,7 +18,6 @@ T = TypeVar("T", bound="Service")
 
 @_attrs_define
 class Service:
-
     id: Unset | str = UNSET
     type_: Unset | ServiceType = UNSET
     attributes: Union[Unset, "ServiceAttributes"] = UNSET

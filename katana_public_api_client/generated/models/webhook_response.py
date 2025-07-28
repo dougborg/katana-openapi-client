@@ -15,7 +15,6 @@ T = TypeVar("T", bound="WebhookResponse")
 
 @_attrs_define
 class WebhookResponse:
-
     id: Unset | int = UNSET
     url: Unset | str = UNSET
     token: Unset | str = UNSET

@@ -17,7 +17,6 @@ T = TypeVar("T", bound="OperatorListResponse")
 
 @_attrs_define
 class OperatorListResponse:
-
     data: Unset | list["Operator"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

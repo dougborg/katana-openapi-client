@@ -13,7 +13,6 @@ T = TypeVar("T", bound="SalesOrderRowAttributesItem")
 
 @_attrs_define
 class SalesOrderRowAttributesItem:
-
     key: Unset | str = UNSET
     value: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

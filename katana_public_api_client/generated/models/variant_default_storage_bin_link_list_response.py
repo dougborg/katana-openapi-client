@@ -19,7 +19,6 @@ T = TypeVar("T", bound="VariantDefaultStorageBinLinkListResponse")
 
 @_attrs_define
 class VariantDefaultStorageBinLinkListResponse:
-
     data: Unset | list["VariantDefaultStorageBinLinkResponse"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

@@ -19,7 +19,6 @@ T = TypeVar("T", bound="CreateMaterialRequestVariantsItem")
 
 @_attrs_define
 class CreateMaterialRequestVariantsItem:
-
     sku: Unset | str = UNSET
     purchase_price: Unset | float = UNSET
     internal_barcode: Unset | str = UNSET

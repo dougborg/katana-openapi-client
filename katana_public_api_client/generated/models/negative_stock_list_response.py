@@ -17,7 +17,6 @@ T = TypeVar("T", bound="NegativeStockListResponse")
 
 @_attrs_define
 class NegativeStockListResponse:
-
     data: Unset | list["NegativeStockResponse"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

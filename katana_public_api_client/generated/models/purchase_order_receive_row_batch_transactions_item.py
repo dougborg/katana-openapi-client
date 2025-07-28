@@ -8,7 +8,6 @@ T = TypeVar("T", bound="PurchaseOrderReceiveRowBatchTransactionsItem")
 
 @_attrs_define
 class PurchaseOrderReceiveRowBatchTransactionsItem:
-
     batch_id: int
     quantity: float
 

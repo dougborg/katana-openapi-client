@@ -15,7 +15,6 @@ T = TypeVar("T", bound="BatchCreateBomRowsRequest")
 
 @_attrs_define
 class BatchCreateBomRowsRequest:
-
     bom_rows: list["CreateBomRowRequest"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

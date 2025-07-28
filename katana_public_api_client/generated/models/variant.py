@@ -20,7 +20,6 @@ T = TypeVar("T", bound="Variant")
 
 @_attrs_define
 class Variant:
-
     id: int
     sku: str
     sales_price: None | Unset | float = UNSET

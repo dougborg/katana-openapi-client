@@ -16,7 +16,6 @@ T = TypeVar("T", bound="UpdateProductRequest")
 
 @_attrs_define
 class UpdateProductRequest:
-
     name: Unset | str = UNSET
     uom: Unset | str = UNSET
     category_name: Unset | str = UNSET

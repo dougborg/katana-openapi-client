@@ -18,7 +18,6 @@ T = TypeVar("T", bound="Inventory")
 
 @_attrs_define
 class Inventory:
-
     variant_id: int
     location_id: int
     reorder_point: str

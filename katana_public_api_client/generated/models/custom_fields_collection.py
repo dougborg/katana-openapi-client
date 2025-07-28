@@ -21,7 +21,6 @@ T = TypeVar("T", bound="CustomFieldsCollection")
 
 @_attrs_define
 class CustomFieldsCollection:
-
     id: int
     name: str
     resource_type: str

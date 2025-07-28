@@ -15,7 +15,6 @@ T = TypeVar("T", bound="SalesReturnRow")
 
 @_attrs_define
 class SalesReturnRow:
-
     id: int
     sales_return_id: int
     variant_id: int

@@ -10,7 +10,6 @@ T = TypeVar("T", bound="PurchaseOrderRowRequest")
 
 @_attrs_define
 class PurchaseOrderRowRequest:
-
     quantity: float
     price_per_unit: float
     purchase_uom_conversion_rate: Unset | float = UNSET

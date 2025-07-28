@@ -21,7 +21,6 @@ T = TypeVar("T", bound="UpdateManufacturingOrderRecipeRowRequest")
 
 @_attrs_define
 class UpdateManufacturingOrderRecipeRowRequest:
-
     notes: Unset | str = UNSET
     planned_quantity_per_unit: Unset | float = UNSET
     total_actual_quantity: Unset | float = UNSET

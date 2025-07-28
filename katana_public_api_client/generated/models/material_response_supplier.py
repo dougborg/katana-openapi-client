@@ -15,7 +15,6 @@ T = TypeVar("T", bound="MaterialResponseSupplier")
 
 @_attrs_define
 class MaterialResponseSupplier:
-
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     email: Unset | str = UNSET

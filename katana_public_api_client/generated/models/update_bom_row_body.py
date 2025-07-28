@@ -13,7 +13,6 @@ T = TypeVar("T", bound="UpdateBomRowBody")
 
 @_attrs_define
 class UpdateBomRowBody:
-
     ingredient_variant_id: Unset | int = UNSET
     quantity: Unset | float = UNSET
     notes: None | Unset | str = UNSET

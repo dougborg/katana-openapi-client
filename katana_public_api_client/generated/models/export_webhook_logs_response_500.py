@@ -13,7 +13,6 @@ T = TypeVar("T", bound="ExportWebhookLogsResponse500")
 
 @_attrs_define
 class ExportWebhookLogsResponse500:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

@@ -10,7 +10,6 @@ T = TypeVar("T", bound="CreatePriceListRowRequest")
 
 @_attrs_define
 class CreatePriceListRowRequest:
-
     price_list_id: int
     variant_id: int
     price: float

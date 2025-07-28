@@ -17,7 +17,6 @@ T = TypeVar("T", bound="ServiceListResponse")
 
 @_attrs_define
 class ServiceListResponse:
-
     data: Unset | list["Service"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

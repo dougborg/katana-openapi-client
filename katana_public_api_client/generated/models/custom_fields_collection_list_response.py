@@ -17,7 +17,6 @@ T = TypeVar("T", bound="CustomFieldsCollectionListResponse")
 
 @_attrs_define
 class CustomFieldsCollectionListResponse:
-
     data: Unset | list["CustomFieldsCollection"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

@@ -10,7 +10,6 @@ T = TypeVar("T", bound="UpdateSupplierAddressRequest")
 
 @_attrs_define
 class UpdateSupplierAddressRequest:
-
     line_1: None | Unset | str = UNSET
     line_2: None | Unset | str = UNSET
     city: None | Unset | str = UNSET

@@ -15,7 +15,6 @@ T = TypeVar("T", bound="User")
 
 @_attrs_define
 class User:
-
     id: int
     first_name: str
     last_name: str

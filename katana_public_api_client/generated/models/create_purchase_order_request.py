@@ -20,7 +20,6 @@ T = TypeVar("T", bound="CreatePurchaseOrderRequest")
 
 @_attrs_define
 class CreatePurchaseOrderRequest:
-
     order_no: str
     supplier_id: int
     location_id: int

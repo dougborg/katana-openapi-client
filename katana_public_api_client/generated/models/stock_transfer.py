@@ -16,7 +16,6 @@ T = TypeVar("T", bound="StockTransfer")
 
 @_attrs_define
 class StockTransfer:
-
     id: int
     reference_no: str
     from_location_id: int

@@ -13,7 +13,6 @@ T = TypeVar("T", bound="ProductResponseConfigsItem")
 
 @_attrs_define
 class ProductResponseConfigsItem:
-
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     values: Unset | list[str] = UNSET

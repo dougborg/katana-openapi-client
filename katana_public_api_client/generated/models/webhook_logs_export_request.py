@@ -13,7 +13,6 @@ T = TypeVar("T", bound="WebhookLogsExportRequest")
 
 @_attrs_define
 class WebhookLogsExportRequest:
-
     webhook_id: Unset | int = UNSET
     event: Unset | WebhookEvent = UNSET
     status_code: Unset | int = UNSET

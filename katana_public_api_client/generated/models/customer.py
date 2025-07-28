@@ -15,7 +15,6 @@ T = TypeVar("T", bound="Customer")
 
 @_attrs_define
 class Customer:
-
     id: int
     name: str
     first_name: None | Unset | str = UNSET

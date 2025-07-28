@@ -24,7 +24,6 @@ T = TypeVar("T", bound="CreateManufacturingOrderProductionRequest")
 
 @_attrs_define
 class CreateManufacturingOrderProductionRequest:
-
     manufacturing_order_id: int
     quantity: float
     production_date: datetime.datetime

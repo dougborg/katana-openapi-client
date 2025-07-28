@@ -15,7 +15,6 @@ T = TypeVar("T", bound="ServiceRequest")
 
 @_attrs_define
 class ServiceRequest:
-
     data: "ServiceRequestData"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

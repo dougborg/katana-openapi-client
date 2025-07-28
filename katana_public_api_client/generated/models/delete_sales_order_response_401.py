@@ -13,7 +13,6 @@ T = TypeVar("T", bound="DeleteSalesOrderResponse401")
 
 @_attrs_define
 class DeleteSalesOrderResponse401:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

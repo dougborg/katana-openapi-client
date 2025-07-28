@@ -10,7 +10,6 @@ T = TypeVar("T", bound="UpdateMaterialRequestConfigsItem")
 
 @_attrs_define
 class UpdateMaterialRequestConfigsItem:
-
     name: str
     values: list[str]
     id: Unset | int = UNSET

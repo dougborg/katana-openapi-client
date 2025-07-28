@@ -10,7 +10,6 @@ T = TypeVar("T", bound="Batch")
 
 @_attrs_define
 class Batch:
-
     batch_number: str
     variant_id: int
     expiration_date: Unset | str = UNSET

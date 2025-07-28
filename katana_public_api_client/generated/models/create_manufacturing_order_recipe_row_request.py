@@ -21,7 +21,6 @@ T = TypeVar("T", bound="CreateManufacturingOrderRecipeRowRequest")
 
 @_attrs_define
 class CreateManufacturingOrderRecipeRowRequest:
-
     manufacturing_order_id: int
     variant_id: int
     planned_quantity_per_unit: float

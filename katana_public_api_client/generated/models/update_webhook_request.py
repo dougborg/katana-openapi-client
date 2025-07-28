@@ -11,7 +11,6 @@ T = TypeVar("T", bound="UpdateWebhookRequest")
 
 @_attrs_define
 class UpdateWebhookRequest:
-
     url: str
     subscribed_events: list[WebhookEvent]
     enabled: Unset | bool = UNSET

@@ -13,7 +13,6 @@ T = TypeVar("T", bound="GetAllOperatorsResponse401")
 
 @_attrs_define
 class GetAllOperatorsResponse401:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

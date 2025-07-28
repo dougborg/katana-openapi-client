@@ -15,7 +15,6 @@ T = TypeVar("T", bound="VariantDefaultStorageBinLinkResponse")
 
 @_attrs_define
 class VariantDefaultStorageBinLinkResponse:
-
     id: Unset | int = UNSET
     bin_name: Unset | str = UNSET
     variant_id: Unset | int = UNSET

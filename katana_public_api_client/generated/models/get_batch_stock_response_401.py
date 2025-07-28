@@ -13,7 +13,6 @@ T = TypeVar("T", bound="GetBatchStockResponse401")
 
 @_attrs_define
 class GetBatchStockResponse401:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

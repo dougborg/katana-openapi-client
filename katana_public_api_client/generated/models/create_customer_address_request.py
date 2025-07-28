@@ -16,7 +16,6 @@ T = TypeVar("T", bound="CreateCustomerAddressRequest")
 
 @_attrs_define
 class CreateCustomerAddressRequest:
-
     customer_id: int
     entity_type: CreateCustomerAddressRequestEntityType
     first_name: None | Unset | str = UNSET

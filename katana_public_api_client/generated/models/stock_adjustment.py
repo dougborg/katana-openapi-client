@@ -16,7 +16,6 @@ T = TypeVar("T", bound="StockAdjustment")
 
 @_attrs_define
 class StockAdjustment:
-
     id: int
     reference_no: str
     location_id: int

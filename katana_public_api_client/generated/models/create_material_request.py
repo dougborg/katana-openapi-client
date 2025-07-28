@@ -19,7 +19,6 @@ T = TypeVar("T", bound="CreateMaterialRequest")
 
 @_attrs_define
 class CreateMaterialRequest:
-
     name: str
     variants: list["CreateMaterialRequestVariantsItem"]
     uom: Unset | str = UNSET

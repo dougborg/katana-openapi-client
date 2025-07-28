@@ -17,7 +17,6 @@ T = TypeVar("T", bound="MaterialListResponse")
 
 @_attrs_define
 class MaterialListResponse:
-
     data: Unset | list["MaterialResponse"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

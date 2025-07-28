@@ -23,7 +23,6 @@ T = TypeVar("T", bound="CreateSalesOrderRequest")
 
 @_attrs_define
 class CreateSalesOrderRequest:
-
     order_no: str
     customer_id: int
     sales_order_rows: list["CreateSalesOrderRequestSalesOrderRowsItem"]

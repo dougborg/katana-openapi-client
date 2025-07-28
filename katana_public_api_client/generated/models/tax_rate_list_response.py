@@ -17,7 +17,6 @@ T = TypeVar("T", bound="TaxRateListResponse")
 
 @_attrs_define
 class TaxRateListResponse:
-
     data: Unset | list["TaxRateResponse"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

@@ -13,7 +13,6 @@ T = TypeVar("T", bound="MaterialResponseVariantsItemConfigAttributesItem")
 
 @_attrs_define
 class MaterialResponseVariantsItemConfigAttributesItem:
-
     config_name: Unset | str = UNSET
     config_value: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

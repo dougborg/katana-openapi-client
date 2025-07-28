@@ -15,7 +15,6 @@ T = TypeVar("T", bound="SalesOrderShippingFee")
 
 @_attrs_define
 class SalesOrderShippingFee:
-
     id: Unset | int = UNSET
     sales_order_id: Unset | int = UNSET
     amount: Unset | float = UNSET

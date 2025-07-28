@@ -15,7 +15,6 @@ T = TypeVar("T", bound="SalesOrderFulfillment")
 
 @_attrs_define
 class SalesOrderFulfillment:
-
     id: int
     sales_order_id: int
     tracking_number: None | Unset | str = UNSET

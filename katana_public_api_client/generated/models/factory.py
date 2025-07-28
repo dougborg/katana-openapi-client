@@ -15,7 +15,6 @@ T = TypeVar("T", bound="Factory")
 
 @_attrs_define
 class Factory:
-
     id: int
     name: str
     currency: str

@@ -24,7 +24,6 @@ T = TypeVar("T", bound="VariantResponseProductOrMaterial")
 
 @_attrs_define
 class VariantResponseProductOrMaterial:
-
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     uom: Unset | str = UNSET

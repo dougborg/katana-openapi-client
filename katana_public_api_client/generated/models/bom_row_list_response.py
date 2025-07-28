@@ -17,7 +17,6 @@ T = TypeVar("T", bound="BomRowListResponse")
 
 @_attrs_define
 class BomRowListResponse:
-
     data: Unset | list["BomRow"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

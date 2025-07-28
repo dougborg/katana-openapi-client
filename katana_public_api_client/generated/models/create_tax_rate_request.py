@@ -10,7 +10,6 @@ T = TypeVar("T", bound="CreateTaxRateRequest")
 
 @_attrs_define
 class CreateTaxRateRequest:
-
     rate: float
     name: Unset | str = UNSET
 

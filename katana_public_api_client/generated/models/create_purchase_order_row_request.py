@@ -10,7 +10,6 @@ T = TypeVar("T", bound="CreatePurchaseOrderRowRequest")
 
 @_attrs_define
 class CreatePurchaseOrderRowRequest:
-
     purchase_order_id: int
     quantity: float
     variant_id: int

@@ -17,7 +17,6 @@ T = TypeVar("T", bound="WebhookListResponse")
 
 @_attrs_define
 class WebhookListResponse:
-
     data: Unset | list["WebhookResponse"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

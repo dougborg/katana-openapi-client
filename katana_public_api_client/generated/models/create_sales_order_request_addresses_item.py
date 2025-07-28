@@ -16,7 +16,6 @@ T = TypeVar("T", bound="CreateSalesOrderRequestAddressesItem")
 
 @_attrs_define
 class CreateSalesOrderRequestAddressesItem:
-
     entity_type: CreateSalesOrderRequestAddressesItemEntityType
     first_name: None | Unset | str = UNSET
     last_name: None | Unset | str = UNSET

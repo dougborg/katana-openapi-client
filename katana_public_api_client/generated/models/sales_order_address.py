@@ -16,7 +16,6 @@ T = TypeVar("T", bound="SalesOrderAddress")
 
 @_attrs_define
 class SalesOrderAddress:
-
     id: int
     sales_order_id: int
     entity_type: SalesOrderAddressEntityType

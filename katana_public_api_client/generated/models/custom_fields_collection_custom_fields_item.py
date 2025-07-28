@@ -13,7 +13,6 @@ T = TypeVar("T", bound="CustomFieldsCollectionCustomFieldsItem")
 
 @_attrs_define
 class CustomFieldsCollectionCustomFieldsItem:
-
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     field_type: Unset | str = UNSET

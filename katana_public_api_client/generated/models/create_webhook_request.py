@@ -11,7 +11,6 @@ T = TypeVar("T", bound="CreateWebhookRequest")
 
 @_attrs_define
 class CreateWebhookRequest:
-
     url: str
     subscribed_events: list[WebhookEvent]
     description: Unset | str = UNSET

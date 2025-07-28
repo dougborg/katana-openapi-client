@@ -28,7 +28,6 @@ T = TypeVar("T", bound="VariantResponse")
 
 @_attrs_define
 class VariantResponse:
-
     id: Unset | int = UNSET
     sku: Unset | str = UNSET
     sales_price: Unset | float = UNSET

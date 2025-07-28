@@ -13,7 +13,6 @@ T = TypeVar("T", bound="DeleteWebhookResponse500")
 
 @_attrs_define
 class DeleteWebhookResponse500:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

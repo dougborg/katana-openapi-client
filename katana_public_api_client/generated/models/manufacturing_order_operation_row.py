@@ -22,7 +22,6 @@ T = TypeVar("T", bound="ManufacturingOrderOperationRow")
 
 @_attrs_define
 class ManufacturingOrderOperationRow:
-
     id: Unset | int = UNSET
     status: Unset | ManufacturingOrderOperationRowStatus = UNSET
     type_: Unset | str = UNSET

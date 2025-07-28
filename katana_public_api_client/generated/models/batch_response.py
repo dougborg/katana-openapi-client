@@ -15,7 +15,6 @@ T = TypeVar("T", bound="BatchResponse")
 
 @_attrs_define
 class BatchResponse:
-
     batch_number: str
     variant_id: int
     expiration_date: Unset | str = UNSET

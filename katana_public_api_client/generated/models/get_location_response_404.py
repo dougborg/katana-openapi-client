@@ -13,7 +13,6 @@ T = TypeVar("T", bound="GetLocationResponse404")
 
 @_attrs_define
 class GetLocationResponse404:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

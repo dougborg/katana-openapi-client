@@ -13,7 +13,6 @@ T = TypeVar("T", bound="VariantResponseCustomFieldsItem")
 
 @_attrs_define
 class VariantResponseCustomFieldsItem:
-
     field_name: Unset | str = UNSET
     field_value: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

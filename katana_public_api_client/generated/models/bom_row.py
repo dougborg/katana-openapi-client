@@ -15,7 +15,6 @@ T = TypeVar("T", bound="BomRow")
 
 @_attrs_define
 class BomRow:
-
     id: int
     product_variant_id: int
     product_item_id: int

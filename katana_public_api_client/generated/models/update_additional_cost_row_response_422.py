@@ -19,7 +19,6 @@ T = TypeVar("T", bound="UpdateAdditionalCostRowResponse422")
 
 @_attrs_define
 class UpdateAdditionalCostRowResponse422:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

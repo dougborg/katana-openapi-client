@@ -13,7 +13,6 @@ T = TypeVar("T", bound="CreateSupplierResponse500")
 
 @_attrs_define
 class CreateSupplierResponse500:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

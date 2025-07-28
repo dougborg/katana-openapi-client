@@ -11,7 +11,6 @@ T = TypeVar("T", bound="CreateManufacturingOrderOperationRowRequest")
 
 @_attrs_define
 class CreateManufacturingOrderOperationRowRequest:
-
     manufacturing_order_id: int
     operation_id: int
     time: float

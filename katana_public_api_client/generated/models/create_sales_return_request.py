@@ -16,7 +16,6 @@ T = TypeVar("T", bound="CreateSalesReturnRequest")
 
 @_attrs_define
 class CreateSalesReturnRequest:
-
     customer_id: int
     order_no: str
     return_location_id: int

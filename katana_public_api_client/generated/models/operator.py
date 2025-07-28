@@ -15,7 +15,6 @@ T = TypeVar("T", bound="Operator")
 
 @_attrs_define
 class Operator:
-
     id: int
     name: str
     operator_id: Unset | int = UNSET

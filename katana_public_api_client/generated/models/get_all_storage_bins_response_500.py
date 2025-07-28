@@ -13,7 +13,6 @@ T = TypeVar("T", bound="GetAllStorageBinsResponse500")
 
 @_attrs_define
 class GetAllStorageBinsResponse500:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

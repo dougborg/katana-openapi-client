@@ -10,7 +10,6 @@ T = TypeVar("T", bound="UpdatePurchaseOrderRowRequest")
 
 @_attrs_define
 class UpdatePurchaseOrderRowRequest:
-
     quantity: Unset | float = UNSET
     variant_id: Unset | int = UNSET
     tax_rate_id: Unset | int = UNSET

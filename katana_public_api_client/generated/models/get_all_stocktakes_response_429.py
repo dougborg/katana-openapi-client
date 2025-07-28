@@ -13,7 +13,6 @@ T = TypeVar("T", bound="GetAllStocktakesResponse429")
 
 @_attrs_define
 class GetAllStocktakesResponse429:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

@@ -19,7 +19,6 @@ T = TypeVar("T", bound="CreateProductRequest")
 
 @_attrs_define
 class CreateProductRequest:
-
     name: str
     variants: list["CreateProductRequestVariantsItem"]
     uom: Unset | str = UNSET

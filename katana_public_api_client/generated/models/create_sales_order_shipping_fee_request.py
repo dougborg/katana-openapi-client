@@ -10,7 +10,6 @@ T = TypeVar("T", bound="CreateSalesOrderShippingFeeRequest")
 
 @_attrs_define
 class CreateSalesOrderShippingFeeRequest:
-
     sales_order_id: int
     amount: float
     currency: Unset | str = UNSET

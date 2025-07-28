@@ -10,7 +10,6 @@ T = TypeVar("T", bound="MakeToOrderManufacturingOrderRequest")
 
 @_attrs_define
 class MakeToOrderManufacturingOrderRequest:
-
     sales_order_row_id: float
     create_subassemblies: Unset | bool = False
 

@@ -11,7 +11,6 @@ T = TypeVar("T", bound="CreateManufacturingOrderRecipeRowRequestBatchTransaction
 
 @_attrs_define
 class CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem:
-
     batch_id: int
     quantity: float
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

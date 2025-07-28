@@ -19,7 +19,6 @@ T = TypeVar("T", bound="CreateWebhookResponse422")
 
 @_attrs_define
 class CreateWebhookResponse422:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

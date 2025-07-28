@@ -15,7 +15,6 @@ T = TypeVar("T", bound="CreateManufacturingOrderRequest")
 
 @_attrs_define
 class CreateManufacturingOrderRequest:
-
     variant_id: int
     planned_quantity: float
     location_id: int

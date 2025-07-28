@@ -16,8 +16,7 @@ T = TypeVar("T", bound="InventoryMovement")
 
 @_attrs_define
 class InventoryMovement:
-    """Details of a single inventory movement record.
-    """
+    """Details of a single inventory movement record."""
 
     id: int
     variant_id: int

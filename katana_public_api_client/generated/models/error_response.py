@@ -13,8 +13,7 @@ T = TypeVar("T", bound="ErrorResponse")
 
 @_attrs_define
 class ErrorResponse:
-    """Base error response schema
-    """
+    """Base error response schema"""
 
     status_code: float
     name: str

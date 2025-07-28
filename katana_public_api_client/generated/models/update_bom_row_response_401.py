@@ -13,7 +13,6 @@ T = TypeVar("T", bound="UpdateBomRowResponse401")
 
 @_attrs_define
 class UpdateBomRowResponse401:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

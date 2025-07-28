@@ -13,7 +13,6 @@ T = TypeVar("T", bound="CreateMaterialResponse401")
 
 @_attrs_define
 class CreateMaterialResponse401:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

@@ -21,7 +21,6 @@ T = TypeVar("T", bound="PurchaseOrderRowResponse")
 
 @_attrs_define
 class PurchaseOrderRowResponse:
-
     id: Unset | int = UNSET
     quantity: Unset | float = UNSET
     variant_id: Unset | int = UNSET

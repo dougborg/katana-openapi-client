@@ -13,7 +13,6 @@ T = TypeVar("T", bound="CreatePriceListRowResponse400")
 
 @_attrs_define
 class CreatePriceListRowResponse400:
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

@@ -17,7 +17,6 @@ T = TypeVar("T", bound="AdditionalCostList")
 
 @_attrs_define
 class AdditionalCostList:
-
     data: Unset | list["AdditionalCost"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

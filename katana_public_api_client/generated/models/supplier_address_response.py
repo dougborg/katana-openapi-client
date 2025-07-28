@@ -15,7 +15,6 @@ T = TypeVar("T", bound="SupplierAddressResponse")
 
 @_attrs_define
 class SupplierAddressResponse:
-
     id: Unset | int = UNSET
     supplier_id: Unset | int = UNSET
     line_1: Unset | str = UNSET

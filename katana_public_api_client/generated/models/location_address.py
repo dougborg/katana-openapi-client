@@ -13,7 +13,6 @@ T = TypeVar("T", bound="LocationAddress")
 
 @_attrs_define
 class LocationAddress:
-
     id: int
     city: str
     country: str

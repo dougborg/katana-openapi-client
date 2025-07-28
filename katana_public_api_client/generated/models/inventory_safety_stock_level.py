@@ -8,7 +8,6 @@ T = TypeVar("T", bound="InventorySafetyStockLevel")
 
 @_attrs_define
 class InventorySafetyStockLevel:
-
     location_id: int
     variant_id: int
     value: float

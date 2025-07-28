@@ -17,7 +17,6 @@ T = TypeVar("T", bound="SalesOrderFulfillmentListResponse")
 
 @_attrs_define
 class SalesOrderFulfillmentListResponse:
-
     data: Unset | list["SalesOrderFulfillment"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

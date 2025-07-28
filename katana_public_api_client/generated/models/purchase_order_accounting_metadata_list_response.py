@@ -19,7 +19,6 @@ T = TypeVar("T", bound="PurchaseOrderAccountingMetadataListResponse")
 
 @_attrs_define
 class PurchaseOrderAccountingMetadataListResponse:
-
     data: Unset | list["PurchaseOrderAccountingMetadata"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

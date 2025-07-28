@@ -24,7 +24,6 @@ T = TypeVar("T", bound="MaterialResponseVariantsItem")
 
 @_attrs_define
 class MaterialResponseVariantsItem:
-
     id: Unset | int = UNSET
     sku: Unset | str = UNSET
     sales_price: None | Unset | float = UNSET

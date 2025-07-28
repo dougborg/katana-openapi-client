@@ -15,7 +15,6 @@ T = TypeVar("T", bound="StorageBin")
 
 @_attrs_define
 class StorageBin:
-
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     location_id: Unset | int = UNSET

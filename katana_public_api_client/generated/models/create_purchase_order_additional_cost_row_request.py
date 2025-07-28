@@ -13,7 +13,6 @@ T = TypeVar("T", bound="CreatePurchaseOrderAdditionalCostRowRequest")
 
 @_attrs_define
 class CreatePurchaseOrderAdditionalCostRowRequest:
-
     additional_cost_id: int
     group_id: int
     tax_rate_id: int

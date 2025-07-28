@@ -17,7 +17,6 @@ T = TypeVar("T", bound="ProductOperationRerankRequest")
 
 @_attrs_define
 class ProductOperationRerankRequest:
-
     product_id: int
     operation_ranks: list["ProductOperationRerankRequestOperationRanksItem"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

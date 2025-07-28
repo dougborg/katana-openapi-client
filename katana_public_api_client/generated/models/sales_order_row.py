@@ -25,7 +25,6 @@ T = TypeVar("T", bound="SalesOrderRow")
 
 @_attrs_define
 class SalesOrderRow:
-
     id: int
     quantity: float
     variant_id: int
