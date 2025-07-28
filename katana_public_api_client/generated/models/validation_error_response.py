@@ -17,15 +17,6 @@ T = TypeVar("T", bound="ValidationErrorResponse")
 
 @_attrs_define
 class ValidationErrorResponse:
-    """
-    Attributes:
-        status_code (float): HTTP status code
-        name (str): Error name/type
-        message (str): Human-readable error message
-        code (Union[None, Unset, str]): Application-specific error code
-        details (Union[Unset, list['ValidationErrorDetail']]): Detailed validation error information
-    """
-
     status_code: float
     name: str
     message: str

@@ -21,16 +21,6 @@ T = TypeVar("T", bound="CustomFieldsCollection")
 
 @_attrs_define
 class CustomFieldsCollection:
-    """
-    Attributes:
-        id (int):
-        name (str):
-        resource_type (str):
-        custom_fields (Union[Unset, list['CustomFieldsCollectionCustomFieldsItem']]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
-
     id: int
     name: str
     resource_type: str

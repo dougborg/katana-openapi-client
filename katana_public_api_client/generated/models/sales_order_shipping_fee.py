@@ -15,17 +15,6 @@ T = TypeVar("T", bound="SalesOrderShippingFee")
 
 @_attrs_define
 class SalesOrderShippingFee:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        sales_order_id (Union[Unset, int]):
-        amount (Union[Unset, float]):
-        currency (Union[Unset, str]):
-        description (Union[Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
-
     id: Unset | int = UNSET
     sales_order_id: Unset | int = UNSET
     amount: Unset | float = UNSET

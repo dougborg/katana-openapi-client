@@ -10,19 +10,6 @@ T = TypeVar("T", bound="UpdatePurchaseOrderRowRequest")
 
 @_attrs_define
 class UpdatePurchaseOrderRowRequest:
-    """
-    Attributes:
-        quantity (Union[Unset, float]): Updatable only when received_date is null
-        variant_id (Union[Unset, int]): Updatable only when received_date is null
-        tax_rate_id (Union[Unset, int]): Updatable only when received_date is null
-        group_id (Union[Unset, int]): Updatable only when received_date is null
-        price_per_unit (Union[Unset, float]): Updatable only when received_date is null
-        purchase_uom_conversion_rate (Union[Unset, float]): Updatable only when received_date is null
-        purchase_uom (Union[Unset, str]): Updatable only when received_date is null
-        received_date (Union[Unset, str]): Updatable only when already set
-        arrival_date (Union[Unset, str]): Updatable only when received_date is not null
-    """
-
     quantity: Unset | float = UNSET
     variant_id: Unset | int = UNSET
     tax_rate_id: Unset | int = UNSET

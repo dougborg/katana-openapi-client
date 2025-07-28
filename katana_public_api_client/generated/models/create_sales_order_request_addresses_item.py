@@ -16,21 +16,6 @@ T = TypeVar("T", bound="CreateSalesOrderRequestAddressesItem")
 
 @_attrs_define
 class CreateSalesOrderRequestAddressesItem:
-    """
-    Attributes:
-        entity_type (CreateSalesOrderRequestAddressesItemEntityType):
-        first_name (Union[None, Unset, str]):
-        last_name (Union[None, Unset, str]):
-        company (Union[None, Unset, str]):
-        phone (Union[None, Unset, str]):
-        line_1 (Union[None, Unset, str]):
-        line_2 (Union[None, Unset, str]):
-        city (Union[None, Unset, str]):
-        state (Union[None, Unset, str]):
-        zip_ (Union[None, Unset, str]):
-        country (Union[None, Unset, str]):
-    """
-
     entity_type: CreateSalesOrderRequestAddressesItemEntityType
     first_name: None | Unset | str = UNSET
     last_name: None | Unset | str = UNSET

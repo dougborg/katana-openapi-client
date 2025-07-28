@@ -16,26 +16,7 @@ T = TypeVar("T", bound="InventoryMovement")
 
 @_attrs_define
 class InventoryMovement:
-    """Details of a single inventory movement record.
-
-    Attributes:
-        id (int): Unique identifier for the inventory movement.
-        variant_id (int): Identifier of the product variant associated with the movement.
-        location_id (int): Identifier of the location where the movement occurred.
-        resource_type (InventoryMovementResourceType): The type of resource that caused the movement.
-        movement_date (datetime.datetime): Date and time when the inventory movement occurred.
-        quantity_change (float): The change in quantity as a result of the movement.
-        balance_after (float): The quantity balance after the movement.
-        value_per_unit (float): The value per unit for the movement.
-        value_in_stock_after (float): The total value in stock after the movement.
-        average_cost_after (float): The average cost per unit after the movement.
-        created_at (datetime.datetime): Timestamp when the movement record was created.
-        updated_at (datetime.datetime): Timestamp when the movement record was last updated.
-        resource_id (Union[Unset, int]): Identifier of the resource that initiated the movement.
-        caused_by_order_no (Union[Unset, str]): Order number that triggered the movement.
-        caused_by_resource_id (Union[Unset, int]): Identifier for the resource that caused the movement.
-        rank (Union[Unset, int]): A rank or order index for the movement.
-    """
+    """Details of a single inventory movement record."""
 
     id: int
     variant_id: int

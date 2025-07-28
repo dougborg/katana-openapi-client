@@ -23,26 +23,6 @@ T = TypeVar("T", bound="CreateSalesOrderRequest")
 
 @_attrs_define
 class CreateSalesOrderRequest:
-    """
-    Attributes:
-        order_no (str):
-        customer_id (int):
-        sales_order_rows (list['CreateSalesOrderRequestSalesOrderRowsItem']):
-        tracking_number (Union[None, Unset, str]):
-        tracking_number_url (Union[None, Unset, str]):
-        addresses (Union[Unset, list['CreateSalesOrderRequestAddressesItem']]):
-        order_created_date (Union[None, Unset, str]):
-        delivery_date (Union[None, Unset, str]):
-        currency (Union[None, Unset, str]):
-        location_id (Union[Unset, int]):
-        status (Union[Unset, CreateSalesOrderRequestStatus]):
-        additional_info (Union[None, Unset, str]):
-        customer_ref (Union[None, Unset, str]):
-        ecommerce_order_type (Union[None, Unset, str]):
-        ecommerce_store_name (Union[None, Unset, str]):
-        ecommerce_order_id (Union[None, Unset, str]):
-    """
-
     order_no: str
     customer_id: int
     sales_order_rows: list["CreateSalesOrderRequestSalesOrderRowsItem"]

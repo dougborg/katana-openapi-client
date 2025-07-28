@@ -47,7 +47,9 @@ autoapi_template_dir = "_templates"
 autoapi_generate_api_docs = True
 autoapi_add_toctree_entry = True
 autoapi_member_order = "groupwise"
-autoapi_python_class_content = "both"
+# Use "init" to only document __init__ method docstrings, avoiding
+# duplication between class docstring attributes and type annotations
+autoapi_python_class_content = "init"
 autoapi_options = [
     "members",
     "undoc-members",

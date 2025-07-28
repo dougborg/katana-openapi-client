@@ -19,11 +19,6 @@ T = TypeVar("T", bound="ManufacturingOrderOperationRowListResponse")
 
 @_attrs_define
 class ManufacturingOrderOperationRowListResponse:
-    """
-    Attributes:
-        data (Union[Unset, list['ManufacturingOrderOperationRow']]):
-    """
-
     data: Unset | list["ManufacturingOrderOperationRow"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

@@ -20,25 +20,6 @@ T = TypeVar("T", bound="SalesReturn")
 
 @_attrs_define
 class SalesReturn:
-    """
-    Attributes:
-        id (int):
-        customer_id (int):
-        order_no (str):
-        return_location_id (int):
-        status (SalesReturnStatus):
-        sales_order_id (Union[None, Unset, int]):
-        currency (Union[Unset, str]):
-        return_date (Union[None, Unset, datetime.datetime]):
-        order_created_date (Union[Unset, datetime.datetime]):
-        additional_info (Union[None, Unset, str]):
-        refund_status (Union[None, Unset, str]):
-        sales_return_rows (Union[Unset, list['SalesReturnRow']]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-    """
-
     id: int
     customer_id: int
     order_no: str

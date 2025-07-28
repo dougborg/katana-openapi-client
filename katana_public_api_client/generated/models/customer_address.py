@@ -16,26 +16,6 @@ T = TypeVar("T", bound="CustomerAddress")
 
 @_attrs_define
 class CustomerAddress:
-    """
-    Attributes:
-        id (int):
-        customer_id (int):
-        entity_type (CustomerAddressEntityType):
-        default (Union[Unset, bool]):
-        first_name (Union[None, Unset, str]):
-        last_name (Union[None, Unset, str]):
-        company (Union[None, Unset, str]):
-        phone (Union[None, Unset, str]):
-        line_1 (Union[None, Unset, str]):
-        line_2 (Union[None, Unset, str]):
-        city (Union[None, Unset, str]):
-        state (Union[None, Unset, str]):
-        zip_ (Union[None, Unset, str]):
-        country (Union[None, Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
-
     id: int
     customer_id: int
     entity_type: CustomerAddressEntityType

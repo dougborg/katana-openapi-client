@@ -17,12 +17,6 @@ T = TypeVar("T", bound="UpdateManufacturingOrderOperationRowRequest")
 
 @_attrs_define
 class UpdateManufacturingOrderOperationRowRequest:
-    """
-    Attributes:
-        completed_by_operators (Union[Unset, list['Operator']]):
-        total_actual_time (Union[Unset, float]):
-    """
-
     completed_by_operators: Unset | list["Operator"] = UNSET
     total_actual_time: Unset | float = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

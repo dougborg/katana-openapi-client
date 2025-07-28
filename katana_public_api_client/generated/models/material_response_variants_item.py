@@ -24,27 +24,6 @@ T = TypeVar("T", bound="MaterialResponseVariantsItem")
 
 @_attrs_define
 class MaterialResponseVariantsItem:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        sku (Union[Unset, str]):
-        sales_price (Union[None, Unset, float]):
-        product_id (Union[None, Unset, int]):
-        material_id (Union[None, Unset, int]):
-        purchase_price (Union[Unset, float]):
-        type_ (Union[Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-        config_attributes (Union[Unset, list['MaterialResponseVariantsItemConfigAttributesItem']]):
-        internal_barcode (Union[Unset, str]):
-        registered_barcode (Union[Unset, str]):
-        supplier_item_codes (Union[Unset, list[str]]):
-        lead_time (Union[Unset, float]):
-        minimum_order_quantity (Union[Unset, float]):
-        custom_fields (Union[Unset, list['MaterialResponseVariantsItemCustomFieldsItem']]):
-    """
-
     id: Unset | int = UNSET
     sku: Unset | str = UNSET
     sales_price: None | Unset | float = UNSET

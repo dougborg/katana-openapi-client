@@ -22,9 +22,6 @@ class BatchStockList:
         {'data': [{'batch_id': 1109, 'batch_number': 'B2', 'batch_created_date': '2020-09-29T11:40:29.628Z',
             'expiration_date': '2021-04-30T10:35:00.000Z', 'location_id': 1433, 'variant_id': 350880, 'quantity_in_stock':
             '10.00000', 'batch_barcode': '0317'}]}
-
-    Attributes:
-        data (Union[Unset, list['BatchStock']]):
     """
 
     data: Unset | list["BatchStock"] = UNSET

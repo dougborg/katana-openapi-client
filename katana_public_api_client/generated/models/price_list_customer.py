@@ -15,15 +15,6 @@ T = TypeVar("T", bound="PriceListCustomer")
 
 @_attrs_define
 class PriceListCustomer:
-    """
-    Attributes:
-        id (int):
-        price_list_id (int):
-        customer_id (int):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
-
     id: int
     price_list_id: int
     customer_id: int

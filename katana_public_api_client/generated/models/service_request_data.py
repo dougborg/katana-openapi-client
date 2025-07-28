@@ -17,12 +17,6 @@ T = TypeVar("T", bound="ServiceRequestData")
 
 @_attrs_define
 class ServiceRequestData:
-    """
-    Attributes:
-        type_ (ServiceRequestDataType): Resource type must be 'services'.
-        attributes (ServiceInputAttributes):
-    """
-
     type_: ServiceRequestDataType
     attributes: "ServiceInputAttributes"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

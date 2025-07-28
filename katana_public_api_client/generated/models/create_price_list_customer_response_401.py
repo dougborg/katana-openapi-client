@@ -13,13 +13,6 @@ T = TypeVar("T", bound="CreatePriceListCustomerResponse401")
 
 @_attrs_define
 class CreatePriceListCustomerResponse401:
-    """
-    Attributes:
-        status_code (Union[Unset, float]):
-        name (Union[Unset, str]):
-        message (Union[Unset, str]):
-    """
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

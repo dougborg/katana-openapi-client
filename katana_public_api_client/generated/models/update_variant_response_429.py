@@ -13,13 +13,6 @@ T = TypeVar("T", bound="UpdateVariantResponse429")
 
 @_attrs_define
 class UpdateVariantResponse429:
-    """
-    Attributes:
-        status_code (Union[Unset, float]):
-        name (Union[Unset, str]):
-        message (Union[Unset, str]):
-    """
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

@@ -15,20 +15,6 @@ T = TypeVar("T", bound="PriceList")
 
 @_attrs_define
 class PriceList:
-    """
-    Attributes:
-        id (int):
-        name (str):
-        currency (str):
-        is_default (Union[Unset, bool]):
-        markup_percentage (Union[None, Unset, float]):
-        start_date (Union[None, Unset, datetime.datetime]):
-        end_date (Union[None, Unset, datetime.datetime]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-    """
-
     id: int
     name: str
     currency: str

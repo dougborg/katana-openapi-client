@@ -28,28 +28,6 @@ T = TypeVar("T", bound="VariantResponse")
 
 @_attrs_define
 class VariantResponse:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        sku (Union[Unset, str]):
-        sales_price (Union[Unset, float]):
-        purchase_price (Union[Unset, float]):
-        product_id (Union[None, Unset, int]):
-        material_id (Union[None, Unset, int]):
-        type_ (Union[Unset, VariantResponseType]):
-        internal_barcode (Union[Unset, str]):
-        registered_barcode (Union[Unset, str]):
-        supplier_item_codes (Union[Unset, list[str]]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-        lead_time (Union[None, Unset, int]):
-        minimum_order_quantity (Union[None, Unset, float]):
-        config_attributes (Union[Unset, list['VariantResponseConfigAttributesItem']]):
-        custom_fields (Union[Unset, list['VariantResponseCustomFieldsItem']]):
-        product_or_material (Union[Unset, VariantResponseProductOrMaterial]):
-    """
-
     id: Unset | int = UNSET
     sku: Unset | str = UNSET
     sales_price: Unset | float = UNSET

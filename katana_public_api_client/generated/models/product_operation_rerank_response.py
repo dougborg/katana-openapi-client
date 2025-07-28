@@ -13,12 +13,6 @@ T = TypeVar("T", bound="ProductOperationRerankResponse")
 
 @_attrs_define
 class ProductOperationRerankResponse:
-    """
-    Attributes:
-        message (Union[Unset, str]):
-        success (Union[Unset, bool]):
-    """
-
     message: Unset | str = UNSET
     success: Unset | bool = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

@@ -15,16 +15,6 @@ T = TypeVar("T", bound="SerialNumber")
 
 @_attrs_define
 class SerialNumber:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        transaction_id (Union[Unset, str]):
-        serial_number (Union[Unset, str]):
-        resource_type (Union[Unset, str]):
-        resource_id (Union[Unset, int]):
-        transaction_date (Union[Unset, datetime.datetime]):
-    """
-
     id: Unset | int = UNSET
     transaction_id: Unset | str = UNSET
     serial_number: Unset | str = UNSET

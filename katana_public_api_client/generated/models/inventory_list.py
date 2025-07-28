@@ -15,11 +15,6 @@ T = TypeVar("T", bound="InventoryList")
 
 @_attrs_define
 class InventoryList:
-    """
-    Attributes:
-        data (list['Inventory']):
-    """
-
     data: list["Inventory"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

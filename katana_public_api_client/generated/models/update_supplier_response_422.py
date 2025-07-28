@@ -19,15 +19,6 @@ T = TypeVar("T", bound="UpdateSupplierResponse422")
 
 @_attrs_define
 class UpdateSupplierResponse422:
-    """
-    Attributes:
-        status_code (Union[Unset, float]):
-        name (Union[Unset, str]):
-        message (Union[Unset, str]):
-        code (Union[Unset, str]):
-        details (Union[Unset, list['UpdateSupplierResponse422DetailsItem']]):
-    """
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

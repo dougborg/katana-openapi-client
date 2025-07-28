@@ -18,29 +18,6 @@ T = TypeVar("T", bound="Inventory")
 
 @_attrs_define
 class Inventory:
-    """
-    Attributes:
-        variant_id (int):
-        location_id (int):
-        reorder_point (str):
-        average_cost (str):
-        value_in_stock (str):
-        quantity_in_stock (str):
-        quantity_committed (str):
-        quantity_expected (str):
-        quantity_missing_or_excess (str):
-        quantity_potential (str):
-        variant (Union[Unset, Variant]):
-        location (Union[Unset, Location]):  Example: {'data': [{'id': 1, 'name': 'Main location', 'legal_name':
-            'Amazon', 'address_id': 1, 'address': {'id': 1, 'city': 'New York', 'country': 'United States', 'line_1': '10
-            East 20th Example St', 'line_2': '', 'state': 'New York', 'zip': '10000'}, 'is_primary': True, 'sales_allowed':
-            True, 'purchase_allowed': True, 'manufacturing_allowed': True, 'created_at': '2020-10-23T10:37:05.085Z',
-            'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}, {'id': 2, 'name': 'Secondary location',
-            'legal_name': 'Amazon', 'address_id': None, 'address': None, 'is_primary': False, 'sales_allowed': False,
-            'purchase_allowed': True, 'manufacturing_allowed': False, 'created_at': '2020-10-23T10:37:05.085Z',
-            'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}]}.
-    """
-
     variant_id: int
     location_id: int
     reorder_point: str

@@ -13,13 +13,6 @@ T = TypeVar("T", bound="GetAllMaterialsResponse429")
 
 @_attrs_define
 class GetAllMaterialsResponse429:
-    """
-    Attributes:
-        status_code (Union[Unset, float]):
-        name (Union[Unset, str]):
-        message (Union[Unset, str]):
-    """
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

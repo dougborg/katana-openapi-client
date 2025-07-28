@@ -19,21 +19,6 @@ T = TypeVar("T", bound="CreateMaterialRequest")
 
 @_attrs_define
 class CreateMaterialRequest:
-    """
-    Attributes:
-        name (str):
-        variants (list['CreateMaterialRequestVariantsItem']):
-        uom (Union[Unset, str]):
-        category_name (Union[Unset, str]):
-        default_supplier_id (Union[Unset, int]):
-        additional_info (Union[Unset, str]):
-        batch_tracked (Union[Unset, bool]):
-        is_sellable (Union[Unset, bool]):
-        purchase_uom (Union[Unset, str]):
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        configs (Union[Unset, list['CreateMaterialRequestConfigsItem']]):
-    """
-
     name: str
     variants: list["CreateMaterialRequestVariantsItem"]
     uom: Unset | str = UNSET

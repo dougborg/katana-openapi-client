@@ -15,17 +15,6 @@ T = TypeVar("T", bound="VariantDefaultStorageBinLinkResponse")
 
 @_attrs_define
 class VariantDefaultStorageBinLinkResponse:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        bin_name (Union[Unset, str]):
-        variant_id (Union[Unset, int]):
-        storage_bin_id (Union[Unset, int]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-    """
-
     id: Unset | int = UNSET
     bin_name: Unset | str = UNSET
     variant_id: Unset | int = UNSET

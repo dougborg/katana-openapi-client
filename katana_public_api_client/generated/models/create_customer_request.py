@@ -13,21 +13,6 @@ T = TypeVar("T", bound="CreateCustomerRequest")
 
 @_attrs_define
 class CreateCustomerRequest:
-    """
-    Attributes:
-        name (str):
-        first_name (Union[None, Unset, str]):
-        last_name (Union[None, Unset, str]):
-        company (Union[None, Unset, str]):
-        email (Union[None, Unset, str]):
-        phone (Union[None, Unset, str]):
-        comment (Union[None, Unset, str]):
-        currency (Union[None, Unset, str]):
-        reference_id (Union[None, Unset, str]):
-        category (Union[None, Unset, str]):
-        discount_rate (Union[None, Unset, float]):
-    """
-
     name: str
     first_name: None | Unset | str = UNSET
     last_name: None | Unset | str = UNSET

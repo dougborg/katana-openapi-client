@@ -21,28 +21,6 @@ T = TypeVar("T", bound="MaterialResponse")
 
 @_attrs_define
 class MaterialResponse:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        name (Union[Unset, str]):
-        uom (Union[Unset, str]):
-        category_name (Union[Unset, str]):
-        default_supplier_id (Union[Unset, int]):
-        additional_info (Union[Unset, str]):
-        batch_tracked (Union[Unset, bool]):
-        is_sellable (Union[Unset, bool]):
-        type_ (Union[Unset, str]):
-        purchase_uom (Union[Unset, str]):
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        variants (Union[Unset, list['MaterialResponseVariantsItem']]):
-        configs (Union[Unset, list['MaterialResponseConfigsItem']]):
-        custom_field_collection_id (Union[Unset, int]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        archived_at (Union[None, Unset, datetime.datetime]):
-        supplier (Union[Unset, MaterialResponseSupplier]):
-    """
-
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     uom: Unset | str = UNSET

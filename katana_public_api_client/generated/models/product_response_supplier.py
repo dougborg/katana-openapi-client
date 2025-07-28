@@ -15,18 +15,6 @@ T = TypeVar("T", bound="ProductResponseSupplier")
 
 @_attrs_define
 class ProductResponseSupplier:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        name (Union[Unset, str]):
-        email (Union[Unset, str]):
-        comment (Union[Unset, str]):
-        currency (Union[Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-    """
-
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     email: Unset | str = UNSET

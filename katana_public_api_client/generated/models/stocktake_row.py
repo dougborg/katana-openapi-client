@@ -15,20 +15,6 @@ T = TypeVar("T", bound="StocktakeRow")
 
 @_attrs_define
 class StocktakeRow:
-    """
-    Attributes:
-        id (int):
-        stocktake_id (int):
-        variant_id (int):
-        system_quantity (float):
-        batch_id (Union[None, Unset, int]):
-        actual_quantity (Union[None, Unset, float]):
-        variance_quantity (Union[None, Unset, float]):
-        notes (Union[None, Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
-
     id: int
     stocktake_id: int
     variant_id: int

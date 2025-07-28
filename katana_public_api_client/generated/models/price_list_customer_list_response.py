@@ -17,11 +17,6 @@ T = TypeVar("T", bound="PriceListCustomerListResponse")
 
 @_attrs_define
 class PriceListCustomerListResponse:
-    """
-    Attributes:
-        data (Union[Unset, list['PriceListCustomer']]):
-    """
-
     data: Unset | list["PriceListCustomer"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

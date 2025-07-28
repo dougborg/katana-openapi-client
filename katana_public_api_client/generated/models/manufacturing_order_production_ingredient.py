@@ -15,22 +15,6 @@ T = TypeVar("T", bound="ManufacturingOrderProductionIngredient")
 
 @_attrs_define
 class ManufacturingOrderProductionIngredient:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        location_id (Union[Unset, int]):
-        variant_id (Union[Unset, int]):
-        manufacturing_order_id (Union[Unset, int]):
-        manufacturing_order_recipe_row_id (Union[Unset, int]):
-        production_id (Union[Unset, int]):
-        quantity (Union[Unset, float]):
-        production_date (Union[Unset, datetime.datetime]):
-        cost (Union[Unset, float]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, datetime.datetime]):
-    """
-
     id: Unset | int = UNSET
     location_id: Unset | int = UNSET
     variant_id: Unset | int = UNSET

@@ -19,20 +19,6 @@ T = TypeVar("T", bound="CreateMaterialRequestVariantsItem")
 
 @_attrs_define
 class CreateMaterialRequestVariantsItem:
-    """
-    Attributes:
-        sku (Union[Unset, str]):
-        purchase_price (Union[Unset, float]):
-        internal_barcode (Union[Unset, str]):
-        registered_barcode (Union[Unset, str]):
-        supplier_item_codes (Union[Unset, list[str]]):
-        lead_time (Union[Unset, float]):
-        minimum_order_quantity (Union[Unset, float]):
-        config_attributes (Union[Unset, list['CreateMaterialRequestVariantsItemConfigAttributesItem']]):
-        custom_field_collection_id (Union[None, Unset, int]):
-        custom_fields (Union[Unset, list['CreateMaterialRequestVariantsItemCustomFieldsItem']]):
-    """
-
     sku: Unset | str = UNSET
     purchase_price: Unset | float = UNSET
     internal_barcode: Unset | str = UNSET

@@ -15,23 +15,6 @@ T = TypeVar("T", bound="SalesOrderFulfillment")
 
 @_attrs_define
 class SalesOrderFulfillment:
-    """
-    Attributes:
-        id (int):
-        sales_order_id (int):
-        tracking_number (Union[None, Unset, str]):
-        tracking_number_url (Union[None, Unset, str]):
-        shipped_date (Union[None, Unset, datetime.datetime]):
-        estimated_delivery_date (Union[None, Unset, datetime.datetime]):
-        actual_delivery_date (Union[None, Unset, datetime.datetime]):
-        shipping_cost (Union[None, Unset, float]):
-        shipping_method (Union[None, Unset, str]):
-        carrier (Union[None, Unset, str]):
-        notes (Union[None, Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
-
     id: int
     sales_order_id: int
     tracking_number: None | Unset | str = UNSET

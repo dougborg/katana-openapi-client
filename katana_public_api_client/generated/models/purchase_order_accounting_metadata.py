@@ -15,17 +15,6 @@ T = TypeVar("T", bound="PurchaseOrderAccountingMetadata")
 
 @_attrs_define
 class PurchaseOrderAccountingMetadata:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        purchase_order_id (Union[Unset, int]):
-        purchaseOrderId (Union[Unset, int]):
-        por_received_group_id (Union[Unset, int]):
-        integration_type (Union[Unset, str]):
-        bill_id (Union[Unset, str]):
-        created_at (Union[Unset, datetime.datetime]):
-    """
-
     id: Unset | int = UNSET
     purchase_order_id: Unset | int = UNSET
     purchaseOrderId: Unset | int = UNSET

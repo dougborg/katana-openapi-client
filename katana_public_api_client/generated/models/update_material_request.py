@@ -16,24 +16,6 @@ T = TypeVar("T", bound="UpdateMaterialRequest")
 
 @_attrs_define
 class UpdateMaterialRequest:
-    """
-    Attributes:
-        name (Union[Unset, str]):
-        uom (Union[Unset, str]):
-        category_name (Union[Unset, str]):
-        default_supplier_id (Union[Unset, int]):
-        additional_info (Union[Unset, str]):
-        batch_tracked (Union[Unset, bool]):
-        is_sellable (Union[Unset, bool]):
-        is_archived (Union[Unset, bool]):
-        purchase_uom (Union[Unset, str]): If used, then purchase_uom_conversion_rate must have a value as well.
-        purchase_uom_conversion_rate (Union[Unset, float]): If used, then purchase_uom must have a value as well.
-        configs (Union[Unset, list['UpdateMaterialRequestConfigsItem']]): When updating configs, all configs and values
-            must be provided. Existing ones are matched,
-                    new ones are created, and configs not provided in the update are deleted.
-        custom_field_collection_id (Union[None, Unset, int]):
-    """
-
     name: Unset | str = UNSET
     uom: Unset | str = UNSET
     category_name: Unset | str = UNSET

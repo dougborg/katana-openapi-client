@@ -21,9 +21,6 @@ class StorageBinList:
     Example:
         {'data': [{'id': 12345, 'name': 'Bin-2', 'location_id': 12346, 'created_at': '2020-10-23T10:37:05.085Z',
             'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}]}
-
-    Attributes:
-        data (Union[Unset, list['StorageBin']]):
     """
 
     data: Unset | list["StorageBin"] = UNSET

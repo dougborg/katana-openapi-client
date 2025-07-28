@@ -13,12 +13,6 @@ T = TypeVar("T", bound="MaterialResponseVariantsItemCustomFieldsItem")
 
 @_attrs_define
 class MaterialResponseVariantsItemCustomFieldsItem:
-    """
-    Attributes:
-        field_name (Union[Unset, str]):
-        field_value (Union[Unset, str]):
-    """
-
     field_name: Unset | str = UNSET
     field_value: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

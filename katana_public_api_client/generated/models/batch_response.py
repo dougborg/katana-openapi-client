@@ -15,18 +15,6 @@ T = TypeVar("T", bound="BatchResponse")
 
 @_attrs_define
 class BatchResponse:
-    """
-    Attributes:
-        batch_number (str):
-        variant_id (int):
-        expiration_date (Union[Unset, str]):
-        batch_created_date (Union[Unset, str]):
-        batch_barcode (Union[None, Unset, str]):
-        id (Union[Unset, int]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
-
     batch_number: str
     variant_id: int
     expiration_date: Unset | str = UNSET

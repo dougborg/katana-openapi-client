@@ -8,13 +8,6 @@ T = TypeVar("T", bound="InventoryReorderPoint")
 
 @_attrs_define
 class InventoryReorderPoint:
-    """
-    Attributes:
-        location_id (int):
-        variant_id (int):
-        value (float):
-    """
-
     location_id: int
     variant_id: int
     value: float

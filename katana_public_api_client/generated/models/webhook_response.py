@@ -15,18 +15,6 @@ T = TypeVar("T", bound="WebhookResponse")
 
 @_attrs_define
 class WebhookResponse:
-    """
-    Attributes:
-        id (Union[Unset, int]):
-        url (Union[Unset, str]):
-        token (Union[Unset, str]):
-        enabled (Union[Unset, bool]):
-        description (Union[None, Unset, str]):
-        subscribed_events (Union[Unset, list[str]]):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-    """
-
     id: Unset | int = UNSET
     url: Unset | str = UNSET
     token: Unset | str = UNSET

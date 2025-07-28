@@ -13,13 +13,6 @@ T = TypeVar("T", bound="DeleteServiceResponse404")
 
 @_attrs_define
 class DeleteServiceResponse404:
-    """
-    Attributes:
-        status_code (Union[Unset, float]):
-        name (Union[Unset, str]):
-        message (Union[Unset, str]):
-    """
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

@@ -10,15 +10,6 @@ T = TypeVar("T", bound="UpdateSupplierRequest")
 
 @_attrs_define
 class UpdateSupplierRequest:
-    """
-    Attributes:
-        name (Union[Unset, str]):
-        email (Union[Unset, str]):
-        phone (Union[Unset, str]):
-        currency (Union[Unset, str]): The supplier's currency (ISO 4217).
-        comment (Union[Unset, str]):
-    """
-
     name: Unset | str = UNSET
     email: Unset | str = UNSET
     phone: Unset | str = UNSET

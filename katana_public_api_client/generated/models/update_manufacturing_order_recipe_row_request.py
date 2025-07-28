@@ -21,17 +21,6 @@ T = TypeVar("T", bound="UpdateManufacturingOrderRecipeRowRequest")
 
 @_attrs_define
 class UpdateManufacturingOrderRecipeRowRequest:
-    """
-    Attributes:
-        notes (Union[Unset, str]):
-        planned_quantity_per_unit (Union[Unset, float]):
-        total_actual_quantity (Union[Unset, float]):
-        ingredient_availability (Union[Unset, str]):
-        ingredient_expected_date (Union[Unset, datetime.datetime]):
-        batch_transactions (Union[Unset, list['UpdateManufacturingOrderRecipeRowRequestBatchTransactionsItem']]):
-        cost (Union[Unset, float]):
-    """
-
     notes: Unset | str = UNSET
     planned_quantity_per_unit: Unset | float = UNSET
     total_actual_quantity: Unset | float = UNSET

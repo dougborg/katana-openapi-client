@@ -13,12 +13,6 @@ T = TypeVar("T", bound="ProductOperationRerankRequestOperationRanksItem")
 
 @_attrs_define
 class ProductOperationRerankRequestOperationRanksItem:
-    """
-    Attributes:
-        operation_id (Union[Unset, int]):
-        rank (Union[Unset, int]):
-    """
-
     operation_id: Unset | int = UNSET
     rank: Unset | int = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

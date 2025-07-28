@@ -10,13 +10,6 @@ T = TypeVar("T", bound="VariantDefaultStorageBinLink")
 
 @_attrs_define
 class VariantDefaultStorageBinLink:
-    """
-    Attributes:
-        variant_id (int):
-        bin_name (str):
-        location_id (Union[Unset, int]):
-    """
-
     variant_id: int
     bin_name: str
     location_id: Unset | int = UNSET
