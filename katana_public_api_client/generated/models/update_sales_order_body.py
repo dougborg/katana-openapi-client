@@ -4,9 +4,7 @@ from typing import Any, TypeVar, Union, cast
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.update_sales_order_body_status_type_0 import (
-    UpdateSalesOrderBodyStatusType0,
-)
+from ..models.update_sales_order_body_status import UpdateSalesOrderBodyStatus
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="UpdateSalesOrderBody")
@@ -16,36 +14,36 @@ T = TypeVar("T", bound="UpdateSalesOrderBody")
 class UpdateSalesOrderBody:
     """
     Attributes:
-        order_no (Union[None, Unset, str]): Updatable only when sales order status is NOT_SHIPPED or PENDING.
-        customer_id (Union[None, Unset, int]): Updatable only when sales order status is NOT_SHIPPED or PENDING.
-        order_created_date (Union[None, Unset, str]):
+        order_no (Union[Unset, str]): Updatable only when sales order status is NOT_SHIPPED or PENDING.
+        customer_id (Union[Unset, int]): Updatable only when sales order status is NOT_SHIPPED or PENDING.
+        order_created_date (Union[Unset, str]):
         delivery_date (Union[None, Unset, str]): Updatable only when sales order status is NOT_SHIPPED or PENDING.
         picked_date (Union[None, Unset, str]): Updatable only when sales order status is NOT_SHIPPED or PENDING.
-        location_id (Union[None, Unset, int]): Updatable only when sales order status is NOT_SHIPPED or PENDING.
-        status (Union[None, Unset, UpdateSalesOrderBodyStatusType0]): When the status is omitted, NOT_SHIPPED is used as
-            default. Use PENDING when you want to create sales order quotes.
-        currency (Union[None, Unset, str]): E.g. USD, EUR. All currently active currency codes in ISO 4217 format.
-            Updatable only when sales order status is NOT_SHIPPED or PENDING.
-        conversion_rate (Union[None, Unset, float]): Updatable only when sales order status is PACKED or DELIVERED,
-            otherwise it will fail with 422.
-        conversion_date (Union[None, Unset, str]): Updatable only when sales order status is PACKED or DELIVERED,
-            otherwise it will fail with 422.
+        location_id (Union[Unset, int]): Updatable only when sales order status is NOT_SHIPPED or PENDING.
+        status (Union[Unset, UpdateSalesOrderBodyStatus]): When the status is omitted, NOT_SHIPPED is used as default.
+            Use PENDING when you want to create sales order quotes.
+        currency (Union[Unset, str]): E.g. USD, EUR. All currently active currency codes in ISO 4217 format. Updatable
+            only when sales order status is NOT_SHIPPED or PENDING.
+        conversion_rate (Union[Unset, float]): Updatable only when sales order status is PACKED or DELIVERED, otherwise
+            it will fail with 422.
+        conversion_date (Union[Unset, str]): Updatable only when sales order status is PACKED or DELIVERED, otherwise it
+            will fail with 422.
         additional_info (Union[None, Unset, str]):
         customer_ref (Union[None, Unset, str]):
         tracking_number (Union[None, Unset, str]):
         tracking_number_url (Union[None, Unset, str]):
     """
 
-    order_no: Union[None, Unset, str] = UNSET
-    customer_id: Union[None, Unset, int] = UNSET
-    order_created_date: Union[None, Unset, str] = UNSET
+    order_no: Union[Unset, str] = UNSET
+    customer_id: Union[Unset, int] = UNSET
+    order_created_date: Union[Unset, str] = UNSET
     delivery_date: Union[None, Unset, str] = UNSET
     picked_date: Union[None, Unset, str] = UNSET
-    location_id: Union[None, Unset, int] = UNSET
-    status: Union[None, Unset, UpdateSalesOrderBodyStatusType0] = UNSET
-    currency: Union[None, Unset, str] = UNSET
-    conversion_rate: Union[None, Unset, float] = UNSET
-    conversion_date: Union[None, Unset, str] = UNSET
+    location_id: Union[Unset, int] = UNSET
+    status: Union[Unset, UpdateSalesOrderBodyStatus] = UNSET
+    currency: Union[Unset, str] = UNSET
+    conversion_rate: Union[Unset, float] = UNSET
+    conversion_date: Union[Unset, str] = UNSET
     additional_info: Union[None, Unset, str] = UNSET
     customer_ref: Union[None, Unset, str] = UNSET
     tracking_number: Union[None, Unset, str] = UNSET
@@ -53,23 +51,11 @@ class UpdateSalesOrderBody:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        order_no: Union[None, Unset, str]
-        if isinstance(self.order_no, Unset):
-            order_no = UNSET
-        else:
-            order_no = self.order_no
+        order_no = self.order_no
 
-        customer_id: Union[None, Unset, int]
-        if isinstance(self.customer_id, Unset):
-            customer_id = UNSET
-        else:
-            customer_id = self.customer_id
+        customer_id = self.customer_id
 
-        order_created_date: Union[None, Unset, str]
-        if isinstance(self.order_created_date, Unset):
-            order_created_date = UNSET
-        else:
-            order_created_date = self.order_created_date
+        order_created_date = self.order_created_date
 
         delivery_date: Union[None, Unset, str]
         if isinstance(self.delivery_date, Unset):
@@ -83,37 +69,17 @@ class UpdateSalesOrderBody:
         else:
             picked_date = self.picked_date
 
-        location_id: Union[None, Unset, int]
-        if isinstance(self.location_id, Unset):
-            location_id = UNSET
-        else:
-            location_id = self.location_id
+        location_id = self.location_id
 
-        status: Union[None, Unset, str]
-        if isinstance(self.status, Unset):
-            status = UNSET
-        elif isinstance(self.status, UpdateSalesOrderBodyStatusType0):
+        status: Union[Unset, str] = UNSET
+        if not isinstance(self.status, Unset):
             status = self.status.value
-        else:
-            status = self.status
 
-        currency: Union[None, Unset, str]
-        if isinstance(self.currency, Unset):
-            currency = UNSET
-        else:
-            currency = self.currency
+        currency = self.currency
 
-        conversion_rate: Union[None, Unset, float]
-        if isinstance(self.conversion_rate, Unset):
-            conversion_rate = UNSET
-        else:
-            conversion_rate = self.conversion_rate
+        conversion_rate = self.conversion_rate
 
-        conversion_date: Union[None, Unset, str]
-        if isinstance(self.conversion_date, Unset):
-            conversion_date = UNSET
-        else:
-            conversion_date = self.conversion_date
+        conversion_date = self.conversion_date
 
         additional_info: Union[None, Unset, str]
         if isinstance(self.additional_info, Unset):
@@ -176,35 +142,11 @@ class UpdateSalesOrderBody:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        order_no = d.pop("order_no", UNSET)
 
-        def _parse_order_no(data: object) -> Union[None, Unset, str]:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(Union[None, Unset, str], data)
+        customer_id = d.pop("customer_id", UNSET)
 
-        order_no = _parse_order_no(d.pop("order_no", UNSET))
-
-        def _parse_customer_id(data: object) -> Union[None, Unset, int]:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(Union[None, Unset, int], data)
-
-        customer_id = _parse_customer_id(d.pop("customer_id", UNSET))
-
-        def _parse_order_created_date(data: object) -> Union[None, Unset, str]:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(Union[None, Unset, str], data)
-
-        order_created_date = _parse_order_created_date(
-            d.pop("order_created_date", UNSET)
-        )
+        order_created_date = d.pop("order_created_date", UNSET)
 
         def _parse_delivery_date(data: object) -> Union[None, Unset, str]:
             if data is None:
@@ -224,60 +166,20 @@ class UpdateSalesOrderBody:
 
         picked_date = _parse_picked_date(d.pop("picked_date", UNSET))
 
-        def _parse_location_id(data: object) -> Union[None, Unset, int]:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(Union[None, Unset, int], data)
+        location_id = d.pop("location_id", UNSET)
 
-        location_id = _parse_location_id(d.pop("location_id", UNSET))
+        _status = d.pop("status", UNSET)
+        status: Union[Unset, UpdateSalesOrderBodyStatus]
+        if isinstance(_status, Unset):
+            status = UNSET
+        else:
+            status = UpdateSalesOrderBodyStatus(_status)
 
-        def _parse_status(
-            data: object,
-        ) -> Union[None, Unset, UpdateSalesOrderBodyStatusType0]:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                status_type_0 = UpdateSalesOrderBodyStatusType0(data)
+        currency = d.pop("currency", UNSET)
 
-                return status_type_0
-            except:  # noqa: E722
-                pass
-            return cast(Union[None, Unset, UpdateSalesOrderBodyStatusType0], data)
+        conversion_rate = d.pop("conversion_rate", UNSET)
 
-        status = _parse_status(d.pop("status", UNSET))
-
-        def _parse_currency(data: object) -> Union[None, Unset, str]:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(Union[None, Unset, str], data)
-
-        currency = _parse_currency(d.pop("currency", UNSET))
-
-        def _parse_conversion_rate(data: object) -> Union[None, Unset, float]:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(Union[None, Unset, float], data)
-
-        conversion_rate = _parse_conversion_rate(d.pop("conversion_rate", UNSET))
-
-        def _parse_conversion_date(data: object) -> Union[None, Unset, str]:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(Union[None, Unset, str], data)
-
-        conversion_date = _parse_conversion_date(d.pop("conversion_date", UNSET))
+        conversion_date = d.pop("conversion_date", UNSET)
 
         def _parse_additional_info(data: object) -> Union[None, Unset, str]:
             if data is None:

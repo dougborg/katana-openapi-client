@@ -10847,14 +10847,14 @@ paths:
               type: object
               properties:
                 order_no:
-                  type: [string, "null"]
+                  type: string
                   description: "Updatable only when sales order status is NOT_SHIPPED or PENDING."
                 customer_id:
-                  type: [integer, "null"]
+                  type: integer
                   maximum: 2147483647
                   description: "Updatable only when sales order status is NOT_SHIPPED or PENDING."
                 order_created_date:
-                  type: [string, "null"]
+                  type: string
                 delivery_date:
                   type: [string, "null"]
                   description: "Updatable only when sales order status is NOT_SHIPPED or PENDING."
@@ -10862,27 +10862,25 @@ paths:
                   type: [string, "null"]
                   description: "Updatable only when sales order status is NOT_SHIPPED or PENDING."
                 location_id:
-                  type: [integer, "null"]
+                  type: integer
                   maximum: 2147483647
                   description: "Updatable only when sales order status is NOT_SHIPPED or PENDING."
                 status:
-                  anyOf:
-                    - type: string
-                      enum:
-                        - NOT_SHIPPED
-                        - PENDING
-                        - PACKED
-                        - DELIVERED
-                    - type: "null"
+                  type: string
+                  enum:
+                    - NOT_SHIPPED
+                    - PENDING
+                    - PACKED
+                    - DELIVERED
                   description: "When the status is omitted, NOT_SHIPPED is used as default. Use PENDING when you want to create sales order quotes."
                 currency:
-                  type: [string, "null"]
+                  type: string
                   description: "E.g. USD, EUR. All currently active currency codes in ISO 4217 format. Updatable only when sales order status is NOT_SHIPPED or PENDING."
                 conversion_rate:
-                  type: [number, "null"]
+                  type: number
                   description: "Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with 422."
                 conversion_date:
-                  type: [string, "null"]
+                  type: string
                   description: "Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with 422."
                 additional_info:
                   type: [string, "null"]

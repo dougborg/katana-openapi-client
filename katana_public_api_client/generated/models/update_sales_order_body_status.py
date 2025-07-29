@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class UpdateSalesOrderBodyStatusType0(str, Enum):
+class UpdateSalesOrderBodyStatus(str, Enum):
     DELIVERED = "DELIVERED"
     NOT_SHIPPED = "NOT_SHIPPED"
     PACKED = "PACKED"
