@@ -1,8 +1,10 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..types import UNSET, Unset
 
@@ -33,18 +35,18 @@ class VariantProductOrMaterial:
         variants (Union[Unset, list['VariantProductOrMaterialVariantsItem']]):
     """
 
-    id: Union[Unset, int] = UNSET
-    name: Union[Unset, str] = UNSET
-    uom: Union[Unset, str] = UNSET
-    category_name: Union[Unset, str] = UNSET
-    is_producible: Union[Unset, bool] = UNSET
-    default_supplier_id: Union[Unset, int] = UNSET
-    is_purchasable: Union[Unset, bool] = UNSET
-    type_: Union[Unset, str] = UNSET
-    purchase_uom: Union[Unset, str] = UNSET
-    purchase_uom_conversion_rate: Union[Unset, float] = UNSET
-    batch_tracked: Union[Unset, bool] = UNSET
-    variants: Union[Unset, list["VariantProductOrMaterialVariantsItem"]] = UNSET
+    id: Unset | int = UNSET
+    name: Unset | str = UNSET
+    uom: Unset | str = UNSET
+    category_name: Unset | str = UNSET
+    is_producible: Unset | bool = UNSET
+    default_supplier_id: Unset | int = UNSET
+    is_purchasable: Unset | bool = UNSET
+    type_: Unset | str = UNSET
+    purchase_uom: Unset | str = UNSET
+    purchase_uom_conversion_rate: Unset | float = UNSET
+    batch_tracked: Unset | bool = UNSET
+    variants: Unset | list["VariantProductOrMaterialVariantsItem"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -70,7 +72,7 @@ class VariantProductOrMaterial:
 
         batch_tracked = self.batch_tracked
 
-        variants: Union[Unset, list[dict[str, Any]]] = UNSET
+        variants: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.variants, Unset):
             variants = []
             for variants_item_data in self.variants:

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -20,10 +20,10 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    price_list_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    price_list_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -47,15 +47,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetAllPriceListRowsResponse401,
-        GetAllPriceListRowsResponse429,
-        GetAllPriceListRowsResponse500,
-        PriceListRowListResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetAllPriceListRowsResponse401
+    | GetAllPriceListRowsResponse429
+    | GetAllPriceListRowsResponse500
+    | PriceListRowListResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = PriceListRowListResponse.from_dict(response.json())
 
@@ -79,14 +78,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetAllPriceListRowsResponse401,
-        GetAllPriceListRowsResponse429,
-        GetAllPriceListRowsResponse500,
-        PriceListRowListResponse,
-    ]
+    GetAllPriceListRowsResponse401
+    | GetAllPriceListRowsResponse429
+    | GetAllPriceListRowsResponse500
+    | PriceListRowListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -98,18 +95,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    price_list_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    price_list_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
 ) -> Response[
-    Union[
-        GetAllPriceListRowsResponse401,
-        GetAllPriceListRowsResponse429,
-        GetAllPriceListRowsResponse500,
-        PriceListRowListResponse,
-    ]
+    GetAllPriceListRowsResponse401
+    | GetAllPriceListRowsResponse429
+    | GetAllPriceListRowsResponse500
+    | PriceListRowListResponse
 ]:
     """List price list rows
 
@@ -145,19 +140,18 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    price_list_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
-) -> Optional[
-    Union[
-        GetAllPriceListRowsResponse401,
-        GetAllPriceListRowsResponse429,
-        GetAllPriceListRowsResponse500,
-        PriceListRowListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    price_list_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
+) -> (
+    GetAllPriceListRowsResponse401
+    | GetAllPriceListRowsResponse429
+    | GetAllPriceListRowsResponse500
+    | PriceListRowListResponse
+    | None
+):
     """List price list rows
 
      Returns a list of price list rows.
@@ -187,18 +181,16 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    price_list_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    price_list_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
 ) -> Response[
-    Union[
-        GetAllPriceListRowsResponse401,
-        GetAllPriceListRowsResponse429,
-        GetAllPriceListRowsResponse500,
-        PriceListRowListResponse,
-    ]
+    GetAllPriceListRowsResponse401
+    | GetAllPriceListRowsResponse429
+    | GetAllPriceListRowsResponse500
+    | PriceListRowListResponse
 ]:
     """List price list rows
 
@@ -232,19 +224,18 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    price_list_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
-) -> Optional[
-    Union[
-        GetAllPriceListRowsResponse401,
-        GetAllPriceListRowsResponse429,
-        GetAllPriceListRowsResponse500,
-        PriceListRowListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    price_list_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
+) -> (
+    GetAllPriceListRowsResponse401
+    | GetAllPriceListRowsResponse429
+    | GetAllPriceListRowsResponse500
+    | PriceListRowListResponse
+    | None
+):
     """List price list rows
 
      Returns a list of price list rows.

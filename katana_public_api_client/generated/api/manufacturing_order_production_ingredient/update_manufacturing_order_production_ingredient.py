@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -47,16 +47,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        ManufacturingOrderProductionIngredient,
-        UpdateManufacturingOrderProductionIngredientResponse401,
-        UpdateManufacturingOrderProductionIngredientResponse422,
-        UpdateManufacturingOrderProductionIngredientResponse429,
-        UpdateManufacturingOrderProductionIngredientResponse500,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    ManufacturingOrderProductionIngredient
+    | UpdateManufacturingOrderProductionIngredientResponse401
+    | UpdateManufacturingOrderProductionIngredientResponse422
+    | UpdateManufacturingOrderProductionIngredientResponse429
+    | UpdateManufacturingOrderProductionIngredientResponse500
+    | None
+):
     if response.status_code == 200:
         response_200 = ManufacturingOrderProductionIngredient.from_dict(response.json())
 
@@ -100,15 +99,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        ManufacturingOrderProductionIngredient,
-        UpdateManufacturingOrderProductionIngredientResponse401,
-        UpdateManufacturingOrderProductionIngredientResponse422,
-        UpdateManufacturingOrderProductionIngredientResponse429,
-        UpdateManufacturingOrderProductionIngredientResponse500,
-    ]
+    ManufacturingOrderProductionIngredient
+    | UpdateManufacturingOrderProductionIngredientResponse401
+    | UpdateManufacturingOrderProductionIngredientResponse422
+    | UpdateManufacturingOrderProductionIngredientResponse429
+    | UpdateManufacturingOrderProductionIngredientResponse500
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -121,16 +118,14 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderProductionIngredientRequest,
 ) -> Response[
-    Union[
-        ManufacturingOrderProductionIngredient,
-        UpdateManufacturingOrderProductionIngredientResponse401,
-        UpdateManufacturingOrderProductionIngredientResponse422,
-        UpdateManufacturingOrderProductionIngredientResponse429,
-        UpdateManufacturingOrderProductionIngredientResponse500,
-    ]
+    ManufacturingOrderProductionIngredient
+    | UpdateManufacturingOrderProductionIngredientResponse401
+    | UpdateManufacturingOrderProductionIngredientResponse422
+    | UpdateManufacturingOrderProductionIngredientResponse429
+    | UpdateManufacturingOrderProductionIngredientResponse500
 ]:
     """Update a manufacturing order production ingredient
 
@@ -167,17 +162,16 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderProductionIngredientRequest,
-) -> Optional[
-    Union[
-        ManufacturingOrderProductionIngredient,
-        UpdateManufacturingOrderProductionIngredientResponse401,
-        UpdateManufacturingOrderProductionIngredientResponse422,
-        UpdateManufacturingOrderProductionIngredientResponse429,
-        UpdateManufacturingOrderProductionIngredientResponse500,
-    ]
-]:
+) -> (
+    ManufacturingOrderProductionIngredient
+    | UpdateManufacturingOrderProductionIngredientResponse401
+    | UpdateManufacturingOrderProductionIngredientResponse422
+    | UpdateManufacturingOrderProductionIngredientResponse429
+    | UpdateManufacturingOrderProductionIngredientResponse500
+    | None
+):
     """Update a manufacturing order production ingredient
 
      Updates the specified manufacturing order production ingredient by setting the values of the
@@ -208,16 +202,14 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderProductionIngredientRequest,
 ) -> Response[
-    Union[
-        ManufacturingOrderProductionIngredient,
-        UpdateManufacturingOrderProductionIngredientResponse401,
-        UpdateManufacturingOrderProductionIngredientResponse422,
-        UpdateManufacturingOrderProductionIngredientResponse429,
-        UpdateManufacturingOrderProductionIngredientResponse500,
-    ]
+    ManufacturingOrderProductionIngredient
+    | UpdateManufacturingOrderProductionIngredientResponse401
+    | UpdateManufacturingOrderProductionIngredientResponse422
+    | UpdateManufacturingOrderProductionIngredientResponse429
+    | UpdateManufacturingOrderProductionIngredientResponse500
 ]:
     """Update a manufacturing order production ingredient
 
@@ -252,17 +244,16 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderProductionIngredientRequest,
-) -> Optional[
-    Union[
-        ManufacturingOrderProductionIngredient,
-        UpdateManufacturingOrderProductionIngredientResponse401,
-        UpdateManufacturingOrderProductionIngredientResponse422,
-        UpdateManufacturingOrderProductionIngredientResponse429,
-        UpdateManufacturingOrderProductionIngredientResponse500,
-    ]
-]:
+) -> (
+    ManufacturingOrderProductionIngredient
+    | UpdateManufacturingOrderProductionIngredientResponse401
+    | UpdateManufacturingOrderProductionIngredientResponse422
+    | UpdateManufacturingOrderProductionIngredientResponse429
+    | UpdateManufacturingOrderProductionIngredientResponse500
+    | None
+):
     """Update a manufacturing order production ingredient
 
      Updates the specified manufacturing order production ingredient by setting the values of the

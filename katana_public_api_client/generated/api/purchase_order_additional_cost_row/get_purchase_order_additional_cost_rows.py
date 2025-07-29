@@ -1,6 +1,6 @@
 import datetime
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -26,25 +26,24 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    ids: Union[Unset, list[int]] = UNSET,
-    group_id: Union[Unset, float] = UNSET,
-    additional_cost_id: Union[Unset, float] = UNSET,
-    tax_rate_id: Union[Unset, float] = UNSET,
-    currency: Union[Unset, str] = UNSET,
-    distribution_method: Union[
-        Unset, GetPurchaseOrderAdditionalCostRowsDistributionMethod
-    ] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+    ids: Unset | list[int] = UNSET,
+    group_id: Unset | float = UNSET,
+    additional_cost_id: Unset | float = UNSET,
+    tax_rate_id: Unset | float = UNSET,
+    currency: Unset | str = UNSET,
+    distribution_method: Unset
+    | GetPurchaseOrderAdditionalCostRowsDistributionMethod = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Union[Unset, list[int]] = UNSET
+    json_ids: Unset | list[int] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -58,7 +57,7 @@ def _get_kwargs(
 
     params["currency"] = currency
 
-    json_distribution_method: Union[Unset, str] = UNSET
+    json_distribution_method: Unset | str = UNSET
     if not isinstance(distribution_method, Unset):
         json_distribution_method = distribution_method.value
 
@@ -70,22 +69,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Union[Unset, str] = UNSET
+    json_created_at_min: Unset | str = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Union[Unset, str] = UNSET
+    json_created_at_max: Unset | str = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Union[Unset, str] = UNSET
+    json_updated_at_min: Unset | str = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Union[Unset, str] = UNSET
+    json_updated_at_max: Unset | str = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -102,15 +101,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetPurchaseOrderAdditionalCostRowsResponse401,
-        GetPurchaseOrderAdditionalCostRowsResponse429,
-        GetPurchaseOrderAdditionalCostRowsResponse500,
-        PurchaseOrderAdditionalCostRowListResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetPurchaseOrderAdditionalCostRowsResponse401
+    | GetPurchaseOrderAdditionalCostRowsResponse429
+    | GetPurchaseOrderAdditionalCostRowsResponse500
+    | PurchaseOrderAdditionalCostRowListResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = PurchaseOrderAdditionalCostRowListResponse.from_dict(
             response.json()
@@ -142,14 +140,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetPurchaseOrderAdditionalCostRowsResponse401,
-        GetPurchaseOrderAdditionalCostRowsResponse429,
-        GetPurchaseOrderAdditionalCostRowsResponse500,
-        PurchaseOrderAdditionalCostRowListResponse,
-    ]
+    GetPurchaseOrderAdditionalCostRowsResponse401
+    | GetPurchaseOrderAdditionalCostRowsResponse429
+    | GetPurchaseOrderAdditionalCostRowsResponse500
+    | PurchaseOrderAdditionalCostRowListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -161,29 +157,26 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    group_id: Union[Unset, float] = UNSET,
-    additional_cost_id: Union[Unset, float] = UNSET,
-    tax_rate_id: Union[Unset, float] = UNSET,
-    currency: Union[Unset, str] = UNSET,
-    distribution_method: Union[
-        Unset, GetPurchaseOrderAdditionalCostRowsDistributionMethod
-    ] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    group_id: Unset | float = UNSET,
+    additional_cost_id: Unset | float = UNSET,
+    tax_rate_id: Unset | float = UNSET,
+    currency: Unset | str = UNSET,
+    distribution_method: Unset
+    | GetPurchaseOrderAdditionalCostRowsDistributionMethod = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> Response[
-    Union[
-        GetPurchaseOrderAdditionalCostRowsResponse401,
-        GetPurchaseOrderAdditionalCostRowsResponse429,
-        GetPurchaseOrderAdditionalCostRowsResponse500,
-        PurchaseOrderAdditionalCostRowListResponse,
-    ]
+    GetPurchaseOrderAdditionalCostRowsResponse401
+    | GetPurchaseOrderAdditionalCostRowsResponse429
+    | GetPurchaseOrderAdditionalCostRowsResponse500
+    | PurchaseOrderAdditionalCostRowListResponse
 ]:
     """List all purchase order additional cost rows
 
@@ -237,30 +230,28 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    group_id: Union[Unset, float] = UNSET,
-    additional_cost_id: Union[Unset, float] = UNSET,
-    tax_rate_id: Union[Unset, float] = UNSET,
-    currency: Union[Unset, str] = UNSET,
-    distribution_method: Union[
-        Unset, GetPurchaseOrderAdditionalCostRowsDistributionMethod
-    ] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-) -> Optional[
-    Union[
-        GetPurchaseOrderAdditionalCostRowsResponse401,
-        GetPurchaseOrderAdditionalCostRowsResponse429,
-        GetPurchaseOrderAdditionalCostRowsResponse500,
-        PurchaseOrderAdditionalCostRowListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    group_id: Unset | float = UNSET,
+    additional_cost_id: Unset | float = UNSET,
+    tax_rate_id: Unset | float = UNSET,
+    currency: Unset | str = UNSET,
+    distribution_method: Unset
+    | GetPurchaseOrderAdditionalCostRowsDistributionMethod = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+) -> (
+    GetPurchaseOrderAdditionalCostRowsResponse401
+    | GetPurchaseOrderAdditionalCostRowsResponse429
+    | GetPurchaseOrderAdditionalCostRowsResponse500
+    | PurchaseOrderAdditionalCostRowListResponse
+    | None
+):
     """List all purchase order additional cost rows
 
      Returns a list of purchase order additional cost rows you've previously created.
@@ -308,29 +299,26 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    group_id: Union[Unset, float] = UNSET,
-    additional_cost_id: Union[Unset, float] = UNSET,
-    tax_rate_id: Union[Unset, float] = UNSET,
-    currency: Union[Unset, str] = UNSET,
-    distribution_method: Union[
-        Unset, GetPurchaseOrderAdditionalCostRowsDistributionMethod
-    ] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    group_id: Unset | float = UNSET,
+    additional_cost_id: Unset | float = UNSET,
+    tax_rate_id: Unset | float = UNSET,
+    currency: Unset | str = UNSET,
+    distribution_method: Unset
+    | GetPurchaseOrderAdditionalCostRowsDistributionMethod = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> Response[
-    Union[
-        GetPurchaseOrderAdditionalCostRowsResponse401,
-        GetPurchaseOrderAdditionalCostRowsResponse429,
-        GetPurchaseOrderAdditionalCostRowsResponse500,
-        PurchaseOrderAdditionalCostRowListResponse,
-    ]
+    GetPurchaseOrderAdditionalCostRowsResponse401
+    | GetPurchaseOrderAdditionalCostRowsResponse429
+    | GetPurchaseOrderAdditionalCostRowsResponse500
+    | PurchaseOrderAdditionalCostRowListResponse
 ]:
     """List all purchase order additional cost rows
 
@@ -382,30 +370,28 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    group_id: Union[Unset, float] = UNSET,
-    additional_cost_id: Union[Unset, float] = UNSET,
-    tax_rate_id: Union[Unset, float] = UNSET,
-    currency: Union[Unset, str] = UNSET,
-    distribution_method: Union[
-        Unset, GetPurchaseOrderAdditionalCostRowsDistributionMethod
-    ] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-) -> Optional[
-    Union[
-        GetPurchaseOrderAdditionalCostRowsResponse401,
-        GetPurchaseOrderAdditionalCostRowsResponse429,
-        GetPurchaseOrderAdditionalCostRowsResponse500,
-        PurchaseOrderAdditionalCostRowListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    group_id: Unset | float = UNSET,
+    additional_cost_id: Unset | float = UNSET,
+    tax_rate_id: Unset | float = UNSET,
+    currency: Unset | str = UNSET,
+    distribution_method: Unset
+    | GetPurchaseOrderAdditionalCostRowsDistributionMethod = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+) -> (
+    GetPurchaseOrderAdditionalCostRowsResponse401
+    | GetPurchaseOrderAdditionalCostRowsResponse429
+    | GetPurchaseOrderAdditionalCostRowsResponse500
+    | PurchaseOrderAdditionalCostRowListResponse
+    | None
+):
     """List all purchase order additional cost rows
 
      Returns a list of purchase order additional cost rows you've previously created.

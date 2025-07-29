@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -41,15 +41,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        CreateManufacturingOrderRecipeRowsResponse401,
-        CreateManufacturingOrderRecipeRowsResponse429,
-        CreateManufacturingOrderRecipeRowsResponse500,
-        ManufacturingOrderRecipeRow,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    CreateManufacturingOrderRecipeRowsResponse401
+    | CreateManufacturingOrderRecipeRowsResponse429
+    | CreateManufacturingOrderRecipeRowsResponse500
+    | ManufacturingOrderRecipeRow
+    | None
+):
     if response.status_code == 200:
         response_200 = ManufacturingOrderRecipeRow.from_dict(response.json())
 
@@ -79,14 +78,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        CreateManufacturingOrderRecipeRowsResponse401,
-        CreateManufacturingOrderRecipeRowsResponse429,
-        CreateManufacturingOrderRecipeRowsResponse500,
-        ManufacturingOrderRecipeRow,
-    ]
+    CreateManufacturingOrderRecipeRowsResponse401
+    | CreateManufacturingOrderRecipeRowsResponse429
+    | CreateManufacturingOrderRecipeRowsResponse500
+    | ManufacturingOrderRecipeRow
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -98,15 +95,13 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRecipeRowRequest,
 ) -> Response[
-    Union[
-        CreateManufacturingOrderRecipeRowsResponse401,
-        CreateManufacturingOrderRecipeRowsResponse429,
-        CreateManufacturingOrderRecipeRowsResponse500,
-        ManufacturingOrderRecipeRow,
-    ]
+    CreateManufacturingOrderRecipeRowsResponse401
+    | CreateManufacturingOrderRecipeRowsResponse429
+    | CreateManufacturingOrderRecipeRowsResponse500
+    | ManufacturingOrderRecipeRow
 ]:
     """Create a manufacturing order recipe row
 
@@ -137,16 +132,15 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRecipeRowRequest,
-) -> Optional[
-    Union[
-        CreateManufacturingOrderRecipeRowsResponse401,
-        CreateManufacturingOrderRecipeRowsResponse429,
-        CreateManufacturingOrderRecipeRowsResponse500,
-        ManufacturingOrderRecipeRow,
-    ]
-]:
+) -> (
+    CreateManufacturingOrderRecipeRowsResponse401
+    | CreateManufacturingOrderRecipeRowsResponse429
+    | CreateManufacturingOrderRecipeRowsResponse500
+    | ManufacturingOrderRecipeRow
+    | None
+):
     """Create a manufacturing order recipe row
 
      Add a recipe row to an existing manufacturing order.
@@ -171,15 +165,13 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRecipeRowRequest,
 ) -> Response[
-    Union[
-        CreateManufacturingOrderRecipeRowsResponse401,
-        CreateManufacturingOrderRecipeRowsResponse429,
-        CreateManufacturingOrderRecipeRowsResponse500,
-        ManufacturingOrderRecipeRow,
-    ]
+    CreateManufacturingOrderRecipeRowsResponse401
+    | CreateManufacturingOrderRecipeRowsResponse429
+    | CreateManufacturingOrderRecipeRowsResponse500
+    | ManufacturingOrderRecipeRow
 ]:
     """Create a manufacturing order recipe row
 
@@ -208,16 +200,15 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRecipeRowRequest,
-) -> Optional[
-    Union[
-        CreateManufacturingOrderRecipeRowsResponse401,
-        CreateManufacturingOrderRecipeRowsResponse429,
-        CreateManufacturingOrderRecipeRowsResponse500,
-        ManufacturingOrderRecipeRow,
-    ]
-]:
+) -> (
+    CreateManufacturingOrderRecipeRowsResponse401
+    | CreateManufacturingOrderRecipeRowsResponse429
+    | CreateManufacturingOrderRecipeRowsResponse500
+    | ManufacturingOrderRecipeRow
+    | None
+):
     """Create a manufacturing order recipe row
 
      Add a recipe row to an existing manufacturing order.

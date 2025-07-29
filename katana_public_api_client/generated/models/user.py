@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -31,10 +33,10 @@ class User:
     last_name: str
     email: str
     role: str
-    status: Union[Unset, str] = UNSET
-    last_login_at: Union[None, Unset, datetime.datetime] = UNSET
-    created_at: Union[Unset, datetime.datetime] = UNSET
-    updated_at: Union[Unset, datetime.datetime] = UNSET
+    status: Unset | str = UNSET
+    last_login_at: None | Unset | datetime.datetime = UNSET
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -50,7 +52,7 @@ class User:
 
         status = self.status
 
-        last_login_at: Union[None, Unset, str]
+        last_login_at: None | Unset | str
         if isinstance(self.last_login_at, Unset):
             last_login_at = UNSET
         elif isinstance(self.last_login_at, datetime.datetime):
@@ -58,11 +60,11 @@ class User:
         else:
             last_login_at = self.last_login_at
 
-        created_at: Union[Unset, str] = UNSET
+        created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
@@ -103,7 +105,7 @@ class User:
 
         status = d.pop("status", UNSET)
 
-        def _parse_last_login_at(data: object) -> Union[None, Unset, datetime.datetime]:
+        def _parse_last_login_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -116,19 +118,19 @@ class User:
                 return last_login_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, datetime.datetime], data)
+            return cast(None | Unset | datetime.datetime, data)
 
         last_login_at = _parse_last_login_at(d.pop("last_login_at", UNSET))
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Union[Unset, datetime.datetime]
+        created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: Unset | datetime.datetime
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:

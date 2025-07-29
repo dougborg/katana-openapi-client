@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -35,17 +35,16 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        CreateSalesReturnResponse400,
-        CreateSalesReturnResponse401,
-        CreateSalesReturnResponse422,
-        CreateSalesReturnResponse429,
-        CreateSalesReturnResponse500,
-        SalesReturn,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    CreateSalesReturnResponse400
+    | CreateSalesReturnResponse401
+    | CreateSalesReturnResponse422
+    | CreateSalesReturnResponse429
+    | CreateSalesReturnResponse500
+    | SalesReturn
+    | None
+):
     if response.status_code == 201:
         response_201 = SalesReturn.from_dict(response.json())
 
@@ -77,16 +76,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        CreateSalesReturnResponse400,
-        CreateSalesReturnResponse401,
-        CreateSalesReturnResponse422,
-        CreateSalesReturnResponse429,
-        CreateSalesReturnResponse500,
-        SalesReturn,
-    ]
+    CreateSalesReturnResponse400
+    | CreateSalesReturnResponse401
+    | CreateSalesReturnResponse422
+    | CreateSalesReturnResponse429
+    | CreateSalesReturnResponse500
+    | SalesReturn
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -98,17 +95,15 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateSalesReturnRequest,
 ) -> Response[
-    Union[
-        CreateSalesReturnResponse400,
-        CreateSalesReturnResponse401,
-        CreateSalesReturnResponse422,
-        CreateSalesReturnResponse429,
-        CreateSalesReturnResponse500,
-        SalesReturn,
-    ]
+    CreateSalesReturnResponse400
+    | CreateSalesReturnResponse401
+    | CreateSalesReturnResponse422
+    | CreateSalesReturnResponse429
+    | CreateSalesReturnResponse500
+    | SalesReturn
 ]:
     """Create a sales return
 
@@ -138,18 +133,17 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateSalesReturnRequest,
-) -> Optional[
-    Union[
-        CreateSalesReturnResponse400,
-        CreateSalesReturnResponse401,
-        CreateSalesReturnResponse422,
-        CreateSalesReturnResponse429,
-        CreateSalesReturnResponse500,
-        SalesReturn,
-    ]
-]:
+) -> (
+    CreateSalesReturnResponse400
+    | CreateSalesReturnResponse401
+    | CreateSalesReturnResponse422
+    | CreateSalesReturnResponse429
+    | CreateSalesReturnResponse500
+    | SalesReturn
+    | None
+):
     """Create a sales return
 
      Creates a new sales return object.
@@ -173,17 +167,15 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateSalesReturnRequest,
 ) -> Response[
-    Union[
-        CreateSalesReturnResponse400,
-        CreateSalesReturnResponse401,
-        CreateSalesReturnResponse422,
-        CreateSalesReturnResponse429,
-        CreateSalesReturnResponse500,
-        SalesReturn,
-    ]
+    CreateSalesReturnResponse400
+    | CreateSalesReturnResponse401
+    | CreateSalesReturnResponse422
+    | CreateSalesReturnResponse429
+    | CreateSalesReturnResponse500
+    | SalesReturn
 ]:
     """Create a sales return
 
@@ -211,18 +203,17 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateSalesReturnRequest,
-) -> Optional[
-    Union[
-        CreateSalesReturnResponse400,
-        CreateSalesReturnResponse401,
-        CreateSalesReturnResponse422,
-        CreateSalesReturnResponse429,
-        CreateSalesReturnResponse500,
-        SalesReturn,
-    ]
-]:
+) -> (
+    CreateSalesReturnResponse400
+    | CreateSalesReturnResponse401
+    | CreateSalesReturnResponse422
+    | CreateSalesReturnResponse429
+    | CreateSalesReturnResponse500
+    | SalesReturn
+    | None
+):
     """Create a sales return
 
      Creates a new sales return object.

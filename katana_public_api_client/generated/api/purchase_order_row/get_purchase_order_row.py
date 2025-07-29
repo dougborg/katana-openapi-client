@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -24,15 +24,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetPurchaseOrderRowResponse401,
-        GetPurchaseOrderRowResponse429,
-        GetPurchaseOrderRowResponse500,
-        PurchaseOrderRow,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetPurchaseOrderRowResponse401
+    | GetPurchaseOrderRowResponse429
+    | GetPurchaseOrderRowResponse500
+    | PurchaseOrderRow
+    | None
+):
     if response.status_code == 200:
         response_200 = PurchaseOrderRow.from_dict(response.json())
 
@@ -56,14 +55,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetPurchaseOrderRowResponse401,
-        GetPurchaseOrderRowResponse429,
-        GetPurchaseOrderRowResponse500,
-        PurchaseOrderRow,
-    ]
+    GetPurchaseOrderRowResponse401
+    | GetPurchaseOrderRowResponse429
+    | GetPurchaseOrderRowResponse500
+    | PurchaseOrderRow
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -76,14 +73,12 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        GetPurchaseOrderRowResponse401,
-        GetPurchaseOrderRowResponse429,
-        GetPurchaseOrderRowResponse500,
-        PurchaseOrderRow,
-    ]
+    GetPurchaseOrderRowResponse401
+    | GetPurchaseOrderRowResponse429
+    | GetPurchaseOrderRowResponse500
+    | PurchaseOrderRow
 ]:
     """Retrieve a purchase order row
 
@@ -114,15 +109,14 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        GetPurchaseOrderRowResponse401,
-        GetPurchaseOrderRowResponse429,
-        GetPurchaseOrderRowResponse500,
-        PurchaseOrderRow,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    GetPurchaseOrderRowResponse401
+    | GetPurchaseOrderRowResponse429
+    | GetPurchaseOrderRowResponse500
+    | PurchaseOrderRow
+    | None
+):
     """Retrieve a purchase order row
 
      Retrieves the details of an existing purchase order row based on ID
@@ -147,14 +141,12 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        GetPurchaseOrderRowResponse401,
-        GetPurchaseOrderRowResponse429,
-        GetPurchaseOrderRowResponse500,
-        PurchaseOrderRow,
-    ]
+    GetPurchaseOrderRowResponse401
+    | GetPurchaseOrderRowResponse429
+    | GetPurchaseOrderRowResponse500
+    | PurchaseOrderRow
 ]:
     """Retrieve a purchase order row
 
@@ -183,15 +175,14 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        GetPurchaseOrderRowResponse401,
-        GetPurchaseOrderRowResponse429,
-        GetPurchaseOrderRowResponse500,
-        PurchaseOrderRow,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    GetPurchaseOrderRowResponse401
+    | GetPurchaseOrderRowResponse429
+    | GetPurchaseOrderRowResponse500
+    | PurchaseOrderRow
+    | None
+):
     """Retrieve a purchase order row
 
      Retrieves the details of an existing purchase order row based on ID

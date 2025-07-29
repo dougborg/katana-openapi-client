@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union, cast
+from typing import Any, Union, cast
 
 import httpx
 
@@ -32,7 +32,7 @@ def _get_kwargs(
         "url": "/purchase_order_receive",
     }
 
-    _kwargs["json"]: Union[dict[str, Any], list[dict[str, Any]]]
+    _kwargs["json"] = None  # type: dict[str, Any] | list[dict[str, Any]]
     if isinstance(body, list):
         _kwargs["json"] = []
         for componentsschemas_purchase_order_receive_request_type_0_item_data in body:
@@ -51,16 +51,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        Any,
-        ReceivePurchaseOrderResponse401,
-        ReceivePurchaseOrderResponse422,
-        ReceivePurchaseOrderResponse429,
-        ReceivePurchaseOrderResponse500,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    Any
+    | ReceivePurchaseOrderResponse401
+    | ReceivePurchaseOrderResponse422
+    | ReceivePurchaseOrderResponse429
+    | ReceivePurchaseOrderResponse500
+    | None
+):
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
@@ -87,15 +86,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        Any,
-        ReceivePurchaseOrderResponse401,
-        ReceivePurchaseOrderResponse422,
-        ReceivePurchaseOrderResponse429,
-        ReceivePurchaseOrderResponse500,
-    ]
+    Any
+    | ReceivePurchaseOrderResponse401
+    | ReceivePurchaseOrderResponse422
+    | ReceivePurchaseOrderResponse429
+    | ReceivePurchaseOrderResponse500
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -107,16 +104,14 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
 ) -> Response[
-    Union[
-        Any,
-        ReceivePurchaseOrderResponse401,
-        ReceivePurchaseOrderResponse422,
-        ReceivePurchaseOrderResponse429,
-        ReceivePurchaseOrderResponse500,
-    ]
+    Any
+    | ReceivePurchaseOrderResponse401
+    | ReceivePurchaseOrderResponse422
+    | ReceivePurchaseOrderResponse429
+    | ReceivePurchaseOrderResponse500
 ]:
     """Receive a purchase order
 
@@ -152,17 +147,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
-) -> Optional[
-    Union[
-        Any,
-        ReceivePurchaseOrderResponse401,
-        ReceivePurchaseOrderResponse422,
-        ReceivePurchaseOrderResponse429,
-        ReceivePurchaseOrderResponse500,
-    ]
-]:
+) -> (
+    Any
+    | ReceivePurchaseOrderResponse401
+    | ReceivePurchaseOrderResponse422
+    | ReceivePurchaseOrderResponse429
+    | ReceivePurchaseOrderResponse500
+    | None
+):
     """Receive a purchase order
 
      If you receive the items on the purchase order, you can mark the purchase order as received.
@@ -192,16 +186,14 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
 ) -> Response[
-    Union[
-        Any,
-        ReceivePurchaseOrderResponse401,
-        ReceivePurchaseOrderResponse422,
-        ReceivePurchaseOrderResponse429,
-        ReceivePurchaseOrderResponse500,
-    ]
+    Any
+    | ReceivePurchaseOrderResponse401
+    | ReceivePurchaseOrderResponse422
+    | ReceivePurchaseOrderResponse429
+    | ReceivePurchaseOrderResponse500
 ]:
     """Receive a purchase order
 
@@ -235,17 +227,16 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
-) -> Optional[
-    Union[
-        Any,
-        ReceivePurchaseOrderResponse401,
-        ReceivePurchaseOrderResponse422,
-        ReceivePurchaseOrderResponse429,
-        ReceivePurchaseOrderResponse500,
-    ]
-]:
+) -> (
+    Any
+    | ReceivePurchaseOrderResponse401
+    | ReceivePurchaseOrderResponse422
+    | ReceivePurchaseOrderResponse429
+    | ReceivePurchaseOrderResponse500
+    | None
+):
     """Receive a purchase order
 
      If you receive the items on the purchase order, you can mark the purchase order as received.

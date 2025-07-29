@@ -1,6 +1,6 @@
 import datetime
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -21,31 +21,31 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    ids: Union[Unset, list[int]] = UNSET,
-    supplier_ids: Union[Unset, list[int]] = UNSET,
-    line_1: Union[Unset, str] = UNSET,
-    line_2: Union[Unset, str] = UNSET,
-    city: Union[Unset, str] = UNSET,
-    state: Union[Unset, str] = UNSET,
-    zip_: Union[Unset, str] = UNSET,
-    country: Union[Unset, str] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+    ids: Unset | list[int] = UNSET,
+    supplier_ids: Unset | list[int] = UNSET,
+    line_1: Unset | str = UNSET,
+    line_2: Unset | str = UNSET,
+    city: Unset | str = UNSET,
+    state: Unset | str = UNSET,
+    zip_: Unset | str = UNSET,
+    country: Unset | str = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Union[Unset, list[int]] = UNSET
+    json_ids: Unset | list[int] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
     params["ids"] = json_ids
 
-    json_supplier_ids: Union[Unset, list[int]] = UNSET
+    json_supplier_ids: Unset | list[int] = UNSET
     if not isinstance(supplier_ids, Unset):
         json_supplier_ids = supplier_ids
 
@@ -69,22 +69,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Union[Unset, str] = UNSET
+    json_created_at_min: Unset | str = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Union[Unset, str] = UNSET
+    json_created_at_max: Unset | str = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Union[Unset, str] = UNSET
+    json_updated_at_min: Unset | str = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Union[Unset, str] = UNSET
+    json_updated_at_max: Unset | str = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -101,15 +101,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetSupplierAddressesResponse401,
-        GetSupplierAddressesResponse429,
-        GetSupplierAddressesResponse500,
-        SupplierAddressListResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetSupplierAddressesResponse401
+    | GetSupplierAddressesResponse429
+    | GetSupplierAddressesResponse500
+    | SupplierAddressListResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = SupplierAddressListResponse.from_dict(response.json())
 
@@ -133,14 +132,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetSupplierAddressesResponse401,
-        GetSupplierAddressesResponse429,
-        GetSupplierAddressesResponse500,
-        SupplierAddressListResponse,
-    ]
+    GetSupplierAddressesResponse401
+    | GetSupplierAddressesResponse429
+    | GetSupplierAddressesResponse500
+    | SupplierAddressListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -152,29 +149,27 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    supplier_ids: Union[Unset, list[int]] = UNSET,
-    line_1: Union[Unset, str] = UNSET,
-    line_2: Union[Unset, str] = UNSET,
-    city: Union[Unset, str] = UNSET,
-    state: Union[Unset, str] = UNSET,
-    zip_: Union[Unset, str] = UNSET,
-    country: Union[Unset, str] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    supplier_ids: Unset | list[int] = UNSET,
+    line_1: Unset | str = UNSET,
+    line_2: Unset | str = UNSET,
+    city: Unset | str = UNSET,
+    state: Unset | str = UNSET,
+    zip_: Unset | str = UNSET,
+    country: Unset | str = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> Response[
-    Union[
-        GetSupplierAddressesResponse401,
-        GetSupplierAddressesResponse429,
-        GetSupplierAddressesResponse500,
-        SupplierAddressListResponse,
-    ]
+    GetSupplierAddressesResponse401
+    | GetSupplierAddressesResponse429
+    | GetSupplierAddressesResponse500
+    | SupplierAddressListResponse
 ]:
     """List all supplier addresses
 
@@ -234,30 +229,29 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    supplier_ids: Union[Unset, list[int]] = UNSET,
-    line_1: Union[Unset, str] = UNSET,
-    line_2: Union[Unset, str] = UNSET,
-    city: Union[Unset, str] = UNSET,
-    state: Union[Unset, str] = UNSET,
-    zip_: Union[Unset, str] = UNSET,
-    country: Union[Unset, str] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-) -> Optional[
-    Union[
-        GetSupplierAddressesResponse401,
-        GetSupplierAddressesResponse429,
-        GetSupplierAddressesResponse500,
-        SupplierAddressListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    supplier_ids: Unset | list[int] = UNSET,
+    line_1: Unset | str = UNSET,
+    line_2: Unset | str = UNSET,
+    city: Unset | str = UNSET,
+    state: Unset | str = UNSET,
+    zip_: Unset | str = UNSET,
+    country: Unset | str = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+) -> (
+    GetSupplierAddressesResponse401
+    | GetSupplierAddressesResponse429
+    | GetSupplierAddressesResponse500
+    | SupplierAddressListResponse
+    | None
+):
     """List all supplier addresses
 
      Returns a list of supplier addresses you've previously created.
@@ -311,29 +305,27 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    supplier_ids: Union[Unset, list[int]] = UNSET,
-    line_1: Union[Unset, str] = UNSET,
-    line_2: Union[Unset, str] = UNSET,
-    city: Union[Unset, str] = UNSET,
-    state: Union[Unset, str] = UNSET,
-    zip_: Union[Unset, str] = UNSET,
-    country: Union[Unset, str] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    supplier_ids: Unset | list[int] = UNSET,
+    line_1: Unset | str = UNSET,
+    line_2: Unset | str = UNSET,
+    city: Unset | str = UNSET,
+    state: Unset | str = UNSET,
+    zip_: Unset | str = UNSET,
+    country: Unset | str = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> Response[
-    Union[
-        GetSupplierAddressesResponse401,
-        GetSupplierAddressesResponse429,
-        GetSupplierAddressesResponse500,
-        SupplierAddressListResponse,
-    ]
+    GetSupplierAddressesResponse401
+    | GetSupplierAddressesResponse429
+    | GetSupplierAddressesResponse500
+    | SupplierAddressListResponse
 ]:
     """List all supplier addresses
 
@@ -391,30 +383,29 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    supplier_ids: Union[Unset, list[int]] = UNSET,
-    line_1: Union[Unset, str] = UNSET,
-    line_2: Union[Unset, str] = UNSET,
-    city: Union[Unset, str] = UNSET,
-    state: Union[Unset, str] = UNSET,
-    zip_: Union[Unset, str] = UNSET,
-    country: Union[Unset, str] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-) -> Optional[
-    Union[
-        GetSupplierAddressesResponse401,
-        GetSupplierAddressesResponse429,
-        GetSupplierAddressesResponse500,
-        SupplierAddressListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    supplier_ids: Unset | list[int] = UNSET,
+    line_1: Unset | str = UNSET,
+    line_2: Unset | str = UNSET,
+    city: Unset | str = UNSET,
+    state: Unset | str = UNSET,
+    zip_: Unset | str = UNSET,
+    country: Unset | str = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+) -> (
+    GetSupplierAddressesResponse401
+    | GetSupplierAddressesResponse429
+    | GetSupplierAddressesResponse500
+    | SupplierAddressListResponse
+    | None
+):
     """List all supplier addresses
 
      Returns a list of supplier addresses you've previously created.

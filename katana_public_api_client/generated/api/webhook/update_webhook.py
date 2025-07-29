@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -35,16 +35,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        UpdateWebhookResponse401,
-        UpdateWebhookResponse422,
-        UpdateWebhookResponse429,
-        UpdateWebhookResponse500,
-        Webhook,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    UpdateWebhookResponse401
+    | UpdateWebhookResponse422
+    | UpdateWebhookResponse429
+    | UpdateWebhookResponse500
+    | Webhook
+    | None
+):
     if response.status_code == 200:
         response_200 = Webhook.from_dict(response.json())
 
@@ -72,15 +71,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        UpdateWebhookResponse401,
-        UpdateWebhookResponse422,
-        UpdateWebhookResponse429,
-        UpdateWebhookResponse500,
-        Webhook,
-    ]
+    UpdateWebhookResponse401
+    | UpdateWebhookResponse422
+    | UpdateWebhookResponse429
+    | UpdateWebhookResponse500
+    | Webhook
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -93,16 +90,14 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateWebhookRequest,
 ) -> Response[
-    Union[
-        UpdateWebhookResponse401,
-        UpdateWebhookResponse422,
-        UpdateWebhookResponse429,
-        UpdateWebhookResponse500,
-        Webhook,
-    ]
+    UpdateWebhookResponse401
+    | UpdateWebhookResponse422
+    | UpdateWebhookResponse429
+    | UpdateWebhookResponse500
+    | Webhook
 ]:
     """Update a webhook
 
@@ -136,17 +131,16 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateWebhookRequest,
-) -> Optional[
-    Union[
-        UpdateWebhookResponse401,
-        UpdateWebhookResponse422,
-        UpdateWebhookResponse429,
-        UpdateWebhookResponse500,
-        Webhook,
-    ]
-]:
+) -> (
+    UpdateWebhookResponse401
+    | UpdateWebhookResponse422
+    | UpdateWebhookResponse429
+    | UpdateWebhookResponse500
+    | Webhook
+    | None
+):
     """Update a webhook
 
      Updates the specified webhook by setting the values of the parameters passed.
@@ -174,16 +168,14 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateWebhookRequest,
 ) -> Response[
-    Union[
-        UpdateWebhookResponse401,
-        UpdateWebhookResponse422,
-        UpdateWebhookResponse429,
-        UpdateWebhookResponse500,
-        Webhook,
-    ]
+    UpdateWebhookResponse401
+    | UpdateWebhookResponse422
+    | UpdateWebhookResponse429
+    | UpdateWebhookResponse500
+    | Webhook
 ]:
     """Update a webhook
 
@@ -215,17 +207,16 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateWebhookRequest,
-) -> Optional[
-    Union[
-        UpdateWebhookResponse401,
-        UpdateWebhookResponse422,
-        UpdateWebhookResponse429,
-        UpdateWebhookResponse500,
-        Webhook,
-    ]
-]:
+) -> (
+    UpdateWebhookResponse401
+    | UpdateWebhookResponse422
+    | UpdateWebhookResponse429
+    | UpdateWebhookResponse500
+    | Webhook
+    | None
+):
     """Update a webhook
 
      Updates the specified webhook by setting the values of the parameters passed.

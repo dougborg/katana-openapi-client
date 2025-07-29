@@ -1,8 +1,10 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..types import UNSET, Unset
 
@@ -17,8 +19,8 @@ class ProductOperationRerankRequestOperationRanksItem:
         rank (Union[Unset, int]):
     """
 
-    operation_id: Union[Unset, int] = UNSET
-    rank: Union[Unset, int] = UNSET
+    operation_id: Unset | int = UNSET
+    rank: Unset | int = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

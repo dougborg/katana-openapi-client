@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -32,21 +34,21 @@ class PurchaseOrderAdditionalCostRow:
         deleted_at (Union[None, Unset, datetime.datetime]):
     """
 
-    id: Union[Unset, int] = UNSET
-    additional_cost_id: Union[Unset, int] = UNSET
-    group_id: Union[Unset, int] = UNSET
-    name: Union[Unset, str] = UNSET
-    distribution_method: Union[Unset, str] = UNSET
-    tax_rate_id: Union[Unset, int] = UNSET
-    tax_rate: Union[Unset, float] = UNSET
-    price: Union[Unset, float] = UNSET
-    price_in_base: Union[Unset, float] = UNSET
-    currency: Union[Unset, str] = UNSET
-    currency_conversion_rate: Union[Unset, float] = UNSET
-    currency_conversion_rate_fix_date: Union[Unset, datetime.datetime] = UNSET
-    updated_at: Union[Unset, datetime.datetime] = UNSET
-    created_at: Union[Unset, datetime.datetime] = UNSET
-    deleted_at: Union[None, Unset, datetime.datetime] = UNSET
+    id: Unset | int = UNSET
+    additional_cost_id: Unset | int = UNSET
+    group_id: Unset | int = UNSET
+    name: Unset | str = UNSET
+    distribution_method: Unset | str = UNSET
+    tax_rate_id: Unset | int = UNSET
+    tax_rate: Unset | float = UNSET
+    price: Unset | float = UNSET
+    price_in_base: Unset | float = UNSET
+    currency: Unset | str = UNSET
+    currency_conversion_rate: Unset | float = UNSET
+    currency_conversion_rate_fix_date: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    created_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -72,21 +74,21 @@ class PurchaseOrderAdditionalCostRow:
 
         currency_conversion_rate = self.currency_conversion_rate
 
-        currency_conversion_rate_fix_date: Union[Unset, str] = UNSET
+        currency_conversion_rate_fix_date: Unset | str = UNSET
         if not isinstance(self.currency_conversion_rate_fix_date, Unset):
             currency_conversion_rate_fix_date = (
                 self.currency_conversion_rate_fix_date.isoformat()
             )
 
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        created_at: Union[Unset, str] = UNSET
+        created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        deleted_at: Union[None, Unset, str]
+        deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -160,7 +162,7 @@ class PurchaseOrderAdditionalCostRow:
         _currency_conversion_rate_fix_date = d.pop(
             "currency_conversion_rate_fix_date", UNSET
         )
-        currency_conversion_rate_fix_date: Union[Unset, datetime.datetime]
+        currency_conversion_rate_fix_date: Unset | datetime.datetime
         if isinstance(_currency_conversion_rate_fix_date, Unset):
             currency_conversion_rate_fix_date = UNSET
         else:
@@ -169,20 +171,20 @@ class PurchaseOrderAdditionalCostRow:
             )
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: Unset | datetime.datetime
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Union[Unset, datetime.datetime]
+        created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
-        def _parse_deleted_at(data: object) -> Union[None, Unset, datetime.datetime]:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -195,7 +197,7 @@ class PurchaseOrderAdditionalCostRow:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, datetime.datetime], data)
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

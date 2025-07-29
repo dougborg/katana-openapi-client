@@ -1,8 +1,10 @@
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..models.service_type import ServiceType
 from ..types import UNSET, Unset
@@ -23,19 +25,19 @@ class Service:
         attributes (Union[Unset, ServiceAttributes]):
     """
 
-    id: Union[Unset, str] = UNSET
-    type_: Union[Unset, ServiceType] = UNSET
+    id: Unset | str = UNSET
+    type_: Unset | ServiceType = UNSET
     attributes: Union[Unset, "ServiceAttributes"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        type_: Union[Unset, str] = UNSET
+        type_: Unset | str = UNSET
         if not isinstance(self.type_, Unset):
             type_ = self.type_.value
 
-        attributes: Union[Unset, dict[str, Any]] = UNSET
+        attributes: Unset | dict[str, Any] = UNSET
         if not isinstance(self.attributes, Unset):
             attributes = self.attributes.to_dict()
 
@@ -59,14 +61,14 @@ class Service:
         id = d.pop("id", UNSET)
 
         _type_ = d.pop("type", UNSET)
-        type_: Union[Unset, ServiceType]
+        type_: Unset | ServiceType
         if isinstance(_type_, Unset):
             type_ = UNSET
         else:
             type_ = ServiceType(_type_)
 
         _attributes = d.pop("attributes", UNSET)
-        attributes: Union[Unset, ServiceAttributes]
+        attributes: Unset | ServiceAttributes
         if isinstance(_attributes, Unset):
             attributes = UNSET
         else:

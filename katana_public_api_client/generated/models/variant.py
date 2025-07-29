@@ -2,8 +2,10 @@ import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -42,21 +44,21 @@ class Variant:
 
     id: int
     sku: str
-    sales_price: Union[None, Unset, float] = UNSET
-    product_id: Union[None, Unset, int] = UNSET
-    material_id: Union[None, Unset, int] = UNSET
-    purchase_price: Union[Unset, float] = UNSET
-    product_or_material_name: Union[Unset, str] = UNSET
-    type_: Union[Unset, str] = UNSET
-    created_at: Union[Unset, datetime.datetime] = UNSET
-    updated_at: Union[Unset, datetime.datetime] = UNSET
-    deleted_at: Union[None, Unset, datetime.datetime] = UNSET
-    internal_barcode: Union[Unset, str] = UNSET
-    registered_barcode: Union[Unset, str] = UNSET
-    supplier_item_codes: Union[Unset, list[str]] = UNSET
-    lead_time: Union[None, Unset, int] = UNSET
-    minimum_order_quantity: Union[None, Unset, float] = UNSET
-    config_attributes: Union[Unset, list["VariantConfigAttributesItem"]] = UNSET
+    sales_price: None | Unset | float = UNSET
+    product_id: None | Unset | int = UNSET
+    material_id: None | Unset | int = UNSET
+    purchase_price: Unset | float = UNSET
+    product_or_material_name: Unset | str = UNSET
+    type_: Unset | str = UNSET
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
+    internal_barcode: Unset | str = UNSET
+    registered_barcode: Unset | str = UNSET
+    supplier_item_codes: Unset | list[str] = UNSET
+    lead_time: None | Unset | int = UNSET
+    minimum_order_quantity: None | Unset | float = UNSET
+    config_attributes: Unset | list["VariantConfigAttributesItem"] = UNSET
     product_or_material: Union[Unset, "VariantProductOrMaterial"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -65,19 +67,19 @@ class Variant:
 
         sku = self.sku
 
-        sales_price: Union[None, Unset, float]
+        sales_price: None | Unset | float
         if isinstance(self.sales_price, Unset):
             sales_price = UNSET
         else:
             sales_price = self.sales_price
 
-        product_id: Union[None, Unset, int]
+        product_id: None | Unset | int
         if isinstance(self.product_id, Unset):
             product_id = UNSET
         else:
             product_id = self.product_id
 
-        material_id: Union[None, Unset, int]
+        material_id: None | Unset | int
         if isinstance(self.material_id, Unset):
             material_id = UNSET
         else:
@@ -89,15 +91,15 @@ class Variant:
 
         type_ = self.type_
 
-        created_at: Union[Unset, str] = UNSET
+        created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: Union[None, Unset, str]
+        deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -109,30 +111,30 @@ class Variant:
 
         registered_barcode = self.registered_barcode
 
-        supplier_item_codes: Union[Unset, list[str]] = UNSET
+        supplier_item_codes: Unset | list[str] = UNSET
         if not isinstance(self.supplier_item_codes, Unset):
             supplier_item_codes = self.supplier_item_codes
 
-        lead_time: Union[None, Unset, int]
+        lead_time: None | Unset | int
         if isinstance(self.lead_time, Unset):
             lead_time = UNSET
         else:
             lead_time = self.lead_time
 
-        minimum_order_quantity: Union[None, Unset, float]
+        minimum_order_quantity: None | Unset | float
         if isinstance(self.minimum_order_quantity, Unset):
             minimum_order_quantity = UNSET
         else:
             minimum_order_quantity = self.minimum_order_quantity
 
-        config_attributes: Union[Unset, list[dict[str, Any]]] = UNSET
+        config_attributes: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.config_attributes, Unset):
             config_attributes = []
             for config_attributes_item_data in self.config_attributes:
                 config_attributes_item = config_attributes_item_data.to_dict()
                 config_attributes.append(config_attributes_item)
 
-        product_or_material: Union[Unset, dict[str, Any]] = UNSET
+        product_or_material: Unset | dict[str, Any] = UNSET
         if not isinstance(self.product_or_material, Unset):
             product_or_material = self.product_or_material.to_dict()
 
@@ -189,30 +191,30 @@ class Variant:
 
         sku = d.pop("sku")
 
-        def _parse_sales_price(data: object) -> Union[None, Unset, float]:
+        def _parse_sales_price(data: object) -> None | Unset | float:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, float], data)
+            return cast(None | Unset | float, data)
 
         sales_price = _parse_sales_price(d.pop("sales_price", UNSET))
 
-        def _parse_product_id(data: object) -> Union[None, Unset, int]:
+        def _parse_product_id(data: object) -> None | Unset | int:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, int], data)
+            return cast(None | Unset | int, data)
 
         product_id = _parse_product_id(d.pop("product_id", UNSET))
 
-        def _parse_material_id(data: object) -> Union[None, Unset, int]:
+        def _parse_material_id(data: object) -> None | Unset | int:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, int], data)
+            return cast(None | Unset | int, data)
 
         material_id = _parse_material_id(d.pop("material_id", UNSET))
 
@@ -223,20 +225,20 @@ class Variant:
         type_ = d.pop("type", UNSET)
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Union[Unset, datetime.datetime]
+        created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: Unset | datetime.datetime
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> Union[None, Unset, datetime.datetime]:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -249,7 +251,7 @@ class Variant:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, datetime.datetime], data)
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -259,21 +261,21 @@ class Variant:
 
         supplier_item_codes = cast(list[str], d.pop("supplier_item_codes", UNSET))
 
-        def _parse_lead_time(data: object) -> Union[None, Unset, int]:
+        def _parse_lead_time(data: object) -> None | Unset | int:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, int], data)
+            return cast(None | Unset | int, data)
 
         lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
 
-        def _parse_minimum_order_quantity(data: object) -> Union[None, Unset, float]:
+        def _parse_minimum_order_quantity(data: object) -> None | Unset | float:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, float], data)
+            return cast(None | Unset | float, data)
 
         minimum_order_quantity = _parse_minimum_order_quantity(
             d.pop("minimum_order_quantity", UNSET)
@@ -289,7 +291,7 @@ class Variant:
             config_attributes.append(config_attributes_item)
 
         _product_or_material = d.pop("product_or_material", UNSET)
-        product_or_material: Union[Unset, VariantProductOrMaterial]
+        product_or_material: Unset | VariantProductOrMaterial
         if isinstance(_product_or_material, Unset):
             product_or_material = UNSET
         else:

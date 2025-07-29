@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -33,15 +33,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        CreateServiceResponse401,
-        CreateServiceResponse429,
-        CreateServiceResponse500,
-        Service,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    CreateServiceResponse401
+    | CreateServiceResponse429
+    | CreateServiceResponse500
+    | Service
+    | None
+):
     if response.status_code == 201:
         response_201 = Service.from_dict(response.json())
 
@@ -65,14 +64,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        CreateServiceResponse401,
-        CreateServiceResponse429,
-        CreateServiceResponse500,
-        Service,
-    ]
+    CreateServiceResponse401
+    | CreateServiceResponse429
+    | CreateServiceResponse500
+    | Service
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -84,15 +81,13 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: ServiceRequest,
 ) -> Response[
-    Union[
-        CreateServiceResponse401,
-        CreateServiceResponse429,
-        CreateServiceResponse500,
-        Service,
-    ]
+    CreateServiceResponse401
+    | CreateServiceResponse429
+    | CreateServiceResponse500
+    | Service
 ]:
     """Create Service
 
@@ -123,16 +118,15 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: ServiceRequest,
-) -> Optional[
-    Union[
-        CreateServiceResponse401,
-        CreateServiceResponse429,
-        CreateServiceResponse500,
-        Service,
-    ]
-]:
+) -> (
+    CreateServiceResponse401
+    | CreateServiceResponse429
+    | CreateServiceResponse500
+    | Service
+    | None
+):
     """Create Service
 
      Create a new Service. (See: [Create
@@ -157,15 +151,13 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: ServiceRequest,
 ) -> Response[
-    Union[
-        CreateServiceResponse401,
-        CreateServiceResponse429,
-        CreateServiceResponse500,
-        Service,
-    ]
+    CreateServiceResponse401
+    | CreateServiceResponse429
+    | CreateServiceResponse500
+    | Service
 ]:
     """Create Service
 
@@ -194,16 +186,15 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: ServiceRequest,
-) -> Optional[
-    Union[
-        CreateServiceResponse401,
-        CreateServiceResponse429,
-        CreateServiceResponse500,
-        Service,
-    ]
-]:
+) -> (
+    CreateServiceResponse401
+    | CreateServiceResponse429
+    | CreateServiceResponse500
+    | Service
+    | None
+):
     """Create Service
 
      Create a new Service. (See: [Create

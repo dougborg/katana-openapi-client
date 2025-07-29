@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -30,31 +32,29 @@ class UpdateManufacturingOrderProductionRequest:
         operations (Union[Unset, list['UpdateManufacturingOrderOperationRowRequest']]):
     """
 
-    quantity: Union[Unset, float] = UNSET
-    production_date: Union[Unset, datetime.datetime] = UNSET
-    ingredients: Union[
-        Unset, list["UpdateManufacturingOrderProductionIngredientRequest"]
-    ] = UNSET
-    operations: Union[Unset, list["UpdateManufacturingOrderOperationRowRequest"]] = (
+    quantity: Unset | float = UNSET
+    production_date: Unset | datetime.datetime = UNSET
+    ingredients: Unset | list["UpdateManufacturingOrderProductionIngredientRequest"] = (
         UNSET
     )
+    operations: Unset | list["UpdateManufacturingOrderOperationRowRequest"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         quantity = self.quantity
 
-        production_date: Union[Unset, str] = UNSET
+        production_date: Unset | str = UNSET
         if not isinstance(self.production_date, Unset):
             production_date = self.production_date.isoformat()
 
-        ingredients: Union[Unset, list[dict[str, Any]]] = UNSET
+        ingredients: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.ingredients, Unset):
             ingredients = []
             for ingredients_item_data in self.ingredients:
                 ingredients_item = ingredients_item_data.to_dict()
                 ingredients.append(ingredients_item)
 
-        operations: Union[Unset, list[dict[str, Any]]] = UNSET
+        operations: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.operations, Unset):
             operations = []
             for operations_item_data in self.operations:
@@ -88,7 +88,7 @@ class UpdateManufacturingOrderProductionRequest:
         quantity = d.pop("quantity", UNSET)
 
         _production_date = d.pop("production_date", UNSET)
-        production_date: Union[Unset, datetime.datetime]
+        production_date: Unset | datetime.datetime
         if isinstance(_production_date, Unset):
             production_date = UNSET
         else:

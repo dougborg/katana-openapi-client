@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -14,10 +14,10 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    role: Union[Unset, str] = UNSET,
-    status: Union[Unset, str] = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    role: Unset | str = UNSET,
+    status: Unset | str = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -41,15 +41,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetAllUsersResponse401,
-        GetAllUsersResponse429,
-        GetAllUsersResponse500,
-        UserListResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetAllUsersResponse401
+    | GetAllUsersResponse429
+    | GetAllUsersResponse500
+    | UserListResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = UserListResponse.from_dict(response.json())
 
@@ -73,14 +72,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetAllUsersResponse401,
-        GetAllUsersResponse429,
-        GetAllUsersResponse500,
-        UserListResponse,
-    ]
+    GetAllUsersResponse401
+    | GetAllUsersResponse429
+    | GetAllUsersResponse500
+    | UserListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -92,18 +89,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    role: Union[Unset, str] = UNSET,
-    status: Union[Unset, str] = UNSET,
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    role: Unset | str = UNSET,
+    status: Unset | str = UNSET,
 ) -> Response[
-    Union[
-        GetAllUsersResponse401,
-        GetAllUsersResponse429,
-        GetAllUsersResponse500,
-        UserListResponse,
-    ]
+    GetAllUsersResponse401
+    | GetAllUsersResponse429
+    | GetAllUsersResponse500
+    | UserListResponse
 ]:
     """List all users
 
@@ -139,19 +134,18 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    role: Union[Unset, str] = UNSET,
-    status: Union[Unset, str] = UNSET,
-) -> Optional[
-    Union[
-        GetAllUsersResponse401,
-        GetAllUsersResponse429,
-        GetAllUsersResponse500,
-        UserListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    role: Unset | str = UNSET,
+    status: Unset | str = UNSET,
+) -> (
+    GetAllUsersResponse401
+    | GetAllUsersResponse429
+    | GetAllUsersResponse500
+    | UserListResponse
+    | None
+):
     """List all users
 
      Returns a list of active users in your account.
@@ -181,18 +175,16 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    role: Union[Unset, str] = UNSET,
-    status: Union[Unset, str] = UNSET,
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    role: Unset | str = UNSET,
+    status: Unset | str = UNSET,
 ) -> Response[
-    Union[
-        GetAllUsersResponse401,
-        GetAllUsersResponse429,
-        GetAllUsersResponse500,
-        UserListResponse,
-    ]
+    GetAllUsersResponse401
+    | GetAllUsersResponse429
+    | GetAllUsersResponse500
+    | UserListResponse
 ]:
     """List all users
 
@@ -226,19 +218,18 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    role: Union[Unset, str] = UNSET,
-    status: Union[Unset, str] = UNSET,
-) -> Optional[
-    Union[
-        GetAllUsersResponse401,
-        GetAllUsersResponse429,
-        GetAllUsersResponse500,
-        UserListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    role: Unset | str = UNSET,
+    status: Unset | str = UNSET,
+) -> (
+    GetAllUsersResponse401
+    | GetAllUsersResponse429
+    | GetAllUsersResponse500
+    | UserListResponse
+    | None
+):
     """List all users
 
      Returns a list of active users in your account.

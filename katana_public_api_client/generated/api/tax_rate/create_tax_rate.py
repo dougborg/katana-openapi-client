@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -34,16 +34,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        CreateTaxRateResponse401,
-        CreateTaxRateResponse422,
-        CreateTaxRateResponse429,
-        CreateTaxRateResponse500,
-        TaxRate,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    CreateTaxRateResponse401
+    | CreateTaxRateResponse422
+    | CreateTaxRateResponse429
+    | CreateTaxRateResponse500
+    | TaxRate
+    | None
+):
     if response.status_code == 200:
         response_200 = TaxRate.from_dict(response.json())
 
@@ -71,15 +70,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        CreateTaxRateResponse401,
-        CreateTaxRateResponse422,
-        CreateTaxRateResponse429,
-        CreateTaxRateResponse500,
-        TaxRate,
-    ]
+    CreateTaxRateResponse401
+    | CreateTaxRateResponse422
+    | CreateTaxRateResponse429
+    | CreateTaxRateResponse500
+    | TaxRate
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -91,16 +88,14 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateTaxRateRequest,
 ) -> Response[
-    Union[
-        CreateTaxRateResponse401,
-        CreateTaxRateResponse422,
-        CreateTaxRateResponse429,
-        CreateTaxRateResponse500,
-        TaxRate,
-    ]
+    CreateTaxRateResponse401
+    | CreateTaxRateResponse422
+    | CreateTaxRateResponse429
+    | CreateTaxRateResponse500
+    | TaxRate
 ]:
     """Create a tax rate
 
@@ -130,17 +125,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateTaxRateRequest,
-) -> Optional[
-    Union[
-        CreateTaxRateResponse401,
-        CreateTaxRateResponse422,
-        CreateTaxRateResponse429,
-        CreateTaxRateResponse500,
-        TaxRate,
-    ]
-]:
+) -> (
+    CreateTaxRateResponse401
+    | CreateTaxRateResponse422
+    | CreateTaxRateResponse429
+    | CreateTaxRateResponse500
+    | TaxRate
+    | None
+):
     """Create a tax rate
 
      Creates a new tax rate object.
@@ -164,16 +158,14 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateTaxRateRequest,
 ) -> Response[
-    Union[
-        CreateTaxRateResponse401,
-        CreateTaxRateResponse422,
-        CreateTaxRateResponse429,
-        CreateTaxRateResponse500,
-        TaxRate,
-    ]
+    CreateTaxRateResponse401
+    | CreateTaxRateResponse422
+    | CreateTaxRateResponse429
+    | CreateTaxRateResponse500
+    | TaxRate
 ]:
     """Create a tax rate
 
@@ -201,17 +193,16 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateTaxRateRequest,
-) -> Optional[
-    Union[
-        CreateTaxRateResponse401,
-        CreateTaxRateResponse422,
-        CreateTaxRateResponse429,
-        CreateTaxRateResponse500,
-        TaxRate,
-    ]
-]:
+) -> (
+    CreateTaxRateResponse401
+    | CreateTaxRateResponse422
+    | CreateTaxRateResponse429
+    | CreateTaxRateResponse500
+    | TaxRate
+    | None
+):
     """Create a tax rate
 
      Creates a new tax rate object.

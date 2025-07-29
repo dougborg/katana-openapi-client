@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -25,16 +25,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetLocationResponse401,
-        GetLocationResponse404,
-        GetLocationResponse429,
-        GetLocationResponse500,
-        Location,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetLocationResponse401
+    | GetLocationResponse404
+    | GetLocationResponse429
+    | GetLocationResponse500
+    | Location
+    | None
+):
     if response.status_code == 200:
         response_200 = Location.from_dict(response.json())
 
@@ -62,15 +61,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetLocationResponse401,
-        GetLocationResponse404,
-        GetLocationResponse429,
-        GetLocationResponse500,
-        Location,
-    ]
+    GetLocationResponse401
+    | GetLocationResponse404
+    | GetLocationResponse429
+    | GetLocationResponse500
+    | Location
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -83,15 +80,13 @@ def _build_response(
 def sync_detailed(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        GetLocationResponse401,
-        GetLocationResponse404,
-        GetLocationResponse429,
-        GetLocationResponse500,
-        Location,
-    ]
+    GetLocationResponse401
+    | GetLocationResponse404
+    | GetLocationResponse429
+    | GetLocationResponse500
+    | Location
 ]:
     """Retrieve a location
 
@@ -122,16 +117,15 @@ def sync_detailed(
 def sync(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        GetLocationResponse401,
-        GetLocationResponse404,
-        GetLocationResponse429,
-        GetLocationResponse500,
-        Location,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    GetLocationResponse401
+    | GetLocationResponse404
+    | GetLocationResponse429
+    | GetLocationResponse500
+    | Location
+    | None
+):
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -156,15 +150,13 @@ def sync(
 async def asyncio_detailed(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        GetLocationResponse401,
-        GetLocationResponse404,
-        GetLocationResponse429,
-        GetLocationResponse500,
-        Location,
-    ]
+    GetLocationResponse401
+    | GetLocationResponse404
+    | GetLocationResponse429
+    | GetLocationResponse500
+    | Location
 ]:
     """Retrieve a location
 
@@ -193,16 +185,15 @@ async def asyncio_detailed(
 async def asyncio(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        GetLocationResponse401,
-        GetLocationResponse404,
-        GetLocationResponse429,
-        GetLocationResponse500,
-        Location,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    GetLocationResponse401
+    | GetLocationResponse404
+    | GetLocationResponse429
+    | GetLocationResponse500
+    | Location
+    | None
+):
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.

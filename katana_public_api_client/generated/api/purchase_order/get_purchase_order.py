@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -16,11 +16,11 @@ from ...types import UNSET, Response, Unset
 def _get_kwargs(
     id: int,
     *,
-    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
+    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_extend: Union[Unset, list[str]] = UNSET
+    json_extend: Unset | list[str] = UNSET
     if not isinstance(extend, Unset):
         json_extend = []
         for extend_item_data in extend:
@@ -41,15 +41,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetPurchaseOrderResponse401,
-        GetPurchaseOrderResponse429,
-        GetPurchaseOrderResponse500,
-        PurchaseOrder,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetPurchaseOrderResponse401
+    | GetPurchaseOrderResponse429
+    | GetPurchaseOrderResponse500
+    | PurchaseOrder
+    | None
+):
     if response.status_code == 200:
         response_200 = PurchaseOrder.from_dict(response.json())
 
@@ -73,14 +72,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetPurchaseOrderResponse401,
-        GetPurchaseOrderResponse429,
-        GetPurchaseOrderResponse500,
-        PurchaseOrder,
-    ]
+    GetPurchaseOrderResponse401
+    | GetPurchaseOrderResponse429
+    | GetPurchaseOrderResponse500
+    | PurchaseOrder
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -93,15 +90,13 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
+    client: AuthenticatedClient | Client,
+    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
 ) -> Response[
-    Union[
-        GetPurchaseOrderResponse401,
-        GetPurchaseOrderResponse429,
-        GetPurchaseOrderResponse500,
-        PurchaseOrder,
-    ]
+    GetPurchaseOrderResponse401
+    | GetPurchaseOrderResponse429
+    | GetPurchaseOrderResponse500
+    | PurchaseOrder
 ]:
     """Retrieve a purchase order
 
@@ -134,16 +129,15 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
-) -> Optional[
-    Union[
-        GetPurchaseOrderResponse401,
-        GetPurchaseOrderResponse429,
-        GetPurchaseOrderResponse500,
-        PurchaseOrder,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
+) -> (
+    GetPurchaseOrderResponse401
+    | GetPurchaseOrderResponse429
+    | GetPurchaseOrderResponse500
+    | PurchaseOrder
+    | None
+):
     """Retrieve a purchase order
 
      Retrieves the details of an existing purchase order based on ID
@@ -170,15 +164,13 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
+    client: AuthenticatedClient | Client,
+    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
 ) -> Response[
-    Union[
-        GetPurchaseOrderResponse401,
-        GetPurchaseOrderResponse429,
-        GetPurchaseOrderResponse500,
-        PurchaseOrder,
-    ]
+    GetPurchaseOrderResponse401
+    | GetPurchaseOrderResponse429
+    | GetPurchaseOrderResponse500
+    | PurchaseOrder
 ]:
     """Retrieve a purchase order
 
@@ -209,16 +201,15 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
-) -> Optional[
-    Union[
-        GetPurchaseOrderResponse401,
-        GetPurchaseOrderResponse429,
-        GetPurchaseOrderResponse500,
-        PurchaseOrder,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
+) -> (
+    GetPurchaseOrderResponse401
+    | GetPurchaseOrderResponse429
+    | GetPurchaseOrderResponse500
+    | PurchaseOrder
+    | None
+):
     """Retrieve a purchase order
 
      Retrieves the details of an existing purchase order based on ID

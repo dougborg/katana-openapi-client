@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -22,10 +22,10 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    outsourced_purchase_order_id: Union[Unset, int] = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    outsourced_purchase_order_id: Unset | int = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -33,7 +33,7 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_ids: Union[Unset, list[int]] = UNSET
+    json_ids: Unset | list[int] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -53,15 +53,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetOutsourcedPurchaseOrderRecipeRowsResponse401,
-        GetOutsourcedPurchaseOrderRecipeRowsResponse429,
-        GetOutsourcedPurchaseOrderRecipeRowsResponse500,
-        OutsourcedPurchaseOrderRecipeRowListResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetOutsourcedPurchaseOrderRecipeRowsResponse401
+    | GetOutsourcedPurchaseOrderRecipeRowsResponse429
+    | GetOutsourcedPurchaseOrderRecipeRowsResponse500
+    | OutsourcedPurchaseOrderRecipeRowListResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = OutsourcedPurchaseOrderRecipeRowListResponse.from_dict(
             response.json()
@@ -93,14 +92,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetOutsourcedPurchaseOrderRecipeRowsResponse401,
-        GetOutsourcedPurchaseOrderRecipeRowsResponse429,
-        GetOutsourcedPurchaseOrderRecipeRowsResponse500,
-        OutsourcedPurchaseOrderRecipeRowListResponse,
-    ]
+    GetOutsourcedPurchaseOrderRecipeRowsResponse401
+    | GetOutsourcedPurchaseOrderRecipeRowsResponse429
+    | GetOutsourcedPurchaseOrderRecipeRowsResponse500
+    | OutsourcedPurchaseOrderRecipeRowListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -112,18 +109,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    outsourced_purchase_order_id: Union[Unset, int] = UNSET,
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    outsourced_purchase_order_id: Unset | int = UNSET,
 ) -> Response[
-    Union[
-        GetOutsourcedPurchaseOrderRecipeRowsResponse401,
-        GetOutsourcedPurchaseOrderRecipeRowsResponse429,
-        GetOutsourcedPurchaseOrderRecipeRowsResponse500,
-        OutsourcedPurchaseOrderRecipeRowListResponse,
-    ]
+    GetOutsourcedPurchaseOrderRecipeRowsResponse401
+    | GetOutsourcedPurchaseOrderRecipeRowsResponse429
+    | GetOutsourcedPurchaseOrderRecipeRowsResponse500
+    | OutsourcedPurchaseOrderRecipeRowListResponse
 ]:
     """List all outsourced purchase order recipe rows
 
@@ -159,19 +154,18 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    outsourced_purchase_order_id: Union[Unset, int] = UNSET,
-) -> Optional[
-    Union[
-        GetOutsourcedPurchaseOrderRecipeRowsResponse401,
-        GetOutsourcedPurchaseOrderRecipeRowsResponse429,
-        GetOutsourcedPurchaseOrderRecipeRowsResponse500,
-        OutsourcedPurchaseOrderRecipeRowListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    outsourced_purchase_order_id: Unset | int = UNSET,
+) -> (
+    GetOutsourcedPurchaseOrderRecipeRowsResponse401
+    | GetOutsourcedPurchaseOrderRecipeRowsResponse429
+    | GetOutsourcedPurchaseOrderRecipeRowsResponse500
+    | OutsourcedPurchaseOrderRecipeRowListResponse
+    | None
+):
     """List all outsourced purchase order recipe rows
 
      Retrieves a list of outsourced purchase order recipe rows.
@@ -201,18 +195,16 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    outsourced_purchase_order_id: Union[Unset, int] = UNSET,
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    outsourced_purchase_order_id: Unset | int = UNSET,
 ) -> Response[
-    Union[
-        GetOutsourcedPurchaseOrderRecipeRowsResponse401,
-        GetOutsourcedPurchaseOrderRecipeRowsResponse429,
-        GetOutsourcedPurchaseOrderRecipeRowsResponse500,
-        OutsourcedPurchaseOrderRecipeRowListResponse,
-    ]
+    GetOutsourcedPurchaseOrderRecipeRowsResponse401
+    | GetOutsourcedPurchaseOrderRecipeRowsResponse429
+    | GetOutsourcedPurchaseOrderRecipeRowsResponse500
+    | OutsourcedPurchaseOrderRecipeRowListResponse
 ]:
     """List all outsourced purchase order recipe rows
 
@@ -246,19 +238,18 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    outsourced_purchase_order_id: Union[Unset, int] = UNSET,
-) -> Optional[
-    Union[
-        GetOutsourcedPurchaseOrderRecipeRowsResponse401,
-        GetOutsourcedPurchaseOrderRecipeRowsResponse429,
-        GetOutsourcedPurchaseOrderRecipeRowsResponse500,
-        OutsourcedPurchaseOrderRecipeRowListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    outsourced_purchase_order_id: Unset | int = UNSET,
+) -> (
+    GetOutsourcedPurchaseOrderRecipeRowsResponse401
+    | GetOutsourcedPurchaseOrderRecipeRowsResponse429
+    | GetOutsourcedPurchaseOrderRecipeRowsResponse500
+    | OutsourcedPurchaseOrderRecipeRowListResponse
+    | None
+):
     """List all outsourced purchase order recipe rows
 
      Retrieves a list of outsourced purchase order recipe rows.

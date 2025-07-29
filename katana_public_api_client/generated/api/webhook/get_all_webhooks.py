@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -14,15 +14,15 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    ids: Union[Unset, list[int]] = UNSET,
-    url_query: Union[Unset, str] = UNSET,
-    enabled: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
+    ids: Unset | list[int] = UNSET,
+    url_query: Unset | str = UNSET,
+    enabled: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Union[Unset, list[int]] = UNSET
+    json_ids: Unset | list[int] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -48,15 +48,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetAllWebhooksResponse401,
-        GetAllWebhooksResponse429,
-        GetAllWebhooksResponse500,
-        WebhookListResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetAllWebhooksResponse401
+    | GetAllWebhooksResponse429
+    | GetAllWebhooksResponse500
+    | WebhookListResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = WebhookListResponse.from_dict(response.json())
 
@@ -80,14 +79,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetAllWebhooksResponse401,
-        GetAllWebhooksResponse429,
-        GetAllWebhooksResponse500,
-        WebhookListResponse,
-    ]
+    GetAllWebhooksResponse401
+    | GetAllWebhooksResponse429
+    | GetAllWebhooksResponse500
+    | WebhookListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -99,19 +96,17 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    url_query: Union[Unset, str] = UNSET,
-    enabled: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    url_query: Unset | str = UNSET,
+    enabled: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
 ) -> Response[
-    Union[
-        GetAllWebhooksResponse401,
-        GetAllWebhooksResponse429,
-        GetAllWebhooksResponse500,
-        WebhookListResponse,
-    ]
+    GetAllWebhooksResponse401
+    | GetAllWebhooksResponse429
+    | GetAllWebhooksResponse500
+    | WebhookListResponse
 ]:
     """List all webhooks
 
@@ -150,20 +145,19 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    url_query: Union[Unset, str] = UNSET,
-    enabled: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Optional[
-    Union[
-        GetAllWebhooksResponse401,
-        GetAllWebhooksResponse429,
-        GetAllWebhooksResponse500,
-        WebhookListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    url_query: Unset | str = UNSET,
+    enabled: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> (
+    GetAllWebhooksResponse401
+    | GetAllWebhooksResponse429
+    | GetAllWebhooksResponse500
+    | WebhookListResponse
+    | None
+):
     """List all webhooks
 
      Returns a list of webhooks you've previously created. The entries are returned in a sorted order,
@@ -196,19 +190,17 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    url_query: Union[Unset, str] = UNSET,
-    enabled: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    url_query: Unset | str = UNSET,
+    enabled: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
 ) -> Response[
-    Union[
-        GetAllWebhooksResponse401,
-        GetAllWebhooksResponse429,
-        GetAllWebhooksResponse500,
-        WebhookListResponse,
-    ]
+    GetAllWebhooksResponse401
+    | GetAllWebhooksResponse429
+    | GetAllWebhooksResponse500
+    | WebhookListResponse
 ]:
     """List all webhooks
 
@@ -245,20 +237,19 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    url_query: Union[Unset, str] = UNSET,
-    enabled: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Optional[
-    Union[
-        GetAllWebhooksResponse401,
-        GetAllWebhooksResponse429,
-        GetAllWebhooksResponse500,
-        WebhookListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    url_query: Unset | str = UNSET,
+    enabled: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> (
+    GetAllWebhooksResponse401
+    | GetAllWebhooksResponse429
+    | GetAllWebhooksResponse500
+    | WebhookListResponse
+    | None
+):
     """List all webhooks
 
      Returns a list of webhooks you've previously created. The entries are returned in a sorted order,

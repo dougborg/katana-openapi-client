@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -35,17 +35,16 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        CreatePriceListRowResponse400,
-        CreatePriceListRowResponse401,
-        CreatePriceListRowResponse422,
-        CreatePriceListRowResponse429,
-        CreatePriceListRowResponse500,
-        PriceListRow,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    CreatePriceListRowResponse400
+    | CreatePriceListRowResponse401
+    | CreatePriceListRowResponse422
+    | CreatePriceListRowResponse429
+    | CreatePriceListRowResponse500
+    | PriceListRow
+    | None
+):
     if response.status_code == 201:
         response_201 = PriceListRow.from_dict(response.json())
 
@@ -77,16 +76,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        CreatePriceListRowResponse400,
-        CreatePriceListRowResponse401,
-        CreatePriceListRowResponse422,
-        CreatePriceListRowResponse429,
-        CreatePriceListRowResponse500,
-        PriceListRow,
-    ]
+    CreatePriceListRowResponse400
+    | CreatePriceListRowResponse401
+    | CreatePriceListRowResponse422
+    | CreatePriceListRowResponse429
+    | CreatePriceListRowResponse500
+    | PriceListRow
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -98,17 +95,15 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreatePriceListRowRequest,
 ) -> Response[
-    Union[
-        CreatePriceListRowResponse400,
-        CreatePriceListRowResponse401,
-        CreatePriceListRowResponse422,
-        CreatePriceListRowResponse429,
-        CreatePriceListRowResponse500,
-        PriceListRow,
-    ]
+    CreatePriceListRowResponse400
+    | CreatePriceListRowResponse401
+    | CreatePriceListRowResponse422
+    | CreatePriceListRowResponse429
+    | CreatePriceListRowResponse500
+    | PriceListRow
 ]:
     """Create a price list row
 
@@ -138,18 +133,17 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreatePriceListRowRequest,
-) -> Optional[
-    Union[
-        CreatePriceListRowResponse400,
-        CreatePriceListRowResponse401,
-        CreatePriceListRowResponse422,
-        CreatePriceListRowResponse429,
-        CreatePriceListRowResponse500,
-        PriceListRow,
-    ]
-]:
+) -> (
+    CreatePriceListRowResponse400
+    | CreatePriceListRowResponse401
+    | CreatePriceListRowResponse422
+    | CreatePriceListRowResponse429
+    | CreatePriceListRowResponse500
+    | PriceListRow
+    | None
+):
     """Create a price list row
 
      Creates a new price list row.
@@ -173,17 +167,15 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreatePriceListRowRequest,
 ) -> Response[
-    Union[
-        CreatePriceListRowResponse400,
-        CreatePriceListRowResponse401,
-        CreatePriceListRowResponse422,
-        CreatePriceListRowResponse429,
-        CreatePriceListRowResponse500,
-        PriceListRow,
-    ]
+    CreatePriceListRowResponse400
+    | CreatePriceListRowResponse401
+    | CreatePriceListRowResponse422
+    | CreatePriceListRowResponse429
+    | CreatePriceListRowResponse500
+    | PriceListRow
 ]:
     """Create a price list row
 
@@ -211,18 +203,17 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreatePriceListRowRequest,
-) -> Optional[
-    Union[
-        CreatePriceListRowResponse400,
-        CreatePriceListRowResponse401,
-        CreatePriceListRowResponse422,
-        CreatePriceListRowResponse429,
-        CreatePriceListRowResponse500,
-        PriceListRow,
-    ]
-]:
+) -> (
+    CreatePriceListRowResponse400
+    | CreatePriceListRowResponse401
+    | CreatePriceListRowResponse422
+    | CreatePriceListRowResponse429
+    | CreatePriceListRowResponse500
+    | PriceListRow
+    | None
+):
     """Create a price list row
 
      Creates a new price list row.

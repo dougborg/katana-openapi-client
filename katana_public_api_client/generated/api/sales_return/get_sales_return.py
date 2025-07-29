@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -25,16 +25,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetSalesReturnResponse401,
-        GetSalesReturnResponse404,
-        GetSalesReturnResponse429,
-        GetSalesReturnResponse500,
-        SalesReturn,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetSalesReturnResponse401
+    | GetSalesReturnResponse404
+    | GetSalesReturnResponse429
+    | GetSalesReturnResponse500
+    | SalesReturn
+    | None
+):
     if response.status_code == 200:
         response_200 = SalesReturn.from_dict(response.json())
 
@@ -62,15 +61,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetSalesReturnResponse401,
-        GetSalesReturnResponse404,
-        GetSalesReturnResponse429,
-        GetSalesReturnResponse500,
-        SalesReturn,
-    ]
+    GetSalesReturnResponse401
+    | GetSalesReturnResponse404
+    | GetSalesReturnResponse429
+    | GetSalesReturnResponse500
+    | SalesReturn
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -83,15 +80,13 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        GetSalesReturnResponse401,
-        GetSalesReturnResponse404,
-        GetSalesReturnResponse429,
-        GetSalesReturnResponse500,
-        SalesReturn,
-    ]
+    GetSalesReturnResponse401
+    | GetSalesReturnResponse404
+    | GetSalesReturnResponse429
+    | GetSalesReturnResponse500
+    | SalesReturn
 ]:
     """Retrieve a sales return
 
@@ -122,16 +117,15 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        GetSalesReturnResponse401,
-        GetSalesReturnResponse404,
-        GetSalesReturnResponse429,
-        GetSalesReturnResponse500,
-        SalesReturn,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    GetSalesReturnResponse401
+    | GetSalesReturnResponse404
+    | GetSalesReturnResponse429
+    | GetSalesReturnResponse500
+    | SalesReturn
+    | None
+):
     """Retrieve a sales return
 
      Retrieves a sales return by ID.
@@ -156,15 +150,13 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        GetSalesReturnResponse401,
-        GetSalesReturnResponse404,
-        GetSalesReturnResponse429,
-        GetSalesReturnResponse500,
-        SalesReturn,
-    ]
+    GetSalesReturnResponse401
+    | GetSalesReturnResponse404
+    | GetSalesReturnResponse429
+    | GetSalesReturnResponse500
+    | SalesReturn
 ]:
     """Retrieve a sales return
 
@@ -193,16 +185,15 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        GetSalesReturnResponse401,
-        GetSalesReturnResponse404,
-        GetSalesReturnResponse429,
-        GetSalesReturnResponse500,
-        SalesReturn,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    GetSalesReturnResponse401
+    | GetSalesReturnResponse404
+    | GetSalesReturnResponse429
+    | GetSalesReturnResponse500
+    | SalesReturn
+    | None
+):
     """Retrieve a sales return
 
      Retrieves a sales return by ID.

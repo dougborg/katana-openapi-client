@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -45,30 +47,28 @@ class PurchaseOrderRow:
         deleted_at (Union[None, Unset, datetime.datetime]):
     """
 
-    id: Union[Unset, int] = UNSET
-    quantity: Union[Unset, float] = UNSET
-    variant_id: Union[Unset, int] = UNSET
-    tax_rate_id: Union[Unset, int] = UNSET
-    price_per_unit: Union[Unset, float] = UNSET
-    price_per_unit_in_base_currency: Union[Unset, float] = UNSET
-    purchase_uom_conversion_rate: Union[Unset, float] = UNSET
-    purchase_uom: Union[Unset, str] = UNSET
-    currency: Union[Unset, str] = UNSET
-    conversion_rate: Union[None, Unset, float] = UNSET
-    total: Union[Unset, float] = UNSET
-    total_in_base_currency: Union[Unset, float] = UNSET
-    conversion_date: Union[None, Unset, datetime.datetime] = UNSET
-    received_date: Union[None, Unset, datetime.datetime] = UNSET
-    arrival_date: Union[None, Unset, datetime.datetime] = UNSET
-    batch_transactions: Union[Unset, list["PurchaseOrderRowBatchTransactionsItem"]] = (
-        UNSET
-    )
-    purchase_order_id: Union[Unset, int] = UNSET
-    landed_cost: Union[Unset, float, str] = UNSET
-    group_id: Union[Unset, int] = UNSET
-    created_at: Union[Unset, datetime.datetime] = UNSET
-    updated_at: Union[Unset, datetime.datetime] = UNSET
-    deleted_at: Union[None, Unset, datetime.datetime] = UNSET
+    id: Unset | int = UNSET
+    quantity: Unset | float = UNSET
+    variant_id: Unset | int = UNSET
+    tax_rate_id: Unset | int = UNSET
+    price_per_unit: Unset | float = UNSET
+    price_per_unit_in_base_currency: Unset | float = UNSET
+    purchase_uom_conversion_rate: Unset | float = UNSET
+    purchase_uom: Unset | str = UNSET
+    currency: Unset | str = UNSET
+    conversion_rate: None | Unset | float = UNSET
+    total: Unset | float = UNSET
+    total_in_base_currency: Unset | float = UNSET
+    conversion_date: None | Unset | datetime.datetime = UNSET
+    received_date: None | Unset | datetime.datetime = UNSET
+    arrival_date: None | Unset | datetime.datetime = UNSET
+    batch_transactions: Unset | list["PurchaseOrderRowBatchTransactionsItem"] = UNSET
+    purchase_order_id: Unset | int = UNSET
+    landed_cost: Unset | float | str = UNSET
+    group_id: Unset | int = UNSET
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -90,7 +90,7 @@ class PurchaseOrderRow:
 
         currency = self.currency
 
-        conversion_rate: Union[None, Unset, float]
+        conversion_rate: None | Unset | float
         if isinstance(self.conversion_rate, Unset):
             conversion_rate = UNSET
         else:
@@ -100,7 +100,7 @@ class PurchaseOrderRow:
 
         total_in_base_currency = self.total_in_base_currency
 
-        conversion_date: Union[None, Unset, str]
+        conversion_date: None | Unset | str
         if isinstance(self.conversion_date, Unset):
             conversion_date = UNSET
         elif isinstance(self.conversion_date, datetime.datetime):
@@ -108,7 +108,7 @@ class PurchaseOrderRow:
         else:
             conversion_date = self.conversion_date
 
-        received_date: Union[None, Unset, str]
+        received_date: None | Unset | str
         if isinstance(self.received_date, Unset):
             received_date = UNSET
         elif isinstance(self.received_date, datetime.datetime):
@@ -116,7 +116,7 @@ class PurchaseOrderRow:
         else:
             received_date = self.received_date
 
-        arrival_date: Union[None, Unset, str]
+        arrival_date: None | Unset | str
         if isinstance(self.arrival_date, Unset):
             arrival_date = UNSET
         elif isinstance(self.arrival_date, datetime.datetime):
@@ -124,7 +124,7 @@ class PurchaseOrderRow:
         else:
             arrival_date = self.arrival_date
 
-        batch_transactions: Union[Unset, list[dict[str, Any]]] = UNSET
+        batch_transactions: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.batch_transactions, Unset):
             batch_transactions = []
             for batch_transactions_item_data in self.batch_transactions:
@@ -133,7 +133,7 @@ class PurchaseOrderRow:
 
         purchase_order_id = self.purchase_order_id
 
-        landed_cost: Union[Unset, float, str]
+        landed_cost: Unset | float | str
         if isinstance(self.landed_cost, Unset):
             landed_cost = UNSET
         else:
@@ -141,15 +141,15 @@ class PurchaseOrderRow:
 
         group_id = self.group_id
 
-        created_at: Union[Unset, str] = UNSET
+        created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: Union[None, Unset, str]
+        deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -236,12 +236,12 @@ class PurchaseOrderRow:
 
         currency = d.pop("currency", UNSET)
 
-        def _parse_conversion_rate(data: object) -> Union[None, Unset, float]:
+        def _parse_conversion_rate(data: object) -> None | Unset | float:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, float], data)
+            return cast(None | Unset | float, data)
 
         conversion_rate = _parse_conversion_rate(d.pop("conversion_rate", UNSET))
 
@@ -251,7 +251,7 @@ class PurchaseOrderRow:
 
         def _parse_conversion_date(
             data: object,
-        ) -> Union[None, Unset, datetime.datetime]:
+        ) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -264,11 +264,11 @@ class PurchaseOrderRow:
                 return conversion_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, datetime.datetime], data)
+            return cast(None | Unset | datetime.datetime, data)
 
         conversion_date = _parse_conversion_date(d.pop("conversion_date", UNSET))
 
-        def _parse_received_date(data: object) -> Union[None, Unset, datetime.datetime]:
+        def _parse_received_date(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -281,11 +281,11 @@ class PurchaseOrderRow:
                 return received_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, datetime.datetime], data)
+            return cast(None | Unset | datetime.datetime, data)
 
         received_date = _parse_received_date(d.pop("received_date", UNSET))
 
-        def _parse_arrival_date(data: object) -> Union[None, Unset, datetime.datetime]:
+        def _parse_arrival_date(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -298,7 +298,7 @@ class PurchaseOrderRow:
                 return arrival_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, datetime.datetime], data)
+            return cast(None | Unset | datetime.datetime, data)
 
         arrival_date = _parse_arrival_date(d.pop("arrival_date", UNSET))
 
@@ -313,30 +313,30 @@ class PurchaseOrderRow:
 
         purchase_order_id = d.pop("purchase_order_id", UNSET)
 
-        def _parse_landed_cost(data: object) -> Union[Unset, float, str]:
+        def _parse_landed_cost(data: object) -> Unset | float | str:
             if isinstance(data, Unset):
                 return data
-            return cast(Union[Unset, float, str], data)
+            return cast(Unset | float | str, data)
 
         landed_cost = _parse_landed_cost(d.pop("landed_cost", UNSET))
 
         group_id = d.pop("group_id", UNSET)
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Union[Unset, datetime.datetime]
+        created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: Unset | datetime.datetime
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> Union[None, Unset, datetime.datetime]:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -349,7 +349,7 @@ class PurchaseOrderRow:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, datetime.datetime], data)
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

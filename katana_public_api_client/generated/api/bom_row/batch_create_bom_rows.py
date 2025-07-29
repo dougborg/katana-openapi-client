@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -34,16 +34,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        BatchCreateBomRowsResponse401,
-        BatchCreateBomRowsResponse422,
-        BatchCreateBomRowsResponse429,
-        BatchCreateBomRowsResponse500,
-        BomRowListResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    BatchCreateBomRowsResponse401
+    | BatchCreateBomRowsResponse422
+    | BatchCreateBomRowsResponse429
+    | BatchCreateBomRowsResponse500
+    | BomRowListResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = BomRowListResponse.from_dict(response.json())
 
@@ -71,15 +70,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        BatchCreateBomRowsResponse401,
-        BatchCreateBomRowsResponse422,
-        BatchCreateBomRowsResponse429,
-        BatchCreateBomRowsResponse500,
-        BomRowListResponse,
-    ]
+    BatchCreateBomRowsResponse401
+    | BatchCreateBomRowsResponse422
+    | BatchCreateBomRowsResponse429
+    | BatchCreateBomRowsResponse500
+    | BomRowListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -91,16 +88,14 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: BatchCreateBomRowsRequest,
 ) -> Response[
-    Union[
-        BatchCreateBomRowsResponse401,
-        BatchCreateBomRowsResponse422,
-        BatchCreateBomRowsResponse429,
-        BatchCreateBomRowsResponse500,
-        BomRowListResponse,
-    ]
+    BatchCreateBomRowsResponse401
+    | BatchCreateBomRowsResponse422
+    | BatchCreateBomRowsResponse429
+    | BatchCreateBomRowsResponse500
+    | BomRowListResponse
 ]:
     """Create many BOM rows
 
@@ -130,17 +125,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: BatchCreateBomRowsRequest,
-) -> Optional[
-    Union[
-        BatchCreateBomRowsResponse401,
-        BatchCreateBomRowsResponse422,
-        BatchCreateBomRowsResponse429,
-        BatchCreateBomRowsResponse500,
-        BomRowListResponse,
-    ]
-]:
+) -> (
+    BatchCreateBomRowsResponse401
+    | BatchCreateBomRowsResponse422
+    | BatchCreateBomRowsResponse429
+    | BatchCreateBomRowsResponse500
+    | BomRowListResponse
+    | None
+):
     """Create many BOM rows
 
      Create BOM rows for a product.
@@ -164,16 +158,14 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: BatchCreateBomRowsRequest,
 ) -> Response[
-    Union[
-        BatchCreateBomRowsResponse401,
-        BatchCreateBomRowsResponse422,
-        BatchCreateBomRowsResponse429,
-        BatchCreateBomRowsResponse500,
-        BomRowListResponse,
-    ]
+    BatchCreateBomRowsResponse401
+    | BatchCreateBomRowsResponse422
+    | BatchCreateBomRowsResponse429
+    | BatchCreateBomRowsResponse500
+    | BomRowListResponse
 ]:
     """Create many BOM rows
 
@@ -201,17 +193,16 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: BatchCreateBomRowsRequest,
-) -> Optional[
-    Union[
-        BatchCreateBomRowsResponse401,
-        BatchCreateBomRowsResponse422,
-        BatchCreateBomRowsResponse429,
-        BatchCreateBomRowsResponse500,
-        BomRowListResponse,
-    ]
-]:
+) -> (
+    BatchCreateBomRowsResponse401
+    | BatchCreateBomRowsResponse422
+    | BatchCreateBomRowsResponse429
+    | BatchCreateBomRowsResponse500
+    | BomRowListResponse
+    | None
+):
     """Create many BOM rows
 
      Create BOM rows for a product.

@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
@@ -20,8 +20,8 @@ class CreateSalesOrderShippingFeeRequest:
 
     sales_order_id: int
     amount: float
-    currency: Union[Unset, str] = UNSET
-    description: Union[Unset, str] = UNSET
+    currency: Unset | str = UNSET
+    description: Unset | str = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         sales_order_id = self.sales_order_id

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 import httpx
 
@@ -32,16 +32,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        Any,
-        DeleteCustomerAddressResponse401,
-        DeleteCustomerAddressResponse404,
-        DeleteCustomerAddressResponse429,
-        DeleteCustomerAddressResponse500,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    Any
+    | DeleteCustomerAddressResponse401
+    | DeleteCustomerAddressResponse404
+    | DeleteCustomerAddressResponse429
+    | DeleteCustomerAddressResponse500
+    | None
+):
     if response.status_code == 200:
         response_200 = cast(Any, None)
         return response_200
@@ -68,15 +67,13 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        Any,
-        DeleteCustomerAddressResponse401,
-        DeleteCustomerAddressResponse404,
-        DeleteCustomerAddressResponse429,
-        DeleteCustomerAddressResponse500,
-    ]
+    Any
+    | DeleteCustomerAddressResponse401
+    | DeleteCustomerAddressResponse404
+    | DeleteCustomerAddressResponse429
+    | DeleteCustomerAddressResponse500
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -89,15 +86,13 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        Any,
-        DeleteCustomerAddressResponse401,
-        DeleteCustomerAddressResponse404,
-        DeleteCustomerAddressResponse429,
-        DeleteCustomerAddressResponse500,
-    ]
+    Any
+    | DeleteCustomerAddressResponse401
+    | DeleteCustomerAddressResponse404
+    | DeleteCustomerAddressResponse429
+    | DeleteCustomerAddressResponse500
 ]:
     """Delete a customer address
 
@@ -128,16 +123,15 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        Any,
-        DeleteCustomerAddressResponse401,
-        DeleteCustomerAddressResponse404,
-        DeleteCustomerAddressResponse429,
-        DeleteCustomerAddressResponse500,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    Any
+    | DeleteCustomerAddressResponse401
+    | DeleteCustomerAddressResponse404
+    | DeleteCustomerAddressResponse429
+    | DeleteCustomerAddressResponse500
+    | None
+):
     """Delete a customer address
 
      Deletes a customer address.
@@ -162,15 +156,13 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
 ) -> Response[
-    Union[
-        Any,
-        DeleteCustomerAddressResponse401,
-        DeleteCustomerAddressResponse404,
-        DeleteCustomerAddressResponse429,
-        DeleteCustomerAddressResponse500,
-    ]
+    Any
+    | DeleteCustomerAddressResponse401
+    | DeleteCustomerAddressResponse404
+    | DeleteCustomerAddressResponse429
+    | DeleteCustomerAddressResponse500
 ]:
     """Delete a customer address
 
@@ -199,16 +191,15 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[
-    Union[
-        Any,
-        DeleteCustomerAddressResponse401,
-        DeleteCustomerAddressResponse404,
-        DeleteCustomerAddressResponse429,
-        DeleteCustomerAddressResponse500,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+) -> (
+    Any
+    | DeleteCustomerAddressResponse401
+    | DeleteCustomerAddressResponse404
+    | DeleteCustomerAddressResponse429
+    | DeleteCustomerAddressResponse500
+    | None
+):
     """Delete a customer address
 
      Deletes a customer address.

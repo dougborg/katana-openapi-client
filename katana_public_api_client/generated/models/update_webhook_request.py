@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
@@ -21,8 +21,8 @@ class UpdateWebhookRequest:
 
     url: str
     subscribed_events: list[WebhookEvent]
-    enabled: Union[Unset, bool] = UNSET
-    description: Union[Unset, str] = UNSET
+    enabled: Unset | bool = UNSET
+    description: Unset | str = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         url = self.url

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -15,11 +15,11 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    status: Union[Unset, GetAllStocktakesStatus] = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    location_id: Unset | int = UNSET,
+    status: Unset | GetAllStocktakesStatus = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -27,7 +27,7 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_ids: Union[Unset, list[int]] = UNSET
+    json_ids: Unset | list[int] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -35,7 +35,7 @@ def _get_kwargs(
 
     params["location_id"] = location_id
 
-    json_status: Union[Unset, str] = UNSET
+    json_status: Unset | str = UNSET
     if not isinstance(status, Unset):
         json_status = status.value
 
@@ -53,15 +53,14 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[
-    Union[
-        GetAllStocktakesResponse401,
-        GetAllStocktakesResponse429,
-        GetAllStocktakesResponse500,
-        StocktakeListResponse,
-    ]
-]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    GetAllStocktakesResponse401
+    | GetAllStocktakesResponse429
+    | GetAllStocktakesResponse500
+    | StocktakeListResponse
+    | None
+):
     if response.status_code == 200:
         response_200 = StocktakeListResponse.from_dict(response.json())
 
@@ -85,14 +84,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    Union[
-        GetAllStocktakesResponse401,
-        GetAllStocktakesResponse429,
-        GetAllStocktakesResponse500,
-        StocktakeListResponse,
-    ]
+    GetAllStocktakesResponse401
+    | GetAllStocktakesResponse429
+    | GetAllStocktakesResponse500
+    | StocktakeListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -104,19 +101,17 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    status: Union[Unset, GetAllStocktakesStatus] = UNSET,
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    location_id: Unset | int = UNSET,
+    status: Unset | GetAllStocktakesStatus = UNSET,
 ) -> Response[
-    Union[
-        GetAllStocktakesResponse401,
-        GetAllStocktakesResponse429,
-        GetAllStocktakesResponse500,
-        StocktakeListResponse,
-    ]
+    GetAllStocktakesResponse401
+    | GetAllStocktakesResponse429
+    | GetAllStocktakesResponse500
+    | StocktakeListResponse
 ]:
     """List stocktakes
 
@@ -154,20 +149,19 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    status: Union[Unset, GetAllStocktakesStatus] = UNSET,
-) -> Optional[
-    Union[
-        GetAllStocktakesResponse401,
-        GetAllStocktakesResponse429,
-        GetAllStocktakesResponse500,
-        StocktakeListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    location_id: Unset | int = UNSET,
+    status: Unset | GetAllStocktakesStatus = UNSET,
+) -> (
+    GetAllStocktakesResponse401
+    | GetAllStocktakesResponse429
+    | GetAllStocktakesResponse500
+    | StocktakeListResponse
+    | None
+):
     """List stocktakes
 
      Returns a list of stocktakes.
@@ -199,19 +193,17 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    status: Union[Unset, GetAllStocktakesStatus] = UNSET,
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    location_id: Unset | int = UNSET,
+    status: Unset | GetAllStocktakesStatus = UNSET,
 ) -> Response[
-    Union[
-        GetAllStocktakesResponse401,
-        GetAllStocktakesResponse429,
-        GetAllStocktakesResponse500,
-        StocktakeListResponse,
-    ]
+    GetAllStocktakesResponse401
+    | GetAllStocktakesResponse429
+    | GetAllStocktakesResponse500
+    | StocktakeListResponse
 ]:
     """List stocktakes
 
@@ -247,20 +239,19 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    status: Union[Unset, GetAllStocktakesStatus] = UNSET,
-) -> Optional[
-    Union[
-        GetAllStocktakesResponse401,
-        GetAllStocktakesResponse429,
-        GetAllStocktakesResponse500,
-        StocktakeListResponse,
-    ]
-]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    location_id: Unset | int = UNSET,
+    status: Unset | GetAllStocktakesStatus = UNSET,
+) -> (
+    GetAllStocktakesResponse401
+    | GetAllStocktakesResponse429
+    | GetAllStocktakesResponse500
+    | StocktakeListResponse
+    | None
+):
     """List stocktakes
 
      Returns a list of stocktakes.

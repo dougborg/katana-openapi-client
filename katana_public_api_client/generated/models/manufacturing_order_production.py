@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -37,16 +39,16 @@ class ManufacturingOrderProduction:
         serial_numbers (Union[Unset, list['SerialNumber']]):
     """
 
-    id: Union[Unset, int] = UNSET
-    manufacturing_order_id: Union[Unset, int] = UNSET
-    quantity: Union[Unset, float] = UNSET
-    production_date: Union[Unset, datetime.datetime] = UNSET
-    created_at: Union[Unset, datetime.datetime] = UNSET
-    updated_at: Union[Unset, datetime.datetime] = UNSET
-    deleted_at: Union[None, Unset, datetime.datetime] = UNSET
-    ingredients: Union[Unset, list["ManufacturingOrderProductionIngredient"]] = UNSET
-    operations: Union[Unset, list["ManufacturingOrderOperationProduction"]] = UNSET
-    serial_numbers: Union[Unset, list["SerialNumber"]] = UNSET
+    id: Unset | int = UNSET
+    manufacturing_order_id: Unset | int = UNSET
+    quantity: Unset | float = UNSET
+    production_date: Unset | datetime.datetime = UNSET
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
+    ingredients: Unset | list["ManufacturingOrderProductionIngredient"] = UNSET
+    operations: Unset | list["ManufacturingOrderOperationProduction"] = UNSET
+    serial_numbers: Unset | list["SerialNumber"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -56,19 +58,19 @@ class ManufacturingOrderProduction:
 
         quantity = self.quantity
 
-        production_date: Union[Unset, str] = UNSET
+        production_date: Unset | str = UNSET
         if not isinstance(self.production_date, Unset):
             production_date = self.production_date.isoformat()
 
-        created_at: Union[Unset, str] = UNSET
+        created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: Union[None, Unset, str]
+        deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -76,21 +78,21 @@ class ManufacturingOrderProduction:
         else:
             deleted_at = self.deleted_at
 
-        ingredients: Union[Unset, list[dict[str, Any]]] = UNSET
+        ingredients: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.ingredients, Unset):
             ingredients = []
             for ingredients_item_data in self.ingredients:
                 ingredients_item = ingredients_item_data.to_dict()
                 ingredients.append(ingredients_item)
 
-        operations: Union[Unset, list[dict[str, Any]]] = UNSET
+        operations: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.operations, Unset):
             operations = []
             for operations_item_data in self.operations:
                 operations_item = operations_item_data.to_dict()
                 operations.append(operations_item)
 
-        serial_numbers: Union[Unset, list[dict[str, Any]]] = UNSET
+        serial_numbers: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.serial_numbers, Unset):
             serial_numbers = []
             for serial_numbers_item_data in self.serial_numbers:
@@ -141,27 +143,27 @@ class ManufacturingOrderProduction:
         quantity = d.pop("quantity", UNSET)
 
         _production_date = d.pop("production_date", UNSET)
-        production_date: Union[Unset, datetime.datetime]
+        production_date: Unset | datetime.datetime
         if isinstance(_production_date, Unset):
             production_date = UNSET
         else:
             production_date = isoparse(_production_date)
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Union[Unset, datetime.datetime]
+        created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: Unset | datetime.datetime
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> Union[None, Unset, datetime.datetime]:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -174,7 +176,7 @@ class ManufacturingOrderProduction:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, datetime.datetime], data)
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

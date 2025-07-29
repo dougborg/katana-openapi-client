@@ -1,8 +1,10 @@
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 if TYPE_CHECKING:
     from ..models.product_operation_rerank_request_operation_ranks_item import (

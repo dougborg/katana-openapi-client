@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
@@ -33,20 +33,20 @@ class CreateMaterialRequestVariantsItem:
         custom_fields (Union[Unset, list['CreateMaterialRequestVariantsItemCustomFieldsItem']]):
     """
 
-    sku: Union[Unset, str] = UNSET
-    purchase_price: Union[Unset, float] = UNSET
-    internal_barcode: Union[Unset, str] = UNSET
-    registered_barcode: Union[Unset, str] = UNSET
-    supplier_item_codes: Union[Unset, list[str]] = UNSET
-    lead_time: Union[Unset, float] = UNSET
-    minimum_order_quantity: Union[Unset, float] = UNSET
-    config_attributes: Union[
-        Unset, list["CreateMaterialRequestVariantsItemConfigAttributesItem"]
-    ] = UNSET
-    custom_field_collection_id: Union[None, Unset, int] = UNSET
-    custom_fields: Union[
-        Unset, list["CreateMaterialRequestVariantsItemCustomFieldsItem"]
-    ] = UNSET
+    sku: Unset | str = UNSET
+    purchase_price: Unset | float = UNSET
+    internal_barcode: Unset | str = UNSET
+    registered_barcode: Unset | str = UNSET
+    supplier_item_codes: Unset | list[str] = UNSET
+    lead_time: Unset | float = UNSET
+    minimum_order_quantity: Unset | float = UNSET
+    config_attributes: (
+        Unset | list["CreateMaterialRequestVariantsItemConfigAttributesItem"]
+    ) = UNSET
+    custom_field_collection_id: None | Unset | int = UNSET
+    custom_fields: Unset | list["CreateMaterialRequestVariantsItemCustomFieldsItem"] = (
+        UNSET
+    )
 
     def to_dict(self) -> dict[str, Any]:
         sku = self.sku
@@ -57,7 +57,7 @@ class CreateMaterialRequestVariantsItem:
 
         registered_barcode = self.registered_barcode
 
-        supplier_item_codes: Union[Unset, list[str]] = UNSET
+        supplier_item_codes: Unset | list[str] = UNSET
         if not isinstance(self.supplier_item_codes, Unset):
             supplier_item_codes = self.supplier_item_codes
 
@@ -65,20 +65,20 @@ class CreateMaterialRequestVariantsItem:
 
         minimum_order_quantity = self.minimum_order_quantity
 
-        config_attributes: Union[Unset, list[dict[str, Any]]] = UNSET
+        config_attributes: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.config_attributes, Unset):
             config_attributes = []
             for config_attributes_item_data in self.config_attributes:
                 config_attributes_item = config_attributes_item_data.to_dict()
                 config_attributes.append(config_attributes_item)
 
-        custom_field_collection_id: Union[None, Unset, int]
+        custom_field_collection_id: None | Unset | int
         if isinstance(self.custom_field_collection_id, Unset):
             custom_field_collection_id = UNSET
         else:
             custom_field_collection_id = self.custom_field_collection_id
 
-        custom_fields: Union[Unset, list[dict[str, Any]]] = UNSET
+        custom_fields: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.custom_fields, Unset):
             custom_fields = []
             for custom_fields_item_data in self.custom_fields:
@@ -146,12 +146,12 @@ class CreateMaterialRequestVariantsItem:
 
             config_attributes.append(config_attributes_item)
 
-        def _parse_custom_field_collection_id(data: object) -> Union[None, Unset, int]:
+        def _parse_custom_field_collection_id(data: object) -> None | Unset | int:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, int], data)
+            return cast(None | Unset | int, data)
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)

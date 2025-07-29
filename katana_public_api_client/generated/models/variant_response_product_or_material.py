@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -42,22 +44,22 @@ class VariantResponseProductOrMaterial:
         variants (Union[Unset, list['VariantResponseProductOrMaterialVariantsItem']]):
     """
 
-    id: Union[Unset, int] = UNSET
-    name: Union[Unset, str] = UNSET
-    uom: Union[Unset, str] = UNSET
-    category_name: Union[Unset, str] = UNSET
-    is_producible: Union[Unset, bool] = UNSET
-    default_supplier_id: Union[Unset, int] = UNSET
-    is_purchasable: Union[Unset, bool] = UNSET
-    type_: Union[Unset, str] = UNSET
-    purchase_uom: Union[Unset, str] = UNSET
-    purchase_uom_conversion_rate: Union[Unset, float] = UNSET
-    batch_tracked: Union[Unset, bool] = UNSET
-    configs: Union[Unset, list["VariantResponseProductOrMaterialConfigsItem"]] = UNSET
-    additional_info: Union[Unset, str] = UNSET
-    created_at: Union[Unset, datetime.datetime] = UNSET
-    updated_at: Union[Unset, datetime.datetime] = UNSET
-    variants: Union[Unset, list["VariantResponseProductOrMaterialVariantsItem"]] = UNSET
+    id: Unset | int = UNSET
+    name: Unset | str = UNSET
+    uom: Unset | str = UNSET
+    category_name: Unset | str = UNSET
+    is_producible: Unset | bool = UNSET
+    default_supplier_id: Unset | int = UNSET
+    is_purchasable: Unset | bool = UNSET
+    type_: Unset | str = UNSET
+    purchase_uom: Unset | str = UNSET
+    purchase_uom_conversion_rate: Unset | float = UNSET
+    batch_tracked: Unset | bool = UNSET
+    configs: Unset | list["VariantResponseProductOrMaterialConfigsItem"] = UNSET
+    additional_info: Unset | str = UNSET
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    variants: Unset | list["VariantResponseProductOrMaterialVariantsItem"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -83,7 +85,7 @@ class VariantResponseProductOrMaterial:
 
         batch_tracked = self.batch_tracked
 
-        configs: Union[Unset, list[dict[str, Any]]] = UNSET
+        configs: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.configs, Unset):
             configs = []
             for configs_item_data in self.configs:
@@ -92,15 +94,15 @@ class VariantResponseProductOrMaterial:
 
         additional_info = self.additional_info
 
-        created_at: Union[Unset, str] = UNSET
+        created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        variants: Union[Unset, list[dict[str, Any]]] = UNSET
+        variants: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.variants, Unset):
             variants = []
             for variants_item_data in self.variants:
@@ -189,14 +191,14 @@ class VariantResponseProductOrMaterial:
         additional_info = d.pop("additional_info", UNSET)
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Union[Unset, datetime.datetime]
+        created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: Unset | datetime.datetime
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
