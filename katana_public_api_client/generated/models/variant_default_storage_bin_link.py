@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 
@@ -10,9 +10,16 @@ T = TypeVar("T", bound="VariantDefaultStorageBinLink")
 
 @_attrs_define
 class VariantDefaultStorageBinLink:
+    """
+    Attributes:
+        variant_id (int):
+        bin_name (str):
+        location_id (Union[Unset, int]):
+    """
+
     variant_id: int
     bin_name: str
-    location_id: Unset | int = UNSET
+    location_id: Union[Unset, int] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         variant_id = self.variant_id

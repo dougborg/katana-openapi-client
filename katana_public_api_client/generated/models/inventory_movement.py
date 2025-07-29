@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..models.inventory_movement_resource_type import InventoryMovementResourceType
@@ -16,7 +14,26 @@ T = TypeVar("T", bound="InventoryMovement")
 
 @_attrs_define
 class InventoryMovement:
-    """Details of a single inventory movement record."""
+    """Details of a single inventory movement record.
+
+    Attributes:
+        id (int): Unique identifier for the inventory movement.
+        variant_id (int): Identifier of the product variant associated with the movement.
+        location_id (int): Identifier of the location where the movement occurred.
+        resource_type (InventoryMovementResourceType): The type of resource that caused the movement.
+        movement_date (datetime.datetime): Date and time when the inventory movement occurred.
+        quantity_change (float): The change in quantity as a result of the movement.
+        balance_after (float): The quantity balance after the movement.
+        value_per_unit (float): The value per unit for the movement.
+        value_in_stock_after (float): The total value in stock after the movement.
+        average_cost_after (float): The average cost per unit after the movement.
+        created_at (datetime.datetime): Timestamp when the movement record was created.
+        updated_at (datetime.datetime): Timestamp when the movement record was last updated.
+        resource_id (Union[Unset, int]): Identifier of the resource that initiated the movement.
+        caused_by_order_no (Union[Unset, str]): Order number that triggered the movement.
+        caused_by_resource_id (Union[Unset, int]): Identifier for the resource that caused the movement.
+        rank (Union[Unset, int]): A rank or order index for the movement.
+    """
 
     id: int
     variant_id: int
@@ -30,10 +47,10 @@ class InventoryMovement:
     average_cost_after: float
     created_at: datetime.datetime
     updated_at: datetime.datetime
-    resource_id: Unset | int = UNSET
-    caused_by_order_no: Unset | str = UNSET
-    caused_by_resource_id: Unset | int = UNSET
-    rank: Unset | int = UNSET
+    resource_id: Union[Unset, int] = UNSET
+    caused_by_order_no: Union[Unset, str] = UNSET
+    caused_by_resource_id: Union[Unset, int] = UNSET
+    rank: Union[Unset, int] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

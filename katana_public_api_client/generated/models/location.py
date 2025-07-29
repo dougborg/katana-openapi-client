@@ -2,10 +2,8 @@ import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -29,19 +27,32 @@ class Location:
             'address_id': None, 'address': None, 'is_primary': False, 'sales_allowed': False, 'purchase_allowed': True,
             'manufacturing_allowed': False, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at':
             '2020-10-23T10:37:05.085Z', 'deleted_at': None}]}
+
+    Attributes:
+        id (int):
+        name (str):
+        legal_name (Union[Unset, str]):
+        address_id (Union[Unset, int]):
+        address (Union[Unset, LocationAddress]):
+        is_primary (Union[Unset, bool]):
+        sales_allowed (Union[Unset, bool]):
+        purchase_allowed (Union[Unset, bool]):
+        manufacturing_allowed (Union[Unset, bool]):
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
     """
 
     id: int
     name: str
-    legal_name: Unset | str = UNSET
-    address_id: Unset | int = UNSET
+    legal_name: Union[Unset, str] = UNSET
+    address_id: Union[Unset, int] = UNSET
     address: Union[Unset, "LocationAddress"] = UNSET
-    is_primary: Unset | bool = UNSET
-    sales_allowed: Unset | bool = UNSET
-    purchase_allowed: Unset | bool = UNSET
-    manufacturing_allowed: Unset | bool = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
+    is_primary: Union[Unset, bool] = UNSET
+    sales_allowed: Union[Unset, bool] = UNSET
+    purchase_allowed: Union[Unset, bool] = UNSET
+    manufacturing_allowed: Union[Unset, bool] = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,7 +64,7 @@ class Location:
 
         address_id = self.address_id
 
-        address: Unset | dict[str, Any] = UNSET
+        address: Union[Unset, dict[str, Any]] = UNSET
         if not isinstance(self.address, Unset):
             address = self.address.to_dict()
 
@@ -65,11 +76,11 @@ class Location:
 
         manufacturing_allowed = self.manufacturing_allowed
 
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
@@ -116,7 +127,7 @@ class Location:
         address_id = d.pop("address_id", UNSET)
 
         _address = d.pop("address", UNSET)
-        address: Unset | LocationAddress
+        address: Union[Unset, LocationAddress]
         if isinstance(_address, Unset):
             address = UNSET
         else:
@@ -131,14 +142,14 @@ class Location:
         manufacturing_allowed = d.pop("manufacturing_allowed", UNSET)
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:

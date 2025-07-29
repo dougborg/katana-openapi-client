@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -25,15 +25,16 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetLocationResponse401
-    | GetLocationResponse404
-    | GetLocationResponse429
-    | GetLocationResponse500
-    | Location
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        GetLocationResponse401,
+        GetLocationResponse404,
+        GetLocationResponse429,
+        GetLocationResponse500,
+        Location,
+    ]
+]:
     if response.status_code == 200:
         response_200 = Location.from_dict(response.json())
 
@@ -61,13 +62,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    GetLocationResponse401
-    | GetLocationResponse404
-    | GetLocationResponse429
-    | GetLocationResponse500
-    | Location
+    Union[
+        GetLocationResponse401,
+        GetLocationResponse404,
+        GetLocationResponse429,
+        GetLocationResponse500,
+        Location,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -80,13 +83,15 @@ def _build_response(
 def sync_detailed(
     id: float,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
 ) -> Response[
-    GetLocationResponse401
-    | GetLocationResponse404
-    | GetLocationResponse429
-    | GetLocationResponse500
-    | Location
+    Union[
+        GetLocationResponse401,
+        GetLocationResponse404,
+        GetLocationResponse429,
+        GetLocationResponse500,
+        Location,
+    ]
 ]:
     """Retrieve a location
 
@@ -98,7 +103,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[GetLocationResponse401, GetLocationResponse404, GetLocationResponse429, GetLocationResponse500, Location]]
@@ -118,15 +122,16 @@ def sync_detailed(
 def sync(
     id: float,
     *,
-    client: AuthenticatedClient | Client,
-) -> (
-    GetLocationResponse401
-    | GetLocationResponse404
-    | GetLocationResponse429
-    | GetLocationResponse500
-    | Location
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[
+    Union[
+        GetLocationResponse401,
+        GetLocationResponse404,
+        GetLocationResponse429,
+        GetLocationResponse500,
+        Location,
+    ]
+]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -137,7 +142,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[GetLocationResponse401, GetLocationResponse404, GetLocationResponse429, GetLocationResponse500, Location]
@@ -152,13 +156,15 @@ def sync(
 async def asyncio_detailed(
     id: float,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
 ) -> Response[
-    GetLocationResponse401
-    | GetLocationResponse404
-    | GetLocationResponse429
-    | GetLocationResponse500
-    | Location
+    Union[
+        GetLocationResponse401,
+        GetLocationResponse404,
+        GetLocationResponse429,
+        GetLocationResponse500,
+        Location,
+    ]
 ]:
     """Retrieve a location
 
@@ -170,7 +176,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[GetLocationResponse401, GetLocationResponse404, GetLocationResponse429, GetLocationResponse500, Location]]
@@ -188,15 +193,16 @@ async def asyncio_detailed(
 async def asyncio(
     id: float,
     *,
-    client: AuthenticatedClient | Client,
-) -> (
-    GetLocationResponse401
-    | GetLocationResponse404
-    | GetLocationResponse429
-    | GetLocationResponse500
-    | Location
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[
+    Union[
+        GetLocationResponse401,
+        GetLocationResponse404,
+        GetLocationResponse429,
+        GetLocationResponse500,
+        Location,
+    ]
+]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -207,7 +213,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[GetLocationResponse401, GetLocationResponse404, GetLocationResponse429, GetLocationResponse500, Location]

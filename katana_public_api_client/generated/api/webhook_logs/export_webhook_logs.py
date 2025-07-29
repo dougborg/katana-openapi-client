@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -9,8 +9,8 @@ from ...models.export_webhook_logs_response_401 import ExportWebhookLogsResponse
 from ...models.export_webhook_logs_response_422 import ExportWebhookLogsResponse422
 from ...models.export_webhook_logs_response_429 import ExportWebhookLogsResponse429
 from ...models.export_webhook_logs_response_500 import ExportWebhookLogsResponse500
+from ...models.webhook_logs_export import WebhookLogsExport
 from ...models.webhook_logs_export_request import WebhookLogsExportRequest
-from ...models.webhook_logs_export_response import WebhookLogsExportResponse
 from ...types import Response
 
 
@@ -34,17 +34,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    ExportWebhookLogsResponse401
-    | ExportWebhookLogsResponse422
-    | ExportWebhookLogsResponse429
-    | ExportWebhookLogsResponse500
-    | WebhookLogsExportResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        ExportWebhookLogsResponse401,
+        ExportWebhookLogsResponse422,
+        ExportWebhookLogsResponse429,
+        ExportWebhookLogsResponse500,
+        WebhookLogsExport,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = WebhookLogsExportResponse.from_dict(response.json())
+        response_200 = WebhookLogsExport.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -70,13 +71,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    ExportWebhookLogsResponse401
-    | ExportWebhookLogsResponse422
-    | ExportWebhookLogsResponse429
-    | ExportWebhookLogsResponse500
-    | WebhookLogsExportResponse
+    Union[
+        ExportWebhookLogsResponse401,
+        ExportWebhookLogsResponse422,
+        ExportWebhookLogsResponse429,
+        ExportWebhookLogsResponse500,
+        WebhookLogsExport,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -88,14 +91,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: WebhookLogsExportRequest,
 ) -> Response[
-    ExportWebhookLogsResponse401
-    | ExportWebhookLogsResponse422
-    | ExportWebhookLogsResponse429
-    | ExportWebhookLogsResponse500
-    | WebhookLogsExportResponse
+    Union[
+        ExportWebhookLogsResponse401,
+        ExportWebhookLogsResponse422,
+        ExportWebhookLogsResponse429,
+        ExportWebhookLogsResponse500,
+        WebhookLogsExport,
+    ]
 ]:
     """Export webhook logs
 
@@ -110,9 +115,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExportResponse]]
+        Response[Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExport]]
     """
 
     kwargs = _get_kwargs(
@@ -128,50 +132,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: WebhookLogsExportRequest,
-) -> (
-    ExportWebhookLogsResponse401
-    | ExportWebhookLogsResponse422
-    | ExportWebhookLogsResponse429
-    | ExportWebhookLogsResponse500
-    | WebhookLogsExportResponse
-    | None
-):
-    """Export webhook logs
-
-     Use the endpoint to export your webhook logs and troubleshoot any issues.
-          Webhook logs are filtered by the provided parameters and exported into a CSV file.
-          The response contains an URL to the CSV file.
-
-    Args:
-        body (WebhookLogsExportRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExportResponse]
-    """
-
-    return sync_detailed(
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    body: WebhookLogsExportRequest,
-) -> Response[
-    ExportWebhookLogsResponse401
-    | ExportWebhookLogsResponse422
-    | ExportWebhookLogsResponse429
-    | ExportWebhookLogsResponse500
-    | WebhookLogsExportResponse
+) -> Optional[
+    Union[
+        ExportWebhookLogsResponse401,
+        ExportWebhookLogsResponse422,
+        ExportWebhookLogsResponse429,
+        ExportWebhookLogsResponse500,
+        WebhookLogsExport,
+    ]
 ]:
     """Export webhook logs
 
@@ -186,32 +156,29 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExportResponse]]
+        Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExport]
     """
 
-    kwargs = _get_kwargs(
+    return sync_detailed(
+        client=client,
         body=body,
-    )
-
-    response = await client.get_async_httpx_client().request(**kwargs)
-
-    return _build_response(client=client, response=response)
+    ).parsed
 
 
-async def asyncio(
+async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: WebhookLogsExportRequest,
-) -> (
-    ExportWebhookLogsResponse401
-    | ExportWebhookLogsResponse422
-    | ExportWebhookLogsResponse429
-    | ExportWebhookLogsResponse500
-    | WebhookLogsExportResponse
-    | None
-):
+) -> Response[
+    Union[
+        ExportWebhookLogsResponse401,
+        ExportWebhookLogsResponse422,
+        ExportWebhookLogsResponse429,
+        ExportWebhookLogsResponse500,
+        WebhookLogsExport,
+    ]
+]:
     """Export webhook logs
 
      Use the endpoint to export your webhook logs and troubleshoot any issues.
@@ -225,9 +192,47 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Response[Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExport]]
+    """
+
+    kwargs = _get_kwargs(
+        body=body,
+    )
+
+    response = await client.get_async_httpx_client().request(**kwargs)
+
+    return _build_response(client=client, response=response)
+
+
+async def asyncio(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: WebhookLogsExportRequest,
+) -> Optional[
+    Union[
+        ExportWebhookLogsResponse401,
+        ExportWebhookLogsResponse422,
+        ExportWebhookLogsResponse429,
+        ExportWebhookLogsResponse500,
+        WebhookLogsExport,
+    ]
+]:
+    """Export webhook logs
+
+     Use the endpoint to export your webhook logs and troubleshoot any issues.
+          Webhook logs are filtered by the provided parameters and exported into a CSV file.
+          The response contains an URL to the CSV file.
+
+    Args:
+        body (WebhookLogsExportRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExportResponse]
+        Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExport]
     """
 
     return (

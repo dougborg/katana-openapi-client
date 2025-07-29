@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 
@@ -13,15 +13,30 @@ T = TypeVar("T", bound="UpdatePurchaseOrderRequest")
 
 @_attrs_define
 class UpdatePurchaseOrderRequest:
-    order_no: Unset | str = UNSET
-    supplier_id: Unset | int = UNSET
-    currency: Unset | str = UNSET
-    tracking_location_id: Unset | int = UNSET
-    status: Unset | UpdatePurchaseOrderRequestStatus = UNSET
-    expected_arrival_date: Unset | str = UNSET
-    order_created_date: Unset | str = UNSET
-    location_id: Unset | int = UNSET
-    additional_info: Unset | str = UNSET
+    """
+    Attributes:
+        order_no (Union[Unset, str]): Updatable only when status is in NOT_RECEIVED or PARTIALLY_RECEIVED
+        supplier_id (Union[Unset, int]): Updatable only when status is in NOT_RECEIVED
+        currency (Union[Unset, str]): Updatable only when status is in NOT_RECEIVED
+        tracking_location_id (Union[Unset, int]): Updatable only when status is in NOT_RECEIVED and entity_type is
+            outsourced
+        status (Union[Unset, UpdatePurchaseOrderRequestStatus]):
+        expected_arrival_date (Union[Unset, str]): Updatable only when status is in NOT_RECEIVED or PARTIALLY_RECEIVED.
+            Update will override arrival_date on purchase order rows
+        order_created_date (Union[Unset, str]):
+        location_id (Union[Unset, int]): Updatable only when status is in NOT_RECEIVED
+        additional_info (Union[Unset, str]):
+    """
+
+    order_no: Union[Unset, str] = UNSET
+    supplier_id: Union[Unset, int] = UNSET
+    currency: Union[Unset, str] = UNSET
+    tracking_location_id: Union[Unset, int] = UNSET
+    status: Union[Unset, UpdatePurchaseOrderRequestStatus] = UNSET
+    expected_arrival_date: Union[Unset, str] = UNSET
+    order_created_date: Union[Unset, str] = UNSET
+    location_id: Union[Unset, int] = UNSET
+    additional_info: Union[Unset, str] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         order_no = self.order_no
@@ -32,7 +47,7 @@ class UpdatePurchaseOrderRequest:
 
         tracking_location_id = self.tracking_location_id
 
-        status: Unset | str = UNSET
+        status: Union[Unset, str] = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
@@ -80,7 +95,7 @@ class UpdatePurchaseOrderRequest:
         tracking_location_id = d.pop("tracking_location_id", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: Unset | UpdatePurchaseOrderRequestStatus
+        status: Union[Unset, UpdatePurchaseOrderRequestStatus]
         if isinstance(_status, Unset):
             status = UNSET
         else:

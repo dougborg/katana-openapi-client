@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -8,7 +8,7 @@ from ...client import AuthenticatedClient, Client
 from ...models.get_webhook_response_401 import GetWebhookResponse401
 from ...models.get_webhook_response_429 import GetWebhookResponse429
 from ...models.get_webhook_response_500 import GetWebhookResponse500
-from ...models.webhook_response import WebhookResponse
+from ...models.webhook import Webhook
 from ...types import Response
 
 
@@ -24,16 +24,12 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetWebhookResponse401
-    | GetWebhookResponse429
-    | GetWebhookResponse500
-    | WebhookResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]
+]:
     if response.status_code == 200:
-        response_200 = WebhookResponse.from_dict(response.json())
+        response_200 = Webhook.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -55,12 +51,9 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    GetWebhookResponse401
-    | GetWebhookResponse429
-    | GetWebhookResponse500
-    | WebhookResponse
+    Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -73,12 +66,9 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
 ) -> Response[
-    GetWebhookResponse401
-    | GetWebhookResponse429
-    | GetWebhookResponse500
-    | WebhookResponse
+    Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]
 ]:
     """Retrieve a webhook
 
@@ -91,9 +81,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, WebhookResponse]]
+        Response[Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -110,45 +99,9 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
-) -> (
-    GetWebhookResponse401
-    | GetWebhookResponse429
-    | GetWebhookResponse500
-    | WebhookResponse
-    | None
-):
-    """Retrieve a webhook
-
-     Retrieves the details of an existing webhook based on ID
-
-    Args:
-        id (int):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, WebhookResponse]
-    """
-
-    return sync_detailed(
-        id=id,
-        client=client,
-    ).parsed
-
-
-async def asyncio_detailed(
-    id: int,
-    *,
-    client: AuthenticatedClient | Client,
-) -> Response[
-    GetWebhookResponse401
-    | GetWebhookResponse429
-    | GetWebhookResponse500
-    | WebhookResponse
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[
+    Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]
 ]:
     """Retrieve a webhook
 
@@ -161,9 +114,36 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]
+    """
+
+    return sync_detailed(
+        id=id,
+        client=client,
+    ).parsed
+
+
+async def asyncio_detailed(
+    id: int,
+    *,
+    client: Union[AuthenticatedClient, Client],
+) -> Response[
+    Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]
+]:
+    """Retrieve a webhook
+
+     Retrieves the details of an existing webhook based on ID
+
+    Args:
+        id (int):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, WebhookResponse]]
+        Response[Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -178,14 +158,10 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
-) -> (
-    GetWebhookResponse401
-    | GetWebhookResponse429
-    | GetWebhookResponse500
-    | WebhookResponse
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[
+    Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]
+]:
     """Retrieve a webhook
 
      Retrieves the details of an existing webhook based on ID
@@ -197,9 +173,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, WebhookResponse]
+        Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]
     """
 
     return (

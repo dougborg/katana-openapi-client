@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 
@@ -19,17 +19,32 @@ T = TypeVar("T", bound="CreateMaterialRequest")
 
 @_attrs_define
 class CreateMaterialRequest:
+    """
+    Attributes:
+        name (str):
+        variants (list['CreateMaterialRequestVariantsItem']):
+        uom (Union[Unset, str]):
+        category_name (Union[Unset, str]):
+        default_supplier_id (Union[Unset, int]):
+        additional_info (Union[Unset, str]):
+        batch_tracked (Union[Unset, bool]):
+        is_sellable (Union[Unset, bool]):
+        purchase_uom (Union[Unset, str]):
+        purchase_uom_conversion_rate (Union[Unset, float]):
+        configs (Union[Unset, list['CreateMaterialRequestConfigsItem']]):
+    """
+
     name: str
     variants: list["CreateMaterialRequestVariantsItem"]
-    uom: Unset | str = UNSET
-    category_name: Unset | str = UNSET
-    default_supplier_id: Unset | int = UNSET
-    additional_info: Unset | str = UNSET
-    batch_tracked: Unset | bool = UNSET
-    is_sellable: Unset | bool = UNSET
-    purchase_uom: Unset | str = UNSET
-    purchase_uom_conversion_rate: Unset | float = UNSET
-    configs: Unset | list["CreateMaterialRequestConfigsItem"] = UNSET
+    uom: Union[Unset, str] = UNSET
+    category_name: Union[Unset, str] = UNSET
+    default_supplier_id: Union[Unset, int] = UNSET
+    additional_info: Union[Unset, str] = UNSET
+    batch_tracked: Union[Unset, bool] = UNSET
+    is_sellable: Union[Unset, bool] = UNSET
+    purchase_uom: Union[Unset, str] = UNSET
+    purchase_uom_conversion_rate: Union[Unset, float] = UNSET
+    configs: Union[Unset, list["CreateMaterialRequestConfigsItem"]] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -55,7 +70,7 @@ class CreateMaterialRequest:
 
         purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
-        configs: Unset | list[dict[str, Any]] = UNSET
+        configs: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.configs, Unset):
             configs = []
             for configs_item_data in self.configs:

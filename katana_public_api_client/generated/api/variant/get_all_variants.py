@@ -1,6 +1,6 @@
 import datetime
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -16,28 +16,28 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    ids: Unset | list[int] = UNSET,
-    product_id: Unset | int = UNSET,
-    material_id: Unset | int = UNSET,
-    sku: Unset | str = UNSET,
-    sales_price: Unset | float = UNSET,
-    purchase_price: Unset | float = UNSET,
-    internal_barcode: Unset | str = UNSET,
-    registered_barcode: Unset | str = UNSET,
-    supplier_item_codes: Unset | list[str] = UNSET,
-    extend: Unset | list[GetAllVariantsExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    include_archived: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: Union[Unset, list[int]] = UNSET,
+    product_id: Union[Unset, int] = UNSET,
+    material_id: Union[Unset, int] = UNSET,
+    sku: Union[Unset, str] = UNSET,
+    sales_price: Union[Unset, float] = UNSET,
+    purchase_price: Union[Unset, float] = UNSET,
+    internal_barcode: Union[Unset, str] = UNSET,
+    registered_barcode: Union[Unset, str] = UNSET,
+    supplier_item_codes: Union[Unset, list[str]] = UNSET,
+    extend: Union[Unset, list[GetAllVariantsExtendItem]] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    include_archived: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: Union[Unset, list[int]] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -57,13 +57,13 @@ def _get_kwargs(
 
     params["registered_barcode"] = registered_barcode
 
-    json_supplier_item_codes: Unset | list[str] = UNSET
+    json_supplier_item_codes: Union[Unset, list[str]] = UNSET
     if not isinstance(supplier_item_codes, Unset):
         json_supplier_item_codes = supplier_item_codes
 
     params["supplier_item_codes"] = json_supplier_item_codes
 
-    json_extend: Unset | list[str] = UNSET
+    json_extend: Union[Unset, list[str]] = UNSET
     if not isinstance(extend, Unset):
         json_extend = []
         for extend_item_data in extend:
@@ -80,22 +80,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: Union[Unset, str] = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: Union[Unset, str] = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: Union[Unset, str] = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: Union[Unset, str] = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -112,14 +112,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllVariantsResponse401
-    | GetAllVariantsResponse429
-    | GetAllVariantsResponse500
-    | VariantListResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        GetAllVariantsResponse401,
+        GetAllVariantsResponse429,
+        GetAllVariantsResponse500,
+        VariantListResponse,
+    ]
+]:
     if response.status_code == 200:
         response_200 = VariantListResponse.from_dict(response.json())
 
@@ -143,12 +144,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    GetAllVariantsResponse401
-    | GetAllVariantsResponse429
-    | GetAllVariantsResponse500
-    | VariantListResponse
+    Union[
+        GetAllVariantsResponse401,
+        GetAllVariantsResponse429,
+        GetAllVariantsResponse500,
+        VariantListResponse,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -160,30 +163,32 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    product_id: Unset | int = UNSET,
-    material_id: Unset | int = UNSET,
-    sku: Unset | str = UNSET,
-    sales_price: Unset | float = UNSET,
-    purchase_price: Unset | float = UNSET,
-    internal_barcode: Unset | str = UNSET,
-    registered_barcode: Unset | str = UNSET,
-    supplier_item_codes: Unset | list[str] = UNSET,
-    extend: Unset | list[GetAllVariantsExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    include_archived: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    client: Union[AuthenticatedClient, Client],
+    ids: Union[Unset, list[int]] = UNSET,
+    product_id: Union[Unset, int] = UNSET,
+    material_id: Union[Unset, int] = UNSET,
+    sku: Union[Unset, str] = UNSET,
+    sales_price: Union[Unset, float] = UNSET,
+    purchase_price: Union[Unset, float] = UNSET,
+    internal_barcode: Union[Unset, str] = UNSET,
+    registered_barcode: Union[Unset, str] = UNSET,
+    supplier_item_codes: Union[Unset, list[str]] = UNSET,
+    extend: Union[Unset, list[GetAllVariantsExtendItem]] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    include_archived: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
 ) -> Response[
-    GetAllVariantsResponse401
-    | GetAllVariantsResponse429
-    | GetAllVariantsResponse500
-    | VariantListResponse
+    Union[
+        GetAllVariantsResponse401,
+        GetAllVariantsResponse429,
+        GetAllVariantsResponse500,
+        VariantListResponse,
+    ]
 ]:
     """List all variants
 
@@ -213,7 +218,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[GetAllVariantsResponse401, GetAllVariantsResponse429, GetAllVariantsResponse500, VariantListResponse]]
@@ -249,115 +253,32 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    product_id: Unset | int = UNSET,
-    material_id: Unset | int = UNSET,
-    sku: Unset | str = UNSET,
-    sales_price: Unset | float = UNSET,
-    purchase_price: Unset | float = UNSET,
-    internal_barcode: Unset | str = UNSET,
-    registered_barcode: Unset | str = UNSET,
-    supplier_item_codes: Unset | list[str] = UNSET,
-    extend: Unset | list[GetAllVariantsExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    include_archived: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-) -> (
-    GetAllVariantsResponse401
-    | GetAllVariantsResponse429
-    | GetAllVariantsResponse500
-    | VariantListResponse
-    | None
-):
-    """List all variants
-
-     Returns a list of variants you've previously created. The variants are returned in sorted order,
-        with the most recent variants appearing first.
-
-    Args:
-        ids (Union[Unset, list[int]]):
-        product_id (Union[Unset, int]):
-        material_id (Union[Unset, int]):
-        sku (Union[Unset, str]):
-        sales_price (Union[Unset, float]):
-        purchase_price (Union[Unset, float]):
-        internal_barcode (Union[Unset, str]):
-        registered_barcode (Union[Unset, str]):
-        supplier_item_codes (Union[Unset, list[str]]):
-        extend (Union[Unset, list[GetAllVariantsExtendItem]]):
-        include_deleted (Union[Unset, bool]):
-        include_archived (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[GetAllVariantsResponse401, GetAllVariantsResponse429, GetAllVariantsResponse500, VariantListResponse]
-    """
-
-    return sync_detailed(
-        client=client,
-        ids=ids,
-        product_id=product_id,
-        material_id=material_id,
-        sku=sku,
-        sales_price=sales_price,
-        purchase_price=purchase_price,
-        internal_barcode=internal_barcode,
-        registered_barcode=registered_barcode,
-        supplier_item_codes=supplier_item_codes,
-        extend=extend,
-        include_deleted=include_deleted,
-        include_archived=include_archived,
-        limit=limit,
-        page=page,
-        created_at_min=created_at_min,
-        created_at_max=created_at_max,
-        updated_at_min=updated_at_min,
-        updated_at_max=updated_at_max,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    product_id: Unset | int = UNSET,
-    material_id: Unset | int = UNSET,
-    sku: Unset | str = UNSET,
-    sales_price: Unset | float = UNSET,
-    purchase_price: Unset | float = UNSET,
-    internal_barcode: Unset | str = UNSET,
-    registered_barcode: Unset | str = UNSET,
-    supplier_item_codes: Unset | list[str] = UNSET,
-    extend: Unset | list[GetAllVariantsExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    include_archived: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[
-    GetAllVariantsResponse401
-    | GetAllVariantsResponse429
-    | GetAllVariantsResponse500
-    | VariantListResponse
+    client: Union[AuthenticatedClient, Client],
+    ids: Union[Unset, list[int]] = UNSET,
+    product_id: Union[Unset, int] = UNSET,
+    material_id: Union[Unset, int] = UNSET,
+    sku: Union[Unset, str] = UNSET,
+    sales_price: Union[Unset, float] = UNSET,
+    purchase_price: Union[Unset, float] = UNSET,
+    internal_barcode: Union[Unset, str] = UNSET,
+    registered_barcode: Union[Unset, str] = UNSET,
+    supplier_item_codes: Union[Unset, list[str]] = UNSET,
+    extend: Union[Unset, list[GetAllVariantsExtendItem]] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    include_archived: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+) -> Optional[
+    Union[
+        GetAllVariantsResponse401,
+        GetAllVariantsResponse429,
+        GetAllVariantsResponse500,
+        VariantListResponse,
+    ]
 ]:
     """List all variants
 
@@ -388,6 +309,90 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[GetAllVariantsResponse401, GetAllVariantsResponse429, GetAllVariantsResponse500, VariantListResponse]
+    """
+
+    return sync_detailed(
+        client=client,
+        ids=ids,
+        product_id=product_id,
+        material_id=material_id,
+        sku=sku,
+        sales_price=sales_price,
+        purchase_price=purchase_price,
+        internal_barcode=internal_barcode,
+        registered_barcode=registered_barcode,
+        supplier_item_codes=supplier_item_codes,
+        extend=extend,
+        include_deleted=include_deleted,
+        include_archived=include_archived,
+        limit=limit,
+        page=page,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
+    ).parsed
+
+
+async def asyncio_detailed(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    ids: Union[Unset, list[int]] = UNSET,
+    product_id: Union[Unset, int] = UNSET,
+    material_id: Union[Unset, int] = UNSET,
+    sku: Union[Unset, str] = UNSET,
+    sales_price: Union[Unset, float] = UNSET,
+    purchase_price: Union[Unset, float] = UNSET,
+    internal_barcode: Union[Unset, str] = UNSET,
+    registered_barcode: Union[Unset, str] = UNSET,
+    supplier_item_codes: Union[Unset, list[str]] = UNSET,
+    extend: Union[Unset, list[GetAllVariantsExtendItem]] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    include_archived: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+) -> Response[
+    Union[
+        GetAllVariantsResponse401,
+        GetAllVariantsResponse429,
+        GetAllVariantsResponse500,
+        VariantListResponse,
+    ]
+]:
+    """List all variants
+
+     Returns a list of variants you've previously created. The variants are returned in sorted order,
+        with the most recent variants appearing first.
+
+    Args:
+        ids (Union[Unset, list[int]]):
+        product_id (Union[Unset, int]):
+        material_id (Union[Unset, int]):
+        sku (Union[Unset, str]):
+        sales_price (Union[Unset, float]):
+        purchase_price (Union[Unset, float]):
+        internal_barcode (Union[Unset, str]):
+        registered_barcode (Union[Unset, str]):
+        supplier_item_codes (Union[Unset, list[str]]):
+        extend (Union[Unset, list[GetAllVariantsExtendItem]]):
+        include_deleted (Union[Unset, bool]):
+        include_archived (Union[Unset, bool]):
+        limit (Union[Unset, int]):  Default: 50.
+        page (Union[Unset, int]):  Default: 1.
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         Response[Union[GetAllVariantsResponse401, GetAllVariantsResponse429, GetAllVariantsResponse500, VariantListResponse]]
@@ -421,32 +426,33 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    product_id: Unset | int = UNSET,
-    material_id: Unset | int = UNSET,
-    sku: Unset | str = UNSET,
-    sales_price: Unset | float = UNSET,
-    purchase_price: Unset | float = UNSET,
-    internal_barcode: Unset | str = UNSET,
-    registered_barcode: Unset | str = UNSET,
-    supplier_item_codes: Unset | list[str] = UNSET,
-    extend: Unset | list[GetAllVariantsExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    include_archived: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-) -> (
-    GetAllVariantsResponse401
-    | GetAllVariantsResponse429
-    | GetAllVariantsResponse500
-    | VariantListResponse
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+    ids: Union[Unset, list[int]] = UNSET,
+    product_id: Union[Unset, int] = UNSET,
+    material_id: Union[Unset, int] = UNSET,
+    sku: Union[Unset, str] = UNSET,
+    sales_price: Union[Unset, float] = UNSET,
+    purchase_price: Union[Unset, float] = UNSET,
+    internal_barcode: Union[Unset, str] = UNSET,
+    registered_barcode: Union[Unset, str] = UNSET,
+    supplier_item_codes: Union[Unset, list[str]] = UNSET,
+    extend: Union[Unset, list[GetAllVariantsExtendItem]] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    include_archived: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+) -> Optional[
+    Union[
+        GetAllVariantsResponse401,
+        GetAllVariantsResponse429,
+        GetAllVariantsResponse500,
+        VariantListResponse,
+    ]
+]:
     """List all variants
 
      Returns a list of variants you've previously created. The variants are returned in sorted order,
@@ -475,7 +481,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[GetAllVariantsResponse401, GetAllVariantsResponse429, GetAllVariantsResponse500, VariantListResponse]

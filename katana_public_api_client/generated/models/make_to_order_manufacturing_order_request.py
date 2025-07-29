@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 
@@ -10,8 +10,14 @@ T = TypeVar("T", bound="MakeToOrderManufacturingOrderRequest")
 
 @_attrs_define
 class MakeToOrderManufacturingOrderRequest:
+    """
+    Attributes:
+        sales_order_row_id (float):
+        create_subassemblies (Union[Unset, bool]):  Default: False.
+    """
+
     sales_order_row_id: float
-    create_subassemblies: Unset | bool = False
+    create_subassemblies: Union[Unset, bool] = False
 
     def to_dict(self) -> dict[str, Any]:
         sales_order_row_id = self.sales_order_row_id

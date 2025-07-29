@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -19,13 +17,22 @@ T = TypeVar("T", bound="UpdateManufacturingOrderProductionResponse422")
 
 @_attrs_define
 class UpdateManufacturingOrderProductionResponse422:
-    status_code: Unset | float = UNSET
-    name: Unset | str = UNSET
-    message: Unset | str = UNSET
-    code: Unset | str = UNSET
-    details: (
-        Unset | list["UpdateManufacturingOrderProductionResponse422DetailsItem"]
-    ) = UNSET
+    """
+    Attributes:
+        status_code (Union[Unset, float]):
+        name (Union[Unset, str]):
+        message (Union[Unset, str]):
+        code (Union[Unset, str]):
+        details (Union[Unset, list['UpdateManufacturingOrderProductionResponse422DetailsItem']]):
+    """
+
+    status_code: Union[Unset, float] = UNSET
+    name: Union[Unset, str] = UNSET
+    message: Union[Unset, str] = UNSET
+    code: Union[Unset, str] = UNSET
+    details: Union[
+        Unset, list["UpdateManufacturingOrderProductionResponse422DetailsItem"]
+    ] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -37,7 +44,7 @@ class UpdateManufacturingOrderProductionResponse422:
 
         code = self.code
 
-        details: Unset | list[dict[str, Any]] = UNSET
+        details: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.details, Unset):
             details = []
             for details_item_data in self.details:

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -8,8 +8,8 @@ from ...client import AuthenticatedClient, Client
 from ...models.create_service_response_401 import CreateServiceResponse401
 from ...models.create_service_response_429 import CreateServiceResponse429
 from ...models.create_service_response_500 import CreateServiceResponse500
+from ...models.service import Service
 from ...models.service_request import ServiceRequest
-from ...models.service_response import ServiceResponse
 from ...types import Response
 
 
@@ -33,16 +33,17 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateServiceResponse401
-    | CreateServiceResponse429
-    | CreateServiceResponse500
-    | ServiceResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        CreateServiceResponse401,
+        CreateServiceResponse429,
+        CreateServiceResponse500,
+        Service,
+    ]
+]:
     if response.status_code == 201:
-        response_201 = ServiceResponse.from_dict(response.json())
+        response_201 = Service.from_dict(response.json())
 
         return response_201
     if response.status_code == 401:
@@ -64,12 +65,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    CreateServiceResponse401
-    | CreateServiceResponse429
-    | CreateServiceResponse500
-    | ServiceResponse
+    Union[
+        CreateServiceResponse401,
+        CreateServiceResponse429,
+        CreateServiceResponse500,
+        Service,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -81,13 +84,15 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: ServiceRequest,
 ) -> Response[
-    CreateServiceResponse401
-    | CreateServiceResponse429
-    | CreateServiceResponse500
-    | ServiceResponse
+    Union[
+        CreateServiceResponse401,
+        CreateServiceResponse429,
+        CreateServiceResponse500,
+        Service,
+    ]
 ]:
     """Create Service
 
@@ -101,9 +106,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreateServiceResponse401, CreateServiceResponse429, CreateServiceResponse500, ServiceResponse]]
+        Response[Union[CreateServiceResponse401, CreateServiceResponse429, CreateServiceResponse500, Service]]
     """
 
     kwargs = _get_kwargs(
@@ -119,47 +123,15 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: ServiceRequest,
-) -> (
-    CreateServiceResponse401
-    | CreateServiceResponse429
-    | CreateServiceResponse500
-    | ServiceResponse
-    | None
-):
-    """Create Service
-
-     Create a new Service. (See: [Create
-    Service](https://developer.katanamrp.com/reference/createservice))
-
-    Args:
-        body (ServiceRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[CreateServiceResponse401, CreateServiceResponse429, CreateServiceResponse500, ServiceResponse]
-    """
-
-    return sync_detailed(
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    body: ServiceRequest,
-) -> Response[
-    CreateServiceResponse401
-    | CreateServiceResponse429
-    | CreateServiceResponse500
-    | ServiceResponse
+) -> Optional[
+    Union[
+        CreateServiceResponse401,
+        CreateServiceResponse429,
+        CreateServiceResponse500,
+        Service,
+    ]
 ]:
     """Create Service
 
@@ -173,9 +145,42 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[CreateServiceResponse401, CreateServiceResponse429, CreateServiceResponse500, Service]
+    """
+
+    return sync_detailed(
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: ServiceRequest,
+) -> Response[
+    Union[
+        CreateServiceResponse401,
+        CreateServiceResponse429,
+        CreateServiceResponse500,
+        Service,
+    ]
+]:
+    """Create Service
+
+     Create a new Service. (See: [Create
+    Service](https://developer.katanamrp.com/reference/createservice))
+
+    Args:
+        body (ServiceRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[CreateServiceResponse401, CreateServiceResponse429, CreateServiceResponse500, ServiceResponse]]
+        Response[Union[CreateServiceResponse401, CreateServiceResponse429, CreateServiceResponse500, Service]]
     """
 
     kwargs = _get_kwargs(
@@ -189,15 +194,16 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: ServiceRequest,
-) -> (
-    CreateServiceResponse401
-    | CreateServiceResponse429
-    | CreateServiceResponse500
-    | ServiceResponse
-    | None
-):
+) -> Optional[
+    Union[
+        CreateServiceResponse401,
+        CreateServiceResponse429,
+        CreateServiceResponse500,
+        Service,
+    ]
+]:
     """Create Service
 
      Create a new Service. (See: [Create
@@ -210,9 +216,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[CreateServiceResponse401, CreateServiceResponse429, CreateServiceResponse500, ServiceResponse]
+        Union[CreateServiceResponse401, CreateServiceResponse429, CreateServiceResponse500, Service]
     """
 
     return (

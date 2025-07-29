@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -10,7 +10,7 @@ from ...models.create_variant_response_401 import CreateVariantResponse401
 from ...models.create_variant_response_422 import CreateVariantResponse422
 from ...models.create_variant_response_429 import CreateVariantResponse429
 from ...models.create_variant_response_500 import CreateVariantResponse500
-from ...models.variant_response import VariantResponse
+from ...models.variant import Variant
 from ...types import Response
 
 
@@ -34,17 +34,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateVariantResponse401
-    | CreateVariantResponse422
-    | CreateVariantResponse429
-    | CreateVariantResponse500
-    | VariantResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        CreateVariantResponse401,
+        CreateVariantResponse422,
+        CreateVariantResponse429,
+        CreateVariantResponse500,
+        Variant,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = VariantResponse.from_dict(response.json())
+        response_200 = Variant.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -70,13 +71,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    CreateVariantResponse401
-    | CreateVariantResponse422
-    | CreateVariantResponse429
-    | CreateVariantResponse500
-    | VariantResponse
+    Union[
+        CreateVariantResponse401,
+        CreateVariantResponse422,
+        CreateVariantResponse429,
+        CreateVariantResponse500,
+        Variant,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -88,14 +91,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateVariantRequest,
 ) -> Response[
-    CreateVariantResponse401
-    | CreateVariantResponse422
-    | CreateVariantResponse429
-    | CreateVariantResponse500
-    | VariantResponse
+    Union[
+        CreateVariantResponse401,
+        CreateVariantResponse422,
+        CreateVariantResponse429,
+        CreateVariantResponse500,
+        Variant,
+    ]
 ]:
     """Create a variant
 
@@ -110,9 +115,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, VariantResponse]]
+        Response[Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, Variant]]
     """
 
     kwargs = _get_kwargs(
@@ -128,50 +132,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateVariantRequest,
-) -> (
-    CreateVariantResponse401
-    | CreateVariantResponse422
-    | CreateVariantResponse429
-    | CreateVariantResponse500
-    | VariantResponse
-    | None
-):
-    """Create a variant
-
-     Creates a new variant object. Note that you can create variants for both products and materials.
-        In order for Katana to know which one you are creating,
-        you have to specify either product_id or material_id, not both.
-
-    Args:
-        body (CreateVariantRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, VariantResponse]
-    """
-
-    return sync_detailed(
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    body: CreateVariantRequest,
-) -> Response[
-    CreateVariantResponse401
-    | CreateVariantResponse422
-    | CreateVariantResponse429
-    | CreateVariantResponse500
-    | VariantResponse
+) -> Optional[
+    Union[
+        CreateVariantResponse401,
+        CreateVariantResponse422,
+        CreateVariantResponse429,
+        CreateVariantResponse500,
+        Variant,
+    ]
 ]:
     """Create a variant
 
@@ -186,32 +156,29 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, VariantResponse]]
+        Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, Variant]
     """
 
-    kwargs = _get_kwargs(
+    return sync_detailed(
+        client=client,
         body=body,
-    )
-
-    response = await client.get_async_httpx_client().request(**kwargs)
-
-    return _build_response(client=client, response=response)
+    ).parsed
 
 
-async def asyncio(
+async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateVariantRequest,
-) -> (
-    CreateVariantResponse401
-    | CreateVariantResponse422
-    | CreateVariantResponse429
-    | CreateVariantResponse500
-    | VariantResponse
-    | None
-):
+) -> Response[
+    Union[
+        CreateVariantResponse401,
+        CreateVariantResponse422,
+        CreateVariantResponse429,
+        CreateVariantResponse500,
+        Variant,
+    ]
+]:
     """Create a variant
 
      Creates a new variant object. Note that you can create variants for both products and materials.
@@ -225,9 +192,47 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Response[Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, Variant]]
+    """
+
+    kwargs = _get_kwargs(
+        body=body,
+    )
+
+    response = await client.get_async_httpx_client().request(**kwargs)
+
+    return _build_response(client=client, response=response)
+
+
+async def asyncio(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: CreateVariantRequest,
+) -> Optional[
+    Union[
+        CreateVariantResponse401,
+        CreateVariantResponse422,
+        CreateVariantResponse429,
+        CreateVariantResponse500,
+        Variant,
+    ]
+]:
+    """Create a variant
+
+     Creates a new variant object. Note that you can create variants for both products and materials.
+        In order for Katana to know which one you are creating,
+        you have to specify either product_id or material_id, not both.
+
+    Args:
+        body (CreateVariantRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, VariantResponse]
+        Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, Variant]
     """
 
     return (

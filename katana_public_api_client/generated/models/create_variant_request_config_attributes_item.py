@@ -8,6 +8,12 @@ T = TypeVar("T", bound="CreateVariantRequestConfigAttributesItem")
 
 @_attrs_define
 class CreateVariantRequestConfigAttributesItem:
+    """
+    Attributes:
+        config_name (str):
+        config_value (str):
+    """
+
     config_name: str
     config_value: str
 

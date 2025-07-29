@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -10,7 +10,7 @@ from ...models.create_material_response_401 import CreateMaterialResponse401
 from ...models.create_material_response_422 import CreateMaterialResponse422
 from ...models.create_material_response_429 import CreateMaterialResponse429
 from ...models.create_material_response_500 import CreateMaterialResponse500
-from ...models.material_response import MaterialResponse
+from ...models.material import Material
 from ...types import Response
 
 
@@ -34,17 +34,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateMaterialResponse401
-    | CreateMaterialResponse422
-    | CreateMaterialResponse429
-    | CreateMaterialResponse500
-    | MaterialResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        CreateMaterialResponse401,
+        CreateMaterialResponse422,
+        CreateMaterialResponse429,
+        CreateMaterialResponse500,
+        Material,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = MaterialResponse.from_dict(response.json())
+        response_200 = Material.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -70,13 +71,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    CreateMaterialResponse401
-    | CreateMaterialResponse422
-    | CreateMaterialResponse429
-    | CreateMaterialResponse500
-    | MaterialResponse
+    Union[
+        CreateMaterialResponse401,
+        CreateMaterialResponse422,
+        CreateMaterialResponse429,
+        CreateMaterialResponse500,
+        Material,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -88,14 +91,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateMaterialRequest,
 ) -> Response[
-    CreateMaterialResponse401
-    | CreateMaterialResponse422
-    | CreateMaterialResponse429
-    | CreateMaterialResponse500
-    | MaterialResponse
+    Union[
+        CreateMaterialResponse401,
+        CreateMaterialResponse422,
+        CreateMaterialResponse429,
+        CreateMaterialResponse500,
+        Material,
+    ]
 ]:
     """Create a material
 
@@ -108,9 +113,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, MaterialResponse]]
+        Response[Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, Material]]
     """
 
     kwargs = _get_kwargs(
@@ -126,48 +130,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateMaterialRequest,
-) -> (
-    CreateMaterialResponse401
-    | CreateMaterialResponse422
-    | CreateMaterialResponse429
-    | CreateMaterialResponse500
-    | MaterialResponse
-    | None
-):
-    """Create a material
-
-     Creates a material object.
-
-    Args:
-        body (CreateMaterialRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, MaterialResponse]
-    """
-
-    return sync_detailed(
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    body: CreateMaterialRequest,
-) -> Response[
-    CreateMaterialResponse401
-    | CreateMaterialResponse422
-    | CreateMaterialResponse429
-    | CreateMaterialResponse500
-    | MaterialResponse
+) -> Optional[
+    Union[
+        CreateMaterialResponse401,
+        CreateMaterialResponse422,
+        CreateMaterialResponse429,
+        CreateMaterialResponse500,
+        Material,
+    ]
 ]:
     """Create a material
 
@@ -180,9 +152,42 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, Material]
+    """
+
+    return sync_detailed(
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: CreateMaterialRequest,
+) -> Response[
+    Union[
+        CreateMaterialResponse401,
+        CreateMaterialResponse422,
+        CreateMaterialResponse429,
+        CreateMaterialResponse500,
+        Material,
+    ]
+]:
+    """Create a material
+
+     Creates a material object.
+
+    Args:
+        body (CreateMaterialRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, MaterialResponse]]
+        Response[Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, Material]]
     """
 
     kwargs = _get_kwargs(
@@ -196,16 +201,17 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateMaterialRequest,
-) -> (
-    CreateMaterialResponse401
-    | CreateMaterialResponse422
-    | CreateMaterialResponse429
-    | CreateMaterialResponse500
-    | MaterialResponse
-    | None
-):
+) -> Optional[
+    Union[
+        CreateMaterialResponse401,
+        CreateMaterialResponse422,
+        CreateMaterialResponse429,
+        CreateMaterialResponse500,
+        Material,
+    ]
+]:
     """Create a material
 
      Creates a material object.
@@ -217,9 +223,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, MaterialResponse]
+        Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, Material]
     """
 
     return (

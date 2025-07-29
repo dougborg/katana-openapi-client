@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -14,9 +14,7 @@ from ...models.get_manufacturing_order_recipe_row_response_429 import (
 from ...models.get_manufacturing_order_recipe_row_response_500 import (
     GetManufacturingOrderRecipeRowResponse500,
 )
-from ...models.manufacturing_order_recipe_row_response import (
-    ManufacturingOrderRecipeRowResponse,
-)
+from ...models.manufacturing_order_recipe_row import ManufacturingOrderRecipeRow
 from ...types import Response
 
 
@@ -32,16 +30,17 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetManufacturingOrderRecipeRowResponse401
-    | GetManufacturingOrderRecipeRowResponse429
-    | GetManufacturingOrderRecipeRowResponse500
-    | ManufacturingOrderRecipeRowResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        GetManufacturingOrderRecipeRowResponse401,
+        GetManufacturingOrderRecipeRowResponse429,
+        GetManufacturingOrderRecipeRowResponse500,
+        ManufacturingOrderRecipeRow,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = ManufacturingOrderRecipeRowResponse.from_dict(response.json())
+        response_200 = ManufacturingOrderRecipeRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -69,12 +68,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    GetManufacturingOrderRecipeRowResponse401
-    | GetManufacturingOrderRecipeRowResponse429
-    | GetManufacturingOrderRecipeRowResponse500
-    | ManufacturingOrderRecipeRowResponse
+    Union[
+        GetManufacturingOrderRecipeRowResponse401,
+        GetManufacturingOrderRecipeRowResponse429,
+        GetManufacturingOrderRecipeRowResponse500,
+        ManufacturingOrderRecipeRow,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -87,12 +88,14 @@ def _build_response(
 def sync_detailed(
     id: float,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
 ) -> Response[
-    GetManufacturingOrderRecipeRowResponse401
-    | GetManufacturingOrderRecipeRowResponse429
-    | GetManufacturingOrderRecipeRowResponse500
-    | ManufacturingOrderRecipeRowResponse
+    Union[
+        GetManufacturingOrderRecipeRowResponse401,
+        GetManufacturingOrderRecipeRowResponse429,
+        GetManufacturingOrderRecipeRowResponse500,
+        ManufacturingOrderRecipeRow,
+    ]
 ]:
     """Retrieve a manufacturing order recipe row
 
@@ -105,9 +108,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetManufacturingOrderRecipeRowResponse401, GetManufacturingOrderRecipeRowResponse429, GetManufacturingOrderRecipeRowResponse500, ManufacturingOrderRecipeRowResponse]]
+        Response[Union[GetManufacturingOrderRecipeRowResponse401, GetManufacturingOrderRecipeRowResponse429, GetManufacturingOrderRecipeRowResponse500, ManufacturingOrderRecipeRow]]
     """
 
     kwargs = _get_kwargs(
@@ -124,45 +126,14 @@ def sync_detailed(
 def sync(
     id: float,
     *,
-    client: AuthenticatedClient | Client,
-) -> (
-    GetManufacturingOrderRecipeRowResponse401
-    | GetManufacturingOrderRecipeRowResponse429
-    | GetManufacturingOrderRecipeRowResponse500
-    | ManufacturingOrderRecipeRowResponse
-    | None
-):
-    """Retrieve a manufacturing order recipe row
-
-     Retrieves the details of an existing manufacturing order recipe row.
-
-    Args:
-        id (float):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[GetManufacturingOrderRecipeRowResponse401, GetManufacturingOrderRecipeRowResponse429, GetManufacturingOrderRecipeRowResponse500, ManufacturingOrderRecipeRowResponse]
-    """
-
-    return sync_detailed(
-        id=id,
-        client=client,
-    ).parsed
-
-
-async def asyncio_detailed(
-    id: float,
-    *,
-    client: AuthenticatedClient | Client,
-) -> Response[
-    GetManufacturingOrderRecipeRowResponse401
-    | GetManufacturingOrderRecipeRowResponse429
-    | GetManufacturingOrderRecipeRowResponse500
-    | ManufacturingOrderRecipeRowResponse
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[
+    Union[
+        GetManufacturingOrderRecipeRowResponse401,
+        GetManufacturingOrderRecipeRowResponse429,
+        GetManufacturingOrderRecipeRowResponse500,
+        ManufacturingOrderRecipeRow,
+    ]
 ]:
     """Retrieve a manufacturing order recipe row
 
@@ -175,9 +146,41 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[GetManufacturingOrderRecipeRowResponse401, GetManufacturingOrderRecipeRowResponse429, GetManufacturingOrderRecipeRowResponse500, ManufacturingOrderRecipeRow]
+    """
+
+    return sync_detailed(
+        id=id,
+        client=client,
+    ).parsed
+
+
+async def asyncio_detailed(
+    id: float,
+    *,
+    client: Union[AuthenticatedClient, Client],
+) -> Response[
+    Union[
+        GetManufacturingOrderRecipeRowResponse401,
+        GetManufacturingOrderRecipeRowResponse429,
+        GetManufacturingOrderRecipeRowResponse500,
+        ManufacturingOrderRecipeRow,
+    ]
+]:
+    """Retrieve a manufacturing order recipe row
+
+     Retrieves the details of an existing manufacturing order recipe row.
+
+    Args:
+        id (float):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[GetManufacturingOrderRecipeRowResponse401, GetManufacturingOrderRecipeRowResponse429, GetManufacturingOrderRecipeRowResponse500, ManufacturingOrderRecipeRowResponse]]
+        Response[Union[GetManufacturingOrderRecipeRowResponse401, GetManufacturingOrderRecipeRowResponse429, GetManufacturingOrderRecipeRowResponse500, ManufacturingOrderRecipeRow]]
     """
 
     kwargs = _get_kwargs(
@@ -192,14 +195,15 @@ async def asyncio_detailed(
 async def asyncio(
     id: float,
     *,
-    client: AuthenticatedClient | Client,
-) -> (
-    GetManufacturingOrderRecipeRowResponse401
-    | GetManufacturingOrderRecipeRowResponse429
-    | GetManufacturingOrderRecipeRowResponse500
-    | ManufacturingOrderRecipeRowResponse
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[
+    Union[
+        GetManufacturingOrderRecipeRowResponse401,
+        GetManufacturingOrderRecipeRowResponse429,
+        GetManufacturingOrderRecipeRowResponse500,
+        ManufacturingOrderRecipeRow,
+    ]
+]:
     """Retrieve a manufacturing order recipe row
 
      Retrieves the details of an existing manufacturing order recipe row.
@@ -211,9 +215,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetManufacturingOrderRecipeRowResponse401, GetManufacturingOrderRecipeRowResponse429, GetManufacturingOrderRecipeRowResponse500, ManufacturingOrderRecipeRowResponse]
+        Union[GetManufacturingOrderRecipeRowResponse401, GetManufacturingOrderRecipeRowResponse429, GetManufacturingOrderRecipeRowResponse500, ManufacturingOrderRecipeRow]
     """
 
     return (

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -42,15 +42,16 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateCustomerAddressResponse401
-    | CreateCustomerAddressResponse422
-    | CreateCustomerAddressResponse429
-    | CreateCustomerAddressResponse500
-    | CustomerAddress
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        CreateCustomerAddressResponse401,
+        CreateCustomerAddressResponse422,
+        CreateCustomerAddressResponse429,
+        CreateCustomerAddressResponse500,
+        CustomerAddress,
+    ]
+]:
     if response.status_code == 200:
         response_200 = CustomerAddress.from_dict(response.json())
 
@@ -78,13 +79,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    CreateCustomerAddressResponse401
-    | CreateCustomerAddressResponse422
-    | CreateCustomerAddressResponse429
-    | CreateCustomerAddressResponse500
-    | CustomerAddress
+    Union[
+        CreateCustomerAddressResponse401,
+        CreateCustomerAddressResponse422,
+        CreateCustomerAddressResponse429,
+        CreateCustomerAddressResponse500,
+        CustomerAddress,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -96,14 +99,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateCustomerAddressRequest,
 ) -> Response[
-    CreateCustomerAddressResponse401
-    | CreateCustomerAddressResponse422
-    | CreateCustomerAddressResponse429
-    | CreateCustomerAddressResponse500
-    | CustomerAddress
+    Union[
+        CreateCustomerAddressResponse401,
+        CreateCustomerAddressResponse422,
+        CreateCustomerAddressResponse429,
+        CreateCustomerAddressResponse500,
+        CustomerAddress,
+    ]
 ]:
     """Create a customer address
 
@@ -115,7 +120,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[CreateCustomerAddressResponse401, CreateCustomerAddressResponse422, CreateCustomerAddressResponse429, CreateCustomerAddressResponse500, CustomerAddress]]
@@ -134,16 +138,17 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateCustomerAddressRequest,
-) -> (
-    CreateCustomerAddressResponse401
-    | CreateCustomerAddressResponse422
-    | CreateCustomerAddressResponse429
-    | CreateCustomerAddressResponse500
-    | CustomerAddress
-    | None
-):
+) -> Optional[
+    Union[
+        CreateCustomerAddressResponse401,
+        CreateCustomerAddressResponse422,
+        CreateCustomerAddressResponse429,
+        CreateCustomerAddressResponse500,
+        CustomerAddress,
+    ]
+]:
     """Create a customer address
 
      Creates a new customer address.
@@ -154,7 +159,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[CreateCustomerAddressResponse401, CreateCustomerAddressResponse422, CreateCustomerAddressResponse429, CreateCustomerAddressResponse500, CustomerAddress]
@@ -168,14 +172,16 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateCustomerAddressRequest,
 ) -> Response[
-    CreateCustomerAddressResponse401
-    | CreateCustomerAddressResponse422
-    | CreateCustomerAddressResponse429
-    | CreateCustomerAddressResponse500
-    | CustomerAddress
+    Union[
+        CreateCustomerAddressResponse401,
+        CreateCustomerAddressResponse422,
+        CreateCustomerAddressResponse429,
+        CreateCustomerAddressResponse500,
+        CustomerAddress,
+    ]
 ]:
     """Create a customer address
 
@@ -187,7 +193,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[CreateCustomerAddressResponse401, CreateCustomerAddressResponse422, CreateCustomerAddressResponse429, CreateCustomerAddressResponse500, CustomerAddress]]
@@ -204,16 +209,17 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateCustomerAddressRequest,
-) -> (
-    CreateCustomerAddressResponse401
-    | CreateCustomerAddressResponse422
-    | CreateCustomerAddressResponse429
-    | CreateCustomerAddressResponse500
-    | CustomerAddress
-    | None
-):
+) -> Optional[
+    Union[
+        CreateCustomerAddressResponse401,
+        CreateCustomerAddressResponse422,
+        CreateCustomerAddressResponse429,
+        CreateCustomerAddressResponse500,
+        CustomerAddress,
+    ]
+]:
     """Create a customer address
 
      Creates a new customer address.
@@ -224,7 +230,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[CreateCustomerAddressResponse401, CreateCustomerAddressResponse422, CreateCustomerAddressResponse429, CreateCustomerAddressResponse500, CustomerAddress]

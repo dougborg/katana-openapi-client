@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -45,16 +45,17 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreatePriceListCustomerResponse400
-    | CreatePriceListCustomerResponse401
-    | CreatePriceListCustomerResponse422
-    | CreatePriceListCustomerResponse429
-    | CreatePriceListCustomerResponse500
-    | PriceListCustomer
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        CreatePriceListCustomerResponse400,
+        CreatePriceListCustomerResponse401,
+        CreatePriceListCustomerResponse422,
+        CreatePriceListCustomerResponse429,
+        CreatePriceListCustomerResponse500,
+        PriceListCustomer,
+    ]
+]:
     if response.status_code == 201:
         response_201 = PriceListCustomer.from_dict(response.json())
 
@@ -86,14 +87,16 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    CreatePriceListCustomerResponse400
-    | CreatePriceListCustomerResponse401
-    | CreatePriceListCustomerResponse422
-    | CreatePriceListCustomerResponse429
-    | CreatePriceListCustomerResponse500
-    | PriceListCustomer
+    Union[
+        CreatePriceListCustomerResponse400,
+        CreatePriceListCustomerResponse401,
+        CreatePriceListCustomerResponse422,
+        CreatePriceListCustomerResponse429,
+        CreatePriceListCustomerResponse500,
+        PriceListCustomer,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -105,15 +108,17 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreatePriceListCustomerRequest,
 ) -> Response[
-    CreatePriceListCustomerResponse400
-    | CreatePriceListCustomerResponse401
-    | CreatePriceListCustomerResponse422
-    | CreatePriceListCustomerResponse429
-    | CreatePriceListCustomerResponse500
-    | PriceListCustomer
+    Union[
+        CreatePriceListCustomerResponse400,
+        CreatePriceListCustomerResponse401,
+        CreatePriceListCustomerResponse422,
+        CreatePriceListCustomerResponse429,
+        CreatePriceListCustomerResponse500,
+        PriceListCustomer,
+    ]
 ]:
     """Create a price list customer assignment
 
@@ -125,7 +130,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[CreatePriceListCustomerResponse400, CreatePriceListCustomerResponse401, CreatePriceListCustomerResponse422, CreatePriceListCustomerResponse429, CreatePriceListCustomerResponse500, PriceListCustomer]]
@@ -144,17 +148,18 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreatePriceListCustomerRequest,
-) -> (
-    CreatePriceListCustomerResponse400
-    | CreatePriceListCustomerResponse401
-    | CreatePriceListCustomerResponse422
-    | CreatePriceListCustomerResponse429
-    | CreatePriceListCustomerResponse500
-    | PriceListCustomer
-    | None
-):
+) -> Optional[
+    Union[
+        CreatePriceListCustomerResponse400,
+        CreatePriceListCustomerResponse401,
+        CreatePriceListCustomerResponse422,
+        CreatePriceListCustomerResponse429,
+        CreatePriceListCustomerResponse500,
+        PriceListCustomer,
+    ]
+]:
     """Create a price list customer assignment
 
      Assigns a customer to a price list.
@@ -165,7 +170,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[CreatePriceListCustomerResponse400, CreatePriceListCustomerResponse401, CreatePriceListCustomerResponse422, CreatePriceListCustomerResponse429, CreatePriceListCustomerResponse500, PriceListCustomer]
@@ -179,15 +183,17 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreatePriceListCustomerRequest,
 ) -> Response[
-    CreatePriceListCustomerResponse400
-    | CreatePriceListCustomerResponse401
-    | CreatePriceListCustomerResponse422
-    | CreatePriceListCustomerResponse429
-    | CreatePriceListCustomerResponse500
-    | PriceListCustomer
+    Union[
+        CreatePriceListCustomerResponse400,
+        CreatePriceListCustomerResponse401,
+        CreatePriceListCustomerResponse422,
+        CreatePriceListCustomerResponse429,
+        CreatePriceListCustomerResponse500,
+        PriceListCustomer,
+    ]
 ]:
     """Create a price list customer assignment
 
@@ -199,7 +205,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[CreatePriceListCustomerResponse400, CreatePriceListCustomerResponse401, CreatePriceListCustomerResponse422, CreatePriceListCustomerResponse429, CreatePriceListCustomerResponse500, PriceListCustomer]]
@@ -216,17 +221,18 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreatePriceListCustomerRequest,
-) -> (
-    CreatePriceListCustomerResponse400
-    | CreatePriceListCustomerResponse401
-    | CreatePriceListCustomerResponse422
-    | CreatePriceListCustomerResponse429
-    | CreatePriceListCustomerResponse500
-    | PriceListCustomer
-    | None
-):
+) -> Optional[
+    Union[
+        CreatePriceListCustomerResponse400,
+        CreatePriceListCustomerResponse401,
+        CreatePriceListCustomerResponse422,
+        CreatePriceListCustomerResponse429,
+        CreatePriceListCustomerResponse500,
+        PriceListCustomer,
+    ]
+]:
     """Create a price list customer assignment
 
      Assigns a customer to a price list.
@@ -237,7 +243,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[CreatePriceListCustomerResponse400, CreatePriceListCustomerResponse401, CreatePriceListCustomerResponse422, CreatePriceListCustomerResponse429, CreatePriceListCustomerResponse500, PriceListCustomer]

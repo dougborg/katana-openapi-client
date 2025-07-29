@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -17,11 +15,16 @@ T = TypeVar("T", bound="GetAllLocationsResponse200")
 
 @_attrs_define
 class GetAllLocationsResponse200:
-    data: Unset | list["Location"] = UNSET
+    """
+    Attributes:
+        data (Union[Unset, list['Location']]):
+    """
+
+    data: Union[Unset, list["Location"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -14,10 +14,10 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    stocktake_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    stocktake_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -41,14 +41,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllStocktakeRowsResponse401
-    | GetAllStocktakeRowsResponse429
-    | GetAllStocktakeRowsResponse500
-    | StocktakeRowListResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        GetAllStocktakeRowsResponse401,
+        GetAllStocktakeRowsResponse429,
+        GetAllStocktakeRowsResponse500,
+        StocktakeRowListResponse,
+    ]
+]:
     if response.status_code == 200:
         response_200 = StocktakeRowListResponse.from_dict(response.json())
 
@@ -72,12 +73,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    GetAllStocktakeRowsResponse401
-    | GetAllStocktakeRowsResponse429
-    | GetAllStocktakeRowsResponse500
-    | StocktakeRowListResponse
+    Union[
+        GetAllStocktakeRowsResponse401,
+        GetAllStocktakeRowsResponse429,
+        GetAllStocktakeRowsResponse500,
+        StocktakeRowListResponse,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -89,16 +92,18 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    stocktake_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    stocktake_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
 ) -> Response[
-    GetAllStocktakeRowsResponse401
-    | GetAllStocktakeRowsResponse429
-    | GetAllStocktakeRowsResponse500
-    | StocktakeRowListResponse
+    Union[
+        GetAllStocktakeRowsResponse401,
+        GetAllStocktakeRowsResponse429,
+        GetAllStocktakeRowsResponse500,
+        StocktakeRowListResponse,
+    ]
 ]:
     """List stocktake rows
 
@@ -113,7 +118,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[GetAllStocktakeRowsResponse401, GetAllStocktakeRowsResponse429, GetAllStocktakeRowsResponse500, StocktakeRowListResponse]]
@@ -135,18 +139,19 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    stocktake_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-) -> (
-    GetAllStocktakeRowsResponse401
-    | GetAllStocktakeRowsResponse429
-    | GetAllStocktakeRowsResponse500
-    | StocktakeRowListResponse
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    stocktake_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+) -> Optional[
+    Union[
+        GetAllStocktakeRowsResponse401,
+        GetAllStocktakeRowsResponse429,
+        GetAllStocktakeRowsResponse500,
+        StocktakeRowListResponse,
+    ]
+]:
     """List stocktake rows
 
      Returns a list of stocktake rows.
@@ -160,7 +165,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[GetAllStocktakeRowsResponse401, GetAllStocktakeRowsResponse429, GetAllStocktakeRowsResponse500, StocktakeRowListResponse]
@@ -177,16 +181,18 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    stocktake_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    stocktake_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
 ) -> Response[
-    GetAllStocktakeRowsResponse401
-    | GetAllStocktakeRowsResponse429
-    | GetAllStocktakeRowsResponse500
-    | StocktakeRowListResponse
+    Union[
+        GetAllStocktakeRowsResponse401,
+        GetAllStocktakeRowsResponse429,
+        GetAllStocktakeRowsResponse500,
+        StocktakeRowListResponse,
+    ]
 ]:
     """List stocktake rows
 
@@ -201,7 +207,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[GetAllStocktakeRowsResponse401, GetAllStocktakeRowsResponse429, GetAllStocktakeRowsResponse500, StocktakeRowListResponse]]
@@ -221,18 +226,19 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    stocktake_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-) -> (
-    GetAllStocktakeRowsResponse401
-    | GetAllStocktakeRowsResponse429
-    | GetAllStocktakeRowsResponse500
-    | StocktakeRowListResponse
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    stocktake_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+) -> Optional[
+    Union[
+        GetAllStocktakeRowsResponse401,
+        GetAllStocktakeRowsResponse429,
+        GetAllStocktakeRowsResponse500,
+        StocktakeRowListResponse,
+    ]
+]:
     """List stocktake rows
 
      Returns a list of stocktake rows.
@@ -246,7 +252,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[GetAllStocktakeRowsResponse401, GetAllStocktakeRowsResponse429, GetAllStocktakeRowsResponse500, StocktakeRowListResponse]

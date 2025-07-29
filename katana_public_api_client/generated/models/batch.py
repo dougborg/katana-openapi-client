@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, Union, cast
 
 from attrs import define as _attrs_define
 
@@ -10,11 +10,20 @@ T = TypeVar("T", bound="Batch")
 
 @_attrs_define
 class Batch:
+    """
+    Attributes:
+        batch_number (str):
+        variant_id (int):
+        expiration_date (Union[Unset, str]):
+        batch_created_date (Union[Unset, str]):
+        batch_barcode (Union[None, Unset, str]):
+    """
+
     batch_number: str
     variant_id: int
-    expiration_date: Unset | str = UNSET
-    batch_created_date: Unset | str = UNSET
-    batch_barcode: None | Unset | str = UNSET
+    expiration_date: Union[Unset, str] = UNSET
+    batch_created_date: Union[Unset, str] = UNSET
+    batch_barcode: Union[None, Unset, str] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         batch_number = self.batch_number
@@ -25,7 +34,7 @@ class Batch:
 
         batch_created_date = self.batch_created_date
 
-        batch_barcode: None | Unset | str
+        batch_barcode: Union[None, Unset, str]
         if isinstance(self.batch_barcode, Unset):
             batch_barcode = UNSET
         else:
@@ -59,12 +68,12 @@ class Batch:
 
         batch_created_date = d.pop("batch_created_date", UNSET)
 
-        def _parse_batch_barcode(data: object) -> None | Unset | str:
+        def _parse_batch_barcode(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         batch_barcode = _parse_batch_barcode(d.pop("batch_barcode", UNSET))
 

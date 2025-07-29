@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -22,14 +22,10 @@ def _get_kwargs() -> dict[str, Any]:
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    Factory
-    | GetFactoryResponse401
-    | GetFactoryResponse429
-    | GetFactoryResponse500
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[Factory, GetFactoryResponse401, GetFactoryResponse429, GetFactoryResponse500]
+]:
     if response.status_code == 200:
         response_200 = Factory.from_dict(response.json())
 
@@ -53,9 +49,9 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    Factory | GetFactoryResponse401 | GetFactoryResponse429 | GetFactoryResponse500
+    Union[Factory, GetFactoryResponse401, GetFactoryResponse429, GetFactoryResponse500]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -67,9 +63,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
 ) -> Response[
-    Factory | GetFactoryResponse401 | GetFactoryResponse429 | GetFactoryResponse500
+    Union[Factory, GetFactoryResponse401, GetFactoryResponse429, GetFactoryResponse500]
 ]:
     """Retrieve the current factory
 
@@ -78,7 +74,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Factory, GetFactoryResponse401, GetFactoryResponse429, GetFactoryResponse500]]
@@ -95,14 +90,10 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-) -> (
-    Factory
-    | GetFactoryResponse401
-    | GetFactoryResponse429
-    | GetFactoryResponse500
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[
+    Union[Factory, GetFactoryResponse401, GetFactoryResponse429, GetFactoryResponse500]
+]:
     """Retrieve the current factory
 
      Returns the general information about the factory.
@@ -110,7 +101,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[Factory, GetFactoryResponse401, GetFactoryResponse429, GetFactoryResponse500]
@@ -123,9 +113,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
 ) -> Response[
-    Factory | GetFactoryResponse401 | GetFactoryResponse429 | GetFactoryResponse500
+    Union[Factory, GetFactoryResponse401, GetFactoryResponse429, GetFactoryResponse500]
 ]:
     """Retrieve the current factory
 
@@ -134,7 +124,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Factory, GetFactoryResponse401, GetFactoryResponse429, GetFactoryResponse500]]
@@ -149,14 +138,10 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-) -> (
-    Factory
-    | GetFactoryResponse401
-    | GetFactoryResponse429
-    | GetFactoryResponse500
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[
+    Union[Factory, GetFactoryResponse401, GetFactoryResponse429, GetFactoryResponse500]
+]:
     """Retrieve the current factory
 
      Returns the general information about the factory.
@@ -164,7 +149,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[Factory, GetFactoryResponse401, GetFactoryResponse429, GetFactoryResponse500]

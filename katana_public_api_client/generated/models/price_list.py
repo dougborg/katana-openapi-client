@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -15,16 +13,30 @@ T = TypeVar("T", bound="PriceList")
 
 @_attrs_define
 class PriceList:
+    """
+    Attributes:
+        id (int):
+        name (str):
+        currency (str):
+        is_default (Union[Unset, bool]):
+        markup_percentage (Union[None, Unset, float]):
+        start_date (Union[None, Unset, datetime.datetime]):
+        end_date (Union[None, Unset, datetime.datetime]):
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
+        deleted_at (Union[None, Unset, datetime.datetime]):
+    """
+
     id: int
     name: str
     currency: str
-    is_default: Unset | bool = UNSET
-    markup_percentage: None | Unset | float = UNSET
-    start_date: None | Unset | datetime.datetime = UNSET
-    end_date: None | Unset | datetime.datetime = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
+    is_default: Union[Unset, bool] = UNSET
+    markup_percentage: Union[None, Unset, float] = UNSET
+    start_date: Union[None, Unset, datetime.datetime] = UNSET
+    end_date: Union[None, Unset, datetime.datetime] = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
+    deleted_at: Union[None, Unset, datetime.datetime] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,13 +48,13 @@ class PriceList:
 
         is_default = self.is_default
 
-        markup_percentage: None | Unset | float
+        markup_percentage: Union[None, Unset, float]
         if isinstance(self.markup_percentage, Unset):
             markup_percentage = UNSET
         else:
             markup_percentage = self.markup_percentage
 
-        start_date: None | Unset | str
+        start_date: Union[None, Unset, str]
         if isinstance(self.start_date, Unset):
             start_date = UNSET
         elif isinstance(self.start_date, datetime.datetime):
@@ -50,7 +62,7 @@ class PriceList:
         else:
             start_date = self.start_date
 
-        end_date: None | Unset | str
+        end_date: Union[None, Unset, str]
         if isinstance(self.end_date, Unset):
             end_date = UNSET
         elif isinstance(self.end_date, datetime.datetime):
@@ -58,15 +70,15 @@ class PriceList:
         else:
             end_date = self.end_date
 
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | Unset | str
+        deleted_at: Union[None, Unset, str]
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -111,16 +123,16 @@ class PriceList:
 
         is_default = d.pop("is_default", UNSET)
 
-        def _parse_markup_percentage(data: object) -> None | Unset | float:
+        def _parse_markup_percentage(data: object) -> Union[None, Unset, float]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(Union[None, Unset, float], data)
 
         markup_percentage = _parse_markup_percentage(d.pop("markup_percentage", UNSET))
 
-        def _parse_start_date(data: object) -> None | Unset | datetime.datetime:
+        def _parse_start_date(data: object) -> Union[None, Unset, datetime.datetime]:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -133,11 +145,11 @@ class PriceList:
                 return start_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(Union[None, Unset, datetime.datetime], data)
 
         start_date = _parse_start_date(d.pop("start_date", UNSET))
 
-        def _parse_end_date(data: object) -> None | Unset | datetime.datetime:
+        def _parse_end_date(data: object) -> Union[None, Unset, datetime.datetime]:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -150,25 +162,25 @@ class PriceList:
                 return end_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(Union[None, Unset, datetime.datetime], data)
 
         end_date = _parse_end_date(d.pop("end_date", UNSET))
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_deleted_at(data: object) -> Union[None, Unset, datetime.datetime]:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -181,7 +193,7 @@ class PriceList:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(Union[None, Unset, datetime.datetime], data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

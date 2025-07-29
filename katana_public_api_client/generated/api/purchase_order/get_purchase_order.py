@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -9,18 +9,18 @@ from ...models.get_purchase_order_extend_item import GetPurchaseOrderExtendItem
 from ...models.get_purchase_order_response_401 import GetPurchaseOrderResponse401
 from ...models.get_purchase_order_response_429 import GetPurchaseOrderResponse429
 from ...models.get_purchase_order_response_500 import GetPurchaseOrderResponse500
-from ...models.purchase_order_response import PurchaseOrderResponse
+from ...models.purchase_order import PurchaseOrder
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     id: int,
     *,
-    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
+    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_extend: Unset | list[str] = UNSET
+    json_extend: Union[Unset, list[str]] = UNSET
     if not isinstance(extend, Unset):
         json_extend = []
         for extend_item_data in extend:
@@ -41,16 +41,17 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetPurchaseOrderResponse401
-    | GetPurchaseOrderResponse429
-    | GetPurchaseOrderResponse500
-    | PurchaseOrderResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        GetPurchaseOrderResponse401,
+        GetPurchaseOrderResponse429,
+        GetPurchaseOrderResponse500,
+        PurchaseOrder,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = PurchaseOrderResponse.from_dict(response.json())
+        response_200 = PurchaseOrder.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -72,12 +73,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    GetPurchaseOrderResponse401
-    | GetPurchaseOrderResponse429
-    | GetPurchaseOrderResponse500
-    | PurchaseOrderResponse
+    Union[
+        GetPurchaseOrderResponse401,
+        GetPurchaseOrderResponse429,
+        GetPurchaseOrderResponse500,
+        PurchaseOrder,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -90,13 +93,15 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
-    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
+    client: Union[AuthenticatedClient, Client],
+    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
 ) -> Response[
-    GetPurchaseOrderResponse401
-    | GetPurchaseOrderResponse429
-    | GetPurchaseOrderResponse500
-    | PurchaseOrderResponse
+    Union[
+        GetPurchaseOrderResponse401,
+        GetPurchaseOrderResponse429,
+        GetPurchaseOrderResponse500,
+        PurchaseOrder,
+    ]
 ]:
     """Retrieve a purchase order
 
@@ -110,9 +115,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrderResponse]]
+        Response[Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrder]]
     """
 
     kwargs = _get_kwargs(
@@ -130,49 +134,15 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
-    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
-) -> (
-    GetPurchaseOrderResponse401
-    | GetPurchaseOrderResponse429
-    | GetPurchaseOrderResponse500
-    | PurchaseOrderResponse
-    | None
-):
-    """Retrieve a purchase order
-
-     Retrieves the details of an existing purchase order based on ID
-
-    Args:
-        id (int):
-        extend (Union[Unset, list[GetPurchaseOrderExtendItem]]):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrderResponse]
-    """
-
-    return sync_detailed(
-        id=id,
-        client=client,
-        extend=extend,
-    ).parsed
-
-
-async def asyncio_detailed(
-    id: int,
-    *,
-    client: AuthenticatedClient | Client,
-    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
-) -> Response[
-    GetPurchaseOrderResponse401
-    | GetPurchaseOrderResponse429
-    | GetPurchaseOrderResponse500
-    | PurchaseOrderResponse
+    client: Union[AuthenticatedClient, Client],
+    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
+) -> Optional[
+    Union[
+        GetPurchaseOrderResponse401,
+        GetPurchaseOrderResponse429,
+        GetPurchaseOrderResponse500,
+        PurchaseOrder,
+    ]
 ]:
     """Retrieve a purchase order
 
@@ -186,9 +156,44 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrder]
+    """
+
+    return sync_detailed(
+        id=id,
+        client=client,
+        extend=extend,
+    ).parsed
+
+
+async def asyncio_detailed(
+    id: int,
+    *,
+    client: Union[AuthenticatedClient, Client],
+    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
+) -> Response[
+    Union[
+        GetPurchaseOrderResponse401,
+        GetPurchaseOrderResponse429,
+        GetPurchaseOrderResponse500,
+        PurchaseOrder,
+    ]
+]:
+    """Retrieve a purchase order
+
+     Retrieves the details of an existing purchase order based on ID
+
+    Args:
+        id (int):
+        extend (Union[Unset, list[GetPurchaseOrderExtendItem]]):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrderResponse]]
+        Response[Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrder]]
     """
 
     kwargs = _get_kwargs(
@@ -204,15 +209,16 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
-    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
-) -> (
-    GetPurchaseOrderResponse401
-    | GetPurchaseOrderResponse429
-    | GetPurchaseOrderResponse500
-    | PurchaseOrderResponse
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
+) -> Optional[
+    Union[
+        GetPurchaseOrderResponse401,
+        GetPurchaseOrderResponse429,
+        GetPurchaseOrderResponse500,
+        PurchaseOrder,
+    ]
+]:
     """Retrieve a purchase order
 
      Retrieves the details of an existing purchase order based on ID
@@ -225,9 +231,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrderResponse]
+        Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrder]
     """
 
     return (

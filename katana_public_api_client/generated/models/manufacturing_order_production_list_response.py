@@ -1,17 +1,13 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.manufacturing_order_production_response import (
-        ManufacturingOrderProductionResponse,
-    )
+    from ..models.manufacturing_order_production import ManufacturingOrderProduction
 
 
 T = TypeVar("T", bound="ManufacturingOrderProductionListResponse")
@@ -19,11 +15,16 @@ T = TypeVar("T", bound="ManufacturingOrderProductionListResponse")
 
 @_attrs_define
 class ManufacturingOrderProductionListResponse:
-    data: Unset | list["ManufacturingOrderProductionResponse"] = UNSET
+    """
+    Attributes:
+        data (Union[Unset, list['ManufacturingOrderProduction']]):
+    """
+
+    data: Union[Unset, list["ManufacturingOrderProduction"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:
@@ -40,15 +41,13 @@ class ManufacturingOrderProductionListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.manufacturing_order_production_response import (
-            ManufacturingOrderProductionResponse,
-        )
+        from ..models.manufacturing_order_production import ManufacturingOrderProduction
 
         d = dict(src_dict)
         data = []
         _data = d.pop("data", UNSET)
         for data_item_data in _data or []:
-            data_item = ManufacturingOrderProductionResponse.from_dict(data_item_data)
+            data_item = ManufacturingOrderProduction.from_dict(data_item_data)
 
             data.append(data_item)
 

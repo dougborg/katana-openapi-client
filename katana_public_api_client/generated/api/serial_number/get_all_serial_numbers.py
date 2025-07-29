@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -14,11 +14,11 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    variant_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    serial_number: Unset | str = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    variant_id: Union[Unset, int] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    serial_number: Union[Unset, str] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -44,14 +44,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllSerialNumbersResponse401
-    | GetAllSerialNumbersResponse429
-    | GetAllSerialNumbersResponse500
-    | SerialNumberStockListResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        GetAllSerialNumbersResponse401,
+        GetAllSerialNumbersResponse429,
+        GetAllSerialNumbersResponse500,
+        SerialNumberStockListResponse,
+    ]
+]:
     if response.status_code == 200:
         response_200 = SerialNumberStockListResponse.from_dict(response.json())
 
@@ -75,12 +76,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    GetAllSerialNumbersResponse401
-    | GetAllSerialNumbersResponse429
-    | GetAllSerialNumbersResponse500
-    | SerialNumberStockListResponse
+    Union[
+        GetAllSerialNumbersResponse401,
+        GetAllSerialNumbersResponse429,
+        GetAllSerialNumbersResponse500,
+        SerialNumberStockListResponse,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -92,17 +95,19 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    variant_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    serial_number: Unset | str = UNSET,
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    variant_id: Union[Unset, int] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    serial_number: Union[Unset, str] = UNSET,
 ) -> Response[
-    GetAllSerialNumbersResponse401
-    | GetAllSerialNumbersResponse429
-    | GetAllSerialNumbersResponse500
-    | SerialNumberStockListResponse
+    Union[
+        GetAllSerialNumbersResponse401,
+        GetAllSerialNumbersResponse429,
+        GetAllSerialNumbersResponse500,
+        SerialNumberStockListResponse,
+    ]
 ]:
     """List serial numbers
 
@@ -118,7 +123,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberStockListResponse]]
@@ -141,19 +145,20 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    variant_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    serial_number: Unset | str = UNSET,
-) -> (
-    GetAllSerialNumbersResponse401
-    | GetAllSerialNumbersResponse429
-    | GetAllSerialNumbersResponse500
-    | SerialNumberStockListResponse
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    variant_id: Union[Unset, int] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    serial_number: Union[Unset, str] = UNSET,
+) -> Optional[
+    Union[
+        GetAllSerialNumbersResponse401,
+        GetAllSerialNumbersResponse429,
+        GetAllSerialNumbersResponse500,
+        SerialNumberStockListResponse,
+    ]
+]:
     """List serial numbers
 
      Returns a list of serial numbers.
@@ -168,7 +173,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberStockListResponse]
@@ -186,17 +190,19 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    variant_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    serial_number: Unset | str = UNSET,
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    variant_id: Union[Unset, int] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    serial_number: Union[Unset, str] = UNSET,
 ) -> Response[
-    GetAllSerialNumbersResponse401
-    | GetAllSerialNumbersResponse429
-    | GetAllSerialNumbersResponse500
-    | SerialNumberStockListResponse
+    Union[
+        GetAllSerialNumbersResponse401,
+        GetAllSerialNumbersResponse429,
+        GetAllSerialNumbersResponse500,
+        SerialNumberStockListResponse,
+    ]
 ]:
     """List serial numbers
 
@@ -212,7 +218,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberStockListResponse]]
@@ -233,19 +238,20 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    variant_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    serial_number: Unset | str = UNSET,
-) -> (
-    GetAllSerialNumbersResponse401
-    | GetAllSerialNumbersResponse429
-    | GetAllSerialNumbersResponse500
-    | SerialNumberStockListResponse
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    variant_id: Union[Unset, int] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    serial_number: Union[Unset, str] = UNSET,
+) -> Optional[
+    Union[
+        GetAllSerialNumbersResponse401,
+        GetAllSerialNumbersResponse429,
+        GetAllSerialNumbersResponse500,
+        SerialNumberStockListResponse,
+    ]
+]:
     """List serial numbers
 
      Returns a list of serial numbers.
@@ -260,7 +266,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberStockListResponse]

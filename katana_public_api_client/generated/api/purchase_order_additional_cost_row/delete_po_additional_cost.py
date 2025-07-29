@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, cast
+from typing import Any, Optional, Union, cast
 
 import httpx
 
@@ -32,15 +32,16 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    Any
-    | DeletePoAdditionalCostResponse401
-    | DeletePoAdditionalCostResponse404
-    | DeletePoAdditionalCostResponse429
-    | DeletePoAdditionalCostResponse500
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        Any,
+        DeletePoAdditionalCostResponse401,
+        DeletePoAdditionalCostResponse404,
+        DeletePoAdditionalCostResponse429,
+        DeletePoAdditionalCostResponse500,
+    ]
+]:
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
@@ -67,13 +68,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    Any
-    | DeletePoAdditionalCostResponse401
-    | DeletePoAdditionalCostResponse404
-    | DeletePoAdditionalCostResponse429
-    | DeletePoAdditionalCostResponse500
+    Union[
+        Any,
+        DeletePoAdditionalCostResponse401,
+        DeletePoAdditionalCostResponse404,
+        DeletePoAdditionalCostResponse429,
+        DeletePoAdditionalCostResponse500,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -86,13 +89,15 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
 ) -> Response[
-    Any
-    | DeletePoAdditionalCostResponse401
-    | DeletePoAdditionalCostResponse404
-    | DeletePoAdditionalCostResponse429
-    | DeletePoAdditionalCostResponse500
+    Union[
+        Any,
+        DeletePoAdditionalCostResponse401,
+        DeletePoAdditionalCostResponse404,
+        DeletePoAdditionalCostResponse429,
+        DeletePoAdditionalCostResponse500,
+    ]
 ]:
     """Delete a purchase order additional cost row
 
@@ -104,7 +109,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Any, DeletePoAdditionalCostResponse401, DeletePoAdditionalCostResponse404, DeletePoAdditionalCostResponse429, DeletePoAdditionalCostResponse500]]
@@ -124,15 +128,16 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
-) -> (
-    Any
-    | DeletePoAdditionalCostResponse401
-    | DeletePoAdditionalCostResponse404
-    | DeletePoAdditionalCostResponse429
-    | DeletePoAdditionalCostResponse500
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[
+    Union[
+        Any,
+        DeletePoAdditionalCostResponse401,
+        DeletePoAdditionalCostResponse404,
+        DeletePoAdditionalCostResponse429,
+        DeletePoAdditionalCostResponse500,
+    ]
+]:
     """Delete a purchase order additional cost row
 
      Deletes a purchase order additional cost row by id.
@@ -143,7 +148,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[Any, DeletePoAdditionalCostResponse401, DeletePoAdditionalCostResponse404, DeletePoAdditionalCostResponse429, DeletePoAdditionalCostResponse500]
@@ -158,13 +162,15 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
 ) -> Response[
-    Any
-    | DeletePoAdditionalCostResponse401
-    | DeletePoAdditionalCostResponse404
-    | DeletePoAdditionalCostResponse429
-    | DeletePoAdditionalCostResponse500
+    Union[
+        Any,
+        DeletePoAdditionalCostResponse401,
+        DeletePoAdditionalCostResponse404,
+        DeletePoAdditionalCostResponse429,
+        DeletePoAdditionalCostResponse500,
+    ]
 ]:
     """Delete a purchase order additional cost row
 
@@ -176,7 +182,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Any, DeletePoAdditionalCostResponse401, DeletePoAdditionalCostResponse404, DeletePoAdditionalCostResponse429, DeletePoAdditionalCostResponse500]]
@@ -194,15 +199,16 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
-) -> (
-    Any
-    | DeletePoAdditionalCostResponse401
-    | DeletePoAdditionalCostResponse404
-    | DeletePoAdditionalCostResponse429
-    | DeletePoAdditionalCostResponse500
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[
+    Union[
+        Any,
+        DeletePoAdditionalCostResponse401,
+        DeletePoAdditionalCostResponse404,
+        DeletePoAdditionalCostResponse429,
+        DeletePoAdditionalCostResponse500,
+    ]
+]:
     """Delete a purchase order additional cost row
 
      Deletes a purchase order additional cost row by id.
@@ -213,7 +219,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[Any, DeletePoAdditionalCostResponse401, DeletePoAdditionalCostResponse404, DeletePoAdditionalCostResponse429, DeletePoAdditionalCostResponse500]

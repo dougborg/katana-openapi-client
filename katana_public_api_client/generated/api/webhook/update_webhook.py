@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -10,7 +10,7 @@ from ...models.update_webhook_response_401 import UpdateWebhookResponse401
 from ...models.update_webhook_response_422 import UpdateWebhookResponse422
 from ...models.update_webhook_response_429 import UpdateWebhookResponse429
 from ...models.update_webhook_response_500 import UpdateWebhookResponse500
-from ...models.webhook_response import WebhookResponse
+from ...models.webhook import Webhook
 from ...types import Response
 
 
@@ -35,17 +35,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    UpdateWebhookResponse401
-    | UpdateWebhookResponse422
-    | UpdateWebhookResponse429
-    | UpdateWebhookResponse500
-    | WebhookResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        UpdateWebhookResponse401,
+        UpdateWebhookResponse422,
+        UpdateWebhookResponse429,
+        UpdateWebhookResponse500,
+        Webhook,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = WebhookResponse.from_dict(response.json())
+        response_200 = Webhook.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -71,13 +72,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    UpdateWebhookResponse401
-    | UpdateWebhookResponse422
-    | UpdateWebhookResponse429
-    | UpdateWebhookResponse500
-    | WebhookResponse
+    Union[
+        UpdateWebhookResponse401,
+        UpdateWebhookResponse422,
+        UpdateWebhookResponse429,
+        UpdateWebhookResponse500,
+        Webhook,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -90,14 +93,16 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateWebhookRequest,
 ) -> Response[
-    UpdateWebhookResponse401
-    | UpdateWebhookResponse422
-    | UpdateWebhookResponse429
-    | UpdateWebhookResponse500
-    | WebhookResponse
+    Union[
+        UpdateWebhookResponse401,
+        UpdateWebhookResponse422,
+        UpdateWebhookResponse429,
+        UpdateWebhookResponse500,
+        Webhook,
+    ]
 ]:
     """Update a webhook
 
@@ -112,9 +117,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, WebhookResponse]]
+        Response[Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -132,52 +136,16 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateWebhookRequest,
-) -> (
-    UpdateWebhookResponse401
-    | UpdateWebhookResponse422
-    | UpdateWebhookResponse429
-    | UpdateWebhookResponse500
-    | WebhookResponse
-    | None
-):
-    """Update a webhook
-
-     Updates the specified webhook by setting the values of the parameters passed.
-      Any parameters not provided will be left unchanged.
-
-    Args:
-        id (int):
-        body (UpdateWebhookRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, WebhookResponse]
-    """
-
-    return sync_detailed(
-        id=id,
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    id: int,
-    *,
-    client: AuthenticatedClient | Client,
-    body: UpdateWebhookRequest,
-) -> Response[
-    UpdateWebhookResponse401
-    | UpdateWebhookResponse422
-    | UpdateWebhookResponse429
-    | UpdateWebhookResponse500
-    | WebhookResponse
+) -> Optional[
+    Union[
+        UpdateWebhookResponse401,
+        UpdateWebhookResponse422,
+        UpdateWebhookResponse429,
+        UpdateWebhookResponse500,
+        Webhook,
+    ]
 ]:
     """Update a webhook
 
@@ -192,9 +160,46 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, Webhook]
+    """
+
+    return sync_detailed(
+        id=id,
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    id: int,
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: UpdateWebhookRequest,
+) -> Response[
+    Union[
+        UpdateWebhookResponse401,
+        UpdateWebhookResponse422,
+        UpdateWebhookResponse429,
+        UpdateWebhookResponse500,
+        Webhook,
+    ]
+]:
+    """Update a webhook
+
+     Updates the specified webhook by setting the values of the parameters passed.
+      Any parameters not provided will be left unchanged.
+
+    Args:
+        id (int):
+        body (UpdateWebhookRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, WebhookResponse]]
+        Response[Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -210,16 +215,17 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateWebhookRequest,
-) -> (
-    UpdateWebhookResponse401
-    | UpdateWebhookResponse422
-    | UpdateWebhookResponse429
-    | UpdateWebhookResponse500
-    | WebhookResponse
-    | None
-):
+) -> Optional[
+    Union[
+        UpdateWebhookResponse401,
+        UpdateWebhookResponse422,
+        UpdateWebhookResponse429,
+        UpdateWebhookResponse500,
+        Webhook,
+    ]
+]:
     """Update a webhook
 
      Updates the specified webhook by setting the values of the parameters passed.
@@ -233,9 +239,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, WebhookResponse]
+        Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, Webhook]
     """
 
     return (

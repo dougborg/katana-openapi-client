@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 
@@ -14,12 +14,22 @@ T = TypeVar("T", bound="CreateSupplierRequest")
 
 @_attrs_define
 class CreateSupplierRequest:
+    """
+    Attributes:
+        name (str):
+        currency (Union[Unset, str]):
+        email (Union[Unset, str]):
+        phone (Union[Unset, str]):
+        comment (Union[Unset, str]):
+        addresses (Union[Unset, list['SupplierAddressRequest']]):
+    """
+
     name: str
-    currency: Unset | str = UNSET
-    email: Unset | str = UNSET
-    phone: Unset | str = UNSET
-    comment: Unset | str = UNSET
-    addresses: Unset | list["SupplierAddressRequest"] = UNSET
+    currency: Union[Unset, str] = UNSET
+    email: Union[Unset, str] = UNSET
+    phone: Union[Unset, str] = UNSET
+    comment: Union[Unset, str] = UNSET
+    addresses: Union[Unset, list["SupplierAddressRequest"]] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -32,7 +42,7 @@ class CreateSupplierRequest:
 
         comment = self.comment
 
-        addresses: Unset | list[dict[str, Any]] = UNSET
+        addresses: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.addresses, Unset):
             addresses = []
             for addresses_item_data in self.addresses:

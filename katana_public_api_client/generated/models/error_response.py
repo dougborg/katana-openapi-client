@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -13,12 +11,19 @@ T = TypeVar("T", bound="ErrorResponse")
 
 @_attrs_define
 class ErrorResponse:
-    """Base error response schema"""
+    """Base error response schema
+
+    Attributes:
+        status_code (float): HTTP status code
+        name (str): Error name/type
+        message (str): Human-readable error message
+        code (Union[None, Unset, str]): Application-specific error code
+    """
 
     status_code: float
     name: str
     message: str
-    code: None | Unset | str = UNSET
+    code: Union[None, Unset, str] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -28,7 +33,7 @@ class ErrorResponse:
 
         message = self.message
 
-        code: None | Unset | str
+        code: Union[None, Unset, str]
         if isinstance(self.code, Unset):
             code = UNSET
         else:
@@ -57,12 +62,12 @@ class ErrorResponse:
 
         message = d.pop("message")
 
-        def _parse_code(data: object) -> None | Unset | str:
+        def _parse_code(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         code = _parse_code(d.pop("code", UNSET))
 

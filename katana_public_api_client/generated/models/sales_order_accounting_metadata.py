@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -15,13 +13,24 @@ T = TypeVar("T", bound="SalesOrderAccountingMetadata")
 
 @_attrs_define
 class SalesOrderAccountingMetadata:
-    id: Unset | int = UNSET
-    sales_order_id: Unset | int = UNSET
-    external_id: Unset | str = UNSET
-    accounting_system: Unset | str = UNSET
-    sync_status: Unset | str = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
+    """
+    Attributes:
+        id (Union[Unset, int]):
+        sales_order_id (Union[Unset, int]):
+        external_id (Union[Unset, str]):
+        accounting_system (Union[Unset, str]):
+        sync_status (Union[Unset, str]):
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
+    """
+
+    id: Union[Unset, int] = UNSET
+    sales_order_id: Union[Unset, int] = UNSET
+    external_id: Union[Unset, str] = UNSET
+    accounting_system: Union[Unset, str] = UNSET
+    sync_status: Union[Unset, str] = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -35,11 +44,11 @@ class SalesOrderAccountingMetadata:
 
         sync_status = self.sync_status
 
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
@@ -77,14 +86,14 @@ class SalesOrderAccountingMetadata:
         sync_status = d.pop("sync_status", UNSET)
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:

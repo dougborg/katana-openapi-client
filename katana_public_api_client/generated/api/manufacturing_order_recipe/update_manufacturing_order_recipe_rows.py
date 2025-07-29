@@ -1,13 +1,11 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.manufacturing_order_recipe_row_response import (
-    ManufacturingOrderRecipeRowResponse,
-)
+from ...models.manufacturing_order_recipe_row import ManufacturingOrderRecipeRow
 from ...models.update_manufacturing_order_recipe_row_request import (
     UpdateManufacturingOrderRecipeRowRequest,
 )
@@ -44,16 +42,17 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    ManufacturingOrderRecipeRowResponse
-    | UpdateManufacturingOrderRecipeRowsResponse401
-    | UpdateManufacturingOrderRecipeRowsResponse429
-    | UpdateManufacturingOrderRecipeRowsResponse500
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        ManufacturingOrderRecipeRow,
+        UpdateManufacturingOrderRecipeRowsResponse401,
+        UpdateManufacturingOrderRecipeRowsResponse429,
+        UpdateManufacturingOrderRecipeRowsResponse500,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = ManufacturingOrderRecipeRowResponse.from_dict(response.json())
+        response_200 = ManufacturingOrderRecipeRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -81,12 +80,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    ManufacturingOrderRecipeRowResponse
-    | UpdateManufacturingOrderRecipeRowsResponse401
-    | UpdateManufacturingOrderRecipeRowsResponse429
-    | UpdateManufacturingOrderRecipeRowsResponse500
+    Union[
+        ManufacturingOrderRecipeRow,
+        UpdateManufacturingOrderRecipeRowsResponse401,
+        UpdateManufacturingOrderRecipeRowsResponse429,
+        UpdateManufacturingOrderRecipeRowsResponse500,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -99,13 +100,15 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateManufacturingOrderRecipeRowRequest,
 ) -> Response[
-    ManufacturingOrderRecipeRowResponse
-    | UpdateManufacturingOrderRecipeRowsResponse401
-    | UpdateManufacturingOrderRecipeRowsResponse429
-    | UpdateManufacturingOrderRecipeRowsResponse500
+    Union[
+        ManufacturingOrderRecipeRow,
+        UpdateManufacturingOrderRecipeRowsResponse401,
+        UpdateManufacturingOrderRecipeRowsResponse429,
+        UpdateManufacturingOrderRecipeRowsResponse500,
+    ]
 ]:
     """Update a manufacturing order recipe row
 
@@ -121,9 +124,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[ManufacturingOrderRecipeRowResponse, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]]
+        Response[Union[ManufacturingOrderRecipeRow, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -141,51 +143,15 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateManufacturingOrderRecipeRowRequest,
-) -> (
-    ManufacturingOrderRecipeRowResponse
-    | UpdateManufacturingOrderRecipeRowsResponse401
-    | UpdateManufacturingOrderRecipeRowsResponse429
-    | UpdateManufacturingOrderRecipeRowsResponse500
-    | None
-):
-    """Update a manufacturing order recipe row
-
-     Updates the specified manufacturing order recipe row by setting the values of the parameters passed.
-      Any parameters not provided will be left unchanged. Recipe rows cannot be updated when
-      the manufacturing order status is DONE.
-
-    Args:
-        id (int):
-        body (UpdateManufacturingOrderRecipeRowRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[ManufacturingOrderRecipeRowResponse, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]
-    """
-
-    return sync_detailed(
-        id=id,
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    id: int,
-    *,
-    client: AuthenticatedClient | Client,
-    body: UpdateManufacturingOrderRecipeRowRequest,
-) -> Response[
-    ManufacturingOrderRecipeRowResponse
-    | UpdateManufacturingOrderRecipeRowsResponse401
-    | UpdateManufacturingOrderRecipeRowsResponse429
-    | UpdateManufacturingOrderRecipeRowsResponse500
+) -> Optional[
+    Union[
+        ManufacturingOrderRecipeRow,
+        UpdateManufacturingOrderRecipeRowsResponse401,
+        UpdateManufacturingOrderRecipeRowsResponse429,
+        UpdateManufacturingOrderRecipeRowsResponse500,
+    ]
 ]:
     """Update a manufacturing order recipe row
 
@@ -201,9 +167,46 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[ManufacturingOrderRecipeRow, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]
+    """
+
+    return sync_detailed(
+        id=id,
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    id: int,
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: UpdateManufacturingOrderRecipeRowRequest,
+) -> Response[
+    Union[
+        ManufacturingOrderRecipeRow,
+        UpdateManufacturingOrderRecipeRowsResponse401,
+        UpdateManufacturingOrderRecipeRowsResponse429,
+        UpdateManufacturingOrderRecipeRowsResponse500,
+    ]
+]:
+    """Update a manufacturing order recipe row
+
+     Updates the specified manufacturing order recipe row by setting the values of the parameters passed.
+      Any parameters not provided will be left unchanged. Recipe rows cannot be updated when
+      the manufacturing order status is DONE.
+
+    Args:
+        id (int):
+        body (UpdateManufacturingOrderRecipeRowRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[ManufacturingOrderRecipeRowResponse, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]]
+        Response[Union[ManufacturingOrderRecipeRow, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -219,15 +222,16 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateManufacturingOrderRecipeRowRequest,
-) -> (
-    ManufacturingOrderRecipeRowResponse
-    | UpdateManufacturingOrderRecipeRowsResponse401
-    | UpdateManufacturingOrderRecipeRowsResponse429
-    | UpdateManufacturingOrderRecipeRowsResponse500
-    | None
-):
+) -> Optional[
+    Union[
+        ManufacturingOrderRecipeRow,
+        UpdateManufacturingOrderRecipeRowsResponse401,
+        UpdateManufacturingOrderRecipeRowsResponse429,
+        UpdateManufacturingOrderRecipeRowsResponse500,
+    ]
+]:
     """Update a manufacturing order recipe row
 
      Updates the specified manufacturing order recipe row by setting the values of the parameters passed.
@@ -242,9 +246,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[ManufacturingOrderRecipeRowResponse, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]
+        Union[ManufacturingOrderRecipeRow, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]
     """
 
     return (

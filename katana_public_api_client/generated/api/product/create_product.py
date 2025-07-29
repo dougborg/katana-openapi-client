@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -10,7 +10,7 @@ from ...models.create_product_response_401 import CreateProductResponse401
 from ...models.create_product_response_422 import CreateProductResponse422
 from ...models.create_product_response_429 import CreateProductResponse429
 from ...models.create_product_response_500 import CreateProductResponse500
-from ...models.product_response import ProductResponse
+from ...models.product import Product
 from ...types import Response
 
 
@@ -34,17 +34,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateProductResponse401
-    | CreateProductResponse422
-    | CreateProductResponse429
-    | CreateProductResponse500
-    | ProductResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        CreateProductResponse401,
+        CreateProductResponse422,
+        CreateProductResponse429,
+        CreateProductResponse500,
+        Product,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = ProductResponse.from_dict(response.json())
+        response_200 = Product.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -70,13 +71,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    CreateProductResponse401
-    | CreateProductResponse422
-    | CreateProductResponse429
-    | CreateProductResponse500
-    | ProductResponse
+    Union[
+        CreateProductResponse401,
+        CreateProductResponse422,
+        CreateProductResponse429,
+        CreateProductResponse500,
+        Product,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -88,14 +91,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateProductRequest,
 ) -> Response[
-    CreateProductResponse401
-    | CreateProductResponse422
-    | CreateProductResponse429
-    | CreateProductResponse500
-    | ProductResponse
+    Union[
+        CreateProductResponse401,
+        CreateProductResponse422,
+        CreateProductResponse429,
+        CreateProductResponse500,
+        Product,
+    ]
 ]:
     """Create a product
 
@@ -108,9 +113,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, ProductResponse]]
+        Response[Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, Product]]
     """
 
     kwargs = _get_kwargs(
@@ -126,48 +130,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateProductRequest,
-) -> (
-    CreateProductResponse401
-    | CreateProductResponse422
-    | CreateProductResponse429
-    | CreateProductResponse500
-    | ProductResponse
-    | None
-):
-    """Create a product
-
-     Creates a product object.
-
-    Args:
-        body (CreateProductRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, ProductResponse]
-    """
-
-    return sync_detailed(
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    body: CreateProductRequest,
-) -> Response[
-    CreateProductResponse401
-    | CreateProductResponse422
-    | CreateProductResponse429
-    | CreateProductResponse500
-    | ProductResponse
+) -> Optional[
+    Union[
+        CreateProductResponse401,
+        CreateProductResponse422,
+        CreateProductResponse429,
+        CreateProductResponse500,
+        Product,
+    ]
 ]:
     """Create a product
 
@@ -180,9 +152,42 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, Product]
+    """
+
+    return sync_detailed(
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: CreateProductRequest,
+) -> Response[
+    Union[
+        CreateProductResponse401,
+        CreateProductResponse422,
+        CreateProductResponse429,
+        CreateProductResponse500,
+        Product,
+    ]
+]:
+    """Create a product
+
+     Creates a product object.
+
+    Args:
+        body (CreateProductRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, ProductResponse]]
+        Response[Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, Product]]
     """
 
     kwargs = _get_kwargs(
@@ -196,16 +201,17 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateProductRequest,
-) -> (
-    CreateProductResponse401
-    | CreateProductResponse422
-    | CreateProductResponse429
-    | CreateProductResponse500
-    | ProductResponse
-    | None
-):
+) -> Optional[
+    Union[
+        CreateProductResponse401,
+        CreateProductResponse422,
+        CreateProductResponse429,
+        CreateProductResponse500,
+        Product,
+    ]
+]:
     """Create a product
 
      Creates a product object.
@@ -217,9 +223,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, ProductResponse]
+        Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, Product]
     """
 
     return (

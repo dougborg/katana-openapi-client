@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -20,16 +18,26 @@ class BatchStock:
         {'batch_id': 1109, 'batch_number': 'B2', 'batch_created_date': '2020-09-29T11:40:29.628Z', 'expiration_date':
             '2021-04-30T10:35:00.000Z', 'location_id': 1433, 'variant_id': 350880, 'quantity_in_stock': '10.00000',
             'batch_barcode': '0317'}
+
+    Attributes:
+        batch_id (Union[Unset, int]):
+        batch_number (Union[Unset, str]):
+        batch_created_date (Union[Unset, datetime.datetime]):
+        expiration_date (Union[Unset, datetime.datetime]):
+        location_id (Union[Unset, int]):
+        variant_id (Union[Unset, int]):
+        quantity_in_stock (Union[Unset, str]):
+        batch_barcode (Union[Unset, str]):
     """
 
-    batch_id: Unset | int = UNSET
-    batch_number: Unset | str = UNSET
-    batch_created_date: Unset | datetime.datetime = UNSET
-    expiration_date: Unset | datetime.datetime = UNSET
-    location_id: Unset | int = UNSET
-    variant_id: Unset | int = UNSET
-    quantity_in_stock: Unset | str = UNSET
-    batch_barcode: Unset | str = UNSET
+    batch_id: Union[Unset, int] = UNSET
+    batch_number: Union[Unset, str] = UNSET
+    batch_created_date: Union[Unset, datetime.datetime] = UNSET
+    expiration_date: Union[Unset, datetime.datetime] = UNSET
+    location_id: Union[Unset, int] = UNSET
+    variant_id: Union[Unset, int] = UNSET
+    quantity_in_stock: Union[Unset, str] = UNSET
+    batch_barcode: Union[Unset, str] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -37,11 +45,11 @@ class BatchStock:
 
         batch_number = self.batch_number
 
-        batch_created_date: Unset | str = UNSET
+        batch_created_date: Union[Unset, str] = UNSET
         if not isinstance(self.batch_created_date, Unset):
             batch_created_date = self.batch_created_date.isoformat()
 
-        expiration_date: Unset | str = UNSET
+        expiration_date: Union[Unset, str] = UNSET
         if not isinstance(self.expiration_date, Unset):
             expiration_date = self.expiration_date.isoformat()
 
@@ -83,14 +91,14 @@ class BatchStock:
         batch_number = d.pop("batch_number", UNSET)
 
         _batch_created_date = d.pop("batch_created_date", UNSET)
-        batch_created_date: Unset | datetime.datetime
+        batch_created_date: Union[Unset, datetime.datetime]
         if isinstance(_batch_created_date, Unset):
             batch_created_date = UNSET
         else:
             batch_created_date = isoparse(_batch_created_date)
 
         _expiration_date = d.pop("expiration_date", UNSET)
-        expiration_date: Unset | datetime.datetime
+        expiration_date: Union[Unset, datetime.datetime]
         if isinstance(_expiration_date, Unset):
             expiration_date = UNSET
         else:

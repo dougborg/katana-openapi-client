@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -24,11 +22,20 @@ T = TypeVar("T", bound="CreateManufacturingOrderProductionRequest")
 
 @_attrs_define
 class CreateManufacturingOrderProductionRequest:
+    """
+    Attributes:
+        manufacturing_order_id (int):
+        quantity (float):
+        production_date (datetime.datetime):
+        ingredients (Union[Unset, list['ManufacturingOrderProductionIngredient']]):
+        operations (Union[Unset, list['ManufacturingOrderOperationRow']]):
+    """
+
     manufacturing_order_id: int
     quantity: float
     production_date: datetime.datetime
-    ingredients: Unset | list["ManufacturingOrderProductionIngredient"] = UNSET
-    operations: Unset | list["ManufacturingOrderOperationRow"] = UNSET
+    ingredients: Union[Unset, list["ManufacturingOrderProductionIngredient"]] = UNSET
+    operations: Union[Unset, list["ManufacturingOrderOperationRow"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,14 +45,14 @@ class CreateManufacturingOrderProductionRequest:
 
         production_date = self.production_date.isoformat()
 
-        ingredients: Unset | list[dict[str, Any]] = UNSET
+        ingredients: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.ingredients, Unset):
             ingredients = []
             for ingredients_item_data in self.ingredients:
                 ingredients_item = ingredients_item_data.to_dict()
                 ingredients.append(ingredients_item)
 
-        operations: Unset | list[dict[str, Any]] = UNSET
+        operations: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.operations, Unset):
             operations = []
             for operations_item_data in self.operations:

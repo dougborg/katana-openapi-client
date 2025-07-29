@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..models.manufacturing_order_operation_row_status import (
@@ -22,37 +20,66 @@ T = TypeVar("T", bound="ManufacturingOrderOperationRow")
 
 @_attrs_define
 class ManufacturingOrderOperationRow:
-    id: Unset | int = UNSET
-    status: Unset | ManufacturingOrderOperationRowStatus = UNSET
-    type_: Unset | str = UNSET
-    rank: Unset | float = UNSET
-    manufacturing_order_id: Unset | int = UNSET
-    operation_id: Unset | int = UNSET
-    operation_name: Unset | str = UNSET
-    resource_id: Unset | int = UNSET
-    resource_name: Unset | str = UNSET
-    assigned_operators: Unset | list["Operator"] = UNSET
-    completed_by_operators: Unset | list["Operator"] = UNSET
-    active_operator_id: Unset | float = UNSET
-    planned_time_per_unit: Unset | float = UNSET
-    planned_time_parameter: Unset | float = UNSET
-    total_actual_time: Unset | float = UNSET
-    planned_cost_per_unit: Unset | float = UNSET
-    total_actual_cost: Unset | float = UNSET
-    cost_per_hour: Unset | float = UNSET
-    cost_parameter: Unset | float = UNSET
-    group_boundary: Unset | float = UNSET
-    is_status_actionable: Unset | bool = UNSET
-    completed_at: None | Unset | datetime.datetime = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
+    """
+    Attributes:
+        id (Union[Unset, int]):
+        status (Union[Unset, ManufacturingOrderOperationRowStatus]):
+        type_ (Union[Unset, str]):
+        rank (Union[Unset, float]):
+        manufacturing_order_id (Union[Unset, int]):
+        operation_id (Union[Unset, int]):
+        operation_name (Union[Unset, str]):
+        resource_id (Union[Unset, int]):
+        resource_name (Union[Unset, str]):
+        assigned_operators (Union[Unset, list['Operator']]):
+        completed_by_operators (Union[Unset, list['Operator']]):
+        active_operator_id (Union[Unset, float]):
+        planned_time_per_unit (Union[Unset, float]):
+        planned_time_parameter (Union[Unset, float]):
+        total_actual_time (Union[Unset, float]):
+        planned_cost_per_unit (Union[Unset, float]):
+        total_actual_cost (Union[Unset, float]):
+        cost_per_hour (Union[Unset, float]):
+        cost_parameter (Union[Unset, float]):
+        group_boundary (Union[Unset, float]):
+        is_status_actionable (Union[Unset, bool]):
+        completed_at (Union[None, Unset, datetime.datetime]):
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
+        deleted_at (Union[None, Unset, datetime.datetime]):
+    """
+
+    id: Union[Unset, int] = UNSET
+    status: Union[Unset, ManufacturingOrderOperationRowStatus] = UNSET
+    type_: Union[Unset, str] = UNSET
+    rank: Union[Unset, float] = UNSET
+    manufacturing_order_id: Union[Unset, int] = UNSET
+    operation_id: Union[Unset, int] = UNSET
+    operation_name: Union[Unset, str] = UNSET
+    resource_id: Union[Unset, int] = UNSET
+    resource_name: Union[Unset, str] = UNSET
+    assigned_operators: Union[Unset, list["Operator"]] = UNSET
+    completed_by_operators: Union[Unset, list["Operator"]] = UNSET
+    active_operator_id: Union[Unset, float] = UNSET
+    planned_time_per_unit: Union[Unset, float] = UNSET
+    planned_time_parameter: Union[Unset, float] = UNSET
+    total_actual_time: Union[Unset, float] = UNSET
+    planned_cost_per_unit: Union[Unset, float] = UNSET
+    total_actual_cost: Union[Unset, float] = UNSET
+    cost_per_hour: Union[Unset, float] = UNSET
+    cost_parameter: Union[Unset, float] = UNSET
+    group_boundary: Union[Unset, float] = UNSET
+    is_status_actionable: Union[Unset, bool] = UNSET
+    completed_at: Union[None, Unset, datetime.datetime] = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
+    deleted_at: Union[None, Unset, datetime.datetime] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        status: Unset | str = UNSET
+        status: Union[Unset, str] = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
@@ -70,14 +97,14 @@ class ManufacturingOrderOperationRow:
 
         resource_name = self.resource_name
 
-        assigned_operators: Unset | list[dict[str, Any]] = UNSET
+        assigned_operators: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.assigned_operators, Unset):
             assigned_operators = []
             for assigned_operators_item_data in self.assigned_operators:
                 assigned_operators_item = assigned_operators_item_data.to_dict()
                 assigned_operators.append(assigned_operators_item)
 
-        completed_by_operators: Unset | list[dict[str, Any]] = UNSET
+        completed_by_operators: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.completed_by_operators, Unset):
             completed_by_operators = []
             for completed_by_operators_item_data in self.completed_by_operators:
@@ -104,7 +131,7 @@ class ManufacturingOrderOperationRow:
 
         is_status_actionable = self.is_status_actionable
 
-        completed_at: None | Unset | str
+        completed_at: Union[None, Unset, str]
         if isinstance(self.completed_at, Unset):
             completed_at = UNSET
         elif isinstance(self.completed_at, datetime.datetime):
@@ -112,15 +139,15 @@ class ManufacturingOrderOperationRow:
         else:
             completed_at = self.completed_at
 
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | Unset | str
+        deleted_at: Union[None, Unset, str]
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -192,7 +219,7 @@ class ManufacturingOrderOperationRow:
         id = d.pop("id", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: Unset | ManufacturingOrderOperationRowStatus
+        status: Union[Unset, ManufacturingOrderOperationRowStatus]
         if isinstance(_status, Unset):
             status = UNSET
         else:
@@ -248,7 +275,7 @@ class ManufacturingOrderOperationRow:
 
         is_status_actionable = d.pop("is_status_actionable", UNSET)
 
-        def _parse_completed_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_completed_at(data: object) -> Union[None, Unset, datetime.datetime]:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -261,25 +288,25 @@ class ManufacturingOrderOperationRow:
                 return completed_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(Union[None, Unset, datetime.datetime], data)
 
         completed_at = _parse_completed_at(d.pop("completed_at", UNSET))
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_deleted_at(data: object) -> Union[None, Unset, datetime.datetime]:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -292,7 +319,7 @@ class ManufacturingOrderOperationRow:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(Union[None, Unset, datetime.datetime], data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

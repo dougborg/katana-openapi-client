@@ -1,11 +1,11 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.purchase_order_row_response import PurchaseOrderRowResponse
+from ...models.purchase_order_row import PurchaseOrderRow
 from ...models.update_purchase_order_row_request import UpdatePurchaseOrderRowRequest
 from ...models.update_purchase_order_row_response_401 import (
     UpdatePurchaseOrderRowResponse401,
@@ -43,17 +43,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    PurchaseOrderRowResponse
-    | UpdatePurchaseOrderRowResponse401
-    | UpdatePurchaseOrderRowResponse422
-    | UpdatePurchaseOrderRowResponse429
-    | UpdatePurchaseOrderRowResponse500
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        PurchaseOrderRow,
+        UpdatePurchaseOrderRowResponse401,
+        UpdatePurchaseOrderRowResponse422,
+        UpdatePurchaseOrderRowResponse429,
+        UpdatePurchaseOrderRowResponse500,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = PurchaseOrderRowResponse.from_dict(response.json())
+        response_200 = PurchaseOrderRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -79,13 +80,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    PurchaseOrderRowResponse
-    | UpdatePurchaseOrderRowResponse401
-    | UpdatePurchaseOrderRowResponse422
-    | UpdatePurchaseOrderRowResponse429
-    | UpdatePurchaseOrderRowResponse500
+    Union[
+        PurchaseOrderRow,
+        UpdatePurchaseOrderRowResponse401,
+        UpdatePurchaseOrderRowResponse422,
+        UpdatePurchaseOrderRowResponse429,
+        UpdatePurchaseOrderRowResponse500,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -98,14 +101,16 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdatePurchaseOrderRowRequest,
 ) -> Response[
-    PurchaseOrderRowResponse
-    | UpdatePurchaseOrderRowResponse401
-    | UpdatePurchaseOrderRowResponse422
-    | UpdatePurchaseOrderRowResponse429
-    | UpdatePurchaseOrderRowResponse500
+    Union[
+        PurchaseOrderRow,
+        UpdatePurchaseOrderRowResponse401,
+        UpdatePurchaseOrderRowResponse422,
+        UpdatePurchaseOrderRowResponse429,
+        UpdatePurchaseOrderRowResponse500,
+    ]
 ]:
     """Update a purchase order row
 
@@ -120,9 +125,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[PurchaseOrderRowResponse, UpdatePurchaseOrderRowResponse401, UpdatePurchaseOrderRowResponse422, UpdatePurchaseOrderRowResponse429, UpdatePurchaseOrderRowResponse500]]
+        Response[Union[PurchaseOrderRow, UpdatePurchaseOrderRowResponse401, UpdatePurchaseOrderRowResponse422, UpdatePurchaseOrderRowResponse429, UpdatePurchaseOrderRowResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -140,52 +144,16 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdatePurchaseOrderRowRequest,
-) -> (
-    PurchaseOrderRowResponse
-    | UpdatePurchaseOrderRowResponse401
-    | UpdatePurchaseOrderRowResponse422
-    | UpdatePurchaseOrderRowResponse429
-    | UpdatePurchaseOrderRowResponse500
-    | None
-):
-    """Update a purchase order row
-
-     Updates the specified purchase order row by setting the values of the parameters passed.
-        Any parameters not provided will be left unchanged.
-
-    Args:
-        id (int):
-        body (UpdatePurchaseOrderRowRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[PurchaseOrderRowResponse, UpdatePurchaseOrderRowResponse401, UpdatePurchaseOrderRowResponse422, UpdatePurchaseOrderRowResponse429, UpdatePurchaseOrderRowResponse500]
-    """
-
-    return sync_detailed(
-        id=id,
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    id: int,
-    *,
-    client: AuthenticatedClient | Client,
-    body: UpdatePurchaseOrderRowRequest,
-) -> Response[
-    PurchaseOrderRowResponse
-    | UpdatePurchaseOrderRowResponse401
-    | UpdatePurchaseOrderRowResponse422
-    | UpdatePurchaseOrderRowResponse429
-    | UpdatePurchaseOrderRowResponse500
+) -> Optional[
+    Union[
+        PurchaseOrderRow,
+        UpdatePurchaseOrderRowResponse401,
+        UpdatePurchaseOrderRowResponse422,
+        UpdatePurchaseOrderRowResponse429,
+        UpdatePurchaseOrderRowResponse500,
+    ]
 ]:
     """Update a purchase order row
 
@@ -200,9 +168,46 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[PurchaseOrderRow, UpdatePurchaseOrderRowResponse401, UpdatePurchaseOrderRowResponse422, UpdatePurchaseOrderRowResponse429, UpdatePurchaseOrderRowResponse500]
+    """
+
+    return sync_detailed(
+        id=id,
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    id: int,
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: UpdatePurchaseOrderRowRequest,
+) -> Response[
+    Union[
+        PurchaseOrderRow,
+        UpdatePurchaseOrderRowResponse401,
+        UpdatePurchaseOrderRowResponse422,
+        UpdatePurchaseOrderRowResponse429,
+        UpdatePurchaseOrderRowResponse500,
+    ]
+]:
+    """Update a purchase order row
+
+     Updates the specified purchase order row by setting the values of the parameters passed.
+        Any parameters not provided will be left unchanged.
+
+    Args:
+        id (int):
+        body (UpdatePurchaseOrderRowRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[PurchaseOrderRowResponse, UpdatePurchaseOrderRowResponse401, UpdatePurchaseOrderRowResponse422, UpdatePurchaseOrderRowResponse429, UpdatePurchaseOrderRowResponse500]]
+        Response[Union[PurchaseOrderRow, UpdatePurchaseOrderRowResponse401, UpdatePurchaseOrderRowResponse422, UpdatePurchaseOrderRowResponse429, UpdatePurchaseOrderRowResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -218,16 +223,17 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdatePurchaseOrderRowRequest,
-) -> (
-    PurchaseOrderRowResponse
-    | UpdatePurchaseOrderRowResponse401
-    | UpdatePurchaseOrderRowResponse422
-    | UpdatePurchaseOrderRowResponse429
-    | UpdatePurchaseOrderRowResponse500
-    | None
-):
+) -> Optional[
+    Union[
+        PurchaseOrderRow,
+        UpdatePurchaseOrderRowResponse401,
+        UpdatePurchaseOrderRowResponse422,
+        UpdatePurchaseOrderRowResponse429,
+        UpdatePurchaseOrderRowResponse500,
+    ]
+]:
     """Update a purchase order row
 
      Updates the specified purchase order row by setting the values of the parameters passed.
@@ -241,9 +247,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[PurchaseOrderRowResponse, UpdatePurchaseOrderRowResponse401, UpdatePurchaseOrderRowResponse422, UpdatePurchaseOrderRowResponse429, UpdatePurchaseOrderRowResponse500]
+        Union[PurchaseOrderRow, UpdatePurchaseOrderRowResponse401, UpdatePurchaseOrderRowResponse422, UpdatePurchaseOrderRowResponse429, UpdatePurchaseOrderRowResponse500]
     """
 
     return (

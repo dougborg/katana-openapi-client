@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -15,16 +13,30 @@ T = TypeVar("T", bound="StocktakeRow")
 
 @_attrs_define
 class StocktakeRow:
+    """
+    Attributes:
+        id (int):
+        stocktake_id (int):
+        variant_id (int):
+        system_quantity (float):
+        batch_id (Union[None, Unset, int]):
+        actual_quantity (Union[None, Unset, float]):
+        variance_quantity (Union[None, Unset, float]):
+        notes (Union[None, Unset, str]):
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
+    """
+
     id: int
     stocktake_id: int
     variant_id: int
     system_quantity: float
-    batch_id: None | Unset | int = UNSET
-    actual_quantity: None | Unset | float = UNSET
-    variance_quantity: None | Unset | float = UNSET
-    notes: None | Unset | str = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
+    batch_id: Union[None, Unset, int] = UNSET
+    actual_quantity: Union[None, Unset, float] = UNSET
+    variance_quantity: Union[None, Unset, float] = UNSET
+    notes: Union[None, Unset, str] = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,35 +48,35 @@ class StocktakeRow:
 
         system_quantity = self.system_quantity
 
-        batch_id: None | Unset | int
+        batch_id: Union[None, Unset, int]
         if isinstance(self.batch_id, Unset):
             batch_id = UNSET
         else:
             batch_id = self.batch_id
 
-        actual_quantity: None | Unset | float
+        actual_quantity: Union[None, Unset, float]
         if isinstance(self.actual_quantity, Unset):
             actual_quantity = UNSET
         else:
             actual_quantity = self.actual_quantity
 
-        variance_quantity: None | Unset | float
+        variance_quantity: Union[None, Unset, float]
         if isinstance(self.variance_quantity, Unset):
             variance_quantity = UNSET
         else:
             variance_quantity = self.variance_quantity
 
-        notes: None | Unset | str
+        notes: Union[None, Unset, str]
         if isinstance(self.notes, Unset):
             notes = UNSET
         else:
             notes = self.notes
 
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
@@ -104,51 +116,51 @@ class StocktakeRow:
 
         system_quantity = d.pop("system_quantity")
 
-        def _parse_batch_id(data: object) -> None | Unset | int:
+        def _parse_batch_id(data: object) -> Union[None, Unset, int]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(Union[None, Unset, int], data)
 
         batch_id = _parse_batch_id(d.pop("batch_id", UNSET))
 
-        def _parse_actual_quantity(data: object) -> None | Unset | float:
+        def _parse_actual_quantity(data: object) -> Union[None, Unset, float]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(Union[None, Unset, float], data)
 
         actual_quantity = _parse_actual_quantity(d.pop("actual_quantity", UNSET))
 
-        def _parse_variance_quantity(data: object) -> None | Unset | float:
+        def _parse_variance_quantity(data: object) -> Union[None, Unset, float]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(Union[None, Unset, float], data)
 
         variance_quantity = _parse_variance_quantity(d.pop("variance_quantity", UNSET))
 
-        def _parse_notes(data: object) -> None | Unset | str:
+        def _parse_notes(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:

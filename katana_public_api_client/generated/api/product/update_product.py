@@ -1,11 +1,11 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.product_response import ProductResponse
+from ...models.product import Product
 from ...models.update_product_request import UpdateProductRequest
 from ...models.update_product_response_401 import UpdateProductResponse401
 from ...models.update_product_response_422 import UpdateProductResponse422
@@ -35,17 +35,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    ProductResponse
-    | UpdateProductResponse401
-    | UpdateProductResponse422
-    | UpdateProductResponse429
-    | UpdateProductResponse500
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        Product,
+        UpdateProductResponse401,
+        UpdateProductResponse422,
+        UpdateProductResponse429,
+        UpdateProductResponse500,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = ProductResponse.from_dict(response.json())
+        response_200 = Product.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -71,13 +72,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    ProductResponse
-    | UpdateProductResponse401
-    | UpdateProductResponse422
-    | UpdateProductResponse429
-    | UpdateProductResponse500
+    Union[
+        Product,
+        UpdateProductResponse401,
+        UpdateProductResponse422,
+        UpdateProductResponse429,
+        UpdateProductResponse500,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -90,14 +93,16 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateProductRequest,
 ) -> Response[
-    ProductResponse
-    | UpdateProductResponse401
-    | UpdateProductResponse422
-    | UpdateProductResponse429
-    | UpdateProductResponse500
+    Union[
+        Product,
+        UpdateProductResponse401,
+        UpdateProductResponse422,
+        UpdateProductResponse429,
+        UpdateProductResponse500,
+    ]
 ]:
     """Update a product
 
@@ -112,9 +117,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[ProductResponse, UpdateProductResponse401, UpdateProductResponse422, UpdateProductResponse429, UpdateProductResponse500]]
+        Response[Union[Product, UpdateProductResponse401, UpdateProductResponse422, UpdateProductResponse429, UpdateProductResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -132,52 +136,16 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateProductRequest,
-) -> (
-    ProductResponse
-    | UpdateProductResponse401
-    | UpdateProductResponse422
-    | UpdateProductResponse429
-    | UpdateProductResponse500
-    | None
-):
-    """Update a product
-
-     Updates the specified product by setting the values of the parameters passed.
-        Any parameters not provided will be left unchanged.
-
-    Args:
-        id (int):
-        body (UpdateProductRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[ProductResponse, UpdateProductResponse401, UpdateProductResponse422, UpdateProductResponse429, UpdateProductResponse500]
-    """
-
-    return sync_detailed(
-        id=id,
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    id: int,
-    *,
-    client: AuthenticatedClient | Client,
-    body: UpdateProductRequest,
-) -> Response[
-    ProductResponse
-    | UpdateProductResponse401
-    | UpdateProductResponse422
-    | UpdateProductResponse429
-    | UpdateProductResponse500
+) -> Optional[
+    Union[
+        Product,
+        UpdateProductResponse401,
+        UpdateProductResponse422,
+        UpdateProductResponse429,
+        UpdateProductResponse500,
+    ]
 ]:
     """Update a product
 
@@ -192,9 +160,46 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[Product, UpdateProductResponse401, UpdateProductResponse422, UpdateProductResponse429, UpdateProductResponse500]
+    """
+
+    return sync_detailed(
+        id=id,
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    id: int,
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: UpdateProductRequest,
+) -> Response[
+    Union[
+        Product,
+        UpdateProductResponse401,
+        UpdateProductResponse422,
+        UpdateProductResponse429,
+        UpdateProductResponse500,
+    ]
+]:
+    """Update a product
+
+     Updates the specified product by setting the values of the parameters passed.
+        Any parameters not provided will be left unchanged.
+
+    Args:
+        id (int):
+        body (UpdateProductRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[ProductResponse, UpdateProductResponse401, UpdateProductResponse422, UpdateProductResponse429, UpdateProductResponse500]]
+        Response[Union[Product, UpdateProductResponse401, UpdateProductResponse422, UpdateProductResponse429, UpdateProductResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -210,16 +215,17 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateProductRequest,
-) -> (
-    ProductResponse
-    | UpdateProductResponse401
-    | UpdateProductResponse422
-    | UpdateProductResponse429
-    | UpdateProductResponse500
-    | None
-):
+) -> Optional[
+    Union[
+        Product,
+        UpdateProductResponse401,
+        UpdateProductResponse422,
+        UpdateProductResponse429,
+        UpdateProductResponse500,
+    ]
+]:
     """Update a product
 
      Updates the specified product by setting the values of the parameters passed.
@@ -233,9 +239,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[ProductResponse, UpdateProductResponse401, UpdateProductResponse422, UpdateProductResponse429, UpdateProductResponse500]
+        Union[Product, UpdateProductResponse401, UpdateProductResponse422, UpdateProductResponse429, UpdateProductResponse500]
     """
 
     return (

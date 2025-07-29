@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -10,7 +10,7 @@ from ...models.create_tax_rate_response_401 import CreateTaxRateResponse401
 from ...models.create_tax_rate_response_422 import CreateTaxRateResponse422
 from ...models.create_tax_rate_response_429 import CreateTaxRateResponse429
 from ...models.create_tax_rate_response_500 import CreateTaxRateResponse500
-from ...models.tax_rate_response import TaxRateResponse
+from ...models.tax_rate import TaxRate
 from ...types import Response
 
 
@@ -34,17 +34,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateTaxRateResponse401
-    | CreateTaxRateResponse422
-    | CreateTaxRateResponse429
-    | CreateTaxRateResponse500
-    | TaxRateResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        CreateTaxRateResponse401,
+        CreateTaxRateResponse422,
+        CreateTaxRateResponse429,
+        CreateTaxRateResponse500,
+        TaxRate,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = TaxRateResponse.from_dict(response.json())
+        response_200 = TaxRate.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -70,13 +71,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    CreateTaxRateResponse401
-    | CreateTaxRateResponse422
-    | CreateTaxRateResponse429
-    | CreateTaxRateResponse500
-    | TaxRateResponse
+    Union[
+        CreateTaxRateResponse401,
+        CreateTaxRateResponse422,
+        CreateTaxRateResponse429,
+        CreateTaxRateResponse500,
+        TaxRate,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -88,14 +91,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateTaxRateRequest,
 ) -> Response[
-    CreateTaxRateResponse401
-    | CreateTaxRateResponse422
-    | CreateTaxRateResponse429
-    | CreateTaxRateResponse500
-    | TaxRateResponse
+    Union[
+        CreateTaxRateResponse401,
+        CreateTaxRateResponse422,
+        CreateTaxRateResponse429,
+        CreateTaxRateResponse500,
+        TaxRate,
+    ]
 ]:
     """Create a tax rate
 
@@ -108,9 +113,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRateResponse]]
+        Response[Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRate]]
     """
 
     kwargs = _get_kwargs(
@@ -126,48 +130,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateTaxRateRequest,
-) -> (
-    CreateTaxRateResponse401
-    | CreateTaxRateResponse422
-    | CreateTaxRateResponse429
-    | CreateTaxRateResponse500
-    | TaxRateResponse
-    | None
-):
-    """Create a tax rate
-
-     Creates a new tax rate object.
-
-    Args:
-        body (CreateTaxRateRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRateResponse]
-    """
-
-    return sync_detailed(
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    body: CreateTaxRateRequest,
-) -> Response[
-    CreateTaxRateResponse401
-    | CreateTaxRateResponse422
-    | CreateTaxRateResponse429
-    | CreateTaxRateResponse500
-    | TaxRateResponse
+) -> Optional[
+    Union[
+        CreateTaxRateResponse401,
+        CreateTaxRateResponse422,
+        CreateTaxRateResponse429,
+        CreateTaxRateResponse500,
+        TaxRate,
+    ]
 ]:
     """Create a tax rate
 
@@ -180,9 +152,42 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRate]
+    """
+
+    return sync_detailed(
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: CreateTaxRateRequest,
+) -> Response[
+    Union[
+        CreateTaxRateResponse401,
+        CreateTaxRateResponse422,
+        CreateTaxRateResponse429,
+        CreateTaxRateResponse500,
+        TaxRate,
+    ]
+]:
+    """Create a tax rate
+
+     Creates a new tax rate object.
+
+    Args:
+        body (CreateTaxRateRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRateResponse]]
+        Response[Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRate]]
     """
 
     kwargs = _get_kwargs(
@@ -196,16 +201,17 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateTaxRateRequest,
-) -> (
-    CreateTaxRateResponse401
-    | CreateTaxRateResponse422
-    | CreateTaxRateResponse429
-    | CreateTaxRateResponse500
-    | TaxRateResponse
-    | None
-):
+) -> Optional[
+    Union[
+        CreateTaxRateResponse401,
+        CreateTaxRateResponse422,
+        CreateTaxRateResponse429,
+        CreateTaxRateResponse500,
+        TaxRate,
+    ]
+]:
     """Create a tax rate
 
      Creates a new tax rate object.
@@ -217,9 +223,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRateResponse]
+        Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRate]
     """
 
     return (

@@ -1,12 +1,12 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.service import Service
 from ...models.service_request import ServiceRequest
-from ...models.service_response import ServiceResponse
 from ...models.update_service_response_401 import UpdateServiceResponse401
 from ...models.update_service_response_422 import UpdateServiceResponse422
 from ...models.update_service_response_429 import UpdateServiceResponse429
@@ -35,17 +35,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    ServiceResponse
-    | UpdateServiceResponse401
-    | UpdateServiceResponse422
-    | UpdateServiceResponse429
-    | UpdateServiceResponse500
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        Service,
+        UpdateServiceResponse401,
+        UpdateServiceResponse422,
+        UpdateServiceResponse429,
+        UpdateServiceResponse500,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = ServiceResponse.from_dict(response.json())
+        response_200 = Service.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -71,13 +72,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    ServiceResponse
-    | UpdateServiceResponse401
-    | UpdateServiceResponse422
-    | UpdateServiceResponse429
-    | UpdateServiceResponse500
+    Union[
+        Service,
+        UpdateServiceResponse401,
+        UpdateServiceResponse422,
+        UpdateServiceResponse429,
+        UpdateServiceResponse500,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -90,14 +93,16 @@ def _build_response(
 def sync_detailed(
     service_id: str,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: ServiceRequest,
 ) -> Response[
-    ServiceResponse
-    | UpdateServiceResponse401
-    | UpdateServiceResponse422
-    | UpdateServiceResponse429
-    | UpdateServiceResponse500
+    Union[
+        Service,
+        UpdateServiceResponse401,
+        UpdateServiceResponse422,
+        UpdateServiceResponse429,
+        UpdateServiceResponse500,
+    ]
 ]:
     """Update Service
 
@@ -112,9 +117,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[ServiceResponse, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]]
+        Response[Union[Service, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -132,52 +136,16 @@ def sync_detailed(
 def sync(
     service_id: str,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: ServiceRequest,
-) -> (
-    ServiceResponse
-    | UpdateServiceResponse401
-    | UpdateServiceResponse422
-    | UpdateServiceResponse429
-    | UpdateServiceResponse500
-    | None
-):
-    """Update Service
-
-     Update an existing Service. (See: [Update
-    Service](https://developer.katanamrp.com/reference/updateservice))
-
-    Args:
-        service_id (str):
-        body (ServiceRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[ServiceResponse, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]
-    """
-
-    return sync_detailed(
-        service_id=service_id,
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    service_id: str,
-    *,
-    client: AuthenticatedClient | Client,
-    body: ServiceRequest,
-) -> Response[
-    ServiceResponse
-    | UpdateServiceResponse401
-    | UpdateServiceResponse422
-    | UpdateServiceResponse429
-    | UpdateServiceResponse500
+) -> Optional[
+    Union[
+        Service,
+        UpdateServiceResponse401,
+        UpdateServiceResponse422,
+        UpdateServiceResponse429,
+        UpdateServiceResponse500,
+    ]
 ]:
     """Update Service
 
@@ -192,9 +160,46 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[Service, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]
+    """
+
+    return sync_detailed(
+        service_id=service_id,
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    service_id: str,
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: ServiceRequest,
+) -> Response[
+    Union[
+        Service,
+        UpdateServiceResponse401,
+        UpdateServiceResponse422,
+        UpdateServiceResponse429,
+        UpdateServiceResponse500,
+    ]
+]:
+    """Update Service
+
+     Update an existing Service. (See: [Update
+    Service](https://developer.katanamrp.com/reference/updateservice))
+
+    Args:
+        service_id (str):
+        body (ServiceRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[ServiceResponse, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]]
+        Response[Union[Service, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -210,16 +215,17 @@ async def asyncio_detailed(
 async def asyncio(
     service_id: str,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: ServiceRequest,
-) -> (
-    ServiceResponse
-    | UpdateServiceResponse401
-    | UpdateServiceResponse422
-    | UpdateServiceResponse429
-    | UpdateServiceResponse500
-    | None
-):
+) -> Optional[
+    Union[
+        Service,
+        UpdateServiceResponse401,
+        UpdateServiceResponse422,
+        UpdateServiceResponse429,
+        UpdateServiceResponse500,
+    ]
+]:
     """Update Service
 
      Update an existing Service. (See: [Update
@@ -233,9 +239,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[ServiceResponse, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]
+        Union[Service, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]
     """
 
     return (

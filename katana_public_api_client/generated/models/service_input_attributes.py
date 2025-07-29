@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -13,10 +11,19 @@ T = TypeVar("T", bound="ServiceInputAttributes")
 
 @_attrs_define
 class ServiceInputAttributes:
+    """
+    Attributes:
+        name (str): Name of the Service. Example: Screen Printing.
+        price (float): Price of the Service. Example: 150.0.
+        currency (str): Currency code for the price. Example: USD.
+        description (Union[Unset, str]): A brief description of the Service. Example: High quality screen printing
+            service..
+    """
+
     name: str
     price: float
     currency: str
-    description: Unset | str = UNSET
+    description: Union[Unset, str] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -18,7 +18,7 @@ from ...models.create_supplier_address_response_429 import (
 from ...models.create_supplier_address_response_500 import (
     CreateSupplierAddressResponse500,
 )
-from ...models.supplier_address_response import SupplierAddressResponse
+from ...models.supplier_address import SupplierAddress
 from ...types import Response
 
 
@@ -42,17 +42,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateSupplierAddressResponse401
-    | CreateSupplierAddressResponse422
-    | CreateSupplierAddressResponse429
-    | CreateSupplierAddressResponse500
-    | SupplierAddressResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        CreateSupplierAddressResponse401,
+        CreateSupplierAddressResponse422,
+        CreateSupplierAddressResponse429,
+        CreateSupplierAddressResponse500,
+        SupplierAddress,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = SupplierAddressResponse.from_dict(response.json())
+        response_200 = SupplierAddress.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -78,13 +79,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    CreateSupplierAddressResponse401
-    | CreateSupplierAddressResponse422
-    | CreateSupplierAddressResponse429
-    | CreateSupplierAddressResponse500
-    | SupplierAddressResponse
+    Union[
+        CreateSupplierAddressResponse401,
+        CreateSupplierAddressResponse422,
+        CreateSupplierAddressResponse429,
+        CreateSupplierAddressResponse500,
+        SupplierAddress,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -96,14 +99,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSupplierAddressRequest,
 ) -> Response[
-    CreateSupplierAddressResponse401
-    | CreateSupplierAddressResponse422
-    | CreateSupplierAddressResponse429
-    | CreateSupplierAddressResponse500
-    | SupplierAddressResponse
+    Union[
+        CreateSupplierAddressResponse401,
+        CreateSupplierAddressResponse422,
+        CreateSupplierAddressResponse429,
+        CreateSupplierAddressResponse500,
+        SupplierAddress,
+    ]
 ]:
     """Create a supplier address
 
@@ -117,9 +122,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddressResponse]]
+        Response[Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddress]]
     """
 
     kwargs = _get_kwargs(
@@ -135,49 +139,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSupplierAddressRequest,
-) -> (
-    CreateSupplierAddressResponse401
-    | CreateSupplierAddressResponse422
-    | CreateSupplierAddressResponse429
-    | CreateSupplierAddressResponse500
-    | SupplierAddressResponse
-    | None
-):
-    """Create a supplier address
-
-     Add an address to an existing supplier. If the new address is the first one, it is assigned as
-      the default. (A Supplier can have only one address for now)
-
-    Args:
-        body (CreateSupplierAddressRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddressResponse]
-    """
-
-    return sync_detailed(
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    body: CreateSupplierAddressRequest,
-) -> Response[
-    CreateSupplierAddressResponse401
-    | CreateSupplierAddressResponse422
-    | CreateSupplierAddressResponse429
-    | CreateSupplierAddressResponse500
-    | SupplierAddressResponse
+) -> Optional[
+    Union[
+        CreateSupplierAddressResponse401,
+        CreateSupplierAddressResponse422,
+        CreateSupplierAddressResponse429,
+        CreateSupplierAddressResponse500,
+        SupplierAddress,
+    ]
 ]:
     """Create a supplier address
 
@@ -191,9 +162,43 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddress]
+    """
+
+    return sync_detailed(
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: CreateSupplierAddressRequest,
+) -> Response[
+    Union[
+        CreateSupplierAddressResponse401,
+        CreateSupplierAddressResponse422,
+        CreateSupplierAddressResponse429,
+        CreateSupplierAddressResponse500,
+        SupplierAddress,
+    ]
+]:
+    """Create a supplier address
+
+     Add an address to an existing supplier. If the new address is the first one, it is assigned as
+      the default. (A Supplier can have only one address for now)
+
+    Args:
+        body (CreateSupplierAddressRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddressResponse]]
+        Response[Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddress]]
     """
 
     kwargs = _get_kwargs(
@@ -207,16 +212,17 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSupplierAddressRequest,
-) -> (
-    CreateSupplierAddressResponse401
-    | CreateSupplierAddressResponse422
-    | CreateSupplierAddressResponse429
-    | CreateSupplierAddressResponse500
-    | SupplierAddressResponse
-    | None
-):
+) -> Optional[
+    Union[
+        CreateSupplierAddressResponse401,
+        CreateSupplierAddressResponse422,
+        CreateSupplierAddressResponse429,
+        CreateSupplierAddressResponse500,
+        SupplierAddress,
+    ]
+]:
     """Create a supplier address
 
      Add an address to an existing supplier. If the new address is the first one, it is assigned as
@@ -229,9 +235,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddressResponse]
+        Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddress]
     """
 
     return (

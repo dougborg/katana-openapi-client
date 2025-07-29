@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -47,16 +47,17 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateSalesOrderShippingFeeResponse400
-    | CreateSalesOrderShippingFeeResponse401
-    | CreateSalesOrderShippingFeeResponse422
-    | CreateSalesOrderShippingFeeResponse429
-    | CreateSalesOrderShippingFeeResponse500
-    | SalesOrderShippingFee
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        CreateSalesOrderShippingFeeResponse400,
+        CreateSalesOrderShippingFeeResponse401,
+        CreateSalesOrderShippingFeeResponse422,
+        CreateSalesOrderShippingFeeResponse429,
+        CreateSalesOrderShippingFeeResponse500,
+        SalesOrderShippingFee,
+    ]
+]:
     if response.status_code == 201:
         response_201 = SalesOrderShippingFee.from_dict(response.json())
 
@@ -88,14 +89,16 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    CreateSalesOrderShippingFeeResponse400
-    | CreateSalesOrderShippingFeeResponse401
-    | CreateSalesOrderShippingFeeResponse422
-    | CreateSalesOrderShippingFeeResponse429
-    | CreateSalesOrderShippingFeeResponse500
-    | SalesOrderShippingFee
+    Union[
+        CreateSalesOrderShippingFeeResponse400,
+        CreateSalesOrderShippingFeeResponse401,
+        CreateSalesOrderShippingFeeResponse422,
+        CreateSalesOrderShippingFeeResponse429,
+        CreateSalesOrderShippingFeeResponse500,
+        SalesOrderShippingFee,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -107,15 +110,17 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesOrderShippingFeeRequest,
 ) -> Response[
-    CreateSalesOrderShippingFeeResponse400
-    | CreateSalesOrderShippingFeeResponse401
-    | CreateSalesOrderShippingFeeResponse422
-    | CreateSalesOrderShippingFeeResponse429
-    | CreateSalesOrderShippingFeeResponse500
-    | SalesOrderShippingFee
+    Union[
+        CreateSalesOrderShippingFeeResponse400,
+        CreateSalesOrderShippingFeeResponse401,
+        CreateSalesOrderShippingFeeResponse422,
+        CreateSalesOrderShippingFeeResponse429,
+        CreateSalesOrderShippingFeeResponse500,
+        SalesOrderShippingFee,
+    ]
 ]:
     """Create a sales order shipping fee
 
@@ -127,7 +132,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[CreateSalesOrderShippingFeeResponse400, CreateSalesOrderShippingFeeResponse401, CreateSalesOrderShippingFeeResponse422, CreateSalesOrderShippingFeeResponse429, CreateSalesOrderShippingFeeResponse500, SalesOrderShippingFee]]
@@ -146,17 +150,18 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesOrderShippingFeeRequest,
-) -> (
-    CreateSalesOrderShippingFeeResponse400
-    | CreateSalesOrderShippingFeeResponse401
-    | CreateSalesOrderShippingFeeResponse422
-    | CreateSalesOrderShippingFeeResponse429
-    | CreateSalesOrderShippingFeeResponse500
-    | SalesOrderShippingFee
-    | None
-):
+) -> Optional[
+    Union[
+        CreateSalesOrderShippingFeeResponse400,
+        CreateSalesOrderShippingFeeResponse401,
+        CreateSalesOrderShippingFeeResponse422,
+        CreateSalesOrderShippingFeeResponse429,
+        CreateSalesOrderShippingFeeResponse500,
+        SalesOrderShippingFee,
+    ]
+]:
     """Create a sales order shipping fee
 
      Creates a sales order shipping fee and adds it to a sales order.
@@ -167,7 +172,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[CreateSalesOrderShippingFeeResponse400, CreateSalesOrderShippingFeeResponse401, CreateSalesOrderShippingFeeResponse422, CreateSalesOrderShippingFeeResponse429, CreateSalesOrderShippingFeeResponse500, SalesOrderShippingFee]
@@ -181,15 +185,17 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesOrderShippingFeeRequest,
 ) -> Response[
-    CreateSalesOrderShippingFeeResponse400
-    | CreateSalesOrderShippingFeeResponse401
-    | CreateSalesOrderShippingFeeResponse422
-    | CreateSalesOrderShippingFeeResponse429
-    | CreateSalesOrderShippingFeeResponse500
-    | SalesOrderShippingFee
+    Union[
+        CreateSalesOrderShippingFeeResponse400,
+        CreateSalesOrderShippingFeeResponse401,
+        CreateSalesOrderShippingFeeResponse422,
+        CreateSalesOrderShippingFeeResponse429,
+        CreateSalesOrderShippingFeeResponse500,
+        SalesOrderShippingFee,
+    ]
 ]:
     """Create a sales order shipping fee
 
@@ -201,7 +207,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[CreateSalesOrderShippingFeeResponse400, CreateSalesOrderShippingFeeResponse401, CreateSalesOrderShippingFeeResponse422, CreateSalesOrderShippingFeeResponse429, CreateSalesOrderShippingFeeResponse500, SalesOrderShippingFee]]
@@ -218,17 +223,18 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesOrderShippingFeeRequest,
-) -> (
-    CreateSalesOrderShippingFeeResponse400
-    | CreateSalesOrderShippingFeeResponse401
-    | CreateSalesOrderShippingFeeResponse422
-    | CreateSalesOrderShippingFeeResponse429
-    | CreateSalesOrderShippingFeeResponse500
-    | SalesOrderShippingFee
-    | None
-):
+) -> Optional[
+    Union[
+        CreateSalesOrderShippingFeeResponse400,
+        CreateSalesOrderShippingFeeResponse401,
+        CreateSalesOrderShippingFeeResponse422,
+        CreateSalesOrderShippingFeeResponse429,
+        CreateSalesOrderShippingFeeResponse500,
+        SalesOrderShippingFee,
+    ]
+]:
     """Create a sales order shipping fee
 
      Creates a sales order shipping fee and adds it to a sales order.
@@ -239,7 +245,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[CreateSalesOrderShippingFeeResponse400, CreateSalesOrderShippingFeeResponse401, CreateSalesOrderShippingFeeResponse422, CreateSalesOrderShippingFeeResponse429, CreateSalesOrderShippingFeeResponse500, SalesOrderShippingFee]

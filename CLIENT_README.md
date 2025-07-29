@@ -1,9 +1,7 @@
 # katana-public-api-client
-
 A client library for accessing Katana Public API
 
 ## Usage
-
 First, create a client:
 
 ```python
@@ -12,8 +10,7 @@ from katana_public_api_client import Client
 client = Client(base_url="https://api.example.com")
 ```
 
-If the endpoints you're going to hit require authentication, use `AuthenticatedClient`
-instead:
+If the endpoints you're going to hit require authentication, use `AuthenticatedClient` instead:
 
 ```python
 from katana_public_api_client import AuthenticatedClient
@@ -24,110 +21,62 @@ client = AuthenticatedClient(base_url="https://api.example.com", token="SuperSec
 Now call your endpoint and use your models:
 
 ```python
-from katana_public_api_client.generated.models import ProductListResponse
-from katana_public_api_client.generated.api.product import get_all_products
+from katana_public_api_client.models import MyDataModel
+from katana_public_api_client.api.my_tag import get_my_data_model
+from katana_public_api_client.types import Response
 
-# Synchronous usage
-products: ProductListResponse = get_all_products.sync(client=client)
-
-# Asynchronous usage  
-products: ProductListResponse = await get_all_products.asyncio(client=client)
+with client as client:
+    my_data: MyDataModel = get_my_data_model.sync(client=client)
+    # or if you need more info (e.g. status_code)
+    response: Response[MyDataModel] = get_my_data_model.sync_detailed(client=client)
 ```
 
-## 📚 Complete Examples
+Or do the same thing with an async version:
 
-For comprehensive usage examples with real models, error handling, and advanced features, see the **[examples/ directory](examples/)**:
+```python
+from katana_public_api_client.models import MyDataModel
+from katana_public_api_client.api.my_tag import get_my_data_model
+from katana_public_api_client.types import Response
 
-### Asynchronous Examples
-- **[`examples/basic_usage.py`](examples/basic_usage.py)** - Complete async examples with:
-  - Automatic pagination and resilience features
-  - Real Katana API models (`ProductListResponse`, product filtering)
-  - Proper error handling patterns
-  - Type-safe access to structured data
-
-### Synchronous Examples  
-- **[`examples/sync_usage.py`](examples/sync_usage.py)** - Complete sync examples with:
-  - Same features as async examples but without async/await
-  - Simpler execution model for scripts and simple applications
-  - Direct return values instead of coroutines
-
-### Configuration & Patterns
-- **[`examples/README.md`](examples/README.md)** - Detailed configuration options and patterns
-
-**Run the examples:**
-```bash
-# Set your API key
-export KATANA_API_KEY="your_api_key_here"
-
-# Run the asynchronous demo
-poetry run python examples/basic_usage.py
-
-# Run the synchronous demo
-poetry run python examples/sync_usage.py
+async with client as client:
+    my_data: MyDataModel = await get_my_data_model.asyncio(client=client)
+    response: Response[MyDataModel] = await get_my_data_model.asyncio_detailed(client=client)
 ```
 
-### When to Use Async vs Sync
-
-**Use Asynchronous (`asyncio`) when:**
-- Building web applications (FastAPI, Django async views, etc.)
-- Making multiple concurrent API calls
-- Integrating with other async libraries
-- Need maximum performance for I/O-bound operations
-
-**Use Synchronous (`sync`) when:**
-- Writing simple scripts or command-line tools
-- Working in environments without async support
-- Prefer simpler, more traditional Python code patterns
-- Making only a few API calls sequentially
-
-By default, when you're calling an HTTPS API it will attempt to verify that SSL is
-working correctly. Using certificate verification is highly recommended most of the
-time, but sometimes you may need to authenticate to a server (especially an internal
-server) using a custom certificate bundle.
+By default, when you're calling an HTTPS API it will attempt to verify that SSL is working correctly. Using certificate verification is highly recommended most of the time, but sometimes you may need to authenticate to a server (especially an internal server) using a custom certificate bundle.
 
 ```python
 client = AuthenticatedClient(
-    base_url="https://internal_api.example.com",
+    base_url="https://internal_api.example.com", 
     token="SuperSecretToken",
     verify_ssl="/path/to/certificate_bundle.pem",
 )
 ```
 
-You can also disable certificate validation altogether, but beware that **this is a
-security risk**.
+You can also disable certificate validation altogether, but beware that **this is a security risk**.
 
 ```python
 client = AuthenticatedClient(
-    base_url="https://internal_api.example.com",
-    token="SuperSecretToken",
+    base_url="https://internal_api.example.com", 
+    token="SuperSecretToken", 
     verify_ssl=False
 )
 ```
 
 Things to know:
-
 1. Every path/method combo becomes a Python module with four functions:
-
-   1. `sync`: Blocking request that returns parsed data (if successful) or `None`
-   1. `sync_detailed`: Blocking request that always returns a `Request`, optionally with
-      `parsed` set if the request was successful.
-   1. `asyncio`: Like `sync` but async instead of blocking
-   1. `asyncio_detailed`: Like `sync_detailed` but async instead of blocking
+    1. `sync`: Blocking request that returns parsed data (if successful) or `None`
+    1. `sync_detailed`: Blocking request that always returns a `Request`, optionally with `parsed` set if the request was successful.
+    1. `asyncio`: Like `sync` but async instead of blocking
+    1. `asyncio_detailed`: Like `sync_detailed` but async instead of blocking
 
 1. All path/query params, and bodies become method arguments.
-
-1. If your endpoint had any tags on it, the first tag will be used as a module name for
-   the function (my_tag above)
-
-1. Any endpoint which did not have a tag will be in
-   `katana_public_api_client.api.default`
+1. If your endpoint had any tags on it, the first tag will be used as a module name for the function (my_tag above)
+1. Any endpoint which did not have a tag will be in `katana_public_api_client.api.default`
 
 ## Advanced customizations
 
-There are more settings on the generated `Client` class which let you control more
-runtime behavior, check out the docstring on that class for more info. You can also
-customize the underlying `httpx.Client` or `httpx.AsyncClient` (depending on your
-use-case):
+There are more settings on the generated `Client` class which let you control more runtime behavior, check out the docstring on that class for more info. You can also customize the underlying `httpx.Client` or `httpx.AsyncClient` (depending on your use-case):
 
 ```python
 from katana_public_api_client import Client
@@ -147,8 +96,7 @@ client = Client(
 # Or get the underlying httpx client to modify directly with client.get_httpx_client() or client.get_async_httpx_client()
 ```
 
-You can even set the httpx client directly, but beware that this will override any
-existing settings (e.g., base_url):
+You can even set the httpx client directly, but beware that this will override any existing settings (e.g., base_url):
 
 ```python
 import httpx
@@ -162,22 +110,15 @@ client.set_httpx_client(httpx.Client(base_url="https://api.example.com", proxies
 ```
 
 ## Building / publishing this package
-
-This project uses [Poetry](https://python-poetry.org/) to manage dependencies and
-packaging. Here are the basics:
-
+This project uses [Poetry](https://python-poetry.org/) to manage dependencies  and packaging.  Here are the basics:
 1. Update the metadata in pyproject.toml (e.g. authors, version)
 1. If you're using a private repository, configure it with Poetry
-   1. `poetry config repositories.<your-repository-name> <url-to-your-repository>`
-   1. `poetry config http-basic.<your-repository-name> <username> <password>`
-1. Publish the client with `poetry publish --build -r <your-repository-name>` or, if for
-   public PyPI, just `poetry publish --build`
+    1. `poetry config repositories.<your-repository-name> <url-to-your-repository>`
+    1. `poetry config http-basic.<your-repository-name> <username> <password>`
+1. Publish the client with `poetry publish --build -r <your-repository-name>` or, if for public PyPI, just `poetry publish --build`
 
-If you want to install this client into another project without publishing it (e.g. for
-development) then:
-
-1. If that project **is using Poetry**, you can simply do
-   `poetry add <path-to-this-client>` from that project
+If you want to install this client into another project without publishing it (e.g. for development) then:
+1. If that project **is using Poetry**, you can simply do `poetry add <path-to-this-client>` from that project
 1. If that project is not using Poetry:
-   1. Build a wheel with `poetry build -f wheel`
-   1. Install that wheel from the other project `pip install <path-to-wheel>`
+    1. Build a wheel with `poetry build -f wheel`
+    1. Install that wheel from the other project `pip install <path-to-wheel>`

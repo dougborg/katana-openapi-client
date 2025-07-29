@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -23,10 +23,10 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    sales_order_id: Unset | int = UNSET,
-    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    sales_order_id: Union[Unset, int] = UNSET,
+    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -36,7 +36,7 @@ def _get_kwargs(
 
     params["sales_order_id"] = sales_order_id
 
-    json_entity_type: Unset | str = UNSET
+    json_entity_type: Union[Unset, str] = UNSET
     if not isinstance(entity_type, Unset):
         json_entity_type = entity_type.value
 
@@ -54,14 +54,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllSalesOrderAddressesResponse401
-    | GetAllSalesOrderAddressesResponse429
-    | GetAllSalesOrderAddressesResponse500
-    | SalesOrderAddressListResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        GetAllSalesOrderAddressesResponse401,
+        GetAllSalesOrderAddressesResponse429,
+        GetAllSalesOrderAddressesResponse500,
+        SalesOrderAddressListResponse,
+    ]
+]:
     if response.status_code == 200:
         response_200 = SalesOrderAddressListResponse.from_dict(response.json())
 
@@ -85,12 +86,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    GetAllSalesOrderAddressesResponse401
-    | GetAllSalesOrderAddressesResponse429
-    | GetAllSalesOrderAddressesResponse500
-    | SalesOrderAddressListResponse
+    Union[
+        GetAllSalesOrderAddressesResponse401,
+        GetAllSalesOrderAddressesResponse429,
+        GetAllSalesOrderAddressesResponse500,
+        SalesOrderAddressListResponse,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -102,16 +105,18 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    sales_order_id: Unset | int = UNSET,
-    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    sales_order_id: Union[Unset, int] = UNSET,
+    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
 ) -> Response[
-    GetAllSalesOrderAddressesResponse401
-    | GetAllSalesOrderAddressesResponse429
-    | GetAllSalesOrderAddressesResponse500
-    | SalesOrderAddressListResponse
+    Union[
+        GetAllSalesOrderAddressesResponse401,
+        GetAllSalesOrderAddressesResponse429,
+        GetAllSalesOrderAddressesResponse500,
+        SalesOrderAddressListResponse,
+    ]
 ]:
     """List sales order addresses
 
@@ -126,7 +131,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[GetAllSalesOrderAddressesResponse401, GetAllSalesOrderAddressesResponse429, GetAllSalesOrderAddressesResponse500, SalesOrderAddressListResponse]]
@@ -148,18 +152,19 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    sales_order_id: Unset | int = UNSET,
-    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
-) -> (
-    GetAllSalesOrderAddressesResponse401
-    | GetAllSalesOrderAddressesResponse429
-    | GetAllSalesOrderAddressesResponse500
-    | SalesOrderAddressListResponse
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    sales_order_id: Union[Unset, int] = UNSET,
+    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
+) -> Optional[
+    Union[
+        GetAllSalesOrderAddressesResponse401,
+        GetAllSalesOrderAddressesResponse429,
+        GetAllSalesOrderAddressesResponse500,
+        SalesOrderAddressListResponse,
+    ]
+]:
     """List sales order addresses
 
      Returns a list of sales order addresses.
@@ -173,7 +178,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[GetAllSalesOrderAddressesResponse401, GetAllSalesOrderAddressesResponse429, GetAllSalesOrderAddressesResponse500, SalesOrderAddressListResponse]
@@ -190,16 +194,18 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    sales_order_id: Unset | int = UNSET,
-    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    sales_order_id: Union[Unset, int] = UNSET,
+    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
 ) -> Response[
-    GetAllSalesOrderAddressesResponse401
-    | GetAllSalesOrderAddressesResponse429
-    | GetAllSalesOrderAddressesResponse500
-    | SalesOrderAddressListResponse
+    Union[
+        GetAllSalesOrderAddressesResponse401,
+        GetAllSalesOrderAddressesResponse429,
+        GetAllSalesOrderAddressesResponse500,
+        SalesOrderAddressListResponse,
+    ]
 ]:
     """List sales order addresses
 
@@ -214,7 +220,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[GetAllSalesOrderAddressesResponse401, GetAllSalesOrderAddressesResponse429, GetAllSalesOrderAddressesResponse500, SalesOrderAddressListResponse]]
@@ -234,18 +239,19 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    sales_order_id: Unset | int = UNSET,
-    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
-) -> (
-    GetAllSalesOrderAddressesResponse401
-    | GetAllSalesOrderAddressesResponse429
-    | GetAllSalesOrderAddressesResponse500
-    | SalesOrderAddressListResponse
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    sales_order_id: Union[Unset, int] = UNSET,
+    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
+) -> Optional[
+    Union[
+        GetAllSalesOrderAddressesResponse401,
+        GetAllSalesOrderAddressesResponse429,
+        GetAllSalesOrderAddressesResponse500,
+        SalesOrderAddressListResponse,
+    ]
+]:
     """List sales order addresses
 
      Returns a list of sales order addresses.
@@ -259,7 +265,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[GetAllSalesOrderAddressesResponse401, GetAllSalesOrderAddressesResponse429, GetAllSalesOrderAddressesResponse500, SalesOrderAddressListResponse]

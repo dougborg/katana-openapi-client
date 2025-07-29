@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -10,7 +10,7 @@ from ...models.update_variant_response_401 import UpdateVariantResponse401
 from ...models.update_variant_response_422 import UpdateVariantResponse422
 from ...models.update_variant_response_429 import UpdateVariantResponse429
 from ...models.update_variant_response_500 import UpdateVariantResponse500
-from ...models.variant_response import VariantResponse
+from ...models.variant import Variant
 from ...types import Response
 
 
@@ -35,17 +35,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    UpdateVariantResponse401
-    | UpdateVariantResponse422
-    | UpdateVariantResponse429
-    | UpdateVariantResponse500
-    | VariantResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        UpdateVariantResponse401,
+        UpdateVariantResponse422,
+        UpdateVariantResponse429,
+        UpdateVariantResponse500,
+        Variant,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = VariantResponse.from_dict(response.json())
+        response_200 = Variant.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -71,13 +72,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    UpdateVariantResponse401
-    | UpdateVariantResponse422
-    | UpdateVariantResponse429
-    | UpdateVariantResponse500
-    | VariantResponse
+    Union[
+        UpdateVariantResponse401,
+        UpdateVariantResponse422,
+        UpdateVariantResponse429,
+        UpdateVariantResponse500,
+        Variant,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -90,14 +93,16 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateVariantRequest,
 ) -> Response[
-    UpdateVariantResponse401
-    | UpdateVariantResponse422
-    | UpdateVariantResponse429
-    | UpdateVariantResponse500
-    | VariantResponse
+    Union[
+        UpdateVariantResponse401,
+        UpdateVariantResponse422,
+        UpdateVariantResponse429,
+        UpdateVariantResponse500,
+        Variant,
+    ]
 ]:
     """Update a variant
 
@@ -112,9 +117,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, VariantResponse]]
+        Response[Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, Variant]]
     """
 
     kwargs = _get_kwargs(
@@ -132,52 +136,16 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateVariantRequest,
-) -> (
-    UpdateVariantResponse401
-    | UpdateVariantResponse422
-    | UpdateVariantResponse429
-    | UpdateVariantResponse500
-    | VariantResponse
-    | None
-):
-    """Update a variant
-
-     Updates the specified variant by setting the values of the parameters passed.
-        Any parameters not provided will be left unchanged.
-
-    Args:
-        id (int):
-        body (UpdateVariantRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, VariantResponse]
-    """
-
-    return sync_detailed(
-        id=id,
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    id: int,
-    *,
-    client: AuthenticatedClient | Client,
-    body: UpdateVariantRequest,
-) -> Response[
-    UpdateVariantResponse401
-    | UpdateVariantResponse422
-    | UpdateVariantResponse429
-    | UpdateVariantResponse500
-    | VariantResponse
+) -> Optional[
+    Union[
+        UpdateVariantResponse401,
+        UpdateVariantResponse422,
+        UpdateVariantResponse429,
+        UpdateVariantResponse500,
+        Variant,
+    ]
 ]:
     """Update a variant
 
@@ -192,9 +160,46 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, Variant]
+    """
+
+    return sync_detailed(
+        id=id,
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    id: int,
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: UpdateVariantRequest,
+) -> Response[
+    Union[
+        UpdateVariantResponse401,
+        UpdateVariantResponse422,
+        UpdateVariantResponse429,
+        UpdateVariantResponse500,
+        Variant,
+    ]
+]:
+    """Update a variant
+
+     Updates the specified variant by setting the values of the parameters passed.
+        Any parameters not provided will be left unchanged.
+
+    Args:
+        id (int):
+        body (UpdateVariantRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, VariantResponse]]
+        Response[Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, Variant]]
     """
 
     kwargs = _get_kwargs(
@@ -210,16 +215,17 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateVariantRequest,
-) -> (
-    UpdateVariantResponse401
-    | UpdateVariantResponse422
-    | UpdateVariantResponse429
-    | UpdateVariantResponse500
-    | VariantResponse
-    | None
-):
+) -> Optional[
+    Union[
+        UpdateVariantResponse401,
+        UpdateVariantResponse422,
+        UpdateVariantResponse429,
+        UpdateVariantResponse500,
+        Variant,
+    ]
+]:
     """Update a variant
 
      Updates the specified variant by setting the values of the parameters passed.
@@ -233,9 +239,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, VariantResponse]
+        Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, Variant]
     """
 
     return (

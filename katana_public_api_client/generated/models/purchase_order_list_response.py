@@ -1,15 +1,13 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.purchase_order_response import PurchaseOrderResponse
+    from ..models.purchase_order import PurchaseOrder
 
 
 T = TypeVar("T", bound="PurchaseOrderListResponse")
@@ -17,11 +15,16 @@ T = TypeVar("T", bound="PurchaseOrderListResponse")
 
 @_attrs_define
 class PurchaseOrderListResponse:
-    data: Unset | list["PurchaseOrderResponse"] = UNSET
+    """
+    Attributes:
+        data (Union[Unset, list['PurchaseOrder']]):
+    """
+
+    data: Union[Unset, list["PurchaseOrder"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:
@@ -38,13 +41,13 @@ class PurchaseOrderListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.purchase_order_response import PurchaseOrderResponse
+        from ..models.purchase_order import PurchaseOrder
 
         d = dict(src_dict)
         data = []
         _data = d.pop("data", UNSET)
         for data_item_data in _data or []:
-            data_item = PurchaseOrderResponse.from_dict(data_item_data)
+            data_item = PurchaseOrder.from_dict(data_item_data)
 
             data.append(data_item)
 

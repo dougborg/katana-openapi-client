@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -35,16 +35,17 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateSalesReturnResponse400
-    | CreateSalesReturnResponse401
-    | CreateSalesReturnResponse422
-    | CreateSalesReturnResponse429
-    | CreateSalesReturnResponse500
-    | SalesReturn
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        CreateSalesReturnResponse400,
+        CreateSalesReturnResponse401,
+        CreateSalesReturnResponse422,
+        CreateSalesReturnResponse429,
+        CreateSalesReturnResponse500,
+        SalesReturn,
+    ]
+]:
     if response.status_code == 201:
         response_201 = SalesReturn.from_dict(response.json())
 
@@ -76,14 +77,16 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    CreateSalesReturnResponse400
-    | CreateSalesReturnResponse401
-    | CreateSalesReturnResponse422
-    | CreateSalesReturnResponse429
-    | CreateSalesReturnResponse500
-    | SalesReturn
+    Union[
+        CreateSalesReturnResponse400,
+        CreateSalesReturnResponse401,
+        CreateSalesReturnResponse422,
+        CreateSalesReturnResponse429,
+        CreateSalesReturnResponse500,
+        SalesReturn,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -95,15 +98,17 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesReturnRequest,
 ) -> Response[
-    CreateSalesReturnResponse400
-    | CreateSalesReturnResponse401
-    | CreateSalesReturnResponse422
-    | CreateSalesReturnResponse429
-    | CreateSalesReturnResponse500
-    | SalesReturn
+    Union[
+        CreateSalesReturnResponse400,
+        CreateSalesReturnResponse401,
+        CreateSalesReturnResponse422,
+        CreateSalesReturnResponse429,
+        CreateSalesReturnResponse500,
+        SalesReturn,
+    ]
 ]:
     """Create a sales return
 
@@ -115,7 +120,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[CreateSalesReturnResponse400, CreateSalesReturnResponse401, CreateSalesReturnResponse422, CreateSalesReturnResponse429, CreateSalesReturnResponse500, SalesReturn]]
@@ -134,17 +138,18 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesReturnRequest,
-) -> (
-    CreateSalesReturnResponse400
-    | CreateSalesReturnResponse401
-    | CreateSalesReturnResponse422
-    | CreateSalesReturnResponse429
-    | CreateSalesReturnResponse500
-    | SalesReturn
-    | None
-):
+) -> Optional[
+    Union[
+        CreateSalesReturnResponse400,
+        CreateSalesReturnResponse401,
+        CreateSalesReturnResponse422,
+        CreateSalesReturnResponse429,
+        CreateSalesReturnResponse500,
+        SalesReturn,
+    ]
+]:
     """Create a sales return
 
      Creates a new sales return object.
@@ -155,7 +160,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[CreateSalesReturnResponse400, CreateSalesReturnResponse401, CreateSalesReturnResponse422, CreateSalesReturnResponse429, CreateSalesReturnResponse500, SalesReturn]
@@ -169,15 +173,17 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesReturnRequest,
 ) -> Response[
-    CreateSalesReturnResponse400
-    | CreateSalesReturnResponse401
-    | CreateSalesReturnResponse422
-    | CreateSalesReturnResponse429
-    | CreateSalesReturnResponse500
-    | SalesReturn
+    Union[
+        CreateSalesReturnResponse400,
+        CreateSalesReturnResponse401,
+        CreateSalesReturnResponse422,
+        CreateSalesReturnResponse429,
+        CreateSalesReturnResponse500,
+        SalesReturn,
+    ]
 ]:
     """Create a sales return
 
@@ -189,7 +195,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[CreateSalesReturnResponse400, CreateSalesReturnResponse401, CreateSalesReturnResponse422, CreateSalesReturnResponse429, CreateSalesReturnResponse500, SalesReturn]]
@@ -206,17 +211,18 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesReturnRequest,
-) -> (
-    CreateSalesReturnResponse400
-    | CreateSalesReturnResponse401
-    | CreateSalesReturnResponse422
-    | CreateSalesReturnResponse429
-    | CreateSalesReturnResponse500
-    | SalesReturn
-    | None
-):
+) -> Optional[
+    Union[
+        CreateSalesReturnResponse400,
+        CreateSalesReturnResponse401,
+        CreateSalesReturnResponse422,
+        CreateSalesReturnResponse429,
+        CreateSalesReturnResponse500,
+        SalesReturn,
+    ]
+]:
     """Create a sales return
 
      Creates a new sales return object.
@@ -227,7 +233,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[CreateSalesReturnResponse400, CreateSalesReturnResponse401, CreateSalesReturnResponse422, CreateSalesReturnResponse429, CreateSalesReturnResponse500, SalesReturn]

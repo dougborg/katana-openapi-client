@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -14,12 +14,12 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
-    product_variant_id: Unset | int = UNSET,
-    ingredient_variant_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    ids: Union[Unset, list[int]] = UNSET,
+    product_variant_id: Union[Unset, int] = UNSET,
+    ingredient_variant_id: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -27,7 +27,7 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: Union[Unset, list[int]] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -51,14 +51,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    BomRowListResponse
-    | GetAllBomRowsResponse401
-    | GetAllBomRowsResponse429
-    | GetAllBomRowsResponse500
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        BomRowListResponse,
+        GetAllBomRowsResponse401,
+        GetAllBomRowsResponse429,
+        GetAllBomRowsResponse500,
+    ]
+]:
     if response.status_code == 200:
         response_200 = BomRowListResponse.from_dict(response.json())
 
@@ -82,12 +83,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    BomRowListResponse
-    | GetAllBomRowsResponse401
-    | GetAllBomRowsResponse429
-    | GetAllBomRowsResponse500
+    Union[
+        BomRowListResponse,
+        GetAllBomRowsResponse401,
+        GetAllBomRowsResponse429,
+        GetAllBomRowsResponse500,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -99,18 +102,20 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
-    product_variant_id: Unset | int = UNSET,
-    ingredient_variant_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    ids: Union[Unset, list[int]] = UNSET,
+    product_variant_id: Union[Unset, int] = UNSET,
+    ingredient_variant_id: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
 ) -> Response[
-    BomRowListResponse
-    | GetAllBomRowsResponse401
-    | GetAllBomRowsResponse429
-    | GetAllBomRowsResponse500
+    Union[
+        BomRowListResponse,
+        GetAllBomRowsResponse401,
+        GetAllBomRowsResponse429,
+        GetAllBomRowsResponse500,
+    ]
 ]:
     """List all BOM rows
 
@@ -128,7 +133,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[BomRowListResponse, GetAllBomRowsResponse401, GetAllBomRowsResponse429, GetAllBomRowsResponse500]]
@@ -152,67 +156,20 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
-    product_variant_id: Unset | int = UNSET,
-    ingredient_variant_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-) -> (
-    BomRowListResponse
-    | GetAllBomRowsResponse401
-    | GetAllBomRowsResponse429
-    | GetAllBomRowsResponse500
-    | None
-):
-    """List all BOM rows
-
-     Returns a list of BOM (Bill of Materials) rows you've previously created. Product variant BOM
-    consists of ingredient variants and their quantities.
-
-    Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        product_variant_id (Union[Unset, int]):
-        ingredient_variant_id (Union[Unset, int]):
-        include_deleted (Union[Unset, bool]):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[BomRowListResponse, GetAllBomRowsResponse401, GetAllBomRowsResponse429, GetAllBomRowsResponse500]
-    """
-
-    return sync_detailed(
-        client=client,
-        limit=limit,
-        page=page,
-        ids=ids,
-        product_variant_id=product_variant_id,
-        ingredient_variant_id=ingredient_variant_id,
-        include_deleted=include_deleted,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
-    product_variant_id: Unset | int = UNSET,
-    ingredient_variant_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-) -> Response[
-    BomRowListResponse
-    | GetAllBomRowsResponse401
-    | GetAllBomRowsResponse429
-    | GetAllBomRowsResponse500
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    ids: Union[Unset, list[int]] = UNSET,
+    product_variant_id: Union[Unset, int] = UNSET,
+    ingredient_variant_id: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+) -> Optional[
+    Union[
+        BomRowListResponse,
+        GetAllBomRowsResponse401,
+        GetAllBomRowsResponse429,
+        GetAllBomRowsResponse500,
+    ]
 ]:
     """List all BOM rows
 
@@ -231,6 +188,54 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[BomRowListResponse, GetAllBomRowsResponse401, GetAllBomRowsResponse429, GetAllBomRowsResponse500]
+    """
+
+    return sync_detailed(
+        client=client,
+        limit=limit,
+        page=page,
+        ids=ids,
+        product_variant_id=product_variant_id,
+        ingredient_variant_id=ingredient_variant_id,
+        include_deleted=include_deleted,
+    ).parsed
+
+
+async def asyncio_detailed(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    ids: Union[Unset, list[int]] = UNSET,
+    product_variant_id: Union[Unset, int] = UNSET,
+    ingredient_variant_id: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+) -> Response[
+    Union[
+        BomRowListResponse,
+        GetAllBomRowsResponse401,
+        GetAllBomRowsResponse429,
+        GetAllBomRowsResponse500,
+    ]
+]:
+    """List all BOM rows
+
+     Returns a list of BOM (Bill of Materials) rows you've previously created. Product variant BOM
+    consists of ingredient variants and their quantities.
+
+    Args:
+        limit (Union[Unset, int]):  Default: 50.
+        page (Union[Unset, int]):  Default: 1.
+        ids (Union[Unset, list[int]]):
+        product_variant_id (Union[Unset, int]):
+        ingredient_variant_id (Union[Unset, int]):
+        include_deleted (Union[Unset, bool]):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         Response[Union[BomRowListResponse, GetAllBomRowsResponse401, GetAllBomRowsResponse429, GetAllBomRowsResponse500]]
@@ -252,20 +257,21 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
-    product_variant_id: Unset | int = UNSET,
-    ingredient_variant_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-) -> (
-    BomRowListResponse
-    | GetAllBomRowsResponse401
-    | GetAllBomRowsResponse429
-    | GetAllBomRowsResponse500
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    ids: Union[Unset, list[int]] = UNSET,
+    product_variant_id: Union[Unset, int] = UNSET,
+    ingredient_variant_id: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+) -> Optional[
+    Union[
+        BomRowListResponse,
+        GetAllBomRowsResponse401,
+        GetAllBomRowsResponse429,
+        GetAllBomRowsResponse500,
+    ]
+]:
     """List all BOM rows
 
      Returns a list of BOM (Bill of Materials) rows you've previously created. Product variant BOM
@@ -282,7 +288,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[BomRowListResponse, GetAllBomRowsResponse401, GetAllBomRowsResponse429, GetAllBomRowsResponse500]

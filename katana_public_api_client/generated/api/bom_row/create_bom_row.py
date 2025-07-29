@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -34,15 +34,16 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    BomRow
-    | CreateBomRowResponse401
-    | CreateBomRowResponse422
-    | CreateBomRowResponse429
-    | CreateBomRowResponse500
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        BomRow,
+        CreateBomRowResponse401,
+        CreateBomRowResponse422,
+        CreateBomRowResponse429,
+        CreateBomRowResponse500,
+    ]
+]:
     if response.status_code == 200:
         response_200 = BomRow.from_dict(response.json())
 
@@ -70,13 +71,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    BomRow
-    | CreateBomRowResponse401
-    | CreateBomRowResponse422
-    | CreateBomRowResponse429
-    | CreateBomRowResponse500
+    Union[
+        BomRow,
+        CreateBomRowResponse401,
+        CreateBomRowResponse422,
+        CreateBomRowResponse429,
+        CreateBomRowResponse500,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -88,14 +91,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateBomRowRequest,
 ) -> Response[
-    BomRow
-    | CreateBomRowResponse401
-    | CreateBomRowResponse422
-    | CreateBomRowResponse429
-    | CreateBomRowResponse500
+    Union[
+        BomRow,
+        CreateBomRowResponse401,
+        CreateBomRowResponse422,
+        CreateBomRowResponse429,
+        CreateBomRowResponse500,
+    ]
 ]:
     """Create a BOM row
 
@@ -107,7 +112,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[BomRow, CreateBomRowResponse401, CreateBomRowResponse422, CreateBomRowResponse429, CreateBomRowResponse500]]
@@ -126,16 +130,17 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateBomRowRequest,
-) -> (
-    BomRow
-    | CreateBomRowResponse401
-    | CreateBomRowResponse422
-    | CreateBomRowResponse429
-    | CreateBomRowResponse500
-    | None
-):
+) -> Optional[
+    Union[
+        BomRow,
+        CreateBomRowResponse401,
+        CreateBomRowResponse422,
+        CreateBomRowResponse429,
+        CreateBomRowResponse500,
+    ]
+]:
     """Create a BOM row
 
      Create a new BOM row for a product.
@@ -146,7 +151,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[BomRow, CreateBomRowResponse401, CreateBomRowResponse422, CreateBomRowResponse429, CreateBomRowResponse500]
@@ -160,14 +164,16 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateBomRowRequest,
 ) -> Response[
-    BomRow
-    | CreateBomRowResponse401
-    | CreateBomRowResponse422
-    | CreateBomRowResponse429
-    | CreateBomRowResponse500
+    Union[
+        BomRow,
+        CreateBomRowResponse401,
+        CreateBomRowResponse422,
+        CreateBomRowResponse429,
+        CreateBomRowResponse500,
+    ]
 ]:
     """Create a BOM row
 
@@ -179,7 +185,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[BomRow, CreateBomRowResponse401, CreateBomRowResponse422, CreateBomRowResponse429, CreateBomRowResponse500]]
@@ -196,16 +201,17 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateBomRowRequest,
-) -> (
-    BomRow
-    | CreateBomRowResponse401
-    | CreateBomRowResponse422
-    | CreateBomRowResponse429
-    | CreateBomRowResponse500
-    | None
-):
+) -> Optional[
+    Union[
+        BomRow,
+        CreateBomRowResponse401,
+        CreateBomRowResponse422,
+        CreateBomRowResponse429,
+        CreateBomRowResponse500,
+    ]
+]:
     """Create a BOM row
 
      Create a new BOM row for a product.
@@ -216,7 +222,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[BomRow, CreateBomRowResponse401, CreateBomRowResponse422, CreateBomRowResponse429, CreateBomRowResponse500]

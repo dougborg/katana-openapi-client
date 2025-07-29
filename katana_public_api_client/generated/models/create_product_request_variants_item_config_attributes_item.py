@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -13,8 +11,14 @@ T = TypeVar("T", bound="CreateProductRequestVariantsItemConfigAttributesItem")
 
 @_attrs_define
 class CreateProductRequestVariantsItemConfigAttributesItem:
-    config_name: Unset | str = UNSET
-    config_value: Unset | str = UNSET
+    """
+    Attributes:
+        config_name (Union[Unset, str]):
+        config_value (Union[Unset, str]):
+    """
+
+    config_name: Union[Unset, str] = UNSET
+    config_value: Union[Unset, str] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

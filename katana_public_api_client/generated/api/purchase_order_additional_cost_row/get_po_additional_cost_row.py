@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -14,9 +14,7 @@ from ...models.get_po_additional_cost_row_response_429 import (
 from ...models.get_po_additional_cost_row_response_500 import (
     GetPoAdditionalCostRowResponse500,
 )
-from ...models.purchase_order_additional_cost_row_response import (
-    PurchaseOrderAdditionalCostRowResponse,
-)
+from ...models.purchase_order_additional_cost_row import PurchaseOrderAdditionalCostRow
 from ...types import Response
 
 
@@ -32,16 +30,17 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetPoAdditionalCostRowResponse401
-    | GetPoAdditionalCostRowResponse429
-    | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        GetPoAdditionalCostRowResponse401,
+        GetPoAdditionalCostRowResponse429,
+        GetPoAdditionalCostRowResponse500,
+        PurchaseOrderAdditionalCostRow,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = PurchaseOrderAdditionalCostRowResponse.from_dict(response.json())
+        response_200 = PurchaseOrderAdditionalCostRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -63,12 +62,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    GetPoAdditionalCostRowResponse401
-    | GetPoAdditionalCostRowResponse429
-    | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    Union[
+        GetPoAdditionalCostRowResponse401,
+        GetPoAdditionalCostRowResponse429,
+        GetPoAdditionalCostRowResponse500,
+        PurchaseOrderAdditionalCostRow,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -81,12 +82,14 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
 ) -> Response[
-    GetPoAdditionalCostRowResponse401
-    | GetPoAdditionalCostRowResponse429
-    | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    Union[
+        GetPoAdditionalCostRowResponse401,
+        GetPoAdditionalCostRowResponse429,
+        GetPoAdditionalCostRowResponse500,
+        PurchaseOrderAdditionalCostRow,
+    ]
 ]:
     """Retrieve a purchase order additional cost row
 
@@ -99,9 +102,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRowResponse]]
+        Response[Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]]
     """
 
     kwargs = _get_kwargs(
@@ -118,45 +120,14 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
-) -> (
-    GetPoAdditionalCostRowResponse401
-    | GetPoAdditionalCostRowResponse429
-    | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
-    | None
-):
-    """Retrieve a purchase order additional cost row
-
-     Retrieves the details of an existing purchase order additional cost row based on ID
-
-    Args:
-        id (int):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRowResponse]
-    """
-
-    return sync_detailed(
-        id=id,
-        client=client,
-    ).parsed
-
-
-async def asyncio_detailed(
-    id: int,
-    *,
-    client: AuthenticatedClient | Client,
-) -> Response[
-    GetPoAdditionalCostRowResponse401
-    | GetPoAdditionalCostRowResponse429
-    | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[
+    Union[
+        GetPoAdditionalCostRowResponse401,
+        GetPoAdditionalCostRowResponse429,
+        GetPoAdditionalCostRowResponse500,
+        PurchaseOrderAdditionalCostRow,
+    ]
 ]:
     """Retrieve a purchase order additional cost row
 
@@ -169,9 +140,41 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]
+    """
+
+    return sync_detailed(
+        id=id,
+        client=client,
+    ).parsed
+
+
+async def asyncio_detailed(
+    id: int,
+    *,
+    client: Union[AuthenticatedClient, Client],
+) -> Response[
+    Union[
+        GetPoAdditionalCostRowResponse401,
+        GetPoAdditionalCostRowResponse429,
+        GetPoAdditionalCostRowResponse500,
+        PurchaseOrderAdditionalCostRow,
+    ]
+]:
+    """Retrieve a purchase order additional cost row
+
+     Retrieves the details of an existing purchase order additional cost row based on ID
+
+    Args:
+        id (int):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRowResponse]]
+        Response[Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]]
     """
 
     kwargs = _get_kwargs(
@@ -186,14 +189,15 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
-) -> (
-    GetPoAdditionalCostRowResponse401
-    | GetPoAdditionalCostRowResponse429
-    | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[
+    Union[
+        GetPoAdditionalCostRowResponse401,
+        GetPoAdditionalCostRowResponse429,
+        GetPoAdditionalCostRowResponse500,
+        PurchaseOrderAdditionalCostRow,
+    ]
+]:
     """Retrieve a purchase order additional cost row
 
      Retrieves the details of an existing purchase order additional cost row based on ID
@@ -205,9 +209,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRowResponse]
+        Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]
     """
 
     return (

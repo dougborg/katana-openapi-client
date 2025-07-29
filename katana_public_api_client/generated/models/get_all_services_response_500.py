@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -13,9 +11,16 @@ T = TypeVar("T", bound="GetAllServicesResponse500")
 
 @_attrs_define
 class GetAllServicesResponse500:
-    status_code: Unset | float = UNSET
-    name: Unset | str = UNSET
-    message: Unset | str = UNSET
+    """
+    Attributes:
+        status_code (Union[Unset, float]):
+        name (Union[Unset, str]):
+        message (Union[Unset, str]):
+    """
+
+    status_code: Union[Unset, float] = UNSET
+    name: Union[Unset, str] = UNSET
+    message: Union[Unset, str] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

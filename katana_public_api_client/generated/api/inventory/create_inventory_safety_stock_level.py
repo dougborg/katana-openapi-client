@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -18,9 +18,6 @@ from ...models.create_inventory_safety_stock_level_response_500 import (
     CreateInventorySafetyStockLevelResponse500,
 )
 from ...models.inventory_safety_stock_level import InventorySafetyStockLevel
-from ...models.inventory_safety_stock_level_response import (
-    InventorySafetyStockLevelResponse,
-)
 from ...types import Response
 
 
@@ -44,17 +41,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateInventorySafetyStockLevelResponse401
-    | CreateInventorySafetyStockLevelResponse422
-    | CreateInventorySafetyStockLevelResponse429
-    | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevelResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        CreateInventorySafetyStockLevelResponse401,
+        CreateInventorySafetyStockLevelResponse422,
+        CreateInventorySafetyStockLevelResponse429,
+        CreateInventorySafetyStockLevelResponse500,
+        InventorySafetyStockLevel,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = InventorySafetyStockLevelResponse.from_dict(response.json())
+        response_200 = InventorySafetyStockLevel.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -88,13 +86,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    CreateInventorySafetyStockLevelResponse401
-    | CreateInventorySafetyStockLevelResponse422
-    | CreateInventorySafetyStockLevelResponse429
-    | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevelResponse
+    Union[
+        CreateInventorySafetyStockLevelResponse401,
+        CreateInventorySafetyStockLevelResponse422,
+        CreateInventorySafetyStockLevelResponse429,
+        CreateInventorySafetyStockLevelResponse500,
+        InventorySafetyStockLevel,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -106,14 +106,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: InventorySafetyStockLevel,
 ) -> Response[
-    CreateInventorySafetyStockLevelResponse401
-    | CreateInventorySafetyStockLevelResponse422
-    | CreateInventorySafetyStockLevelResponse429
-    | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevelResponse
+    Union[
+        CreateInventorySafetyStockLevelResponse401,
+        CreateInventorySafetyStockLevelResponse422,
+        CreateInventorySafetyStockLevelResponse429,
+        CreateInventorySafetyStockLevelResponse500,
+        InventorySafetyStockLevel,
+    ]
 ]:
     """Update the safety stock level
 
@@ -126,9 +128,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevelResponse]]
+        Response[Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevel]]
     """
 
     kwargs = _get_kwargs(
@@ -144,48 +145,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: InventorySafetyStockLevel,
-) -> (
-    CreateInventorySafetyStockLevelResponse401
-    | CreateInventorySafetyStockLevelResponse422
-    | CreateInventorySafetyStockLevelResponse429
-    | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevelResponse
-    | None
-):
-    """Update the safety stock level
-
-     Update an item's safety stock level within a certain location and variant combination.
-
-    Args:
-        body (InventorySafetyStockLevel):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevelResponse]
-    """
-
-    return sync_detailed(
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    body: InventorySafetyStockLevel,
-) -> Response[
-    CreateInventorySafetyStockLevelResponse401
-    | CreateInventorySafetyStockLevelResponse422
-    | CreateInventorySafetyStockLevelResponse429
-    | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevelResponse
+) -> Optional[
+    Union[
+        CreateInventorySafetyStockLevelResponse401,
+        CreateInventorySafetyStockLevelResponse422,
+        CreateInventorySafetyStockLevelResponse429,
+        CreateInventorySafetyStockLevelResponse500,
+        InventorySafetyStockLevel,
+    ]
 ]:
     """Update the safety stock level
 
@@ -198,9 +167,42 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevel]
+    """
+
+    return sync_detailed(
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: InventorySafetyStockLevel,
+) -> Response[
+    Union[
+        CreateInventorySafetyStockLevelResponse401,
+        CreateInventorySafetyStockLevelResponse422,
+        CreateInventorySafetyStockLevelResponse429,
+        CreateInventorySafetyStockLevelResponse500,
+        InventorySafetyStockLevel,
+    ]
+]:
+    """Update the safety stock level
+
+     Update an item's safety stock level within a certain location and variant combination.
+
+    Args:
+        body (InventorySafetyStockLevel):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevelResponse]]
+        Response[Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevel]]
     """
 
     kwargs = _get_kwargs(
@@ -214,16 +216,17 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: InventorySafetyStockLevel,
-) -> (
-    CreateInventorySafetyStockLevelResponse401
-    | CreateInventorySafetyStockLevelResponse422
-    | CreateInventorySafetyStockLevelResponse429
-    | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevelResponse
-    | None
-):
+) -> Optional[
+    Union[
+        CreateInventorySafetyStockLevelResponse401,
+        CreateInventorySafetyStockLevelResponse422,
+        CreateInventorySafetyStockLevelResponse429,
+        CreateInventorySafetyStockLevelResponse500,
+        InventorySafetyStockLevel,
+    ]
+]:
     """Update the safety stock level
 
      Update an item's safety stock level within a certain location and variant combination.
@@ -235,9 +238,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevelResponse]
+        Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevel]
     """
 
     return (

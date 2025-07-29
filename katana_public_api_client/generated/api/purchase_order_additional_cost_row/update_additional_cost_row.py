@@ -1,13 +1,11 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.purchase_order_additional_cost_row_response import (
-    PurchaseOrderAdditionalCostRowResponse,
-)
+from ...models.purchase_order_additional_cost_row import PurchaseOrderAdditionalCostRow
 from ...models.update_additional_cost_row_response_401 import (
     UpdateAdditionalCostRowResponse401,
 )
@@ -47,17 +45,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    PurchaseOrderAdditionalCostRowResponse
-    | UpdateAdditionalCostRowResponse401
-    | UpdateAdditionalCostRowResponse422
-    | UpdateAdditionalCostRowResponse429
-    | UpdateAdditionalCostRowResponse500
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        PurchaseOrderAdditionalCostRow,
+        UpdateAdditionalCostRowResponse401,
+        UpdateAdditionalCostRowResponse422,
+        UpdateAdditionalCostRowResponse429,
+        UpdateAdditionalCostRowResponse500,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = PurchaseOrderAdditionalCostRowResponse.from_dict(response.json())
+        response_200 = PurchaseOrderAdditionalCostRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -83,13 +82,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    PurchaseOrderAdditionalCostRowResponse
-    | UpdateAdditionalCostRowResponse401
-    | UpdateAdditionalCostRowResponse422
-    | UpdateAdditionalCostRowResponse429
-    | UpdateAdditionalCostRowResponse500
+    Union[
+        PurchaseOrderAdditionalCostRow,
+        UpdateAdditionalCostRowResponse401,
+        UpdateAdditionalCostRowResponse422,
+        UpdateAdditionalCostRowResponse429,
+        UpdateAdditionalCostRowResponse500,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -102,14 +103,16 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
 ) -> Response[
-    PurchaseOrderAdditionalCostRowResponse
-    | UpdateAdditionalCostRowResponse401
-    | UpdateAdditionalCostRowResponse422
-    | UpdateAdditionalCostRowResponse429
-    | UpdateAdditionalCostRowResponse500
+    Union[
+        PurchaseOrderAdditionalCostRow,
+        UpdateAdditionalCostRowResponse401,
+        UpdateAdditionalCostRowResponse422,
+        UpdateAdditionalCostRowResponse429,
+        UpdateAdditionalCostRowResponse500,
+    ]
 ]:
     """Update a purchase order additional cost row
 
@@ -125,9 +128,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[PurchaseOrderAdditionalCostRowResponse, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]]
+        Response[Union[PurchaseOrderAdditionalCostRow, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -145,53 +147,16 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
-) -> (
-    PurchaseOrderAdditionalCostRowResponse
-    | UpdateAdditionalCostRowResponse401
-    | UpdateAdditionalCostRowResponse422
-    | UpdateAdditionalCostRowResponse429
-    | UpdateAdditionalCostRowResponse500
-    | None
-):
-    """Update a purchase order additional cost row
-
-     Updates the specified purchase order additional cost row by setting the values of the parameters
-    passed.
-        Any parameters not provided will be left unchanged.
-
-    Args:
-        id (int):
-        body (UpdatePurchaseOrderAdditionalCostRowRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[PurchaseOrderAdditionalCostRowResponse, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]
-    """
-
-    return sync_detailed(
-        id=id,
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    id: int,
-    *,
-    client: AuthenticatedClient | Client,
-    body: UpdatePurchaseOrderAdditionalCostRowRequest,
-) -> Response[
-    PurchaseOrderAdditionalCostRowResponse
-    | UpdateAdditionalCostRowResponse401
-    | UpdateAdditionalCostRowResponse422
-    | UpdateAdditionalCostRowResponse429
-    | UpdateAdditionalCostRowResponse500
+) -> Optional[
+    Union[
+        PurchaseOrderAdditionalCostRow,
+        UpdateAdditionalCostRowResponse401,
+        UpdateAdditionalCostRowResponse422,
+        UpdateAdditionalCostRowResponse429,
+        UpdateAdditionalCostRowResponse500,
+    ]
 ]:
     """Update a purchase order additional cost row
 
@@ -207,9 +172,47 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[PurchaseOrderAdditionalCostRow, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]
+    """
+
+    return sync_detailed(
+        id=id,
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    id: int,
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: UpdatePurchaseOrderAdditionalCostRowRequest,
+) -> Response[
+    Union[
+        PurchaseOrderAdditionalCostRow,
+        UpdateAdditionalCostRowResponse401,
+        UpdateAdditionalCostRowResponse422,
+        UpdateAdditionalCostRowResponse429,
+        UpdateAdditionalCostRowResponse500,
+    ]
+]:
+    """Update a purchase order additional cost row
+
+     Updates the specified purchase order additional cost row by setting the values of the parameters
+    passed.
+        Any parameters not provided will be left unchanged.
+
+    Args:
+        id (int):
+        body (UpdatePurchaseOrderAdditionalCostRowRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[PurchaseOrderAdditionalCostRowResponse, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]]
+        Response[Union[PurchaseOrderAdditionalCostRow, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -225,16 +228,17 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
-) -> (
-    PurchaseOrderAdditionalCostRowResponse
-    | UpdateAdditionalCostRowResponse401
-    | UpdateAdditionalCostRowResponse422
-    | UpdateAdditionalCostRowResponse429
-    | UpdateAdditionalCostRowResponse500
-    | None
-):
+) -> Optional[
+    Union[
+        PurchaseOrderAdditionalCostRow,
+        UpdateAdditionalCostRowResponse401,
+        UpdateAdditionalCostRowResponse422,
+        UpdateAdditionalCostRowResponse429,
+        UpdateAdditionalCostRowResponse500,
+    ]
+]:
     """Update a purchase order additional cost row
 
      Updates the specified purchase order additional cost row by setting the values of the parameters
@@ -249,9 +253,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[PurchaseOrderAdditionalCostRowResponse, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]
+        Union[PurchaseOrderAdditionalCostRow, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]
     """
 
     return (

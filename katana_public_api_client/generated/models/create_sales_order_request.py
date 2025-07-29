@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..models.create_sales_order_request_status import CreateSalesOrderRequestStatus
 from ..types import UNSET, Unset
@@ -23,22 +21,42 @@ T = TypeVar("T", bound="CreateSalesOrderRequest")
 
 @_attrs_define
 class CreateSalesOrderRequest:
+    """
+    Attributes:
+        order_no (str):
+        customer_id (int):
+        sales_order_rows (list['CreateSalesOrderRequestSalesOrderRowsItem']):
+        tracking_number (Union[None, Unset, str]):
+        tracking_number_url (Union[None, Unset, str]):
+        addresses (Union[Unset, list['CreateSalesOrderRequestAddressesItem']]):
+        order_created_date (Union[None, Unset, str]):
+        delivery_date (Union[None, Unset, str]):
+        currency (Union[None, Unset, str]):
+        location_id (Union[Unset, int]):
+        status (Union[Unset, CreateSalesOrderRequestStatus]):
+        additional_info (Union[None, Unset, str]):
+        customer_ref (Union[None, Unset, str]):
+        ecommerce_order_type (Union[None, Unset, str]):
+        ecommerce_store_name (Union[None, Unset, str]):
+        ecommerce_order_id (Union[None, Unset, str]):
+    """
+
     order_no: str
     customer_id: int
     sales_order_rows: list["CreateSalesOrderRequestSalesOrderRowsItem"]
-    tracking_number: None | Unset | str = UNSET
-    tracking_number_url: None | Unset | str = UNSET
-    addresses: Unset | list["CreateSalesOrderRequestAddressesItem"] = UNSET
-    order_created_date: None | Unset | str = UNSET
-    delivery_date: None | Unset | str = UNSET
-    currency: None | Unset | str = UNSET
-    location_id: Unset | int = UNSET
-    status: Unset | CreateSalesOrderRequestStatus = UNSET
-    additional_info: None | Unset | str = UNSET
-    customer_ref: None | Unset | str = UNSET
-    ecommerce_order_type: None | Unset | str = UNSET
-    ecommerce_store_name: None | Unset | str = UNSET
-    ecommerce_order_id: None | Unset | str = UNSET
+    tracking_number: Union[None, Unset, str] = UNSET
+    tracking_number_url: Union[None, Unset, str] = UNSET
+    addresses: Union[Unset, list["CreateSalesOrderRequestAddressesItem"]] = UNSET
+    order_created_date: Union[None, Unset, str] = UNSET
+    delivery_date: Union[None, Unset, str] = UNSET
+    currency: Union[None, Unset, str] = UNSET
+    location_id: Union[Unset, int] = UNSET
+    status: Union[Unset, CreateSalesOrderRequestStatus] = UNSET
+    additional_info: Union[None, Unset, str] = UNSET
+    customer_ref: Union[None, Unset, str] = UNSET
+    ecommerce_order_type: Union[None, Unset, str] = UNSET
+    ecommerce_store_name: Union[None, Unset, str] = UNSET
+    ecommerce_order_id: Union[None, Unset, str] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -51,38 +69,38 @@ class CreateSalesOrderRequest:
             sales_order_rows_item = sales_order_rows_item_data.to_dict()
             sales_order_rows.append(sales_order_rows_item)
 
-        tracking_number: None | Unset | str
+        tracking_number: Union[None, Unset, str]
         if isinstance(self.tracking_number, Unset):
             tracking_number = UNSET
         else:
             tracking_number = self.tracking_number
 
-        tracking_number_url: None | Unset | str
+        tracking_number_url: Union[None, Unset, str]
         if isinstance(self.tracking_number_url, Unset):
             tracking_number_url = UNSET
         else:
             tracking_number_url = self.tracking_number_url
 
-        addresses: Unset | list[dict[str, Any]] = UNSET
+        addresses: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.addresses, Unset):
             addresses = []
             for addresses_item_data in self.addresses:
                 addresses_item = addresses_item_data.to_dict()
                 addresses.append(addresses_item)
 
-        order_created_date: None | Unset | str
+        order_created_date: Union[None, Unset, str]
         if isinstance(self.order_created_date, Unset):
             order_created_date = UNSET
         else:
             order_created_date = self.order_created_date
 
-        delivery_date: None | Unset | str
+        delivery_date: Union[None, Unset, str]
         if isinstance(self.delivery_date, Unset):
             delivery_date = UNSET
         else:
             delivery_date = self.delivery_date
 
-        currency: None | Unset | str
+        currency: Union[None, Unset, str]
         if isinstance(self.currency, Unset):
             currency = UNSET
         else:
@@ -90,35 +108,35 @@ class CreateSalesOrderRequest:
 
         location_id = self.location_id
 
-        status: Unset | str = UNSET
+        status: Union[Unset, str] = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
-        additional_info: None | Unset | str
+        additional_info: Union[None, Unset, str]
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
         else:
             additional_info = self.additional_info
 
-        customer_ref: None | Unset | str
+        customer_ref: Union[None, Unset, str]
         if isinstance(self.customer_ref, Unset):
             customer_ref = UNSET
         else:
             customer_ref = self.customer_ref
 
-        ecommerce_order_type: None | Unset | str
+        ecommerce_order_type: Union[None, Unset, str]
         if isinstance(self.ecommerce_order_type, Unset):
             ecommerce_order_type = UNSET
         else:
             ecommerce_order_type = self.ecommerce_order_type
 
-        ecommerce_store_name: None | Unset | str
+        ecommerce_store_name: Union[None, Unset, str]
         if isinstance(self.ecommerce_store_name, Unset):
             ecommerce_store_name = UNSET
         else:
             ecommerce_store_name = self.ecommerce_store_name
 
-        ecommerce_order_id: None | Unset | str
+        ecommerce_order_id: Union[None, Unset, str]
         if isinstance(self.ecommerce_order_id, Unset):
             ecommerce_order_id = UNSET
         else:
@@ -185,21 +203,21 @@ class CreateSalesOrderRequest:
 
             sales_order_rows.append(sales_order_rows_item)
 
-        def _parse_tracking_number(data: object) -> None | Unset | str:
+        def _parse_tracking_number(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
-        def _parse_tracking_number_url(data: object) -> None | Unset | str:
+        def _parse_tracking_number_url(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         tracking_number_url = _parse_tracking_number_url(
             d.pop("tracking_number_url", UNSET)
@@ -214,90 +232,90 @@ class CreateSalesOrderRequest:
 
             addresses.append(addresses_item)
 
-        def _parse_order_created_date(data: object) -> None | Unset | str:
+        def _parse_order_created_date(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         order_created_date = _parse_order_created_date(
             d.pop("order_created_date", UNSET)
         )
 
-        def _parse_delivery_date(data: object) -> None | Unset | str:
+        def _parse_delivery_date(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         delivery_date = _parse_delivery_date(d.pop("delivery_date", UNSET))
 
-        def _parse_currency(data: object) -> None | Unset | str:
+        def _parse_currency(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         currency = _parse_currency(d.pop("currency", UNSET))
 
         location_id = d.pop("location_id", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: Unset | CreateSalesOrderRequestStatus
+        status: Union[Unset, CreateSalesOrderRequestStatus]
         if isinstance(_status, Unset):
             status = UNSET
         else:
             status = CreateSalesOrderRequestStatus(_status)
 
-        def _parse_additional_info(data: object) -> None | Unset | str:
+        def _parse_additional_info(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
-        def _parse_customer_ref(data: object) -> None | Unset | str:
+        def _parse_customer_ref(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         customer_ref = _parse_customer_ref(d.pop("customer_ref", UNSET))
 
-        def _parse_ecommerce_order_type(data: object) -> None | Unset | str:
+        def _parse_ecommerce_order_type(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         ecommerce_order_type = _parse_ecommerce_order_type(
             d.pop("ecommerce_order_type", UNSET)
         )
 
-        def _parse_ecommerce_store_name(data: object) -> None | Unset | str:
+        def _parse_ecommerce_store_name(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         ecommerce_store_name = _parse_ecommerce_store_name(
             d.pop("ecommerce_store_name", UNSET)
         )
 
-        def _parse_ecommerce_order_id(data: object) -> None | Unset | str:
+        def _parse_ecommerce_order_id(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         ecommerce_order_id = _parse_ecommerce_order_id(
             d.pop("ecommerce_order_id", UNSET)

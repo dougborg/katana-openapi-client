@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 
@@ -20,17 +20,32 @@ T = TypeVar("T", bound="CreatePurchaseOrderRequest")
 
 @_attrs_define
 class CreatePurchaseOrderRequest:
+    """
+    Attributes:
+        order_no (str):
+        supplier_id (int):
+        location_id (int):
+        purchase_order_rows (list['PurchaseOrderRowRequest']):
+        entity_type (Union[Unset, CreatePurchaseOrderRequestEntityType]):
+        currency (Union[Unset, str]): Active ISO 4217 currency code (e.g. USD, EUR).
+        status (Union[Unset, CreatePurchaseOrderRequestStatus]):
+        expected_arrival_date (Union[Unset, str]):
+        order_created_date (Union[Unset, str]):
+        tracking_location_id (Union[Unset, int]): Submittable only when entity_type is outsourced
+        additional_info (Union[Unset, str]):
+    """
+
     order_no: str
     supplier_id: int
     location_id: int
     purchase_order_rows: list["PurchaseOrderRowRequest"]
-    entity_type: Unset | CreatePurchaseOrderRequestEntityType = UNSET
-    currency: Unset | str = UNSET
-    status: Unset | CreatePurchaseOrderRequestStatus = UNSET
-    expected_arrival_date: Unset | str = UNSET
-    order_created_date: Unset | str = UNSET
-    tracking_location_id: Unset | int = UNSET
-    additional_info: Unset | str = UNSET
+    entity_type: Union[Unset, CreatePurchaseOrderRequestEntityType] = UNSET
+    currency: Union[Unset, str] = UNSET
+    status: Union[Unset, CreatePurchaseOrderRequestStatus] = UNSET
+    expected_arrival_date: Union[Unset, str] = UNSET
+    order_created_date: Union[Unset, str] = UNSET
+    tracking_location_id: Union[Unset, int] = UNSET
+    additional_info: Union[Unset, str] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         order_no = self.order_no
@@ -44,13 +59,13 @@ class CreatePurchaseOrderRequest:
             purchase_order_rows_item = purchase_order_rows_item_data.to_dict()
             purchase_order_rows.append(purchase_order_rows_item)
 
-        entity_type: Unset | str = UNSET
+        entity_type: Union[Unset, str] = UNSET
         if not isinstance(self.entity_type, Unset):
             entity_type = self.entity_type.value
 
         currency = self.currency
 
-        status: Unset | str = UNSET
+        status: Union[Unset, str] = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
@@ -110,7 +125,7 @@ class CreatePurchaseOrderRequest:
             purchase_order_rows.append(purchase_order_rows_item)
 
         _entity_type = d.pop("entity_type", UNSET)
-        entity_type: Unset | CreatePurchaseOrderRequestEntityType
+        entity_type: Union[Unset, CreatePurchaseOrderRequestEntityType]
         if isinstance(_entity_type, Unset):
             entity_type = UNSET
         else:
@@ -119,7 +134,7 @@ class CreatePurchaseOrderRequest:
         currency = d.pop("currency", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: Unset | CreatePurchaseOrderRequestStatus
+        status: Union[Unset, CreatePurchaseOrderRequestStatus]
         if isinstance(_status, Unset):
             status = UNSET
         else:

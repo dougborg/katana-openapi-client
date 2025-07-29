@@ -1,16 +1,20 @@
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 T = TypeVar("T", bound="CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem")
 
 
 @_attrs_define
 class CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem:
+    """
+    Attributes:
+        batch_id (int):
+        quantity (float):
+    """
+
     batch_id: int
     quantity: float
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

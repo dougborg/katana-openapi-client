@@ -1,10 +1,8 @@
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..models.service_request_data_type import ServiceRequestDataType
 
@@ -17,6 +15,12 @@ T = TypeVar("T", bound="ServiceRequestData")
 
 @_attrs_define
 class ServiceRequestData:
+    """
+    Attributes:
+        type_ (ServiceRequestDataType): Resource type must be 'services'.
+        attributes (ServiceInputAttributes):
+    """
+
     type_: ServiceRequestDataType
     attributes: "ServiceInputAttributes"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

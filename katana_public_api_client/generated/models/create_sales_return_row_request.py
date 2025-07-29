@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 
@@ -10,10 +10,18 @@ T = TypeVar("T", bound="CreateSalesReturnRowRequest")
 
 @_attrs_define
 class CreateSalesReturnRowRequest:
+    """
+    Attributes:
+        variant_id (int): ID of the variant being returned
+        quantity (float): Quantity being returned
+        return_reason_id (Union[Unset, int]): ID of the return reason
+        notes (Union[Unset, str]): Optional notes about this returned item
+    """
+
     variant_id: int
     quantity: float
-    return_reason_id: Unset | int = UNSET
-    notes: Unset | str = UNSET
+    return_reason_id: Union[Unset, int] = UNSET
+    notes: Union[Unset, str] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         variant_id = self.variant_id

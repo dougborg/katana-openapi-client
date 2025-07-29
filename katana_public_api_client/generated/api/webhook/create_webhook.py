@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -10,7 +10,7 @@ from ...models.create_webhook_response_401 import CreateWebhookResponse401
 from ...models.create_webhook_response_422 import CreateWebhookResponse422
 from ...models.create_webhook_response_429 import CreateWebhookResponse429
 from ...models.create_webhook_response_500 import CreateWebhookResponse500
-from ...models.webhook_response import WebhookResponse
+from ...models.webhook import Webhook
 from ...types import Response
 
 
@@ -34,17 +34,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateWebhookResponse401
-    | CreateWebhookResponse422
-    | CreateWebhookResponse429
-    | CreateWebhookResponse500
-    | WebhookResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        CreateWebhookResponse401,
+        CreateWebhookResponse422,
+        CreateWebhookResponse429,
+        CreateWebhookResponse500,
+        Webhook,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = WebhookResponse.from_dict(response.json())
+        response_200 = Webhook.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -70,13 +71,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    CreateWebhookResponse401
-    | CreateWebhookResponse422
-    | CreateWebhookResponse429
-    | CreateWebhookResponse500
-    | WebhookResponse
+    Union[
+        CreateWebhookResponse401,
+        CreateWebhookResponse422,
+        CreateWebhookResponse429,
+        CreateWebhookResponse500,
+        Webhook,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -88,14 +91,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateWebhookRequest,
 ) -> Response[
-    CreateWebhookResponse401
-    | CreateWebhookResponse422
-    | CreateWebhookResponse429
-    | CreateWebhookResponse500
-    | WebhookResponse
+    Union[
+        CreateWebhookResponse401,
+        CreateWebhookResponse422,
+        CreateWebhookResponse429,
+        CreateWebhookResponse500,
+        Webhook,
+    ]
 ]:
     """Create a webhook
 
@@ -108,9 +113,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, WebhookResponse]]
+        Response[Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -126,48 +130,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateWebhookRequest,
-) -> (
-    CreateWebhookResponse401
-    | CreateWebhookResponse422
-    | CreateWebhookResponse429
-    | CreateWebhookResponse500
-    | WebhookResponse
-    | None
-):
-    """Create a webhook
-
-     Creates a new webhook object.
-
-    Args:
-        body (CreateWebhookRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, WebhookResponse]
-    """
-
-    return sync_detailed(
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    body: CreateWebhookRequest,
-) -> Response[
-    CreateWebhookResponse401
-    | CreateWebhookResponse422
-    | CreateWebhookResponse429
-    | CreateWebhookResponse500
-    | WebhookResponse
+) -> Optional[
+    Union[
+        CreateWebhookResponse401,
+        CreateWebhookResponse422,
+        CreateWebhookResponse429,
+        CreateWebhookResponse500,
+        Webhook,
+    ]
 ]:
     """Create a webhook
 
@@ -180,9 +152,42 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, Webhook]
+    """
+
+    return sync_detailed(
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: CreateWebhookRequest,
+) -> Response[
+    Union[
+        CreateWebhookResponse401,
+        CreateWebhookResponse422,
+        CreateWebhookResponse429,
+        CreateWebhookResponse500,
+        Webhook,
+    ]
+]:
+    """Create a webhook
+
+     Creates a new webhook object.
+
+    Args:
+        body (CreateWebhookRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, WebhookResponse]]
+        Response[Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -196,16 +201,17 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateWebhookRequest,
-) -> (
-    CreateWebhookResponse401
-    | CreateWebhookResponse422
-    | CreateWebhookResponse429
-    | CreateWebhookResponse500
-    | WebhookResponse
-    | None
-):
+) -> Optional[
+    Union[
+        CreateWebhookResponse401,
+        CreateWebhookResponse422,
+        CreateWebhookResponse429,
+        CreateWebhookResponse500,
+        Webhook,
+    ]
+]:
     """Create a webhook
 
      Creates a new webhook object.
@@ -217,9 +223,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, WebhookResponse]
+        Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, Webhook]
     """
 
     return (

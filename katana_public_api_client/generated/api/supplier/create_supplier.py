@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -10,7 +10,7 @@ from ...models.create_supplier_response_401 import CreateSupplierResponse401
 from ...models.create_supplier_response_422 import CreateSupplierResponse422
 from ...models.create_supplier_response_429 import CreateSupplierResponse429
 from ...models.create_supplier_response_500 import CreateSupplierResponse500
-from ...models.supplier_response import SupplierResponse
+from ...models.supplier import Supplier
 from ...types import Response
 
 
@@ -34,17 +34,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateSupplierResponse401
-    | CreateSupplierResponse422
-    | CreateSupplierResponse429
-    | CreateSupplierResponse500
-    | SupplierResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        CreateSupplierResponse401,
+        CreateSupplierResponse422,
+        CreateSupplierResponse429,
+        CreateSupplierResponse500,
+        Supplier,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = SupplierResponse.from_dict(response.json())
+        response_200 = Supplier.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -70,13 +71,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    CreateSupplierResponse401
-    | CreateSupplierResponse422
-    | CreateSupplierResponse429
-    | CreateSupplierResponse500
-    | SupplierResponse
+    Union[
+        CreateSupplierResponse401,
+        CreateSupplierResponse422,
+        CreateSupplierResponse429,
+        CreateSupplierResponse500,
+        Supplier,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -88,14 +91,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSupplierRequest,
 ) -> Response[
-    CreateSupplierResponse401
-    | CreateSupplierResponse422
-    | CreateSupplierResponse429
-    | CreateSupplierResponse500
-    | SupplierResponse
+    Union[
+        CreateSupplierResponse401,
+        CreateSupplierResponse422,
+        CreateSupplierResponse429,
+        CreateSupplierResponse500,
+        Supplier,
+    ]
 ]:
     """Create a supplier
 
@@ -108,9 +113,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, SupplierResponse]]
+        Response[Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, Supplier]]
     """
 
     kwargs = _get_kwargs(
@@ -126,48 +130,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSupplierRequest,
-) -> (
-    CreateSupplierResponse401
-    | CreateSupplierResponse422
-    | CreateSupplierResponse429
-    | CreateSupplierResponse500
-    | SupplierResponse
-    | None
-):
-    """Create a supplier
-
-     Creates a new supplier object.
-
-    Args:
-        body (CreateSupplierRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, SupplierResponse]
-    """
-
-    return sync_detailed(
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    body: CreateSupplierRequest,
-) -> Response[
-    CreateSupplierResponse401
-    | CreateSupplierResponse422
-    | CreateSupplierResponse429
-    | CreateSupplierResponse500
-    | SupplierResponse
+) -> Optional[
+    Union[
+        CreateSupplierResponse401,
+        CreateSupplierResponse422,
+        CreateSupplierResponse429,
+        CreateSupplierResponse500,
+        Supplier,
+    ]
 ]:
     """Create a supplier
 
@@ -180,9 +152,42 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, Supplier]
+    """
+
+    return sync_detailed(
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: CreateSupplierRequest,
+) -> Response[
+    Union[
+        CreateSupplierResponse401,
+        CreateSupplierResponse422,
+        CreateSupplierResponse429,
+        CreateSupplierResponse500,
+        Supplier,
+    ]
+]:
+    """Create a supplier
+
+     Creates a new supplier object.
+
+    Args:
+        body (CreateSupplierRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, SupplierResponse]]
+        Response[Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, Supplier]]
     """
 
     kwargs = _get_kwargs(
@@ -196,16 +201,17 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSupplierRequest,
-) -> (
-    CreateSupplierResponse401
-    | CreateSupplierResponse422
-    | CreateSupplierResponse429
-    | CreateSupplierResponse500
-    | SupplierResponse
-    | None
-):
+) -> Optional[
+    Union[
+        CreateSupplierResponse401,
+        CreateSupplierResponse422,
+        CreateSupplierResponse429,
+        CreateSupplierResponse500,
+        Supplier,
+    ]
+]:
     """Create a supplier
 
      Creates a new supplier object.
@@ -217,9 +223,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, SupplierResponse]
+        Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, Supplier]
     """
 
     return (

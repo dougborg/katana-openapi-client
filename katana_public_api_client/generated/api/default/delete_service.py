@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, cast
+from typing import Any, Optional, Union, cast
 
 import httpx
 
@@ -24,15 +24,16 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    Any
-    | DeleteServiceResponse401
-    | DeleteServiceResponse404
-    | DeleteServiceResponse429
-    | DeleteServiceResponse500
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        Any,
+        DeleteServiceResponse401,
+        DeleteServiceResponse404,
+        DeleteServiceResponse429,
+        DeleteServiceResponse500,
+    ]
+]:
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
@@ -59,13 +60,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    Any
-    | DeleteServiceResponse401
-    | DeleteServiceResponse404
-    | DeleteServiceResponse429
-    | DeleteServiceResponse500
+    Union[
+        Any,
+        DeleteServiceResponse401,
+        DeleteServiceResponse404,
+        DeleteServiceResponse429,
+        DeleteServiceResponse500,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -78,13 +81,15 @@ def _build_response(
 def sync_detailed(
     service_id: str,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
 ) -> Response[
-    Any
-    | DeleteServiceResponse401
-    | DeleteServiceResponse404
-    | DeleteServiceResponse429
-    | DeleteServiceResponse500
+    Union[
+        Any,
+        DeleteServiceResponse401,
+        DeleteServiceResponse404,
+        DeleteServiceResponse429,
+        DeleteServiceResponse500,
+    ]
 ]:
     """Delete Service
 
@@ -97,7 +102,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Any, DeleteServiceResponse401, DeleteServiceResponse404, DeleteServiceResponse429, DeleteServiceResponse500]]
@@ -117,15 +121,16 @@ def sync_detailed(
 def sync(
     service_id: str,
     *,
-    client: AuthenticatedClient | Client,
-) -> (
-    Any
-    | DeleteServiceResponse401
-    | DeleteServiceResponse404
-    | DeleteServiceResponse429
-    | DeleteServiceResponse500
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[
+    Union[
+        Any,
+        DeleteServiceResponse401,
+        DeleteServiceResponse404,
+        DeleteServiceResponse429,
+        DeleteServiceResponse500,
+    ]
+]:
     """Delete Service
 
      Delete a Service by its ID. (See: [Delete
@@ -137,7 +142,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[Any, DeleteServiceResponse401, DeleteServiceResponse404, DeleteServiceResponse429, DeleteServiceResponse500]
@@ -152,13 +156,15 @@ def sync(
 async def asyncio_detailed(
     service_id: str,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
 ) -> Response[
-    Any
-    | DeleteServiceResponse401
-    | DeleteServiceResponse404
-    | DeleteServiceResponse429
-    | DeleteServiceResponse500
+    Union[
+        Any,
+        DeleteServiceResponse401,
+        DeleteServiceResponse404,
+        DeleteServiceResponse429,
+        DeleteServiceResponse500,
+    ]
 ]:
     """Delete Service
 
@@ -171,7 +177,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Any, DeleteServiceResponse401, DeleteServiceResponse404, DeleteServiceResponse429, DeleteServiceResponse500]]
@@ -189,15 +194,16 @@ async def asyncio_detailed(
 async def asyncio(
     service_id: str,
     *,
-    client: AuthenticatedClient | Client,
-) -> (
-    Any
-    | DeleteServiceResponse401
-    | DeleteServiceResponse404
-    | DeleteServiceResponse429
-    | DeleteServiceResponse500
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[
+    Union[
+        Any,
+        DeleteServiceResponse401,
+        DeleteServiceResponse404,
+        DeleteServiceResponse429,
+        DeleteServiceResponse500,
+    ]
+]:
     """Delete Service
 
      Delete a Service by its ID. (See: [Delete
@@ -209,7 +215,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[Any, DeleteServiceResponse401, DeleteServiceResponse404, DeleteServiceResponse429, DeleteServiceResponse500]

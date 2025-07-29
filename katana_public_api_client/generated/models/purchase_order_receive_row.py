@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 
@@ -16,12 +16,20 @@ T = TypeVar("T", bound="PurchaseOrderReceiveRow")
 
 @_attrs_define
 class PurchaseOrderReceiveRow:
+    """
+    Attributes:
+        purchase_order_row_id (int):
+        quantity (float):
+        received_date (Union[Unset, str]): Optional received date in ISO 8601 format.
+        batch_transactions (Union[Unset, list['PurchaseOrderReceiveRowBatchTransactionsItem']]):
+    """
+
     purchase_order_row_id: int
     quantity: float
-    received_date: Unset | str = UNSET
-    batch_transactions: Unset | list["PurchaseOrderReceiveRowBatchTransactionsItem"] = (
-        UNSET
-    )
+    received_date: Union[Unset, str] = UNSET
+    batch_transactions: Union[
+        Unset, list["PurchaseOrderReceiveRowBatchTransactionsItem"]
+    ] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         purchase_order_row_id = self.purchase_order_row_id
@@ -30,7 +38,7 @@ class PurchaseOrderReceiveRow:
 
         received_date = self.received_date
 
-        batch_transactions: Unset | list[dict[str, Any]] = UNSET
+        batch_transactions: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.batch_transactions, Unset):
             batch_transactions = []
             for batch_transactions_item_data in self.batch_transactions:

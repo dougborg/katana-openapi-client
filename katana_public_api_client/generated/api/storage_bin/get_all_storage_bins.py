@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -8,17 +8,17 @@ from ...client import AuthenticatedClient, Client
 from ...models.get_all_storage_bins_response_401 import GetAllStorageBinsResponse401
 from ...models.get_all_storage_bins_response_429 import GetAllStorageBinsResponse429
 from ...models.get_all_storage_bins_response_500 import GetAllStorageBinsResponse500
-from ...models.storage_bin_list import StorageBinList
+from ...models.storage_bin_list_response import StorageBinListResponse
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    location_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    bin_name: Unset | str = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    bin_name: Union[Unset, str] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -44,16 +44,17 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllStorageBinsResponse401
-    | GetAllStorageBinsResponse429
-    | GetAllStorageBinsResponse500
-    | StorageBinList
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        GetAllStorageBinsResponse401,
+        GetAllStorageBinsResponse429,
+        GetAllStorageBinsResponse500,
+        StorageBinListResponse,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = StorageBinList.from_dict(response.json())
+        response_200 = StorageBinListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -75,12 +76,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    GetAllStorageBinsResponse401
-    | GetAllStorageBinsResponse429
-    | GetAllStorageBinsResponse500
-    | StorageBinList
+    Union[
+        GetAllStorageBinsResponse401,
+        GetAllStorageBinsResponse429,
+        GetAllStorageBinsResponse500,
+        StorageBinListResponse,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -92,17 +95,19 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    bin_name: Unset | str = UNSET,
+    client: Union[AuthenticatedClient, Client],
+    location_id: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    bin_name: Union[Unset, str] = UNSET,
 ) -> Response[
-    GetAllStorageBinsResponse401
-    | GetAllStorageBinsResponse429
-    | GetAllStorageBinsResponse500
-    | StorageBinList
+    Union[
+        GetAllStorageBinsResponse401,
+        GetAllStorageBinsResponse429,
+        GetAllStorageBinsResponse500,
+        StorageBinListResponse,
+    ]
 ]:
     """List all storage bins
 
@@ -120,9 +125,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinList]]
+        Response[Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -142,63 +146,19 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    bin_name: Unset | str = UNSET,
-) -> (
-    GetAllStorageBinsResponse401
-    | GetAllStorageBinsResponse429
-    | GetAllStorageBinsResponse500
-    | StorageBinList
-    | None
-):
-    """List all storage bins
-
-     Returns a list of storage bins you've previously created. The storage bins are returned in sorted
-    order, with the most recent storage bin appearing first.
-
-    Args:
-        location_id (Union[Unset, int]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        bin_name (Union[Unset, str]):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinList]
-    """
-
-    return sync_detailed(
-        client=client,
-        location_id=location_id,
-        include_deleted=include_deleted,
-        limit=limit,
-        page=page,
-        bin_name=bin_name,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    bin_name: Unset | str = UNSET,
-) -> Response[
-    GetAllStorageBinsResponse401
-    | GetAllStorageBinsResponse429
-    | GetAllStorageBinsResponse500
-    | StorageBinList
+    client: Union[AuthenticatedClient, Client],
+    location_id: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    bin_name: Union[Unset, str] = UNSET,
+) -> Optional[
+    Union[
+        GetAllStorageBinsResponse401,
+        GetAllStorageBinsResponse429,
+        GetAllStorageBinsResponse500,
+        StorageBinListResponse,
+    ]
 ]:
     """List all storage bins
 
@@ -216,9 +176,54 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinListResponse]
+    """
+
+    return sync_detailed(
+        client=client,
+        location_id=location_id,
+        include_deleted=include_deleted,
+        limit=limit,
+        page=page,
+        bin_name=bin_name,
+    ).parsed
+
+
+async def asyncio_detailed(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    location_id: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    bin_name: Union[Unset, str] = UNSET,
+) -> Response[
+    Union[
+        GetAllStorageBinsResponse401,
+        GetAllStorageBinsResponse429,
+        GetAllStorageBinsResponse500,
+        StorageBinListResponse,
+    ]
+]:
+    """List all storage bins
+
+     Returns a list of storage bins you've previously created. The storage bins are returned in sorted
+    order, with the most recent storage bin appearing first.
+
+    Args:
+        location_id (Union[Unset, int]):
+        include_deleted (Union[Unset, bool]):
+        limit (Union[Unset, int]):  Default: 50.
+        page (Union[Unset, int]):  Default: 1.
+        bin_name (Union[Unset, str]):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinList]]
+        Response[Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -236,19 +241,20 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    bin_name: Unset | str = UNSET,
-) -> (
-    GetAllStorageBinsResponse401
-    | GetAllStorageBinsResponse429
-    | GetAllStorageBinsResponse500
-    | StorageBinList
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+    location_id: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    bin_name: Union[Unset, str] = UNSET,
+) -> Optional[
+    Union[
+        GetAllStorageBinsResponse401,
+        GetAllStorageBinsResponse429,
+        GetAllStorageBinsResponse500,
+        StorageBinListResponse,
+    ]
+]:
     """List all storage bins
 
      Returns a list of storage bins you've previously created. The storage bins are returned in sorted
@@ -265,9 +271,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinList]
+        Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinListResponse]
     """
 
     return (

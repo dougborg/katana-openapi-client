@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -14,15 +14,15 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    latest_negative_stock_date_max: Unset | str = UNSET,
-    latest_negative_stock_date_min: Unset | str = UNSET,
-    name: Unset | str = UNSET,
-    sku: Unset | str = UNSET,
-    category: Unset | str = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    latest_negative_stock_date_max: Union[Unset, str] = UNSET,
+    latest_negative_stock_date_min: Union[Unset, str] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    sku: Union[Unset, str] = UNSET,
+    category: Union[Unset, str] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -56,14 +56,15 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllNegativeStockResponse401
-    | GetAllNegativeStockResponse429
-    | GetAllNegativeStockResponse500
-    | NegativeStockListResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        GetAllNegativeStockResponse401,
+        GetAllNegativeStockResponse429,
+        GetAllNegativeStockResponse500,
+        NegativeStockListResponse,
+    ]
+]:
     if response.status_code == 200:
         response_200 = NegativeStockListResponse.from_dict(response.json())
 
@@ -87,12 +88,14 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    GetAllNegativeStockResponse401
-    | GetAllNegativeStockResponse429
-    | GetAllNegativeStockResponse500
-    | NegativeStockListResponse
+    Union[
+        GetAllNegativeStockResponse401,
+        GetAllNegativeStockResponse429,
+        GetAllNegativeStockResponse500,
+        NegativeStockListResponse,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -104,21 +107,23 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    latest_negative_stock_date_max: Unset | str = UNSET,
-    latest_negative_stock_date_min: Unset | str = UNSET,
-    name: Unset | str = UNSET,
-    sku: Unset | str = UNSET,
-    category: Unset | str = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
+    client: Union[AuthenticatedClient, Client],
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    latest_negative_stock_date_max: Union[Unset, str] = UNSET,
+    latest_negative_stock_date_min: Union[Unset, str] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    sku: Union[Unset, str] = UNSET,
+    category: Union[Unset, str] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
 ) -> Response[
-    GetAllNegativeStockResponse401
-    | GetAllNegativeStockResponse429
-    | GetAllNegativeStockResponse500
-    | NegativeStockListResponse
+    Union[
+        GetAllNegativeStockResponse401,
+        GetAllNegativeStockResponse429,
+        GetAllNegativeStockResponse500,
+        NegativeStockListResponse,
+    ]
 ]:
     """List all variants with negative stock
 
@@ -136,11 +141,9 @@ def sync_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[GetAllNegativeStockResponse401, GetAllNegativeStockResponse429, GetAllNegativeStockResponse500, NegativeStockListResponse]]
@@ -167,23 +170,24 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    latest_negative_stock_date_max: Unset | str = UNSET,
-    latest_negative_stock_date_min: Unset | str = UNSET,
-    name: Unset | str = UNSET,
-    sku: Unset | str = UNSET,
-    category: Unset | str = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> (
-    GetAllNegativeStockResponse401
-    | GetAllNegativeStockResponse429
-    | GetAllNegativeStockResponse500
-    | NegativeStockListResponse
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    latest_negative_stock_date_max: Union[Unset, str] = UNSET,
+    latest_negative_stock_date_min: Union[Unset, str] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    sku: Union[Unset, str] = UNSET,
+    category: Union[Unset, str] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Optional[
+    Union[
+        GetAllNegativeStockResponse401,
+        GetAllNegativeStockResponse429,
+        GetAllNegativeStockResponse500,
+        NegativeStockListResponse,
+    ]
+]:
     """List all variants with negative stock
 
      Returns a list of variants with negative stock balance.
@@ -200,11 +204,9 @@ def sync(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[GetAllNegativeStockResponse401, GetAllNegativeStockResponse429, GetAllNegativeStockResponse500, NegativeStockListResponse]
@@ -226,21 +228,23 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    latest_negative_stock_date_max: Unset | str = UNSET,
-    latest_negative_stock_date_min: Unset | str = UNSET,
-    name: Unset | str = UNSET,
-    sku: Unset | str = UNSET,
-    category: Unset | str = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
+    client: Union[AuthenticatedClient, Client],
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    latest_negative_stock_date_max: Union[Unset, str] = UNSET,
+    latest_negative_stock_date_min: Union[Unset, str] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    sku: Union[Unset, str] = UNSET,
+    category: Union[Unset, str] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
 ) -> Response[
-    GetAllNegativeStockResponse401
-    | GetAllNegativeStockResponse429
-    | GetAllNegativeStockResponse500
-    | NegativeStockListResponse
+    Union[
+        GetAllNegativeStockResponse401,
+        GetAllNegativeStockResponse429,
+        GetAllNegativeStockResponse500,
+        NegativeStockListResponse,
+    ]
 ]:
     """List all variants with negative stock
 
@@ -258,11 +262,9 @@ async def asyncio_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[GetAllNegativeStockResponse401, GetAllNegativeStockResponse429, GetAllNegativeStockResponse500, NegativeStockListResponse]]
@@ -287,23 +289,24 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    latest_negative_stock_date_max: Unset | str = UNSET,
-    latest_negative_stock_date_min: Unset | str = UNSET,
-    name: Unset | str = UNSET,
-    sku: Unset | str = UNSET,
-    category: Unset | str = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> (
-    GetAllNegativeStockResponse401
-    | GetAllNegativeStockResponse429
-    | GetAllNegativeStockResponse500
-    | NegativeStockListResponse
-    | None
-):
+    client: Union[AuthenticatedClient, Client],
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    latest_negative_stock_date_max: Union[Unset, str] = UNSET,
+    latest_negative_stock_date_min: Union[Unset, str] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    sku: Union[Unset, str] = UNSET,
+    category: Union[Unset, str] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Optional[
+    Union[
+        GetAllNegativeStockResponse401,
+        GetAllNegativeStockResponse429,
+        GetAllNegativeStockResponse500,
+        NegativeStockListResponse,
+    ]
+]:
     """List all variants with negative stock
 
      Returns a list of variants with negative stock balance.
@@ -320,11 +323,9 @@ async def asyncio(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[GetAllNegativeStockResponse401, GetAllNegativeStockResponse429, GetAllNegativeStockResponse500, NegativeStockListResponse]

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Union, cast
+from typing import Any, Optional, Union, cast
 
 import httpx
 
@@ -32,7 +32,7 @@ def _get_kwargs(
         "url": "/purchase_order_receive",
     }
 
-    _kwargs["json"] = None  # type: dict[str, Any] | list[dict[str, Any]]
+    _kwargs["json"]: Union[dict[str, Any], list[dict[str, Any]]]
     if isinstance(body, list):
         _kwargs["json"] = []
         for componentsschemas_purchase_order_receive_request_type_0_item_data in body:
@@ -51,15 +51,16 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    Any
-    | ReceivePurchaseOrderResponse401
-    | ReceivePurchaseOrderResponse422
-    | ReceivePurchaseOrderResponse429
-    | ReceivePurchaseOrderResponse500
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        Any,
+        ReceivePurchaseOrderResponse401,
+        ReceivePurchaseOrderResponse422,
+        ReceivePurchaseOrderResponse429,
+        ReceivePurchaseOrderResponse500,
+    ]
+]:
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
@@ -86,13 +87,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    Any
-    | ReceivePurchaseOrderResponse401
-    | ReceivePurchaseOrderResponse422
-    | ReceivePurchaseOrderResponse429
-    | ReceivePurchaseOrderResponse500
+    Union[
+        Any,
+        ReceivePurchaseOrderResponse401,
+        ReceivePurchaseOrderResponse422,
+        ReceivePurchaseOrderResponse429,
+        ReceivePurchaseOrderResponse500,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -104,14 +107,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
 ) -> Response[
-    Any
-    | ReceivePurchaseOrderResponse401
-    | ReceivePurchaseOrderResponse422
-    | ReceivePurchaseOrderResponse429
-    | ReceivePurchaseOrderResponse500
+    Union[
+        Any,
+        ReceivePurchaseOrderResponse401,
+        ReceivePurchaseOrderResponse422,
+        ReceivePurchaseOrderResponse429,
+        ReceivePurchaseOrderResponse500,
+    ]
 ]:
     """Receive a purchase order
 
@@ -129,7 +134,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Any, ReceivePurchaseOrderResponse401, ReceivePurchaseOrderResponse422, ReceivePurchaseOrderResponse429, ReceivePurchaseOrderResponse500]]
@@ -148,54 +152,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
-) -> (
-    Any
-    | ReceivePurchaseOrderResponse401
-    | ReceivePurchaseOrderResponse422
-    | ReceivePurchaseOrderResponse429
-    | ReceivePurchaseOrderResponse500
-    | None
-):
-    """Receive a purchase order
-
-     If you receive the items on the purchase order, you can mark the purchase order as received.
-        This will update the existing purchase order rows quantities to the quantities left unreceived
-    and
-        create a new rows with the received quantities and dates. If you want to mark all rows as
-    received and
-        the order doesn't contain batch tracked items, you can use PATCH /purchase_orders/id endpoint.
-        Reverting the receive must also be done through that endpoint.
-
-    Args:
-        body (Union['PurchaseOrderReceiveRow', list['PurchaseOrderReceiveRow']]):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[Any, ReceivePurchaseOrderResponse401, ReceivePurchaseOrderResponse422, ReceivePurchaseOrderResponse429, ReceivePurchaseOrderResponse500]
-    """
-
-    return sync_detailed(
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
-) -> Response[
-    Any
-    | ReceivePurchaseOrderResponse401
-    | ReceivePurchaseOrderResponse422
-    | ReceivePurchaseOrderResponse429
-    | ReceivePurchaseOrderResponse500
+) -> Optional[
+    Union[
+        Any,
+        ReceivePurchaseOrderResponse401,
+        ReceivePurchaseOrderResponse422,
+        ReceivePurchaseOrderResponse429,
+        ReceivePurchaseOrderResponse500,
+    ]
 ]:
     """Receive a purchase order
 
@@ -214,32 +180,29 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[Any, ReceivePurchaseOrderResponse401, ReceivePurchaseOrderResponse422, ReceivePurchaseOrderResponse429, ReceivePurchaseOrderResponse500]]
+        Union[Any, ReceivePurchaseOrderResponse401, ReceivePurchaseOrderResponse422, ReceivePurchaseOrderResponse429, ReceivePurchaseOrderResponse500]
     """
 
-    kwargs = _get_kwargs(
+    return sync_detailed(
+        client=client,
         body=body,
-    )
-
-    response = await client.get_async_httpx_client().request(**kwargs)
-
-    return _build_response(client=client, response=response)
+    ).parsed
 
 
-async def asyncio(
+async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
-) -> (
-    Any
-    | ReceivePurchaseOrderResponse401
-    | ReceivePurchaseOrderResponse422
-    | ReceivePurchaseOrderResponse429
-    | ReceivePurchaseOrderResponse500
-    | None
-):
+) -> Response[
+    Union[
+        Any,
+        ReceivePurchaseOrderResponse401,
+        ReceivePurchaseOrderResponse422,
+        ReceivePurchaseOrderResponse429,
+        ReceivePurchaseOrderResponse500,
+    ]
+]:
     """Receive a purchase order
 
      If you receive the items on the purchase order, you can mark the purchase order as received.
@@ -257,6 +220,48 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Response[Union[Any, ReceivePurchaseOrderResponse401, ReceivePurchaseOrderResponse422, ReceivePurchaseOrderResponse429, ReceivePurchaseOrderResponse500]]
+    """
+
+    kwargs = _get_kwargs(
+        body=body,
+    )
+
+    response = await client.get_async_httpx_client().request(**kwargs)
+
+    return _build_response(client=client, response=response)
+
+
+async def asyncio(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
+) -> Optional[
+    Union[
+        Any,
+        ReceivePurchaseOrderResponse401,
+        ReceivePurchaseOrderResponse422,
+        ReceivePurchaseOrderResponse429,
+        ReceivePurchaseOrderResponse500,
+    ]
+]:
+    """Receive a purchase order
+
+     If you receive the items on the purchase order, you can mark the purchase order as received.
+        This will update the existing purchase order rows quantities to the quantities left unreceived
+    and
+        create a new rows with the received quantities and dates. If you want to mark all rows as
+    received and
+        the order doesn't contain batch tracked items, you can use PATCH /purchase_orders/id endpoint.
+        Reverting the receive must also be done through that endpoint.
+
+    Args:
+        body (Union['PurchaseOrderReceiveRow', list['PurchaseOrderReceiveRow']]):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         Union[Any, ReceivePurchaseOrderResponse401, ReceivePurchaseOrderResponse422, ReceivePurchaseOrderResponse429, ReceivePurchaseOrderResponse500]

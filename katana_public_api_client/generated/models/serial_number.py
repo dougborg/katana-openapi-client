@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -15,12 +13,22 @@ T = TypeVar("T", bound="SerialNumber")
 
 @_attrs_define
 class SerialNumber:
-    id: Unset | int = UNSET
-    transaction_id: Unset | str = UNSET
-    serial_number: Unset | str = UNSET
-    resource_type: Unset | str = UNSET
-    resource_id: Unset | int = UNSET
-    transaction_date: Unset | datetime.datetime = UNSET
+    """
+    Attributes:
+        id (Union[Unset, int]):
+        transaction_id (Union[Unset, str]):
+        serial_number (Union[Unset, str]):
+        resource_type (Union[Unset, str]):
+        resource_id (Union[Unset, int]):
+        transaction_date (Union[Unset, datetime.datetime]):
+    """
+
+    id: Union[Unset, int] = UNSET
+    transaction_id: Union[Unset, str] = UNSET
+    serial_number: Union[Unset, str] = UNSET
+    resource_type: Union[Unset, str] = UNSET
+    resource_id: Union[Unset, int] = UNSET
+    transaction_date: Union[Unset, datetime.datetime] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -34,7 +42,7 @@ class SerialNumber:
 
         resource_id = self.resource_id
 
-        transaction_date: Unset | str = UNSET
+        transaction_date: Union[Unset, str] = UNSET
         if not isinstance(self.transaction_date, Unset):
             transaction_date = self.transaction_date.isoformat()
 
@@ -70,7 +78,7 @@ class SerialNumber:
         resource_id = d.pop("resource_id", UNSET)
 
         _transaction_date = d.pop("transaction_date", UNSET)
-        transaction_date: Unset | datetime.datetime
+        transaction_date: Union[Unset, datetime.datetime]
         if isinstance(_transaction_date, Unset):
             transaction_date = UNSET
         else:

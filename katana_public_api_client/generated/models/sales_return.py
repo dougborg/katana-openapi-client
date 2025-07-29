@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..models.sales_return_status import SalesReturnStatus
@@ -20,21 +18,40 @@ T = TypeVar("T", bound="SalesReturn")
 
 @_attrs_define
 class SalesReturn:
+    """
+    Attributes:
+        id (int):
+        customer_id (int):
+        order_no (str):
+        return_location_id (int):
+        status (SalesReturnStatus):
+        sales_order_id (Union[None, Unset, int]):
+        currency (Union[Unset, str]):
+        return_date (Union[None, Unset, datetime.datetime]):
+        order_created_date (Union[Unset, datetime.datetime]):
+        additional_info (Union[None, Unset, str]):
+        refund_status (Union[None, Unset, str]):
+        sales_return_rows (Union[Unset, list['SalesReturnRow']]):
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
+        deleted_at (Union[None, Unset, datetime.datetime]):
+    """
+
     id: int
     customer_id: int
     order_no: str
     return_location_id: int
     status: SalesReturnStatus
-    sales_order_id: None | Unset | int = UNSET
-    currency: Unset | str = UNSET
-    return_date: None | Unset | datetime.datetime = UNSET
-    order_created_date: Unset | datetime.datetime = UNSET
-    additional_info: None | Unset | str = UNSET
-    refund_status: None | Unset | str = UNSET
-    sales_return_rows: Unset | list["SalesReturnRow"] = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
+    sales_order_id: Union[None, Unset, int] = UNSET
+    currency: Union[Unset, str] = UNSET
+    return_date: Union[None, Unset, datetime.datetime] = UNSET
+    order_created_date: Union[Unset, datetime.datetime] = UNSET
+    additional_info: Union[None, Unset, str] = UNSET
+    refund_status: Union[None, Unset, str] = UNSET
+    sales_return_rows: Union[Unset, list["SalesReturnRow"]] = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
+    deleted_at: Union[None, Unset, datetime.datetime] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -48,7 +65,7 @@ class SalesReturn:
 
         status = self.status.value
 
-        sales_order_id: None | Unset | int
+        sales_order_id: Union[None, Unset, int]
         if isinstance(self.sales_order_id, Unset):
             sales_order_id = UNSET
         else:
@@ -56,7 +73,7 @@ class SalesReturn:
 
         currency = self.currency
 
-        return_date: None | Unset | str
+        return_date: Union[None, Unset, str]
         if isinstance(self.return_date, Unset):
             return_date = UNSET
         elif isinstance(self.return_date, datetime.datetime):
@@ -64,38 +81,38 @@ class SalesReturn:
         else:
             return_date = self.return_date
 
-        order_created_date: Unset | str = UNSET
+        order_created_date: Union[Unset, str] = UNSET
         if not isinstance(self.order_created_date, Unset):
             order_created_date = self.order_created_date.isoformat()
 
-        additional_info: None | Unset | str
+        additional_info: Union[None, Unset, str]
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
         else:
             additional_info = self.additional_info
 
-        refund_status: None | Unset | str
+        refund_status: Union[None, Unset, str]
         if isinstance(self.refund_status, Unset):
             refund_status = UNSET
         else:
             refund_status = self.refund_status
 
-        sales_return_rows: Unset | list[dict[str, Any]] = UNSET
+        sales_return_rows: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.sales_return_rows, Unset):
             sales_return_rows = []
             for sales_return_rows_item_data in self.sales_return_rows:
                 sales_return_rows_item = sales_return_rows_item_data.to_dict()
                 sales_return_rows.append(sales_return_rows_item)
 
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | Unset | str
+        deleted_at: Union[None, Unset, str]
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -152,18 +169,18 @@ class SalesReturn:
 
         status = SalesReturnStatus(d.pop("status"))
 
-        def _parse_sales_order_id(data: object) -> None | Unset | int:
+        def _parse_sales_order_id(data: object) -> Union[None, Unset, int]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(Union[None, Unset, int], data)
 
         sales_order_id = _parse_sales_order_id(d.pop("sales_order_id", UNSET))
 
         currency = d.pop("currency", UNSET)
 
-        def _parse_return_date(data: object) -> None | Unset | datetime.datetime:
+        def _parse_return_date(data: object) -> Union[None, Unset, datetime.datetime]:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -176,32 +193,32 @@ class SalesReturn:
                 return return_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(Union[None, Unset, datetime.datetime], data)
 
         return_date = _parse_return_date(d.pop("return_date", UNSET))
 
         _order_created_date = d.pop("order_created_date", UNSET)
-        order_created_date: Unset | datetime.datetime
+        order_created_date: Union[Unset, datetime.datetime]
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:
             order_created_date = isoparse(_order_created_date)
 
-        def _parse_additional_info(data: object) -> None | Unset | str:
+        def _parse_additional_info(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
-        def _parse_refund_status(data: object) -> None | Unset | str:
+        def _parse_refund_status(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         refund_status = _parse_refund_status(d.pop("refund_status", UNSET))
 
@@ -215,20 +232,20 @@ class SalesReturn:
             sales_return_rows.append(sales_return_rows_item)
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_deleted_at(data: object) -> Union[None, Unset, datetime.datetime]:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -241,7 +258,7 @@ class SalesReturn:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(Union[None, Unset, datetime.datetime], data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

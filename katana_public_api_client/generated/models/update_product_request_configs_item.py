@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, Union, cast
 
 from attrs import define as _attrs_define
 
@@ -10,13 +10,19 @@ T = TypeVar("T", bound="UpdateProductRequestConfigsItem")
 
 @_attrs_define
 class UpdateProductRequestConfigsItem:
-    name: Unset | str = UNSET
-    values: Unset | list[str] = UNSET
+    """
+    Attributes:
+        name (Union[Unset, str]):
+        values (Union[Unset, list[str]]):
+    """
+
+    name: Union[Unset, str] = UNSET
+    values: Union[Unset, list[str]] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
 
-        values: Unset | list[str] = UNSET
+        values: Union[Unset, list[str]] = UNSET
         if not isinstance(self.values, Unset):
             values = self.values
 

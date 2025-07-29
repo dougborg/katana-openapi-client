@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..models.sales_order_row_product_availability_type_0 import (
@@ -25,26 +23,52 @@ T = TypeVar("T", bound="SalesOrderRow")
 
 @_attrs_define
 class SalesOrderRow:
+    """
+    Attributes:
+        id (int):
+        quantity (float):
+        variant_id (int):
+        tax_rate_id (Union[None, Unset, int]):
+        location_id (Union[None, Unset, int]):
+        product_availability (Union[None, SalesOrderRowProductAvailabilityType0, Unset]):
+        product_expected_date (Union[None, Unset, datetime.datetime]):
+        price_per_unit (Union[Unset, float]):
+        price_per_unit_in_base_currency (Union[Unset, float]):
+        total (Union[Unset, float]):
+        total_in_base_currency (Union[Unset, float]):
+        cogs_value (Union[None, Unset, float]):
+        attributes (Union[Unset, list['SalesOrderRowAttributesItem']]):
+        batch_transactions (Union[Unset, list['SalesOrderRowBatchTransactionsItem']]):
+        serial_numbers (Union[Unset, list[int]]):
+        linked_manufacturing_order_id (Union[None, Unset, int]):
+        conversion_rate (Union[None, Unset, float]):
+        conversion_date (Union[None, Unset, datetime.datetime]):
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
+    """
+
     id: int
     quantity: float
     variant_id: int
-    tax_rate_id: None | Unset | int = UNSET
-    location_id: None | Unset | int = UNSET
-    product_availability: None | SalesOrderRowProductAvailabilityType0 | Unset = UNSET
-    product_expected_date: None | Unset | datetime.datetime = UNSET
-    price_per_unit: Unset | float = UNSET
-    price_per_unit_in_base_currency: Unset | float = UNSET
-    total: Unset | float = UNSET
-    total_in_base_currency: Unset | float = UNSET
-    cogs_value: None | Unset | float = UNSET
-    attributes: Unset | list["SalesOrderRowAttributesItem"] = UNSET
-    batch_transactions: Unset | list["SalesOrderRowBatchTransactionsItem"] = UNSET
-    serial_numbers: Unset | list[int] = UNSET
-    linked_manufacturing_order_id: None | Unset | int = UNSET
-    conversion_rate: None | Unset | float = UNSET
-    conversion_date: None | Unset | datetime.datetime = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
+    tax_rate_id: Union[None, Unset, int] = UNSET
+    location_id: Union[None, Unset, int] = UNSET
+    product_availability: Union[None, SalesOrderRowProductAvailabilityType0, Unset] = (
+        UNSET
+    )
+    product_expected_date: Union[None, Unset, datetime.datetime] = UNSET
+    price_per_unit: Union[Unset, float] = UNSET
+    price_per_unit_in_base_currency: Union[Unset, float] = UNSET
+    total: Union[Unset, float] = UNSET
+    total_in_base_currency: Union[Unset, float] = UNSET
+    cogs_value: Union[None, Unset, float] = UNSET
+    attributes: Union[Unset, list["SalesOrderRowAttributesItem"]] = UNSET
+    batch_transactions: Union[Unset, list["SalesOrderRowBatchTransactionsItem"]] = UNSET
+    serial_numbers: Union[Unset, list[int]] = UNSET
+    linked_manufacturing_order_id: Union[None, Unset, int] = UNSET
+    conversion_rate: Union[None, Unset, float] = UNSET
+    conversion_date: Union[None, Unset, datetime.datetime] = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -54,19 +78,19 @@ class SalesOrderRow:
 
         variant_id = self.variant_id
 
-        tax_rate_id: None | Unset | int
+        tax_rate_id: Union[None, Unset, int]
         if isinstance(self.tax_rate_id, Unset):
             tax_rate_id = UNSET
         else:
             tax_rate_id = self.tax_rate_id
 
-        location_id: None | Unset | int
+        location_id: Union[None, Unset, int]
         if isinstance(self.location_id, Unset):
             location_id = UNSET
         else:
             location_id = self.location_id
 
-        product_availability: None | Unset | str
+        product_availability: Union[None, Unset, str]
         if isinstance(self.product_availability, Unset):
             product_availability = UNSET
         elif isinstance(
@@ -76,7 +100,7 @@ class SalesOrderRow:
         else:
             product_availability = self.product_availability
 
-        product_expected_date: None | Unset | str
+        product_expected_date: Union[None, Unset, str]
         if isinstance(self.product_expected_date, Unset):
             product_expected_date = UNSET
         elif isinstance(self.product_expected_date, datetime.datetime):
@@ -92,43 +116,43 @@ class SalesOrderRow:
 
         total_in_base_currency = self.total_in_base_currency
 
-        cogs_value: None | Unset | float
+        cogs_value: Union[None, Unset, float]
         if isinstance(self.cogs_value, Unset):
             cogs_value = UNSET
         else:
             cogs_value = self.cogs_value
 
-        attributes: Unset | list[dict[str, Any]] = UNSET
+        attributes: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.attributes, Unset):
             attributes = []
             for attributes_item_data in self.attributes:
                 attributes_item = attributes_item_data.to_dict()
                 attributes.append(attributes_item)
 
-        batch_transactions: Unset | list[dict[str, Any]] = UNSET
+        batch_transactions: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.batch_transactions, Unset):
             batch_transactions = []
             for batch_transactions_item_data in self.batch_transactions:
                 batch_transactions_item = batch_transactions_item_data.to_dict()
                 batch_transactions.append(batch_transactions_item)
 
-        serial_numbers: Unset | list[int] = UNSET
+        serial_numbers: Union[Unset, list[int]] = UNSET
         if not isinstance(self.serial_numbers, Unset):
             serial_numbers = self.serial_numbers
 
-        linked_manufacturing_order_id: None | Unset | int
+        linked_manufacturing_order_id: Union[None, Unset, int]
         if isinstance(self.linked_manufacturing_order_id, Unset):
             linked_manufacturing_order_id = UNSET
         else:
             linked_manufacturing_order_id = self.linked_manufacturing_order_id
 
-        conversion_rate: None | Unset | float
+        conversion_rate: Union[None, Unset, float]
         if isinstance(self.conversion_rate, Unset):
             conversion_rate = UNSET
         else:
             conversion_rate = self.conversion_rate
 
-        conversion_date: None | Unset | str
+        conversion_date: Union[None, Unset, str]
         if isinstance(self.conversion_date, Unset):
             conversion_date = UNSET
         elif isinstance(self.conversion_date, datetime.datetime):
@@ -136,11 +160,11 @@ class SalesOrderRow:
         else:
             conversion_date = self.conversion_date
 
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
@@ -206,27 +230,27 @@ class SalesOrderRow:
 
         variant_id = d.pop("variant_id")
 
-        def _parse_tax_rate_id(data: object) -> None | Unset | int:
+        def _parse_tax_rate_id(data: object) -> Union[None, Unset, int]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(Union[None, Unset, int], data)
 
         tax_rate_id = _parse_tax_rate_id(d.pop("tax_rate_id", UNSET))
 
-        def _parse_location_id(data: object) -> None | Unset | int:
+        def _parse_location_id(data: object) -> Union[None, Unset, int]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(Union[None, Unset, int], data)
 
         location_id = _parse_location_id(d.pop("location_id", UNSET))
 
         def _parse_product_availability(
             data: object,
-        ) -> None | SalesOrderRowProductAvailabilityType0 | Unset:
+        ) -> Union[None, SalesOrderRowProductAvailabilityType0, Unset]:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -241,7 +265,7 @@ class SalesOrderRow:
                 return product_availability_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | SalesOrderRowProductAvailabilityType0 | Unset, data)
+            return cast(Union[None, SalesOrderRowProductAvailabilityType0, Unset], data)
 
         product_availability = _parse_product_availability(
             d.pop("product_availability", UNSET)
@@ -249,7 +273,7 @@ class SalesOrderRow:
 
         def _parse_product_expected_date(
             data: object,
-        ) -> None | Unset | datetime.datetime:
+        ) -> Union[None, Unset, datetime.datetime]:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -262,7 +286,7 @@ class SalesOrderRow:
                 return product_expected_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(Union[None, Unset, datetime.datetime], data)
 
         product_expected_date = _parse_product_expected_date(
             d.pop("product_expected_date", UNSET)
@@ -278,12 +302,12 @@ class SalesOrderRow:
 
         total_in_base_currency = d.pop("total_in_base_currency", UNSET)
 
-        def _parse_cogs_value(data: object) -> None | Unset | float:
+        def _parse_cogs_value(data: object) -> Union[None, Unset, float]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(Union[None, Unset, float], data)
 
         cogs_value = _parse_cogs_value(d.pop("cogs_value", UNSET))
 
@@ -309,29 +333,29 @@ class SalesOrderRow:
 
         def _parse_linked_manufacturing_order_id(
             data: object,
-        ) -> None | Unset | int:
+        ) -> Union[None, Unset, int]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(Union[None, Unset, int], data)
 
         linked_manufacturing_order_id = _parse_linked_manufacturing_order_id(
             d.pop("linked_manufacturing_order_id", UNSET)
         )
 
-        def _parse_conversion_rate(data: object) -> None | Unset | float:
+        def _parse_conversion_rate(data: object) -> Union[None, Unset, float]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(Union[None, Unset, float], data)
 
         conversion_rate = _parse_conversion_rate(d.pop("conversion_rate", UNSET))
 
         def _parse_conversion_date(
             data: object,
-        ) -> None | Unset | datetime.datetime:
+        ) -> Union[None, Unset, datetime.datetime]:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -344,19 +368,19 @@ class SalesOrderRow:
                 return conversion_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(Union[None, Unset, datetime.datetime], data)
 
         conversion_date = _parse_conversion_date(d.pop("conversion_date", UNSET))
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:

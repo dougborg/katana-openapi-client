@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -18,7 +18,7 @@ from ...models.create_purchase_order_row_response_429 import (
 from ...models.create_purchase_order_row_response_500 import (
     CreatePurchaseOrderRowResponse500,
 )
-from ...models.purchase_order_row_response import PurchaseOrderRowResponse
+from ...models.purchase_order_row import PurchaseOrderRow
 from ...types import Response
 
 
@@ -42,17 +42,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreatePurchaseOrderRowResponse401
-    | CreatePurchaseOrderRowResponse422
-    | CreatePurchaseOrderRowResponse429
-    | CreatePurchaseOrderRowResponse500
-    | PurchaseOrderRowResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[
+    Union[
+        CreatePurchaseOrderRowResponse401,
+        CreatePurchaseOrderRowResponse422,
+        CreatePurchaseOrderRowResponse429,
+        CreatePurchaseOrderRowResponse500,
+        PurchaseOrderRow,
+    ]
+]:
     if response.status_code == 200:
-        response_200 = PurchaseOrderRowResponse.from_dict(response.json())
+        response_200 = PurchaseOrderRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -78,13 +79,15 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Response[
-    CreatePurchaseOrderRowResponse401
-    | CreatePurchaseOrderRowResponse422
-    | CreatePurchaseOrderRowResponse429
-    | CreatePurchaseOrderRowResponse500
-    | PurchaseOrderRowResponse
+    Union[
+        CreatePurchaseOrderRowResponse401,
+        CreatePurchaseOrderRowResponse422,
+        CreatePurchaseOrderRowResponse429,
+        CreatePurchaseOrderRowResponse500,
+        PurchaseOrderRow,
+    ]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -96,14 +99,16 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreatePurchaseOrderRowRequest,
 ) -> Response[
-    CreatePurchaseOrderRowResponse401
-    | CreatePurchaseOrderRowResponse422
-    | CreatePurchaseOrderRowResponse429
-    | CreatePurchaseOrderRowResponse500
-    | PurchaseOrderRowResponse
+    Union[
+        CreatePurchaseOrderRowResponse401,
+        CreatePurchaseOrderRowResponse422,
+        CreatePurchaseOrderRowResponse429,
+        CreatePurchaseOrderRowResponse500,
+        PurchaseOrderRow,
+    ]
 ]:
     """Create a purchase order row
 
@@ -116,9 +121,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreatePurchaseOrderRowResponse401, CreatePurchaseOrderRowResponse422, CreatePurchaseOrderRowResponse429, CreatePurchaseOrderRowResponse500, PurchaseOrderRowResponse]]
+        Response[Union[CreatePurchaseOrderRowResponse401, CreatePurchaseOrderRowResponse422, CreatePurchaseOrderRowResponse429, CreatePurchaseOrderRowResponse500, PurchaseOrderRow]]
     """
 
     kwargs = _get_kwargs(
@@ -134,48 +138,16 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreatePurchaseOrderRowRequest,
-) -> (
-    CreatePurchaseOrderRowResponse401
-    | CreatePurchaseOrderRowResponse422
-    | CreatePurchaseOrderRowResponse429
-    | CreatePurchaseOrderRowResponse500
-    | PurchaseOrderRowResponse
-    | None
-):
-    """Create a purchase order row
-
-     Creates a new purchase order row object.
-
-    Args:
-        body (CreatePurchaseOrderRowRequest):
-
-    Raises:
-        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
-
-
-    Returns:
-        Union[CreatePurchaseOrderRowResponse401, CreatePurchaseOrderRowResponse422, CreatePurchaseOrderRowResponse429, CreatePurchaseOrderRowResponse500, PurchaseOrderRowResponse]
-    """
-
-    return sync_detailed(
-        client=client,
-        body=body,
-    ).parsed
-
-
-async def asyncio_detailed(
-    *,
-    client: AuthenticatedClient | Client,
-    body: CreatePurchaseOrderRowRequest,
-) -> Response[
-    CreatePurchaseOrderRowResponse401
-    | CreatePurchaseOrderRowResponse422
-    | CreatePurchaseOrderRowResponse429
-    | CreatePurchaseOrderRowResponse500
-    | PurchaseOrderRowResponse
+) -> Optional[
+    Union[
+        CreatePurchaseOrderRowResponse401,
+        CreatePurchaseOrderRowResponse422,
+        CreatePurchaseOrderRowResponse429,
+        CreatePurchaseOrderRowResponse500,
+        PurchaseOrderRow,
+    ]
 ]:
     """Create a purchase order row
 
@@ -188,9 +160,42 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+    Returns:
+        Union[CreatePurchaseOrderRowResponse401, CreatePurchaseOrderRowResponse422, CreatePurchaseOrderRowResponse429, CreatePurchaseOrderRowResponse500, PurchaseOrderRow]
+    """
+
+    return sync_detailed(
+        client=client,
+        body=body,
+    ).parsed
+
+
+async def asyncio_detailed(
+    *,
+    client: Union[AuthenticatedClient, Client],
+    body: CreatePurchaseOrderRowRequest,
+) -> Response[
+    Union[
+        CreatePurchaseOrderRowResponse401,
+        CreatePurchaseOrderRowResponse422,
+        CreatePurchaseOrderRowResponse429,
+        CreatePurchaseOrderRowResponse500,
+        PurchaseOrderRow,
+    ]
+]:
+    """Create a purchase order row
+
+     Creates a new purchase order row object.
+
+    Args:
+        body (CreatePurchaseOrderRowRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[CreatePurchaseOrderRowResponse401, CreatePurchaseOrderRowResponse422, CreatePurchaseOrderRowResponse429, CreatePurchaseOrderRowResponse500, PurchaseOrderRowResponse]]
+        Response[Union[CreatePurchaseOrderRowResponse401, CreatePurchaseOrderRowResponse422, CreatePurchaseOrderRowResponse429, CreatePurchaseOrderRowResponse500, PurchaseOrderRow]]
     """
 
     kwargs = _get_kwargs(
@@ -204,16 +209,17 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreatePurchaseOrderRowRequest,
-) -> (
-    CreatePurchaseOrderRowResponse401
-    | CreatePurchaseOrderRowResponse422
-    | CreatePurchaseOrderRowResponse429
-    | CreatePurchaseOrderRowResponse500
-    | PurchaseOrderRowResponse
-    | None
-):
+) -> Optional[
+    Union[
+        CreatePurchaseOrderRowResponse401,
+        CreatePurchaseOrderRowResponse422,
+        CreatePurchaseOrderRowResponse429,
+        CreatePurchaseOrderRowResponse500,
+        PurchaseOrderRow,
+    ]
+]:
     """Create a purchase order row
 
      Creates a new purchase order row object.
@@ -225,9 +231,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[CreatePurchaseOrderRowResponse401, CreatePurchaseOrderRowResponse422, CreatePurchaseOrderRowResponse429, CreatePurchaseOrderRowResponse500, PurchaseOrderRowResponse]
+        Union[CreatePurchaseOrderRowResponse401, CreatePurchaseOrderRowResponse422, CreatePurchaseOrderRowResponse429, CreatePurchaseOrderRowResponse500, PurchaseOrderRow]
     """
 
     return (
