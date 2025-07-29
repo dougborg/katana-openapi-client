@@ -9,9 +9,7 @@ from attrs import (
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.variant_default_storage_bin_link_response import (
-        VariantDefaultStorageBinLinkResponse,
-    )
+    from ..models.variant_default_storage_bin_link import VariantDefaultStorageBinLink
 
 
 T = TypeVar("T", bound="VariantDefaultStorageBinLinkListResponse")
@@ -19,7 +17,12 @@ T = TypeVar("T", bound="VariantDefaultStorageBinLinkListResponse")
 
 @_attrs_define
 class VariantDefaultStorageBinLinkListResponse:
-    data: Unset | list["VariantDefaultStorageBinLinkResponse"] = UNSET
+    """
+    Attributes:
+        data (Union[Unset, list['VariantDefaultStorageBinLink']]):
+    """
+
+    data: Unset | list["VariantDefaultStorageBinLink"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -40,15 +43,15 @@ class VariantDefaultStorageBinLinkListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.variant_default_storage_bin_link_response import (
-            VariantDefaultStorageBinLinkResponse,
+        from ..models.variant_default_storage_bin_link import (
+            VariantDefaultStorageBinLink,
         )
 
         d = dict(src_dict)
         data = []
         _data = d.pop("data", UNSET)
         for data_item_data in _data or []:
-            data_item = VariantDefaultStorageBinLinkResponse.from_dict(data_item_data)
+            data_item = VariantDefaultStorageBinLink.from_dict(data_item_data)
 
             data.append(data_item)
 

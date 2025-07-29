@@ -8,6 +8,12 @@ T = TypeVar("T", bound="UnlinkVariantBinLocationRequest")
 
 @_attrs_define
 class UnlinkVariantBinLocationRequest:
+    """
+    Attributes:
+        location_id (int):
+        variant_id (int):
+    """
+
     location_id: int
     variant_id: int
 

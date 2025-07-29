@@ -115,7 +115,6 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
         Response[Union[CreateManufacturingOrderOperationRowResponse401, CreateManufacturingOrderOperationRowResponse429, CreateManufacturingOrderOperationRowResponse500, ManufacturingOrderOperationRow]]
     """
@@ -154,7 +153,6 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
         Union[CreateManufacturingOrderOperationRowResponse401, CreateManufacturingOrderOperationRowResponse429, CreateManufacturingOrderOperationRowResponse500, ManufacturingOrderOperationRow]
     """
@@ -186,7 +184,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[CreateManufacturingOrderOperationRowResponse401, CreateManufacturingOrderOperationRowResponse429, CreateManufacturingOrderOperationRowResponse500, ManufacturingOrderOperationRow]]
@@ -223,7 +220,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[CreateManufacturingOrderOperationRowResponse401, CreateManufacturingOrderOperationRowResponse429, CreateManufacturingOrderOperationRowResponse500, ManufacturingOrderOperationRow]

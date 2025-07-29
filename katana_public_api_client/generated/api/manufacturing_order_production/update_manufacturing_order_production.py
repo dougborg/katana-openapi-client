@@ -5,9 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.manufacturing_order_production_response import (
-    ManufacturingOrderProductionResponse,
-)
+from ...models.manufacturing_order_production import ManufacturingOrderProduction
 from ...models.update_manufacturing_order_production_request import (
     UpdateManufacturingOrderProductionRequest,
 )
@@ -52,7 +50,7 @@ def _get_kwargs(
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> (
-    ManufacturingOrderProductionResponse
+    ManufacturingOrderProduction
     | UpdateManufacturingOrderProductionResponse401
     | UpdateManufacturingOrderProductionResponse404
     | UpdateManufacturingOrderProductionResponse422
@@ -61,7 +59,7 @@ def _parse_response(
     | None
 ):
     if response.status_code == 200:
-        response_200 = ManufacturingOrderProductionResponse.from_dict(response.json())
+        response_200 = ManufacturingOrderProduction.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -103,7 +101,7 @@ def _parse_response(
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    ManufacturingOrderProductionResponse
+    ManufacturingOrderProduction
     | UpdateManufacturingOrderProductionResponse401
     | UpdateManufacturingOrderProductionResponse404
     | UpdateManufacturingOrderProductionResponse422
@@ -124,7 +122,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderProductionRequest,
 ) -> Response[
-    ManufacturingOrderProductionResponse
+    ManufacturingOrderProduction
     | UpdateManufacturingOrderProductionResponse401
     | UpdateManufacturingOrderProductionResponse404
     | UpdateManufacturingOrderProductionResponse422
@@ -144,9 +142,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[ManufacturingOrderProductionResponse, UpdateManufacturingOrderProductionResponse401, UpdateManufacturingOrderProductionResponse404, UpdateManufacturingOrderProductionResponse422, UpdateManufacturingOrderProductionResponse429, UpdateManufacturingOrderProductionResponse500]]
+        Response[Union[ManufacturingOrderProduction, UpdateManufacturingOrderProductionResponse401, UpdateManufacturingOrderProductionResponse404, UpdateManufacturingOrderProductionResponse422, UpdateManufacturingOrderProductionResponse429, UpdateManufacturingOrderProductionResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -167,7 +164,7 @@ def sync(
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderProductionRequest,
 ) -> (
-    ManufacturingOrderProductionResponse
+    ManufacturingOrderProduction
     | UpdateManufacturingOrderProductionResponse401
     | UpdateManufacturingOrderProductionResponse404
     | UpdateManufacturingOrderProductionResponse422
@@ -188,9 +185,8 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[ManufacturingOrderProductionResponse, UpdateManufacturingOrderProductionResponse401, UpdateManufacturingOrderProductionResponse404, UpdateManufacturingOrderProductionResponse422, UpdateManufacturingOrderProductionResponse429, UpdateManufacturingOrderProductionResponse500]
+        Union[ManufacturingOrderProduction, UpdateManufacturingOrderProductionResponse401, UpdateManufacturingOrderProductionResponse404, UpdateManufacturingOrderProductionResponse422, UpdateManufacturingOrderProductionResponse429, UpdateManufacturingOrderProductionResponse500]
     """
 
     return sync_detailed(
@@ -206,7 +202,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderProductionRequest,
 ) -> Response[
-    ManufacturingOrderProductionResponse
+    ManufacturingOrderProduction
     | UpdateManufacturingOrderProductionResponse401
     | UpdateManufacturingOrderProductionResponse404
     | UpdateManufacturingOrderProductionResponse422
@@ -226,9 +222,8 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[ManufacturingOrderProductionResponse, UpdateManufacturingOrderProductionResponse401, UpdateManufacturingOrderProductionResponse404, UpdateManufacturingOrderProductionResponse422, UpdateManufacturingOrderProductionResponse429, UpdateManufacturingOrderProductionResponse500]]
+        Response[Union[ManufacturingOrderProduction, UpdateManufacturingOrderProductionResponse401, UpdateManufacturingOrderProductionResponse404, UpdateManufacturingOrderProductionResponse422, UpdateManufacturingOrderProductionResponse429, UpdateManufacturingOrderProductionResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -247,7 +242,7 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderProductionRequest,
 ) -> (
-    ManufacturingOrderProductionResponse
+    ManufacturingOrderProduction
     | UpdateManufacturingOrderProductionResponse401
     | UpdateManufacturingOrderProductionResponse404
     | UpdateManufacturingOrderProductionResponse422
@@ -268,9 +263,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[ManufacturingOrderProductionResponse, UpdateManufacturingOrderProductionResponse401, UpdateManufacturingOrderProductionResponse404, UpdateManufacturingOrderProductionResponse422, UpdateManufacturingOrderProductionResponse429, UpdateManufacturingOrderProductionResponse500]
+        Union[ManufacturingOrderProduction, UpdateManufacturingOrderProductionResponse401, UpdateManufacturingOrderProductionResponse404, UpdateManufacturingOrderProductionResponse422, UpdateManufacturingOrderProductionResponse429, UpdateManufacturingOrderProductionResponse500]
     """
 
     return (

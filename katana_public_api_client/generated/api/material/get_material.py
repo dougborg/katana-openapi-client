@@ -9,7 +9,7 @@ from ...models.get_material_extend_item import GetMaterialExtendItem
 from ...models.get_material_response_401 import GetMaterialResponse401
 from ...models.get_material_response_429 import GetMaterialResponse429
 from ...models.get_material_response_500 import GetMaterialResponse500
-from ...models.material_response import MaterialResponse
+from ...models.material import Material
 from ...types import UNSET, Response, Unset
 
 
@@ -46,11 +46,11 @@ def _parse_response(
     GetMaterialResponse401
     | GetMaterialResponse429
     | GetMaterialResponse500
-    | MaterialResponse
+    | Material
     | None
 ):
     if response.status_code == 200:
-        response_200 = MaterialResponse.from_dict(response.json())
+        response_200 = Material.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -74,10 +74,7 @@ def _parse_response(
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    GetMaterialResponse401
-    | GetMaterialResponse429
-    | GetMaterialResponse500
-    | MaterialResponse
+    GetMaterialResponse401 | GetMaterialResponse429 | GetMaterialResponse500 | Material
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -93,10 +90,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     extend: Unset | list[GetMaterialExtendItem] = UNSET,
 ) -> Response[
-    GetMaterialResponse401
-    | GetMaterialResponse429
-    | GetMaterialResponse500
-    | MaterialResponse
+    GetMaterialResponse401 | GetMaterialResponse429 | GetMaterialResponse500 | Material
 ]:
     """Retrieve a material
 
@@ -110,9 +104,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetMaterialResponse401, GetMaterialResponse429, GetMaterialResponse500, MaterialResponse]]
+        Response[Union[GetMaterialResponse401, GetMaterialResponse429, GetMaterialResponse500, Material]]
     """
 
     kwargs = _get_kwargs(
@@ -136,7 +129,7 @@ def sync(
     GetMaterialResponse401
     | GetMaterialResponse429
     | GetMaterialResponse500
-    | MaterialResponse
+    | Material
     | None
 ):
     """Retrieve a material
@@ -151,9 +144,8 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetMaterialResponse401, GetMaterialResponse429, GetMaterialResponse500, MaterialResponse]
+        Union[GetMaterialResponse401, GetMaterialResponse429, GetMaterialResponse500, Material]
     """
 
     return sync_detailed(
@@ -169,10 +161,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     extend: Unset | list[GetMaterialExtendItem] = UNSET,
 ) -> Response[
-    GetMaterialResponse401
-    | GetMaterialResponse429
-    | GetMaterialResponse500
-    | MaterialResponse
+    GetMaterialResponse401 | GetMaterialResponse429 | GetMaterialResponse500 | Material
 ]:
     """Retrieve a material
 
@@ -186,9 +175,8 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetMaterialResponse401, GetMaterialResponse429, GetMaterialResponse500, MaterialResponse]]
+        Response[Union[GetMaterialResponse401, GetMaterialResponse429, GetMaterialResponse500, Material]]
     """
 
     kwargs = _get_kwargs(
@@ -210,7 +198,7 @@ async def asyncio(
     GetMaterialResponse401
     | GetMaterialResponse429
     | GetMaterialResponse500
-    | MaterialResponse
+    | Material
     | None
 ):
     """Retrieve a material
@@ -225,9 +213,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetMaterialResponse401, GetMaterialResponse429, GetMaterialResponse500, MaterialResponse]
+        Union[GetMaterialResponse401, GetMaterialResponse429, GetMaterialResponse500, Material]
     """
 
     return (

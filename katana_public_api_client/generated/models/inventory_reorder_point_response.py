@@ -15,6 +15,15 @@ T = TypeVar("T", bound="InventoryReorderPointResponse")
 
 @_attrs_define
 class InventoryReorderPointResponse:
+    """
+    Attributes:
+        location_id (int):
+        variant_id (int):
+        value (float):
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
+    """
+
     location_id: int
     variant_id: int
     value: float

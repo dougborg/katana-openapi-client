@@ -10,7 +10,7 @@ from ...models.create_supplier_response_401 import CreateSupplierResponse401
 from ...models.create_supplier_response_422 import CreateSupplierResponse422
 from ...models.create_supplier_response_429 import CreateSupplierResponse429
 from ...models.create_supplier_response_500 import CreateSupplierResponse500
-from ...models.supplier_response import SupplierResponse
+from ...models.supplier import Supplier
 from ...types import Response
 
 
@@ -40,11 +40,11 @@ def _parse_response(
     | CreateSupplierResponse422
     | CreateSupplierResponse429
     | CreateSupplierResponse500
-    | SupplierResponse
+    | Supplier
     | None
 ):
     if response.status_code == 200:
-        response_200 = SupplierResponse.from_dict(response.json())
+        response_200 = Supplier.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -76,7 +76,7 @@ def _build_response(
     | CreateSupplierResponse422
     | CreateSupplierResponse429
     | CreateSupplierResponse500
-    | SupplierResponse
+    | Supplier
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -95,7 +95,7 @@ def sync_detailed(
     | CreateSupplierResponse422
     | CreateSupplierResponse429
     | CreateSupplierResponse500
-    | SupplierResponse
+    | Supplier
 ]:
     """Create a supplier
 
@@ -108,9 +108,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, SupplierResponse]]
+        Response[Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, Supplier]]
     """
 
     kwargs = _get_kwargs(
@@ -133,7 +132,7 @@ def sync(
     | CreateSupplierResponse422
     | CreateSupplierResponse429
     | CreateSupplierResponse500
-    | SupplierResponse
+    | Supplier
     | None
 ):
     """Create a supplier
@@ -147,9 +146,8 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, SupplierResponse]
+        Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, Supplier]
     """
 
     return sync_detailed(
@@ -167,7 +165,7 @@ async def asyncio_detailed(
     | CreateSupplierResponse422
     | CreateSupplierResponse429
     | CreateSupplierResponse500
-    | SupplierResponse
+    | Supplier
 ]:
     """Create a supplier
 
@@ -180,9 +178,8 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, SupplierResponse]]
+        Response[Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, Supplier]]
     """
 
     kwargs = _get_kwargs(
@@ -203,7 +200,7 @@ async def asyncio(
     | CreateSupplierResponse422
     | CreateSupplierResponse429
     | CreateSupplierResponse500
-    | SupplierResponse
+    | Supplier
     | None
 ):
     """Create a supplier
@@ -217,9 +214,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, SupplierResponse]
+        Union[CreateSupplierResponse401, CreateSupplierResponse422, CreateSupplierResponse429, CreateSupplierResponse500, Supplier]
     """
 
     return (

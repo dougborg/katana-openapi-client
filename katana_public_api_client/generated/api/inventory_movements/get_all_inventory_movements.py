@@ -18,7 +18,7 @@ from ...models.get_all_inventory_movements_response_429 import (
 from ...models.get_all_inventory_movements_response_500 import (
     GetAllInventoryMovementsResponse500,
 )
-from ...models.inventory_movement_list import InventoryMovementList
+from ...models.inventory_movement_list_response import InventoryMovementListResponse
 from ...types import UNSET, Response, Unset
 
 
@@ -107,11 +107,11 @@ def _parse_response(
     GetAllInventoryMovementsResponse401
     | GetAllInventoryMovementsResponse429
     | GetAllInventoryMovementsResponse500
-    | InventoryMovementList
+    | InventoryMovementListResponse
     | None
 ):
     if response.status_code == 200:
-        response_200 = InventoryMovementList.from_dict(response.json())
+        response_200 = InventoryMovementListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -138,7 +138,7 @@ def _build_response(
     GetAllInventoryMovementsResponse401
     | GetAllInventoryMovementsResponse429
     | GetAllInventoryMovementsResponse500
-    | InventoryMovementList
+    | InventoryMovementListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -168,7 +168,7 @@ def sync_detailed(
     GetAllInventoryMovementsResponse401
     | GetAllInventoryMovementsResponse429
     | GetAllInventoryMovementsResponse500
-    | InventoryMovementList
+    | InventoryMovementListResponse
 ]:
     """List all inventory movements
 
@@ -194,9 +194,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetAllInventoryMovementsResponse401, GetAllInventoryMovementsResponse429, GetAllInventoryMovementsResponse500, InventoryMovementList]]
+        Response[Union[GetAllInventoryMovementsResponse401, GetAllInventoryMovementsResponse429, GetAllInventoryMovementsResponse500, InventoryMovementListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -242,7 +241,7 @@ def sync(
     GetAllInventoryMovementsResponse401
     | GetAllInventoryMovementsResponse429
     | GetAllInventoryMovementsResponse500
-    | InventoryMovementList
+    | InventoryMovementListResponse
     | None
 ):
     """List all inventory movements
@@ -269,9 +268,8 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetAllInventoryMovementsResponse401, GetAllInventoryMovementsResponse429, GetAllInventoryMovementsResponse500, InventoryMovementList]
+        Union[GetAllInventoryMovementsResponse401, GetAllInventoryMovementsResponse429, GetAllInventoryMovementsResponse500, InventoryMovementListResponse]
     """
 
     return sync_detailed(
@@ -312,7 +310,7 @@ async def asyncio_detailed(
     GetAllInventoryMovementsResponse401
     | GetAllInventoryMovementsResponse429
     | GetAllInventoryMovementsResponse500
-    | InventoryMovementList
+    | InventoryMovementListResponse
 ]:
     """List all inventory movements
 
@@ -338,9 +336,8 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetAllInventoryMovementsResponse401, GetAllInventoryMovementsResponse429, GetAllInventoryMovementsResponse500, InventoryMovementList]]
+        Response[Union[GetAllInventoryMovementsResponse401, GetAllInventoryMovementsResponse429, GetAllInventoryMovementsResponse500, InventoryMovementListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -384,7 +381,7 @@ async def asyncio(
     GetAllInventoryMovementsResponse401
     | GetAllInventoryMovementsResponse429
     | GetAllInventoryMovementsResponse500
-    | InventoryMovementList
+    | InventoryMovementListResponse
     | None
 ):
     """List all inventory movements
@@ -411,9 +408,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetAllInventoryMovementsResponse401, GetAllInventoryMovementsResponse429, GetAllInventoryMovementsResponse500, InventoryMovementList]
+        Union[GetAllInventoryMovementsResponse401, GetAllInventoryMovementsResponse429, GetAllInventoryMovementsResponse500, InventoryMovementListResponse]
     """
 
     return (

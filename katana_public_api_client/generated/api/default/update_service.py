@@ -5,8 +5,8 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.service import Service
 from ...models.service_request import ServiceRequest
-from ...models.service_response import ServiceResponse
 from ...models.update_service_response_401 import UpdateServiceResponse401
 from ...models.update_service_response_422 import UpdateServiceResponse422
 from ...models.update_service_response_429 import UpdateServiceResponse429
@@ -37,7 +37,7 @@ def _get_kwargs(
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> (
-    ServiceResponse
+    Service
     | UpdateServiceResponse401
     | UpdateServiceResponse422
     | UpdateServiceResponse429
@@ -45,7 +45,7 @@ def _parse_response(
     | None
 ):
     if response.status_code == 200:
-        response_200 = ServiceResponse.from_dict(response.json())
+        response_200 = Service.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -73,7 +73,7 @@ def _parse_response(
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    ServiceResponse
+    Service
     | UpdateServiceResponse401
     | UpdateServiceResponse422
     | UpdateServiceResponse429
@@ -93,7 +93,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: ServiceRequest,
 ) -> Response[
-    ServiceResponse
+    Service
     | UpdateServiceResponse401
     | UpdateServiceResponse422
     | UpdateServiceResponse429
@@ -112,9 +112,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[ServiceResponse, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]]
+        Response[Union[Service, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -135,7 +134,7 @@ def sync(
     client: AuthenticatedClient | Client,
     body: ServiceRequest,
 ) -> (
-    ServiceResponse
+    Service
     | UpdateServiceResponse401
     | UpdateServiceResponse422
     | UpdateServiceResponse429
@@ -155,9 +154,8 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[ServiceResponse, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]
+        Union[Service, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]
     """
 
     return sync_detailed(
@@ -173,7 +171,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: ServiceRequest,
 ) -> Response[
-    ServiceResponse
+    Service
     | UpdateServiceResponse401
     | UpdateServiceResponse422
     | UpdateServiceResponse429
@@ -192,9 +190,8 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[ServiceResponse, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]]
+        Response[Union[Service, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -213,7 +210,7 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: ServiceRequest,
 ) -> (
-    ServiceResponse
+    Service
     | UpdateServiceResponse401
     | UpdateServiceResponse422
     | UpdateServiceResponse429
@@ -233,9 +230,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[ServiceResponse, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]
+        Union[Service, UpdateServiceResponse401, UpdateServiceResponse422, UpdateServiceResponse429, UpdateServiceResponse500]
     """
 
     return (

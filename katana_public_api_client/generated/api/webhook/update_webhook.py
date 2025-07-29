@@ -10,7 +10,7 @@ from ...models.update_webhook_response_401 import UpdateWebhookResponse401
 from ...models.update_webhook_response_422 import UpdateWebhookResponse422
 from ...models.update_webhook_response_429 import UpdateWebhookResponse429
 from ...models.update_webhook_response_500 import UpdateWebhookResponse500
-from ...models.webhook_response import WebhookResponse
+from ...models.webhook import Webhook
 from ...types import Response
 
 
@@ -41,11 +41,11 @@ def _parse_response(
     | UpdateWebhookResponse422
     | UpdateWebhookResponse429
     | UpdateWebhookResponse500
-    | WebhookResponse
+    | Webhook
     | None
 ):
     if response.status_code == 200:
-        response_200 = WebhookResponse.from_dict(response.json())
+        response_200 = Webhook.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -77,7 +77,7 @@ def _build_response(
     | UpdateWebhookResponse422
     | UpdateWebhookResponse429
     | UpdateWebhookResponse500
-    | WebhookResponse
+    | Webhook
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -97,7 +97,7 @@ def sync_detailed(
     | UpdateWebhookResponse422
     | UpdateWebhookResponse429
     | UpdateWebhookResponse500
-    | WebhookResponse
+    | Webhook
 ]:
     """Update a webhook
 
@@ -112,9 +112,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, WebhookResponse]]
+        Response[Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -139,7 +138,7 @@ def sync(
     | UpdateWebhookResponse422
     | UpdateWebhookResponse429
     | UpdateWebhookResponse500
-    | WebhookResponse
+    | Webhook
     | None
 ):
     """Update a webhook
@@ -155,9 +154,8 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, WebhookResponse]
+        Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, Webhook]
     """
 
     return sync_detailed(
@@ -177,7 +175,7 @@ async def asyncio_detailed(
     | UpdateWebhookResponse422
     | UpdateWebhookResponse429
     | UpdateWebhookResponse500
-    | WebhookResponse
+    | Webhook
 ]:
     """Update a webhook
 
@@ -192,9 +190,8 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, WebhookResponse]]
+        Response[Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -217,7 +214,7 @@ async def asyncio(
     | UpdateWebhookResponse422
     | UpdateWebhookResponse429
     | UpdateWebhookResponse500
-    | WebhookResponse
+    | Webhook
     | None
 ):
     """Update a webhook
@@ -233,9 +230,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, WebhookResponse]
+        Union[UpdateWebhookResponse401, UpdateWebhookResponse422, UpdateWebhookResponse429, UpdateWebhookResponse500, Webhook]
     """
 
     return (

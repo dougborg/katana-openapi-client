@@ -5,7 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.batch_stock_list import BatchStockList
+from ...models.batch_stock_list_response import BatchStockListResponse
 from ...models.get_batch_stock_response_401 import GetBatchStockResponse401
 from ...models.get_batch_stock_response_429 import GetBatchStockResponse429
 from ...models.get_batch_stock_response_500 import GetBatchStockResponse500
@@ -61,14 +61,14 @@ def _get_kwargs(
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> (
-    BatchStockList
+    BatchStockListResponse
     | GetBatchStockResponse401
     | GetBatchStockResponse429
     | GetBatchStockResponse500
     | None
 ):
     if response.status_code == 200:
-        response_200 = BatchStockList.from_dict(response.json())
+        response_200 = BatchStockListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -92,7 +92,7 @@ def _parse_response(
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    BatchStockList
+    BatchStockListResponse
     | GetBatchStockResponse401
     | GetBatchStockResponse429
     | GetBatchStockResponse500
@@ -119,7 +119,7 @@ def sync_detailed(
     limit: Unset | int = 50,
     page: Unset | int = 1,
 ) -> Response[
-    BatchStockList
+    BatchStockListResponse
     | GetBatchStockResponse401
     | GetBatchStockResponse429
     | GetBatchStockResponse500
@@ -141,14 +141,12 @@ def sync_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[BatchStockList, GetBatchStockResponse401, GetBatchStockResponse429, GetBatchStockResponse500]]
+        Response[Union[BatchStockListResponse, GetBatchStockResponse401, GetBatchStockResponse429, GetBatchStockResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -185,7 +183,7 @@ def sync(
     limit: Unset | int = 50,
     page: Unset | int = 1,
 ) -> (
-    BatchStockList
+    BatchStockListResponse
     | GetBatchStockResponse401
     | GetBatchStockResponse429
     | GetBatchStockResponse500
@@ -208,14 +206,12 @@ def sync(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[BatchStockList, GetBatchStockResponse401, GetBatchStockResponse429, GetBatchStockResponse500]
+        Union[BatchStockListResponse, GetBatchStockResponse401, GetBatchStockResponse429, GetBatchStockResponse500]
     """
 
     return sync_detailed(
@@ -247,7 +243,7 @@ async def asyncio_detailed(
     limit: Unset | int = 50,
     page: Unset | int = 1,
 ) -> Response[
-    BatchStockList
+    BatchStockListResponse
     | GetBatchStockResponse401
     | GetBatchStockResponse429
     | GetBatchStockResponse500
@@ -269,14 +265,12 @@ async def asyncio_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[BatchStockList, GetBatchStockResponse401, GetBatchStockResponse429, GetBatchStockResponse500]]
+        Response[Union[BatchStockListResponse, GetBatchStockResponse401, GetBatchStockResponse429, GetBatchStockResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -311,7 +305,7 @@ async def asyncio(
     limit: Unset | int = 50,
     page: Unset | int = 1,
 ) -> (
-    BatchStockList
+    BatchStockListResponse
     | GetBatchStockResponse401
     | GetBatchStockResponse429
     | GetBatchStockResponse500
@@ -334,14 +328,12 @@ async def asyncio(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[BatchStockList, GetBatchStockResponse401, GetBatchStockResponse429, GetBatchStockResponse500]
+        Union[BatchStockListResponse, GetBatchStockResponse401, GetBatchStockResponse429, GetBatchStockResponse500]
     """
 
     return (

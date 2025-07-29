@@ -9,7 +9,7 @@ from ...models.get_product_extend_item import GetProductExtendItem
 from ...models.get_product_response_401 import GetProductResponse401
 from ...models.get_product_response_429 import GetProductResponse429
 from ...models.get_product_response_500 import GetProductResponse500
-from ...models.product_response import ProductResponse
+from ...models.product import Product
 from ...types import UNSET, Response, Unset
 
 
@@ -46,11 +46,11 @@ def _parse_response(
     GetProductResponse401
     | GetProductResponse429
     | GetProductResponse500
-    | ProductResponse
+    | Product
     | None
 ):
     if response.status_code == 200:
-        response_200 = ProductResponse.from_dict(response.json())
+        response_200 = Product.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -74,10 +74,7 @@ def _parse_response(
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    GetProductResponse401
-    | GetProductResponse429
-    | GetProductResponse500
-    | ProductResponse
+    GetProductResponse401 | GetProductResponse429 | GetProductResponse500 | Product
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -93,10 +90,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     extend: Unset | list[GetProductExtendItem] = UNSET,
 ) -> Response[
-    GetProductResponse401
-    | GetProductResponse429
-    | GetProductResponse500
-    | ProductResponse
+    GetProductResponse401 | GetProductResponse429 | GetProductResponse500 | Product
 ]:
     """Retrieve a product
 
@@ -110,9 +104,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetProductResponse401, GetProductResponse429, GetProductResponse500, ProductResponse]]
+        Response[Union[GetProductResponse401, GetProductResponse429, GetProductResponse500, Product]]
     """
 
     kwargs = _get_kwargs(
@@ -136,7 +129,7 @@ def sync(
     GetProductResponse401
     | GetProductResponse429
     | GetProductResponse500
-    | ProductResponse
+    | Product
     | None
 ):
     """Retrieve a product
@@ -151,9 +144,8 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetProductResponse401, GetProductResponse429, GetProductResponse500, ProductResponse]
+        Union[GetProductResponse401, GetProductResponse429, GetProductResponse500, Product]
     """
 
     return sync_detailed(
@@ -169,10 +161,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     extend: Unset | list[GetProductExtendItem] = UNSET,
 ) -> Response[
-    GetProductResponse401
-    | GetProductResponse429
-    | GetProductResponse500
-    | ProductResponse
+    GetProductResponse401 | GetProductResponse429 | GetProductResponse500 | Product
 ]:
     """Retrieve a product
 
@@ -186,9 +175,8 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetProductResponse401, GetProductResponse429, GetProductResponse500, ProductResponse]]
+        Response[Union[GetProductResponse401, GetProductResponse429, GetProductResponse500, Product]]
     """
 
     kwargs = _get_kwargs(
@@ -210,7 +198,7 @@ async def asyncio(
     GetProductResponse401
     | GetProductResponse429
     | GetProductResponse500
-    | ProductResponse
+    | Product
     | None
 ):
     """Retrieve a product
@@ -225,9 +213,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetProductResponse401, GetProductResponse429, GetProductResponse500, ProductResponse]
+        Union[GetProductResponse401, GetProductResponse429, GetProductResponse500, Product]
     """
 
     return (

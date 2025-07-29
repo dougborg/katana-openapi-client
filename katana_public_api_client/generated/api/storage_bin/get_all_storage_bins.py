@@ -8,7 +8,7 @@ from ...client import AuthenticatedClient, Client
 from ...models.get_all_storage_bins_response_401 import GetAllStorageBinsResponse401
 from ...models.get_all_storage_bins_response_429 import GetAllStorageBinsResponse429
 from ...models.get_all_storage_bins_response_500 import GetAllStorageBinsResponse500
-from ...models.storage_bin_list import StorageBinList
+from ...models.storage_bin_list_response import StorageBinListResponse
 from ...types import UNSET, Response, Unset
 
 
@@ -49,11 +49,11 @@ def _parse_response(
     GetAllStorageBinsResponse401
     | GetAllStorageBinsResponse429
     | GetAllStorageBinsResponse500
-    | StorageBinList
+    | StorageBinListResponse
     | None
 ):
     if response.status_code == 200:
-        response_200 = StorageBinList.from_dict(response.json())
+        response_200 = StorageBinListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -80,7 +80,7 @@ def _build_response(
     GetAllStorageBinsResponse401
     | GetAllStorageBinsResponse429
     | GetAllStorageBinsResponse500
-    | StorageBinList
+    | StorageBinListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -102,7 +102,7 @@ def sync_detailed(
     GetAllStorageBinsResponse401
     | GetAllStorageBinsResponse429
     | GetAllStorageBinsResponse500
-    | StorageBinList
+    | StorageBinListResponse
 ]:
     """List all storage bins
 
@@ -120,9 +120,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinList]]
+        Response[Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -152,7 +151,7 @@ def sync(
     GetAllStorageBinsResponse401
     | GetAllStorageBinsResponse429
     | GetAllStorageBinsResponse500
-    | StorageBinList
+    | StorageBinListResponse
     | None
 ):
     """List all storage bins
@@ -171,9 +170,8 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinList]
+        Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinListResponse]
     """
 
     return sync_detailed(
@@ -198,7 +196,7 @@ async def asyncio_detailed(
     GetAllStorageBinsResponse401
     | GetAllStorageBinsResponse429
     | GetAllStorageBinsResponse500
-    | StorageBinList
+    | StorageBinListResponse
 ]:
     """List all storage bins
 
@@ -216,9 +214,8 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinList]]
+        Response[Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -246,7 +243,7 @@ async def asyncio(
     GetAllStorageBinsResponse401
     | GetAllStorageBinsResponse429
     | GetAllStorageBinsResponse500
-    | StorageBinList
+    | StorageBinListResponse
     | None
 ):
     """List all storage bins
@@ -265,9 +262,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinList]
+        Union[GetAllStorageBinsResponse401, GetAllStorageBinsResponse429, GetAllStorageBinsResponse500, StorageBinListResponse]
     """
 
     return (

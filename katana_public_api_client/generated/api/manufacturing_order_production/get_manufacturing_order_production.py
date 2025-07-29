@@ -14,9 +14,7 @@ from ...models.get_manufacturing_order_production_response_429 import (
 from ...models.get_manufacturing_order_production_response_500 import (
     GetManufacturingOrderProductionResponse500,
 )
-from ...models.manufacturing_order_production_response import (
-    ManufacturingOrderProductionResponse,
-)
+from ...models.manufacturing_order_production import ManufacturingOrderProduction
 from ...types import Response
 
 
@@ -37,11 +35,11 @@ def _parse_response(
     GetManufacturingOrderProductionResponse401
     | GetManufacturingOrderProductionResponse429
     | GetManufacturingOrderProductionResponse500
-    | ManufacturingOrderProductionResponse
+    | ManufacturingOrderProduction
     | None
 ):
     if response.status_code == 200:
-        response_200 = ManufacturingOrderProductionResponse.from_dict(response.json())
+        response_200 = ManufacturingOrderProduction.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -74,7 +72,7 @@ def _build_response(
     GetManufacturingOrderProductionResponse401
     | GetManufacturingOrderProductionResponse429
     | GetManufacturingOrderProductionResponse500
-    | ManufacturingOrderProductionResponse
+    | ManufacturingOrderProduction
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -92,7 +90,7 @@ def sync_detailed(
     GetManufacturingOrderProductionResponse401
     | GetManufacturingOrderProductionResponse429
     | GetManufacturingOrderProductionResponse500
-    | ManufacturingOrderProductionResponse
+    | ManufacturingOrderProduction
 ]:
     """Retrieve a manufacturing order production
 
@@ -105,9 +103,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetManufacturingOrderProductionResponse401, GetManufacturingOrderProductionResponse429, GetManufacturingOrderProductionResponse500, ManufacturingOrderProductionResponse]]
+        Response[Union[GetManufacturingOrderProductionResponse401, GetManufacturingOrderProductionResponse429, GetManufacturingOrderProductionResponse500, ManufacturingOrderProduction]]
     """
 
     kwargs = _get_kwargs(
@@ -129,7 +126,7 @@ def sync(
     GetManufacturingOrderProductionResponse401
     | GetManufacturingOrderProductionResponse429
     | GetManufacturingOrderProductionResponse500
-    | ManufacturingOrderProductionResponse
+    | ManufacturingOrderProduction
     | None
 ):
     """Retrieve a manufacturing order production
@@ -143,9 +140,8 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetManufacturingOrderProductionResponse401, GetManufacturingOrderProductionResponse429, GetManufacturingOrderProductionResponse500, ManufacturingOrderProductionResponse]
+        Union[GetManufacturingOrderProductionResponse401, GetManufacturingOrderProductionResponse429, GetManufacturingOrderProductionResponse500, ManufacturingOrderProduction]
     """
 
     return sync_detailed(
@@ -162,7 +158,7 @@ async def asyncio_detailed(
     GetManufacturingOrderProductionResponse401
     | GetManufacturingOrderProductionResponse429
     | GetManufacturingOrderProductionResponse500
-    | ManufacturingOrderProductionResponse
+    | ManufacturingOrderProduction
 ]:
     """Retrieve a manufacturing order production
 
@@ -175,9 +171,8 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetManufacturingOrderProductionResponse401, GetManufacturingOrderProductionResponse429, GetManufacturingOrderProductionResponse500, ManufacturingOrderProductionResponse]]
+        Response[Union[GetManufacturingOrderProductionResponse401, GetManufacturingOrderProductionResponse429, GetManufacturingOrderProductionResponse500, ManufacturingOrderProduction]]
     """
 
     kwargs = _get_kwargs(
@@ -197,7 +192,7 @@ async def asyncio(
     GetManufacturingOrderProductionResponse401
     | GetManufacturingOrderProductionResponse429
     | GetManufacturingOrderProductionResponse500
-    | ManufacturingOrderProductionResponse
+    | ManufacturingOrderProduction
     | None
 ):
     """Retrieve a manufacturing order production
@@ -211,9 +206,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetManufacturingOrderProductionResponse401, GetManufacturingOrderProductionResponse429, GetManufacturingOrderProductionResponse500, ManufacturingOrderProductionResponse]
+        Union[GetManufacturingOrderProductionResponse401, GetManufacturingOrderProductionResponse429, GetManufacturingOrderProductionResponse500, ManufacturingOrderProduction]
     """
 
     return (

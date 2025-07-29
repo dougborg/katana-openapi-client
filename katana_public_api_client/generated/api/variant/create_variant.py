@@ -10,7 +10,7 @@ from ...models.create_variant_response_401 import CreateVariantResponse401
 from ...models.create_variant_response_422 import CreateVariantResponse422
 from ...models.create_variant_response_429 import CreateVariantResponse429
 from ...models.create_variant_response_500 import CreateVariantResponse500
-from ...models.variant_response import VariantResponse
+from ...models.variant import Variant
 from ...types import Response
 
 
@@ -40,11 +40,11 @@ def _parse_response(
     | CreateVariantResponse422
     | CreateVariantResponse429
     | CreateVariantResponse500
-    | VariantResponse
+    | Variant
     | None
 ):
     if response.status_code == 200:
-        response_200 = VariantResponse.from_dict(response.json())
+        response_200 = Variant.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -76,7 +76,7 @@ def _build_response(
     | CreateVariantResponse422
     | CreateVariantResponse429
     | CreateVariantResponse500
-    | VariantResponse
+    | Variant
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -95,7 +95,7 @@ def sync_detailed(
     | CreateVariantResponse422
     | CreateVariantResponse429
     | CreateVariantResponse500
-    | VariantResponse
+    | Variant
 ]:
     """Create a variant
 
@@ -110,9 +110,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, VariantResponse]]
+        Response[Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, Variant]]
     """
 
     kwargs = _get_kwargs(
@@ -135,7 +134,7 @@ def sync(
     | CreateVariantResponse422
     | CreateVariantResponse429
     | CreateVariantResponse500
-    | VariantResponse
+    | Variant
     | None
 ):
     """Create a variant
@@ -151,9 +150,8 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, VariantResponse]
+        Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, Variant]
     """
 
     return sync_detailed(
@@ -171,7 +169,7 @@ async def asyncio_detailed(
     | CreateVariantResponse422
     | CreateVariantResponse429
     | CreateVariantResponse500
-    | VariantResponse
+    | Variant
 ]:
     """Create a variant
 
@@ -186,9 +184,8 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, VariantResponse]]
+        Response[Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, Variant]]
     """
 
     kwargs = _get_kwargs(
@@ -209,7 +206,7 @@ async def asyncio(
     | CreateVariantResponse422
     | CreateVariantResponse429
     | CreateVariantResponse500
-    | VariantResponse
+    | Variant
     | None
 ):
     """Create a variant
@@ -225,9 +222,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, VariantResponse]
+        Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, Variant]
     """
 
     return (

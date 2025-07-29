@@ -269,6 +269,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR2004"]  # magic value used in comparison
+"katana_public_api_client/generated/*" = ["F403", "F405"]  # allow star imports in generated code
 
 [tool.ruff.lint.isort]
 known-first-party = ["katana_public_api_client"]

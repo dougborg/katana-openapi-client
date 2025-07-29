@@ -6,7 +6,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.additional_cost_list import AdditionalCostList
+from ...models.additional_cost_list_response import AdditionalCostListResponse
 from ...models.get_additional_costs_response_401 import GetAdditionalCostsResponse401
 from ...models.get_additional_costs_response_429 import GetAdditionalCostsResponse429
 from ...models.get_additional_costs_response_500 import GetAdditionalCostsResponse500
@@ -75,14 +75,14 @@ def _get_kwargs(
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> (
-    AdditionalCostList
+    AdditionalCostListResponse
     | GetAdditionalCostsResponse401
     | GetAdditionalCostsResponse429
     | GetAdditionalCostsResponse500
     | None
 ):
     if response.status_code == 200:
-        response_200 = AdditionalCostList.from_dict(response.json())
+        response_200 = AdditionalCostListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -106,7 +106,7 @@ def _parse_response(
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    AdditionalCostList
+    AdditionalCostListResponse
     | GetAdditionalCostsResponse401
     | GetAdditionalCostsResponse429
     | GetAdditionalCostsResponse500
@@ -132,7 +132,7 @@ def sync_detailed(
     name: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
 ) -> Response[
-    AdditionalCostList
+    AdditionalCostListResponse
     | GetAdditionalCostsResponse401
     | GetAdditionalCostsResponse429
     | GetAdditionalCostsResponse500
@@ -156,9 +156,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[AdditionalCostList, GetAdditionalCostsResponse401, GetAdditionalCostsResponse429, GetAdditionalCostsResponse500]]
+        Response[Union[AdditionalCostListResponse, GetAdditionalCostsResponse401, GetAdditionalCostsResponse429, GetAdditionalCostsResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -193,7 +192,7 @@ def sync(
     name: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
 ) -> (
-    AdditionalCostList
+    AdditionalCostListResponse
     | GetAdditionalCostsResponse401
     | GetAdditionalCostsResponse429
     | GetAdditionalCostsResponse500
@@ -218,9 +217,8 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[AdditionalCostList, GetAdditionalCostsResponse401, GetAdditionalCostsResponse429, GetAdditionalCostsResponse500]
+        Union[AdditionalCostListResponse, GetAdditionalCostsResponse401, GetAdditionalCostsResponse429, GetAdditionalCostsResponse500]
     """
 
     return sync_detailed(
@@ -250,7 +248,7 @@ async def asyncio_detailed(
     name: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
 ) -> Response[
-    AdditionalCostList
+    AdditionalCostListResponse
     | GetAdditionalCostsResponse401
     | GetAdditionalCostsResponse429
     | GetAdditionalCostsResponse500
@@ -274,9 +272,8 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[AdditionalCostList, GetAdditionalCostsResponse401, GetAdditionalCostsResponse429, GetAdditionalCostsResponse500]]
+        Response[Union[AdditionalCostListResponse, GetAdditionalCostsResponse401, GetAdditionalCostsResponse429, GetAdditionalCostsResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -309,7 +306,7 @@ async def asyncio(
     name: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
 ) -> (
-    AdditionalCostList
+    AdditionalCostListResponse
     | GetAdditionalCostsResponse401
     | GetAdditionalCostsResponse429
     | GetAdditionalCostsResponse500
@@ -334,9 +331,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[AdditionalCostList, GetAdditionalCostsResponse401, GetAdditionalCostsResponse429, GetAdditionalCostsResponse500]
+        Union[AdditionalCostListResponse, GetAdditionalCostsResponse401, GetAdditionalCostsResponse429, GetAdditionalCostsResponse500]
     """
 
     return (

@@ -5,9 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.manufacturing_order_recipe_row_response import (
-    ManufacturingOrderRecipeRowResponse,
-)
+from ...models.manufacturing_order_recipe_row import ManufacturingOrderRecipeRow
 from ...models.update_manufacturing_order_recipe_row_request import (
     UpdateManufacturingOrderRecipeRowRequest,
 )
@@ -46,14 +44,14 @@ def _get_kwargs(
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> (
-    ManufacturingOrderRecipeRowResponse
+    ManufacturingOrderRecipeRow
     | UpdateManufacturingOrderRecipeRowsResponse401
     | UpdateManufacturingOrderRecipeRowsResponse429
     | UpdateManufacturingOrderRecipeRowsResponse500
     | None
 ):
     if response.status_code == 200:
-        response_200 = ManufacturingOrderRecipeRowResponse.from_dict(response.json())
+        response_200 = ManufacturingOrderRecipeRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -83,7 +81,7 @@ def _parse_response(
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    ManufacturingOrderRecipeRowResponse
+    ManufacturingOrderRecipeRow
     | UpdateManufacturingOrderRecipeRowsResponse401
     | UpdateManufacturingOrderRecipeRowsResponse429
     | UpdateManufacturingOrderRecipeRowsResponse500
@@ -102,7 +100,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderRecipeRowRequest,
 ) -> Response[
-    ManufacturingOrderRecipeRowResponse
+    ManufacturingOrderRecipeRow
     | UpdateManufacturingOrderRecipeRowsResponse401
     | UpdateManufacturingOrderRecipeRowsResponse429
     | UpdateManufacturingOrderRecipeRowsResponse500
@@ -121,9 +119,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[ManufacturingOrderRecipeRowResponse, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]]
+        Response[Union[ManufacturingOrderRecipeRow, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -144,7 +141,7 @@ def sync(
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderRecipeRowRequest,
 ) -> (
-    ManufacturingOrderRecipeRowResponse
+    ManufacturingOrderRecipeRow
     | UpdateManufacturingOrderRecipeRowsResponse401
     | UpdateManufacturingOrderRecipeRowsResponse429
     | UpdateManufacturingOrderRecipeRowsResponse500
@@ -164,9 +161,8 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[ManufacturingOrderRecipeRowResponse, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]
+        Union[ManufacturingOrderRecipeRow, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]
     """
 
     return sync_detailed(
@@ -182,7 +178,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderRecipeRowRequest,
 ) -> Response[
-    ManufacturingOrderRecipeRowResponse
+    ManufacturingOrderRecipeRow
     | UpdateManufacturingOrderRecipeRowsResponse401
     | UpdateManufacturingOrderRecipeRowsResponse429
     | UpdateManufacturingOrderRecipeRowsResponse500
@@ -201,9 +197,8 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[ManufacturingOrderRecipeRowResponse, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]]
+        Response[Union[ManufacturingOrderRecipeRow, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -222,7 +217,7 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderRecipeRowRequest,
 ) -> (
-    ManufacturingOrderRecipeRowResponse
+    ManufacturingOrderRecipeRow
     | UpdateManufacturingOrderRecipeRowsResponse401
     | UpdateManufacturingOrderRecipeRowsResponse429
     | UpdateManufacturingOrderRecipeRowsResponse500
@@ -242,9 +237,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[ManufacturingOrderRecipeRowResponse, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]
+        Union[ManufacturingOrderRecipeRow, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]
     """
 
     return (

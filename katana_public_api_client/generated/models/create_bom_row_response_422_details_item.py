@@ -11,6 +11,8 @@ T = TypeVar("T", bound="CreateBomRowResponse422DetailsItem")
 
 @_attrs_define
 class CreateBomRowResponse422DetailsItem:
+    """ """
+
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

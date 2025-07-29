@@ -8,7 +8,7 @@ from ...client import AuthenticatedClient, Client
 from ...models.get_webhook_response_401 import GetWebhookResponse401
 from ...models.get_webhook_response_429 import GetWebhookResponse429
 from ...models.get_webhook_response_500 import GetWebhookResponse500
-from ...models.webhook_response import WebhookResponse
+from ...models.webhook import Webhook
 from ...types import Response
 
 
@@ -29,11 +29,11 @@ def _parse_response(
     GetWebhookResponse401
     | GetWebhookResponse429
     | GetWebhookResponse500
-    | WebhookResponse
+    | Webhook
     | None
 ):
     if response.status_code == 200:
-        response_200 = WebhookResponse.from_dict(response.json())
+        response_200 = Webhook.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -57,10 +57,7 @@ def _parse_response(
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    GetWebhookResponse401
-    | GetWebhookResponse429
-    | GetWebhookResponse500
-    | WebhookResponse
+    GetWebhookResponse401 | GetWebhookResponse429 | GetWebhookResponse500 | Webhook
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -75,10 +72,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
 ) -> Response[
-    GetWebhookResponse401
-    | GetWebhookResponse429
-    | GetWebhookResponse500
-    | WebhookResponse
+    GetWebhookResponse401 | GetWebhookResponse429 | GetWebhookResponse500 | Webhook
 ]:
     """Retrieve a webhook
 
@@ -91,9 +85,8 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, WebhookResponse]]
+        Response[Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -115,7 +108,7 @@ def sync(
     GetWebhookResponse401
     | GetWebhookResponse429
     | GetWebhookResponse500
-    | WebhookResponse
+    | Webhook
     | None
 ):
     """Retrieve a webhook
@@ -129,9 +122,8 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, WebhookResponse]
+        Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]
     """
 
     return sync_detailed(
@@ -145,10 +137,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
 ) -> Response[
-    GetWebhookResponse401
-    | GetWebhookResponse429
-    | GetWebhookResponse500
-    | WebhookResponse
+    GetWebhookResponse401 | GetWebhookResponse429 | GetWebhookResponse500 | Webhook
 ]:
     """Retrieve a webhook
 
@@ -161,9 +150,8 @@ async def asyncio_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Response[Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, WebhookResponse]]
+        Response[Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -183,7 +171,7 @@ async def asyncio(
     GetWebhookResponse401
     | GetWebhookResponse429
     | GetWebhookResponse500
-    | WebhookResponse
+    | Webhook
     | None
 ):
     """Retrieve a webhook
@@ -197,9 +185,8 @@ async def asyncio(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
-
     Returns:
-        Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, WebhookResponse]
+        Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]
     """
 
     return (

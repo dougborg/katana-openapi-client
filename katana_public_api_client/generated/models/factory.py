@@ -15,6 +15,17 @@ T = TypeVar("T", bound="Factory")
 
 @_attrs_define
 class Factory:
+    """
+    Attributes:
+        id (int):
+        name (str):
+        currency (str):
+        address (Union[None, Unset, str]):
+        timezone (Union[Unset, str]):
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
+    """
+
     id: int
     name: str
     currency: str
