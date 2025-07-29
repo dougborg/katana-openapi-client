@@ -1144,6 +1144,7 @@ from .update_purchase_order_row_response_422_details_item import (
 from .update_purchase_order_row_response_429 import UpdatePurchaseOrderRowResponse429
 from .update_purchase_order_row_response_500 import UpdatePurchaseOrderRowResponse500
 from .update_sales_order_body import UpdateSalesOrderBody
+from .update_sales_order_body_status import UpdateSalesOrderBodyStatus
 from .update_sales_order_response_401 import UpdateSalesOrderResponse401
 from .update_sales_order_response_404 import UpdateSalesOrderResponse404
 from .update_sales_order_response_429 import UpdateSalesOrderResponse429
@@ -1960,6 +1961,7 @@ __all__ = (
     "UpdatePurchaseOrderRowResponse429",
     "UpdatePurchaseOrderRowResponse500",
     "UpdateSalesOrderBody",
+    "UpdateSalesOrderBodyStatus",
     "UpdateSalesOrderResponse401",
     "UpdateSalesOrderResponse404",
     "UpdateSalesOrderResponse429",

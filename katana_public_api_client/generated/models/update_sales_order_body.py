@@ -7,6 +7,7 @@ from attrs import (
 )
 
 from ..types import UNSET, Unset
+from .update_sales_order_body_status import UpdateSalesOrderBodyStatus
 
 T = TypeVar("T", bound="UpdateSalesOrderBody")
 
@@ -15,7 +16,14 @@ T = TypeVar("T", bound="UpdateSalesOrderBody")
 class UpdateSalesOrderBody:
     order_no: Unset | str = UNSET
     customer_id: Unset | int = UNSET
+    order_created_date: Unset | str = UNSET
     delivery_date: None | Unset | str = UNSET
+    picked_date: None | Unset | str = UNSET
+    location_id: Unset | int = UNSET
+    status: Unset | UpdateSalesOrderBodyStatus = UNSET
+    currency: Unset | str = UNSET
+    conversion_rate: Unset | float = UNSET
+    conversion_date: Unset | str = UNSET
     additional_info: None | Unset | str = UNSET
     customer_ref: None | Unset | str = UNSET
     tracking_number: None | Unset | str = UNSET
@@ -27,11 +35,31 @@ class UpdateSalesOrderBody:
 
         customer_id = self.customer_id
 
+        order_created_date = self.order_created_date
+
         delivery_date: None | Unset | str
         if isinstance(self.delivery_date, Unset):
             delivery_date = UNSET
         else:
             delivery_date = self.delivery_date
+
+        picked_date: None | Unset | str
+        if isinstance(self.picked_date, Unset):
+            picked_date = UNSET
+        else:
+            picked_date = self.picked_date
+
+        location_id = self.location_id
+
+        status: Unset | str = UNSET
+        if not isinstance(self.status, Unset):
+            status = self.status.value
+
+        currency = self.currency
+
+        conversion_rate = self.conversion_rate
+
+        conversion_date = self.conversion_date
 
         additional_info: None | Unset | str
         if isinstance(self.additional_info, Unset):
@@ -64,8 +92,22 @@ class UpdateSalesOrderBody:
             field_dict["order_no"] = order_no
         if customer_id is not UNSET:
             field_dict["customer_id"] = customer_id
+        if order_created_date is not UNSET:
+            field_dict["order_created_date"] = order_created_date
         if delivery_date is not UNSET:
             field_dict["delivery_date"] = delivery_date
+        if picked_date is not UNSET:
+            field_dict["picked_date"] = picked_date
+        if location_id is not UNSET:
+            field_dict["location_id"] = location_id
+        if status is not UNSET:
+            field_dict["status"] = status
+        if currency is not UNSET:
+            field_dict["currency"] = currency
+        if conversion_rate is not UNSET:
+            field_dict["conversion_rate"] = conversion_rate
+        if conversion_date is not UNSET:
+            field_dict["conversion_date"] = conversion_date
         if additional_info is not UNSET:
             field_dict["additional_info"] = additional_info
         if customer_ref is not UNSET:
@@ -84,6 +126,8 @@ class UpdateSalesOrderBody:
 
         customer_id = d.pop("customer_id", UNSET)
 
+        order_created_date = d.pop("order_created_date", UNSET)
+
         def _parse_delivery_date(data: object) -> None | Unset | str:
             if data is None:
                 return data
@@ -92,6 +136,30 @@ class UpdateSalesOrderBody:
             return cast(None | Unset | str, data)
 
         delivery_date = _parse_delivery_date(d.pop("delivery_date", UNSET))
+
+        def _parse_picked_date(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        picked_date = _parse_picked_date(d.pop("picked_date", UNSET))
+
+        location_id = d.pop("location_id", UNSET)
+
+        def _parse_status(data: object) -> Unset | UpdateSalesOrderBodyStatus:
+            if isinstance(data, Unset):
+                return data
+            return UpdateSalesOrderBodyStatus(data)
+
+        status = _parse_status(d.pop("status", UNSET))
+
+        currency = d.pop("currency", UNSET)
+
+        conversion_rate = d.pop("conversion_rate", UNSET)
+
+        conversion_date = d.pop("conversion_date", UNSET)
 
         def _parse_additional_info(data: object) -> None | Unset | str:
             if data is None:
@@ -134,7 +202,14 @@ class UpdateSalesOrderBody:
         update_sales_order_body = cls(
             order_no=order_no,
             customer_id=customer_id,
+            order_created_date=order_created_date,
             delivery_date=delivery_date,
+            picked_date=picked_date,
+            location_id=location_id,
+            status=status,
+            currency=currency,
+            conversion_rate=conversion_rate,
+            conversion_date=conversion_date,
             additional_info=additional_info,
             customer_ref=customer_ref,
             tracking_number=tracking_number,
