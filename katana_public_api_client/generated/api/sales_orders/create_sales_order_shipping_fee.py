@@ -8,21 +8,8 @@ from ...client import AuthenticatedClient, Client
 from ...models.create_sales_order_shipping_fee_request import (
     CreateSalesOrderShippingFeeRequest,
 )
-from ...models.create_sales_order_shipping_fee_response_400 import (
-    CreateSalesOrderShippingFeeResponse400,
-)
-from ...models.create_sales_order_shipping_fee_response_401 import (
-    CreateSalesOrderShippingFeeResponse401,
-)
-from ...models.create_sales_order_shipping_fee_response_422 import (
-    CreateSalesOrderShippingFeeResponse422,
-)
-from ...models.create_sales_order_shipping_fee_response_429 import (
-    CreateSalesOrderShippingFeeResponse429,
-)
-from ...models.create_sales_order_shipping_fee_response_500 import (
-    CreateSalesOrderShippingFeeResponse500,
-)
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...models.sales_order_shipping_fee import SalesOrderShippingFee
 from ...types import Response
 
@@ -48,37 +35,29 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateSalesOrderShippingFeeResponse400
-    | CreateSalesOrderShippingFeeResponse401
-    | CreateSalesOrderShippingFeeResponse422
-    | CreateSalesOrderShippingFeeResponse429
-    | CreateSalesOrderShippingFeeResponse500
-    | SalesOrderShippingFee
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee | None:
     if response.status_code == 201:
         response_201 = SalesOrderShippingFee.from_dict(response.json())
 
         return response_201
     if response.status_code == 400:
-        response_400 = CreateSalesOrderShippingFeeResponse400.from_dict(response.json())
+        response_400 = ErrorResponse.from_dict(response.json())
 
         return response_400
     if response.status_code == 401:
-        response_401 = CreateSalesOrderShippingFeeResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 422:
-        response_422 = CreateSalesOrderShippingFeeResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = CreateSalesOrderShippingFeeResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = CreateSalesOrderShippingFeeResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -89,14 +68,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CreateSalesOrderShippingFeeResponse400
-    | CreateSalesOrderShippingFeeResponse401
-    | CreateSalesOrderShippingFeeResponse422
-    | CreateSalesOrderShippingFeeResponse429
-    | CreateSalesOrderShippingFeeResponse500
-    | SalesOrderShippingFee
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -109,14 +81,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateSalesOrderShippingFeeRequest,
-) -> Response[
-    CreateSalesOrderShippingFeeResponse400
-    | CreateSalesOrderShippingFeeResponse401
-    | CreateSalesOrderShippingFeeResponse422
-    | CreateSalesOrderShippingFeeResponse429
-    | CreateSalesOrderShippingFeeResponse500
-    | SalesOrderShippingFee
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee]:
     """Create a sales order shipping fee
 
      Creates a sales order shipping fee and adds it to a sales order.
@@ -130,7 +95,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateSalesOrderShippingFeeResponse400, CreateSalesOrderShippingFeeResponse401, CreateSalesOrderShippingFeeResponse422, CreateSalesOrderShippingFeeResponse429, CreateSalesOrderShippingFeeResponse500, SalesOrderShippingFee]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]]
     """
 
     kwargs = _get_kwargs(
@@ -148,15 +113,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateSalesOrderShippingFeeRequest,
-) -> (
-    CreateSalesOrderShippingFeeResponse400
-    | CreateSalesOrderShippingFeeResponse401
-    | CreateSalesOrderShippingFeeResponse422
-    | CreateSalesOrderShippingFeeResponse429
-    | CreateSalesOrderShippingFeeResponse500
-    | SalesOrderShippingFee
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee | None:
     """Create a sales order shipping fee
 
      Creates a sales order shipping fee and adds it to a sales order.
@@ -170,7 +127,7 @@ def sync(
 
 
     Returns:
-        Union[CreateSalesOrderShippingFeeResponse400, CreateSalesOrderShippingFeeResponse401, CreateSalesOrderShippingFeeResponse422, CreateSalesOrderShippingFeeResponse429, CreateSalesOrderShippingFeeResponse500, SalesOrderShippingFee]
+        Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]
     """
 
     return sync_detailed(
@@ -183,14 +140,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateSalesOrderShippingFeeRequest,
-) -> Response[
-    CreateSalesOrderShippingFeeResponse400
-    | CreateSalesOrderShippingFeeResponse401
-    | CreateSalesOrderShippingFeeResponse422
-    | CreateSalesOrderShippingFeeResponse429
-    | CreateSalesOrderShippingFeeResponse500
-    | SalesOrderShippingFee
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee]:
     """Create a sales order shipping fee
 
      Creates a sales order shipping fee and adds it to a sales order.
@@ -204,7 +154,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateSalesOrderShippingFeeResponse400, CreateSalesOrderShippingFeeResponse401, CreateSalesOrderShippingFeeResponse422, CreateSalesOrderShippingFeeResponse429, CreateSalesOrderShippingFeeResponse500, SalesOrderShippingFee]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]]
     """
 
     kwargs = _get_kwargs(
@@ -220,15 +170,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateSalesOrderShippingFeeRequest,
-) -> (
-    CreateSalesOrderShippingFeeResponse400
-    | CreateSalesOrderShippingFeeResponse401
-    | CreateSalesOrderShippingFeeResponse422
-    | CreateSalesOrderShippingFeeResponse429
-    | CreateSalesOrderShippingFeeResponse500
-    | SalesOrderShippingFee
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee | None:
     """Create a sales order shipping fee
 
      Creates a sales order shipping fee and adds it to a sales order.
@@ -242,7 +184,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateSalesOrderShippingFeeResponse400, CreateSalesOrderShippingFeeResponse401, CreateSalesOrderShippingFeeResponse422, CreateSalesOrderShippingFeeResponse429, CreateSalesOrderShippingFeeResponse500, SalesOrderShippingFee]
+        Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]
     """
 
     return (

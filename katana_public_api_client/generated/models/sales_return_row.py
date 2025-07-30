@@ -19,12 +19,12 @@ class SalesReturnRow:
     sales_return_id: int
     variant_id: int
     quantity: float
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
     return_reason_id: None | Unset | int = UNSET
     notes: None | Unset | str = UNSET
     unit_price: None | Unset | float = UNSET
     total_price: None | Unset | float = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -35,6 +35,14 @@ class SalesReturnRow:
         variant_id = self.variant_id
 
         quantity = self.quantity
+
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
 
         return_reason_id: None | Unset | int
         if isinstance(self.return_reason_id, Unset):
@@ -60,14 +68,6 @@ class SalesReturnRow:
         else:
             total_price = self.total_price
 
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -78,6 +78,10 @@ class SalesReturnRow:
                 "quantity": quantity,
             }
         )
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
         if return_reason_id is not UNSET:
             field_dict["return_reason_id"] = return_reason_id
         if notes is not UNSET:
@@ -86,10 +90,6 @@ class SalesReturnRow:
             field_dict["unit_price"] = unit_price
         if total_price is not UNSET:
             field_dict["total_price"] = total_price
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
 
         return field_dict
 
@@ -103,6 +103,20 @@ class SalesReturnRow:
         variant_id = d.pop("variant_id")
 
         quantity = d.pop("quantity")
+
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
+
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
 
         def _parse_return_reason_id(data: object) -> None | Unset | int:
             if data is None:
@@ -140,31 +154,17 @@ class SalesReturnRow:
 
         total_price = _parse_total_price(d.pop("total_price", UNSET))
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
-
         sales_return_row = cls(
             id=id,
             sales_return_id=sales_return_id,
             variant_id=variant_id,
             quantity=quantity,
+            created_at=created_at,
+            updated_at=updated_at,
             return_reason_id=return_reason_id,
             notes=notes,
             unit_price=unit_price,
             total_price=total_price,
-            created_at=created_at,
-            updated_at=updated_at,
         )
 
         sales_return_row.additional_properties = d

@@ -12,8 +12,8 @@ from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.material_configs_item import MaterialConfigsItem
-    from ..models.material_supplier import MaterialSupplier
-    from ..models.material_variants_item import MaterialVariantsItem
+    from ..models.supplier import Supplier
+    from ..models.variant import Variant
 
 
 T = TypeVar("T", bound="Material")
@@ -21,6 +21,9 @@ T = TypeVar("T", bound="Material")
 
 @_attrs_define
 class Material:
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    archived_at: None | Unset | str = UNSET
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     uom: Unset | str = UNSET
@@ -32,16 +35,27 @@ class Material:
     type_: Unset | str = UNSET
     purchase_uom: Unset | str = UNSET
     purchase_uom_conversion_rate: Unset | float = UNSET
-    variants: Unset | list["MaterialVariantsItem"] = UNSET
+    variants: Unset | list["Variant"] = UNSET
     configs: Unset | list["MaterialConfigsItem"] = UNSET
     custom_field_collection_id: Unset | int = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    archived_at: None | Unset | datetime.datetime = UNSET
-    supplier: Union[Unset, "MaterialSupplier"] = UNSET
+    supplier: Union[Unset, "Supplier"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
+
+        archived_at: None | Unset | str
+        if isinstance(self.archived_at, Unset):
+            archived_at = UNSET
+        else:
+            archived_at = self.archived_at
+
         id = self.id
 
         name = self.name
@@ -80,22 +94,6 @@ class Material:
 
         custom_field_collection_id = self.custom_field_collection_id
 
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
-
-        archived_at: None | Unset | str
-        if isinstance(self.archived_at, Unset):
-            archived_at = UNSET
-        elif isinstance(self.archived_at, datetime.datetime):
-            archived_at = self.archived_at.isoformat()
-        else:
-            archived_at = self.archived_at
-
         supplier: Unset | dict[str, Any] = UNSET
         if not isinstance(self.supplier, Unset):
             supplier = self.supplier.to_dict()
@@ -103,6 +101,12 @@ class Material:
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
+        if archived_at is not UNSET:
+            field_dict["archived_at"] = archived_at
         if id is not UNSET:
             field_dict["id"] = id
         if name is not UNSET:
@@ -131,12 +135,6 @@ class Material:
             field_dict["configs"] = configs
         if custom_field_collection_id is not UNSET:
             field_dict["custom_field_collection_id"] = custom_field_collection_id
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
-        if archived_at is not UNSET:
-            field_dict["archived_at"] = archived_at
         if supplier is not UNSET:
             field_dict["supplier"] = supplier
 
@@ -145,10 +143,33 @@ class Material:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.material_configs_item import MaterialConfigsItem
-        from ..models.material_supplier import MaterialSupplier
-        from ..models.material_variants_item import MaterialVariantsItem
+        from ..models.supplier import Supplier
+        from ..models.variant import Variant
 
         d = dict(src_dict)
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
+
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
+
+        def _parse_archived_at(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
+
         id = d.pop("id", UNSET)
 
         name = d.pop("name", UNSET)
@@ -174,7 +195,7 @@ class Material:
         variants = []
         _variants = d.pop("variants", UNSET)
         for variants_item_data in _variants or []:
-            variants_item = MaterialVariantsItem.from_dict(variants_item_data)
+            variants_item = Variant.from_dict(variants_item_data)
 
             variants.append(variants_item)
 
@@ -187,45 +208,17 @@ class Material:
 
         custom_field_collection_id = d.pop("custom_field_collection_id", UNSET)
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
-
-        def _parse_archived_at(data: object) -> None | Unset | datetime.datetime:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                archived_at_type_0 = isoparse(data)
-
-                return archived_at_type_0
-            except:  # noqa: E722
-                pass
-            return cast(None | Unset | datetime.datetime, data)
-
-        archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
-
         _supplier = d.pop("supplier", UNSET)
-        supplier: Unset | MaterialSupplier
+        supplier: Unset | Supplier
         if isinstance(_supplier, Unset):
             supplier = UNSET
         else:
-            supplier = MaterialSupplier.from_dict(_supplier)
+            supplier = Supplier.from_dict(_supplier)
 
         material = cls(
+            created_at=created_at,
+            updated_at=updated_at,
+            archived_at=archived_at,
             id=id,
             name=name,
             uom=uom,
@@ -240,9 +233,6 @@ class Material:
             variants=variants,
             configs=configs,
             custom_field_collection_id=custom_field_collection_id,
-            created_at=created_at,
-            updated_at=updated_at,
-            archived_at=archived_at,
             supplier=supplier,
         )
 

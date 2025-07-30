@@ -5,9 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_all_webhooks_response_401 import GetAllWebhooksResponse401
-from ...models.get_all_webhooks_response_429 import GetAllWebhooksResponse429
-from ...models.get_all_webhooks_response_500 import GetAllWebhooksResponse500
+from ...models.error_response import ErrorResponse
 from ...models.webhook_list_response import WebhookListResponse
 from ...types import UNSET, Response, Unset
 
@@ -49,27 +47,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllWebhooksResponse401
-    | GetAllWebhooksResponse429
-    | GetAllWebhooksResponse500
-    | WebhookListResponse
-    | None
-):
+) -> ErrorResponse | WebhookListResponse | None:
     if response.status_code == 200:
         response_200 = WebhookListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllWebhooksResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllWebhooksResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllWebhooksResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -80,12 +72,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetAllWebhooksResponse401
-    | GetAllWebhooksResponse429
-    | GetAllWebhooksResponse500
-    | WebhookListResponse
-]:
+) -> Response[ErrorResponse | WebhookListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -102,12 +89,7 @@ def sync_detailed(
     enabled: Unset | bool = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[
-    GetAllWebhooksResponse401
-    | GetAllWebhooksResponse429
-    | GetAllWebhooksResponse500
-    | WebhookListResponse
-]:
+) -> Response[ErrorResponse | WebhookListResponse]:
     """List all webhooks
 
      Returns a list of webhooks you've previously created. The entries are returned in a sorted order,
@@ -127,7 +109,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllWebhooksResponse401, GetAllWebhooksResponse429, GetAllWebhooksResponse500, WebhookListResponse]]
+        Response[Union[ErrorResponse, WebhookListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -153,13 +135,7 @@ def sync(
     enabled: Unset | bool = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> (
-    GetAllWebhooksResponse401
-    | GetAllWebhooksResponse429
-    | GetAllWebhooksResponse500
-    | WebhookListResponse
-    | None
-):
+) -> ErrorResponse | WebhookListResponse | None:
     """List all webhooks
 
      Returns a list of webhooks you've previously created. The entries are returned in a sorted order,
@@ -179,7 +155,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllWebhooksResponse401, GetAllWebhooksResponse429, GetAllWebhooksResponse500, WebhookListResponse]
+        Union[ErrorResponse, WebhookListResponse]
     """
 
     return sync_detailed(
@@ -200,12 +176,7 @@ async def asyncio_detailed(
     enabled: Unset | bool = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[
-    GetAllWebhooksResponse401
-    | GetAllWebhooksResponse429
-    | GetAllWebhooksResponse500
-    | WebhookListResponse
-]:
+) -> Response[ErrorResponse | WebhookListResponse]:
     """List all webhooks
 
      Returns a list of webhooks you've previously created. The entries are returned in a sorted order,
@@ -225,7 +196,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllWebhooksResponse401, GetAllWebhooksResponse429, GetAllWebhooksResponse500, WebhookListResponse]]
+        Response[Union[ErrorResponse, WebhookListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -249,13 +220,7 @@ async def asyncio(
     enabled: Unset | bool = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> (
-    GetAllWebhooksResponse401
-    | GetAllWebhooksResponse429
-    | GetAllWebhooksResponse500
-    | WebhookListResponse
-    | None
-):
+) -> ErrorResponse | WebhookListResponse | None:
     """List all webhooks
 
      Returns a list of webhooks you've previously created. The entries are returned in a sorted order,
@@ -275,7 +240,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllWebhooksResponse401, GetAllWebhooksResponse429, GetAllWebhooksResponse500, WebhookListResponse]
+        Union[ErrorResponse, WebhookListResponse]
     """
 
     return (

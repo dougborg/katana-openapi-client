@@ -5,10 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.delete_sales_order_response_401 import DeleteSalesOrderResponse401
-from ...models.delete_sales_order_response_404 import DeleteSalesOrderResponse404
-from ...models.delete_sales_order_response_429 import DeleteSalesOrderResponse429
-from ...models.delete_sales_order_response_500 import DeleteSalesOrderResponse500
+from ...models.error_response import ErrorResponse
 from ...types import Response
 
 
@@ -25,31 +22,24 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    Any
-    | DeleteSalesOrderResponse401
-    | DeleteSalesOrderResponse404
-    | DeleteSalesOrderResponse429
-    | DeleteSalesOrderResponse500
-    | None
-):
+) -> Any | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = cast(Any, None)
         return response_200
     if response.status_code == 401:
-        response_401 = DeleteSalesOrderResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 404:
-        response_404 = DeleteSalesOrderResponse404.from_dict(response.json())
+        response_404 = ErrorResponse.from_dict(response.json())
 
         return response_404
     if response.status_code == 429:
-        response_429 = DeleteSalesOrderResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = DeleteSalesOrderResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -60,13 +50,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    Any
-    | DeleteSalesOrderResponse401
-    | DeleteSalesOrderResponse404
-    | DeleteSalesOrderResponse429
-    | DeleteSalesOrderResponse500
-]:
+) -> Response[Any | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -79,13 +63,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    Any
-    | DeleteSalesOrderResponse401
-    | DeleteSalesOrderResponse404
-    | DeleteSalesOrderResponse429
-    | DeleteSalesOrderResponse500
-]:
+) -> Response[Any | ErrorResponse]:
     """Delete a sales order
 
      Deletes a sales order.
@@ -99,7 +77,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[Any, DeleteSalesOrderResponse401, DeleteSalesOrderResponse404, DeleteSalesOrderResponse429, DeleteSalesOrderResponse500]]
+        Response[Union[Any, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -117,14 +95,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    Any
-    | DeleteSalesOrderResponse401
-    | DeleteSalesOrderResponse404
-    | DeleteSalesOrderResponse429
-    | DeleteSalesOrderResponse500
-    | None
-):
+) -> Any | ErrorResponse | None:
     """Delete a sales order
 
      Deletes a sales order.
@@ -138,7 +109,7 @@ def sync(
 
 
     Returns:
-        Union[Any, DeleteSalesOrderResponse401, DeleteSalesOrderResponse404, DeleteSalesOrderResponse429, DeleteSalesOrderResponse500]
+        Union[Any, ErrorResponse]
     """
 
     return sync_detailed(
@@ -151,13 +122,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    Any
-    | DeleteSalesOrderResponse401
-    | DeleteSalesOrderResponse404
-    | DeleteSalesOrderResponse429
-    | DeleteSalesOrderResponse500
-]:
+) -> Response[Any | ErrorResponse]:
     """Delete a sales order
 
      Deletes a sales order.
@@ -171,7 +136,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[Any, DeleteSalesOrderResponse401, DeleteSalesOrderResponse404, DeleteSalesOrderResponse429, DeleteSalesOrderResponse500]]
+        Response[Union[Any, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -187,14 +152,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    Any
-    | DeleteSalesOrderResponse401
-    | DeleteSalesOrderResponse404
-    | DeleteSalesOrderResponse429
-    | DeleteSalesOrderResponse500
-    | None
-):
+) -> Any | ErrorResponse | None:
     """Delete a sales order
 
      Deletes a sales order.
@@ -208,7 +166,7 @@ async def asyncio(
 
 
     Returns:
-        Union[Any, DeleteSalesOrderResponse401, DeleteSalesOrderResponse404, DeleteSalesOrderResponse429, DeleteSalesOrderResponse500]
+        Union[Any, ErrorResponse]
     """
 
     return (

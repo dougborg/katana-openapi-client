@@ -6,9 +6,7 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.customer_list_response import CustomerListResponse
-from ...models.get_all_customers_response_401 import GetAllCustomersResponse401
-from ...models.get_all_customers_response_429 import GetAllCustomersResponse429
-from ...models.get_all_customers_response_500 import GetAllCustomersResponse500
+from ...models.error_response import ErrorResponse
 from ...types import UNSET, Response, Unset
 
 
@@ -52,27 +50,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CustomerListResponse
-    | GetAllCustomersResponse401
-    | GetAllCustomersResponse429
-    | GetAllCustomersResponse500
-    | None
-):
+) -> CustomerListResponse | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = CustomerListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllCustomersResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllCustomersResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllCustomersResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -83,12 +75,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CustomerListResponse
-    | GetAllCustomersResponse401
-    | GetAllCustomersResponse429
-    | GetAllCustomersResponse500
-]:
+) -> Response[CustomerListResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -106,12 +93,7 @@ def sync_detailed(
     name: Unset | str = UNSET,
     email: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
-) -> Response[
-    CustomerListResponse
-    | GetAllCustomersResponse401
-    | GetAllCustomersResponse429
-    | GetAllCustomersResponse500
-]:
+) -> Response[CustomerListResponse | ErrorResponse]:
     """List all customers
 
      Returns a list of customers you've previously created.
@@ -130,7 +112,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CustomerListResponse, GetAllCustomersResponse401, GetAllCustomersResponse429, GetAllCustomersResponse500]]
+        Response[Union[CustomerListResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -158,13 +140,7 @@ def sync(
     name: Unset | str = UNSET,
     email: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
-) -> (
-    CustomerListResponse
-    | GetAllCustomersResponse401
-    | GetAllCustomersResponse429
-    | GetAllCustomersResponse500
-    | None
-):
+) -> CustomerListResponse | ErrorResponse | None:
     """List all customers
 
      Returns a list of customers you've previously created.
@@ -183,7 +159,7 @@ def sync(
 
 
     Returns:
-        Union[CustomerListResponse, GetAllCustomersResponse401, GetAllCustomersResponse429, GetAllCustomersResponse500]
+        Union[CustomerListResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -206,12 +182,7 @@ async def asyncio_detailed(
     name: Unset | str = UNSET,
     email: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
-) -> Response[
-    CustomerListResponse
-    | GetAllCustomersResponse401
-    | GetAllCustomersResponse429
-    | GetAllCustomersResponse500
-]:
+) -> Response[CustomerListResponse | ErrorResponse]:
     """List all customers
 
      Returns a list of customers you've previously created.
@@ -230,7 +201,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CustomerListResponse, GetAllCustomersResponse401, GetAllCustomersResponse429, GetAllCustomersResponse500]]
+        Response[Union[CustomerListResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -256,13 +227,7 @@ async def asyncio(
     name: Unset | str = UNSET,
     email: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
-) -> (
-    CustomerListResponse
-    | GetAllCustomersResponse401
-    | GetAllCustomersResponse429
-    | GetAllCustomersResponse500
-    | None
-):
+) -> CustomerListResponse | ErrorResponse | None:
     """List all customers
 
      Returns a list of customers you've previously created.
@@ -281,7 +246,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CustomerListResponse, GetAllCustomersResponse401, GetAllCustomersResponse429, GetAllCustomersResponse500]
+        Union[CustomerListResponse, ErrorResponse]
     """
 
     return (

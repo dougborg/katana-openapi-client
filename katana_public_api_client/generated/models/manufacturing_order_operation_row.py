@@ -22,6 +22,9 @@ T = TypeVar("T", bound="ManufacturingOrderOperationRow")
 
 @_attrs_define
 class ManufacturingOrderOperationRow:
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | str = UNSET
     id: Unset | int = UNSET
     status: Unset | ManufacturingOrderOperationRowStatus = UNSET
     type_: Unset | str = UNSET
@@ -44,12 +47,23 @@ class ManufacturingOrderOperationRow:
     group_boundary: Unset | float = UNSET
     is_status_actionable: Unset | bool = UNSET
     completed_at: None | Unset | datetime.datetime = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
+
+        deleted_at: None | Unset | str
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        else:
+            deleted_at = self.deleted_at
+
         id = self.id
 
         status: Unset | str = UNSET
@@ -112,25 +126,15 @@ class ManufacturingOrderOperationRow:
         else:
             completed_at = self.completed_at
 
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
-
-        deleted_at: None | Unset | str
-        if isinstance(self.deleted_at, Unset):
-            deleted_at = UNSET
-        elif isinstance(self.deleted_at, datetime.datetime):
-            deleted_at = self.deleted_at.isoformat()
-        else:
-            deleted_at = self.deleted_at
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
         if id is not UNSET:
             field_dict["id"] = id
         if status is not UNSET:
@@ -175,12 +179,6 @@ class ManufacturingOrderOperationRow:
             field_dict["is_status_actionable"] = is_status_actionable
         if completed_at is not UNSET:
             field_dict["completed_at"] = completed_at
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
-        if deleted_at is not UNSET:
-            field_dict["deleted_at"] = deleted_at
 
         return field_dict
 
@@ -189,6 +187,29 @@ class ManufacturingOrderOperationRow:
         from ..models.operator import Operator
 
         d = dict(src_dict)
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
+
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
+
+        def _parse_deleted_at(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
+
         id = d.pop("id", UNSET)
 
         _status = d.pop("status", UNSET)
@@ -265,38 +286,10 @@ class ManufacturingOrderOperationRow:
 
         completed_at = _parse_completed_at(d.pop("completed_at", UNSET))
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
-
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                deleted_at_type_0 = isoparse(data)
-
-                return deleted_at_type_0
-            except:  # noqa: E722
-                pass
-            return cast(None | Unset | datetime.datetime, data)
-
-        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
-
         manufacturing_order_operation_row = cls(
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
             id=id,
             status=status,
             type_=type_,
@@ -319,9 +312,6 @@ class ManufacturingOrderOperationRow:
             group_boundary=group_boundary,
             is_status_actionable=is_status_actionable,
             completed_at=completed_at,
-            created_at=created_at,
-            updated_at=updated_at,
-            deleted_at=deleted_at,
         )
 
         manufacturing_order_operation_row.additional_properties = d

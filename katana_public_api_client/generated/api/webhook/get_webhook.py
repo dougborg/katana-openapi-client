@@ -5,9 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_webhook_response_401 import GetWebhookResponse401
-from ...models.get_webhook_response_429 import GetWebhookResponse429
-from ...models.get_webhook_response_500 import GetWebhookResponse500
+from ...models.error_response import ErrorResponse
 from ...models.webhook import Webhook
 from ...types import Response
 
@@ -25,27 +23,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetWebhookResponse401
-    | GetWebhookResponse429
-    | GetWebhookResponse500
-    | Webhook
-    | None
-):
+) -> ErrorResponse | Webhook | None:
     if response.status_code == 200:
         response_200 = Webhook.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetWebhookResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetWebhookResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetWebhookResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -56,9 +48,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetWebhookResponse401 | GetWebhookResponse429 | GetWebhookResponse500 | Webhook
-]:
+) -> Response[ErrorResponse | Webhook]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -71,9 +61,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    GetWebhookResponse401 | GetWebhookResponse429 | GetWebhookResponse500 | Webhook
-]:
+) -> Response[ErrorResponse | Webhook]:
     """Retrieve a webhook
 
      Retrieves the details of an existing webhook based on ID
@@ -87,7 +75,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]]
+        Response[Union[ErrorResponse, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -105,13 +93,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    GetWebhookResponse401
-    | GetWebhookResponse429
-    | GetWebhookResponse500
-    | Webhook
-    | None
-):
+) -> ErrorResponse | Webhook | None:
     """Retrieve a webhook
 
      Retrieves the details of an existing webhook based on ID
@@ -125,7 +107,7 @@ def sync(
 
 
     Returns:
-        Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]
+        Union[ErrorResponse, Webhook]
     """
 
     return sync_detailed(
@@ -138,9 +120,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    GetWebhookResponse401 | GetWebhookResponse429 | GetWebhookResponse500 | Webhook
-]:
+) -> Response[ErrorResponse | Webhook]:
     """Retrieve a webhook
 
      Retrieves the details of an existing webhook based on ID
@@ -154,7 +134,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]]
+        Response[Union[ErrorResponse, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -170,13 +150,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    GetWebhookResponse401
-    | GetWebhookResponse429
-    | GetWebhookResponse500
-    | Webhook
-    | None
-):
+) -> ErrorResponse | Webhook | None:
     """Retrieve a webhook
 
      Retrieves the details of an existing webhook based on ID
@@ -190,7 +164,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetWebhookResponse401, GetWebhookResponse429, GetWebhookResponse500, Webhook]
+        Union[ErrorResponse, Webhook]
     """
 
     return (

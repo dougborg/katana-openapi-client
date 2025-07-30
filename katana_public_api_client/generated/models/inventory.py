@@ -9,7 +9,8 @@ from attrs import (
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.location import Location
+    from ..models.deletable_entity import DeletableEntity
+    from ..models.location_type_0 import LocationType0
     from ..models.variant import Variant
 
 
@@ -29,10 +30,12 @@ class Inventory:
     quantity_missing_or_excess: str
     quantity_potential: str
     variant: Union[Unset, "Variant"] = UNSET
-    location: Union[Unset, "Location"] = UNSET
+    location: Union["DeletableEntity", "LocationType0", Unset] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.location_type_0 import LocationType0
+
         variant_id = self.variant_id
 
         location_id = self.location_id
@@ -57,8 +60,12 @@ class Inventory:
         if not isinstance(self.variant, Unset):
             variant = self.variant.to_dict()
 
-        location: Unset | dict[str, Any] = UNSET
-        if not isinstance(self.location, Unset):
+        location: Unset | dict[str, Any]
+        if isinstance(self.location, Unset):
+            location = UNSET
+        elif isinstance(self.location, LocationType0):
+            location = self.location.to_dict()
+        else:
             location = self.location.to_dict()
 
         field_dict: dict[str, Any] = {}
@@ -86,7 +93,8 @@ class Inventory:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.location import Location
+        from ..models.deletable_entity import DeletableEntity
+        from ..models.location_type_0 import LocationType0
         from ..models.variant import Variant
 
         d = dict(src_dict)
@@ -117,12 +125,26 @@ class Inventory:
         else:
             variant = Variant.from_dict(_variant)
 
-        _location = d.pop("location", UNSET)
-        location: Unset | Location
-        if isinstance(_location, Unset):
-            location = UNSET
-        else:
-            location = Location.from_dict(_location)
+        def _parse_location(
+            data: object,
+        ) -> Union["DeletableEntity", "LocationType0", Unset]:
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_location_type_0 = LocationType0.from_dict(data)
+
+                return componentsschemas_location_type_0
+            except:  # noqa: E722
+                pass
+            if not isinstance(data, dict):
+                raise TypeError()
+            componentsschemas_location_type_1 = DeletableEntity.from_dict(data)
+
+            return componentsschemas_location_type_1
+
+        location = _parse_location(d.pop("location", UNSET))
 
         inventory = cls(
             variant_id=variant_id,

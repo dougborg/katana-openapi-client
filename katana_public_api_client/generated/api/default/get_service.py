@@ -5,9 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_service_response_401 import GetServiceResponse401
-from ...models.get_service_response_429 import GetServiceResponse429
-from ...models.get_service_response_500 import GetServiceResponse500
+from ...models.error_response import ErrorResponse
 from ...models.service import Service
 from ...types import Response
 
@@ -25,14 +23,7 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    Any
-    | GetServiceResponse401
-    | GetServiceResponse429
-    | GetServiceResponse500
-    | Service
-    | None
-):
+) -> Any | ErrorResponse | Service | None:
     if response.status_code == 200:
         response_200 = Service.from_dict(response.json())
 
@@ -41,15 +32,15 @@ def _parse_response(
         response_404 = cast(Any, None)
         return response_404
     if response.status_code == 401:
-        response_401 = GetServiceResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetServiceResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetServiceResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -60,13 +51,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    Any
-    | GetServiceResponse401
-    | GetServiceResponse429
-    | GetServiceResponse500
-    | Service
-]:
+) -> Response[Any | ErrorResponse | Service]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -79,13 +64,7 @@ def sync_detailed(
     service_id: str,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    Any
-    | GetServiceResponse401
-    | GetServiceResponse429
-    | GetServiceResponse500
-    | Service
-]:
+) -> Response[Any | ErrorResponse | Service]:
     """Get Service
 
      Retrieve a single Service by its ID. (See: [Get
@@ -100,7 +79,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[Any, GetServiceResponse401, GetServiceResponse429, GetServiceResponse500, Service]]
+        Response[Union[Any, ErrorResponse, Service]]
     """
 
     kwargs = _get_kwargs(
@@ -118,14 +97,7 @@ def sync(
     service_id: str,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    Any
-    | GetServiceResponse401
-    | GetServiceResponse429
-    | GetServiceResponse500
-    | Service
-    | None
-):
+) -> Any | ErrorResponse | Service | None:
     """Get Service
 
      Retrieve a single Service by its ID. (See: [Get
@@ -140,7 +112,7 @@ def sync(
 
 
     Returns:
-        Union[Any, GetServiceResponse401, GetServiceResponse429, GetServiceResponse500, Service]
+        Union[Any, ErrorResponse, Service]
     """
 
     return sync_detailed(
@@ -153,13 +125,7 @@ async def asyncio_detailed(
     service_id: str,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    Any
-    | GetServiceResponse401
-    | GetServiceResponse429
-    | GetServiceResponse500
-    | Service
-]:
+) -> Response[Any | ErrorResponse | Service]:
     """Get Service
 
      Retrieve a single Service by its ID. (See: [Get
@@ -174,7 +140,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[Any, GetServiceResponse401, GetServiceResponse429, GetServiceResponse500, Service]]
+        Response[Union[Any, ErrorResponse, Service]]
     """
 
     kwargs = _get_kwargs(
@@ -190,14 +156,7 @@ async def asyncio(
     service_id: str,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    Any
-    | GetServiceResponse401
-    | GetServiceResponse429
-    | GetServiceResponse500
-    | Service
-    | None
-):
+) -> Any | ErrorResponse | Service | None:
     """Get Service
 
      Retrieve a single Service by its ID. (See: [Get
@@ -212,7 +171,7 @@ async def asyncio(
 
 
     Returns:
-        Union[Any, GetServiceResponse401, GetServiceResponse429, GetServiceResponse500, Service]
+        Union[Any, ErrorResponse, Service]
     """
 
     return (

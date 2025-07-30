@@ -12,7 +12,7 @@ from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.purchase_order_row import PurchaseOrderRow
-    from ..models.purchase_order_supplier import PurchaseOrderSupplier
+    from ..models.supplier import Supplier
 
 
 T = TypeVar("T", bound="PurchaseOrder")
@@ -20,6 +20,9 @@ T = TypeVar("T", bound="PurchaseOrder")
 
 @_attrs_define
 class PurchaseOrder:
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | str = UNSET
     id: Unset | int = UNSET
     status: Unset | str = UNSET
     order_no: Unset | str = UNSET
@@ -34,18 +37,29 @@ class PurchaseOrder:
     tracking_location_id: None | Unset | int = UNSET
     total: Unset | float = UNSET
     total_in_base_currency: Unset | float = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
     billing_status: Unset | str = UNSET
     last_document_status: Unset | str = UNSET
     ingredient_availability: None | Unset | str = UNSET
     ingredient_expected_date: None | Unset | str = UNSET
-    supplier: Union[Unset, "PurchaseOrderSupplier"] = UNSET
     purchase_order_rows: Unset | list["PurchaseOrderRow"] = UNSET
+    supplier: Union[Unset, "Supplier"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
+
+        deleted_at: None | Unset | str
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        else:
+            deleted_at = self.deleted_at
+
         id = self.id
 
         status = self.status
@@ -78,22 +92,6 @@ class PurchaseOrder:
 
         total_in_base_currency = self.total_in_base_currency
 
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
-
-        deleted_at: None | Unset | str
-        if isinstance(self.deleted_at, Unset):
-            deleted_at = UNSET
-        elif isinstance(self.deleted_at, datetime.datetime):
-            deleted_at = self.deleted_at.isoformat()
-        else:
-            deleted_at = self.deleted_at
-
         billing_status = self.billing_status
 
         last_document_status = self.last_document_status
@@ -110,10 +108,6 @@ class PurchaseOrder:
         else:
             ingredient_expected_date = self.ingredient_expected_date
 
-        supplier: Unset | dict[str, Any] = UNSET
-        if not isinstance(self.supplier, Unset):
-            supplier = self.supplier.to_dict()
-
         purchase_order_rows: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.purchase_order_rows, Unset):
             purchase_order_rows = []
@@ -121,9 +115,19 @@ class PurchaseOrder:
                 purchase_order_rows_item = purchase_order_rows_item_data.to_dict()
                 purchase_order_rows.append(purchase_order_rows_item)
 
+        supplier: Unset | dict[str, Any] = UNSET
+        if not isinstance(self.supplier, Unset):
+            supplier = self.supplier.to_dict()
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
         if id is not UNSET:
             field_dict["id"] = id
         if status is not UNSET:
@@ -152,12 +156,6 @@ class PurchaseOrder:
             field_dict["total"] = total
         if total_in_base_currency is not UNSET:
             field_dict["total_in_base_currency"] = total_in_base_currency
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
-        if deleted_at is not UNSET:
-            field_dict["deleted_at"] = deleted_at
         if billing_status is not UNSET:
             field_dict["billing_status"] = billing_status
         if last_document_status is not UNSET:
@@ -166,19 +164,42 @@ class PurchaseOrder:
             field_dict["ingredient_availability"] = ingredient_availability
         if ingredient_expected_date is not UNSET:
             field_dict["ingredient_expected_date"] = ingredient_expected_date
-        if supplier is not UNSET:
-            field_dict["supplier"] = supplier
         if purchase_order_rows is not UNSET:
             field_dict["purchase_order_rows"] = purchase_order_rows
+        if supplier is not UNSET:
+            field_dict["supplier"] = supplier
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.purchase_order_row import PurchaseOrderRow
-        from ..models.purchase_order_supplier import PurchaseOrderSupplier
+        from ..models.supplier import Supplier
 
         d = dict(src_dict)
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
+
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
+
+        def _parse_deleted_at(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
+
         id = d.pop("id", UNSET)
 
         status = d.pop("status", UNSET)
@@ -216,37 +237,6 @@ class PurchaseOrder:
 
         total_in_base_currency = d.pop("total_in_base_currency", UNSET)
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
-
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                deleted_at_type_0 = isoparse(data)
-
-                return deleted_at_type_0
-            except:  # noqa: E722
-                pass
-            return cast(None | Unset | datetime.datetime, data)
-
-        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
-
         billing_status = d.pop("billing_status", UNSET)
 
         last_document_status = d.pop("last_document_status", UNSET)
@@ -273,13 +263,6 @@ class PurchaseOrder:
             d.pop("ingredient_expected_date", UNSET)
         )
 
-        _supplier = d.pop("supplier", UNSET)
-        supplier: Unset | PurchaseOrderSupplier
-        if isinstance(_supplier, Unset):
-            supplier = UNSET
-        else:
-            supplier = PurchaseOrderSupplier.from_dict(_supplier)
-
         purchase_order_rows = []
         _purchase_order_rows = d.pop("purchase_order_rows", UNSET)
         for purchase_order_rows_item_data in _purchase_order_rows or []:
@@ -289,7 +272,17 @@ class PurchaseOrder:
 
             purchase_order_rows.append(purchase_order_rows_item)
 
+        _supplier = d.pop("supplier", UNSET)
+        supplier: Unset | Supplier
+        if isinstance(_supplier, Unset):
+            supplier = UNSET
+        else:
+            supplier = Supplier.from_dict(_supplier)
+
         purchase_order = cls(
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
             id=id,
             status=status,
             order_no=order_no,
@@ -304,15 +297,12 @@ class PurchaseOrder:
             tracking_location_id=tracking_location_id,
             total=total,
             total_in_base_currency=total_in_base_currency,
-            created_at=created_at,
-            updated_at=updated_at,
-            deleted_at=deleted_at,
             billing_status=billing_status,
             last_document_status=last_document_status,
             ingredient_availability=ingredient_availability,
             ingredient_expected_date=ingredient_expected_date,
-            supplier=supplier,
             purchase_order_rows=purchase_order_rows,
+            supplier=supplier,
         )
 
         purchase_order.additional_properties = d

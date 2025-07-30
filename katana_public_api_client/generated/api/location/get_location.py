@@ -1,15 +1,13 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Union
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_location_response_401 import GetLocationResponse401
-from ...models.get_location_response_404 import GetLocationResponse404
-from ...models.get_location_response_429 import GetLocationResponse429
-from ...models.get_location_response_500 import GetLocationResponse500
-from ...models.location import Location
+from ...models.deletable_entity import DeletableEntity
+from ...models.error_response import ErrorResponse
+from ...models.location_type_0 import LocationType0
 from ...types import Response
 
 
@@ -26,32 +24,43 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetLocationResponse401
-    | GetLocationResponse404
-    | GetLocationResponse429
-    | GetLocationResponse500
-    | Location
-    | None
-):
+) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
     if response.status_code == 200:
-        response_200 = Location.from_dict(response.json())
+
+        def _parse_response_200(
+            data: object,
+        ) -> Union["DeletableEntity", "LocationType0"]:
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_location_type_0 = LocationType0.from_dict(data)
+
+                return componentsschemas_location_type_0
+            except:  # noqa: E722
+                pass
+            if not isinstance(data, dict):
+                raise TypeError()
+            componentsschemas_location_type_1 = DeletableEntity.from_dict(data)
+
+            return componentsschemas_location_type_1
+
+        response_200 = _parse_response_200(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetLocationResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 404:
-        response_404 = GetLocationResponse404.from_dict(response.json())
+        response_404 = ErrorResponse.from_dict(response.json())
 
         return response_404
     if response.status_code == 429:
-        response_429 = GetLocationResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetLocationResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -62,13 +71,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetLocationResponse401
-    | GetLocationResponse404
-    | GetLocationResponse429
-    | GetLocationResponse500
-    | Location
-]:
+) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -81,13 +84,7 @@ def sync_detailed(
     id: float,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    GetLocationResponse401
-    | GetLocationResponse404
-    | GetLocationResponse429
-    | GetLocationResponse500
-    | Location
-]:
+) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -101,7 +98,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetLocationResponse401, GetLocationResponse404, GetLocationResponse429, GetLocationResponse500, Location]]
+        Response[Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]]
     """
 
     kwargs = _get_kwargs(
@@ -119,14 +116,7 @@ def sync(
     id: float,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    GetLocationResponse401
-    | GetLocationResponse404
-    | GetLocationResponse429
-    | GetLocationResponse500
-    | Location
-    | None
-):
+) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -140,7 +130,7 @@ def sync(
 
 
     Returns:
-        Union[GetLocationResponse401, GetLocationResponse404, GetLocationResponse429, GetLocationResponse500, Location]
+        Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]
     """
 
     return sync_detailed(
@@ -153,13 +143,7 @@ async def asyncio_detailed(
     id: float,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    GetLocationResponse401
-    | GetLocationResponse404
-    | GetLocationResponse429
-    | GetLocationResponse500
-    | Location
-]:
+) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -173,7 +157,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetLocationResponse401, GetLocationResponse404, GetLocationResponse429, GetLocationResponse500, Location]]
+        Response[Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]]
     """
 
     kwargs = _get_kwargs(
@@ -189,14 +173,7 @@ async def asyncio(
     id: float,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    GetLocationResponse401
-    | GetLocationResponse404
-    | GetLocationResponse429
-    | GetLocationResponse500
-    | Location
-    | None
-):
+) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -210,7 +187,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetLocationResponse401, GetLocationResponse404, GetLocationResponse429, GetLocationResponse500, Location]
+        Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]
     """
 
     return (

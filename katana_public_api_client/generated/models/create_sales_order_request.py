@@ -10,12 +10,10 @@ from ..models.create_sales_order_request_status import CreateSalesOrderRequestSt
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.create_sales_order_request_addresses_item import (
-        CreateSalesOrderRequestAddressesItem,
-    )
     from ..models.create_sales_order_request_sales_order_rows_item import (
         CreateSalesOrderRequestSalesOrderRowsItem,
     )
+    from ..models.sales_order_address import SalesOrderAddress
 
 
 T = TypeVar("T", bound="CreateSalesOrderRequest")
@@ -28,7 +26,7 @@ class CreateSalesOrderRequest:
     sales_order_rows: list["CreateSalesOrderRequestSalesOrderRowsItem"]
     tracking_number: None | Unset | str = UNSET
     tracking_number_url: None | Unset | str = UNSET
-    addresses: Unset | list["CreateSalesOrderRequestAddressesItem"] = UNSET
+    addresses: Unset | list["SalesOrderAddress"] = UNSET
     order_created_date: None | Unset | str = UNSET
     delivery_date: None | Unset | str = UNSET
     currency: None | Unset | str = UNSET
@@ -164,12 +162,10 @@ class CreateSalesOrderRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.create_sales_order_request_addresses_item import (
-            CreateSalesOrderRequestAddressesItem,
-        )
         from ..models.create_sales_order_request_sales_order_rows_item import (
             CreateSalesOrderRequestSalesOrderRowsItem,
         )
+        from ..models.sales_order_address import SalesOrderAddress
 
         d = dict(src_dict)
         order_no = d.pop("order_no")
@@ -208,9 +204,7 @@ class CreateSalesOrderRequest:
         addresses = []
         _addresses = d.pop("addresses", UNSET)
         for addresses_item_data in _addresses or []:
-            addresses_item = CreateSalesOrderRequestAddressesItem.from_dict(
-                addresses_item_data
-            )
+            addresses_item = SalesOrderAddress.from_dict(addresses_item_data)
 
             addresses.append(addresses_item)
 

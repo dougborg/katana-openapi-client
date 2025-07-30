@@ -6,6 +6,9 @@ from attrs import (
     field as _attrs_field,
 )
 
+from ..models.custom_fields_collection_custom_fields_item_field_type import (
+    CustomFieldsCollectionCustomFieldsItemFieldType,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="CustomFieldsCollectionCustomFieldsItem")
@@ -15,7 +18,7 @@ T = TypeVar("T", bound="CustomFieldsCollectionCustomFieldsItem")
 class CustomFieldsCollectionCustomFieldsItem:
     id: Unset | int = UNSET
     name: Unset | str = UNSET
-    field_type: Unset | str = UNSET
+    field_type: Unset | CustomFieldsCollectionCustomFieldsItemFieldType = UNSET
     required: Unset | bool = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -24,7 +27,9 @@ class CustomFieldsCollectionCustomFieldsItem:
 
         name = self.name
 
-        field_type = self.field_type
+        field_type: Unset | str = UNSET
+        if not isinstance(self.field_type, Unset):
+            field_type = self.field_type.value
 
         required = self.required
 
@@ -49,7 +54,12 @@ class CustomFieldsCollectionCustomFieldsItem:
 
         name = d.pop("name", UNSET)
 
-        field_type = d.pop("field_type", UNSET)
+        _field_type = d.pop("field_type", UNSET)
+        field_type: Unset | CustomFieldsCollectionCustomFieldsItemFieldType
+        if isinstance(_field_type, Unset):
+            field_type = UNSET
+        else:
+            field_type = CustomFieldsCollectionCustomFieldsItemFieldType(_field_type)
 
         required = d.pop("required", UNSET)
 

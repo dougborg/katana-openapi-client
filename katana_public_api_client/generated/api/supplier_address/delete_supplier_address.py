@@ -5,18 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.delete_supplier_address_response_401 import (
-    DeleteSupplierAddressResponse401,
-)
-from ...models.delete_supplier_address_response_404 import (
-    DeleteSupplierAddressResponse404,
-)
-from ...models.delete_supplier_address_response_429 import (
-    DeleteSupplierAddressResponse429,
-)
-from ...models.delete_supplier_address_response_500 import (
-    DeleteSupplierAddressResponse500,
-)
+from ...models.error_response import ErrorResponse
 from ...types import Response
 
 
@@ -33,31 +22,24 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    Any
-    | DeleteSupplierAddressResponse401
-    | DeleteSupplierAddressResponse404
-    | DeleteSupplierAddressResponse429
-    | DeleteSupplierAddressResponse500
-    | None
-):
+) -> Any | ErrorResponse | None:
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
     if response.status_code == 401:
-        response_401 = DeleteSupplierAddressResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 404:
-        response_404 = DeleteSupplierAddressResponse404.from_dict(response.json())
+        response_404 = ErrorResponse.from_dict(response.json())
 
         return response_404
     if response.status_code == 429:
-        response_429 = DeleteSupplierAddressResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = DeleteSupplierAddressResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -68,13 +50,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    Any
-    | DeleteSupplierAddressResponse401
-    | DeleteSupplierAddressResponse404
-    | DeleteSupplierAddressResponse429
-    | DeleteSupplierAddressResponse500
-]:
+) -> Response[Any | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -87,13 +63,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    Any
-    | DeleteSupplierAddressResponse401
-    | DeleteSupplierAddressResponse404
-    | DeleteSupplierAddressResponse429
-    | DeleteSupplierAddressResponse500
-]:
+) -> Response[Any | ErrorResponse]:
     """Delete a supplier address
 
      Deletes a supplier address by id.
@@ -107,7 +77,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[Any, DeleteSupplierAddressResponse401, DeleteSupplierAddressResponse404, DeleteSupplierAddressResponse429, DeleteSupplierAddressResponse500]]
+        Response[Union[Any, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -125,14 +95,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    Any
-    | DeleteSupplierAddressResponse401
-    | DeleteSupplierAddressResponse404
-    | DeleteSupplierAddressResponse429
-    | DeleteSupplierAddressResponse500
-    | None
-):
+) -> Any | ErrorResponse | None:
     """Delete a supplier address
 
      Deletes a supplier address by id.
@@ -146,7 +109,7 @@ def sync(
 
 
     Returns:
-        Union[Any, DeleteSupplierAddressResponse401, DeleteSupplierAddressResponse404, DeleteSupplierAddressResponse429, DeleteSupplierAddressResponse500]
+        Union[Any, ErrorResponse]
     """
 
     return sync_detailed(
@@ -159,13 +122,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    Any
-    | DeleteSupplierAddressResponse401
-    | DeleteSupplierAddressResponse404
-    | DeleteSupplierAddressResponse429
-    | DeleteSupplierAddressResponse500
-]:
+) -> Response[Any | ErrorResponse]:
     """Delete a supplier address
 
      Deletes a supplier address by id.
@@ -179,7 +136,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[Any, DeleteSupplierAddressResponse401, DeleteSupplierAddressResponse404, DeleteSupplierAddressResponse429, DeleteSupplierAddressResponse500]]
+        Response[Union[Any, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -195,14 +152,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    Any
-    | DeleteSupplierAddressResponse401
-    | DeleteSupplierAddressResponse404
-    | DeleteSupplierAddressResponse429
-    | DeleteSupplierAddressResponse500
-    | None
-):
+) -> Any | ErrorResponse | None:
     """Delete a supplier address
 
      Deletes a supplier address by id.
@@ -216,7 +166,7 @@ async def asyncio(
 
 
     Returns:
-        Union[Any, DeleteSupplierAddressResponse401, DeleteSupplierAddressResponse404, DeleteSupplierAddressResponse429, DeleteSupplierAddressResponse500]
+        Union[Any, ErrorResponse]
     """
 
     return (

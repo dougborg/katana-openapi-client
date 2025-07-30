@@ -19,6 +19,8 @@ class SalesOrderAddress:
     id: int
     sales_order_id: int
     entity_type: SalesOrderAddressEntityType
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
     first_name: None | Unset | str = UNSET
     last_name: None | Unset | str = UNSET
     company: None | Unset | str = UNSET
@@ -29,8 +31,6 @@ class SalesOrderAddress:
     state: None | Unset | str = UNSET
     zip_: None | Unset | str = UNSET
     country: None | Unset | str = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,6 +39,14 @@ class SalesOrderAddress:
         sales_order_id = self.sales_order_id
 
         entity_type = self.entity_type.value
+
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
 
         first_name: None | Unset | str
         if isinstance(self.first_name, Unset):
@@ -100,14 +108,6 @@ class SalesOrderAddress:
         else:
             country = self.country
 
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -117,6 +117,10 @@ class SalesOrderAddress:
                 "entity_type": entity_type,
             }
         )
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
         if first_name is not UNSET:
             field_dict["first_name"] = first_name
         if last_name is not UNSET:
@@ -137,10 +141,6 @@ class SalesOrderAddress:
             field_dict["zip"] = zip_
         if country is not UNSET:
             field_dict["country"] = country
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
 
         return field_dict
 
@@ -152,6 +152,20 @@ class SalesOrderAddress:
         sales_order_id = d.pop("sales_order_id")
 
         entity_type = SalesOrderAddressEntityType(d.pop("entity_type"))
+
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
+
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
 
         def _parse_first_name(data: object) -> None | Unset | str:
             if data is None:
@@ -243,24 +257,12 @@ class SalesOrderAddress:
 
         country = _parse_country(d.pop("country", UNSET))
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
-
         sales_order_address = cls(
             id=id,
             sales_order_id=sales_order_id,
             entity_type=entity_type,
+            created_at=created_at,
+            updated_at=updated_at,
             first_name=first_name,
             last_name=last_name,
             company=company,
@@ -271,8 +273,6 @@ class SalesOrderAddress:
             state=state,
             zip_=zip_,
             country=country,
-            created_at=created_at,
-            updated_at=updated_at,
         )
 
         sales_order_address.additional_properties = d

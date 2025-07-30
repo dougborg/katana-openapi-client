@@ -18,10 +18,10 @@ class Factory:
     id: int
     name: str
     currency: str
-    address: None | Unset | str = UNSET
-    timezone: Unset | str = UNSET
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
+    address: None | Unset | str = UNSET
+    timezone: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -31,14 +31,6 @@ class Factory:
 
         currency = self.currency
 
-        address: None | Unset | str
-        if isinstance(self.address, Unset):
-            address = UNSET
-        else:
-            address = self.address
-
-        timezone = self.timezone
-
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -46,6 +38,14 @@ class Factory:
         updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
+
+        address: None | Unset | str
+        if isinstance(self.address, Unset):
+            address = UNSET
+        else:
+            address = self.address
+
+        timezone = self.timezone
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -56,14 +56,14 @@ class Factory:
                 "currency": currency,
             }
         )
-        if address is not UNSET:
-            field_dict["address"] = address
-        if timezone is not UNSET:
-            field_dict["timezone"] = timezone
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
+        if address is not UNSET:
+            field_dict["address"] = address
+        if timezone is not UNSET:
+            field_dict["timezone"] = timezone
 
         return field_dict
 
@@ -75,17 +75,6 @@ class Factory:
         name = d.pop("name")
 
         currency = d.pop("currency")
-
-        def _parse_address(data: object) -> None | Unset | str:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | Unset | str, data)
-
-        address = _parse_address(d.pop("address", UNSET))
-
-        timezone = d.pop("timezone", UNSET)
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -101,14 +90,25 @@ class Factory:
         else:
             updated_at = isoparse(_updated_at)
 
+        def _parse_address(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        address = _parse_address(d.pop("address", UNSET))
+
+        timezone = d.pop("timezone", UNSET)
+
         factory = cls(
             id=id,
             name=name,
             currency=currency,
-            address=address,
-            timezone=timezone,
             created_at=created_at,
             updated_at=updated_at,
+            address=address,
+            timezone=timezone,
         )
 
         factory.additional_properties = d

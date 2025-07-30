@@ -22,15 +22,15 @@ T = TypeVar("T", bound="Variant")
 class Variant:
     id: int
     sku: str
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | str = UNSET
     sales_price: None | Unset | float = UNSET
     product_id: None | Unset | int = UNSET
     material_id: None | Unset | int = UNSET
     purchase_price: Unset | float = UNSET
     product_or_material_name: Unset | str = UNSET
     type_: Unset | str = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
     internal_barcode: Unset | str = UNSET
     registered_barcode: Unset | str = UNSET
     supplier_item_codes: Unset | list[str] = UNSET
@@ -44,6 +44,20 @@ class Variant:
         id = self.id
 
         sku = self.sku
+
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
+
+        deleted_at: None | Unset | str
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        else:
+            deleted_at = self.deleted_at
 
         sales_price: None | Unset | float
         if isinstance(self.sales_price, Unset):
@@ -68,22 +82,6 @@ class Variant:
         product_or_material_name = self.product_or_material_name
 
         type_ = self.type_
-
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
-
-        deleted_at: None | Unset | str
-        if isinstance(self.deleted_at, Unset):
-            deleted_at = UNSET
-        elif isinstance(self.deleted_at, datetime.datetime):
-            deleted_at = self.deleted_at.isoformat()
-        else:
-            deleted_at = self.deleted_at
 
         internal_barcode = self.internal_barcode
 
@@ -127,6 +125,12 @@ class Variant:
                 "sku": sku,
             }
         )
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
         if sales_price is not UNSET:
             field_dict["sales_price"] = sales_price
         if product_id is not UNSET:
@@ -139,12 +143,6 @@ class Variant:
             field_dict["product_or_material_name"] = product_or_material_name
         if type_ is not UNSET:
             field_dict["type"] = type_
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
-        if deleted_at is not UNSET:
-            field_dict["deleted_at"] = deleted_at
         if internal_barcode is not UNSET:
             field_dict["internal_barcode"] = internal_barcode
         if registered_barcode is not UNSET:
@@ -171,6 +169,29 @@ class Variant:
         id = d.pop("id")
 
         sku = d.pop("sku")
+
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
+
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
+
+        def _parse_deleted_at(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         def _parse_sales_price(data: object) -> None | Unset | float:
             if data is None:
@@ -204,37 +225,6 @@ class Variant:
         product_or_material_name = d.pop("product_or_material_name", UNSET)
 
         type_ = d.pop("type", UNSET)
-
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
-
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                deleted_at_type_0 = isoparse(data)
-
-                return deleted_at_type_0
-            except:  # noqa: E722
-                pass
-            return cast(None | Unset | datetime.datetime, data)
-
-        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         internal_barcode = d.pop("internal_barcode", UNSET)
 
@@ -283,15 +273,15 @@ class Variant:
         variant = cls(
             id=id,
             sku=sku,
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
             sales_price=sales_price,
             product_id=product_id,
             material_id=material_id,
             purchase_price=purchase_price,
             product_or_material_name=product_or_material_name,
             type_=type_,
-            created_at=created_at,
-            updated_at=updated_at,
-            deleted_at=deleted_at,
             internal_barcode=internal_barcode,
             registered_barcode=registered_barcode,
             supplier_item_codes=supplier_item_codes,

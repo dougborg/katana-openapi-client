@@ -5,20 +5,10 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...models.unlink_variant_bin_location_request import (
     UnlinkVariantBinLocationRequest,
-)
-from ...models.unlink_variant_default_storage_bins_response_401 import (
-    UnlinkVariantDefaultStorageBinsResponse401,
-)
-from ...models.unlink_variant_default_storage_bins_response_422 import (
-    UnlinkVariantDefaultStorageBinsResponse422,
-)
-from ...models.unlink_variant_default_storage_bins_response_429 import (
-    UnlinkVariantDefaultStorageBinsResponse429,
-)
-from ...models.unlink_variant_default_storage_bins_response_500 import (
-    UnlinkVariantDefaultStorageBinsResponse500,
 )
 from ...types import Response
 
@@ -49,39 +39,24 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    Any
-    | UnlinkVariantDefaultStorageBinsResponse401
-    | UnlinkVariantDefaultStorageBinsResponse422
-    | UnlinkVariantDefaultStorageBinsResponse429
-    | UnlinkVariantDefaultStorageBinsResponse500
-    | None
-):
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
     if response.status_code == 401:
-        response_401 = UnlinkVariantDefaultStorageBinsResponse401.from_dict(
-            response.json()
-        )
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 422:
-        response_422 = UnlinkVariantDefaultStorageBinsResponse422.from_dict(
-            response.json()
-        )
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = UnlinkVariantDefaultStorageBinsResponse429.from_dict(
-            response.json()
-        )
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = UnlinkVariantDefaultStorageBinsResponse500.from_dict(
-            response.json()
-        )
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -92,13 +67,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    Any
-    | UnlinkVariantDefaultStorageBinsResponse401
-    | UnlinkVariantDefaultStorageBinsResponse422
-    | UnlinkVariantDefaultStorageBinsResponse429
-    | UnlinkVariantDefaultStorageBinsResponse500
-]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -111,13 +80,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: list["UnlinkVariantBinLocationRequest"],
-) -> Response[
-    Any
-    | UnlinkVariantDefaultStorageBinsResponse401
-    | UnlinkVariantDefaultStorageBinsResponse422
-    | UnlinkVariantDefaultStorageBinsResponse429
-    | UnlinkVariantDefaultStorageBinsResponse500
-]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Unlink variant default storage bins
 
      Bulk operation for unlinking variants from the default storage bins available in a specific
@@ -133,7 +96,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[Any, UnlinkVariantDefaultStorageBinsResponse401, UnlinkVariantDefaultStorageBinsResponse422, UnlinkVariantDefaultStorageBinsResponse429, UnlinkVariantDefaultStorageBinsResponse500]]
+        Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -151,14 +114,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: list["UnlinkVariantBinLocationRequest"],
-) -> (
-    Any
-    | UnlinkVariantDefaultStorageBinsResponse401
-    | UnlinkVariantDefaultStorageBinsResponse422
-    | UnlinkVariantDefaultStorageBinsResponse429
-    | UnlinkVariantDefaultStorageBinsResponse500
-    | None
-):
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Unlink variant default storage bins
 
      Bulk operation for unlinking variants from the default storage bins available in a specific
@@ -174,7 +130,7 @@ def sync(
 
 
     Returns:
-        Union[Any, UnlinkVariantDefaultStorageBinsResponse401, UnlinkVariantDefaultStorageBinsResponse422, UnlinkVariantDefaultStorageBinsResponse429, UnlinkVariantDefaultStorageBinsResponse500]
+        Union[Any, DetailedErrorResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -187,13 +143,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: list["UnlinkVariantBinLocationRequest"],
-) -> Response[
-    Any
-    | UnlinkVariantDefaultStorageBinsResponse401
-    | UnlinkVariantDefaultStorageBinsResponse422
-    | UnlinkVariantDefaultStorageBinsResponse429
-    | UnlinkVariantDefaultStorageBinsResponse500
-]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Unlink variant default storage bins
 
      Bulk operation for unlinking variants from the default storage bins available in a specific
@@ -209,7 +159,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[Any, UnlinkVariantDefaultStorageBinsResponse401, UnlinkVariantDefaultStorageBinsResponse422, UnlinkVariantDefaultStorageBinsResponse429, UnlinkVariantDefaultStorageBinsResponse500]]
+        Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -225,14 +175,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: list["UnlinkVariantBinLocationRequest"],
-) -> (
-    Any
-    | UnlinkVariantDefaultStorageBinsResponse401
-    | UnlinkVariantDefaultStorageBinsResponse422
-    | UnlinkVariantDefaultStorageBinsResponse429
-    | UnlinkVariantDefaultStorageBinsResponse500
-    | None
-):
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Unlink variant default storage bins
 
      Bulk operation for unlinking variants from the default storage bins available in a specific
@@ -248,7 +191,7 @@ async def asyncio(
 
 
     Returns:
-        Union[Any, UnlinkVariantDefaultStorageBinsResponse401, UnlinkVariantDefaultStorageBinsResponse422, UnlinkVariantDefaultStorageBinsResponse429, UnlinkVariantDefaultStorageBinsResponse500]
+        Union[Any, DetailedErrorResponse, ErrorResponse]
     """
 
     return (

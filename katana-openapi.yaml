@@ -764,14 +764,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              statusCode:
-                type: number
-              name:
-                type: string
-              message:
-                type: string
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             statusCode: 204
             name: NotContent
@@ -789,14 +782,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              statusCode:
-                type: number
-              name:
-                type: string
-              message:
-                type: string
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             statusCode: 401
             name: UnauthorizedError
@@ -814,14 +800,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              statusCode:
-                type: number
-              name:
-                type: string
-              message:
-                type: string
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             statusCode: 404
             name: NotFoundError
@@ -839,20 +818,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              statusCode:
-                type: number
-              name:
-                type: string
-              message:
-                type: string
-              code:
-                type: string
-              details:
-                type: array
-                items:
-                  type: object
+            $ref: "#/components/schemas/DetailedErrorResponse"
           example:
             statusCode: 422
             name: UnprocessableEntityError
@@ -879,14 +845,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              statusCode:
-                type: number
-              name:
-                type: string
-              message:
-                type: string
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             statusCode: 429
             name: TooManyRequests
@@ -904,14 +863,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              statusCode:
-                type: number
-              name:
-                type: string
-              message:
-                type: string
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             statusCode: 500
             name: InternalServerError
@@ -929,14 +881,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              statusCode:
-                type: number
-              name:
-                type: string
-              message:
-                type: string
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             statusCode: 400
             name: BadRequest
@@ -946,7 +891,7 @@ components:
     # Common error response schemas
     ErrorResponse:
       type: object
-      description: Base error response schema
+      description: Base error message schema
       properties:
         statusCode:
           type: number
@@ -957,17 +902,23 @@ components:
         message:
           type: string
           description: Human-readable error message
-        code:
-          type: [string, "null"]
-          description: Application-specific error code
+
+    CodedErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - type: object
+          properties:
+            code:
+              type: [string, "null"]
+              description: Application-specific error code
       required:
         - statusCode
         - name
         - message
 
-    ValidationErrorResponse:
+    DetailedErrorResponse:
       allOf:
-        - $ref: "#/components/schemas/ErrorResponse"
+        - $ref: "#/components/schemas/CodedErrorResponse"
         - type: object
           properties:
             details:
@@ -997,13 +948,37 @@ components:
         - path
         - code
 
-    AdditionalCost:
+    # Common Schema
+
+    UpdatableEntity:
       type: object
+      description: Common fields for entities that can be updated
       properties:
-        id:
-          type: integer
-        name:
+        created_at:
           type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ArchivableEntity:
+      type: object
+      description: Common fields for entities that can be archived
+      properties:
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        archived_at:
+          type: [string, "null"]
+          description: Nullable archive timestamp
+
+    DeletableEntity:
+      type: object
+      description: Common fields for entities that can be deleted
+      properties:
         created_at:
           type: string
           format: date-time
@@ -1012,6 +987,18 @@ components:
           format: date-time
         deleted_at:
           type: [string, "null"]
+          description: Nullable deletion timestamp
+
+    # Main Entities
+    AdditionalCost:
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        - $ref: "#/components/schemas/DeletableEntity"
 
     AdditionalCostListResponse:
       type: object
@@ -1042,41 +1029,13 @@ components:
           minLength: 3
           maxLength: 40
 
-    BatchResponse:
+    BatchStock:
       allOf:
         - $ref: "#/components/schemas/Batch"
         - type: object
           properties:
-            id:
+            batch_id:
               type: integer
-            created_at:
-              type: string
-              format: date-time
-            updated_at:
-              type: string
-              format: date-time
-
-    BatchStock:
-      type: object
-      properties:
-        batch_id:
-          type: integer
-        batch_number:
-          type: string
-        batch_created_date:
-          type: string
-          format: date-time
-        expiration_date:
-          type: string
-          format: date-time
-        location_id:
-          type: integer
-        variant_id:
-          type: integer
-        quantity_in_stock:
-          type: string
-        batch_barcode:
-          type: string
       example:
         batch_id: 1109
         batch_number: B2
@@ -1110,7 +1069,6 @@ components:
       additionalProperties: false
       required:
         - batch_number
-        - variant_id
       properties:
         batch_number:
           type: string
@@ -1120,9 +1078,6 @@ components:
         batch_created_date:
           type: string
           format: date-time
-        variant_id:
-          type: integer
-          maximum: 2147483647
         batch_barcode:
           type: [string, "null"]
           minLength: 3
@@ -1131,26 +1086,19 @@ components:
         batch_number: BAT-1
         expiration_date: "2020-10-23T10:37:05.085Z"
         batch_created_date: "2020-10-23T10:37:05.085Z"
-        variant_id: 1
         batch_barcode: "0040"
 
     StorageBin:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        location_id:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            location_id:
+              type: integer
+        - $ref: "#/components/schemas/DeletableEntity"
 
     StorageBinListResponse:
       type: object
@@ -1169,69 +1117,63 @@ components:
             deleted_at: null
 
     InventoryMovement:
-      type: object
-      description: Details of a single inventory movement record.
-      properties:
-        id:
-          type: integer
-          description: Unique identifier for the inventory movement.
-        variant_id:
-          type: integer
-          description: Identifier of the product variant associated with the movement.
-        location_id:
-          type: integer
-          description: Identifier of the location where the movement occurred.
-        resource_type:
-          type: string
-          description: The type of resource that caused the movement.
-          enum:
-            - PurchaseOrderRow
-            - PurchaseOrderRecipeRow
-            - SalesOrderRow
-            - ManufacturingOrderRecipeRow
-            - StockAdjustmentRow
-            - StockTransferRow
-            - ManufacturingOrder
-            - SystemGenerated
-        resource_id:
-          type: integer
-          description: Identifier of the resource that initiated the movement.
-        caused_by_order_no:
-          type: string
-          description: Order number that triggered the movement.
-        caused_by_resource_id:
-          type: integer
-          description: Identifier for the resource that caused the movement.
-        movement_date:
-          type: string
-          format: date-time
-          description: Date and time when the inventory movement occurred.
-        quantity_change:
-          type: number
-          description: The change in quantity as a result of the movement.
-        balance_after:
-          type: number
-          description: The quantity balance after the movement.
-        value_per_unit:
-          type: number
-          description: The value per unit for the movement.
-        value_in_stock_after:
-          type: number
-          description: The total value in stock after the movement.
-        average_cost_after:
-          type: number
-          description: The average cost per unit after the movement.
-        rank:
-          type: integer
-          description: A rank or order index for the movement.
-        created_at:
-          type: string
-          format: date-time
-          description: Timestamp when the movement record was created.
-        updated_at:
-          type: string
-          format: date-time
-          description: Timestamp when the movement record was last updated.
+      allOf:
+        - type: object
+          description: Details of a single inventory movement record.
+          properties:
+            id:
+              type: integer
+              description: Unique identifier for the inventory movement.
+            variant_id:
+              type: integer
+              description: Identifier of the product variant associated with the movement.
+            location_id:
+              type: integer
+              description: Identifier of the location where the movement occurred.
+            resource_type:
+              type: string
+              description: The type of resource that caused the movement.
+              enum:
+                - PurchaseOrderRow
+                - PurchaseOrderRecipeRow
+                - SalesOrderRow
+                - ManufacturingOrderRecipeRow
+                - StockAdjustmentRow
+                - StockTransferRow
+                - ManufacturingOrder
+                - SystemGenerated
+            resource_id:
+              type: integer
+              description: Identifier of the resource that initiated the movement.
+            caused_by_order_no:
+              type: string
+              description: Order number that triggered the movement.
+            caused_by_resource_id:
+              type: integer
+              description: Identifier for the resource that caused the movement.
+            movement_date:
+              type: string
+              format: date-time
+              description: Date and time when the inventory movement occurred.
+            quantity_change:
+              type: number
+              description: The change in quantity as a result of the movement.
+            balance_after:
+              type: number
+              description: The quantity balance after the movement.
+            value_per_unit:
+              type: number
+              description: The value per unit for the movement.
+            value_in_stock_after:
+              type: number
+              description: The total value in stock after the movement.
+            average_cost_after:
+              type: number
+              description: The average cost per unit after the movement.
+            rank:
+              type: integer
+              description: A rank or order index for the movement.
+        - $ref: "#/components/schemas/UpdatableEntity"
       required:
         - id
         - variant_id
@@ -1258,119 +1200,108 @@ components:
         - data
 
     Variant:
-      type: object
-      properties:
-        id:
-          type: integer
-        sku:
-          type: string
-        sales_price:
-          type: [number, "null"]
-        product_id:
-          type: [integer, "null"]
-        material_id:
-          type: [integer, "null"]
-        purchase_price:
-          type: number
-        product_or_material_name:
-          type: string
-        type:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
-        internal_barcode:
-          type: string
-        registered_barcode:
-          type: string
-        supplier_item_codes:
-          type: array
-          items:
-            type: string
-        lead_time:
-          type: [integer, "null"]
-        minimum_order_quantity:
-          type: [number, "null"]
-        custom_fields:
-          type: array
-          items:
-            type: object
-            properties:
-              field_name:
-                type: string
-              field_value:
-                type: string
-        config_attributes:
-          type: array
-          items:
-            type: object
-            properties:
-              config_name:
-                type: string
-              config_value:
-                type: string
-      required:
-        - id
-        - sku
-
-    Location:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        legal_name:
-          type: string
-        address_id:
-          type: integer
-        address:
-          type: object
+      allOf:
+        - type: object
           properties:
             id:
               type: integer
-            city:
+            sku:
               type: string
-            country:
+            sales_price:
+              type: [number, "null"]
+            product_id:
+              type: [integer, "null"]
+            material_id:
+              type: [integer, "null"]
+            purchase_price:
+              type: number
+            product_or_material_name:
               type: string
-            line_1:
+            type:
               type: string
-            line_2:
+            internal_barcode:
               type: string
-            state:
+            registered_barcode:
               type: string
-            zip:
-              type: string
+            supplier_item_codes:
+              type: array
+              items:
+                type: string
+            lead_time:
+              type: [integer, "null"]
+            minimum_order_quantity:
+              type: [number, "null"]
+            custom_fields:
+              type: array
+              items:
+                type: object
+                properties:
+                  field_name:
+                    type: string
+                  field_value:
+                    type: string
+            config_attributes:
+              type: array
+              items:
+                type: object
+                properties:
+                  config_name:
+                    type: string
+                  config_value:
+                    type: string
           required:
             - id
-            - city
-            - country
-            - line_1
-            - state
-            - zip
-        is_primary:
-          type: boolean
-        sales_allowed:
-          type: boolean
-        purchase_allowed:
-          type: boolean
-        manufacturing_allowed:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - name
+            - sku
+        - $ref: "#/components/schemas/DeletableEntity"
+
+    Location:
+      anyOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            legal_name:
+              type: string
+            address_id:
+              type: integer
+            address:
+              type: object
+              properties:
+                id:
+                  type: integer
+                city:
+                  type: string
+                country:
+                  type: string
+                line_1:
+                  type: string
+                line_2:
+                  type: string
+                state:
+                  type: string
+                zip:
+                  type: string
+              required:
+                - id
+                - city
+                - country
+                - line_1
+                - state
+                - zip
+            is_primary:
+              type: boolean
+            sales_allowed:
+              type: boolean
+            purchase_allowed:
+              type: boolean
+            manufacturing_allowed:
+              type: boolean
+          required:
+            - id
+            - name
+        - $ref: "#/components/schemas/DeletableEntity"
       example:
         data:
           - id: 1
@@ -1475,14 +1406,7 @@ components:
     InventoryReorderPointResponse:
       allOf:
         - $ref: "#/components/schemas/InventoryReorderPoint"
-        - type: object
-          properties:
-            created_at:
-              type: string
-              format: date-time
-            updated_at:
-              type: string
-              format: date-time
+        - $ref: "#/components/schemas/DeletableEntity"
 
     InventorySafetyStockLevel:
       type: object
@@ -1505,14 +1429,7 @@ components:
     InventorySafetyStockLevelResponse:
       allOf:
         - $ref: "#/components/schemas/InventorySafetyStockLevel"
-        - type: object
-          properties:
-            created_at:
-              type: string
-              format: date-time
-            updated_at:
-              type: string
-              format: date-time
+        - $ref: "#/components/schemas/DeletableEntity"
       example:
         variant_id: 1
         location_id: 1
@@ -1543,67 +1460,60 @@ components:
           type: string
 
     ManufacturingOrder:
-      type: object
-      properties:
-        id:
-          type: integer
-        status:
-          type: string
-          enum: [NOT_STARTED, BLOCKED, IN_PROGRESS, DONE]
-        order_no:
-          type: string
-        variant_id:
-          type: integer
-        planned_quantity:
-          type: number
-        actual_quantity:
-          type: [number, "null"]
-        location_id:
-          type: integer
-        order_created_date:
-          type: string
-          format: date-time
-        production_deadline_date:
-          type: string
-          format: date-time
-        additional_info:
-          type: string
-        is_linked_to_sales_order:
-          type: boolean
-        ingredient_availability:
-          type: string
-        total_cost:
-          type: number
-        total_actual_time:
-          type: number
-        total_planned_time:
-          type: number
-        sales_order_id:
-          type: integer
-        sales_order_row_id:
-          type: integer
-        sales_order_delivery_deadline:
-          type: string
-          format: date-time
-        material_cost:
-          type: number
-        subassemblies_cost:
-          type: number
-        operations_cost:
-          type: number
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
-        serial_numbers:
-          type: array
-          items:
-            $ref: "#/components/schemas/SerialNumber"
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            status:
+              type: string
+              enum: [NOT_STARTED, BLOCKED, IN_PROGRESS, DONE]
+            order_no:
+              type: string
+            variant_id:
+              type: integer
+            planned_quantity:
+              type: number
+            actual_quantity:
+              type: [number, "null"]
+            location_id:
+              type: integer
+            order_created_date:
+              type: string
+              format: date-time
+            production_deadline_date:
+              type: string
+              format: date-time
+            additional_info:
+              type: string
+            is_linked_to_sales_order:
+              type: boolean
+            ingredient_availability:
+              type: string
+            total_cost:
+              type: number
+            total_actual_time:
+              type: number
+            total_planned_time:
+              type: number
+            sales_order_id:
+              type: integer
+            sales_order_row_id:
+              type: integer
+            sales_order_delivery_deadline:
+              type: string
+              format: date-time
+            material_cost:
+              type: number
+            subassemblies_cost:
+              type: number
+            operations_cost:
+              type: number
+            serial_numbers:
+              type: array
+              items:
+                $ref: "#/components/schemas/SerialNumber"
+        - $ref: "#/components/schemas/DeletableEntity"
 
     UpdateManufacturingOrderRequest:
       type: object
@@ -1657,38 +1567,31 @@ components:
             $ref: "#/components/schemas/UpdateManufacturingOrderOperationRowRequest"
 
     ManufacturingOrderProduction:
-      type: object
-      properties:
-        id:
-          type: integer
-        manufacturing_order_id:
-          type: integer
-        quantity:
-          type: number
-        production_date:
-          type: string
-          format: date-time
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
-        ingredients:
-          type: array
-          items:
-            $ref: "#/components/schemas/ManufacturingOrderProductionIngredient"
-        operations:
-          type: array
-          items:
-            $ref: "#/components/schemas/ManufacturingOrderOperationProduction"
-        serial_numbers:
-          type: array
-          items:
-            $ref: "#/components/schemas/SerialNumber"
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            manufacturing_order_id:
+              type: integer
+            quantity:
+              type: number
+            production_date:
+              type: string
+              format: date-time
+            ingredients:
+              type: array
+              items:
+                $ref: "#/components/schemas/ManufacturingOrderProductionIngredient"
+            operations:
+              type: array
+              items:
+                $ref: "#/components/schemas/ManufacturingOrderOperationProduction"
+            serial_numbers:
+              type: array
+              items:
+                $ref: "#/components/schemas/SerialNumber"
+        - $ref: "#/components/schemas/DeletableEntity"
 
     ManufacturingOrderProductionListResponse:
       type: object
@@ -1699,36 +1602,29 @@ components:
             $ref: "#/components/schemas/ManufacturingOrderProduction"
 
     ManufacturingOrderProductionIngredient:
-      type: object
-      properties:
-        id:
-          type: integer
-        location_id:
-          type: integer
-        variant_id:
-          type: integer
-        manufacturing_order_id:
-          type: integer
-        manufacturing_order_recipe_row_id:
-          type: integer
-        production_id:
-          type: integer
-        quantity:
-          type: number
-        production_date:
-          type: string
-          format: date-time
-        cost:
-          type: number
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            location_id:
+              type: integer
+            variant_id:
+              type: integer
+            manufacturing_order_id:
+              type: integer
+            manufacturing_order_recipe_row_id:
+              type: integer
+            production_id:
+              type: integer
+            quantity:
+              type: number
+            production_date:
+              type: string
+              format: date-time
+            cost:
+              type: number
+        - $ref: "#/components/schemas/DeletableEntity"
 
     UpdateManufacturingOrderProductionIngredientRequest:
       type: object
@@ -1743,67 +1639,60 @@ components:
 
     # Manufacturing Order Operation Row Schemas
     ManufacturingOrderOperationRow:
-      type: object
-      properties:
-        id:
-          type: integer
-        status:
-          type: string
-          enum: [IN_PROGRESS, COMPLETED, PAUSED]
-        type:
-          type: string
-        rank:
-          type: number
-        manufacturing_order_id:
-          type: integer
-        operation_id:
-          type: integer
-        operation_name:
-          type: string
-        resource_id:
-          type: integer
-        resource_name:
-          type: string
-        assigned_operators:
-          type: array
-          items:
-            $ref: "#/components/schemas/Operator"
-        completed_by_operators:
-          type: array
-          items:
-            $ref: "#/components/schemas/Operator"
-        active_operator_id:
-          type: number
-        planned_time_per_unit:
-          type: number
-        planned_time_parameter:
-          type: number
-        total_actual_time:
-          type: number
-        planned_cost_per_unit:
-          type: number
-        total_actual_cost:
-          type: number
-        cost_per_hour:
-          type: number
-        cost_parameter:
-          type: number
-        group_boundary:
-          type: number
-        is_status_actionable:
-          type: boolean
-        completed_at:
-          type: [string, "null"]
-          format: date-time
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            status:
+              type: string
+              enum: [IN_PROGRESS, COMPLETED, PAUSED]
+            type:
+              type: string
+            rank:
+              type: number
+            manufacturing_order_id:
+              type: integer
+            operation_id:
+              type: integer
+            operation_name:
+              type: string
+            resource_id:
+              type: integer
+            resource_name:
+              type: string
+            assigned_operators:
+              type: array
+              items:
+                $ref: "#/components/schemas/Operator"
+            completed_by_operators:
+              type: array
+              items:
+                $ref: "#/components/schemas/Operator"
+            active_operator_id:
+              type: number
+            planned_time_per_unit:
+              type: number
+            planned_time_parameter:
+              type: number
+            total_actual_time:
+              type: number
+            planned_cost_per_unit:
+              type: number
+            total_actual_cost:
+              type: number
+            cost_per_hour:
+              type: number
+            cost_parameter:
+              type: number
+            group_boundary:
+              type: number
+            is_status_actionable:
+              type: boolean
+            completed_at:
+              type: [string, "null"]
+              format: date-time
+        - $ref: "#/components/schemas/DeletableEntity"
 
     CreateManufacturingOrderOperationRowRequest:
       type: object
@@ -1835,34 +1724,27 @@ components:
         - $ref: "#/components/schemas/ManufacturingOrderOperationRow"
 
     ManufacturingOrderOperationProduction:
-      type: object
-      properties:
-        id:
-          type: integer
-        location_id:
-          type: integer
-        manufacturing_order_id:
-          type: integer
-        manufacturing_order_operation_id:
-          type: integer
-        production_id:
-          type: integer
-        time:
-          type: number
-        production_date:
-          type: string
-          format: date-time
-        cost:
-          type: number
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            location_id:
+              type: integer
+            manufacturing_order_id:
+              type: integer
+            manufacturing_order_operation_id:
+              type: integer
+            production_id:
+              type: integer
+            time:
+              type: number
+            production_date:
+              type: string
+              format: date-time
+            cost:
+              type: number
+        - $ref: "#/components/schemas/DeletableEntity"
 
     # Manufacturing Order Recipe Row Schemas
     CreateManufacturingOrderRecipeRowRequest:
@@ -1929,45 +1811,38 @@ components:
           type: number
 
     ManufacturingOrderRecipeRow:
-      type: object
-      properties:
-        id:
-          type: integer
-        manufacturing_order_id:
-          type: integer
-        variant_id:
-          type: integer
-        notes:
-          type: string
-        planned_quantity_per_unit:
-          type: number
-        total_actual_quantity:
-          type: number
-        ingredient_availability:
-          type: string
-        ingredient_expected_date:
-          type: string
-          format: date-time
-        batch_transactions:
-          type: array
-          items:
-            type: object
-            properties:
-              batch_id:
-                type: integer
-              quantity:
-                type: number
-        cost:
-          type: number
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            manufacturing_order_id:
+              type: integer
+            variant_id:
+              type: integer
+            notes:
+              type: string
+            planned_quantity_per_unit:
+              type: number
+            total_actual_quantity:
+              type: number
+            ingredient_availability:
+              type: string
+            ingredient_expected_date:
+              type: string
+              format: date-time
+            batch_transactions:
+              type: array
+              items:
+                type: object
+                properties:
+                  batch_id:
+                    type: integer
+                  quantity:
+                    type: number
+            cost:
+              type: number
+        - $ref: "#/components/schemas/DeletableEntity"
 
     ManufacturingOrderRecipeRowListResponse:
       type: object
@@ -2107,181 +1982,58 @@ components:
           type: array
           minItems: 1
           items:
-            type: object
-            additionalProperties: false
-            properties:
-              sku:
-                type: string
-              purchase_price:
-                type: number
-                maximum: 100000000000
-                minimum: 0
-              internal_barcode:
-                type: string
-                minLength: 3
-                maxLength: 40
-              registered_barcode:
-                type: string
-                maxLength: 40
-                minLength: 3
-              supplier_item_codes:
-                type: array
-                items:
-                  type: string
-                  maxLength: 40
-              lead_time:
-                type: number
-                maximum: 999
-                minimum: 0
-              minimum_order_quantity:
-                type: number
-                maximum: 999999999
-                minimum: 0
-              config_attributes:
-                type: array
-                minItems: 1
-                items:
-                  type: object
-              custom_field_collection_id:
-                type: [integer, "null"]
-                maximum: 2147483647
-              custom_fields:
-                type: array
-                maxItems: 3
-                items:
-                  type: object
+            $ref: "#/components/schemas/Variant"
 
     Material:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        uom:
-          type: string
-        category_name:
-          type: string
-        default_supplier_id:
-          type: integer
-        additional_info:
-          type: string
-        batch_tracked:
-          type: boolean
-        is_sellable:
-          type: boolean
-        type:
-          type: string
-        purchase_uom:
-          type: string
-        purchase_uom_conversion_rate:
-          type: number
-        variants:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-              sku:
-                type: string
-              sales_price:
-                type: [number, "null"]
-              product_id:
-                type: [integer, "null"]
-              material_id:
-                type: [integer, "null"]
-              purchase_price:
-                type: number
-              type:
-                type: string
-              created_at:
-                type: string
-                format: date-time
-              updated_at:
-                type: string
-                format: date-time
-              deleted_at:
-                type: [string, "null"]
-                format: date-time
-              config_attributes:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    config_name:
-                      type: string
-                    config_value:
-                      type: string
-              internal_barcode:
-                type: string
-              registered_barcode:
-                type: string
-              supplier_item_codes:
-                type: array
-                items:
-                  type: string
-              lead_time:
-                type: number
-              minimum_order_quantity:
-                type: number
-              custom_fields:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    field_name:
-                      type: string
-                    field_value:
-                      type: string
-        configs:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-              name:
-                type: string
-              values:
-                type: array
-                items:
-                  type: string
-              product_id:
-                type: integer
-        custom_field_collection_id:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        archived_at:
-          type: [string, "null"]
-          format: date-time
-        supplier:
-          type: object
+      allOf:
+        - type: object
           properties:
             id:
               type: integer
             name:
               type: string
-            email:
+            uom:
               type: string
-            comment:
+            category_name:
               type: string
-            currency:
+            default_supplier_id:
+              type: integer
+            additional_info:
               type: string
-            created_at:
+            batch_tracked:
+              type: boolean
+            is_sellable:
+              type: boolean
+            type:
               type: string
-              format: date-time
-            updated_at:
+            purchase_uom:
               type: string
-              format: date-time
-            deleted_at:
-              type: [string, "null"]
-              format: date-time
+            purchase_uom_conversion_rate:
+              type: number
+            variants:
+              type: array
+              items:
+                $ref: "#/components/schemas/Variant"
+            configs:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  values:
+                    type: array
+                    items:
+                      type: string
+                  product_id:
+                    type: integer
+            custom_field_collection_id:
+              type: integer
+            supplier:
+              $ref: "#/components/schemas/Supplier"
+        - $ref: "#/components/schemas/ArchivableEntity"
 
     MaterialListResponse:
       type: object
@@ -2496,73 +2248,65 @@ components:
           maximum: 2147483647
 
     Product:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        uom:
-          type: string
-        category_name:
-          type: string
-        is_sellable:
-          type: boolean
-        is_producible:
-          type: boolean
-        is_purchasable:
-          type: boolean
-        is_auto_assembly:
-          type: boolean
-        default_supplier_id:
-          type: integer
-        additional_info:
-          type: string
-        batch_tracked:
-          type: boolean
-        serial_tracked:
-          type: boolean
-        operations_in_sequence:
-          type: boolean
-        type:
-          type: string
-        purchase_uom:
-          type: string
-        purchase_uom_conversion_rate:
-          type: number
-        variants:
-          type: array
-          items:
-            $ref: "#/components/schemas/Variant"
-        configs:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-              name:
-                type: string
-              values:
-                type: array
-                items:
-                  type: string
-              product_id:
-                type: integer
-        custom_field_collection_id:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        archived_at:
-          type: [string, "null"]
-          format: date-time
-        supplier:
-          type: object
-          $ref: "#/components/schemas/Supplier"
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            uom:
+              type: string
+            category_name:
+              type: string
+            is_sellable:
+              type: boolean
+            is_producible:
+              type: boolean
+            is_purchasable:
+              type: boolean
+            is_auto_assembly:
+              type: boolean
+            default_supplier_id:
+              type: integer
+            additional_info:
+              type: string
+            batch_tracked:
+              type: boolean
+            serial_tracked:
+              type: boolean
+            operations_in_sequence:
+              type: boolean
+            type:
+              type: string
+            purchase_uom:
+              type: string
+            purchase_uom_conversion_rate:
+              type: number
+            variants:
+              type: array
+              items:
+                $ref: "#/components/schemas/Variant"
+            configs:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  values:
+                    type: array
+                    items:
+                      type: string
+                  product_id:
+                    type: integer
+            custom_field_collection_id:
+              type: integer
+            supplier:
+              $ref: "#/components/schemas/Supplier"
+        - $ref: "#/components/schemas/ArchivableEntity"
 
     ProductListResponse:
       type: object
@@ -2631,80 +2375,52 @@ components:
           type: string
 
     PurchaseOrder:
-      type: object
-      properties:
-        id:
-          type: integer
-        status:
-          type: string
-        order_no:
-          type: string
-        entity_type:
-          type: string
-        default_group_id:
-          type: integer
-        supplier_id:
-          type: integer
-        currency:
-          type: string
-        expected_arrival_date:
-          type: string
-        order_created_date:
-          type: string
-        additional_info:
-          type: string
-        location_id:
-          type: integer
-        tracking_location_id:
-          type: [integer, "null"]
-        total:
-          type: number
-        total_in_base_currency:
-          type: number
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
-        billing_status:
-          type: string
-        last_document_status:
-          type: string
-        ingredient_availability:
-          type: [string, "null"]
-        ingredient_expected_date:
-          type: [string, "null"]
-        supplier:
-          type: object
+      allOf:
+        - type: object
           properties:
             id:
               type: integer
-            name:
+            status:
               type: string
-            email:
+            order_no:
               type: string
-            comment:
+            entity_type:
               type: string
+            default_group_id:
+              type: integer
+            supplier_id:
+              type: integer
             currency:
               type: string
-            created_at:
+            expected_arrival_date:
               type: string
-              format: date-time
-            updated_at:
+            order_created_date:
               type: string
-              format: date-time
-            deleted_at:
+            additional_info:
+              type: string
+            location_id:
+              type: integer
+            tracking_location_id:
+              type: [integer, "null"]
+            total:
+              type: number
+            total_in_base_currency:
+              type: number
+            billing_status:
+              type: string
+            last_document_status:
+              type: string
+            ingredient_availability:
               type: [string, "null"]
-              format: date-time
-
-        purchase_order_rows:
-          type: array
-          items:
-            $ref: "#/components/schemas/PurchaseOrderRow"
+            ingredient_expected_date:
+              type: [string, "null"]
+            purchase_order_rows:
+              type: array
+              items:
+                $ref: "#/components/schemas/PurchaseOrderRow"
+            supplier:
+              $ref: "#/components/schemas/Supplier"
+        - $ref: "#/components/schemas/DeletableEntity"
 
     PurchaseOrderListResponse:
       type: object
@@ -2715,65 +2431,58 @@ components:
             $ref: "#/components/schemas/PurchaseOrder"
 
     PurchaseOrderRow:
-      type: object
-      properties:
-        id:
-          type: integer
-        quantity:
-          type: number
-        variant_id:
-          type: integer
-        tax_rate_id:
-          type: integer
-        price_per_unit:
-          type: number
-        price_per_unit_in_base_currency:
-          type: number
-        purchase_uom_conversion_rate:
-          type: number
-        purchase_uom:
-          type: string
-        currency:
-          type: string
-        conversion_rate:
-          type: [number, "null"]
-        total:
-          type: number
-        total_in_base_currency:
-          type: number
-        conversion_date:
-          type: [string, "null"]
-          format: date-time
-        received_date:
-          type: [string, "null"]
-          format: date-time
-        arrival_date:
-          type: [string, "null"]
-          format: date-time
-        batch_transactions:
-          type: array
-          items:
-            type: object
-            properties:
-              quantity:
-                type: number
-              batch_id:
-                type: integer
-        purchase_order_id:
-          type: integer
-        landed_cost:
-          type: [string, number]
-        group_id:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            quantity:
+              type: number
+            variant_id:
+              type: integer
+            tax_rate_id:
+              type: integer
+            price_per_unit:
+              type: number
+            price_per_unit_in_base_currency:
+              type: number
+            purchase_uom_conversion_rate:
+              type: number
+            purchase_uom:
+              type: string
+            currency:
+              type: string
+            conversion_rate:
+              type: [number, "null"]
+            total:
+              type: number
+            total_in_base_currency:
+              type: number
+            conversion_date:
+              type: [string, "null"]
+              format: date-time
+            received_date:
+              type: [string, "null"]
+              format: date-time
+            arrival_date:
+              type: [string, "null"]
+              format: date-time
+            batch_transactions:
+              type: array
+              items:
+                type: object
+                properties:
+                  quantity:
+                    type: number
+                  batch_id:
+                    type: integer
+            purchase_order_id:
+              type: integer
+            landed_cost:
+              type: [string, number]
+            group_id:
+              type: integer
+        - $ref: "#/components/schemas/DeletableEntity"
 
     PurchaseOrderRowListResponse:
       type: object
@@ -2846,42 +2555,35 @@ components:
             - NON_DISTRIBUTED
 
     PurchaseOrderAdditionalCostRow:
-      type: object
-      properties:
-        id:
-          type: integer
-        additional_cost_id:
-          type: integer
-        group_id:
-          type: integer
-        name:
-          type: string
-        distribution_method:
-          type: string
-        tax_rate_id:
-          type: integer
-        tax_rate:
-          type: number
-        price:
-          type: number
-        price_in_base:
-          type: number
-        currency:
-          type: string
-        currency_conversion_rate:
-          type: number
-        currency_conversion_rate_fix_date:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        created_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            additional_cost_id:
+              type: integer
+            group_id:
+              type: integer
+            name:
+              type: string
+            distribution_method:
+              type: string
+            tax_rate_id:
+              type: integer
+            tax_rate:
+              type: number
+            price:
+              type: number
+            price_in_base:
+              type: number
+            currency:
+              type: string
+            currency_conversion_rate:
+              type: number
+            currency_conversion_rate_fix_date:
+              type: string
+              format: date-time
+        - $ref: "#/components/schemas/DeletableEntity"
 
     PurchaseOrderAdditionalCostRowListResponse:
       type: object
@@ -3100,35 +2802,28 @@ components:
           type: string
 
     Supplier:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        email:
-          type: string
-        phone:
-          type: string
-        currency:
-          type: string
-        comment:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
-        default_address_id:
-          type: integer
-        addresses:
-          type: array
-          items:
-            $ref: "#/components/schemas/SupplierAddress"
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+            currency:
+              type: string
+            comment:
+              type: string
+            default_address_id:
+              type: integer
+            addresses:
+              type: array
+              items:
+                $ref: "#/components/schemas/SupplierAddress"
+        - $ref: "#/components/schemas/DeletableEntity"
 
     SupplierListResponse:
       type: object
@@ -3155,33 +2850,26 @@ components:
           type: string
 
     SupplierAddress:
-      type: object
-      properties:
-        id:
-          type: integer
-        supplier_id:
-          type: integer
-        line_1:
-          type: string
-        line_2:
-          type: [string, "null"]
-        city:
-          type: [string, "null"]
-        state:
-          type: [string, "null"]
-        zip:
-          type: [string, "null"]
-        country:
-          type: [string, "null"]
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            supplier_id:
+              type: integer
+            line_1:
+              type: string
+            line_2:
+              type: [string, "null"]
+            city:
+              type: [string, "null"]
+            state:
+              type: [string, "null"]
+            zip:
+              type: [string, "null"]
+            country:
+              type: [string, "null"]
+        - $ref: "#/components/schemas/DeletableEntity"
 
     SupplierAddressListResponse:
       type: object
@@ -3245,26 +2933,22 @@ components:
           multipleOf: 0.001
 
     TaxRate:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        rate:
-          type: number
-        is_default_sales:
-          type: boolean
-        is_default_purchases:
-          type: boolean
-        display_name:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            rate:
+              type: number
+            is_default_sales:
+              type: boolean
+            is_default_purchases:
+              type: boolean
+            display_name:
+              type: string
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     TaxRateListResponse:
       type: object
@@ -3294,11 +2978,9 @@ components:
         product_id:
           type: [integer, "null"]
           maximum: 2147483647
-
         material_id:
           type: [integer, "null"]
           maximum: 2147483647
-
         supplier_item_codes:
           type: array
           minItems: 1
@@ -3314,7 +2996,6 @@ components:
         lead_time:
           type: [integer, "null"]
           maximum: 999
-
         minimum_order_quantity:
           type: number
           minimum: 0
@@ -3347,105 +3028,98 @@ components:
                 type: string
 
     VariantResponse:
-      type: object
-      properties:
-        id:
-          type: integer
-        sku:
-          type: string
-        sales_price:
-          type: number
-        purchase_price:
-          type: number
-        product_id:
-          type: [integer, "null"]
-        material_id:
-          type: [integer, "null"]
-        type:
-          type: string
-          enum:
-            - product
-            - material
-        internal_barcode:
-          type: string
-        registered_barcode:
-          type: string
-        supplier_item_codes:
-          type: array
-          items:
-            type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
-        lead_time:
-          type: [integer, "null"]
-        minimum_order_quantity:
-          type: [number, "null"]
-        config_attributes:
-          type: array
-          items:
-            type: object
-            properties:
-              config_name:
-                type: string
-              config_value:
-                type: string
-        custom_fields:
-          type: array
-          items:
-            type: object
-            properties:
-              field_name:
-                type: string
-              field_value:
-                type: string
-        product_or_material:
-          type: object
+      allOf:
+        - type: object
           properties:
             id:
               type: integer
-            name:
+            sku:
               type: string
-            uom:
-              type: string
-            category_name:
-              type: string
-            is_producible:
-              type: boolean
-            default_supplier_id:
-              type: integer
-            is_purchasable:
-              type: boolean
+            sales_price:
+              type: number
+            purchase_price:
+              type: number
+            product_id:
+              type: [integer, "null"]
+            material_id:
+              type: [integer, "null"]
             type:
               type: string
-            purchase_uom:
+              enum:
+                - product
+                - material
+            internal_barcode:
               type: string
-            purchase_uom_conversion_rate:
-              type: number
-            batch_tracked:
-              type: boolean
-            configs:
+            registered_barcode:
+              type: string
+            supplier_item_codes:
+              type: array
+              items:
+                type: string
+            lead_time:
+              type: [integer, "null"]
+            minimum_order_quantity:
+              type: [number, "null"]
+            config_attributes:
               type: array
               items:
                 type: object
-            additional_info:
-              type: string
-            created_at:
-              type: string
-              format: date-time
-            updated_at:
-              type: string
-              format: date-time
-            variants:
+                properties:
+                  config_name:
+                    type: string
+                  config_value:
+                    type: string
+            custom_fields:
               type: array
               items:
-                $ref: "#/components/schemas/Variant"
+                type: object
+                properties:
+                  field_name:
+                    type: string
+                  field_value:
+                    type: string
+            product_or_material:
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+                uom:
+                  type: string
+                category_name:
+                  type: string
+                is_producible:
+                  type: boolean
+                default_supplier_id:
+                  type: integer
+                is_purchasable:
+                  type: boolean
+                type:
+                  type: string
+                purchase_uom:
+                  type: string
+                purchase_uom_conversion_rate:
+                  type: number
+                batch_tracked:
+                  type: boolean
+                configs:
+                  type: array
+                  items:
+                    type: object
+                additional_info:
+                  type: string
+                created_at:
+                  type: string
+                  format: date-time
+                updated_at:
+                  type: string
+                  format: date-time
+                variants:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Variant"
+        - $ref: "#/components/schemas/DeletableEntity"
 
     UpdateVariantRequest:
       type: object
@@ -3531,25 +3205,18 @@ components:
           maxLength: 40
 
     VariantDefaultStorageBinLinkResponse:
-      type: object
-      properties:
-        id:
-          type: integer
-        bin_name:
-          type: string
-        variant_id:
-          type: integer
-        storage_bin_id:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            bin_name:
+              type: string
+            variant_id:
+              type: integer
+            storage_bin_id:
+              type: integer
+        - $ref: "#/components/schemas/DeletableEntity"
 
     VariantDefaultStorageBinLinkListResponse:
       type: object
@@ -3682,28 +3349,24 @@ components:
           type: string
 
     Webhook:
-      type: object
-      properties:
-        id:
-          type: integer
-        url:
-          type: string
-        token:
-          type: string
-        enabled:
-          type: boolean
-        description:
-          type: [string, "null"]
-        subscribed_events:
-          type: array
-          items:
-            type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            url:
+              type: string
+            token:
+              type: string
+            enabled:
+              type: boolean
+            description:
+              type: [string, "null"]
+            subscribed_events:
+              type: array
+              items:
+                type: string
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     WebhookListResponse:
       type: object
@@ -3752,38 +3415,30 @@ components:
           default: false
 
     ServiceAttributes:
-      type: object
-      properties:
-        name:
-          type: string
-          description: "Name of the Service."
-          example: "Screen Printing"
-        description:
-          type: string
-          description: "A detailed description of the Service."
-          example: "High quality screen printing service for apparel and accessories."
-        price:
-          type: number
-          description: "Price of the Service."
-          example: 150.0
-        currency:
-          type: string
-          description: "Currency code (e.g., USD)."
-          example: "USD"
-        active:
-          type: boolean
-          description: "Indicates if the Service is active."
-          example: true
-        createdAt:
-          type: string
-          format: date-time
-          description: "Timestamp when the Service was created."
-          example: "2021-01-01T12:00:00Z"
-        updatedAt:
-          type: string
-          format: date-time
-          description: "Timestamp when the Service was last updated."
-          example: "2021-01-02T12:00:00Z"
+      allOf:
+        - type: object
+          properties:
+            name:
+              type: string
+              description: "Name of the Service."
+              example: "Screen Printing"
+            description:
+              type: string
+              description: "A detailed description of the Service."
+              example: "High quality screen printing service for apparel and accessories."
+            price:
+              type: number
+              description: "Price of the Service."
+              example: 150.0
+            currency:
+              type: string
+              description: "Currency code (e.g., USD)."
+              example: "USD"
+            active:
+              type: boolean
+              description: "Indicates if the Service is active."
+              example: true
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     Service:
       type: object
@@ -3853,93 +3508,82 @@ components:
 
     # Customer schemas
     Customer:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        first_name:
-          type: [string, "null"]
-        last_name:
-          type: [string, "null"]
-        company:
-          type: [string, "null"]
-        email:
-          type: [string, "null"]
-        phone:
-          type: [string, "null"]
-        comment:
-          type: [string, "null"]
-        currency:
-          type: string
-        reference_id:
-          type: [string, "null"]
-        category:
-          type: [string, "null"]
-        discount_rate:
-          type: [number, "null"]
-        default_billing_id:
-          type: [integer, "null"]
-        default_shipping_id:
-          type: [integer, "null"]
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
-      required:
-        - id
-        - name
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            first_name:
+              type: [string, "null"]
+            last_name:
+              type: [string, "null"]
+            company:
+              type: [string, "null"]
+            email:
+              type: [string, "null"]
+            phone:
+              type: [string, "null"]
+            comment:
+              type: [string, "null"]
+            currency:
+              type: string
+            reference_id:
+              type: [string, "null"]
+            category:
+              type: [string, "null"]
+            discount_rate:
+              type: [number, "null"]
+            default_billing_id:
+              type: [integer, "null"]
+            default_shipping_id:
+              type: [integer, "null"]
+          required:
+            - id
+            - name
+        - $ref: "#/components/schemas/DeletableEntity"
 
     CustomerAddress:
-      type: object
-      properties:
-        id:
-          type: integer
-        customer_id:
-          type: integer
-        entity_type:
-          type: string
-          enum:
-            - billing
-            - shipping
-        default:
-          type: boolean
-        first_name:
-          type: [string, "null"]
-        last_name:
-          type: [string, "null"]
-        company:
-          type: [string, "null"]
-        phone:
-          type: [string, "null"]
-        line_1:
-          type: [string, "null"]
-        line_2:
-          type: [string, "null"]
-        city:
-          type: [string, "null"]
-        state:
-          type: [string, "null"]
-        zip:
-          type: [string, "null"]
-        country:
-          type: [string, "null"]
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - customer_id
-        - entity_type
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            customer_id:
+              type: integer
+            entity_type:
+              type: string
+              enum:
+                - billing
+                - shipping
+            default:
+              type: boolean
+            first_name:
+              type: [string, "null"]
+            last_name:
+              type: [string, "null"]
+            company:
+              type: [string, "null"]
+            phone:
+              type: [string, "null"]
+            line_1:
+              type: [string, "null"]
+            line_2:
+              type: [string, "null"]
+            city:
+              type: [string, "null"]
+            state:
+              type: [string, "null"]
+            zip:
+              type: [string, "null"]
+            country:
+              type: [string, "null"]
+          required:
+            - id
+            - customer_id
+            - entity_type
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     CustomerListResponse:
       type: object
@@ -3979,244 +3623,232 @@ components:
 
     # Sales Order schemas
     SalesOrder:
-      type: object
-      properties:
-        id:
-          type: integer
-        customer_id:
-          type: integer
-        order_no:
-          type: string
-        source:
-          type: [string, "null"]
-        order_created_date:
-          type: string
-          format: date-time
-        delivery_date:
-          type: [string, "null"]
-          format: date-time
-        picked_date:
-          type: [string, "null"]
-          format: date-time
-        location_id:
-          type: integer
-        status:
-          type: string
-          enum:
-            - NOT_SHIPPED
-            - PARTIALLY_PACKED
-            - PARTIALLY_DELIVERED
-            - PACKED
-            - DELIVERED
-            - PENDING
-        currency:
-          type: string
-        conversion_rate:
-          type: [number, "null"]
-        conversion_date:
-          type: [string, "null"]
-          format: date-time
-        invoicing_status:
-          type: [string, "null"]
-        total:
-          type: number
-        total_in_base_currency:
-          type: number
-        additional_info:
-          type: [string, "null"]
-        customer_ref:
-          type: [string, "null"]
-        sales_order_rows:
-          type: array
-          items:
-            $ref: "#/components/schemas/SalesOrderRow"
-        ecommerce_order_type:
-          type: [string, "null"]
-        ecommerce_store_name:
-          type: [string, "null"]
-        ecommerce_order_id:
-          type: [string, "null"]
-        product_availability:
-          anyOf:
-            - type: string
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            customer_id:
+              type: integer
+            order_no:
+              type: string
+            source:
+              type: [string, "null"]
+            order_created_date:
+              type: string
+              format: date-time
+            delivery_date:
+              type: [string, "null"]
+              format: date-time
+            picked_date:
+              type: [string, "null"]
+              format: date-time
+            location_id:
+              type: integer
+            status:
+              type: string
               enum:
-                - IN_STOCK
-                - EXPECTED
-                - PICKED
-                - NOT_AVAILABLE
-                - NOT_APPLICABLE
-            - type: "null"
-        product_expected_date:
-          type: [string, "null"]
-          format: date-time
-        ingredient_availability:
-          anyOf:
-            - type: string
-              enum:
-                - PROCESSED
-                - IN_STOCK
-                - NOT_AVAILABLE
-                - EXPECTED
-                - NO_RECIPE
-                - NOT_APPLICABLE
-            - type: "null"
-        ingredient_expected_date:
-          type: [string, "null"]
-          format: date-time
-        production_status:
-          anyOf:
-            - type: string
-              enum:
-                - NOT_STARTED
-                - NONE
-                - NOT_APPLICABLE
-                - IN_PROGRESS
-                - BLOCKED
-                - DONE
-            - type: "null"
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        tracking_number:
-          type: [string, "null"]
-        tracking_number_url:
-          type: [string, "null"]
-        billing_address_id:
-          type: [integer, "null"]
-        shipping_address_id:
-          type: [integer, "null"]
-        addresses:
-          type: array
-          items:
-            $ref: "#/components/schemas/SalesOrderAddress"
-      required:
-        - id
-        - customer_id
-        - order_no
-        - location_id
-        - status
+                - NOT_SHIPPED
+                - PARTIALLY_PACKED
+                - PARTIALLY_DELIVERED
+                - PACKED
+                - DELIVERED
+                - PENDING
+            currency:
+              type: string
+            conversion_rate:
+              type: [number, "null"]
+            conversion_date:
+              type: [string, "null"]
+              format: date-time
+            invoicing_status:
+              type: [string, "null"]
+            total:
+              type: number
+            total_in_base_currency:
+              type: number
+            additional_info:
+              type: [string, "null"]
+            customer_ref:
+              type: [string, "null"]
+            sales_order_rows:
+              type: array
+              items:
+                $ref: "#/components/schemas/SalesOrderRow"
+            ecommerce_order_type:
+              type: [string, "null"]
+            ecommerce_store_name:
+              type: [string, "null"]
+            ecommerce_order_id:
+              type: [string, "null"]
+            product_availability:
+              anyOf:
+                - type: string
+                  enum:
+                    - IN_STOCK
+                    - EXPECTED
+                    - PICKED
+                    - NOT_AVAILABLE
+                    - NOT_APPLICABLE
+                - type: "null"
+            product_expected_date:
+              type: [string, "null"]
+              format: date-time
+            ingredient_availability:
+              anyOf:
+                - type: string
+                  enum:
+                    - PROCESSED
+                    - IN_STOCK
+                    - NOT_AVAILABLE
+                    - EXPECTED
+                    - NO_RECIPE
+                    - NOT_APPLICABLE
+                - type: "null"
+            ingredient_expected_date:
+              type: [string, "null"]
+              format: date-time
+            production_status:
+              anyOf:
+                - type: string
+                  enum:
+                    - NOT_STARTED
+                    - NONE
+                    - NOT_APPLICABLE
+                    - IN_PROGRESS
+                    - BLOCKED
+                    - DONE
+                - type: "null"
+            tracking_number:
+              type: [string, "null"]
+            tracking_number_url:
+              type: [string, "null"]
+            billing_address_id:
+              type: [integer, "null"]
+            shipping_address_id:
+              type: [integer, "null"]
+            addresses:
+              type: array
+              items:
+                $ref: "#/components/schemas/SalesOrderAddress"
+          required:
+            - id
+            - customer_id
+            - order_no
+            - location_id
+            - status
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     SalesOrderRow:
-      type: object
-      properties:
-        id:
-          type: integer
-        quantity:
-          type: number
-        variant_id:
-          type: integer
-        tax_rate_id:
-          type: [integer, "null"]
-        location_id:
-          type: [integer, "null"]
-        product_availability:
-          anyOf:
-            - type: string
-              enum:
-                - IN_STOCK
-                - EXPECTED
-                - PICKED
-                - NOT_AVAILABLE
-                - NOT_APPLICABLE
-            - type: "null"
-        product_expected_date:
-          type: [string, "null"]
-          format: date-time
-        price_per_unit:
-          type: number
-        price_per_unit_in_base_currency:
-          type: number
-        total:
-          type: number
-        total_in_base_currency:
-          type: number
-        cogs_value:
-          type: [number, "null"]
-        attributes:
-          type: array
-          items:
-            type: object
-            properties:
-              key:
-                type: string
-              value:
-                type: string
-        batch_transactions:
-          type: array
-          items:
-            type: object
-            properties:
-              batch_id:
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            quantity:
+              type: number
+            variant_id:
+              type: integer
+            tax_rate_id:
+              type: [integer, "null"]
+            location_id:
+              type: [integer, "null"]
+            product_availability:
+              anyOf:
+                - type: string
+                  enum:
+                    - IN_STOCK
+                    - EXPECTED
+                    - PICKED
+                    - NOT_AVAILABLE
+                    - NOT_APPLICABLE
+                - type: "null"
+            product_expected_date:
+              type: [string, "null"]
+              format: date-time
+            price_per_unit:
+              type: number
+            price_per_unit_in_base_currency:
+              type: number
+            total:
+              type: number
+            total_in_base_currency:
+              type: number
+            cogs_value:
+              type: [number, "null"]
+            attributes:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  value:
+                    type: string
+            batch_transactions:
+              type: array
+              items:
+                type: object
+                properties:
+                  batch_id:
+                    type: integer
+                  quantity:
+                    type: number
+            serial_numbers:
+              type: array
+              items:
                 type: integer
-              quantity:
-                type: number
-        serial_numbers:
-          type: array
-          items:
-            type: integer
-        linked_manufacturing_order_id:
-          type: [integer, "null"]
-        conversion_rate:
-          type: [number, "null"]
-        conversion_date:
-          type: [string, "null"]
-          format: date-time
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - quantity
-        - variant_id
+            linked_manufacturing_order_id:
+              type: [integer, "null"]
+            conversion_rate:
+              type: [number, "null"]
+            conversion_date:
+              type: [string, "null"]
+              format: date-time
+          required:
+            - id
+            - quantity
+            - variant_id
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     SalesOrderAddress:
-      type: object
-      properties:
-        id:
-          type: integer
-        sales_order_id:
-          type: integer
-        entity_type:
-          type: string
-          enum:
-            - billing
-            - shipping
-        first_name:
-          type: [string, "null"]
-        last_name:
-          type: [string, "null"]
-        company:
-          type: [string, "null"]
-        phone:
-          type: [string, "null"]
-        line_1:
-          type: [string, "null"]
-        line_2:
-          type: [string, "null"]
-        city:
-          type: [string, "null"]
-        state:
-          type: [string, "null"]
-        zip:
-          type: [string, "null"]
-        country:
-          type: [string, "null"]
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - sales_order_id
-        - entity_type
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            sales_order_id:
+              type: integer
+            entity_type:
+              type: string
+              enum:
+                - billing
+                - shipping
+            first_name:
+              type: [string, "null"]
+            last_name:
+              type: [string, "null"]
+            company:
+              type: [string, "null"]
+            phone:
+              type: [string, "null"]
+            line_1:
+              type: [string, "null"]
+            line_2:
+              type: [string, "null"]
+            city:
+              type: [string, "null"]
+            state:
+              type: [string, "null"]
+            zip:
+              type: [string, "null"]
+            country:
+              type: [string, "null"]
+          required:
+            - id
+            - sales_order_id
+            - entity_type
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     SalesOrderListResponse:
       type: object
@@ -4269,33 +3901,7 @@ components:
         addresses:
           type: array
           items:
-            type: object
-            properties:
-              entity_type:
-                type: string
-                enum:
-                  - billing
-                  - shipping
-              first_name:
-                type: [string, "null"]
-              last_name:
-                type: [string, "null"]
-              company:
-                type: [string, "null"]
-              phone:
-                type: [string, "null"]
-              line_1:
-                type: [string, "null"]
-              line_2:
-                type: [string, "null"]
-              city:
-                type: [string, "null"]
-              state:
-                type: [string, "null"]
-              zip:
-                type: [string, "null"]
-              country:
-                type: [string, "null"]
+            $ref: "#/components/schemas/SalesOrderAddress"
             required:
               - entity_type
         order_created_date:
@@ -4328,37 +3934,30 @@ components:
 
     # Stock management schemas
     StockAdjustment:
-      type: object
-      properties:
-        id:
-          type: integer
-        reference_no:
-          type: string
-        location_id:
-          type: integer
-        status:
-          type: string
-          enum:
-            - DRAFT
-            - COMPLETED
-        adjustment_date:
-          type: string
-          format: date-time
-        additional_info:
-          type: [string, "null"]
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
-      required:
-        - id
-        - reference_no
-        - location_id
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            reference_no:
+              type: string
+            location_id:
+              type: integer
+            status:
+              type: string
+              enum:
+                - DRAFT
+                - COMPLETED
+            adjustment_date:
+              type: string
+              format: date-time
+            additional_info:
+              type: [string, "null"]
+          required:
+            - id
+            - reference_no
+            - location_id
+        - $ref: "#/components/schemas/DeletableEntity"
 
     StockAdjustmentListResponse:
       type: object
@@ -4369,40 +3968,33 @@ components:
             $ref: "#/components/schemas/StockAdjustment"
 
     StockTransfer:
-      type: object
-      properties:
-        id:
-          type: integer
-        reference_no:
-          type: string
-        from_location_id:
-          type: integer
-        to_location_id:
-          type: integer
-        status:
-          type: string
-          enum:
-            - DRAFT
-            - COMPLETED
-        transfer_date:
-          type: string
-          format: date-time
-        additional_info:
-          type: [string, "null"]
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
-      required:
-        - id
-        - reference_no
-        - from_location_id
-        - to_location_id
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            reference_no:
+              type: string
+            from_location_id:
+              type: integer
+            to_location_id:
+              type: integer
+            status:
+              type: string
+              enum:
+                - DRAFT
+                - COMPLETED
+            transfer_date:
+              type: string
+              format: date-time
+            additional_info:
+              type: [string, "null"]
+          required:
+            - id
+            - reference_no
+            - from_location_id
+            - to_location_id
+        - $ref: "#/components/schemas/DeletableEntity"
 
     StockTransferListResponse:
       type: object
@@ -4414,76 +4006,65 @@ components:
 
     # Sales Order sub-resources
     SalesOrderFulfillment:
-      type: object
-      properties:
-        id:
-          type: integer
-        sales_order_id:
-          type: integer
-        tracking_number:
-          type: [string, "null"]
-        tracking_number_url:
-          type: [string, "null"]
-        shipped_date:
-          type: [string, "null"]
-          format: date-time
-        estimated_delivery_date:
-          type: [string, "null"]
-          format: date-time
-        actual_delivery_date:
-          type: [string, "null"]
-          format: date-time
-        shipping_cost:
-          type: [number, "null"]
-        shipping_method:
-          type: [string, "null"]
-        carrier:
-          type: [string, "null"]
-        notes:
-          type: [string, "null"]
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - sales_order_id
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            sales_order_id:
+              type: integer
+            tracking_number:
+              type: [string, "null"]
+            tracking_number_url:
+              type: [string, "null"]
+            shipped_date:
+              type: [string, "null"]
+              format: date-time
+            estimated_delivery_date:
+              type: [string, "null"]
+              format: date-time
+            actual_delivery_date:
+              type: [string, "null"]
+              format: date-time
+            shipping_cost:
+              type: [number, "null"]
+            shipping_method:
+              type: [string, "null"]
+            carrier:
+              type: [string, "null"]
+            notes:
+              type: [string, "null"]
+          required:
+            - id
+            - sales_order_id
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     # Price Lists
     PriceList:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        currency:
-          type: string
-        is_default:
-          type: boolean
-        markup_percentage:
-          type: [number, "null"]
-        start_date:
-          type: [string, "null"]
-          format: date-time
-        end_date:
-          type: [string, "null"]
-          format: date-time
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
-      required:
-        - id
-        - name
-        - currency
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            currency:
+              type: string
+            is_default:
+              type: boolean
+            markup_percentage:
+              type: [number, "null"]
+            start_date:
+              type: [string, "null"]
+              format: date-time
+            end_date:
+              type: [string, "null"]
+              format: date-time
+          required:
+            - id
+            - name
+            - currency
+        - $ref: "#/components/schemas/DeletableEntity"
 
     CreatePriceListRequest:
       type: object
@@ -4549,78 +4130,66 @@ components:
           description: ID of the customer to assign to price list
 
     PriceListRow:
-      type: object
-      properties:
-        id:
-          type: integer
-        price_list_id:
-          type: integer
-        variant_id:
-          type: integer
-        price:
-          type: number
-        currency:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - price_list_id
-        - variant_id
-        - price
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            price_list_id:
+              type: integer
+            variant_id:
+              type: integer
+            price:
+              type: number
+            currency:
+              type: string
+          required:
+            - id
+            - price_list_id
+            - variant_id
+            - price
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     PriceListCustomer:
-      type: object
-      properties:
-        id:
-          type: integer
-        price_list_id:
-          type: integer
-        customer_id:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - price_list_id
-        - customer_id
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            price_list_id:
+              type: integer
+            customer_id:
+              type: integer
+          required:
+            - id
+            - price_list_id
+            - customer_id
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     # BOM (Bill of Materials) rows
     BomRow:
-      type: object
-      properties:
-        id:
-          type: integer
-        product_variant_id:
-          type: integer
-        product_item_id:
-          type: integer
-        ingredient_variant_id:
-          type: integer
-        quantity:
-          type: number
-        notes:
-          type: [string, "null"]
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - product_variant_id
-        - product_item_id
-        - ingredient_variant_id
-        - quantity
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            product_variant_id:
+              type: integer
+            product_item_id:
+              type: integer
+            ingredient_variant_id:
+              type: integer
+            quantity:
+              type: number
+            notes:
+              type: [string, "null"]
+          required:
+            - id
+            - product_variant_id
+            - product_item_id
+            - ingredient_variant_id
+            - quantity
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     CreateBomRowRequest:
       type: object
@@ -4658,55 +4227,43 @@ components:
 
     # Factory
     Factory:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        address:
-          type: [string, "null"]
-        currency:
-          type: string
-        timezone:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - name
-        - currency
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            address:
+              type: [string, "null"]
+            currency:
+              type: string
+            timezone:
+              type: string
+          required:
+            - id
+            - name
+            - currency
+        - $ref: "#/components/schemas/UpdatableEntity"
 
-    # Operators (enhanced)
     Operator:
-      type: object
-      properties:
-        id:
-          type: integer
-        operator_id:
-          type: integer
-        name:
-          type: string
-        working_area:
-          type: [string, "null"]
-        resource_id:
-          type: [integer, "null"]
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
-      required:
-        - id
-        - name
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            operator_id:
+              type: integer
+            name:
+              type: string
+            working_area:
+              type: [string, "null"]
+            resource_id:
+              type: [integer, "null"]
+          required:
+            - id
+            - name
+        - $ref: "#/components/schemas/DeletableEntity"
 
     OperatorListResponse:
       type: object
@@ -4718,37 +4275,46 @@ components:
 
     # Custom Fields Collections
     CustomFieldsCollection:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        resource_type:
-          type: string
-        custom_fields:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-              name:
-                type: string
-              field_type:
-                type: string
-              required:
-                type: boolean
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - name
-        - resource_type
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            resource_type:
+              type: string
+              enum:
+                - product
+                - material
+                - variant
+                - customer
+                - sales_order
+                - purchase_order
+                - stocktake
+            custom_fields:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  field_type:
+                    type: string
+                    enum:
+                      - text
+                      - number
+                      - date
+                      - boolean
+                  required:
+                    type: boolean
+          required:
+            - id
+            - name
+            - resource_type
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     CustomFieldsCollectionListResponse:
       type: object
@@ -4760,150 +4326,131 @@ components:
 
     # Stocktakes
     Stocktake:
-      type: object
-      properties:
-        id:
-          type: integer
-        reference_no:
-          type: string
-        location_id:
-          type: integer
-        status:
-          type: string
-          enum:
-            - DRAFT
-            - IN_PROGRESS
-            - COMPLETED
-        stocktake_date:
-          type: string
-          format: date-time
-        notes:
-          type: [string, "null"]
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - reference_no
-        - location_id
-        - status
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            reference_no:
+              type: string
+            location_id:
+              type: integer
+            status:
+              type: string
+              enum:
+                - DRAFT
+                - IN_PROGRESS
+                - COMPLETED
+            stocktake_date:
+              type: string
+              format: date-time
+            notes:
+              type: [string, "null"]
+          required:
+            - id
+            - reference_no
+            - location_id
+            - status
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     StocktakeRow:
-      type: object
-      properties:
-        id:
-          type: integer
-        stocktake_id:
-          type: integer
-        variant_id:
-          type: integer
-        batch_id:
-          type: [integer, "null"]
-        system_quantity:
-          type: number
-        actual_quantity:
-          type: [number, "null"]
-        variance_quantity:
-          type: [number, "null"]
-        notes:
-          type: [string, "null"]
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - stocktake_id
-        - variant_id
-        - system_quantity
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            stocktake_id:
+              type: integer
+            variant_id:
+              type: integer
+            batch_id:
+              type: [integer, "null"]
+            system_quantity:
+              type: number
+            actual_quantity:
+              type: [number, "null"]
+            variance_quantity:
+              type: [number, "null"]
+            notes:
+              type: [string, "null"]
+          required:
+            - id
+            - stocktake_id
+            - variant_id
+            - system_quantity
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     # Serial numbers
     SerialNumberStock:
-      type: object
-      properties:
-        id:
-          type: integer
-        variant_id:
-          type: integer
-        location_id:
-          type: integer
-        serial_number:
-          type: string
-        status:
-          type: string
-          enum:
-            - IN_STOCK
-            - SOLD
-            - TRANSFERRED
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - variant_id
-        - location_id
-        - serial_number
-        - status
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            variant_id:
+              type: integer
+            location_id:
+              type: integer
+            serial_number:
+              type: string
+            status:
+              type: string
+              enum:
+                - IN_STOCK
+                - SOLD
+                - TRANSFERRED
+          required:
+            - id
+            - variant_id
+            - location_id
+            - serial_number
+            - status
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     # Sales Return schemas
     SalesReturn:
-      type: object
-      properties:
-        id:
-          type: integer
-        customer_id:
-          type: integer
-        sales_order_id:
-          type: [integer, "null"]
-        order_no:
-          type: string
-        return_location_id:
-          type: integer
-        status:
-          type: string
-          enum:
-            - DRAFT
-            - RETURNED
-            - CANCELLED
-        currency:
-          type: string
-        return_date:
-          type: [string, "null"]
-          format: date-time
-        order_created_date:
-          type: string
-          format: date-time
-        additional_info:
-          type: [string, "null"]
-        refund_status:
-          type: [string, "null"]
-        sales_return_rows:
-          type: array
-          items:
-            $ref: "#/components/schemas/SalesReturnRow"
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          format: date-time
-      required:
-        - id
-        - customer_id
-        - order_no
-        - return_location_id
-        - status
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            customer_id:
+              type: integer
+            sales_order_id:
+              type: [integer, "null"]
+            order_no:
+              type: string
+            return_location_id:
+              type: integer
+            status:
+              type: string
+              enum:
+                - DRAFT
+                - RETURNED
+                - CANCELLED
+            currency:
+              type: string
+            return_date:
+              type: [string, "null"]
+              format: date-time
+            order_created_date:
+              type: string
+              format: date-time
+            additional_info:
+              type: [string, "null"]
+            refund_status:
+              type: [string, "null"]
+            sales_return_rows:
+              type: array
+              items:
+                $ref: "#/components/schemas/SalesReturnRow"
+          required:
+            - id
+            - customer_id
+            - order_no
+            - return_location_id
+            - status
+        - $ref: "#/components/schemas/DeletableEntity"
 
     CreateSalesReturnRequest:
       type: object
@@ -4943,35 +4490,31 @@ components:
           description: Array of items being returned
 
     SalesReturnRow:
-      type: object
-      properties:
-        id:
-          type: integer
-        sales_return_id:
-          type: integer
-        variant_id:
-          type: integer
-        quantity:
-          type: number
-        return_reason_id:
-          type: [integer, "null"]
-        notes:
-          type: [string, "null"]
-        unit_price:
-          type: [number, "null"]
-        total_price:
-          type: [number, "null"]
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - sales_return_id
-        - variant_id
-        - quantity
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            sales_return_id:
+              type: integer
+            variant_id:
+              type: integer
+            quantity:
+              type: number
+            return_reason_id:
+              type: [integer, "null"]
+            notes:
+              type: [string, "null"]
+            unit_price:
+              type: [number, "null"]
+            total_price:
+              type: [number, "null"]
+          required:
+            - id
+            - sales_return_id
+            - variant_id
+            - quantity
+        - $ref: "#/components/schemas/UpdatableEntity"
 
     CreateSalesReturnRowRequest:
       type: object
@@ -4995,35 +4538,31 @@ components:
 
     # User schemas
     User:
-      type: object
-      properties:
-        id:
-          type: integer
-        first_name:
-          type: string
-        last_name:
-          type: string
-        email:
-          type: string
-        role:
-          type: string
-        status:
-          type: string
-        last_login_at:
-          type: [string, "null"]
-          format: date-time
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - first_name
-        - last_name
-        - email
-        - role
+      allOf:
+        - $ref: "#/components/schemas/UpdatableEntity"
+        - type: object
+          properties:
+            id:
+              type: integer
+            first_name:
+              type: string
+            last_name:
+              type: string
+            email:
+              type: string
+            role:
+              type: string
+            status:
+              type: string
+            last_login_at:
+              type: [string, "null"]
+              format: date-time
+          required:
+            - id
+            - first_name
+            - last_name
+            - email
+            - role
 
     # Missing list response schemas
     SalesOrderRowListResponse:
@@ -5166,7 +4705,6 @@ components:
           items:
             $ref: "#/components/schemas/User"
 
-    # Missing schemas for new endpoints
     InventoryReorderPointListResponse:
       type: object
       properties:
@@ -5184,42 +4722,60 @@ components:
             $ref: "#/components/schemas/OutsourcedPurchaseOrderRecipeRow"
 
     OutsourcedPurchaseOrderRecipeRow:
-      type: object
-      properties:
-        id:
-          type: integer
-        outsourced_purchase_order_id:
-          type: integer
-        bom_row_id:
-          type: integer
-        quantity:
-          type: number
-        status:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            purchase_order_id:
+              type: integer
+            purchase_order_row_id:
+              type: integer
+            ingredient_variant_id:
+              type: integer
+            planned_quantity_per_unit:
+              type: integer
+            ingredient_availability:
+              type: string
+              enum:
+                - PROCESSED
+                - IN_STOCK
+                - NOT_AVAILABLE
+                - EXPECTED
+                - NOT_APPLICABLE
+            ingredient_expected_date:
+              type: string
+              format: date-time
+            notes:
+              type: [string, "null"]
+            batch_transactions:
+              type: array
+              items:
+                type: object
+                properties:
+                  batch_id:
+                    type: integer
+                  quantity:
+                    type: number
+            cost:
+              type: number
+          required:
+            - purchase_order_row_id
+            - ingredient_variant_id
+            - planned_quantity_per_unit
+        - $ref: "#/components/schemas/DeletableEntity"
 
     ProductOperationRerankRequest:
       type: object
       required:
-        - product_id
-        - operation_ranks
+        - rank_product_operation_id
       properties:
-        product_id:
+        rank_product_operation_id:
           type: integer
-        operation_ranks:
-          type: array
-          items:
-            type: object
-            properties:
-              operation_id:
-                type: integer
-              rank:
-                type: integer
+        preceeding_product_operation_id:
+          type: integer
+        should_group:
+          type: boolean
 
     ProductOperationRerank:
       type: object
@@ -5244,18 +4800,27 @@ components:
           type: integer
         sales_order_id:
           type: integer
-        external_id:
+        fulfillment_id:
+          type: integer
+        invoice_id:
           type: string
-        accounting_system:
+        integration_type:
           type: string
-        sync_status:
-          type: string
+          enum:
+            - xero
+            - quickBooks
+            - sage
+            - custom
         created_at:
           type: string
           format: date-time
-        updated_at:
-          type: string
-          format: date-time
+      required:
+        - id
+        - sales_order_id
+        - invoice_id
+        - integration_type
+        - created_at
+        - fulfillment_id
 
     SalesOrderShippingFeeListResponse:
       type: object
@@ -5274,16 +4839,14 @@ components:
           type: integer
         amount:
           type: number
-        currency:
-          type: string
+        tax_rate_id:
+          type: integer
         description:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
+          type: [string, "null"]
+      required:
+        - id
+        - sales_order_id
+        - amount
 
     CreateSalesOrderShippingFeeRequest:
       type: object
@@ -5298,14 +4861,12 @@ components:
         amount:
           type: number
           description: Shipping fee amount
-        currency:
-          type: string
-          description: Currency code (e.g., USD, EUR)
         description:
           type: string
           description: Description of the shipping fee
-          items:
-            $ref: "#/components/schemas/SerialNumberStock"
+        tax_rate_id:
+          type: integer
+          description: ID of the tax rate to apply to the shipping fee
 
 paths:
   /additional_costs:
@@ -5640,7 +5201,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/InventorySafetyStockLevel"
-
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "422":
@@ -12244,7 +11804,6 @@ paths:
             example:
               sales_order_id: 12345
               amount: 15.99
-              currency: "USD"
               description: "Standard shipping"
       responses:
         "201":
@@ -12264,10 +11823,7 @@ paths:
                 id: 67890
                 sales_order_id: 12345
                 amount: 15.99
-                currency: "USD"
                 description: "Standard shipping"
-                created_at: "2023-10-21T10:37:05.085Z"
-                updated_at: "2023-10-21T10:37:05.085Z"
         "400":
           $ref: "#/components/responses/BadRequestError"
         "401":

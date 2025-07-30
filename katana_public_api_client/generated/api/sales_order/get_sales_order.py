@@ -5,10 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_sales_order_response_401 import GetSalesOrderResponse401
-from ...models.get_sales_order_response_404 import GetSalesOrderResponse404
-from ...models.get_sales_order_response_429 import GetSalesOrderResponse429
-from ...models.get_sales_order_response_500 import GetSalesOrderResponse500
+from ...models.error_response import ErrorResponse
 from ...models.sales_order import SalesOrder
 from ...types import Response
 
@@ -26,32 +23,25 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetSalesOrderResponse401
-    | GetSalesOrderResponse404
-    | GetSalesOrderResponse429
-    | GetSalesOrderResponse500
-    | SalesOrder
-    | None
-):
+) -> ErrorResponse | SalesOrder | None:
     if response.status_code == 200:
         response_200 = SalesOrder.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetSalesOrderResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 404:
-        response_404 = GetSalesOrderResponse404.from_dict(response.json())
+        response_404 = ErrorResponse.from_dict(response.json())
 
         return response_404
     if response.status_code == 429:
-        response_429 = GetSalesOrderResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetSalesOrderResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -62,13 +52,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetSalesOrderResponse401
-    | GetSalesOrderResponse404
-    | GetSalesOrderResponse429
-    | GetSalesOrderResponse500
-    | SalesOrder
-]:
+) -> Response[ErrorResponse | SalesOrder]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -81,13 +65,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    GetSalesOrderResponse401
-    | GetSalesOrderResponse404
-    | GetSalesOrderResponse429
-    | GetSalesOrderResponse500
-    | SalesOrder
-]:
+) -> Response[ErrorResponse | SalesOrder]:
     """Retrieve a sales order
 
      Retrieves a sales order by ID.
@@ -101,7 +79,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetSalesOrderResponse401, GetSalesOrderResponse404, GetSalesOrderResponse429, GetSalesOrderResponse500, SalesOrder]]
+        Response[Union[ErrorResponse, SalesOrder]]
     """
 
     kwargs = _get_kwargs(
@@ -119,14 +97,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    GetSalesOrderResponse401
-    | GetSalesOrderResponse404
-    | GetSalesOrderResponse429
-    | GetSalesOrderResponse500
-    | SalesOrder
-    | None
-):
+) -> ErrorResponse | SalesOrder | None:
     """Retrieve a sales order
 
      Retrieves a sales order by ID.
@@ -140,7 +111,7 @@ def sync(
 
 
     Returns:
-        Union[GetSalesOrderResponse401, GetSalesOrderResponse404, GetSalesOrderResponse429, GetSalesOrderResponse500, SalesOrder]
+        Union[ErrorResponse, SalesOrder]
     """
 
     return sync_detailed(
@@ -153,13 +124,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    GetSalesOrderResponse401
-    | GetSalesOrderResponse404
-    | GetSalesOrderResponse429
-    | GetSalesOrderResponse500
-    | SalesOrder
-]:
+) -> Response[ErrorResponse | SalesOrder]:
     """Retrieve a sales order
 
      Retrieves a sales order by ID.
@@ -173,7 +138,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetSalesOrderResponse401, GetSalesOrderResponse404, GetSalesOrderResponse429, GetSalesOrderResponse500, SalesOrder]]
+        Response[Union[ErrorResponse, SalesOrder]]
     """
 
     kwargs = _get_kwargs(
@@ -189,14 +154,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    GetSalesOrderResponse401
-    | GetSalesOrderResponse404
-    | GetSalesOrderResponse429
-    | GetSalesOrderResponse500
-    | SalesOrder
-    | None
-):
+) -> ErrorResponse | SalesOrder | None:
     """Retrieve a sales order
 
      Retrieves a sales order by ID.
@@ -210,7 +168,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetSalesOrderResponse401, GetSalesOrderResponse404, GetSalesOrderResponse429, GetSalesOrderResponse500, SalesOrder]
+        Union[ErrorResponse, SalesOrder]
     """
 
     return (

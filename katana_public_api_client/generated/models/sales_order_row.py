@@ -28,6 +28,8 @@ class SalesOrderRow:
     id: int
     quantity: float
     variant_id: int
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
     tax_rate_id: None | Unset | int = UNSET
     location_id: None | Unset | int = UNSET
     product_availability: None | SalesOrderRowProductAvailabilityType0 | Unset = UNSET
@@ -43,8 +45,6 @@ class SalesOrderRow:
     linked_manufacturing_order_id: None | Unset | int = UNSET
     conversion_rate: None | Unset | float = UNSET
     conversion_date: None | Unset | datetime.datetime = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,6 +53,14 @@ class SalesOrderRow:
         quantity = self.quantity
 
         variant_id = self.variant_id
+
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
 
         tax_rate_id: None | Unset | int
         if isinstance(self.tax_rate_id, Unset):
@@ -136,14 +144,6 @@ class SalesOrderRow:
         else:
             conversion_date = self.conversion_date
 
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -153,6 +153,10 @@ class SalesOrderRow:
                 "variant_id": variant_id,
             }
         )
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
         if tax_rate_id is not UNSET:
             field_dict["tax_rate_id"] = tax_rate_id
         if location_id is not UNSET:
@@ -185,10 +189,6 @@ class SalesOrderRow:
             field_dict["conversion_rate"] = conversion_rate
         if conversion_date is not UNSET:
             field_dict["conversion_date"] = conversion_date
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
 
         return field_dict
 
@@ -205,6 +205,20 @@ class SalesOrderRow:
         quantity = d.pop("quantity")
 
         variant_id = d.pop("variant_id")
+
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
+
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
 
         def _parse_tax_rate_id(data: object) -> None | Unset | int:
             if data is None:
@@ -348,24 +362,12 @@ class SalesOrderRow:
 
         conversion_date = _parse_conversion_date(d.pop("conversion_date", UNSET))
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
-
         sales_order_row = cls(
             id=id,
             quantity=quantity,
             variant_id=variant_id,
+            created_at=created_at,
+            updated_at=updated_at,
             tax_rate_id=tax_rate_id,
             location_id=location_id,
             product_availability=product_availability,
@@ -381,8 +383,6 @@ class SalesOrderRow:
             linked_manufacturing_order_id=linked_manufacturing_order_id,
             conversion_rate=conversion_rate,
             conversion_date=conversion_date,
-            created_at=created_at,
-            updated_at=updated_at,
         )
 
         sales_order_row.additional_properties = d

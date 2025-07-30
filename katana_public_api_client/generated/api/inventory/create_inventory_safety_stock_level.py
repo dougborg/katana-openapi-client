@@ -5,18 +5,8 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.create_inventory_safety_stock_level_response_401 import (
-    CreateInventorySafetyStockLevelResponse401,
-)
-from ...models.create_inventory_safety_stock_level_response_422 import (
-    CreateInventorySafetyStockLevelResponse422,
-)
-from ...models.create_inventory_safety_stock_level_response_429 import (
-    CreateInventorySafetyStockLevelResponse429,
-)
-from ...models.create_inventory_safety_stock_level_response_500 import (
-    CreateInventorySafetyStockLevelResponse500,
-)
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...models.inventory_safety_stock_level import InventorySafetyStockLevel
 from ...types import Response
 
@@ -42,40 +32,25 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateInventorySafetyStockLevelResponse401
-    | CreateInventorySafetyStockLevelResponse422
-    | CreateInventorySafetyStockLevelResponse429
-    | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevel
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel | None:
     if response.status_code == 200:
         response_200 = InventorySafetyStockLevel.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = CreateInventorySafetyStockLevelResponse401.from_dict(
-            response.json()
-        )
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 422:
-        response_422 = CreateInventorySafetyStockLevelResponse422.from_dict(
-            response.json()
-        )
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = CreateInventorySafetyStockLevelResponse429.from_dict(
-            response.json()
-        )
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = CreateInventorySafetyStockLevelResponse500.from_dict(
-            response.json()
-        )
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -86,13 +61,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CreateInventorySafetyStockLevelResponse401
-    | CreateInventorySafetyStockLevelResponse422
-    | CreateInventorySafetyStockLevelResponse429
-    | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevel
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -105,13 +74,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: InventorySafetyStockLevel,
-) -> Response[
-    CreateInventorySafetyStockLevelResponse401
-    | CreateInventorySafetyStockLevelResponse422
-    | CreateInventorySafetyStockLevelResponse429
-    | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevel
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel]:
     """Update the safety stock level
 
      Update an item's safety stock level within a certain location and variant combination.
@@ -125,7 +88,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevel]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, InventorySafetyStockLevel]]
     """
 
     kwargs = _get_kwargs(
@@ -143,14 +106,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: InventorySafetyStockLevel,
-) -> (
-    CreateInventorySafetyStockLevelResponse401
-    | CreateInventorySafetyStockLevelResponse422
-    | CreateInventorySafetyStockLevelResponse429
-    | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevel
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel | None:
     """Update the safety stock level
 
      Update an item's safety stock level within a certain location and variant combination.
@@ -164,7 +120,7 @@ def sync(
 
 
     Returns:
-        Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevel]
+        Union[DetailedErrorResponse, ErrorResponse, InventorySafetyStockLevel]
     """
 
     return sync_detailed(
@@ -177,13 +133,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: InventorySafetyStockLevel,
-) -> Response[
-    CreateInventorySafetyStockLevelResponse401
-    | CreateInventorySafetyStockLevelResponse422
-    | CreateInventorySafetyStockLevelResponse429
-    | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevel
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel]:
     """Update the safety stock level
 
      Update an item's safety stock level within a certain location and variant combination.
@@ -197,7 +147,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevel]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, InventorySafetyStockLevel]]
     """
 
     kwargs = _get_kwargs(
@@ -213,14 +163,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: InventorySafetyStockLevel,
-) -> (
-    CreateInventorySafetyStockLevelResponse401
-    | CreateInventorySafetyStockLevelResponse422
-    | CreateInventorySafetyStockLevelResponse429
-    | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevel
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel | None:
     """Update the safety stock level
 
      Update an item's safety stock level within a certain location and variant combination.
@@ -234,7 +177,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevel]
+        Union[DetailedErrorResponse, ErrorResponse, InventorySafetyStockLevel]
     """
 
     return (

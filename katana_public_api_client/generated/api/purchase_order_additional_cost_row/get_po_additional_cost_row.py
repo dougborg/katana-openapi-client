@@ -5,15 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_po_additional_cost_row_response_401 import (
-    GetPoAdditionalCostRowResponse401,
-)
-from ...models.get_po_additional_cost_row_response_429 import (
-    GetPoAdditionalCostRowResponse429,
-)
-from ...models.get_po_additional_cost_row_response_500 import (
-    GetPoAdditionalCostRowResponse500,
-)
+from ...models.error_response import ErrorResponse
 from ...models.purchase_order_additional_cost_row import PurchaseOrderAdditionalCostRow
 from ...types import Response
 
@@ -31,27 +23,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetPoAdditionalCostRowResponse401
-    | GetPoAdditionalCostRowResponse429
-    | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRow
-    | None
-):
+) -> ErrorResponse | PurchaseOrderAdditionalCostRow | None:
     if response.status_code == 200:
         response_200 = PurchaseOrderAdditionalCostRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetPoAdditionalCostRowResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetPoAdditionalCostRowResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetPoAdditionalCostRowResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -62,12 +48,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetPoAdditionalCostRowResponse401
-    | GetPoAdditionalCostRowResponse429
-    | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRow
-]:
+) -> Response[ErrorResponse | PurchaseOrderAdditionalCostRow]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -80,12 +61,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    GetPoAdditionalCostRowResponse401
-    | GetPoAdditionalCostRowResponse429
-    | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRow
-]:
+) -> Response[ErrorResponse | PurchaseOrderAdditionalCostRow]:
     """Retrieve a purchase order additional cost row
 
      Retrieves the details of an existing purchase order additional cost row based on ID
@@ -99,7 +75,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]]
+        Response[Union[ErrorResponse, PurchaseOrderAdditionalCostRow]]
     """
 
     kwargs = _get_kwargs(
@@ -117,13 +93,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    GetPoAdditionalCostRowResponse401
-    | GetPoAdditionalCostRowResponse429
-    | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRow
-    | None
-):
+) -> ErrorResponse | PurchaseOrderAdditionalCostRow | None:
     """Retrieve a purchase order additional cost row
 
      Retrieves the details of an existing purchase order additional cost row based on ID
@@ -137,7 +107,7 @@ def sync(
 
 
     Returns:
-        Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]
+        Union[ErrorResponse, PurchaseOrderAdditionalCostRow]
     """
 
     return sync_detailed(
@@ -150,12 +120,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    GetPoAdditionalCostRowResponse401
-    | GetPoAdditionalCostRowResponse429
-    | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRow
-]:
+) -> Response[ErrorResponse | PurchaseOrderAdditionalCostRow]:
     """Retrieve a purchase order additional cost row
 
      Retrieves the details of an existing purchase order additional cost row based on ID
@@ -169,7 +134,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]]
+        Response[Union[ErrorResponse, PurchaseOrderAdditionalCostRow]]
     """
 
     kwargs = _get_kwargs(
@@ -185,13 +150,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    GetPoAdditionalCostRowResponse401
-    | GetPoAdditionalCostRowResponse429
-    | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRow
-    | None
-):
+) -> ErrorResponse | PurchaseOrderAdditionalCostRow | None:
     """Retrieve a purchase order additional cost row
 
      Retrieves the details of an existing purchase order additional cost row based on ID
@@ -205,7 +164,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]
+        Union[ErrorResponse, PurchaseOrderAdditionalCostRow]
     """
 
     return (

@@ -6,10 +6,8 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.create_material_request import CreateMaterialRequest
-from ...models.create_material_response_401 import CreateMaterialResponse401
-from ...models.create_material_response_422 import CreateMaterialResponse422
-from ...models.create_material_response_429 import CreateMaterialResponse429
-from ...models.create_material_response_500 import CreateMaterialResponse500
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...models.material import Material
 from ...types import Response
 
@@ -35,32 +33,25 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateMaterialResponse401
-    | CreateMaterialResponse422
-    | CreateMaterialResponse429
-    | CreateMaterialResponse500
-    | Material
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | Material | None:
     if response.status_code == 200:
         response_200 = Material.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = CreateMaterialResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 422:
-        response_422 = CreateMaterialResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = CreateMaterialResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = CreateMaterialResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -71,13 +62,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CreateMaterialResponse401
-    | CreateMaterialResponse422
-    | CreateMaterialResponse429
-    | CreateMaterialResponse500
-    | Material
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Material]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -90,13 +75,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateMaterialRequest,
-) -> Response[
-    CreateMaterialResponse401
-    | CreateMaterialResponse422
-    | CreateMaterialResponse429
-    | CreateMaterialResponse500
-    | Material
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Material]:
     """Create a material
 
      Creates a material object.
@@ -110,7 +89,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, Material]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, Material]]
     """
 
     kwargs = _get_kwargs(
@@ -128,14 +107,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateMaterialRequest,
-) -> (
-    CreateMaterialResponse401
-    | CreateMaterialResponse422
-    | CreateMaterialResponse429
-    | CreateMaterialResponse500
-    | Material
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | Material | None:
     """Create a material
 
      Creates a material object.
@@ -149,7 +121,7 @@ def sync(
 
 
     Returns:
-        Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, Material]
+        Union[DetailedErrorResponse, ErrorResponse, Material]
     """
 
     return sync_detailed(
@@ -162,13 +134,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateMaterialRequest,
-) -> Response[
-    CreateMaterialResponse401
-    | CreateMaterialResponse422
-    | CreateMaterialResponse429
-    | CreateMaterialResponse500
-    | Material
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Material]:
     """Create a material
 
      Creates a material object.
@@ -182,7 +148,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, Material]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, Material]]
     """
 
     kwargs = _get_kwargs(
@@ -198,14 +164,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateMaterialRequest,
-) -> (
-    CreateMaterialResponse401
-    | CreateMaterialResponse422
-    | CreateMaterialResponse429
-    | CreateMaterialResponse500
-    | Material
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | Material | None:
     """Create a material
 
      Creates a material object.
@@ -219,7 +178,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, Material]
+        Union[DetailedErrorResponse, ErrorResponse, Material]
     """
 
     return (

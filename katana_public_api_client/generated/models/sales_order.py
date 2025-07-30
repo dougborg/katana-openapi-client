@@ -35,6 +35,8 @@ class SalesOrder:
     order_no: str
     location_id: int
     status: SalesOrderStatus
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
     source: None | Unset | str = UNSET
     order_created_date: Unset | datetime.datetime = UNSET
     delivery_date: None | Unset | datetime.datetime = UNSET
@@ -58,8 +60,6 @@ class SalesOrder:
     )
     ingredient_expected_date: None | Unset | datetime.datetime = UNSET
     production_status: None | SalesOrderProductionStatusType0 | Unset = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
     tracking_number: None | Unset | str = UNSET
     tracking_number_url: None | Unset | str = UNSET
     billing_address_id: None | Unset | int = UNSET
@@ -77,6 +77,14 @@ class SalesOrder:
         location_id = self.location_id
 
         status = self.status.value
+
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
 
         source: None | Unset | str
         if isinstance(self.source, Unset):
@@ -209,14 +217,6 @@ class SalesOrder:
         else:
             production_status = self.production_status
 
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
-
         tracking_number: None | Unset | str
         if isinstance(self.tracking_number, Unset):
             tracking_number = UNSET
@@ -259,6 +259,10 @@ class SalesOrder:
                 "status": status,
             }
         )
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
         if source is not UNSET:
             field_dict["source"] = source
         if order_created_date is not UNSET:
@@ -301,10 +305,6 @@ class SalesOrder:
             field_dict["ingredient_expected_date"] = ingredient_expected_date
         if production_status is not UNSET:
             field_dict["production_status"] = production_status
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
         if tracking_number is not UNSET:
             field_dict["tracking_number"] = tracking_number
         if tracking_number_url is not UNSET:
@@ -333,6 +333,20 @@ class SalesOrder:
         location_id = d.pop("location_id")
 
         status = SalesOrderStatus(d.pop("status"))
+
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
+
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
 
         def _parse_source(data: object) -> None | Unset | str:
             if data is None:
@@ -590,20 +604,6 @@ class SalesOrder:
 
         production_status = _parse_production_status(d.pop("production_status", UNSET))
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
-
         def _parse_tracking_number(data: object) -> None | Unset | str:
             if data is None:
                 return data
@@ -659,6 +659,8 @@ class SalesOrder:
             order_no=order_no,
             location_id=location_id,
             status=status,
+            created_at=created_at,
+            updated_at=updated_at,
             source=source,
             order_created_date=order_created_date,
             delivery_date=delivery_date,
@@ -680,8 +682,6 @@ class SalesOrder:
             ingredient_availability=ingredient_availability,
             ingredient_expected_date=ingredient_expected_date,
             production_status=production_status,
-            created_at=created_at,
-            updated_at=updated_at,
             tracking_number=tracking_number,
             tracking_number_url=tracking_number_url,
             billing_address_id=billing_address_id,

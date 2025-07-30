@@ -19,9 +19,9 @@ class PriceListRow:
     price_list_id: int
     variant_id: int
     price: float
-    currency: Unset | str = UNSET
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
+    currency: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -33,8 +33,6 @@ class PriceListRow:
 
         price = self.price
 
-        currency = self.currency
-
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -42,6 +40,8 @@ class PriceListRow:
         updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
+
+        currency = self.currency
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -53,12 +53,12 @@ class PriceListRow:
                 "price": price,
             }
         )
-        if currency is not UNSET:
-            field_dict["currency"] = currency
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
+        if currency is not UNSET:
+            field_dict["currency"] = currency
 
         return field_dict
 
@@ -72,8 +72,6 @@ class PriceListRow:
         variant_id = d.pop("variant_id")
 
         price = d.pop("price")
-
-        currency = d.pop("currency", UNSET)
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -89,14 +87,16 @@ class PriceListRow:
         else:
             updated_at = isoparse(_updated_at)
 
+        currency = d.pop("currency", UNSET)
+
         price_list_row = cls(
             id=id,
             price_list_id=price_list_id,
             variant_id=variant_id,
             price=price,
-            currency=currency,
             created_at=created_at,
             updated_at=updated_at,
+            currency=currency,
         )
 
         price_list_row.additional_properties = d

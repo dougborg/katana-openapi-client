@@ -5,19 +5,9 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...models.purchase_order_receive_row import PurchaseOrderReceiveRow
-from ...models.receive_purchase_order_response_401 import (
-    ReceivePurchaseOrderResponse401,
-)
-from ...models.receive_purchase_order_response_422 import (
-    ReceivePurchaseOrderResponse422,
-)
-from ...models.receive_purchase_order_response_429 import (
-    ReceivePurchaseOrderResponse429,
-)
-from ...models.receive_purchase_order_response_500 import (
-    ReceivePurchaseOrderResponse500,
-)
 from ...types import Response
 
 
@@ -52,31 +42,24 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    Any
-    | ReceivePurchaseOrderResponse401
-    | ReceivePurchaseOrderResponse422
-    | ReceivePurchaseOrderResponse429
-    | ReceivePurchaseOrderResponse500
-    | None
-):
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
     if response.status_code == 401:
-        response_401 = ReceivePurchaseOrderResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 422:
-        response_422 = ReceivePurchaseOrderResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = ReceivePurchaseOrderResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = ReceivePurchaseOrderResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -87,13 +70,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    Any
-    | ReceivePurchaseOrderResponse401
-    | ReceivePurchaseOrderResponse422
-    | ReceivePurchaseOrderResponse429
-    | ReceivePurchaseOrderResponse500
-]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -106,13 +83,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
-) -> Response[
-    Any
-    | ReceivePurchaseOrderResponse401
-    | ReceivePurchaseOrderResponse422
-    | ReceivePurchaseOrderResponse429
-    | ReceivePurchaseOrderResponse500
-]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Receive a purchase order
 
      If you receive the items on the purchase order, you can mark the purchase order as received.
@@ -132,7 +103,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[Any, ReceivePurchaseOrderResponse401, ReceivePurchaseOrderResponse422, ReceivePurchaseOrderResponse429, ReceivePurchaseOrderResponse500]]
+        Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -150,14 +121,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
-) -> (
-    Any
-    | ReceivePurchaseOrderResponse401
-    | ReceivePurchaseOrderResponse422
-    | ReceivePurchaseOrderResponse429
-    | ReceivePurchaseOrderResponse500
-    | None
-):
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Receive a purchase order
 
      If you receive the items on the purchase order, you can mark the purchase order as received.
@@ -177,7 +141,7 @@ def sync(
 
 
     Returns:
-        Union[Any, ReceivePurchaseOrderResponse401, ReceivePurchaseOrderResponse422, ReceivePurchaseOrderResponse429, ReceivePurchaseOrderResponse500]
+        Union[Any, DetailedErrorResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -190,13 +154,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
-) -> Response[
-    Any
-    | ReceivePurchaseOrderResponse401
-    | ReceivePurchaseOrderResponse422
-    | ReceivePurchaseOrderResponse429
-    | ReceivePurchaseOrderResponse500
-]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Receive a purchase order
 
      If you receive the items on the purchase order, you can mark the purchase order as received.
@@ -216,7 +174,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[Any, ReceivePurchaseOrderResponse401, ReceivePurchaseOrderResponse422, ReceivePurchaseOrderResponse429, ReceivePurchaseOrderResponse500]]
+        Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -232,14 +190,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
-) -> (
-    Any
-    | ReceivePurchaseOrderResponse401
-    | ReceivePurchaseOrderResponse422
-    | ReceivePurchaseOrderResponse429
-    | ReceivePurchaseOrderResponse500
-    | None
-):
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Receive a purchase order
 
      If you receive the items on the purchase order, you can mark the purchase order as received.
@@ -259,7 +210,7 @@ async def asyncio(
 
 
     Returns:
-        Union[Any, ReceivePurchaseOrderResponse401, ReceivePurchaseOrderResponse422, ReceivePurchaseOrderResponse429, ReceivePurchaseOrderResponse500]
+        Union[Any, DetailedErrorResponse, ErrorResponse]
     """
 
     return (

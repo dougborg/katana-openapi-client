@@ -8,20 +8,21 @@ from attrs import (
 )
 from dateutil.parser import isoparse
 
-from ..types import UNSET, Unset
+from ..models.sales_order_accounting_metadata_integration_type import (
+    SalesOrderAccountingMetadataIntegrationType,
+)
 
 T = TypeVar("T", bound="SalesOrderAccountingMetadata")
 
 
 @_attrs_define
 class SalesOrderAccountingMetadata:
-    id: Unset | int = UNSET
-    sales_order_id: Unset | int = UNSET
-    external_id: Unset | str = UNSET
-    accounting_system: Unset | str = UNSET
-    sync_status: Unset | str = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
+    id: int
+    sales_order_id: int
+    fulfillment_id: int
+    invoice_id: str
+    integration_type: SalesOrderAccountingMetadataIntegrationType
+    created_at: datetime.datetime
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -29,75 +30,53 @@ class SalesOrderAccountingMetadata:
 
         sales_order_id = self.sales_order_id
 
-        external_id = self.external_id
+        fulfillment_id = self.fulfillment_id
 
-        accounting_system = self.accounting_system
+        invoice_id = self.invoice_id
 
-        sync_status = self.sync_status
+        integration_type = self.integration_type.value
 
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
+        created_at = self.created_at.isoformat()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
-        if id is not UNSET:
-            field_dict["id"] = id
-        if sales_order_id is not UNSET:
-            field_dict["sales_order_id"] = sales_order_id
-        if external_id is not UNSET:
-            field_dict["external_id"] = external_id
-        if accounting_system is not UNSET:
-            field_dict["accounting_system"] = accounting_system
-        if sync_status is not UNSET:
-            field_dict["sync_status"] = sync_status
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
+        field_dict.update(
+            {
+                "id": id,
+                "sales_order_id": sales_order_id,
+                "fulfillment_id": fulfillment_id,
+                "invoice_id": invoice_id,
+                "integration_type": integration_type,
+                "created_at": created_at,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        id = d.pop("id", UNSET)
+        id = d.pop("id")
 
-        sales_order_id = d.pop("sales_order_id", UNSET)
+        sales_order_id = d.pop("sales_order_id")
 
-        external_id = d.pop("external_id", UNSET)
+        fulfillment_id = d.pop("fulfillment_id")
 
-        accounting_system = d.pop("accounting_system", UNSET)
+        invoice_id = d.pop("invoice_id")
 
-        sync_status = d.pop("sync_status", UNSET)
+        integration_type = SalesOrderAccountingMetadataIntegrationType(
+            d.pop("integration_type")
+        )
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
+        created_at = isoparse(d.pop("created_at"))
 
         sales_order_accounting_metadata = cls(
             id=id,
             sales_order_id=sales_order_id,
-            external_id=external_id,
-            accounting_system=accounting_system,
-            sync_status=sync_status,
+            fulfillment_id=fulfillment_id,
+            invoice_id=invoice_id,
+            integration_type=integration_type,
             created_at=created_at,
-            updated_at=updated_at,
         )
 
         sales_order_accounting_metadata.additional_properties = d

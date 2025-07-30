@@ -6,10 +6,8 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.get_all_products_extend_item import GetAllProductsExtendItem
-from ...models.get_all_products_response_401 import GetAllProductsResponse401
-from ...models.get_all_products_response_429 import GetAllProductsResponse429
-from ...models.get_all_products_response_500 import GetAllProductsResponse500
 from ...models.product_list_response import ProductListResponse
 from ...types import UNSET, Response, Unset
 
@@ -121,27 +119,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllProductsResponse401
-    | GetAllProductsResponse429
-    | GetAllProductsResponse500
-    | ProductListResponse
-    | None
-):
+) -> ErrorResponse | ProductListResponse | None:
     if response.status_code == 200:
         response_200 = ProductListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllProductsResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllProductsResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllProductsResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -152,12 +144,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetAllProductsResponse401
-    | GetAllProductsResponse429
-    | GetAllProductsResponse500
-    | ProductListResponse
-]:
+) -> Response[ErrorResponse | ProductListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -191,12 +178,7 @@ def sync_detailed(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[
-    GetAllProductsResponse401
-    | GetAllProductsResponse429
-    | GetAllProductsResponse500
-    | ProductListResponse
-]:
+) -> Response[ErrorResponse | ProductListResponse]:
     """List all products
 
      Returns a list of products you've previously created. The products are returned in sorted order,
@@ -232,7 +214,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllProductsResponse401, GetAllProductsResponse429, GetAllProductsResponse500, ProductListResponse]]
+        Response[Union[ErrorResponse, ProductListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -292,13 +274,7 @@ def sync(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> (
-    GetAllProductsResponse401
-    | GetAllProductsResponse429
-    | GetAllProductsResponse500
-    | ProductListResponse
-    | None
-):
+) -> ErrorResponse | ProductListResponse | None:
     """List all products
 
      Returns a list of products you've previously created. The products are returned in sorted order,
@@ -334,7 +310,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllProductsResponse401, GetAllProductsResponse429, GetAllProductsResponse500, ProductListResponse]
+        Union[ErrorResponse, ProductListResponse]
     """
 
     return sync_detailed(
@@ -389,12 +365,7 @@ async def asyncio_detailed(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[
-    GetAllProductsResponse401
-    | GetAllProductsResponse429
-    | GetAllProductsResponse500
-    | ProductListResponse
-]:
+) -> Response[ErrorResponse | ProductListResponse]:
     """List all products
 
      Returns a list of products you've previously created. The products are returned in sorted order,
@@ -430,7 +401,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllProductsResponse401, GetAllProductsResponse429, GetAllProductsResponse500, ProductListResponse]]
+        Response[Union[ErrorResponse, ProductListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -488,13 +459,7 @@ async def asyncio(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> (
-    GetAllProductsResponse401
-    | GetAllProductsResponse429
-    | GetAllProductsResponse500
-    | ProductListResponse
-    | None
-):
+) -> ErrorResponse | ProductListResponse | None:
     """List all products
 
      Returns a list of products you've previously created. The products are returned in sorted order,
@@ -530,7 +495,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllProductsResponse401, GetAllProductsResponse429, GetAllProductsResponse500, ProductListResponse]
+        Union[ErrorResponse, ProductListResponse]
     """
 
     return (

@@ -1,6 +1,6 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -26,6 +26,7 @@ class InventorySafetyStockLevelResponse:
     value: float
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -43,6 +44,12 @@ class InventorySafetyStockLevelResponse:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
+        deleted_at: None | Unset | str
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        else:
+            deleted_at = self.deleted_at
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -56,6 +63,8 @@ class InventorySafetyStockLevelResponse:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
 
         return field_dict
 
@@ -82,12 +91,22 @@ class InventorySafetyStockLevelResponse:
         else:
             updated_at = isoparse(_updated_at)
 
+        def _parse_deleted_at(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
+
         inventory_safety_stock_level_response = cls(
             location_id=location_id,
             variant_id=variant_id,
             value=value,
             created_at=created_at,
             updated_at=updated_at,
+            deleted_at=deleted_at,
         )
 
         inventory_safety_stock_level_response.additional_properties = d

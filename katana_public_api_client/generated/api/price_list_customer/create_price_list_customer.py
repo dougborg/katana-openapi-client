@@ -6,21 +6,8 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.create_price_list_customer_request import CreatePriceListCustomerRequest
-from ...models.create_price_list_customer_response_400 import (
-    CreatePriceListCustomerResponse400,
-)
-from ...models.create_price_list_customer_response_401 import (
-    CreatePriceListCustomerResponse401,
-)
-from ...models.create_price_list_customer_response_422 import (
-    CreatePriceListCustomerResponse422,
-)
-from ...models.create_price_list_customer_response_429 import (
-    CreatePriceListCustomerResponse429,
-)
-from ...models.create_price_list_customer_response_500 import (
-    CreatePriceListCustomerResponse500,
-)
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...models.price_list_customer import PriceListCustomer
 from ...types import Response
 
@@ -46,37 +33,29 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreatePriceListCustomerResponse400
-    | CreatePriceListCustomerResponse401
-    | CreatePriceListCustomerResponse422
-    | CreatePriceListCustomerResponse429
-    | CreatePriceListCustomerResponse500
-    | PriceListCustomer
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | PriceListCustomer | None:
     if response.status_code == 201:
         response_201 = PriceListCustomer.from_dict(response.json())
 
         return response_201
     if response.status_code == 400:
-        response_400 = CreatePriceListCustomerResponse400.from_dict(response.json())
+        response_400 = ErrorResponse.from_dict(response.json())
 
         return response_400
     if response.status_code == 401:
-        response_401 = CreatePriceListCustomerResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 422:
-        response_422 = CreatePriceListCustomerResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = CreatePriceListCustomerResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = CreatePriceListCustomerResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -87,14 +66,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CreatePriceListCustomerResponse400
-    | CreatePriceListCustomerResponse401
-    | CreatePriceListCustomerResponse422
-    | CreatePriceListCustomerResponse429
-    | CreatePriceListCustomerResponse500
-    | PriceListCustomer
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PriceListCustomer]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -107,14 +79,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePriceListCustomerRequest,
-) -> Response[
-    CreatePriceListCustomerResponse400
-    | CreatePriceListCustomerResponse401
-    | CreatePriceListCustomerResponse422
-    | CreatePriceListCustomerResponse429
-    | CreatePriceListCustomerResponse500
-    | PriceListCustomer
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PriceListCustomer]:
     """Create a price list customer assignment
 
      Assigns a customer to a price list.
@@ -128,7 +93,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreatePriceListCustomerResponse400, CreatePriceListCustomerResponse401, CreatePriceListCustomerResponse422, CreatePriceListCustomerResponse429, CreatePriceListCustomerResponse500, PriceListCustomer]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, PriceListCustomer]]
     """
 
     kwargs = _get_kwargs(
@@ -146,15 +111,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePriceListCustomerRequest,
-) -> (
-    CreatePriceListCustomerResponse400
-    | CreatePriceListCustomerResponse401
-    | CreatePriceListCustomerResponse422
-    | CreatePriceListCustomerResponse429
-    | CreatePriceListCustomerResponse500
-    | PriceListCustomer
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | PriceListCustomer | None:
     """Create a price list customer assignment
 
      Assigns a customer to a price list.
@@ -168,7 +125,7 @@ def sync(
 
 
     Returns:
-        Union[CreatePriceListCustomerResponse400, CreatePriceListCustomerResponse401, CreatePriceListCustomerResponse422, CreatePriceListCustomerResponse429, CreatePriceListCustomerResponse500, PriceListCustomer]
+        Union[DetailedErrorResponse, ErrorResponse, PriceListCustomer]
     """
 
     return sync_detailed(
@@ -181,14 +138,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePriceListCustomerRequest,
-) -> Response[
-    CreatePriceListCustomerResponse400
-    | CreatePriceListCustomerResponse401
-    | CreatePriceListCustomerResponse422
-    | CreatePriceListCustomerResponse429
-    | CreatePriceListCustomerResponse500
-    | PriceListCustomer
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PriceListCustomer]:
     """Create a price list customer assignment
 
      Assigns a customer to a price list.
@@ -202,7 +152,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreatePriceListCustomerResponse400, CreatePriceListCustomerResponse401, CreatePriceListCustomerResponse422, CreatePriceListCustomerResponse429, CreatePriceListCustomerResponse500, PriceListCustomer]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, PriceListCustomer]]
     """
 
     kwargs = _get_kwargs(
@@ -218,15 +168,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePriceListCustomerRequest,
-) -> (
-    CreatePriceListCustomerResponse400
-    | CreatePriceListCustomerResponse401
-    | CreatePriceListCustomerResponse422
-    | CreatePriceListCustomerResponse429
-    | CreatePriceListCustomerResponse500
-    | PriceListCustomer
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | PriceListCustomer | None:
     """Create a price list customer assignment
 
      Assigns a customer to a price list.
@@ -240,7 +182,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreatePriceListCustomerResponse400, CreatePriceListCustomerResponse401, CreatePriceListCustomerResponse422, CreatePriceListCustomerResponse429, CreatePriceListCustomerResponse500, PriceListCustomer]
+        Union[DetailedErrorResponse, ErrorResponse, PriceListCustomer]
     """
 
     return (

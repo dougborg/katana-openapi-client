@@ -7,9 +7,7 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.additional_cost_list_response import AdditionalCostListResponse
-from ...models.get_additional_costs_response_401 import GetAdditionalCostsResponse401
-from ...models.get_additional_costs_response_429 import GetAdditionalCostsResponse429
-from ...models.get_additional_costs_response_500 import GetAdditionalCostsResponse500
+from ...models.error_response import ErrorResponse
 from ...types import UNSET, Response, Unset
 
 
@@ -74,27 +72,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    AdditionalCostListResponse
-    | GetAdditionalCostsResponse401
-    | GetAdditionalCostsResponse429
-    | GetAdditionalCostsResponse500
-    | None
-):
+) -> AdditionalCostListResponse | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = AdditionalCostListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAdditionalCostsResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAdditionalCostsResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAdditionalCostsResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -105,12 +97,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    AdditionalCostListResponse
-    | GetAdditionalCostsResponse401
-    | GetAdditionalCostsResponse429
-    | GetAdditionalCostsResponse500
-]:
+) -> Response[AdditionalCostListResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -131,12 +118,7 @@ def sync_detailed(
     ids: Unset | list[int] = UNSET,
     name: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
-) -> Response[
-    AdditionalCostListResponse
-    | GetAdditionalCostsResponse401
-    | GetAdditionalCostsResponse429
-    | GetAdditionalCostsResponse500
-]:
+) -> Response[AdditionalCostListResponse | ErrorResponse]:
     """List all additional costs
 
      Returns a list of additional costs you've previously created.
@@ -158,7 +140,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[AdditionalCostListResponse, GetAdditionalCostsResponse401, GetAdditionalCostsResponse429, GetAdditionalCostsResponse500]]
+        Response[Union[AdditionalCostListResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -192,13 +174,7 @@ def sync(
     ids: Unset | list[int] = UNSET,
     name: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
-) -> (
-    AdditionalCostListResponse
-    | GetAdditionalCostsResponse401
-    | GetAdditionalCostsResponse429
-    | GetAdditionalCostsResponse500
-    | None
-):
+) -> AdditionalCostListResponse | ErrorResponse | None:
     """List all additional costs
 
      Returns a list of additional costs you've previously created.
@@ -220,7 +196,7 @@ def sync(
 
 
     Returns:
-        Union[AdditionalCostListResponse, GetAdditionalCostsResponse401, GetAdditionalCostsResponse429, GetAdditionalCostsResponse500]
+        Union[AdditionalCostListResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -249,12 +225,7 @@ async def asyncio_detailed(
     ids: Unset | list[int] = UNSET,
     name: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
-) -> Response[
-    AdditionalCostListResponse
-    | GetAdditionalCostsResponse401
-    | GetAdditionalCostsResponse429
-    | GetAdditionalCostsResponse500
-]:
+) -> Response[AdditionalCostListResponse | ErrorResponse]:
     """List all additional costs
 
      Returns a list of additional costs you've previously created.
@@ -276,7 +247,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[AdditionalCostListResponse, GetAdditionalCostsResponse401, GetAdditionalCostsResponse429, GetAdditionalCostsResponse500]]
+        Response[Union[AdditionalCostListResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -308,13 +279,7 @@ async def asyncio(
     ids: Unset | list[int] = UNSET,
     name: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
-) -> (
-    AdditionalCostListResponse
-    | GetAdditionalCostsResponse401
-    | GetAdditionalCostsResponse429
-    | GetAdditionalCostsResponse500
-    | None
-):
+) -> AdditionalCostListResponse | ErrorResponse | None:
     """List all additional costs
 
      Returns a list of additional costs you've previously created.
@@ -336,7 +301,7 @@ async def asyncio(
 
 
     Returns:
-        Union[AdditionalCostListResponse, GetAdditionalCostsResponse401, GetAdditionalCostsResponse429, GetAdditionalCostsResponse500]
+        Union[AdditionalCostListResponse, ErrorResponse]
     """
 
     return (

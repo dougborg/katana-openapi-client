@@ -5,20 +5,10 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...models.purchase_order_row import PurchaseOrderRow
 from ...models.update_purchase_order_row_request import UpdatePurchaseOrderRowRequest
-from ...models.update_purchase_order_row_response_401 import (
-    UpdatePurchaseOrderRowResponse401,
-)
-from ...models.update_purchase_order_row_response_422 import (
-    UpdatePurchaseOrderRowResponse422,
-)
-from ...models.update_purchase_order_row_response_429 import (
-    UpdatePurchaseOrderRowResponse429,
-)
-from ...models.update_purchase_order_row_response_500 import (
-    UpdatePurchaseOrderRowResponse500,
-)
 from ...types import Response
 
 
@@ -44,32 +34,25 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    PurchaseOrderRow
-    | UpdatePurchaseOrderRowResponse401
-    | UpdatePurchaseOrderRowResponse422
-    | UpdatePurchaseOrderRowResponse429
-    | UpdatePurchaseOrderRowResponse500
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderRow | None:
     if response.status_code == 200:
         response_200 = PurchaseOrderRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = UpdatePurchaseOrderRowResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 422:
-        response_422 = UpdatePurchaseOrderRowResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = UpdatePurchaseOrderRowResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = UpdatePurchaseOrderRowResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -80,13 +63,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    PurchaseOrderRow
-    | UpdatePurchaseOrderRowResponse401
-    | UpdatePurchaseOrderRowResponse422
-    | UpdatePurchaseOrderRowResponse429
-    | UpdatePurchaseOrderRowResponse500
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderRow]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -100,13 +77,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRowRequest,
-) -> Response[
-    PurchaseOrderRow
-    | UpdatePurchaseOrderRowResponse401
-    | UpdatePurchaseOrderRowResponse422
-    | UpdatePurchaseOrderRowResponse429
-    | UpdatePurchaseOrderRowResponse500
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderRow]:
     """Update a purchase order row
 
      Updates the specified purchase order row by setting the values of the parameters passed.
@@ -122,7 +93,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[PurchaseOrderRow, UpdatePurchaseOrderRowResponse401, UpdatePurchaseOrderRowResponse422, UpdatePurchaseOrderRowResponse429, UpdatePurchaseOrderRowResponse500]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderRow]]
     """
 
     kwargs = _get_kwargs(
@@ -142,14 +113,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRowRequest,
-) -> (
-    PurchaseOrderRow
-    | UpdatePurchaseOrderRowResponse401
-    | UpdatePurchaseOrderRowResponse422
-    | UpdatePurchaseOrderRowResponse429
-    | UpdatePurchaseOrderRowResponse500
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderRow | None:
     """Update a purchase order row
 
      Updates the specified purchase order row by setting the values of the parameters passed.
@@ -165,7 +129,7 @@ def sync(
 
 
     Returns:
-        Union[PurchaseOrderRow, UpdatePurchaseOrderRowResponse401, UpdatePurchaseOrderRowResponse422, UpdatePurchaseOrderRowResponse429, UpdatePurchaseOrderRowResponse500]
+        Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderRow]
     """
 
     return sync_detailed(
@@ -180,13 +144,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRowRequest,
-) -> Response[
-    PurchaseOrderRow
-    | UpdatePurchaseOrderRowResponse401
-    | UpdatePurchaseOrderRowResponse422
-    | UpdatePurchaseOrderRowResponse429
-    | UpdatePurchaseOrderRowResponse500
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderRow]:
     """Update a purchase order row
 
      Updates the specified purchase order row by setting the values of the parameters passed.
@@ -202,7 +160,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[PurchaseOrderRow, UpdatePurchaseOrderRowResponse401, UpdatePurchaseOrderRowResponse422, UpdatePurchaseOrderRowResponse429, UpdatePurchaseOrderRowResponse500]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderRow]]
     """
 
     kwargs = _get_kwargs(
@@ -220,14 +178,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRowRequest,
-) -> (
-    PurchaseOrderRow
-    | UpdatePurchaseOrderRowResponse401
-    | UpdatePurchaseOrderRowResponse422
-    | UpdatePurchaseOrderRowResponse429
-    | UpdatePurchaseOrderRowResponse500
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderRow | None:
     """Update a purchase order row
 
      Updates the specified purchase order row by setting the values of the parameters passed.
@@ -243,7 +194,7 @@ async def asyncio(
 
 
     Returns:
-        Union[PurchaseOrderRow, UpdatePurchaseOrderRowResponse401, UpdatePurchaseOrderRowResponse422, UpdatePurchaseOrderRowResponse429, UpdatePurchaseOrderRowResponse500]
+        Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderRow]
     """
 
     return (

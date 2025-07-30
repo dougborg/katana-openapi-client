@@ -6,10 +6,8 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.create_webhook_request import CreateWebhookRequest
-from ...models.create_webhook_response_401 import CreateWebhookResponse401
-from ...models.create_webhook_response_422 import CreateWebhookResponse422
-from ...models.create_webhook_response_429 import CreateWebhookResponse429
-from ...models.create_webhook_response_500 import CreateWebhookResponse500
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...models.webhook import Webhook
 from ...types import Response
 
@@ -35,32 +33,25 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateWebhookResponse401
-    | CreateWebhookResponse422
-    | CreateWebhookResponse429
-    | CreateWebhookResponse500
-    | Webhook
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | Webhook | None:
     if response.status_code == 200:
         response_200 = Webhook.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = CreateWebhookResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 422:
-        response_422 = CreateWebhookResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = CreateWebhookResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = CreateWebhookResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -71,13 +62,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CreateWebhookResponse401
-    | CreateWebhookResponse422
-    | CreateWebhookResponse429
-    | CreateWebhookResponse500
-    | Webhook
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Webhook]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -90,13 +75,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateWebhookRequest,
-) -> Response[
-    CreateWebhookResponse401
-    | CreateWebhookResponse422
-    | CreateWebhookResponse429
-    | CreateWebhookResponse500
-    | Webhook
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Webhook]:
     """Create a webhook
 
      Creates a new webhook object.
@@ -110,7 +89,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, Webhook]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -128,14 +107,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateWebhookRequest,
-) -> (
-    CreateWebhookResponse401
-    | CreateWebhookResponse422
-    | CreateWebhookResponse429
-    | CreateWebhookResponse500
-    | Webhook
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | Webhook | None:
     """Create a webhook
 
      Creates a new webhook object.
@@ -149,7 +121,7 @@ def sync(
 
 
     Returns:
-        Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, Webhook]
+        Union[DetailedErrorResponse, ErrorResponse, Webhook]
     """
 
     return sync_detailed(
@@ -162,13 +134,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateWebhookRequest,
-) -> Response[
-    CreateWebhookResponse401
-    | CreateWebhookResponse422
-    | CreateWebhookResponse429
-    | CreateWebhookResponse500
-    | Webhook
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Webhook]:
     """Create a webhook
 
      Creates a new webhook object.
@@ -182,7 +148,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, Webhook]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -198,14 +164,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateWebhookRequest,
-) -> (
-    CreateWebhookResponse401
-    | CreateWebhookResponse422
-    | CreateWebhookResponse429
-    | CreateWebhookResponse500
-    | Webhook
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | Webhook | None:
     """Create a webhook
 
      Creates a new webhook object.
@@ -219,7 +178,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, Webhook]
+        Union[DetailedErrorResponse, ErrorResponse, Webhook]
     """
 
     return (

@@ -258,7 +258,7 @@ class TestResilientAsyncTransport:
 
         error_message = error_logs[0].message
         assert "Client error 400" in error_message
-        assert "Failed to parse error details" in error_message
+        assert "Invalid JSON response from server" in error_message
 
     @pytest.mark.asyncio
     async def test_error_logging_integration_with_request_handling(

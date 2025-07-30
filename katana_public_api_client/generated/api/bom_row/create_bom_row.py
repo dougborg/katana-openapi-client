@@ -7,10 +7,8 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.bom_row import BomRow
 from ...models.create_bom_row_request import CreateBomRowRequest
-from ...models.create_bom_row_response_401 import CreateBomRowResponse401
-from ...models.create_bom_row_response_422 import CreateBomRowResponse422
-from ...models.create_bom_row_response_429 import CreateBomRowResponse429
-from ...models.create_bom_row_response_500 import CreateBomRowResponse500
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...types import Response
 
 
@@ -35,32 +33,25 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    BomRow
-    | CreateBomRowResponse401
-    | CreateBomRowResponse422
-    | CreateBomRowResponse429
-    | CreateBomRowResponse500
-    | None
-):
+) -> BomRow | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = BomRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = CreateBomRowResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 422:
-        response_422 = CreateBomRowResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = CreateBomRowResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = CreateBomRowResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -71,13 +62,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    BomRow
-    | CreateBomRowResponse401
-    | CreateBomRowResponse422
-    | CreateBomRowResponse429
-    | CreateBomRowResponse500
-]:
+) -> Response[BomRow | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -90,13 +75,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateBomRowRequest,
-) -> Response[
-    BomRow
-    | CreateBomRowResponse401
-    | CreateBomRowResponse422
-    | CreateBomRowResponse429
-    | CreateBomRowResponse500
-]:
+) -> Response[BomRow | DetailedErrorResponse | ErrorResponse]:
     """Create a BOM row
 
      Create a new BOM row for a product.
@@ -110,7 +89,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[BomRow, CreateBomRowResponse401, CreateBomRowResponse422, CreateBomRowResponse429, CreateBomRowResponse500]]
+        Response[Union[BomRow, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -128,14 +107,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateBomRowRequest,
-) -> (
-    BomRow
-    | CreateBomRowResponse401
-    | CreateBomRowResponse422
-    | CreateBomRowResponse429
-    | CreateBomRowResponse500
-    | None
-):
+) -> BomRow | DetailedErrorResponse | ErrorResponse | None:
     """Create a BOM row
 
      Create a new BOM row for a product.
@@ -149,7 +121,7 @@ def sync(
 
 
     Returns:
-        Union[BomRow, CreateBomRowResponse401, CreateBomRowResponse422, CreateBomRowResponse429, CreateBomRowResponse500]
+        Union[BomRow, DetailedErrorResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -162,13 +134,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateBomRowRequest,
-) -> Response[
-    BomRow
-    | CreateBomRowResponse401
-    | CreateBomRowResponse422
-    | CreateBomRowResponse429
-    | CreateBomRowResponse500
-]:
+) -> Response[BomRow | DetailedErrorResponse | ErrorResponse]:
     """Create a BOM row
 
      Create a new BOM row for a product.
@@ -182,7 +148,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[BomRow, CreateBomRowResponse401, CreateBomRowResponse422, CreateBomRowResponse429, CreateBomRowResponse500]]
+        Response[Union[BomRow, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -198,14 +164,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateBomRowRequest,
-) -> (
-    BomRow
-    | CreateBomRowResponse401
-    | CreateBomRowResponse422
-    | CreateBomRowResponse429
-    | CreateBomRowResponse500
-    | None
-):
+) -> BomRow | DetailedErrorResponse | ErrorResponse | None:
     """Create a BOM row
 
      Create a new BOM row for a product.
@@ -219,7 +178,7 @@ async def asyncio(
 
 
     Returns:
-        Union[BomRow, CreateBomRowResponse401, CreateBomRowResponse422, CreateBomRowResponse429, CreateBomRowResponse500]
+        Union[BomRow, DetailedErrorResponse, ErrorResponse]
     """
 
     return (

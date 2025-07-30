@@ -5,17 +5,9 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.get_all_sales_order_addresses_entity_type import (
     GetAllSalesOrderAddressesEntityType,
-)
-from ...models.get_all_sales_order_addresses_response_401 import (
-    GetAllSalesOrderAddressesResponse401,
-)
-from ...models.get_all_sales_order_addresses_response_429 import (
-    GetAllSalesOrderAddressesResponse429,
-)
-from ...models.get_all_sales_order_addresses_response_500 import (
-    GetAllSalesOrderAddressesResponse500,
 )
 from ...models.sales_order_address_list_response import SalesOrderAddressListResponse
 from ...types import UNSET, Response, Unset
@@ -55,27 +47,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllSalesOrderAddressesResponse401
-    | GetAllSalesOrderAddressesResponse429
-    | GetAllSalesOrderAddressesResponse500
-    | SalesOrderAddressListResponse
-    | None
-):
+) -> ErrorResponse | SalesOrderAddressListResponse | None:
     if response.status_code == 200:
         response_200 = SalesOrderAddressListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllSalesOrderAddressesResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllSalesOrderAddressesResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllSalesOrderAddressesResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -86,12 +72,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetAllSalesOrderAddressesResponse401
-    | GetAllSalesOrderAddressesResponse429
-    | GetAllSalesOrderAddressesResponse500
-    | SalesOrderAddressListResponse
-]:
+) -> Response[ErrorResponse | SalesOrderAddressListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -107,12 +88,7 @@ def sync_detailed(
     page: Unset | int = 1,
     sales_order_id: Unset | int = UNSET,
     entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
-) -> Response[
-    GetAllSalesOrderAddressesResponse401
-    | GetAllSalesOrderAddressesResponse429
-    | GetAllSalesOrderAddressesResponse500
-    | SalesOrderAddressListResponse
-]:
+) -> Response[ErrorResponse | SalesOrderAddressListResponse]:
     """List sales order addresses
 
      Returns a list of sales order addresses.
@@ -129,7 +105,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllSalesOrderAddressesResponse401, GetAllSalesOrderAddressesResponse429, GetAllSalesOrderAddressesResponse500, SalesOrderAddressListResponse]]
+        Response[Union[ErrorResponse, SalesOrderAddressListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -153,13 +129,7 @@ def sync(
     page: Unset | int = 1,
     sales_order_id: Unset | int = UNSET,
     entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
-) -> (
-    GetAllSalesOrderAddressesResponse401
-    | GetAllSalesOrderAddressesResponse429
-    | GetAllSalesOrderAddressesResponse500
-    | SalesOrderAddressListResponse
-    | None
-):
+) -> ErrorResponse | SalesOrderAddressListResponse | None:
     """List sales order addresses
 
      Returns a list of sales order addresses.
@@ -176,7 +146,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllSalesOrderAddressesResponse401, GetAllSalesOrderAddressesResponse429, GetAllSalesOrderAddressesResponse500, SalesOrderAddressListResponse]
+        Union[ErrorResponse, SalesOrderAddressListResponse]
     """
 
     return sync_detailed(
@@ -195,12 +165,7 @@ async def asyncio_detailed(
     page: Unset | int = 1,
     sales_order_id: Unset | int = UNSET,
     entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
-) -> Response[
-    GetAllSalesOrderAddressesResponse401
-    | GetAllSalesOrderAddressesResponse429
-    | GetAllSalesOrderAddressesResponse500
-    | SalesOrderAddressListResponse
-]:
+) -> Response[ErrorResponse | SalesOrderAddressListResponse]:
     """List sales order addresses
 
      Returns a list of sales order addresses.
@@ -217,7 +182,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllSalesOrderAddressesResponse401, GetAllSalesOrderAddressesResponse429, GetAllSalesOrderAddressesResponse500, SalesOrderAddressListResponse]]
+        Response[Union[ErrorResponse, SalesOrderAddressListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -239,13 +204,7 @@ async def asyncio(
     page: Unset | int = 1,
     sales_order_id: Unset | int = UNSET,
     entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
-) -> (
-    GetAllSalesOrderAddressesResponse401
-    | GetAllSalesOrderAddressesResponse429
-    | GetAllSalesOrderAddressesResponse500
-    | SalesOrderAddressListResponse
-    | None
-):
+) -> ErrorResponse | SalesOrderAddressListResponse | None:
     """List sales order addresses
 
      Returns a list of sales order addresses.
@@ -262,7 +221,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllSalesOrderAddressesResponse401, GetAllSalesOrderAddressesResponse429, GetAllSalesOrderAddressesResponse500, SalesOrderAddressListResponse]
+        Union[ErrorResponse, SalesOrderAddressListResponse]
     """
 
     return (

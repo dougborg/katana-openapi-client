@@ -5,17 +5,9 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.make_to_order_manufacturing_order_request import (
     MakeToOrderManufacturingOrderRequest,
-)
-from ...models.make_to_order_manufacturing_order_response_401 import (
-    MakeToOrderManufacturingOrderResponse401,
-)
-from ...models.make_to_order_manufacturing_order_response_429 import (
-    MakeToOrderManufacturingOrderResponse429,
-)
-from ...models.make_to_order_manufacturing_order_response_500 import (
-    MakeToOrderManufacturingOrderResponse500,
 )
 from ...models.manufacturing_order import ManufacturingOrder
 from ...types import Response
@@ -42,33 +34,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    MakeToOrderManufacturingOrderResponse401
-    | MakeToOrderManufacturingOrderResponse429
-    | MakeToOrderManufacturingOrderResponse500
-    | ManufacturingOrder
-    | None
-):
+) -> ErrorResponse | ManufacturingOrder | None:
     if response.status_code == 200:
         response_200 = ManufacturingOrder.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = MakeToOrderManufacturingOrderResponse401.from_dict(
-            response.json()
-        )
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = MakeToOrderManufacturingOrderResponse429.from_dict(
-            response.json()
-        )
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = MakeToOrderManufacturingOrderResponse500.from_dict(
-            response.json()
-        )
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -79,12 +59,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    MakeToOrderManufacturingOrderResponse401
-    | MakeToOrderManufacturingOrderResponse429
-    | MakeToOrderManufacturingOrderResponse500
-    | ManufacturingOrder
-]:
+) -> Response[ErrorResponse | ManufacturingOrder]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -97,12 +72,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: MakeToOrderManufacturingOrderRequest,
-) -> Response[
-    MakeToOrderManufacturingOrderResponse401
-    | MakeToOrderManufacturingOrderResponse429
-    | MakeToOrderManufacturingOrderResponse500
-    | ManufacturingOrder
-]:
+) -> Response[ErrorResponse | ManufacturingOrder]:
     """Create a make-to-order manufacturing order
 
      Creates a new manufacturing order object that is linked to a specific sales order row.
@@ -116,7 +86,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[MakeToOrderManufacturingOrderResponse401, MakeToOrderManufacturingOrderResponse429, MakeToOrderManufacturingOrderResponse500, ManufacturingOrder]]
+        Response[Union[ErrorResponse, ManufacturingOrder]]
     """
 
     kwargs = _get_kwargs(
@@ -134,13 +104,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: MakeToOrderManufacturingOrderRequest,
-) -> (
-    MakeToOrderManufacturingOrderResponse401
-    | MakeToOrderManufacturingOrderResponse429
-    | MakeToOrderManufacturingOrderResponse500
-    | ManufacturingOrder
-    | None
-):
+) -> ErrorResponse | ManufacturingOrder | None:
     """Create a make-to-order manufacturing order
 
      Creates a new manufacturing order object that is linked to a specific sales order row.
@@ -154,7 +118,7 @@ def sync(
 
 
     Returns:
-        Union[MakeToOrderManufacturingOrderResponse401, MakeToOrderManufacturingOrderResponse429, MakeToOrderManufacturingOrderResponse500, ManufacturingOrder]
+        Union[ErrorResponse, ManufacturingOrder]
     """
 
     return sync_detailed(
@@ -167,12 +131,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: MakeToOrderManufacturingOrderRequest,
-) -> Response[
-    MakeToOrderManufacturingOrderResponse401
-    | MakeToOrderManufacturingOrderResponse429
-    | MakeToOrderManufacturingOrderResponse500
-    | ManufacturingOrder
-]:
+) -> Response[ErrorResponse | ManufacturingOrder]:
     """Create a make-to-order manufacturing order
 
      Creates a new manufacturing order object that is linked to a specific sales order row.
@@ -186,7 +145,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[MakeToOrderManufacturingOrderResponse401, MakeToOrderManufacturingOrderResponse429, MakeToOrderManufacturingOrderResponse500, ManufacturingOrder]]
+        Response[Union[ErrorResponse, ManufacturingOrder]]
     """
 
     kwargs = _get_kwargs(
@@ -202,13 +161,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: MakeToOrderManufacturingOrderRequest,
-) -> (
-    MakeToOrderManufacturingOrderResponse401
-    | MakeToOrderManufacturingOrderResponse429
-    | MakeToOrderManufacturingOrderResponse500
-    | ManufacturingOrder
-    | None
-):
+) -> ErrorResponse | ManufacturingOrder | None:
     """Create a make-to-order manufacturing order
 
      Creates a new manufacturing order object that is linked to a specific sales order row.
@@ -222,7 +175,7 @@ async def asyncio(
 
 
     Returns:
-        Union[MakeToOrderManufacturingOrderResponse401, MakeToOrderManufacturingOrderResponse429, MakeToOrderManufacturingOrderResponse500, ManufacturingOrder]
+        Union[ErrorResponse, ManufacturingOrder]
     """
 
     return (

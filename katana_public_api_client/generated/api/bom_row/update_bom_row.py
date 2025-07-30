@@ -6,12 +6,9 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.bom_row import BomRow
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...models.update_bom_row_body import UpdateBomRowBody
-from ...models.update_bom_row_response_401 import UpdateBomRowResponse401
-from ...models.update_bom_row_response_404 import UpdateBomRowResponse404
-from ...models.update_bom_row_response_422 import UpdateBomRowResponse422
-from ...models.update_bom_row_response_429 import UpdateBomRowResponse429
-from ...models.update_bom_row_response_500 import UpdateBomRowResponse500
 from ...types import Response
 
 
@@ -37,37 +34,29 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    BomRow
-    | UpdateBomRowResponse401
-    | UpdateBomRowResponse404
-    | UpdateBomRowResponse422
-    | UpdateBomRowResponse429
-    | UpdateBomRowResponse500
-    | None
-):
+) -> BomRow | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = BomRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = UpdateBomRowResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 404:
-        response_404 = UpdateBomRowResponse404.from_dict(response.json())
+        response_404 = ErrorResponse.from_dict(response.json())
 
         return response_404
     if response.status_code == 422:
-        response_422 = UpdateBomRowResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = UpdateBomRowResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = UpdateBomRowResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -78,14 +67,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    BomRow
-    | UpdateBomRowResponse401
-    | UpdateBomRowResponse404
-    | UpdateBomRowResponse422
-    | UpdateBomRowResponse429
-    | UpdateBomRowResponse500
-]:
+) -> Response[BomRow | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -99,14 +81,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateBomRowBody,
-) -> Response[
-    BomRow
-    | UpdateBomRowResponse401
-    | UpdateBomRowResponse404
-    | UpdateBomRowResponse422
-    | UpdateBomRowResponse429
-    | UpdateBomRowResponse500
-]:
+) -> Response[BomRow | DetailedErrorResponse | ErrorResponse]:
     """Update a BOM row
 
      Updates the specified BOM row by setting the values of the parameters passed. Any parameters not
@@ -122,7 +97,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[BomRow, UpdateBomRowResponse401, UpdateBomRowResponse404, UpdateBomRowResponse422, UpdateBomRowResponse429, UpdateBomRowResponse500]]
+        Response[Union[BomRow, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -142,15 +117,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateBomRowBody,
-) -> (
-    BomRow
-    | UpdateBomRowResponse401
-    | UpdateBomRowResponse404
-    | UpdateBomRowResponse422
-    | UpdateBomRowResponse429
-    | UpdateBomRowResponse500
-    | None
-):
+) -> BomRow | DetailedErrorResponse | ErrorResponse | None:
     """Update a BOM row
 
      Updates the specified BOM row by setting the values of the parameters passed. Any parameters not
@@ -166,7 +133,7 @@ def sync(
 
 
     Returns:
-        Union[BomRow, UpdateBomRowResponse401, UpdateBomRowResponse404, UpdateBomRowResponse422, UpdateBomRowResponse429, UpdateBomRowResponse500]
+        Union[BomRow, DetailedErrorResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -181,14 +148,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateBomRowBody,
-) -> Response[
-    BomRow
-    | UpdateBomRowResponse401
-    | UpdateBomRowResponse404
-    | UpdateBomRowResponse422
-    | UpdateBomRowResponse429
-    | UpdateBomRowResponse500
-]:
+) -> Response[BomRow | DetailedErrorResponse | ErrorResponse]:
     """Update a BOM row
 
      Updates the specified BOM row by setting the values of the parameters passed. Any parameters not
@@ -204,7 +164,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[BomRow, UpdateBomRowResponse401, UpdateBomRowResponse404, UpdateBomRowResponse422, UpdateBomRowResponse429, UpdateBomRowResponse500]]
+        Response[Union[BomRow, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -222,15 +182,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateBomRowBody,
-) -> (
-    BomRow
-    | UpdateBomRowResponse401
-    | UpdateBomRowResponse404
-    | UpdateBomRowResponse422
-    | UpdateBomRowResponse429
-    | UpdateBomRowResponse500
-    | None
-):
+) -> BomRow | DetailedErrorResponse | ErrorResponse | None:
     """Update a BOM row
 
      Updates the specified BOM row by setting the values of the parameters passed. Any parameters not
@@ -246,7 +198,7 @@ async def asyncio(
 
 
     Returns:
-        Union[BomRow, UpdateBomRowResponse401, UpdateBomRowResponse404, UpdateBomRowResponse422, UpdateBomRowResponse429, UpdateBomRowResponse500]
+        Union[BomRow, DetailedErrorResponse, ErrorResponse]
     """
 
     return (

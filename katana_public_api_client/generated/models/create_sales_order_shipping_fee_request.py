@@ -12,17 +12,17 @@ T = TypeVar("T", bound="CreateSalesOrderShippingFeeRequest")
 class CreateSalesOrderShippingFeeRequest:
     sales_order_id: int
     amount: float
-    currency: Unset | str = UNSET
     description: Unset | str = UNSET
+    tax_rate_id: Unset | int = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         sales_order_id = self.sales_order_id
 
         amount = self.amount
 
-        currency = self.currency
-
         description = self.description
+
+        tax_rate_id = self.tax_rate_id
 
         field_dict: dict[str, Any] = {}
 
@@ -32,10 +32,10 @@ class CreateSalesOrderShippingFeeRequest:
                 "amount": amount,
             }
         )
-        if currency is not UNSET:
-            field_dict["currency"] = currency
         if description is not UNSET:
             field_dict["description"] = description
+        if tax_rate_id is not UNSET:
+            field_dict["tax_rate_id"] = tax_rate_id
 
         return field_dict
 
@@ -46,15 +46,15 @@ class CreateSalesOrderShippingFeeRequest:
 
         amount = d.pop("amount")
 
-        currency = d.pop("currency", UNSET)
-
         description = d.pop("description", UNSET)
+
+        tax_rate_id = d.pop("tax_rate_id", UNSET)
 
         create_sales_order_shipping_fee_request = cls(
             sales_order_id=sales_order_id,
             amount=amount,
-            currency=currency,
             description=description,
+            tax_rate_id=tax_rate_id,
         )
 
         return create_sales_order_shipping_fee_request

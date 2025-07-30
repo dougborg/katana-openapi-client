@@ -5,10 +5,8 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.get_variant_extend_item import GetVariantExtendItem
-from ...models.get_variant_response_401 import GetVariantResponse401
-from ...models.get_variant_response_429 import GetVariantResponse429
-from ...models.get_variant_response_500 import GetVariantResponse500
 from ...models.variant_response import VariantResponse
 from ...types import UNSET, Response, Unset
 
@@ -42,27 +40,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetVariantResponse401
-    | GetVariantResponse429
-    | GetVariantResponse500
-    | VariantResponse
-    | None
-):
+) -> ErrorResponse | VariantResponse | None:
     if response.status_code == 200:
         response_200 = VariantResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetVariantResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetVariantResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetVariantResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -73,12 +65,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetVariantResponse401
-    | GetVariantResponse429
-    | GetVariantResponse500
-    | VariantResponse
-]:
+) -> Response[ErrorResponse | VariantResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -92,12 +79,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     extend: Unset | list[GetVariantExtendItem] = UNSET,
-) -> Response[
-    GetVariantResponse401
-    | GetVariantResponse429
-    | GetVariantResponse500
-    | VariantResponse
-]:
+) -> Response[ErrorResponse | VariantResponse]:
     """Retrieve a variant
 
      Retrieves the details of an existing variant based on ID.
@@ -112,7 +94,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetVariantResponse401, GetVariantResponse429, GetVariantResponse500, VariantResponse]]
+        Response[Union[ErrorResponse, VariantResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -132,13 +114,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     extend: Unset | list[GetVariantExtendItem] = UNSET,
-) -> (
-    GetVariantResponse401
-    | GetVariantResponse429
-    | GetVariantResponse500
-    | VariantResponse
-    | None
-):
+) -> ErrorResponse | VariantResponse | None:
     """Retrieve a variant
 
      Retrieves the details of an existing variant based on ID.
@@ -153,7 +129,7 @@ def sync(
 
 
     Returns:
-        Union[GetVariantResponse401, GetVariantResponse429, GetVariantResponse500, VariantResponse]
+        Union[ErrorResponse, VariantResponse]
     """
 
     return sync_detailed(
@@ -168,12 +144,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     extend: Unset | list[GetVariantExtendItem] = UNSET,
-) -> Response[
-    GetVariantResponse401
-    | GetVariantResponse429
-    | GetVariantResponse500
-    | VariantResponse
-]:
+) -> Response[ErrorResponse | VariantResponse]:
     """Retrieve a variant
 
      Retrieves the details of an existing variant based on ID.
@@ -188,7 +159,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetVariantResponse401, GetVariantResponse429, GetVariantResponse500, VariantResponse]]
+        Response[Union[ErrorResponse, VariantResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -206,13 +177,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     extend: Unset | list[GetVariantExtendItem] = UNSET,
-) -> (
-    GetVariantResponse401
-    | GetVariantResponse429
-    | GetVariantResponse500
-    | VariantResponse
-    | None
-):
+) -> ErrorResponse | VariantResponse | None:
     """Retrieve a variant
 
      Retrieves the details of an existing variant based on ID.
@@ -227,7 +192,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetVariantResponse401, GetVariantResponse429, GetVariantResponse500, VariantResponse]
+        Union[ErrorResponse, VariantResponse]
     """
 
     return (

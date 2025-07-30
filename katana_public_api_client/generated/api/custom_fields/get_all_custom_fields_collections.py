@@ -8,15 +8,7 @@ from ...client import AuthenticatedClient, Client
 from ...models.custom_fields_collection_list_response import (
     CustomFieldsCollectionListResponse,
 )
-from ...models.get_all_custom_fields_collections_response_401 import (
-    GetAllCustomFieldsCollectionsResponse401,
-)
-from ...models.get_all_custom_fields_collections_response_429 import (
-    GetAllCustomFieldsCollectionsResponse429,
-)
-from ...models.get_all_custom_fields_collections_response_500 import (
-    GetAllCustomFieldsCollectionsResponse500,
-)
+from ...models.error_response import ErrorResponse
 from ...types import UNSET, Response, Unset
 
 
@@ -44,33 +36,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CustomFieldsCollectionListResponse
-    | GetAllCustomFieldsCollectionsResponse401
-    | GetAllCustomFieldsCollectionsResponse429
-    | GetAllCustomFieldsCollectionsResponse500
-    | None
-):
+) -> CustomFieldsCollectionListResponse | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = CustomFieldsCollectionListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllCustomFieldsCollectionsResponse401.from_dict(
-            response.json()
-        )
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllCustomFieldsCollectionsResponse429.from_dict(
-            response.json()
-        )
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllCustomFieldsCollectionsResponse500.from_dict(
-            response.json()
-        )
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -81,12 +61,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CustomFieldsCollectionListResponse
-    | GetAllCustomFieldsCollectionsResponse401
-    | GetAllCustomFieldsCollectionsResponse429
-    | GetAllCustomFieldsCollectionsResponse500
-]:
+) -> Response[CustomFieldsCollectionListResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -100,12 +75,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[
-    CustomFieldsCollectionListResponse
-    | GetAllCustomFieldsCollectionsResponse401
-    | GetAllCustomFieldsCollectionsResponse429
-    | GetAllCustomFieldsCollectionsResponse500
-]:
+) -> Response[CustomFieldsCollectionListResponse | ErrorResponse]:
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -121,7 +91,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CustomFieldsCollectionListResponse, GetAllCustomFieldsCollectionsResponse401, GetAllCustomFieldsCollectionsResponse429, GetAllCustomFieldsCollectionsResponse500]]
+        Response[Union[CustomFieldsCollectionListResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -141,13 +111,7 @@ def sync(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> (
-    CustomFieldsCollectionListResponse
-    | GetAllCustomFieldsCollectionsResponse401
-    | GetAllCustomFieldsCollectionsResponse429
-    | GetAllCustomFieldsCollectionsResponse500
-    | None
-):
+) -> CustomFieldsCollectionListResponse | ErrorResponse | None:
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -163,7 +127,7 @@ def sync(
 
 
     Returns:
-        Union[CustomFieldsCollectionListResponse, GetAllCustomFieldsCollectionsResponse401, GetAllCustomFieldsCollectionsResponse429, GetAllCustomFieldsCollectionsResponse500]
+        Union[CustomFieldsCollectionListResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -178,12 +142,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[
-    CustomFieldsCollectionListResponse
-    | GetAllCustomFieldsCollectionsResponse401
-    | GetAllCustomFieldsCollectionsResponse429
-    | GetAllCustomFieldsCollectionsResponse500
-]:
+) -> Response[CustomFieldsCollectionListResponse | ErrorResponse]:
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -199,7 +158,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CustomFieldsCollectionListResponse, GetAllCustomFieldsCollectionsResponse401, GetAllCustomFieldsCollectionsResponse429, GetAllCustomFieldsCollectionsResponse500]]
+        Response[Union[CustomFieldsCollectionListResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -217,13 +176,7 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> (
-    CustomFieldsCollectionListResponse
-    | GetAllCustomFieldsCollectionsResponse401
-    | GetAllCustomFieldsCollectionsResponse429
-    | GetAllCustomFieldsCollectionsResponse500
-    | None
-):
+) -> CustomFieldsCollectionListResponse | ErrorResponse | None:
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -239,7 +192,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CustomFieldsCollectionListResponse, GetAllCustomFieldsCollectionsResponse401, GetAllCustomFieldsCollectionsResponse429, GetAllCustomFieldsCollectionsResponse500]
+        Union[CustomFieldsCollectionListResponse, ErrorResponse]
     """
 
     return (

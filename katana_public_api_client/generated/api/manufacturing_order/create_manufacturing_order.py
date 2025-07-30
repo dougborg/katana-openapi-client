@@ -6,15 +6,7 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.create_manufacturing_order_request import CreateManufacturingOrderRequest
-from ...models.create_manufacturing_order_response_401 import (
-    CreateManufacturingOrderResponse401,
-)
-from ...models.create_manufacturing_order_response_429 import (
-    CreateManufacturingOrderResponse429,
-)
-from ...models.create_manufacturing_order_response_500 import (
-    CreateManufacturingOrderResponse500,
-)
+from ...models.error_response import ErrorResponse
 from ...models.manufacturing_order import ManufacturingOrder
 from ...types import Response
 
@@ -40,27 +32,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateManufacturingOrderResponse401
-    | CreateManufacturingOrderResponse429
-    | CreateManufacturingOrderResponse500
-    | ManufacturingOrder
-    | None
-):
+) -> ErrorResponse | ManufacturingOrder | None:
     if response.status_code == 200:
         response_200 = ManufacturingOrder.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = CreateManufacturingOrderResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = CreateManufacturingOrderResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = CreateManufacturingOrderResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -71,12 +57,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CreateManufacturingOrderResponse401
-    | CreateManufacturingOrderResponse429
-    | CreateManufacturingOrderResponse500
-    | ManufacturingOrder
-]:
+) -> Response[ErrorResponse | ManufacturingOrder]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -89,12 +70,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRequest,
-) -> Response[
-    CreateManufacturingOrderResponse401
-    | CreateManufacturingOrderResponse429
-    | CreateManufacturingOrderResponse500
-    | ManufacturingOrder
-]:
+) -> Response[ErrorResponse | ManufacturingOrder]:
     """Create a manufacturing order
 
      Creates a new manufacturing order object. Manufacturing order recipe and
@@ -109,7 +85,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateManufacturingOrderResponse401, CreateManufacturingOrderResponse429, CreateManufacturingOrderResponse500, ManufacturingOrder]]
+        Response[Union[ErrorResponse, ManufacturingOrder]]
     """
 
     kwargs = _get_kwargs(
@@ -127,13 +103,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRequest,
-) -> (
-    CreateManufacturingOrderResponse401
-    | CreateManufacturingOrderResponse429
-    | CreateManufacturingOrderResponse500
-    | ManufacturingOrder
-    | None
-):
+) -> ErrorResponse | ManufacturingOrder | None:
     """Create a manufacturing order
 
      Creates a new manufacturing order object. Manufacturing order recipe and
@@ -148,7 +118,7 @@ def sync(
 
 
     Returns:
-        Union[CreateManufacturingOrderResponse401, CreateManufacturingOrderResponse429, CreateManufacturingOrderResponse500, ManufacturingOrder]
+        Union[ErrorResponse, ManufacturingOrder]
     """
 
     return sync_detailed(
@@ -161,12 +131,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRequest,
-) -> Response[
-    CreateManufacturingOrderResponse401
-    | CreateManufacturingOrderResponse429
-    | CreateManufacturingOrderResponse500
-    | ManufacturingOrder
-]:
+) -> Response[ErrorResponse | ManufacturingOrder]:
     """Create a manufacturing order
 
      Creates a new manufacturing order object. Manufacturing order recipe and
@@ -181,7 +146,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateManufacturingOrderResponse401, CreateManufacturingOrderResponse429, CreateManufacturingOrderResponse500, ManufacturingOrder]]
+        Response[Union[ErrorResponse, ManufacturingOrder]]
     """
 
     kwargs = _get_kwargs(
@@ -197,13 +162,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRequest,
-) -> (
-    CreateManufacturingOrderResponse401
-    | CreateManufacturingOrderResponse429
-    | CreateManufacturingOrderResponse500
-    | ManufacturingOrder
-    | None
-):
+) -> ErrorResponse | ManufacturingOrder | None:
     """Create a manufacturing order
 
      Creates a new manufacturing order object. Manufacturing order recipe and
@@ -218,7 +177,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateManufacturingOrderResponse401, CreateManufacturingOrderResponse429, CreateManufacturingOrderResponse500, ManufacturingOrder]
+        Union[ErrorResponse, ManufacturingOrder]
     """
 
     return (

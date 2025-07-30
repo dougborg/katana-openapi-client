@@ -1,68 +1,61 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import Any, TypeVar
 
 from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
 
-if TYPE_CHECKING:
-    from ..models.product_operation_rerank_request_operation_ranks_item import (
-        ProductOperationRerankRequestOperationRanksItem,
-    )
-
+from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ProductOperationRerankRequest")
 
 
 @_attrs_define
 class ProductOperationRerankRequest:
-    product_id: int
-    operation_ranks: list["ProductOperationRerankRequestOperationRanksItem"]
+    rank_product_operation_id: int
+    preceeding_product_operation_id: Unset | int = UNSET
+    should_group: Unset | bool = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        product_id = self.product_id
+        rank_product_operation_id = self.rank_product_operation_id
 
-        operation_ranks = []
-        for operation_ranks_item_data in self.operation_ranks:
-            operation_ranks_item = operation_ranks_item_data.to_dict()
-            operation_ranks.append(operation_ranks_item)
+        preceeding_product_operation_id = self.preceeding_product_operation_id
+
+        should_group = self.should_group
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "product_id": product_id,
-                "operation_ranks": operation_ranks,
+                "rank_product_operation_id": rank_product_operation_id,
             }
         )
+        if preceeding_product_operation_id is not UNSET:
+            field_dict["preceeding_product_operation_id"] = (
+                preceeding_product_operation_id
+            )
+        if should_group is not UNSET:
+            field_dict["should_group"] = should_group
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.product_operation_rerank_request_operation_ranks_item import (
-            ProductOperationRerankRequestOperationRanksItem,
+        d = dict(src_dict)
+        rank_product_operation_id = d.pop("rank_product_operation_id")
+
+        preceeding_product_operation_id = d.pop(
+            "preceeding_product_operation_id", UNSET
         )
 
-        d = dict(src_dict)
-        product_id = d.pop("product_id")
-
-        operation_ranks = []
-        _operation_ranks = d.pop("operation_ranks")
-        for operation_ranks_item_data in _operation_ranks:
-            operation_ranks_item = (
-                ProductOperationRerankRequestOperationRanksItem.from_dict(
-                    operation_ranks_item_data
-                )
-            )
-
-            operation_ranks.append(operation_ranks_item)
+        should_group = d.pop("should_group", UNSET)
 
         product_operation_rerank_request = cls(
-            product_id=product_id,
-            operation_ranks=operation_ranks,
+            rank_product_operation_id=rank_product_operation_id,
+            preceeding_product_operation_id=preceeding_product_operation_id,
+            should_group=should_group,
         )
 
         product_operation_rerank_request.additional_properties = d

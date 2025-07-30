@@ -5,9 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_all_users_response_401 import GetAllUsersResponse401
-from ...models.get_all_users_response_429 import GetAllUsersResponse429
-from ...models.get_all_users_response_500 import GetAllUsersResponse500
+from ...models.error_response import ErrorResponse
 from ...models.user_list_response import UserListResponse
 from ...types import UNSET, Response, Unset
 
@@ -42,27 +40,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllUsersResponse401
-    | GetAllUsersResponse429
-    | GetAllUsersResponse500
-    | UserListResponse
-    | None
-):
+) -> ErrorResponse | UserListResponse | None:
     if response.status_code == 200:
         response_200 = UserListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllUsersResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllUsersResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllUsersResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -73,12 +65,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetAllUsersResponse401
-    | GetAllUsersResponse429
-    | GetAllUsersResponse500
-    | UserListResponse
-]:
+) -> Response[ErrorResponse | UserListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -94,12 +81,7 @@ def sync_detailed(
     page: Unset | int = 1,
     role: Unset | str = UNSET,
     status: Unset | str = UNSET,
-) -> Response[
-    GetAllUsersResponse401
-    | GetAllUsersResponse429
-    | GetAllUsersResponse500
-    | UserListResponse
-]:
+) -> Response[ErrorResponse | UserListResponse]:
     """List all users
 
      Returns a list of active users in your account.
@@ -116,7 +98,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllUsersResponse401, GetAllUsersResponse429, GetAllUsersResponse500, UserListResponse]]
+        Response[Union[ErrorResponse, UserListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -140,13 +122,7 @@ def sync(
     page: Unset | int = 1,
     role: Unset | str = UNSET,
     status: Unset | str = UNSET,
-) -> (
-    GetAllUsersResponse401
-    | GetAllUsersResponse429
-    | GetAllUsersResponse500
-    | UserListResponse
-    | None
-):
+) -> ErrorResponse | UserListResponse | None:
     """List all users
 
      Returns a list of active users in your account.
@@ -163,7 +139,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllUsersResponse401, GetAllUsersResponse429, GetAllUsersResponse500, UserListResponse]
+        Union[ErrorResponse, UserListResponse]
     """
 
     return sync_detailed(
@@ -182,12 +158,7 @@ async def asyncio_detailed(
     page: Unset | int = 1,
     role: Unset | str = UNSET,
     status: Unset | str = UNSET,
-) -> Response[
-    GetAllUsersResponse401
-    | GetAllUsersResponse429
-    | GetAllUsersResponse500
-    | UserListResponse
-]:
+) -> Response[ErrorResponse | UserListResponse]:
     """List all users
 
      Returns a list of active users in your account.
@@ -204,7 +175,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllUsersResponse401, GetAllUsersResponse429, GetAllUsersResponse500, UserListResponse]]
+        Response[Union[ErrorResponse, UserListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -226,13 +197,7 @@ async def asyncio(
     page: Unset | int = 1,
     role: Unset | str = UNSET,
     status: Unset | str = UNSET,
-) -> (
-    GetAllUsersResponse401
-    | GetAllUsersResponse429
-    | GetAllUsersResponse500
-    | UserListResponse
-    | None
-):
+) -> ErrorResponse | UserListResponse | None:
     """List all users
 
      Returns a list of active users in your account.
@@ -249,7 +214,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllUsersResponse401, GetAllUsersResponse429, GetAllUsersResponse500, UserListResponse]
+        Union[ErrorResponse, UserListResponse]
     """
 
     return (

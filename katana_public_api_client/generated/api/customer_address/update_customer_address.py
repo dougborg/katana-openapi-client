@@ -5,19 +5,8 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.update_customer_address_body import UpdateCustomerAddressBody
-from ...models.update_customer_address_response_401 import (
-    UpdateCustomerAddressResponse401,
-)
-from ...models.update_customer_address_response_404 import (
-    UpdateCustomerAddressResponse404,
-)
-from ...models.update_customer_address_response_429 import (
-    UpdateCustomerAddressResponse429,
-)
-from ...models.update_customer_address_response_500 import (
-    UpdateCustomerAddressResponse500,
-)
 from ...types import Response
 
 
@@ -43,31 +32,24 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    Any
-    | UpdateCustomerAddressResponse401
-    | UpdateCustomerAddressResponse404
-    | UpdateCustomerAddressResponse429
-    | UpdateCustomerAddressResponse500
-    | None
-):
+) -> Any | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = cast(Any, None)
         return response_200
     if response.status_code == 401:
-        response_401 = UpdateCustomerAddressResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 404:
-        response_404 = UpdateCustomerAddressResponse404.from_dict(response.json())
+        response_404 = ErrorResponse.from_dict(response.json())
 
         return response_404
     if response.status_code == 429:
-        response_429 = UpdateCustomerAddressResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = UpdateCustomerAddressResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -78,13 +60,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    Any
-    | UpdateCustomerAddressResponse401
-    | UpdateCustomerAddressResponse404
-    | UpdateCustomerAddressResponse429
-    | UpdateCustomerAddressResponse500
-]:
+) -> Response[Any | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -98,13 +74,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateCustomerAddressBody,
-) -> Response[
-    Any
-    | UpdateCustomerAddressResponse401
-    | UpdateCustomerAddressResponse404
-    | UpdateCustomerAddressResponse429
-    | UpdateCustomerAddressResponse500
-]:
+) -> Response[Any | ErrorResponse]:
     """Update a customer address
 
      Updates a customer address.
@@ -119,7 +89,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[Any, UpdateCustomerAddressResponse401, UpdateCustomerAddressResponse404, UpdateCustomerAddressResponse429, UpdateCustomerAddressResponse500]]
+        Response[Union[Any, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -139,14 +109,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateCustomerAddressBody,
-) -> (
-    Any
-    | UpdateCustomerAddressResponse401
-    | UpdateCustomerAddressResponse404
-    | UpdateCustomerAddressResponse429
-    | UpdateCustomerAddressResponse500
-    | None
-):
+) -> Any | ErrorResponse | None:
     """Update a customer address
 
      Updates a customer address.
@@ -161,7 +124,7 @@ def sync(
 
 
     Returns:
-        Union[Any, UpdateCustomerAddressResponse401, UpdateCustomerAddressResponse404, UpdateCustomerAddressResponse429, UpdateCustomerAddressResponse500]
+        Union[Any, ErrorResponse]
     """
 
     return sync_detailed(
@@ -176,13 +139,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateCustomerAddressBody,
-) -> Response[
-    Any
-    | UpdateCustomerAddressResponse401
-    | UpdateCustomerAddressResponse404
-    | UpdateCustomerAddressResponse429
-    | UpdateCustomerAddressResponse500
-]:
+) -> Response[Any | ErrorResponse]:
     """Update a customer address
 
      Updates a customer address.
@@ -197,7 +154,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[Any, UpdateCustomerAddressResponse401, UpdateCustomerAddressResponse404, UpdateCustomerAddressResponse429, UpdateCustomerAddressResponse500]]
+        Response[Union[Any, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -215,14 +172,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateCustomerAddressBody,
-) -> (
-    Any
-    | UpdateCustomerAddressResponse401
-    | UpdateCustomerAddressResponse404
-    | UpdateCustomerAddressResponse429
-    | UpdateCustomerAddressResponse500
-    | None
-):
+) -> Any | ErrorResponse | None:
     """Update a customer address
 
      Updates a customer address.
@@ -237,7 +187,7 @@ async def asyncio(
 
 
     Returns:
-        Union[Any, UpdateCustomerAddressResponse401, UpdateCustomerAddressResponse404, UpdateCustomerAddressResponse429, UpdateCustomerAddressResponse500]
+        Union[Any, ErrorResponse]
     """
 
     return (

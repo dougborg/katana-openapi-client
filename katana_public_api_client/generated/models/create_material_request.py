@@ -9,9 +9,7 @@ if TYPE_CHECKING:
     from ..models.create_material_request_configs_item import (
         CreateMaterialRequestConfigsItem,
     )
-    from ..models.create_material_request_variants_item import (
-        CreateMaterialRequestVariantsItem,
-    )
+    from ..models.variant import Variant
 
 
 T = TypeVar("T", bound="CreateMaterialRequest")
@@ -20,7 +18,7 @@ T = TypeVar("T", bound="CreateMaterialRequest")
 @_attrs_define
 class CreateMaterialRequest:
     name: str
-    variants: list["CreateMaterialRequestVariantsItem"]
+    variants: list["Variant"]
     uom: Unset | str = UNSET
     category_name: Unset | str = UNSET
     default_supplier_id: Unset | int = UNSET
@@ -96,9 +94,7 @@ class CreateMaterialRequest:
         from ..models.create_material_request_configs_item import (
             CreateMaterialRequestConfigsItem,
         )
-        from ..models.create_material_request_variants_item import (
-            CreateMaterialRequestVariantsItem,
-        )
+        from ..models.variant import Variant
 
         d = dict(src_dict)
         name = d.pop("name")
@@ -106,9 +102,7 @@ class CreateMaterialRequest:
         variants = []
         _variants = d.pop("variants")
         for variants_item_data in _variants:
-            variants_item = CreateMaterialRequestVariantsItem.from_dict(
-                variants_item_data
-            )
+            variants_item = Variant.from_dict(variants_item_data)
 
             variants.append(variants_item)
 

@@ -5,15 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_sales_order_shipping_fees_response_401 import (
-    GetSalesOrderShippingFeesResponse401,
-)
-from ...models.get_sales_order_shipping_fees_response_429 import (
-    GetSalesOrderShippingFeesResponse429,
-)
-from ...models.get_sales_order_shipping_fees_response_500 import (
-    GetSalesOrderShippingFeesResponse500,
-)
+from ...models.error_response import ErrorResponse
 from ...models.sales_order_shipping_fee_list_response import (
     SalesOrderShippingFeeListResponse,
 )
@@ -54,27 +46,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetSalesOrderShippingFeesResponse401
-    | GetSalesOrderShippingFeesResponse429
-    | GetSalesOrderShippingFeesResponse500
-    | SalesOrderShippingFeeListResponse
-    | None
-):
+) -> ErrorResponse | SalesOrderShippingFeeListResponse | None:
     if response.status_code == 200:
         response_200 = SalesOrderShippingFeeListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetSalesOrderShippingFeesResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetSalesOrderShippingFeesResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetSalesOrderShippingFeesResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -85,12 +71,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetSalesOrderShippingFeesResponse401
-    | GetSalesOrderShippingFeesResponse429
-    | GetSalesOrderShippingFeesResponse500
-    | SalesOrderShippingFeeListResponse
-]:
+) -> Response[ErrorResponse | SalesOrderShippingFeeListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -106,12 +87,7 @@ def sync_detailed(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     sales_order_id: Unset | int = UNSET,
-) -> Response[
-    GetSalesOrderShippingFeesResponse401
-    | GetSalesOrderShippingFeesResponse429
-    | GetSalesOrderShippingFeesResponse500
-    | SalesOrderShippingFeeListResponse
-]:
+) -> Response[ErrorResponse | SalesOrderShippingFeeListResponse]:
     """List sales order shipping fees
 
      Retrieves shipping fees for sales orders.
@@ -128,7 +104,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetSalesOrderShippingFeesResponse401, GetSalesOrderShippingFeesResponse429, GetSalesOrderShippingFeesResponse500, SalesOrderShippingFeeListResponse]]
+        Response[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -152,13 +128,7 @@ def sync(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     sales_order_id: Unset | int = UNSET,
-) -> (
-    GetSalesOrderShippingFeesResponse401
-    | GetSalesOrderShippingFeesResponse429
-    | GetSalesOrderShippingFeesResponse500
-    | SalesOrderShippingFeeListResponse
-    | None
-):
+) -> ErrorResponse | SalesOrderShippingFeeListResponse | None:
     """List sales order shipping fees
 
      Retrieves shipping fees for sales orders.
@@ -175,7 +145,7 @@ def sync(
 
 
     Returns:
-        Union[GetSalesOrderShippingFeesResponse401, GetSalesOrderShippingFeesResponse429, GetSalesOrderShippingFeesResponse500, SalesOrderShippingFeeListResponse]
+        Union[ErrorResponse, SalesOrderShippingFeeListResponse]
     """
 
     return sync_detailed(
@@ -194,12 +164,7 @@ async def asyncio_detailed(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     sales_order_id: Unset | int = UNSET,
-) -> Response[
-    GetSalesOrderShippingFeesResponse401
-    | GetSalesOrderShippingFeesResponse429
-    | GetSalesOrderShippingFeesResponse500
-    | SalesOrderShippingFeeListResponse
-]:
+) -> Response[ErrorResponse | SalesOrderShippingFeeListResponse]:
     """List sales order shipping fees
 
      Retrieves shipping fees for sales orders.
@@ -216,7 +181,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetSalesOrderShippingFeesResponse401, GetSalesOrderShippingFeesResponse429, GetSalesOrderShippingFeesResponse500, SalesOrderShippingFeeListResponse]]
+        Response[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -238,13 +203,7 @@ async def asyncio(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     sales_order_id: Unset | int = UNSET,
-) -> (
-    GetSalesOrderShippingFeesResponse401
-    | GetSalesOrderShippingFeesResponse429
-    | GetSalesOrderShippingFeesResponse500
-    | SalesOrderShippingFeeListResponse
-    | None
-):
+) -> ErrorResponse | SalesOrderShippingFeeListResponse | None:
     """List sales order shipping fees
 
      Retrieves shipping fees for sales orders.
@@ -261,7 +220,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetSalesOrderShippingFeesResponse401, GetSalesOrderShippingFeesResponse429, GetSalesOrderShippingFeesResponse500, SalesOrderShippingFeeListResponse]
+        Union[ErrorResponse, SalesOrderShippingFeeListResponse]
     """
 
     return (

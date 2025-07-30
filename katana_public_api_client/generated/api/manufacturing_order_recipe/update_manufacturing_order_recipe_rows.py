@@ -5,18 +5,10 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.manufacturing_order_recipe_row import ManufacturingOrderRecipeRow
 from ...models.update_manufacturing_order_recipe_row_request import (
     UpdateManufacturingOrderRecipeRowRequest,
-)
-from ...models.update_manufacturing_order_recipe_rows_response_401 import (
-    UpdateManufacturingOrderRecipeRowsResponse401,
-)
-from ...models.update_manufacturing_order_recipe_rows_response_429 import (
-    UpdateManufacturingOrderRecipeRowsResponse429,
-)
-from ...models.update_manufacturing_order_recipe_rows_response_500 import (
-    UpdateManufacturingOrderRecipeRowsResponse500,
 )
 from ...types import Response
 
@@ -43,33 +35,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    ManufacturingOrderRecipeRow
-    | UpdateManufacturingOrderRecipeRowsResponse401
-    | UpdateManufacturingOrderRecipeRowsResponse429
-    | UpdateManufacturingOrderRecipeRowsResponse500
-    | None
-):
+) -> ErrorResponse | ManufacturingOrderRecipeRow | None:
     if response.status_code == 200:
         response_200 = ManufacturingOrderRecipeRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = UpdateManufacturingOrderRecipeRowsResponse401.from_dict(
-            response.json()
-        )
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = UpdateManufacturingOrderRecipeRowsResponse429.from_dict(
-            response.json()
-        )
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = UpdateManufacturingOrderRecipeRowsResponse500.from_dict(
-            response.json()
-        )
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -80,12 +60,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    ManufacturingOrderRecipeRow
-    | UpdateManufacturingOrderRecipeRowsResponse401
-    | UpdateManufacturingOrderRecipeRowsResponse429
-    | UpdateManufacturingOrderRecipeRowsResponse500
-]:
+) -> Response[ErrorResponse | ManufacturingOrderRecipeRow]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -99,12 +74,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderRecipeRowRequest,
-) -> Response[
-    ManufacturingOrderRecipeRow
-    | UpdateManufacturingOrderRecipeRowsResponse401
-    | UpdateManufacturingOrderRecipeRowsResponse429
-    | UpdateManufacturingOrderRecipeRowsResponse500
-]:
+) -> Response[ErrorResponse | ManufacturingOrderRecipeRow]:
     """Update a manufacturing order recipe row
 
      Updates the specified manufacturing order recipe row by setting the values of the parameters passed.
@@ -121,7 +91,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ManufacturingOrderRecipeRow, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]]
+        Response[Union[ErrorResponse, ManufacturingOrderRecipeRow]]
     """
 
     kwargs = _get_kwargs(
@@ -141,13 +111,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderRecipeRowRequest,
-) -> (
-    ManufacturingOrderRecipeRow
-    | UpdateManufacturingOrderRecipeRowsResponse401
-    | UpdateManufacturingOrderRecipeRowsResponse429
-    | UpdateManufacturingOrderRecipeRowsResponse500
-    | None
-):
+) -> ErrorResponse | ManufacturingOrderRecipeRow | None:
     """Update a manufacturing order recipe row
 
      Updates the specified manufacturing order recipe row by setting the values of the parameters passed.
@@ -164,7 +128,7 @@ def sync(
 
 
     Returns:
-        Union[ManufacturingOrderRecipeRow, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]
+        Union[ErrorResponse, ManufacturingOrderRecipeRow]
     """
 
     return sync_detailed(
@@ -179,12 +143,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderRecipeRowRequest,
-) -> Response[
-    ManufacturingOrderRecipeRow
-    | UpdateManufacturingOrderRecipeRowsResponse401
-    | UpdateManufacturingOrderRecipeRowsResponse429
-    | UpdateManufacturingOrderRecipeRowsResponse500
-]:
+) -> Response[ErrorResponse | ManufacturingOrderRecipeRow]:
     """Update a manufacturing order recipe row
 
      Updates the specified manufacturing order recipe row by setting the values of the parameters passed.
@@ -201,7 +160,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ManufacturingOrderRecipeRow, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]]
+        Response[Union[ErrorResponse, ManufacturingOrderRecipeRow]]
     """
 
     kwargs = _get_kwargs(
@@ -219,13 +178,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderRecipeRowRequest,
-) -> (
-    ManufacturingOrderRecipeRow
-    | UpdateManufacturingOrderRecipeRowsResponse401
-    | UpdateManufacturingOrderRecipeRowsResponse429
-    | UpdateManufacturingOrderRecipeRowsResponse500
-    | None
-):
+) -> ErrorResponse | ManufacturingOrderRecipeRow | None:
     """Update a manufacturing order recipe row
 
      Updates the specified manufacturing order recipe row by setting the values of the parameters passed.
@@ -242,7 +195,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ManufacturingOrderRecipeRow, UpdateManufacturingOrderRecipeRowsResponse401, UpdateManufacturingOrderRecipeRowsResponse429, UpdateManufacturingOrderRecipeRowsResponse500]
+        Union[ErrorResponse, ManufacturingOrderRecipeRow]
     """
 
     return (

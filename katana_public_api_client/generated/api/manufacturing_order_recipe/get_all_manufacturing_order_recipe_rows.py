@@ -6,17 +6,9 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.get_all_manufacturing_order_recipe_rows_ingredient_availability import (
     GetAllManufacturingOrderRecipeRowsIngredientAvailability,
-)
-from ...models.get_all_manufacturing_order_recipe_rows_response_401 import (
-    GetAllManufacturingOrderRecipeRowsResponse401,
-)
-from ...models.get_all_manufacturing_order_recipe_rows_response_429 import (
-    GetAllManufacturingOrderRecipeRowsResponse429,
-)
-from ...models.get_all_manufacturing_order_recipe_rows_response_500 import (
-    GetAllManufacturingOrderRecipeRowsResponse500,
 )
 from ...models.manufacturing_order_recipe_row_list_response import (
     ManufacturingOrderRecipeRowListResponse,
@@ -96,13 +88,7 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllManufacturingOrderRecipeRowsResponse401
-    | GetAllManufacturingOrderRecipeRowsResponse429
-    | GetAllManufacturingOrderRecipeRowsResponse500
-    | ManufacturingOrderRecipeRowListResponse
-    | None
-):
+) -> ErrorResponse | ManufacturingOrderRecipeRowListResponse | None:
     if response.status_code == 200:
         response_200 = ManufacturingOrderRecipeRowListResponse.from_dict(
             response.json()
@@ -110,21 +96,15 @@ def _parse_response(
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllManufacturingOrderRecipeRowsResponse401.from_dict(
-            response.json()
-        )
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllManufacturingOrderRecipeRowsResponse429.from_dict(
-            response.json()
-        )
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllManufacturingOrderRecipeRowsResponse500.from_dict(
-            response.json()
-        )
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -135,12 +115,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetAllManufacturingOrderRecipeRowsResponse401
-    | GetAllManufacturingOrderRecipeRowsResponse429
-    | GetAllManufacturingOrderRecipeRowsResponse500
-    | ManufacturingOrderRecipeRowListResponse
-]:
+) -> Response[ErrorResponse | ManufacturingOrderRecipeRowListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -164,12 +139,7 @@ def sync_detailed(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[
-    GetAllManufacturingOrderRecipeRowsResponse401
-    | GetAllManufacturingOrderRecipeRowsResponse429
-    | GetAllManufacturingOrderRecipeRowsResponse500
-    | ManufacturingOrderRecipeRowListResponse
-]:
+) -> Response[ErrorResponse | ManufacturingOrderRecipeRowListResponse]:
     """List all manufacturing order recipe rows
 
      Returns a list of manufacturing order recipe rows you've previously created. The manufacturing order
@@ -196,7 +166,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllManufacturingOrderRecipeRowsResponse401, GetAllManufacturingOrderRecipeRowsResponse429, GetAllManufacturingOrderRecipeRowsResponse500, ManufacturingOrderRecipeRowListResponse]]
+        Response[Union[ErrorResponse, ManufacturingOrderRecipeRowListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -235,13 +205,7 @@ def sync(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> (
-    GetAllManufacturingOrderRecipeRowsResponse401
-    | GetAllManufacturingOrderRecipeRowsResponse429
-    | GetAllManufacturingOrderRecipeRowsResponse500
-    | ManufacturingOrderRecipeRowListResponse
-    | None
-):
+) -> ErrorResponse | ManufacturingOrderRecipeRowListResponse | None:
     """List all manufacturing order recipe rows
 
      Returns a list of manufacturing order recipe rows you've previously created. The manufacturing order
@@ -268,7 +232,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllManufacturingOrderRecipeRowsResponse401, GetAllManufacturingOrderRecipeRowsResponse429, GetAllManufacturingOrderRecipeRowsResponse500, ManufacturingOrderRecipeRowListResponse]
+        Union[ErrorResponse, ManufacturingOrderRecipeRowListResponse]
     """
 
     return sync_detailed(
@@ -302,12 +266,7 @@ async def asyncio_detailed(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[
-    GetAllManufacturingOrderRecipeRowsResponse401
-    | GetAllManufacturingOrderRecipeRowsResponse429
-    | GetAllManufacturingOrderRecipeRowsResponse500
-    | ManufacturingOrderRecipeRowListResponse
-]:
+) -> Response[ErrorResponse | ManufacturingOrderRecipeRowListResponse]:
     """List all manufacturing order recipe rows
 
      Returns a list of manufacturing order recipe rows you've previously created. The manufacturing order
@@ -334,7 +293,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllManufacturingOrderRecipeRowsResponse401, GetAllManufacturingOrderRecipeRowsResponse429, GetAllManufacturingOrderRecipeRowsResponse500, ManufacturingOrderRecipeRowListResponse]]
+        Response[Union[ErrorResponse, ManufacturingOrderRecipeRowListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -371,13 +330,7 @@ async def asyncio(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> (
-    GetAllManufacturingOrderRecipeRowsResponse401
-    | GetAllManufacturingOrderRecipeRowsResponse429
-    | GetAllManufacturingOrderRecipeRowsResponse500
-    | ManufacturingOrderRecipeRowListResponse
-    | None
-):
+) -> ErrorResponse | ManufacturingOrderRecipeRowListResponse | None:
     """List all manufacturing order recipe rows
 
      Returns a list of manufacturing order recipe rows you've previously created. The manufacturing order
@@ -404,7 +357,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllManufacturingOrderRecipeRowsResponse401, GetAllManufacturingOrderRecipeRowsResponse429, GetAllManufacturingOrderRecipeRowsResponse500, ManufacturingOrderRecipeRowListResponse]
+        Union[ErrorResponse, ManufacturingOrderRecipeRowListResponse]
     """
 
     return (

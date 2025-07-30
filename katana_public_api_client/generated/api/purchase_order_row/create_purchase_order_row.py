@@ -6,18 +6,8 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.create_purchase_order_row_request import CreatePurchaseOrderRowRequest
-from ...models.create_purchase_order_row_response_401 import (
-    CreatePurchaseOrderRowResponse401,
-)
-from ...models.create_purchase_order_row_response_422 import (
-    CreatePurchaseOrderRowResponse422,
-)
-from ...models.create_purchase_order_row_response_429 import (
-    CreatePurchaseOrderRowResponse429,
-)
-from ...models.create_purchase_order_row_response_500 import (
-    CreatePurchaseOrderRowResponse500,
-)
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...models.purchase_order_row import PurchaseOrderRow
 from ...types import Response
 
@@ -43,32 +33,25 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreatePurchaseOrderRowResponse401
-    | CreatePurchaseOrderRowResponse422
-    | CreatePurchaseOrderRowResponse429
-    | CreatePurchaseOrderRowResponse500
-    | PurchaseOrderRow
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderRow | None:
     if response.status_code == 200:
         response_200 = PurchaseOrderRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = CreatePurchaseOrderRowResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 422:
-        response_422 = CreatePurchaseOrderRowResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = CreatePurchaseOrderRowResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = CreatePurchaseOrderRowResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -79,13 +62,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CreatePurchaseOrderRowResponse401
-    | CreatePurchaseOrderRowResponse422
-    | CreatePurchaseOrderRowResponse429
-    | CreatePurchaseOrderRowResponse500
-    | PurchaseOrderRow
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderRow]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -98,13 +75,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePurchaseOrderRowRequest,
-) -> Response[
-    CreatePurchaseOrderRowResponse401
-    | CreatePurchaseOrderRowResponse422
-    | CreatePurchaseOrderRowResponse429
-    | CreatePurchaseOrderRowResponse500
-    | PurchaseOrderRow
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderRow]:
     """Create a purchase order row
 
      Creates a new purchase order row object.
@@ -118,7 +89,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreatePurchaseOrderRowResponse401, CreatePurchaseOrderRowResponse422, CreatePurchaseOrderRowResponse429, CreatePurchaseOrderRowResponse500, PurchaseOrderRow]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderRow]]
     """
 
     kwargs = _get_kwargs(
@@ -136,14 +107,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePurchaseOrderRowRequest,
-) -> (
-    CreatePurchaseOrderRowResponse401
-    | CreatePurchaseOrderRowResponse422
-    | CreatePurchaseOrderRowResponse429
-    | CreatePurchaseOrderRowResponse500
-    | PurchaseOrderRow
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderRow | None:
     """Create a purchase order row
 
      Creates a new purchase order row object.
@@ -157,7 +121,7 @@ def sync(
 
 
     Returns:
-        Union[CreatePurchaseOrderRowResponse401, CreatePurchaseOrderRowResponse422, CreatePurchaseOrderRowResponse429, CreatePurchaseOrderRowResponse500, PurchaseOrderRow]
+        Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderRow]
     """
 
     return sync_detailed(
@@ -170,13 +134,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePurchaseOrderRowRequest,
-) -> Response[
-    CreatePurchaseOrderRowResponse401
-    | CreatePurchaseOrderRowResponse422
-    | CreatePurchaseOrderRowResponse429
-    | CreatePurchaseOrderRowResponse500
-    | PurchaseOrderRow
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderRow]:
     """Create a purchase order row
 
      Creates a new purchase order row object.
@@ -190,7 +148,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreatePurchaseOrderRowResponse401, CreatePurchaseOrderRowResponse422, CreatePurchaseOrderRowResponse429, CreatePurchaseOrderRowResponse500, PurchaseOrderRow]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderRow]]
     """
 
     kwargs = _get_kwargs(
@@ -206,14 +164,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePurchaseOrderRowRequest,
-) -> (
-    CreatePurchaseOrderRowResponse401
-    | CreatePurchaseOrderRowResponse422
-    | CreatePurchaseOrderRowResponse429
-    | CreatePurchaseOrderRowResponse500
-    | PurchaseOrderRow
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderRow | None:
     """Create a purchase order row
 
      Creates a new purchase order row object.
@@ -227,7 +178,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreatePurchaseOrderRowResponse401, CreatePurchaseOrderRowResponse422, CreatePurchaseOrderRowResponse429, CreatePurchaseOrderRowResponse500, PurchaseOrderRow]
+        Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderRow]
     """
 
     return (

@@ -25,6 +25,9 @@ class SalesReturn:
     order_no: str
     return_location_id: int
     status: SalesReturnStatus
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | str = UNSET
     sales_order_id: None | Unset | int = UNSET
     currency: Unset | str = UNSET
     return_date: None | Unset | datetime.datetime = UNSET
@@ -32,9 +35,6 @@ class SalesReturn:
     additional_info: None | Unset | str = UNSET
     refund_status: None | Unset | str = UNSET
     sales_return_rows: Unset | list["SalesReturnRow"] = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -47,6 +47,20 @@ class SalesReturn:
         return_location_id = self.return_location_id
 
         status = self.status.value
+
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
+
+        deleted_at: None | Unset | str
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        else:
+            deleted_at = self.deleted_at
 
         sales_order_id: None | Unset | int
         if isinstance(self.sales_order_id, Unset):
@@ -87,22 +101,6 @@ class SalesReturn:
                 sales_return_rows_item = sales_return_rows_item_data.to_dict()
                 sales_return_rows.append(sales_return_rows_item)
 
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
-
-        deleted_at: None | Unset | str
-        if isinstance(self.deleted_at, Unset):
-            deleted_at = UNSET
-        elif isinstance(self.deleted_at, datetime.datetime):
-            deleted_at = self.deleted_at.isoformat()
-        else:
-            deleted_at = self.deleted_at
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -114,6 +112,12 @@ class SalesReturn:
                 "status": status,
             }
         )
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
         if sales_order_id is not UNSET:
             field_dict["sales_order_id"] = sales_order_id
         if currency is not UNSET:
@@ -128,12 +132,6 @@ class SalesReturn:
             field_dict["refund_status"] = refund_status
         if sales_return_rows is not UNSET:
             field_dict["sales_return_rows"] = sales_return_rows
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
-        if deleted_at is not UNSET:
-            field_dict["deleted_at"] = deleted_at
 
         return field_dict
 
@@ -151,6 +149,29 @@ class SalesReturn:
         return_location_id = d.pop("return_location_id")
 
         status = SalesReturnStatus(d.pop("status"))
+
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
+
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
+
+        def _parse_deleted_at(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         def _parse_sales_order_id(data: object) -> None | Unset | int:
             if data is None:
@@ -214,43 +235,15 @@ class SalesReturn:
 
             sales_return_rows.append(sales_return_rows_item)
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
-
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                deleted_at_type_0 = isoparse(data)
-
-                return deleted_at_type_0
-            except:  # noqa: E722
-                pass
-            return cast(None | Unset | datetime.datetime, data)
-
-        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
-
         sales_return = cls(
             id=id,
             customer_id=customer_id,
             order_no=order_no,
             return_location_id=return_location_id,
             status=status,
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
             sales_order_id=sales_order_id,
             currency=currency,
             return_date=return_date,
@@ -258,9 +251,6 @@ class SalesReturn:
             additional_info=additional_info,
             refund_status=refund_status,
             sales_return_rows=sales_return_rows,
-            created_at=created_at,
-            updated_at=updated_at,
-            deleted_at=deleted_at,
         )
 
         sales_return.additional_properties = d

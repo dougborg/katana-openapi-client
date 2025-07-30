@@ -26,8 +26,9 @@ from tenacity import (
 )
 
 from .generated.client import AuthenticatedClient
+from .generated.models.detailed_error_response import DetailedErrorResponse
 from .generated.models.error_response import ErrorResponse
-from .generated.models.validation_error_response import ValidationErrorResponse
+from .generated.types import Unset
 
 
 class ResilientAsyncTransport(AsyncHTTPTransport):
@@ -77,219 +78,95 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
     ) -> None:
         """
         Log detailed information for 400-level client errors using generated models.
-
-        This method attempts to parse error responses using the generated OpenAPI client
-        models for better type safety and structured error handling.
-
-        Args:
-            response: The HTTP response with a 400-level status code
-            request: The original HTTP request that triggered the error
+        Assumes error responses are always typed (DetailedErrorResponse or ErrorResponse).
         """
+        method = request.method
+        url = str(request.url)
+        status_code = response.status_code
+
+        # Read response content if it's streaming
+        if hasattr(response, "aread"):
+            with contextlib.suppress(TypeError, AttributeError):
+                await response.aread()
+
         try:
-            # Get basic request information
-            method = request.method
-            url = str(request.url)
-            status_code = response.status_code
+            error_data = response.json()
+        except (json.JSONDecodeError, TypeError, ValueError):
+            self.logger.error(
+                f"Client error {status_code} for {method} {url} - "
+                f"Response: {getattr(response, 'text', '')[:500]}..."
+            )
+            return
 
-            # Try to parse the JSON error response
+        # Prefer DetailedErrorResponse for 422, else ErrorResponse
+        if status_code == 422:
             try:
-                # Read response content if it's streaming
-                if hasattr(response, "aread"):
-                    with contextlib.suppress(TypeError, AttributeError):
-                        # Skip aread if it's not async (e.g., in tests with mocks)
-                        await response.aread()
-
-                error_data: dict[str, Any] = response.json()
-            except (json.JSONDecodeError, UnicodeDecodeError, httpx.ResponseNotRead):
-                # If JSON parsing fails, log the raw response
-                self.logger.error(
-                    f"Client error {status_code} for {method} {url} - "
-                    f"Response: {response.text[:500]}..."
-                )
+                detailed_error = DetailedErrorResponse.from_dict(error_data)
+                self._log_detailed_error(detailed_error, method, url, status_code)
                 return
-
-            # Try to parse using common error models first
-            if status_code == 422:
-                # Try ValidationErrorResponse first
-                try:
-                    validation_error = ValidationErrorResponse.from_dict(error_data)
-                    self._log_validation_error_with_model(
-                        validation_error, method, url, status_code
-                    )
-                    return
-                except (ValueError, KeyError, TypeError):
-                    # Fall back to basic error parsing if validation model fails
-                    pass
-
-            # Try basic ErrorResponse for other status codes
-            try:
-                error_response = ErrorResponse.from_dict(error_data)
-                self._log_error_with_model(error_response, method, url, status_code)
-                return
-            except (ValueError, KeyError, TypeError):
-                # Fall back to basic logging if model parsing fails
+            except (TypeError, ValueError, AttributeError):
                 pass
 
-            # Fallback: log raw error data if model parsing fails
-            self._log_error_fallback(error_data, method, url, status_code)
+        try:
+            error_response = ErrorResponse.from_dict(error_data)
+            self._log_error(error_response, method, url, status_code)
+            return
+        except (TypeError, ValueError, AttributeError):
+            pass
 
-        except (
-            httpx.ConnectError,
-            httpx.TimeoutException,
-            json.JSONDecodeError,
-            ValueError,
-        ) as e:
-            # Handle specific known exceptions more precisely
-            self.logger.error(
-                f"Client error {response.status_code} for {request.method} {request.url} - "
-                f"Failed to parse error details: {e}"
-            )
+        # Fallback: log raw error data
+        self.logger.error(
+            f"Client error {status_code} for {method} {url} - Raw error: {error_data}"
+        )
 
-    def _log_validation_error_with_model(
-        self, error: ValidationErrorResponse, method: str, url: str, status_code: int
+    def _log_detailed_error(
+        self, error: DetailedErrorResponse, method: str, url: str, status_code: int
     ) -> None:
-        """Log validation errors using the typed ValidationErrorResponse model."""
-        log_message = f"Validation error {status_code} for {method} {url}"
-        log_message += f"\n  Error: {error.name} - {error.message}"
+        """Log detailed errors using the typed DetailedErrorResponse model."""
 
+        # Use the log prefix expected by tests for 422 errors
+        if status_code == 422:
+            log_message = f"Validation error 422 for {method} {url}"
+        else:
+            log_message = f"Detailed error {status_code} for {method} {url}"
+        log_message += f"\n  Error: {error.name} - {error.message}"
         if error.code is not None:
             log_message += f"\n  Code: {error.code}"
-
-        # Add detailed validation errors using the typed model
-        if error.details and len(error.details) > 0:
+        if error.details:
             log_message += f"\n  Validation details ({len(error.details)} errors):"
             for i, detail in enumerate(error.details, 1):
                 log_message += f"\n    {i}. Path: {detail.path}"
-                log_message += f"\n       Code: {detail.code}"
-                if detail.message:
+                # Only log detail.code if not Unset
+                if hasattr(detail, "code") and detail.code is not None:
+                    log_message += f"\n       Code: {detail.code}"
+                if getattr(detail, "message", None):
                     log_message += f"\n       Message: {detail.message}"
-                if detail.info:
-                    # Convert the typed info dict to structured format
-                    formatted_info = self._format_typed_validation_info(
-                        detail.info.additional_properties
-                    )
-                    if formatted_info:
-                        log_message += f"\n       Details: {formatted_info}"
-
+                if (
+                    getattr(detail, "info", None)
+                    and detail.info is not None
+                    and not isinstance(detail.info, Unset)
+                    and hasattr(detail.info, "additional_properties")
+                ):
+                    info = detail.info.additional_properties
+                    if info:
+                        formatted = ", ".join(f"{k}: {v!r}" for k, v in info.items())
+                        log_message += f"\n       Details: {formatted}"
         self.logger.error(log_message)
 
-    def _log_error_with_model(
+    def _log_error(
         self, error: ErrorResponse, method: str, url: str, status_code: int
     ) -> None:
         """Log general errors using the typed ErrorResponse model."""
         log_message = f"Client error {status_code} for {method} {url}"
         log_message += f"\n  Error: {error.name} - {error.message}"
-
-        if error.code is not None:
-            log_message += f"\n  Code: {error.code}"
-
-        # Log any additional properties
         if error.additional_properties:
-            formatted_additional: list[str] = []
-            for key, value in error.additional_properties.items():
-                if isinstance(value, str):
-                    formatted_additional.append(f"{key}: '{value}'")
-                else:
-                    formatted_additional.append(f"{key}: {value}")
-            if formatted_additional:
-                log_message += f"\n  Additional info: {', '.join(formatted_additional)}"
-
+            formatted = ", ".join(
+                f"{k}: {v!r}" for k, v in error.additional_properties.items()
+            )
+            log_message += f"\n  Additional info: {formatted}"
         self.logger.error(log_message)
 
-    def _format_typed_validation_info(self, info: dict[str, Any]) -> str:
-        """Format validation error info from typed model with explicit type handling."""
-        if not info:
-            return ""
-
-        formatted_parts: list[str] = []
-
-        # Handle common validation fields
-        if "provided_value" in info:
-            provided = info["provided_value"]
-            if provided is None:
-                formatted_parts.append("provided: null")
-            elif isinstance(provided, str):
-                formatted_parts.append(f"provided: '{provided}'")
-            else:
-                formatted_parts.append(f"provided: {provided}")
-
-        if "allowed_values" in info:
-            allowed = info["allowed_values"]
-            if isinstance(allowed, list):
-                # Type-safe handling of list elements from OpenAPI models
-                # The elements are typed as Any since they come from dynamic JSON
-                allowed_list: list[Any] = allowed  # explicit annotation for clarity
-                if len(allowed_list) <= 5:
-                    values_list = [
-                        f"'{v}'" if isinstance(v, str) else str(v) for v in allowed_list
-                    ]
-                    formatted_parts.append(f"allowed: [{', '.join(values_list)}]")
-                else:
-                    first_three = allowed_list[:3]
-                    values_list = [
-                        f"'{v}'" if isinstance(v, str) else str(v) for v in first_three
-                    ]
-                    formatted_parts.append(
-                        f"allowed: [{', '.join(values_list)}... ({len(allowed_list)} total)]"
-                    )
-            else:
-                formatted_parts.append(f"allowed: {allowed}")
-
-        # Handle other validation fields
-        validation_fields = [
-            ("expected_type", "expected type"),
-            ("min_value", "min"),
-            ("max_value", "max"),
-            ("min_length", "min length"),
-            ("max_length", "max length"),
-            ("pattern", "pattern"),
-        ]
-
-        for field_key, display_name in validation_fields:
-            if field_key in info:
-                formatted_parts.append(f"{display_name}: {info[field_key]}")
-
-        # Handle any other fields
-        handled_keys = {
-            "provided_value",
-            "allowed_values",
-            "expected_type",
-            "min_value",
-            "max_value",
-            "min_length",
-            "max_length",
-            "pattern",
-        }
-
-        for key, value in info.items():
-            if key not in handled_keys:
-                if isinstance(value, str):
-                    formatted_parts.append(f"{key}: '{value}'")
-                else:
-                    formatted_parts.append(f"{key}: {value}")
-
-        return ", ".join(formatted_parts)
-
-    def _log_error_fallback(
-        self, error_data: dict[str, Any], method: str, url: str, status_code: int
-    ) -> None:
-        """Fallback error logging when model parsing fails."""
-        error_name = error_data.get("name", f"ClientError{status_code}")
-        error_message = error_data.get("message", "Client error occurred")
-
-        log_message = f"Client error {status_code} for {method} {url}"
-        log_message += f"\n  Error: {error_name} - {error_message}"
-
-        # Log basic additional fields
-        excluded_keys = {"statusCode", "name", "message"}
-        additional_fields = {
-            k: v for k, v in error_data.items() if k not in excluded_keys
-        }
-
-        if additional_fields:
-            log_message += f"\n  Additional data: {additional_fields}"
-
-        self.logger.error(log_message)
+    # _format_typed_validation_info and _log_error_fallback are no longer needed
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         """
@@ -418,13 +295,11 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
                             last_response.status_code,
                         )
                         return last_response
-                    else:
-                        self.logger.debug(
-                            "Last response is not httpx.Response, it's %s",
-                            response_type,
-                        )
-                else:
-                    self.logger.debug("No last_attempt found in retry error")
+                    self.logger.debug(
+                        "Last response is not httpx.Response, it's %s",
+                        response_type,
+                    )
+                self.logger.debug("No last_attempt found in retry error")
             except (ValueError, AttributeError, TypeError) as extract_error:
                 self.logger.debug("Error extracting last response: %s", extract_error)
 

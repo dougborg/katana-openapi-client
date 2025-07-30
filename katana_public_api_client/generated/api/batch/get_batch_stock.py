@@ -6,9 +6,7 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.batch_stock_list_response import BatchStockListResponse
-from ...models.get_batch_stock_response_401 import GetBatchStockResponse401
-from ...models.get_batch_stock_response_429 import GetBatchStockResponse429
-from ...models.get_batch_stock_response_500 import GetBatchStockResponse500
+from ...models.error_response import ErrorResponse
 from ...types import UNSET, Response, Unset
 
 
@@ -60,27 +58,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    BatchStockListResponse
-    | GetBatchStockResponse401
-    | GetBatchStockResponse429
-    | GetBatchStockResponse500
-    | None
-):
+) -> BatchStockListResponse | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = BatchStockListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetBatchStockResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetBatchStockResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetBatchStockResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -91,12 +83,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    BatchStockListResponse
-    | GetBatchStockResponse401
-    | GetBatchStockResponse429
-    | GetBatchStockResponse500
-]:
+) -> Response[BatchStockListResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -118,12 +105,7 @@ def sync_detailed(
     include_empty: Unset | bool = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[
-    BatchStockListResponse
-    | GetBatchStockResponse401
-    | GetBatchStockResponse429
-    | GetBatchStockResponse500
-]:
+) -> Response[BatchStockListResponse | ErrorResponse]:
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
@@ -148,7 +130,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[BatchStockListResponse, GetBatchStockResponse401, GetBatchStockResponse429, GetBatchStockResponse500]]
+        Response[Union[BatchStockListResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -184,13 +166,7 @@ def sync(
     include_empty: Unset | bool = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> (
-    BatchStockListResponse
-    | GetBatchStockResponse401
-    | GetBatchStockResponse429
-    | GetBatchStockResponse500
-    | None
-):
+) -> BatchStockListResponse | ErrorResponse | None:
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
@@ -215,7 +191,7 @@ def sync(
 
 
     Returns:
-        Union[BatchStockListResponse, GetBatchStockResponse401, GetBatchStockResponse429, GetBatchStockResponse500]
+        Union[BatchStockListResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -246,12 +222,7 @@ async def asyncio_detailed(
     include_empty: Unset | bool = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[
-    BatchStockListResponse
-    | GetBatchStockResponse401
-    | GetBatchStockResponse429
-    | GetBatchStockResponse500
-]:
+) -> Response[BatchStockListResponse | ErrorResponse]:
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
@@ -276,7 +247,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[BatchStockListResponse, GetBatchStockResponse401, GetBatchStockResponse429, GetBatchStockResponse500]]
+        Response[Union[BatchStockListResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -310,13 +281,7 @@ async def asyncio(
     include_empty: Unset | bool = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> (
-    BatchStockListResponse
-    | GetBatchStockResponse401
-    | GetBatchStockResponse429
-    | GetBatchStockResponse500
-    | None
-):
+) -> BatchStockListResponse | ErrorResponse | None:
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
@@ -341,7 +306,7 @@ async def asyncio(
 
 
     Returns:
-        Union[BatchStockListResponse, GetBatchStockResponse401, GetBatchStockResponse429, GetBatchStockResponse500]
+        Union[BatchStockListResponse, ErrorResponse]
     """
 
     return (

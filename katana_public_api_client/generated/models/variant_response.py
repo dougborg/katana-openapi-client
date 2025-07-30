@@ -28,6 +28,9 @@ T = TypeVar("T", bound="VariantResponse")
 
 @_attrs_define
 class VariantResponse:
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | str = UNSET
     id: Unset | int = UNSET
     sku: Unset | str = UNSET
     sales_price: Unset | float = UNSET
@@ -38,9 +41,6 @@ class VariantResponse:
     internal_barcode: Unset | str = UNSET
     registered_barcode: Unset | str = UNSET
     supplier_item_codes: Unset | list[str] = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
     lead_time: None | Unset | int = UNSET
     minimum_order_quantity: None | Unset | float = UNSET
     config_attributes: Unset | list["VariantResponseConfigAttributesItem"] = UNSET
@@ -49,6 +49,20 @@ class VariantResponse:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
+
+        deleted_at: None | Unset | str
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        else:
+            deleted_at = self.deleted_at
+
         id = self.id
 
         sku = self.sku
@@ -80,22 +94,6 @@ class VariantResponse:
         supplier_item_codes: Unset | list[str] = UNSET
         if not isinstance(self.supplier_item_codes, Unset):
             supplier_item_codes = self.supplier_item_codes
-
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
-
-        deleted_at: None | Unset | str
-        if isinstance(self.deleted_at, Unset):
-            deleted_at = UNSET
-        elif isinstance(self.deleted_at, datetime.datetime):
-            deleted_at = self.deleted_at.isoformat()
-        else:
-            deleted_at = self.deleted_at
 
         lead_time: None | Unset | int
         if isinstance(self.lead_time, Unset):
@@ -130,6 +128,12 @@ class VariantResponse:
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
         if id is not UNSET:
             field_dict["id"] = id
         if sku is not UNSET:
@@ -150,12 +154,6 @@ class VariantResponse:
             field_dict["registered_barcode"] = registered_barcode
         if supplier_item_codes is not UNSET:
             field_dict["supplier_item_codes"] = supplier_item_codes
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
-        if deleted_at is not UNSET:
-            field_dict["deleted_at"] = deleted_at
         if lead_time is not UNSET:
             field_dict["lead_time"] = lead_time
         if minimum_order_quantity is not UNSET:
@@ -182,6 +180,29 @@ class VariantResponse:
         )
 
         d = dict(src_dict)
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
+
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
+
+        def _parse_deleted_at(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
+
         id = d.pop("id", UNSET)
 
         sku = d.pop("sku", UNSET)
@@ -220,37 +241,6 @@ class VariantResponse:
         registered_barcode = d.pop("registered_barcode", UNSET)
 
         supplier_item_codes = cast(list[str], d.pop("supplier_item_codes", UNSET))
-
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
-
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                deleted_at_type_0 = isoparse(data)
-
-                return deleted_at_type_0
-            except:  # noqa: E722
-                pass
-            return cast(None | Unset | datetime.datetime, data)
-
-        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         def _parse_lead_time(data: object) -> None | Unset | int:
             if data is None:
@@ -300,6 +290,9 @@ class VariantResponse:
             )
 
         variant_response = cls(
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
             id=id,
             sku=sku,
             sales_price=sales_price,
@@ -310,9 +303,6 @@ class VariantResponse:
             internal_barcode=internal_barcode,
             registered_barcode=registered_barcode,
             supplier_item_codes=supplier_item_codes,
-            created_at=created_at,
-            updated_at=updated_at,
-            deleted_at=deleted_at,
             lead_time=lead_time,
             minimum_order_quantity=minimum_order_quantity,
             config_attributes=config_attributes,

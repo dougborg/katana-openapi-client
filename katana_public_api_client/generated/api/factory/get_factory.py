@@ -5,10 +5,8 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.factory import Factory
-from ...models.get_factory_response_401 import GetFactoryResponse401
-from ...models.get_factory_response_429 import GetFactoryResponse429
-from ...models.get_factory_response_500 import GetFactoryResponse500
 from ...types import Response
 
 
@@ -23,27 +21,21 @@ def _get_kwargs() -> dict[str, Any]:
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    Factory
-    | GetFactoryResponse401
-    | GetFactoryResponse429
-    | GetFactoryResponse500
-    | None
-):
+) -> ErrorResponse | Factory | None:
     if response.status_code == 200:
         response_200 = Factory.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetFactoryResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetFactoryResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetFactoryResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -54,9 +46,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    Factory | GetFactoryResponse401 | GetFactoryResponse429 | GetFactoryResponse500
-]:
+) -> Response[ErrorResponse | Factory]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -68,9 +58,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    Factory | GetFactoryResponse401 | GetFactoryResponse429 | GetFactoryResponse500
-]:
+) -> Response[ErrorResponse | Factory]:
     """Retrieve the current factory
 
      Returns the general information about the factory.
@@ -81,7 +69,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[Factory, GetFactoryResponse401, GetFactoryResponse429, GetFactoryResponse500]]
+        Response[Union[ErrorResponse, Factory]]
     """
 
     kwargs = _get_kwargs()
@@ -96,13 +84,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    Factory
-    | GetFactoryResponse401
-    | GetFactoryResponse429
-    | GetFactoryResponse500
-    | None
-):
+) -> ErrorResponse | Factory | None:
     """Retrieve the current factory
 
      Returns the general information about the factory.
@@ -113,7 +95,7 @@ def sync(
 
 
     Returns:
-        Union[Factory, GetFactoryResponse401, GetFactoryResponse429, GetFactoryResponse500]
+        Union[ErrorResponse, Factory]
     """
 
     return sync_detailed(
@@ -124,9 +106,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    Factory | GetFactoryResponse401 | GetFactoryResponse429 | GetFactoryResponse500
-]:
+) -> Response[ErrorResponse | Factory]:
     """Retrieve the current factory
 
      Returns the general information about the factory.
@@ -137,7 +117,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[Factory, GetFactoryResponse401, GetFactoryResponse429, GetFactoryResponse500]]
+        Response[Union[ErrorResponse, Factory]]
     """
 
     kwargs = _get_kwargs()
@@ -150,13 +130,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    Factory
-    | GetFactoryResponse401
-    | GetFactoryResponse429
-    | GetFactoryResponse500
-    | None
-):
+) -> ErrorResponse | Factory | None:
     """Retrieve the current factory
 
      Returns the general information about the factory.
@@ -167,7 +141,7 @@ async def asyncio(
 
 
     Returns:
-        Union[Factory, GetFactoryResponse401, GetFactoryResponse429, GetFactoryResponse500]
+        Union[ErrorResponse, Factory]
     """
 
     return (

@@ -16,8 +16,6 @@ T = TypeVar("T", bound="InventoryMovement")
 
 @_attrs_define
 class InventoryMovement:
-    """Details of a single inventory movement record."""
-
     id: int
     variant_id: int
     location_id: int
@@ -28,8 +26,8 @@ class InventoryMovement:
     value_per_unit: float
     value_in_stock_after: float
     average_cost_after: float
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
     resource_id: Unset | int = UNSET
     caused_by_order_no: Unset | str = UNSET
     caused_by_resource_id: Unset | int = UNSET
@@ -57,9 +55,13 @@ class InventoryMovement:
 
         average_cost_after = self.average_cost_after
 
-        created_at = self.created_at.isoformat()
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
 
-        updated_at = self.updated_at.isoformat()
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
 
         resource_id = self.resource_id
 
@@ -83,10 +85,12 @@ class InventoryMovement:
                 "value_per_unit": value_per_unit,
                 "value_in_stock_after": value_in_stock_after,
                 "average_cost_after": average_cost_after,
-                "created_at": created_at,
-                "updated_at": updated_at,
             }
         )
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
         if resource_id is not UNSET:
             field_dict["resource_id"] = resource_id
         if caused_by_order_no is not UNSET:
@@ -121,9 +125,19 @@ class InventoryMovement:
 
         average_cost_after = d.pop("average_cost_after")
 
-        created_at = isoparse(d.pop("created_at"))
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
 
-        updated_at = isoparse(d.pop("updated_at"))
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
 
         resource_id = d.pop("resource_id", UNSET)
 

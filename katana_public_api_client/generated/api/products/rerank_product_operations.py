@@ -5,20 +5,9 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.product_operation_rerank import ProductOperationRerank
 from ...models.product_operation_rerank_request import ProductOperationRerankRequest
-from ...models.rerank_product_operations_response_400 import (
-    RerankProductOperationsResponse400,
-)
-from ...models.rerank_product_operations_response_401 import (
-    RerankProductOperationsResponse401,
-)
-from ...models.rerank_product_operations_response_429 import (
-    RerankProductOperationsResponse429,
-)
-from ...models.rerank_product_operations_response_500 import (
-    RerankProductOperationsResponse500,
-)
 from ...types import Response
 
 
@@ -43,32 +32,25 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    ProductOperationRerank
-    | RerankProductOperationsResponse400
-    | RerankProductOperationsResponse401
-    | RerankProductOperationsResponse429
-    | RerankProductOperationsResponse500
-    | None
-):
+) -> ErrorResponse | ProductOperationRerank | None:
     if response.status_code == 200:
         response_200 = ProductOperationRerank.from_dict(response.json())
 
         return response_200
     if response.status_code == 400:
-        response_400 = RerankProductOperationsResponse400.from_dict(response.json())
+        response_400 = ErrorResponse.from_dict(response.json())
 
         return response_400
     if response.status_code == 401:
-        response_401 = RerankProductOperationsResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = RerankProductOperationsResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = RerankProductOperationsResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -79,13 +61,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    ProductOperationRerank
-    | RerankProductOperationsResponse400
-    | RerankProductOperationsResponse401
-    | RerankProductOperationsResponse429
-    | RerankProductOperationsResponse500
-]:
+) -> Response[ErrorResponse | ProductOperationRerank]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -98,13 +74,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: ProductOperationRerankRequest,
-) -> Response[
-    ProductOperationRerank
-    | RerankProductOperationsResponse400
-    | RerankProductOperationsResponse401
-    | RerankProductOperationsResponse429
-    | RerankProductOperationsResponse500
-]:
+) -> Response[ErrorResponse | ProductOperationRerank]:
     """Rerank product operations
 
      Reranks the operations for a product.
@@ -118,7 +88,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ProductOperationRerank, RerankProductOperationsResponse400, RerankProductOperationsResponse401, RerankProductOperationsResponse429, RerankProductOperationsResponse500]]
+        Response[Union[ErrorResponse, ProductOperationRerank]]
     """
 
     kwargs = _get_kwargs(
@@ -136,14 +106,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: ProductOperationRerankRequest,
-) -> (
-    ProductOperationRerank
-    | RerankProductOperationsResponse400
-    | RerankProductOperationsResponse401
-    | RerankProductOperationsResponse429
-    | RerankProductOperationsResponse500
-    | None
-):
+) -> ErrorResponse | ProductOperationRerank | None:
     """Rerank product operations
 
      Reranks the operations for a product.
@@ -157,7 +120,7 @@ def sync(
 
 
     Returns:
-        Union[ProductOperationRerank, RerankProductOperationsResponse400, RerankProductOperationsResponse401, RerankProductOperationsResponse429, RerankProductOperationsResponse500]
+        Union[ErrorResponse, ProductOperationRerank]
     """
 
     return sync_detailed(
@@ -170,13 +133,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: ProductOperationRerankRequest,
-) -> Response[
-    ProductOperationRerank
-    | RerankProductOperationsResponse400
-    | RerankProductOperationsResponse401
-    | RerankProductOperationsResponse429
-    | RerankProductOperationsResponse500
-]:
+) -> Response[ErrorResponse | ProductOperationRerank]:
     """Rerank product operations
 
      Reranks the operations for a product.
@@ -190,7 +147,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ProductOperationRerank, RerankProductOperationsResponse400, RerankProductOperationsResponse401, RerankProductOperationsResponse429, RerankProductOperationsResponse500]]
+        Response[Union[ErrorResponse, ProductOperationRerank]]
     """
 
     kwargs = _get_kwargs(
@@ -206,14 +163,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: ProductOperationRerankRequest,
-) -> (
-    ProductOperationRerank
-    | RerankProductOperationsResponse400
-    | RerankProductOperationsResponse401
-    | RerankProductOperationsResponse429
-    | RerankProductOperationsResponse500
-    | None
-):
+) -> ErrorResponse | ProductOperationRerank | None:
     """Rerank product operations
 
      Reranks the operations for a product.
@@ -227,7 +177,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ProductOperationRerank, RerankProductOperationsResponse400, RerankProductOperationsResponse401, RerankProductOperationsResponse429, RerankProductOperationsResponse500]
+        Union[ErrorResponse, ProductOperationRerank]
     """
 
     return (

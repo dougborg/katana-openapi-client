@@ -6,11 +6,8 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.create_price_list_request import CreatePriceListRequest
-from ...models.create_price_list_response_400 import CreatePriceListResponse400
-from ...models.create_price_list_response_401 import CreatePriceListResponse401
-from ...models.create_price_list_response_422 import CreatePriceListResponse422
-from ...models.create_price_list_response_429 import CreatePriceListResponse429
-from ...models.create_price_list_response_500 import CreatePriceListResponse500
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...models.price_list import PriceList
 from ...types import Response
 
@@ -36,37 +33,29 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreatePriceListResponse400
-    | CreatePriceListResponse401
-    | CreatePriceListResponse422
-    | CreatePriceListResponse429
-    | CreatePriceListResponse500
-    | PriceList
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | PriceList | None:
     if response.status_code == 201:
         response_201 = PriceList.from_dict(response.json())
 
         return response_201
     if response.status_code == 400:
-        response_400 = CreatePriceListResponse400.from_dict(response.json())
+        response_400 = ErrorResponse.from_dict(response.json())
 
         return response_400
     if response.status_code == 401:
-        response_401 = CreatePriceListResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 422:
-        response_422 = CreatePriceListResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = CreatePriceListResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = CreatePriceListResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -77,14 +66,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CreatePriceListResponse400
-    | CreatePriceListResponse401
-    | CreatePriceListResponse422
-    | CreatePriceListResponse429
-    | CreatePriceListResponse500
-    | PriceList
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PriceList]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -97,14 +79,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePriceListRequest,
-) -> Response[
-    CreatePriceListResponse400
-    | CreatePriceListResponse401
-    | CreatePriceListResponse422
-    | CreatePriceListResponse429
-    | CreatePriceListResponse500
-    | PriceList
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PriceList]:
     """Create a price list
 
      Creates a new price list.
@@ -118,7 +93,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreatePriceListResponse400, CreatePriceListResponse401, CreatePriceListResponse422, CreatePriceListResponse429, CreatePriceListResponse500, PriceList]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, PriceList]]
     """
 
     kwargs = _get_kwargs(
@@ -136,15 +111,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePriceListRequest,
-) -> (
-    CreatePriceListResponse400
-    | CreatePriceListResponse401
-    | CreatePriceListResponse422
-    | CreatePriceListResponse429
-    | CreatePriceListResponse500
-    | PriceList
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | PriceList | None:
     """Create a price list
 
      Creates a new price list.
@@ -158,7 +125,7 @@ def sync(
 
 
     Returns:
-        Union[CreatePriceListResponse400, CreatePriceListResponse401, CreatePriceListResponse422, CreatePriceListResponse429, CreatePriceListResponse500, PriceList]
+        Union[DetailedErrorResponse, ErrorResponse, PriceList]
     """
 
     return sync_detailed(
@@ -171,14 +138,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePriceListRequest,
-) -> Response[
-    CreatePriceListResponse400
-    | CreatePriceListResponse401
-    | CreatePriceListResponse422
-    | CreatePriceListResponse429
-    | CreatePriceListResponse500
-    | PriceList
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PriceList]:
     """Create a price list
 
      Creates a new price list.
@@ -192,7 +152,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreatePriceListResponse400, CreatePriceListResponse401, CreatePriceListResponse422, CreatePriceListResponse429, CreatePriceListResponse500, PriceList]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, PriceList]]
     """
 
     kwargs = _get_kwargs(
@@ -208,15 +168,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePriceListRequest,
-) -> (
-    CreatePriceListResponse400
-    | CreatePriceListResponse401
-    | CreatePriceListResponse422
-    | CreatePriceListResponse429
-    | CreatePriceListResponse500
-    | PriceList
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | PriceList | None:
     """Create a price list
 
      Creates a new price list.
@@ -230,7 +182,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreatePriceListResponse400, CreatePriceListResponse401, CreatePriceListResponse422, CreatePriceListResponse429, CreatePriceListResponse500, PriceList]
+        Union[DetailedErrorResponse, ErrorResponse, PriceList]
     """
 
     return (

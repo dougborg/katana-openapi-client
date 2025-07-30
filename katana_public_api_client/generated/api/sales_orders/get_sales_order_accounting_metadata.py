@@ -5,15 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_sales_order_accounting_metadata_response_401 import (
-    GetSalesOrderAccountingMetadataResponse401,
-)
-from ...models.get_sales_order_accounting_metadata_response_429 import (
-    GetSalesOrderAccountingMetadataResponse429,
-)
-from ...models.get_sales_order_accounting_metadata_response_500 import (
-    GetSalesOrderAccountingMetadataResponse500,
-)
+from ...models.error_response import ErrorResponse
 from ...models.sales_order_accounting_metadata_list_response import (
     SalesOrderAccountingMetadataListResponse,
 )
@@ -54,13 +46,7 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetSalesOrderAccountingMetadataResponse401
-    | GetSalesOrderAccountingMetadataResponse429
-    | GetSalesOrderAccountingMetadataResponse500
-    | SalesOrderAccountingMetadataListResponse
-    | None
-):
+) -> ErrorResponse | SalesOrderAccountingMetadataListResponse | None:
     if response.status_code == 200:
         response_200 = SalesOrderAccountingMetadataListResponse.from_dict(
             response.json()
@@ -68,21 +54,15 @@ def _parse_response(
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetSalesOrderAccountingMetadataResponse401.from_dict(
-            response.json()
-        )
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetSalesOrderAccountingMetadataResponse429.from_dict(
-            response.json()
-        )
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetSalesOrderAccountingMetadataResponse500.from_dict(
-            response.json()
-        )
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -93,12 +73,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetSalesOrderAccountingMetadataResponse401
-    | GetSalesOrderAccountingMetadataResponse429
-    | GetSalesOrderAccountingMetadataResponse500
-    | SalesOrderAccountingMetadataListResponse
-]:
+) -> Response[ErrorResponse | SalesOrderAccountingMetadataListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -114,12 +89,7 @@ def sync_detailed(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     sales_order_id: Unset | int = UNSET,
-) -> Response[
-    GetSalesOrderAccountingMetadataResponse401
-    | GetSalesOrderAccountingMetadataResponse429
-    | GetSalesOrderAccountingMetadataResponse500
-    | SalesOrderAccountingMetadataListResponse
-]:
+) -> Response[ErrorResponse | SalesOrderAccountingMetadataListResponse]:
     """List sales order accounting metadata
 
      Retrieves accounting metadata for sales orders.
@@ -136,7 +106,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetSalesOrderAccountingMetadataResponse401, GetSalesOrderAccountingMetadataResponse429, GetSalesOrderAccountingMetadataResponse500, SalesOrderAccountingMetadataListResponse]]
+        Response[Union[ErrorResponse, SalesOrderAccountingMetadataListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -160,13 +130,7 @@ def sync(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     sales_order_id: Unset | int = UNSET,
-) -> (
-    GetSalesOrderAccountingMetadataResponse401
-    | GetSalesOrderAccountingMetadataResponse429
-    | GetSalesOrderAccountingMetadataResponse500
-    | SalesOrderAccountingMetadataListResponse
-    | None
-):
+) -> ErrorResponse | SalesOrderAccountingMetadataListResponse | None:
     """List sales order accounting metadata
 
      Retrieves accounting metadata for sales orders.
@@ -183,7 +147,7 @@ def sync(
 
 
     Returns:
-        Union[GetSalesOrderAccountingMetadataResponse401, GetSalesOrderAccountingMetadataResponse429, GetSalesOrderAccountingMetadataResponse500, SalesOrderAccountingMetadataListResponse]
+        Union[ErrorResponse, SalesOrderAccountingMetadataListResponse]
     """
 
     return sync_detailed(
@@ -202,12 +166,7 @@ async def asyncio_detailed(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     sales_order_id: Unset | int = UNSET,
-) -> Response[
-    GetSalesOrderAccountingMetadataResponse401
-    | GetSalesOrderAccountingMetadataResponse429
-    | GetSalesOrderAccountingMetadataResponse500
-    | SalesOrderAccountingMetadataListResponse
-]:
+) -> Response[ErrorResponse | SalesOrderAccountingMetadataListResponse]:
     """List sales order accounting metadata
 
      Retrieves accounting metadata for sales orders.
@@ -224,7 +183,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetSalesOrderAccountingMetadataResponse401, GetSalesOrderAccountingMetadataResponse429, GetSalesOrderAccountingMetadataResponse500, SalesOrderAccountingMetadataListResponse]]
+        Response[Union[ErrorResponse, SalesOrderAccountingMetadataListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -246,13 +205,7 @@ async def asyncio(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     sales_order_id: Unset | int = UNSET,
-) -> (
-    GetSalesOrderAccountingMetadataResponse401
-    | GetSalesOrderAccountingMetadataResponse429
-    | GetSalesOrderAccountingMetadataResponse500
-    | SalesOrderAccountingMetadataListResponse
-    | None
-):
+) -> ErrorResponse | SalesOrderAccountingMetadataListResponse | None:
     """List sales order accounting metadata
 
      Retrieves accounting metadata for sales orders.
@@ -269,7 +222,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetSalesOrderAccountingMetadataResponse401, GetSalesOrderAccountingMetadataResponse429, GetSalesOrderAccountingMetadataResponse500, SalesOrderAccountingMetadataListResponse]
+        Union[ErrorResponse, SalesOrderAccountingMetadataListResponse]
     """
 
     return (

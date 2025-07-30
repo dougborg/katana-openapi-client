@@ -6,19 +6,9 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.create_customer_address_request import CreateCustomerAddressRequest
-from ...models.create_customer_address_response_401 import (
-    CreateCustomerAddressResponse401,
-)
-from ...models.create_customer_address_response_422 import (
-    CreateCustomerAddressResponse422,
-)
-from ...models.create_customer_address_response_429 import (
-    CreateCustomerAddressResponse429,
-)
-from ...models.create_customer_address_response_500 import (
-    CreateCustomerAddressResponse500,
-)
 from ...models.customer_address import CustomerAddress
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...types import Response
 
 
@@ -43,32 +33,25 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateCustomerAddressResponse401
-    | CreateCustomerAddressResponse422
-    | CreateCustomerAddressResponse429
-    | CreateCustomerAddressResponse500
-    | CustomerAddress
-    | None
-):
+) -> CustomerAddress | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = CustomerAddress.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = CreateCustomerAddressResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 422:
-        response_422 = CreateCustomerAddressResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = CreateCustomerAddressResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = CreateCustomerAddressResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -79,13 +62,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CreateCustomerAddressResponse401
-    | CreateCustomerAddressResponse422
-    | CreateCustomerAddressResponse429
-    | CreateCustomerAddressResponse500
-    | CustomerAddress
-]:
+) -> Response[CustomerAddress | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -98,13 +75,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateCustomerAddressRequest,
-) -> Response[
-    CreateCustomerAddressResponse401
-    | CreateCustomerAddressResponse422
-    | CreateCustomerAddressResponse429
-    | CreateCustomerAddressResponse500
-    | CustomerAddress
-]:
+) -> Response[CustomerAddress | DetailedErrorResponse | ErrorResponse]:
     """Create a customer address
 
      Creates a new customer address.
@@ -118,7 +89,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateCustomerAddressResponse401, CreateCustomerAddressResponse422, CreateCustomerAddressResponse429, CreateCustomerAddressResponse500, CustomerAddress]]
+        Response[Union[CustomerAddress, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -136,14 +107,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateCustomerAddressRequest,
-) -> (
-    CreateCustomerAddressResponse401
-    | CreateCustomerAddressResponse422
-    | CreateCustomerAddressResponse429
-    | CreateCustomerAddressResponse500
-    | CustomerAddress
-    | None
-):
+) -> CustomerAddress | DetailedErrorResponse | ErrorResponse | None:
     """Create a customer address
 
      Creates a new customer address.
@@ -157,7 +121,7 @@ def sync(
 
 
     Returns:
-        Union[CreateCustomerAddressResponse401, CreateCustomerAddressResponse422, CreateCustomerAddressResponse429, CreateCustomerAddressResponse500, CustomerAddress]
+        Union[CustomerAddress, DetailedErrorResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -170,13 +134,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateCustomerAddressRequest,
-) -> Response[
-    CreateCustomerAddressResponse401
-    | CreateCustomerAddressResponse422
-    | CreateCustomerAddressResponse429
-    | CreateCustomerAddressResponse500
-    | CustomerAddress
-]:
+) -> Response[CustomerAddress | DetailedErrorResponse | ErrorResponse]:
     """Create a customer address
 
      Creates a new customer address.
@@ -190,7 +148,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateCustomerAddressResponse401, CreateCustomerAddressResponse422, CreateCustomerAddressResponse429, CreateCustomerAddressResponse500, CustomerAddress]]
+        Response[Union[CustomerAddress, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -206,14 +164,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateCustomerAddressRequest,
-) -> (
-    CreateCustomerAddressResponse401
-    | CreateCustomerAddressResponse422
-    | CreateCustomerAddressResponse429
-    | CreateCustomerAddressResponse500
-    | CustomerAddress
-    | None
-):
+) -> CustomerAddress | DetailedErrorResponse | ErrorResponse | None:
     """Create a customer address
 
      Creates a new customer address.
@@ -227,7 +178,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateCustomerAddressResponse401, CreateCustomerAddressResponse422, CreateCustomerAddressResponse429, CreateCustomerAddressResponse500, CustomerAddress]
+        Union[CustomerAddress, DetailedErrorResponse, ErrorResponse]
     """
 
     return (

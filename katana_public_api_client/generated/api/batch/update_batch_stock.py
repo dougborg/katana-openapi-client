@@ -7,11 +7,8 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.batch_stock import BatchStock
 from ...models.batch_stock_update import BatchStockUpdate
-from ...models.update_batch_stock_response_401 import UpdateBatchStockResponse401
-from ...models.update_batch_stock_response_404 import UpdateBatchStockResponse404
-from ...models.update_batch_stock_response_422 import UpdateBatchStockResponse422
-from ...models.update_batch_stock_response_429 import UpdateBatchStockResponse429
-from ...models.update_batch_stock_response_500 import UpdateBatchStockResponse500
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...types import UNSET, Response, Unset
 
 
@@ -45,37 +42,29 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    BatchStock
-    | UpdateBatchStockResponse401
-    | UpdateBatchStockResponse404
-    | UpdateBatchStockResponse422
-    | UpdateBatchStockResponse429
-    | UpdateBatchStockResponse500
-    | None
-):
+) -> BatchStock | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = BatchStock.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = UpdateBatchStockResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 404:
-        response_404 = UpdateBatchStockResponse404.from_dict(response.json())
+        response_404 = ErrorResponse.from_dict(response.json())
 
         return response_404
     if response.status_code == 422:
-        response_422 = UpdateBatchStockResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = UpdateBatchStockResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = UpdateBatchStockResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -86,14 +75,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    BatchStock
-    | UpdateBatchStockResponse401
-    | UpdateBatchStockResponse404
-    | UpdateBatchStockResponse422
-    | UpdateBatchStockResponse429
-    | UpdateBatchStockResponse500
-]:
+) -> Response[BatchStock | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -108,14 +90,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
     location_id: Unset | int = UNSET,
-) -> Response[
-    BatchStock
-    | UpdateBatchStockResponse401
-    | UpdateBatchStockResponse404
-    | UpdateBatchStockResponse422
-    | UpdateBatchStockResponse429
-    | UpdateBatchStockResponse500
-]:
+) -> Response[BatchStock | DetailedErrorResponse | ErrorResponse]:
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
@@ -126,7 +101,7 @@ def sync_detailed(
         location_id (Union[Unset, int]):
         body (BatchStockUpdate):  Example: {'batch_number': 'BAT-1', 'expiration_date':
             '2020-10-23T10:37:05.085Z', 'batch_created_date': '2020-10-23T10:37:05.085Z',
-            'variant_id': 1, 'batch_barcode': '0040'}.
+            'batch_barcode': '0040'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -134,7 +109,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[BatchStock, UpdateBatchStockResponse401, UpdateBatchStockResponse404, UpdateBatchStockResponse422, UpdateBatchStockResponse429, UpdateBatchStockResponse500]]
+        Response[Union[BatchStock, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -156,15 +131,7 @@ def sync(
     client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
     location_id: Unset | int = UNSET,
-) -> (
-    BatchStock
-    | UpdateBatchStockResponse401
-    | UpdateBatchStockResponse404
-    | UpdateBatchStockResponse422
-    | UpdateBatchStockResponse429
-    | UpdateBatchStockResponse500
-    | None
-):
+) -> BatchStock | DetailedErrorResponse | ErrorResponse | None:
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
@@ -175,7 +142,7 @@ def sync(
         location_id (Union[Unset, int]):
         body (BatchStockUpdate):  Example: {'batch_number': 'BAT-1', 'expiration_date':
             '2020-10-23T10:37:05.085Z', 'batch_created_date': '2020-10-23T10:37:05.085Z',
-            'variant_id': 1, 'batch_barcode': '0040'}.
+            'batch_barcode': '0040'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -183,7 +150,7 @@ def sync(
 
 
     Returns:
-        Union[BatchStock, UpdateBatchStockResponse401, UpdateBatchStockResponse404, UpdateBatchStockResponse422, UpdateBatchStockResponse429, UpdateBatchStockResponse500]
+        Union[BatchStock, DetailedErrorResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -200,14 +167,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
     location_id: Unset | int = UNSET,
-) -> Response[
-    BatchStock
-    | UpdateBatchStockResponse401
-    | UpdateBatchStockResponse404
-    | UpdateBatchStockResponse422
-    | UpdateBatchStockResponse429
-    | UpdateBatchStockResponse500
-]:
+) -> Response[BatchStock | DetailedErrorResponse | ErrorResponse]:
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
@@ -218,7 +178,7 @@ async def asyncio_detailed(
         location_id (Union[Unset, int]):
         body (BatchStockUpdate):  Example: {'batch_number': 'BAT-1', 'expiration_date':
             '2020-10-23T10:37:05.085Z', 'batch_created_date': '2020-10-23T10:37:05.085Z',
-            'variant_id': 1, 'batch_barcode': '0040'}.
+            'batch_barcode': '0040'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -226,7 +186,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[BatchStock, UpdateBatchStockResponse401, UpdateBatchStockResponse404, UpdateBatchStockResponse422, UpdateBatchStockResponse429, UpdateBatchStockResponse500]]
+        Response[Union[BatchStock, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -246,15 +206,7 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
     location_id: Unset | int = UNSET,
-) -> (
-    BatchStock
-    | UpdateBatchStockResponse401
-    | UpdateBatchStockResponse404
-    | UpdateBatchStockResponse422
-    | UpdateBatchStockResponse429
-    | UpdateBatchStockResponse500
-    | None
-):
+) -> BatchStock | DetailedErrorResponse | ErrorResponse | None:
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
@@ -265,7 +217,7 @@ async def asyncio(
         location_id (Union[Unset, int]):
         body (BatchStockUpdate):  Example: {'batch_number': 'BAT-1', 'expiration_date':
             '2020-10-23T10:37:05.085Z', 'batch_created_date': '2020-10-23T10:37:05.085Z',
-            'variant_id': 1, 'batch_barcode': '0040'}.
+            'batch_barcode': '0040'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -273,7 +225,7 @@ async def asyncio(
 
 
     Returns:
-        Union[BatchStock, UpdateBatchStockResponse401, UpdateBatchStockResponse404, UpdateBatchStockResponse422, UpdateBatchStockResponse429, UpdateBatchStockResponse500]
+        Union[BatchStock, DetailedErrorResponse, ErrorResponse]
     """
 
     return (

@@ -5,15 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_inventory_reorder_points_response_401 import (
-    GetInventoryReorderPointsResponse401,
-)
-from ...models.get_inventory_reorder_points_response_429 import (
-    GetInventoryReorderPointsResponse429,
-)
-from ...models.get_inventory_reorder_points_response_500 import (
-    GetInventoryReorderPointsResponse500,
-)
+from ...models.error_response import ErrorResponse
 from ...models.inventory_reorder_point_list_response import (
     InventoryReorderPointListResponse,
 )
@@ -58,27 +50,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetInventoryReorderPointsResponse401
-    | GetInventoryReorderPointsResponse429
-    | GetInventoryReorderPointsResponse500
-    | InventoryReorderPointListResponse
-    | None
-):
+) -> ErrorResponse | InventoryReorderPointListResponse | None:
     if response.status_code == 200:
         response_200 = InventoryReorderPointListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetInventoryReorderPointsResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetInventoryReorderPointsResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetInventoryReorderPointsResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -89,12 +75,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetInventoryReorderPointsResponse401
-    | GetInventoryReorderPointsResponse429
-    | GetInventoryReorderPointsResponse500
-    | InventoryReorderPointListResponse
-]:
+) -> Response[ErrorResponse | InventoryReorderPointListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -110,12 +91,7 @@ def sync_detailed(
     page: Unset | int = 1,
     variant_ids: Unset | list[int] = UNSET,
     location_ids: Unset | list[int] = UNSET,
-) -> Response[
-    GetInventoryReorderPointsResponse401
-    | GetInventoryReorderPointsResponse429
-    | GetInventoryReorderPointsResponse500
-    | InventoryReorderPointListResponse
-]:
+) -> Response[ErrorResponse | InventoryReorderPointListResponse]:
     """List all inventory reorder points
 
      Retrieves a list of inventory reorder points.
@@ -132,7 +108,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetInventoryReorderPointsResponse401, GetInventoryReorderPointsResponse429, GetInventoryReorderPointsResponse500, InventoryReorderPointListResponse]]
+        Response[Union[ErrorResponse, InventoryReorderPointListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -156,13 +132,7 @@ def sync(
     page: Unset | int = 1,
     variant_ids: Unset | list[int] = UNSET,
     location_ids: Unset | list[int] = UNSET,
-) -> (
-    GetInventoryReorderPointsResponse401
-    | GetInventoryReorderPointsResponse429
-    | GetInventoryReorderPointsResponse500
-    | InventoryReorderPointListResponse
-    | None
-):
+) -> ErrorResponse | InventoryReorderPointListResponse | None:
     """List all inventory reorder points
 
      Retrieves a list of inventory reorder points.
@@ -179,7 +149,7 @@ def sync(
 
 
     Returns:
-        Union[GetInventoryReorderPointsResponse401, GetInventoryReorderPointsResponse429, GetInventoryReorderPointsResponse500, InventoryReorderPointListResponse]
+        Union[ErrorResponse, InventoryReorderPointListResponse]
     """
 
     return sync_detailed(
@@ -198,12 +168,7 @@ async def asyncio_detailed(
     page: Unset | int = 1,
     variant_ids: Unset | list[int] = UNSET,
     location_ids: Unset | list[int] = UNSET,
-) -> Response[
-    GetInventoryReorderPointsResponse401
-    | GetInventoryReorderPointsResponse429
-    | GetInventoryReorderPointsResponse500
-    | InventoryReorderPointListResponse
-]:
+) -> Response[ErrorResponse | InventoryReorderPointListResponse]:
     """List all inventory reorder points
 
      Retrieves a list of inventory reorder points.
@@ -220,7 +185,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetInventoryReorderPointsResponse401, GetInventoryReorderPointsResponse429, GetInventoryReorderPointsResponse500, InventoryReorderPointListResponse]]
+        Response[Union[ErrorResponse, InventoryReorderPointListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -242,13 +207,7 @@ async def asyncio(
     page: Unset | int = 1,
     variant_ids: Unset | list[int] = UNSET,
     location_ids: Unset | list[int] = UNSET,
-) -> (
-    GetInventoryReorderPointsResponse401
-    | GetInventoryReorderPointsResponse429
-    | GetInventoryReorderPointsResponse500
-    | InventoryReorderPointListResponse
-    | None
-):
+) -> ErrorResponse | InventoryReorderPointListResponse | None:
     """List all inventory reorder points
 
      Retrieves a list of inventory reorder points.
@@ -265,7 +224,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetInventoryReorderPointsResponse401, GetInventoryReorderPointsResponse429, GetInventoryReorderPointsResponse500, InventoryReorderPointListResponse]
+        Union[ErrorResponse, InventoryReorderPointListResponse]
     """
 
     return (

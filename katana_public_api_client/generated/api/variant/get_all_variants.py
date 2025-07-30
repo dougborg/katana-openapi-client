@@ -6,10 +6,8 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.get_all_variants_extend_item import GetAllVariantsExtendItem
-from ...models.get_all_variants_response_401 import GetAllVariantsResponse401
-from ...models.get_all_variants_response_429 import GetAllVariantsResponse429
-from ...models.get_all_variants_response_500 import GetAllVariantsResponse500
 from ...models.variant_list_response import VariantListResponse
 from ...types import UNSET, Response, Unset
 
@@ -113,27 +111,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllVariantsResponse401
-    | GetAllVariantsResponse429
-    | GetAllVariantsResponse500
-    | VariantListResponse
-    | None
-):
+) -> ErrorResponse | VariantListResponse | None:
     if response.status_code == 200:
         response_200 = VariantListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllVariantsResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllVariantsResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllVariantsResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -144,12 +136,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetAllVariantsResponse401
-    | GetAllVariantsResponse429
-    | GetAllVariantsResponse500
-    | VariantListResponse
-]:
+) -> Response[ErrorResponse | VariantListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -179,12 +166,7 @@ def sync_detailed(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[
-    GetAllVariantsResponse401
-    | GetAllVariantsResponse429
-    | GetAllVariantsResponse500
-    | VariantListResponse
-]:
+) -> Response[ErrorResponse | VariantListResponse]:
     """List all variants
 
      Returns a list of variants you've previously created. The variants are returned in sorted order,
@@ -216,7 +198,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllVariantsResponse401, GetAllVariantsResponse429, GetAllVariantsResponse500, VariantListResponse]]
+        Response[Union[ErrorResponse, VariantListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -268,13 +250,7 @@ def sync(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> (
-    GetAllVariantsResponse401
-    | GetAllVariantsResponse429
-    | GetAllVariantsResponse500
-    | VariantListResponse
-    | None
-):
+) -> ErrorResponse | VariantListResponse | None:
     """List all variants
 
      Returns a list of variants you've previously created. The variants are returned in sorted order,
@@ -306,7 +282,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllVariantsResponse401, GetAllVariantsResponse429, GetAllVariantsResponse500, VariantListResponse]
+        Union[ErrorResponse, VariantListResponse]
     """
 
     return sync_detailed(
@@ -353,12 +329,7 @@ async def asyncio_detailed(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[
-    GetAllVariantsResponse401
-    | GetAllVariantsResponse429
-    | GetAllVariantsResponse500
-    | VariantListResponse
-]:
+) -> Response[ErrorResponse | VariantListResponse]:
     """List all variants
 
      Returns a list of variants you've previously created. The variants are returned in sorted order,
@@ -390,7 +361,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllVariantsResponse401, GetAllVariantsResponse429, GetAllVariantsResponse500, VariantListResponse]]
+        Response[Union[ErrorResponse, VariantListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -440,13 +411,7 @@ async def asyncio(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> (
-    GetAllVariantsResponse401
-    | GetAllVariantsResponse429
-    | GetAllVariantsResponse500
-    | VariantListResponse
-    | None
-):
+) -> ErrorResponse | VariantListResponse | None:
     """List all variants
 
      Returns a list of variants you've previously created. The variants are returned in sorted order,
@@ -478,7 +443,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllVariantsResponse401, GetAllVariantsResponse429, GetAllVariantsResponse500, VariantListResponse]
+        Union[ErrorResponse, VariantListResponse]
     """
 
     return (

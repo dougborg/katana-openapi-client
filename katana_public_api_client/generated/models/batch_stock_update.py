@@ -15,19 +15,16 @@ class BatchStockUpdate:
     """
     Example:
         {'batch_number': 'BAT-1', 'expiration_date': '2020-10-23T10:37:05.085Z', 'batch_created_date':
-            '2020-10-23T10:37:05.085Z', 'variant_id': 1, 'batch_barcode': '0040'}
+            '2020-10-23T10:37:05.085Z', 'batch_barcode': '0040'}
     """
 
     batch_number: str
-    variant_id: int
     expiration_date: Unset | datetime.datetime = UNSET
     batch_created_date: Unset | datetime.datetime = UNSET
     batch_barcode: None | Unset | str = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         batch_number = self.batch_number
-
-        variant_id = self.variant_id
 
         expiration_date: Unset | str = UNSET
         if not isinstance(self.expiration_date, Unset):
@@ -48,7 +45,6 @@ class BatchStockUpdate:
         field_dict.update(
             {
                 "batch_number": batch_number,
-                "variant_id": variant_id,
             }
         )
         if expiration_date is not UNSET:
@@ -64,8 +60,6 @@ class BatchStockUpdate:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         batch_number = d.pop("batch_number")
-
-        variant_id = d.pop("variant_id")
 
         _expiration_date = d.pop("expiration_date", UNSET)
         expiration_date: Unset | datetime.datetime
@@ -92,7 +86,6 @@ class BatchStockUpdate:
 
         batch_stock_update = cls(
             batch_number=batch_number,
-            variant_id=variant_id,
             expiration_date=expiration_date,
             batch_created_date=batch_created_date,
             batch_barcode=batch_barcode,

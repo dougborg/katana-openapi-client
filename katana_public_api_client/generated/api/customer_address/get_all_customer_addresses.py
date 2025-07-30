@@ -6,17 +6,9 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.customer_address_list_response import CustomerAddressListResponse
+from ...models.error_response import ErrorResponse
 from ...models.get_all_customer_addresses_entity_type import (
     GetAllCustomerAddressesEntityType,
-)
-from ...models.get_all_customer_addresses_response_401 import (
-    GetAllCustomerAddressesResponse401,
-)
-from ...models.get_all_customer_addresses_response_429 import (
-    GetAllCustomerAddressesResponse429,
-)
-from ...models.get_all_customer_addresses_response_500 import (
-    GetAllCustomerAddressesResponse500,
 )
 from ...types import UNSET, Response, Unset
 
@@ -55,27 +47,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CustomerAddressListResponse
-    | GetAllCustomerAddressesResponse401
-    | GetAllCustomerAddressesResponse429
-    | GetAllCustomerAddressesResponse500
-    | None
-):
+) -> CustomerAddressListResponse | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = CustomerAddressListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllCustomerAddressesResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllCustomerAddressesResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllCustomerAddressesResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -86,12 +72,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CustomerAddressListResponse
-    | GetAllCustomerAddressesResponse401
-    | GetAllCustomerAddressesResponse429
-    | GetAllCustomerAddressesResponse500
-]:
+) -> Response[CustomerAddressListResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -107,12 +88,7 @@ def sync_detailed(
     page: Unset | int = 1,
     customer_id: Unset | int = UNSET,
     entity_type: Unset | GetAllCustomerAddressesEntityType = UNSET,
-) -> Response[
-    CustomerAddressListResponse
-    | GetAllCustomerAddressesResponse401
-    | GetAllCustomerAddressesResponse429
-    | GetAllCustomerAddressesResponse500
-]:
+) -> Response[CustomerAddressListResponse | ErrorResponse]:
     """List customer addresses
 
      Returns a list of customer addresses.
@@ -129,7 +105,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CustomerAddressListResponse, GetAllCustomerAddressesResponse401, GetAllCustomerAddressesResponse429, GetAllCustomerAddressesResponse500]]
+        Response[Union[CustomerAddressListResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -153,13 +129,7 @@ def sync(
     page: Unset | int = 1,
     customer_id: Unset | int = UNSET,
     entity_type: Unset | GetAllCustomerAddressesEntityType = UNSET,
-) -> (
-    CustomerAddressListResponse
-    | GetAllCustomerAddressesResponse401
-    | GetAllCustomerAddressesResponse429
-    | GetAllCustomerAddressesResponse500
-    | None
-):
+) -> CustomerAddressListResponse | ErrorResponse | None:
     """List customer addresses
 
      Returns a list of customer addresses.
@@ -176,7 +146,7 @@ def sync(
 
 
     Returns:
-        Union[CustomerAddressListResponse, GetAllCustomerAddressesResponse401, GetAllCustomerAddressesResponse429, GetAllCustomerAddressesResponse500]
+        Union[CustomerAddressListResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -195,12 +165,7 @@ async def asyncio_detailed(
     page: Unset | int = 1,
     customer_id: Unset | int = UNSET,
     entity_type: Unset | GetAllCustomerAddressesEntityType = UNSET,
-) -> Response[
-    CustomerAddressListResponse
-    | GetAllCustomerAddressesResponse401
-    | GetAllCustomerAddressesResponse429
-    | GetAllCustomerAddressesResponse500
-]:
+) -> Response[CustomerAddressListResponse | ErrorResponse]:
     """List customer addresses
 
      Returns a list of customer addresses.
@@ -217,7 +182,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CustomerAddressListResponse, GetAllCustomerAddressesResponse401, GetAllCustomerAddressesResponse429, GetAllCustomerAddressesResponse500]]
+        Response[Union[CustomerAddressListResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -239,13 +204,7 @@ async def asyncio(
     page: Unset | int = 1,
     customer_id: Unset | int = UNSET,
     entity_type: Unset | GetAllCustomerAddressesEntityType = UNSET,
-) -> (
-    CustomerAddressListResponse
-    | GetAllCustomerAddressesResponse401
-    | GetAllCustomerAddressesResponse429
-    | GetAllCustomerAddressesResponse500
-    | None
-):
+) -> CustomerAddressListResponse | ErrorResponse | None:
     """List customer addresses
 
      Returns a list of customer addresses.
@@ -262,7 +221,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CustomerAddressListResponse, GetAllCustomerAddressesResponse401, GetAllCustomerAddressesResponse429, GetAllCustomerAddressesResponse500]
+        Union[CustomerAddressListResponse, ErrorResponse]
     """
 
     return (

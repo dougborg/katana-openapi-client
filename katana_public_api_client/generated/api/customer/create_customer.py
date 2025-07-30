@@ -6,10 +6,8 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.create_customer_request import CreateCustomerRequest
-from ...models.create_customer_response_401 import CreateCustomerResponse401
-from ...models.create_customer_response_429 import CreateCustomerResponse429
-from ...models.create_customer_response_500 import CreateCustomerResponse500
 from ...models.customer import Customer
+from ...models.error_response import ErrorResponse
 from ...types import Response
 
 
@@ -34,27 +32,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateCustomerResponse401
-    | CreateCustomerResponse429
-    | CreateCustomerResponse500
-    | Customer
-    | None
-):
+) -> Customer | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = Customer.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = CreateCustomerResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = CreateCustomerResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = CreateCustomerResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -65,12 +57,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CreateCustomerResponse401
-    | CreateCustomerResponse429
-    | CreateCustomerResponse500
-    | Customer
-]:
+) -> Response[Customer | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -83,12 +70,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateCustomerRequest,
-) -> Response[
-    CreateCustomerResponse401
-    | CreateCustomerResponse429
-    | CreateCustomerResponse500
-    | Customer
-]:
+) -> Response[Customer | ErrorResponse]:
     """Create a customer
 
      Creates a new customer.
@@ -102,7 +84,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateCustomerResponse401, CreateCustomerResponse429, CreateCustomerResponse500, Customer]]
+        Response[Union[Customer, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -120,13 +102,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateCustomerRequest,
-) -> (
-    CreateCustomerResponse401
-    | CreateCustomerResponse429
-    | CreateCustomerResponse500
-    | Customer
-    | None
-):
+) -> Customer | ErrorResponse | None:
     """Create a customer
 
      Creates a new customer.
@@ -140,7 +116,7 @@ def sync(
 
 
     Returns:
-        Union[CreateCustomerResponse401, CreateCustomerResponse429, CreateCustomerResponse500, Customer]
+        Union[Customer, ErrorResponse]
     """
 
     return sync_detailed(
@@ -153,12 +129,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateCustomerRequest,
-) -> Response[
-    CreateCustomerResponse401
-    | CreateCustomerResponse429
-    | CreateCustomerResponse500
-    | Customer
-]:
+) -> Response[Customer | ErrorResponse]:
     """Create a customer
 
      Creates a new customer.
@@ -172,7 +143,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateCustomerResponse401, CreateCustomerResponse429, CreateCustomerResponse500, Customer]]
+        Response[Union[Customer, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -188,13 +159,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateCustomerRequest,
-) -> (
-    CreateCustomerResponse401
-    | CreateCustomerResponse429
-    | CreateCustomerResponse500
-    | Customer
-    | None
-):
+) -> Customer | ErrorResponse | None:
     """Create a customer
 
      Creates a new customer.
@@ -208,7 +173,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateCustomerResponse401, CreateCustomerResponse429, CreateCustomerResponse500, Customer]
+        Union[Customer, ErrorResponse]
     """
 
     return (

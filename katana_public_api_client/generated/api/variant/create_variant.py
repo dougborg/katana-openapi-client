@@ -6,10 +6,8 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.create_variant_request import CreateVariantRequest
-from ...models.create_variant_response_401 import CreateVariantResponse401
-from ...models.create_variant_response_422 import CreateVariantResponse422
-from ...models.create_variant_response_429 import CreateVariantResponse429
-from ...models.create_variant_response_500 import CreateVariantResponse500
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...models.variant import Variant
 from ...types import Response
 
@@ -35,32 +33,25 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateVariantResponse401
-    | CreateVariantResponse422
-    | CreateVariantResponse429
-    | CreateVariantResponse500
-    | Variant
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | Variant | None:
     if response.status_code == 200:
         response_200 = Variant.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = CreateVariantResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 422:
-        response_422 = CreateVariantResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = CreateVariantResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = CreateVariantResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -71,13 +62,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CreateVariantResponse401
-    | CreateVariantResponse422
-    | CreateVariantResponse429
-    | CreateVariantResponse500
-    | Variant
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Variant]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -90,13 +75,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateVariantRequest,
-) -> Response[
-    CreateVariantResponse401
-    | CreateVariantResponse422
-    | CreateVariantResponse429
-    | CreateVariantResponse500
-    | Variant
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Variant]:
     """Create a variant
 
      Creates a new variant object. Note that you can create variants for both products and materials.
@@ -112,7 +91,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, Variant]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, Variant]]
     """
 
     kwargs = _get_kwargs(
@@ -130,14 +109,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateVariantRequest,
-) -> (
-    CreateVariantResponse401
-    | CreateVariantResponse422
-    | CreateVariantResponse429
-    | CreateVariantResponse500
-    | Variant
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | Variant | None:
     """Create a variant
 
      Creates a new variant object. Note that you can create variants for both products and materials.
@@ -153,7 +125,7 @@ def sync(
 
 
     Returns:
-        Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, Variant]
+        Union[DetailedErrorResponse, ErrorResponse, Variant]
     """
 
     return sync_detailed(
@@ -166,13 +138,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateVariantRequest,
-) -> Response[
-    CreateVariantResponse401
-    | CreateVariantResponse422
-    | CreateVariantResponse429
-    | CreateVariantResponse500
-    | Variant
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Variant]:
     """Create a variant
 
      Creates a new variant object. Note that you can create variants for both products and materials.
@@ -188,7 +154,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, Variant]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, Variant]]
     """
 
     kwargs = _get_kwargs(
@@ -204,14 +170,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateVariantRequest,
-) -> (
-    CreateVariantResponse401
-    | CreateVariantResponse422
-    | CreateVariantResponse429
-    | CreateVariantResponse500
-    | Variant
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | Variant | None:
     """Create a variant
 
      Creates a new variant object. Note that you can create variants for both products and materials.
@@ -227,7 +186,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateVariantResponse401, CreateVariantResponse422, CreateVariantResponse429, CreateVariantResponse500, Variant]
+        Union[DetailedErrorResponse, ErrorResponse, Variant]
     """
 
     return (

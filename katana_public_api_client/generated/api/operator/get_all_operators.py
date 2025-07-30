@@ -5,9 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_all_operators_response_401 import GetAllOperatorsResponse401
-from ...models.get_all_operators_response_429 import GetAllOperatorsResponse429
-from ...models.get_all_operators_response_500 import GetAllOperatorsResponse500
+from ...models.error_response import ErrorResponse
 from ...models.operator_list_response import OperatorListResponse
 from ...types import UNSET, Response, Unset
 
@@ -42,27 +40,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllOperatorsResponse401
-    | GetAllOperatorsResponse429
-    | GetAllOperatorsResponse500
-    | OperatorListResponse
-    | None
-):
+) -> ErrorResponse | OperatorListResponse | None:
     if response.status_code == 200:
         response_200 = OperatorListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllOperatorsResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllOperatorsResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllOperatorsResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -73,12 +65,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetAllOperatorsResponse401
-    | GetAllOperatorsResponse429
-    | GetAllOperatorsResponse500
-    | OperatorListResponse
-]:
+) -> Response[ErrorResponse | OperatorListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -94,12 +81,7 @@ def sync_detailed(
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[
-    GetAllOperatorsResponse401
-    | GetAllOperatorsResponse429
-    | GetAllOperatorsResponse500
-    | OperatorListResponse
-]:
+) -> Response[ErrorResponse | OperatorListResponse]:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
@@ -117,7 +99,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllOperatorsResponse401, GetAllOperatorsResponse429, GetAllOperatorsResponse500, OperatorListResponse]]
+        Response[Union[ErrorResponse, OperatorListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -141,13 +123,7 @@ def sync(
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> (
-    GetAllOperatorsResponse401
-    | GetAllOperatorsResponse429
-    | GetAllOperatorsResponse500
-    | OperatorListResponse
-    | None
-):
+) -> ErrorResponse | OperatorListResponse | None:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
@@ -165,7 +141,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllOperatorsResponse401, GetAllOperatorsResponse429, GetAllOperatorsResponse500, OperatorListResponse]
+        Union[ErrorResponse, OperatorListResponse]
     """
 
     return sync_detailed(
@@ -184,12 +160,7 @@ async def asyncio_detailed(
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[
-    GetAllOperatorsResponse401
-    | GetAllOperatorsResponse429
-    | GetAllOperatorsResponse500
-    | OperatorListResponse
-]:
+) -> Response[ErrorResponse | OperatorListResponse]:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
@@ -207,7 +178,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllOperatorsResponse401, GetAllOperatorsResponse429, GetAllOperatorsResponse500, OperatorListResponse]]
+        Response[Union[ErrorResponse, OperatorListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -229,13 +200,7 @@ async def asyncio(
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> (
-    GetAllOperatorsResponse401
-    | GetAllOperatorsResponse429
-    | GetAllOperatorsResponse500
-    | OperatorListResponse
-    | None
-):
+) -> ErrorResponse | OperatorListResponse | None:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
@@ -253,7 +218,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllOperatorsResponse401, GetAllOperatorsResponse429, GetAllOperatorsResponse500, OperatorListResponse]
+        Union[ErrorResponse, OperatorListResponse]
     """
 
     return (

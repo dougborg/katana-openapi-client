@@ -5,18 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.delete_po_additional_cost_response_401 import (
-    DeletePoAdditionalCostResponse401,
-)
-from ...models.delete_po_additional_cost_response_404 import (
-    DeletePoAdditionalCostResponse404,
-)
-from ...models.delete_po_additional_cost_response_429 import (
-    DeletePoAdditionalCostResponse429,
-)
-from ...models.delete_po_additional_cost_response_500 import (
-    DeletePoAdditionalCostResponse500,
-)
+from ...models.error_response import ErrorResponse
 from ...types import Response
 
 
@@ -33,31 +22,24 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    Any
-    | DeletePoAdditionalCostResponse401
-    | DeletePoAdditionalCostResponse404
-    | DeletePoAdditionalCostResponse429
-    | DeletePoAdditionalCostResponse500
-    | None
-):
+) -> Any | ErrorResponse | None:
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
     if response.status_code == 401:
-        response_401 = DeletePoAdditionalCostResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 404:
-        response_404 = DeletePoAdditionalCostResponse404.from_dict(response.json())
+        response_404 = ErrorResponse.from_dict(response.json())
 
         return response_404
     if response.status_code == 429:
-        response_429 = DeletePoAdditionalCostResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = DeletePoAdditionalCostResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -68,13 +50,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    Any
-    | DeletePoAdditionalCostResponse401
-    | DeletePoAdditionalCostResponse404
-    | DeletePoAdditionalCostResponse429
-    | DeletePoAdditionalCostResponse500
-]:
+) -> Response[Any | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -87,13 +63,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    Any
-    | DeletePoAdditionalCostResponse401
-    | DeletePoAdditionalCostResponse404
-    | DeletePoAdditionalCostResponse429
-    | DeletePoAdditionalCostResponse500
-]:
+) -> Response[Any | ErrorResponse]:
     """Delete a purchase order additional cost row
 
      Deletes a purchase order additional cost row by id.
@@ -107,7 +77,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[Any, DeletePoAdditionalCostResponse401, DeletePoAdditionalCostResponse404, DeletePoAdditionalCostResponse429, DeletePoAdditionalCostResponse500]]
+        Response[Union[Any, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -125,14 +95,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    Any
-    | DeletePoAdditionalCostResponse401
-    | DeletePoAdditionalCostResponse404
-    | DeletePoAdditionalCostResponse429
-    | DeletePoAdditionalCostResponse500
-    | None
-):
+) -> Any | ErrorResponse | None:
     """Delete a purchase order additional cost row
 
      Deletes a purchase order additional cost row by id.
@@ -146,7 +109,7 @@ def sync(
 
 
     Returns:
-        Union[Any, DeletePoAdditionalCostResponse401, DeletePoAdditionalCostResponse404, DeletePoAdditionalCostResponse429, DeletePoAdditionalCostResponse500]
+        Union[Any, ErrorResponse]
     """
 
     return sync_detailed(
@@ -159,13 +122,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    Any
-    | DeletePoAdditionalCostResponse401
-    | DeletePoAdditionalCostResponse404
-    | DeletePoAdditionalCostResponse429
-    | DeletePoAdditionalCostResponse500
-]:
+) -> Response[Any | ErrorResponse]:
     """Delete a purchase order additional cost row
 
      Deletes a purchase order additional cost row by id.
@@ -179,7 +136,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[Any, DeletePoAdditionalCostResponse401, DeletePoAdditionalCostResponse404, DeletePoAdditionalCostResponse429, DeletePoAdditionalCostResponse500]]
+        Response[Union[Any, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -195,14 +152,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    Any
-    | DeletePoAdditionalCostResponse401
-    | DeletePoAdditionalCostResponse404
-    | DeletePoAdditionalCostResponse429
-    | DeletePoAdditionalCostResponse500
-    | None
-):
+) -> Any | ErrorResponse | None:
     """Delete a purchase order additional cost row
 
      Deletes a purchase order additional cost row by id.
@@ -216,7 +166,7 @@ async def asyncio(
 
 
     Returns:
-        Union[Any, DeletePoAdditionalCostResponse401, DeletePoAdditionalCostResponse404, DeletePoAdditionalCostResponse429, DeletePoAdditionalCostResponse500]
+        Union[Any, ErrorResponse]
     """
 
     return (

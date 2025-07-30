@@ -5,24 +5,8 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.delete_manufacturing_order_response_204 import (
-    DeleteManufacturingOrderResponse204,
-)
-from ...models.delete_manufacturing_order_response_401 import (
-    DeleteManufacturingOrderResponse401,
-)
-from ...models.delete_manufacturing_order_response_404 import (
-    DeleteManufacturingOrderResponse404,
-)
-from ...models.delete_manufacturing_order_response_422 import (
-    DeleteManufacturingOrderResponse422,
-)
-from ...models.delete_manufacturing_order_response_429 import (
-    DeleteManufacturingOrderResponse429,
-)
-from ...models.delete_manufacturing_order_response_500 import (
-    DeleteManufacturingOrderResponse500,
-)
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...types import Response
 
 
@@ -39,37 +23,29 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    DeleteManufacturingOrderResponse204
-    | DeleteManufacturingOrderResponse401
-    | DeleteManufacturingOrderResponse404
-    | DeleteManufacturingOrderResponse422
-    | DeleteManufacturingOrderResponse429
-    | DeleteManufacturingOrderResponse500
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 204:
-        response_204 = DeleteManufacturingOrderResponse204.from_dict(response.json())
+        response_204 = ErrorResponse.from_dict(response.json())
 
         return response_204
     if response.status_code == 401:
-        response_401 = DeleteManufacturingOrderResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 404:
-        response_404 = DeleteManufacturingOrderResponse404.from_dict(response.json())
+        response_404 = ErrorResponse.from_dict(response.json())
 
         return response_404
     if response.status_code == 422:
-        response_422 = DeleteManufacturingOrderResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = DeleteManufacturingOrderResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = DeleteManufacturingOrderResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -80,14 +56,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    DeleteManufacturingOrderResponse204
-    | DeleteManufacturingOrderResponse401
-    | DeleteManufacturingOrderResponse404
-    | DeleteManufacturingOrderResponse422
-    | DeleteManufacturingOrderResponse429
-    | DeleteManufacturingOrderResponse500
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -100,14 +69,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    DeleteManufacturingOrderResponse204
-    | DeleteManufacturingOrderResponse401
-    | DeleteManufacturingOrderResponse404
-    | DeleteManufacturingOrderResponse422
-    | DeleteManufacturingOrderResponse429
-    | DeleteManufacturingOrderResponse500
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse]:
     """Delete a manufacturing order
 
      Deletes a single manufacturing order by id.
@@ -121,7 +83,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DeleteManufacturingOrderResponse204, DeleteManufacturingOrderResponse401, DeleteManufacturingOrderResponse404, DeleteManufacturingOrderResponse422, DeleteManufacturingOrderResponse429, DeleteManufacturingOrderResponse500]]
+        Response[Union[DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -139,15 +101,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    DeleteManufacturingOrderResponse204
-    | DeleteManufacturingOrderResponse401
-    | DeleteManufacturingOrderResponse404
-    | DeleteManufacturingOrderResponse422
-    | DeleteManufacturingOrderResponse429
-    | DeleteManufacturingOrderResponse500
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | None:
     """Delete a manufacturing order
 
      Deletes a single manufacturing order by id.
@@ -161,7 +115,7 @@ def sync(
 
 
     Returns:
-        Union[DeleteManufacturingOrderResponse204, DeleteManufacturingOrderResponse401, DeleteManufacturingOrderResponse404, DeleteManufacturingOrderResponse422, DeleteManufacturingOrderResponse429, DeleteManufacturingOrderResponse500]
+        Union[DetailedErrorResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -174,14 +128,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    DeleteManufacturingOrderResponse204
-    | DeleteManufacturingOrderResponse401
-    | DeleteManufacturingOrderResponse404
-    | DeleteManufacturingOrderResponse422
-    | DeleteManufacturingOrderResponse429
-    | DeleteManufacturingOrderResponse500
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse]:
     """Delete a manufacturing order
 
      Deletes a single manufacturing order by id.
@@ -195,7 +142,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DeleteManufacturingOrderResponse204, DeleteManufacturingOrderResponse401, DeleteManufacturingOrderResponse404, DeleteManufacturingOrderResponse422, DeleteManufacturingOrderResponse429, DeleteManufacturingOrderResponse500]]
+        Response[Union[DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -211,15 +158,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    DeleteManufacturingOrderResponse204
-    | DeleteManufacturingOrderResponse401
-    | DeleteManufacturingOrderResponse404
-    | DeleteManufacturingOrderResponse422
-    | DeleteManufacturingOrderResponse429
-    | DeleteManufacturingOrderResponse500
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | None:
     """Delete a manufacturing order
 
      Deletes a single manufacturing order by id.
@@ -233,7 +172,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DeleteManufacturingOrderResponse204, DeleteManufacturingOrderResponse401, DeleteManufacturingOrderResponse404, DeleteManufacturingOrderResponse422, DeleteManufacturingOrderResponse429, DeleteManufacturingOrderResponse500]
+        Union[DetailedErrorResponse, ErrorResponse]
     """
 
     return (

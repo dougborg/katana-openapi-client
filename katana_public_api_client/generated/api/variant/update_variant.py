@@ -5,11 +5,9 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...models.update_variant_request import UpdateVariantRequest
-from ...models.update_variant_response_401 import UpdateVariantResponse401
-from ...models.update_variant_response_422 import UpdateVariantResponse422
-from ...models.update_variant_response_429 import UpdateVariantResponse429
-from ...models.update_variant_response_500 import UpdateVariantResponse500
 from ...models.variant import Variant
 from ...types import Response
 
@@ -36,32 +34,25 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    UpdateVariantResponse401
-    | UpdateVariantResponse422
-    | UpdateVariantResponse429
-    | UpdateVariantResponse500
-    | Variant
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | Variant | None:
     if response.status_code == 200:
         response_200 = Variant.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = UpdateVariantResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 422:
-        response_422 = UpdateVariantResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = UpdateVariantResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = UpdateVariantResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -72,13 +63,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    UpdateVariantResponse401
-    | UpdateVariantResponse422
-    | UpdateVariantResponse429
-    | UpdateVariantResponse500
-    | Variant
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Variant]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -92,13 +77,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateVariantRequest,
-) -> Response[
-    UpdateVariantResponse401
-    | UpdateVariantResponse422
-    | UpdateVariantResponse429
-    | UpdateVariantResponse500
-    | Variant
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Variant]:
     """Update a variant
 
      Updates the specified variant by setting the values of the parameters passed.
@@ -114,7 +93,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, Variant]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, Variant]]
     """
 
     kwargs = _get_kwargs(
@@ -134,14 +113,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateVariantRequest,
-) -> (
-    UpdateVariantResponse401
-    | UpdateVariantResponse422
-    | UpdateVariantResponse429
-    | UpdateVariantResponse500
-    | Variant
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | Variant | None:
     """Update a variant
 
      Updates the specified variant by setting the values of the parameters passed.
@@ -157,7 +129,7 @@ def sync(
 
 
     Returns:
-        Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, Variant]
+        Union[DetailedErrorResponse, ErrorResponse, Variant]
     """
 
     return sync_detailed(
@@ -172,13 +144,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateVariantRequest,
-) -> Response[
-    UpdateVariantResponse401
-    | UpdateVariantResponse422
-    | UpdateVariantResponse429
-    | UpdateVariantResponse500
-    | Variant
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Variant]:
     """Update a variant
 
      Updates the specified variant by setting the values of the parameters passed.
@@ -194,7 +160,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, Variant]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, Variant]]
     """
 
     kwargs = _get_kwargs(
@@ -212,14 +178,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateVariantRequest,
-) -> (
-    UpdateVariantResponse401
-    | UpdateVariantResponse422
-    | UpdateVariantResponse429
-    | UpdateVariantResponse500
-    | Variant
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | Variant | None:
     """Update a variant
 
      Updates the specified variant by setting the values of the parameters passed.
@@ -235,7 +194,7 @@ async def asyncio(
 
 
     Returns:
-        Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, Variant]
+        Union[DetailedErrorResponse, ErrorResponse, Variant]
     """
 
     return (

@@ -5,12 +5,10 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.get_all_serial_numbers_resource_type import (
     GetAllSerialNumbersResourceType,
 )
-from ...models.get_all_serial_numbers_response_401 import GetAllSerialNumbersResponse401
-from ...models.get_all_serial_numbers_response_429 import GetAllSerialNumbersResponse429
-from ...models.get_all_serial_numbers_response_500 import GetAllSerialNumbersResponse500
 from ...models.serial_number_list_response import SerialNumberListResponse
 from ...types import UNSET, Response, Unset
 
@@ -46,27 +44,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllSerialNumbersResponse401
-    | GetAllSerialNumbersResponse429
-    | GetAllSerialNumbersResponse500
-    | SerialNumberListResponse
-    | None
-):
+) -> ErrorResponse | SerialNumberListResponse | None:
     if response.status_code == 200:
         response_200 = SerialNumberListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllSerialNumbersResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllSerialNumbersResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllSerialNumbersResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -77,12 +69,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetAllSerialNumbersResponse401
-    | GetAllSerialNumbersResponse429
-    | GetAllSerialNumbersResponse500
-    | SerialNumberListResponse
-]:
+) -> Response[ErrorResponse | SerialNumberListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -98,12 +85,7 @@ def sync_detailed(
     resource_id: int,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[
-    GetAllSerialNumbersResponse401
-    | GetAllSerialNumbersResponse429
-    | GetAllSerialNumbersResponse500
-    | SerialNumberListResponse
-]:
+) -> Response[ErrorResponse | SerialNumberListResponse]:
     """List serial numbers
 
      Returns a list of serial numbers.
@@ -121,7 +103,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberListResponse]]
+        Response[Union[ErrorResponse, SerialNumberListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -145,13 +127,7 @@ def sync(
     resource_id: int,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> (
-    GetAllSerialNumbersResponse401
-    | GetAllSerialNumbersResponse429
-    | GetAllSerialNumbersResponse500
-    | SerialNumberListResponse
-    | None
-):
+) -> ErrorResponse | SerialNumberListResponse | None:
     """List serial numbers
 
      Returns a list of serial numbers.
@@ -169,7 +145,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberListResponse]
+        Union[ErrorResponse, SerialNumberListResponse]
     """
 
     return sync_detailed(
@@ -188,12 +164,7 @@ async def asyncio_detailed(
     resource_id: int,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[
-    GetAllSerialNumbersResponse401
-    | GetAllSerialNumbersResponse429
-    | GetAllSerialNumbersResponse500
-    | SerialNumberListResponse
-]:
+) -> Response[ErrorResponse | SerialNumberListResponse]:
     """List serial numbers
 
      Returns a list of serial numbers.
@@ -211,7 +182,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberListResponse]]
+        Response[Union[ErrorResponse, SerialNumberListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -233,13 +204,7 @@ async def asyncio(
     resource_id: int,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> (
-    GetAllSerialNumbersResponse401
-    | GetAllSerialNumbersResponse429
-    | GetAllSerialNumbersResponse500
-    | SerialNumberListResponse
-    | None
-):
+) -> ErrorResponse | SerialNumberListResponse | None:
     """List serial numbers
 
      Returns a list of serial numbers.
@@ -257,7 +222,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberListResponse]
+        Union[ErrorResponse, SerialNumberListResponse]
     """
 
     return (

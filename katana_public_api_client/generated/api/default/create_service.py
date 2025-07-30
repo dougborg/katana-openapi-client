@@ -5,9 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.create_service_response_401 import CreateServiceResponse401
-from ...models.create_service_response_429 import CreateServiceResponse429
-from ...models.create_service_response_500 import CreateServiceResponse500
+from ...models.error_response import ErrorResponse
 from ...models.service import Service
 from ...models.service_request import ServiceRequest
 from ...types import Response
@@ -34,27 +32,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    CreateServiceResponse401
-    | CreateServiceResponse429
-    | CreateServiceResponse500
-    | Service
-    | None
-):
+) -> ErrorResponse | Service | None:
     if response.status_code == 201:
         response_201 = Service.from_dict(response.json())
 
         return response_201
     if response.status_code == 401:
-        response_401 = CreateServiceResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = CreateServiceResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = CreateServiceResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -65,12 +57,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    CreateServiceResponse401
-    | CreateServiceResponse429
-    | CreateServiceResponse500
-    | Service
-]:
+) -> Response[ErrorResponse | Service]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -83,12 +70,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: ServiceRequest,
-) -> Response[
-    CreateServiceResponse401
-    | CreateServiceResponse429
-    | CreateServiceResponse500
-    | Service
-]:
+) -> Response[ErrorResponse | Service]:
     """Create Service
 
      Create a new Service. (See: [Create
@@ -103,7 +85,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateServiceResponse401, CreateServiceResponse429, CreateServiceResponse500, Service]]
+        Response[Union[ErrorResponse, Service]]
     """
 
     kwargs = _get_kwargs(
@@ -121,13 +103,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: ServiceRequest,
-) -> (
-    CreateServiceResponse401
-    | CreateServiceResponse429
-    | CreateServiceResponse500
-    | Service
-    | None
-):
+) -> ErrorResponse | Service | None:
     """Create Service
 
      Create a new Service. (See: [Create
@@ -142,7 +118,7 @@ def sync(
 
 
     Returns:
-        Union[CreateServiceResponse401, CreateServiceResponse429, CreateServiceResponse500, Service]
+        Union[ErrorResponse, Service]
     """
 
     return sync_detailed(
@@ -155,12 +131,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: ServiceRequest,
-) -> Response[
-    CreateServiceResponse401
-    | CreateServiceResponse429
-    | CreateServiceResponse500
-    | Service
-]:
+) -> Response[ErrorResponse | Service]:
     """Create Service
 
      Create a new Service. (See: [Create
@@ -175,7 +146,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateServiceResponse401, CreateServiceResponse429, CreateServiceResponse500, Service]]
+        Response[Union[ErrorResponse, Service]]
     """
 
     kwargs = _get_kwargs(
@@ -191,13 +162,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: ServiceRequest,
-) -> (
-    CreateServiceResponse401
-    | CreateServiceResponse429
-    | CreateServiceResponse500
-    | Service
-    | None
-):
+) -> ErrorResponse | Service | None:
     """Create Service
 
      Create a new Service. (See: [Create
@@ -212,7 +177,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateServiceResponse401, CreateServiceResponse429, CreateServiceResponse500, Service]
+        Union[ErrorResponse, Service]
     """
 
     return (

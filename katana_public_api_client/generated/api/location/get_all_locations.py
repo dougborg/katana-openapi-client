@@ -6,10 +6,8 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.get_all_locations_response_200 import GetAllLocationsResponse200
-from ...models.get_all_locations_response_401 import GetAllLocationsResponse401
-from ...models.get_all_locations_response_429 import GetAllLocationsResponse429
-from ...models.get_all_locations_response_500 import GetAllLocationsResponse500
 from ...types import UNSET, Response, Unset
 
 
@@ -92,27 +90,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllLocationsResponse200
-    | GetAllLocationsResponse401
-    | GetAllLocationsResponse429
-    | GetAllLocationsResponse500
-    | None
-):
+) -> ErrorResponse | GetAllLocationsResponse200 | None:
     if response.status_code == 200:
         response_200 = GetAllLocationsResponse200.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllLocationsResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllLocationsResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllLocationsResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -123,12 +115,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetAllLocationsResponse200
-    | GetAllLocationsResponse401
-    | GetAllLocationsResponse429
-    | GetAllLocationsResponse500
-]:
+) -> Response[ErrorResponse | GetAllLocationsResponse200]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -155,12 +142,7 @@ def sync_detailed(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[
-    GetAllLocationsResponse200
-    | GetAllLocationsResponse401
-    | GetAllLocationsResponse429
-    | GetAllLocationsResponse500
-]:
+) -> Response[ErrorResponse | GetAllLocationsResponse200]:
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
@@ -189,7 +171,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllLocationsResponse200, GetAllLocationsResponse401, GetAllLocationsResponse429, GetAllLocationsResponse500]]
+        Response[Union[ErrorResponse, GetAllLocationsResponse200]]
     """
 
     kwargs = _get_kwargs(
@@ -235,13 +217,7 @@ def sync(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> (
-    GetAllLocationsResponse200
-    | GetAllLocationsResponse401
-    | GetAllLocationsResponse429
-    | GetAllLocationsResponse500
-    | None
-):
+) -> ErrorResponse | GetAllLocationsResponse200 | None:
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
@@ -270,7 +246,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllLocationsResponse200, GetAllLocationsResponse401, GetAllLocationsResponse429, GetAllLocationsResponse500]
+        Union[ErrorResponse, GetAllLocationsResponse200]
     """
 
     return sync_detailed(
@@ -311,12 +287,7 @@ async def asyncio_detailed(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[
-    GetAllLocationsResponse200
-    | GetAllLocationsResponse401
-    | GetAllLocationsResponse429
-    | GetAllLocationsResponse500
-]:
+) -> Response[ErrorResponse | GetAllLocationsResponse200]:
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
@@ -345,7 +316,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllLocationsResponse200, GetAllLocationsResponse401, GetAllLocationsResponse429, GetAllLocationsResponse500]]
+        Response[Union[ErrorResponse, GetAllLocationsResponse200]]
     """
 
     kwargs = _get_kwargs(
@@ -389,13 +360,7 @@ async def asyncio(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> (
-    GetAllLocationsResponse200
-    | GetAllLocationsResponse401
-    | GetAllLocationsResponse429
-    | GetAllLocationsResponse500
-    | None
-):
+) -> ErrorResponse | GetAllLocationsResponse200 | None:
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
@@ -424,7 +389,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllLocationsResponse200, GetAllLocationsResponse401, GetAllLocationsResponse429, GetAllLocationsResponse500]
+        Union[ErrorResponse, GetAllLocationsResponse200]
     """
 
     return (

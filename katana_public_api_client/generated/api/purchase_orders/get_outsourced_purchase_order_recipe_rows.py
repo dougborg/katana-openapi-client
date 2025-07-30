@@ -5,15 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_outsourced_purchase_order_recipe_rows_response_401 import (
-    GetOutsourcedPurchaseOrderRecipeRowsResponse401,
-)
-from ...models.get_outsourced_purchase_order_recipe_rows_response_429 import (
-    GetOutsourcedPurchaseOrderRecipeRowsResponse429,
-)
-from ...models.get_outsourced_purchase_order_recipe_rows_response_500 import (
-    GetOutsourcedPurchaseOrderRecipeRowsResponse500,
-)
+from ...models.error_response import ErrorResponse
 from ...models.outsourced_purchase_order_recipe_row_list_response import (
     OutsourcedPurchaseOrderRecipeRowListResponse,
 )
@@ -54,13 +46,7 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetOutsourcedPurchaseOrderRecipeRowsResponse401
-    | GetOutsourcedPurchaseOrderRecipeRowsResponse429
-    | GetOutsourcedPurchaseOrderRecipeRowsResponse500
-    | OutsourcedPurchaseOrderRecipeRowListResponse
-    | None
-):
+) -> ErrorResponse | OutsourcedPurchaseOrderRecipeRowListResponse | None:
     if response.status_code == 200:
         response_200 = OutsourcedPurchaseOrderRecipeRowListResponse.from_dict(
             response.json()
@@ -68,21 +54,15 @@ def _parse_response(
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetOutsourcedPurchaseOrderRecipeRowsResponse401.from_dict(
-            response.json()
-        )
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetOutsourcedPurchaseOrderRecipeRowsResponse429.from_dict(
-            response.json()
-        )
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetOutsourcedPurchaseOrderRecipeRowsResponse500.from_dict(
-            response.json()
-        )
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -93,12 +73,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetOutsourcedPurchaseOrderRecipeRowsResponse401
-    | GetOutsourcedPurchaseOrderRecipeRowsResponse429
-    | GetOutsourcedPurchaseOrderRecipeRowsResponse500
-    | OutsourcedPurchaseOrderRecipeRowListResponse
-]:
+) -> Response[ErrorResponse | OutsourcedPurchaseOrderRecipeRowListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -114,12 +89,7 @@ def sync_detailed(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     outsourced_purchase_order_id: Unset | int = UNSET,
-) -> Response[
-    GetOutsourcedPurchaseOrderRecipeRowsResponse401
-    | GetOutsourcedPurchaseOrderRecipeRowsResponse429
-    | GetOutsourcedPurchaseOrderRecipeRowsResponse500
-    | OutsourcedPurchaseOrderRecipeRowListResponse
-]:
+) -> Response[ErrorResponse | OutsourcedPurchaseOrderRecipeRowListResponse]:
     """List all outsourced purchase order recipe rows
 
      Retrieves a list of outsourced purchase order recipe rows.
@@ -136,7 +106,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetOutsourcedPurchaseOrderRecipeRowsResponse401, GetOutsourcedPurchaseOrderRecipeRowsResponse429, GetOutsourcedPurchaseOrderRecipeRowsResponse500, OutsourcedPurchaseOrderRecipeRowListResponse]]
+        Response[Union[ErrorResponse, OutsourcedPurchaseOrderRecipeRowListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -160,13 +130,7 @@ def sync(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     outsourced_purchase_order_id: Unset | int = UNSET,
-) -> (
-    GetOutsourcedPurchaseOrderRecipeRowsResponse401
-    | GetOutsourcedPurchaseOrderRecipeRowsResponse429
-    | GetOutsourcedPurchaseOrderRecipeRowsResponse500
-    | OutsourcedPurchaseOrderRecipeRowListResponse
-    | None
-):
+) -> ErrorResponse | OutsourcedPurchaseOrderRecipeRowListResponse | None:
     """List all outsourced purchase order recipe rows
 
      Retrieves a list of outsourced purchase order recipe rows.
@@ -183,7 +147,7 @@ def sync(
 
 
     Returns:
-        Union[GetOutsourcedPurchaseOrderRecipeRowsResponse401, GetOutsourcedPurchaseOrderRecipeRowsResponse429, GetOutsourcedPurchaseOrderRecipeRowsResponse500, OutsourcedPurchaseOrderRecipeRowListResponse]
+        Union[ErrorResponse, OutsourcedPurchaseOrderRecipeRowListResponse]
     """
 
     return sync_detailed(
@@ -202,12 +166,7 @@ async def asyncio_detailed(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     outsourced_purchase_order_id: Unset | int = UNSET,
-) -> Response[
-    GetOutsourcedPurchaseOrderRecipeRowsResponse401
-    | GetOutsourcedPurchaseOrderRecipeRowsResponse429
-    | GetOutsourcedPurchaseOrderRecipeRowsResponse500
-    | OutsourcedPurchaseOrderRecipeRowListResponse
-]:
+) -> Response[ErrorResponse | OutsourcedPurchaseOrderRecipeRowListResponse]:
     """List all outsourced purchase order recipe rows
 
      Retrieves a list of outsourced purchase order recipe rows.
@@ -224,7 +183,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetOutsourcedPurchaseOrderRecipeRowsResponse401, GetOutsourcedPurchaseOrderRecipeRowsResponse429, GetOutsourcedPurchaseOrderRecipeRowsResponse500, OutsourcedPurchaseOrderRecipeRowListResponse]]
+        Response[Union[ErrorResponse, OutsourcedPurchaseOrderRecipeRowListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -246,13 +205,7 @@ async def asyncio(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     outsourced_purchase_order_id: Unset | int = UNSET,
-) -> (
-    GetOutsourcedPurchaseOrderRecipeRowsResponse401
-    | GetOutsourcedPurchaseOrderRecipeRowsResponse429
-    | GetOutsourcedPurchaseOrderRecipeRowsResponse500
-    | OutsourcedPurchaseOrderRecipeRowListResponse
-    | None
-):
+) -> ErrorResponse | OutsourcedPurchaseOrderRecipeRowListResponse | None:
     """List all outsourced purchase order recipe rows
 
      Retrieves a list of outsourced purchase order recipe rows.
@@ -269,7 +222,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetOutsourcedPurchaseOrderRecipeRowsResponse401, GetOutsourcedPurchaseOrderRecipeRowsResponse429, GetOutsourcedPurchaseOrderRecipeRowsResponse500, OutsourcedPurchaseOrderRecipeRowListResponse]
+        Union[ErrorResponse, OutsourcedPurchaseOrderRecipeRowListResponse]
     """
 
     return (

@@ -20,10 +20,10 @@ class Stocktake:
     reference_no: str
     location_id: int
     status: StocktakeStatus
-    stocktake_date: Unset | datetime.datetime = UNSET
-    notes: None | Unset | str = UNSET
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
+    stocktake_date: Unset | datetime.datetime = UNSET
+    notes: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -35,6 +35,14 @@ class Stocktake:
 
         status = self.status.value
 
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
+
         stocktake_date: Unset | str = UNSET
         if not isinstance(self.stocktake_date, Unset):
             stocktake_date = self.stocktake_date.isoformat()
@@ -44,14 +52,6 @@ class Stocktake:
             notes = UNSET
         else:
             notes = self.notes
-
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -63,14 +63,14 @@ class Stocktake:
                 "status": status,
             }
         )
-        if stocktake_date is not UNSET:
-            field_dict["stocktake_date"] = stocktake_date
-        if notes is not UNSET:
-            field_dict["notes"] = notes
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
+        if stocktake_date is not UNSET:
+            field_dict["stocktake_date"] = stocktake_date
+        if notes is not UNSET:
+            field_dict["notes"] = notes
 
         return field_dict
 
@@ -84,6 +84,20 @@ class Stocktake:
         location_id = d.pop("location_id")
 
         status = StocktakeStatus(d.pop("status"))
+
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
+
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
 
         _stocktake_date = d.pop("stocktake_date", UNSET)
         stocktake_date: Unset | datetime.datetime
@@ -101,29 +115,15 @@ class Stocktake:
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
-
         stocktake = cls(
             id=id,
             reference_no=reference_no,
             location_id=location_id,
             status=status,
-            stocktake_date=stocktake_date,
-            notes=notes,
             created_at=created_at,
             updated_at=updated_at,
+            stocktake_date=stocktake_date,
+            notes=notes,
         )
 
         stocktake.additional_properties = d

@@ -1,12 +1,10 @@
-import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
 
@@ -15,13 +13,11 @@ T = TypeVar("T", bound="SalesOrderShippingFee")
 
 @_attrs_define
 class SalesOrderShippingFee:
-    id: Unset | int = UNSET
-    sales_order_id: Unset | int = UNSET
-    amount: Unset | float = UNSET
-    currency: Unset | str = UNSET
-    description: Unset | str = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
+    id: int
+    sales_order_id: int
+    amount: float
+    tax_rate_id: Unset | int = UNSET
+    description: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -31,73 +27,56 @@ class SalesOrderShippingFee:
 
         amount = self.amount
 
-        currency = self.currency
+        tax_rate_id = self.tax_rate_id
 
-        description = self.description
-
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
+        description: None | Unset | str
+        if isinstance(self.description, Unset):
+            description = UNSET
+        else:
+            description = self.description
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
-        if id is not UNSET:
-            field_dict["id"] = id
-        if sales_order_id is not UNSET:
-            field_dict["sales_order_id"] = sales_order_id
-        if amount is not UNSET:
-            field_dict["amount"] = amount
-        if currency is not UNSET:
-            field_dict["currency"] = currency
+        field_dict.update(
+            {
+                "id": id,
+                "sales_order_id": sales_order_id,
+                "amount": amount,
+            }
+        )
+        if tax_rate_id is not UNSET:
+            field_dict["tax_rate_id"] = tax_rate_id
         if description is not UNSET:
             field_dict["description"] = description
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        id = d.pop("id", UNSET)
+        id = d.pop("id")
 
-        sales_order_id = d.pop("sales_order_id", UNSET)
+        sales_order_id = d.pop("sales_order_id")
 
-        amount = d.pop("amount", UNSET)
+        amount = d.pop("amount")
 
-        currency = d.pop("currency", UNSET)
+        tax_rate_id = d.pop("tax_rate_id", UNSET)
 
-        description = d.pop("description", UNSET)
+        def _parse_description(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
+        description = _parse_description(d.pop("description", UNSET))
 
         sales_order_shipping_fee = cls(
             id=id,
             sales_order_id=sales_order_id,
             amount=amount,
-            currency=currency,
+            tax_rate_id=tax_rate_id,
             description=description,
-            created_at=created_at,
-            updated_at=updated_at,
         )
 
         sales_order_shipping_fee.additional_properties = d

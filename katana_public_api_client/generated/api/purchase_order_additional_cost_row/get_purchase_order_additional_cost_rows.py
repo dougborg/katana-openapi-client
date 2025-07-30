@@ -6,17 +6,9 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.get_purchase_order_additional_cost_rows_distribution_method import (
     GetPurchaseOrderAdditionalCostRowsDistributionMethod,
-)
-from ...models.get_purchase_order_additional_cost_rows_response_401 import (
-    GetPurchaseOrderAdditionalCostRowsResponse401,
-)
-from ...models.get_purchase_order_additional_cost_rows_response_429 import (
-    GetPurchaseOrderAdditionalCostRowsResponse429,
-)
-from ...models.get_purchase_order_additional_cost_rows_response_500 import (
-    GetPurchaseOrderAdditionalCostRowsResponse500,
 )
 from ...models.purchase_order_additional_cost_row_list_response import (
     PurchaseOrderAdditionalCostRowListResponse,
@@ -102,13 +94,7 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetPurchaseOrderAdditionalCostRowsResponse401
-    | GetPurchaseOrderAdditionalCostRowsResponse429
-    | GetPurchaseOrderAdditionalCostRowsResponse500
-    | PurchaseOrderAdditionalCostRowListResponse
-    | None
-):
+) -> ErrorResponse | PurchaseOrderAdditionalCostRowListResponse | None:
     if response.status_code == 200:
         response_200 = PurchaseOrderAdditionalCostRowListResponse.from_dict(
             response.json()
@@ -116,21 +102,15 @@ def _parse_response(
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetPurchaseOrderAdditionalCostRowsResponse401.from_dict(
-            response.json()
-        )
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetPurchaseOrderAdditionalCostRowsResponse429.from_dict(
-            response.json()
-        )
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetPurchaseOrderAdditionalCostRowsResponse500.from_dict(
-            response.json()
-        )
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -141,12 +121,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetPurchaseOrderAdditionalCostRowsResponse401
-    | GetPurchaseOrderAdditionalCostRowsResponse429
-    | GetPurchaseOrderAdditionalCostRowsResponse500
-    | PurchaseOrderAdditionalCostRowListResponse
-]:
+) -> Response[ErrorResponse | PurchaseOrderAdditionalCostRowListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -172,12 +147,7 @@ def sync_detailed(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[
-    GetPurchaseOrderAdditionalCostRowsResponse401
-    | GetPurchaseOrderAdditionalCostRowsResponse429
-    | GetPurchaseOrderAdditionalCostRowsResponse500
-    | PurchaseOrderAdditionalCostRowListResponse
-]:
+) -> Response[ErrorResponse | PurchaseOrderAdditionalCostRowListResponse]:
     """List all purchase order additional cost rows
 
      Returns a list of purchase order additional cost rows you've previously created.
@@ -203,7 +173,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetPurchaseOrderAdditionalCostRowsResponse401, GetPurchaseOrderAdditionalCostRowsResponse429, GetPurchaseOrderAdditionalCostRowsResponse500, PurchaseOrderAdditionalCostRowListResponse]]
+        Response[Union[ErrorResponse, PurchaseOrderAdditionalCostRowListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -246,13 +216,7 @@ def sync(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> (
-    GetPurchaseOrderAdditionalCostRowsResponse401
-    | GetPurchaseOrderAdditionalCostRowsResponse429
-    | GetPurchaseOrderAdditionalCostRowsResponse500
-    | PurchaseOrderAdditionalCostRowListResponse
-    | None
-):
+) -> ErrorResponse | PurchaseOrderAdditionalCostRowListResponse | None:
     """List all purchase order additional cost rows
 
      Returns a list of purchase order additional cost rows you've previously created.
@@ -278,7 +242,7 @@ def sync(
 
 
     Returns:
-        Union[GetPurchaseOrderAdditionalCostRowsResponse401, GetPurchaseOrderAdditionalCostRowsResponse429, GetPurchaseOrderAdditionalCostRowsResponse500, PurchaseOrderAdditionalCostRowListResponse]
+        Union[ErrorResponse, PurchaseOrderAdditionalCostRowListResponse]
     """
 
     return sync_detailed(
@@ -316,12 +280,7 @@ async def asyncio_detailed(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[
-    GetPurchaseOrderAdditionalCostRowsResponse401
-    | GetPurchaseOrderAdditionalCostRowsResponse429
-    | GetPurchaseOrderAdditionalCostRowsResponse500
-    | PurchaseOrderAdditionalCostRowListResponse
-]:
+) -> Response[ErrorResponse | PurchaseOrderAdditionalCostRowListResponse]:
     """List all purchase order additional cost rows
 
      Returns a list of purchase order additional cost rows you've previously created.
@@ -347,7 +306,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetPurchaseOrderAdditionalCostRowsResponse401, GetPurchaseOrderAdditionalCostRowsResponse429, GetPurchaseOrderAdditionalCostRowsResponse500, PurchaseOrderAdditionalCostRowListResponse]]
+        Response[Union[ErrorResponse, PurchaseOrderAdditionalCostRowListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -388,13 +347,7 @@ async def asyncio(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> (
-    GetPurchaseOrderAdditionalCostRowsResponse401
-    | GetPurchaseOrderAdditionalCostRowsResponse429
-    | GetPurchaseOrderAdditionalCostRowsResponse500
-    | PurchaseOrderAdditionalCostRowListResponse
-    | None
-):
+) -> ErrorResponse | PurchaseOrderAdditionalCostRowListResponse | None:
     """List all purchase order additional cost rows
 
      Returns a list of purchase order additional cost rows you've previously created.
@@ -420,7 +373,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetPurchaseOrderAdditionalCostRowsResponse401, GetPurchaseOrderAdditionalCostRowsResponse429, GetPurchaseOrderAdditionalCostRowsResponse500, PurchaseOrderAdditionalCostRowListResponse]
+        Union[ErrorResponse, PurchaseOrderAdditionalCostRowListResponse]
     """
 
     return (

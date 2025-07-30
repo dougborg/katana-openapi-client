@@ -20,6 +20,9 @@ T = TypeVar("T", bound="ManufacturingOrder")
 
 @_attrs_define
 class ManufacturingOrder:
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | str = UNSET
     id: Unset | int = UNSET
     status: Unset | ManufacturingOrderStatus = UNSET
     order_no: Unset | str = UNSET
@@ -41,13 +44,24 @@ class ManufacturingOrder:
     material_cost: Unset | float = UNSET
     subassemblies_cost: Unset | float = UNSET
     operations_cost: Unset | float = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
     serial_numbers: Unset | list["SerialNumber"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
+
+        deleted_at: None | Unset | str
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        else:
+            deleted_at = self.deleted_at
+
         id = self.id
 
         status: Unset | str = UNSET
@@ -104,22 +118,6 @@ class ManufacturingOrder:
 
         operations_cost = self.operations_cost
 
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
-
-        deleted_at: None | Unset | str
-        if isinstance(self.deleted_at, Unset):
-            deleted_at = UNSET
-        elif isinstance(self.deleted_at, datetime.datetime):
-            deleted_at = self.deleted_at.isoformat()
-        else:
-            deleted_at = self.deleted_at
-
         serial_numbers: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.serial_numbers, Unset):
             serial_numbers = []
@@ -130,6 +128,12 @@ class ManufacturingOrder:
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
         if id is not UNSET:
             field_dict["id"] = id
         if status is not UNSET:
@@ -172,12 +176,6 @@ class ManufacturingOrder:
             field_dict["subassemblies_cost"] = subassemblies_cost
         if operations_cost is not UNSET:
             field_dict["operations_cost"] = operations_cost
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
-        if deleted_at is not UNSET:
-            field_dict["deleted_at"] = deleted_at
         if serial_numbers is not UNSET:
             field_dict["serial_numbers"] = serial_numbers
 
@@ -188,6 +186,29 @@ class ManufacturingOrder:
         from ..models.serial_number import SerialNumber
 
         d = dict(src_dict)
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
+
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
+
+        def _parse_deleted_at(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
+
         id = d.pop("id", UNSET)
 
         _status = d.pop("status", UNSET)
@@ -257,37 +278,6 @@ class ManufacturingOrder:
 
         operations_cost = d.pop("operations_cost", UNSET)
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
-
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                deleted_at_type_0 = isoparse(data)
-
-                return deleted_at_type_0
-            except:  # noqa: E722
-                pass
-            return cast(None | Unset | datetime.datetime, data)
-
-        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
-
         serial_numbers = []
         _serial_numbers = d.pop("serial_numbers", UNSET)
         for serial_numbers_item_data in _serial_numbers or []:
@@ -296,6 +286,9 @@ class ManufacturingOrder:
             serial_numbers.append(serial_numbers_item)
 
         manufacturing_order = cls(
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
             id=id,
             status=status,
             order_no=order_no,
@@ -317,9 +310,6 @@ class ManufacturingOrder:
             material_cost=material_cost,
             subassemblies_cost=subassemblies_cost,
             operations_cost=operations_cost,
-            created_at=created_at,
-            updated_at=updated_at,
-            deleted_at=deleted_at,
             serial_numbers=serial_numbers,
         )
 

@@ -5,9 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_all_stocktakes_response_401 import GetAllStocktakesResponse401
-from ...models.get_all_stocktakes_response_429 import GetAllStocktakesResponse429
-from ...models.get_all_stocktakes_response_500 import GetAllStocktakesResponse500
+from ...models.error_response import ErrorResponse
 from ...models.get_all_stocktakes_status import GetAllStocktakesStatus
 from ...models.stocktake_list_response import StocktakeListResponse
 from ...types import UNSET, Response, Unset
@@ -54,27 +52,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllStocktakesResponse401
-    | GetAllStocktakesResponse429
-    | GetAllStocktakesResponse500
-    | StocktakeListResponse
-    | None
-):
+) -> ErrorResponse | StocktakeListResponse | None:
     if response.status_code == 200:
         response_200 = StocktakeListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllStocktakesResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllStocktakesResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllStocktakesResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -85,12 +77,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetAllStocktakesResponse401
-    | GetAllStocktakesResponse429
-    | GetAllStocktakesResponse500
-    | StocktakeListResponse
-]:
+) -> Response[ErrorResponse | StocktakeListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -107,12 +94,7 @@ def sync_detailed(
     ids: Unset | list[int] = UNSET,
     location_id: Unset | int = UNSET,
     status: Unset | GetAllStocktakesStatus = UNSET,
-) -> Response[
-    GetAllStocktakesResponse401
-    | GetAllStocktakesResponse429
-    | GetAllStocktakesResponse500
-    | StocktakeListResponse
-]:
+) -> Response[ErrorResponse | StocktakeListResponse]:
     """List stocktakes
 
      Returns a list of stocktakes.
@@ -130,7 +112,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllStocktakesResponse401, GetAllStocktakesResponse429, GetAllStocktakesResponse500, StocktakeListResponse]]
+        Response[Union[ErrorResponse, StocktakeListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -156,13 +138,7 @@ def sync(
     ids: Unset | list[int] = UNSET,
     location_id: Unset | int = UNSET,
     status: Unset | GetAllStocktakesStatus = UNSET,
-) -> (
-    GetAllStocktakesResponse401
-    | GetAllStocktakesResponse429
-    | GetAllStocktakesResponse500
-    | StocktakeListResponse
-    | None
-):
+) -> ErrorResponse | StocktakeListResponse | None:
     """List stocktakes
 
      Returns a list of stocktakes.
@@ -180,7 +156,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllStocktakesResponse401, GetAllStocktakesResponse429, GetAllStocktakesResponse500, StocktakeListResponse]
+        Union[ErrorResponse, StocktakeListResponse]
     """
 
     return sync_detailed(
@@ -201,12 +177,7 @@ async def asyncio_detailed(
     ids: Unset | list[int] = UNSET,
     location_id: Unset | int = UNSET,
     status: Unset | GetAllStocktakesStatus = UNSET,
-) -> Response[
-    GetAllStocktakesResponse401
-    | GetAllStocktakesResponse429
-    | GetAllStocktakesResponse500
-    | StocktakeListResponse
-]:
+) -> Response[ErrorResponse | StocktakeListResponse]:
     """List stocktakes
 
      Returns a list of stocktakes.
@@ -224,7 +195,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllStocktakesResponse401, GetAllStocktakesResponse429, GetAllStocktakesResponse500, StocktakeListResponse]]
+        Response[Union[ErrorResponse, StocktakeListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -248,13 +219,7 @@ async def asyncio(
     ids: Unset | list[int] = UNSET,
     location_id: Unset | int = UNSET,
     status: Unset | GetAllStocktakesStatus = UNSET,
-) -> (
-    GetAllStocktakesResponse401
-    | GetAllStocktakesResponse429
-    | GetAllStocktakesResponse500
-    | StocktakeListResponse
-    | None
-):
+) -> ErrorResponse | StocktakeListResponse | None:
     """List stocktakes
 
      Returns a list of stocktakes.
@@ -272,7 +237,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllStocktakesResponse401, GetAllStocktakesResponse429, GetAllStocktakesResponse500, StocktakeListResponse]
+        Union[ErrorResponse, StocktakeListResponse]
     """
 
     return (

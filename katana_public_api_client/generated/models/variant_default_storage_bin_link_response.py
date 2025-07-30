@@ -15,24 +15,16 @@ T = TypeVar("T", bound="VariantDefaultStorageBinLinkResponse")
 
 @_attrs_define
 class VariantDefaultStorageBinLinkResponse:
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | str = UNSET
     id: Unset | int = UNSET
     bin_name: Unset | str = UNSET
     variant_id: Unset | int = UNSET
     storage_bin_id: Unset | int = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        id = self.id
-
-        bin_name = self.bin_name
-
-        variant_id = self.variant_id
-
-        storage_bin_id = self.storage_bin_id
-
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -44,14 +36,26 @@ class VariantDefaultStorageBinLinkResponse:
         deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
-        elif isinstance(self.deleted_at, datetime.datetime):
-            deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
+
+        id = self.id
+
+        bin_name = self.bin_name
+
+        variant_id = self.variant_id
+
+        storage_bin_id = self.storage_bin_id
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
         if id is not UNSET:
             field_dict["id"] = id
         if bin_name is not UNSET:
@@ -60,26 +64,12 @@ class VariantDefaultStorageBinLinkResponse:
             field_dict["variant_id"] = variant_id
         if storage_bin_id is not UNSET:
             field_dict["storage_bin_id"] = storage_bin_id
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
-        if deleted_at is not UNSET:
-            field_dict["deleted_at"] = deleted_at
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        id = d.pop("id", UNSET)
-
-        bin_name = d.pop("bin_name", UNSET)
-
-        variant_id = d.pop("variant_id", UNSET)
-
-        storage_bin_id = d.pop("storage_bin_id", UNSET)
-
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -94,31 +84,31 @@ class VariantDefaultStorageBinLinkResponse:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_deleted_at(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                deleted_at_type_0 = isoparse(data)
-
-                return deleted_at_type_0
-            except:  # noqa: E722
-                pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | str, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
+        id = d.pop("id", UNSET)
+
+        bin_name = d.pop("bin_name", UNSET)
+
+        variant_id = d.pop("variant_id", UNSET)
+
+        storage_bin_id = d.pop("storage_bin_id", UNSET)
+
         variant_default_storage_bin_link_response = cls(
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
             id=id,
             bin_name=bin_name,
             variant_id=variant_id,
             storage_bin_id=storage_bin_id,
-            created_at=created_at,
-            updated_at=updated_at,
-            deleted_at=deleted_at,
         )
 
         variant_default_storage_bin_link_response.additional_properties = d

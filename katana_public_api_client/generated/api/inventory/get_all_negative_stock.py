@@ -5,9 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_all_negative_stock_response_401 import GetAllNegativeStockResponse401
-from ...models.get_all_negative_stock_response_429 import GetAllNegativeStockResponse429
-from ...models.get_all_negative_stock_response_500 import GetAllNegativeStockResponse500
+from ...models.error_response import ErrorResponse
 from ...models.negative_stock_list_response import NegativeStockListResponse
 from ...types import UNSET, Response, Unset
 
@@ -57,27 +55,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllNegativeStockResponse401
-    | GetAllNegativeStockResponse429
-    | GetAllNegativeStockResponse500
-    | NegativeStockListResponse
-    | None
-):
+) -> ErrorResponse | NegativeStockListResponse | None:
     if response.status_code == 200:
         response_200 = NegativeStockListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllNegativeStockResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllNegativeStockResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllNegativeStockResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -88,12 +80,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetAllNegativeStockResponse401
-    | GetAllNegativeStockResponse429
-    | GetAllNegativeStockResponse500
-    | NegativeStockListResponse
-]:
+) -> Response[ErrorResponse | NegativeStockListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -114,12 +101,7 @@ def sync_detailed(
     category: Unset | str = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[
-    GetAllNegativeStockResponse401
-    | GetAllNegativeStockResponse429
-    | GetAllNegativeStockResponse500
-    | NegativeStockListResponse
-]:
+) -> Response[ErrorResponse | NegativeStockListResponse]:
     """List all variants with negative stock
 
      Returns a list of variants with negative stock balance.
@@ -143,7 +125,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllNegativeStockResponse401, GetAllNegativeStockResponse429, GetAllNegativeStockResponse500, NegativeStockListResponse]]
+        Response[Union[ErrorResponse, NegativeStockListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -177,13 +159,7 @@ def sync(
     category: Unset | str = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> (
-    GetAllNegativeStockResponse401
-    | GetAllNegativeStockResponse429
-    | GetAllNegativeStockResponse500
-    | NegativeStockListResponse
-    | None
-):
+) -> ErrorResponse | NegativeStockListResponse | None:
     """List all variants with negative stock
 
      Returns a list of variants with negative stock balance.
@@ -207,7 +183,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllNegativeStockResponse401, GetAllNegativeStockResponse429, GetAllNegativeStockResponse500, NegativeStockListResponse]
+        Union[ErrorResponse, NegativeStockListResponse]
     """
 
     return sync_detailed(
@@ -236,12 +212,7 @@ async def asyncio_detailed(
     category: Unset | str = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[
-    GetAllNegativeStockResponse401
-    | GetAllNegativeStockResponse429
-    | GetAllNegativeStockResponse500
-    | NegativeStockListResponse
-]:
+) -> Response[ErrorResponse | NegativeStockListResponse]:
     """List all variants with negative stock
 
      Returns a list of variants with negative stock balance.
@@ -265,7 +236,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllNegativeStockResponse401, GetAllNegativeStockResponse429, GetAllNegativeStockResponse500, NegativeStockListResponse]]
+        Response[Union[ErrorResponse, NegativeStockListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -297,13 +268,7 @@ async def asyncio(
     category: Unset | str = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> (
-    GetAllNegativeStockResponse401
-    | GetAllNegativeStockResponse429
-    | GetAllNegativeStockResponse500
-    | NegativeStockListResponse
-    | None
-):
+) -> ErrorResponse | NegativeStockListResponse | None:
     """List all variants with negative stock
 
      Returns a list of variants with negative stock balance.
@@ -327,7 +292,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllNegativeStockResponse401, GetAllNegativeStockResponse429, GetAllNegativeStockResponse500, NegativeStockListResponse]
+        Union[ErrorResponse, NegativeStockListResponse]
     """
 
     return (

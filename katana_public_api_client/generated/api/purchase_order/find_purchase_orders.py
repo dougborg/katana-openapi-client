@@ -6,14 +6,12 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.find_purchase_orders_billing_status import (
     FindPurchaseOrdersBillingStatus,
 )
 from ...models.find_purchase_orders_entity_type import FindPurchaseOrdersEntityType
 from ...models.find_purchase_orders_extend_item import FindPurchaseOrdersExtendItem
-from ...models.find_purchase_orders_response_401 import FindPurchaseOrdersResponse401
-from ...models.find_purchase_orders_response_429 import FindPurchaseOrdersResponse429
-from ...models.find_purchase_orders_response_500 import FindPurchaseOrdersResponse500
 from ...models.find_purchase_orders_status import FindPurchaseOrdersStatus
 from ...models.purchase_order_list_response import PurchaseOrderListResponse
 from ...types import UNSET, Response, Unset
@@ -123,27 +121,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    FindPurchaseOrdersResponse401
-    | FindPurchaseOrdersResponse429
-    | FindPurchaseOrdersResponse500
-    | PurchaseOrderListResponse
-    | None
-):
+) -> ErrorResponse | PurchaseOrderListResponse | None:
     if response.status_code == 200:
         response_200 = PurchaseOrderListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = FindPurchaseOrdersResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = FindPurchaseOrdersResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = FindPurchaseOrdersResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -154,12 +146,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    FindPurchaseOrdersResponse401
-    | FindPurchaseOrdersResponse429
-    | FindPurchaseOrdersResponse500
-    | PurchaseOrderListResponse
-]:
+) -> Response[ErrorResponse | PurchaseOrderListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -188,12 +175,7 @@ def sync_detailed(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[
-    FindPurchaseOrdersResponse401
-    | FindPurchaseOrdersResponse429
-    | FindPurchaseOrdersResponse500
-    | PurchaseOrderListResponse
-]:
+) -> Response[ErrorResponse | PurchaseOrderListResponse]:
     """List all purchase orders
 
      Returns a list of purchase orders you've previously created. The purchase orders are returned in
@@ -225,7 +207,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[FindPurchaseOrdersResponse401, FindPurchaseOrdersResponse429, FindPurchaseOrdersResponse500, PurchaseOrderListResponse]]
+        Response[Union[ErrorResponse, PurchaseOrderListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -275,13 +257,7 @@ def sync(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> (
-    FindPurchaseOrdersResponse401
-    | FindPurchaseOrdersResponse429
-    | FindPurchaseOrdersResponse500
-    | PurchaseOrderListResponse
-    | None
-):
+) -> ErrorResponse | PurchaseOrderListResponse | None:
     """List all purchase orders
 
      Returns a list of purchase orders you've previously created. The purchase orders are returned in
@@ -313,7 +289,7 @@ def sync(
 
 
     Returns:
-        Union[FindPurchaseOrdersResponse401, FindPurchaseOrdersResponse429, FindPurchaseOrdersResponse500, PurchaseOrderListResponse]
+        Union[ErrorResponse, PurchaseOrderListResponse]
     """
 
     return sync_detailed(
@@ -358,12 +334,7 @@ async def asyncio_detailed(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[
-    FindPurchaseOrdersResponse401
-    | FindPurchaseOrdersResponse429
-    | FindPurchaseOrdersResponse500
-    | PurchaseOrderListResponse
-]:
+) -> Response[ErrorResponse | PurchaseOrderListResponse]:
     """List all purchase orders
 
      Returns a list of purchase orders you've previously created. The purchase orders are returned in
@@ -395,7 +366,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[FindPurchaseOrdersResponse401, FindPurchaseOrdersResponse429, FindPurchaseOrdersResponse500, PurchaseOrderListResponse]]
+        Response[Union[ErrorResponse, PurchaseOrderListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -443,13 +414,7 @@ async def asyncio(
     created_at_max: Unset | datetime.datetime = UNSET,
     updated_at_min: Unset | datetime.datetime = UNSET,
     updated_at_max: Unset | datetime.datetime = UNSET,
-) -> (
-    FindPurchaseOrdersResponse401
-    | FindPurchaseOrdersResponse429
-    | FindPurchaseOrdersResponse500
-    | PurchaseOrderListResponse
-    | None
-):
+) -> ErrorResponse | PurchaseOrderListResponse | None:
     """List all purchase orders
 
      Returns a list of purchase orders you've previously created. The purchase orders are returned in
@@ -481,7 +446,7 @@ async def asyncio(
 
 
     Returns:
-        Union[FindPurchaseOrdersResponse401, FindPurchaseOrdersResponse429, FindPurchaseOrdersResponse500, PurchaseOrderListResponse]
+        Union[ErrorResponse, PurchaseOrderListResponse]
     """
 
     return (

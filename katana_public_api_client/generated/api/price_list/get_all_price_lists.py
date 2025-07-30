@@ -5,9 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_all_price_lists_response_401 import GetAllPriceListsResponse401
-from ...models.get_all_price_lists_response_429 import GetAllPriceListsResponse429
-from ...models.get_all_price_lists_response_500 import GetAllPriceListsResponse500
+from ...models.error_response import ErrorResponse
 from ...models.price_list_list_response import PriceListListResponse
 from ...types import UNSET, Response, Unset
 
@@ -52,27 +50,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllPriceListsResponse401
-    | GetAllPriceListsResponse429
-    | GetAllPriceListsResponse500
-    | PriceListListResponse
-    | None
-):
+) -> ErrorResponse | PriceListListResponse | None:
     if response.status_code == 200:
         response_200 = PriceListListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllPriceListsResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllPriceListsResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllPriceListsResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -83,12 +75,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetAllPriceListsResponse401
-    | GetAllPriceListsResponse429
-    | GetAllPriceListsResponse500
-    | PriceListListResponse
-]:
+) -> Response[ErrorResponse | PriceListListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -106,12 +93,7 @@ def sync_detailed(
     name: Unset | str = UNSET,
     currency: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
-) -> Response[
-    GetAllPriceListsResponse401
-    | GetAllPriceListsResponse429
-    | GetAllPriceListsResponse500
-    | PriceListListResponse
-]:
+) -> Response[ErrorResponse | PriceListListResponse]:
     """List price lists
 
      Returns a list of price lists.
@@ -130,7 +112,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllPriceListsResponse401, GetAllPriceListsResponse429, GetAllPriceListsResponse500, PriceListListResponse]]
+        Response[Union[ErrorResponse, PriceListListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -158,13 +140,7 @@ def sync(
     name: Unset | str = UNSET,
     currency: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
-) -> (
-    GetAllPriceListsResponse401
-    | GetAllPriceListsResponse429
-    | GetAllPriceListsResponse500
-    | PriceListListResponse
-    | None
-):
+) -> ErrorResponse | PriceListListResponse | None:
     """List price lists
 
      Returns a list of price lists.
@@ -183,7 +159,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllPriceListsResponse401, GetAllPriceListsResponse429, GetAllPriceListsResponse500, PriceListListResponse]
+        Union[ErrorResponse, PriceListListResponse]
     """
 
     return sync_detailed(
@@ -206,12 +182,7 @@ async def asyncio_detailed(
     name: Unset | str = UNSET,
     currency: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
-) -> Response[
-    GetAllPriceListsResponse401
-    | GetAllPriceListsResponse429
-    | GetAllPriceListsResponse500
-    | PriceListListResponse
-]:
+) -> Response[ErrorResponse | PriceListListResponse]:
     """List price lists
 
      Returns a list of price lists.
@@ -230,7 +201,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllPriceListsResponse401, GetAllPriceListsResponse429, GetAllPriceListsResponse500, PriceListListResponse]]
+        Response[Union[ErrorResponse, PriceListListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -256,13 +227,7 @@ async def asyncio(
     name: Unset | str = UNSET,
     currency: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
-) -> (
-    GetAllPriceListsResponse401
-    | GetAllPriceListsResponse429
-    | GetAllPriceListsResponse500
-    | PriceListListResponse
-    | None
-):
+) -> ErrorResponse | PriceListListResponse | None:
     """List price lists
 
      Returns a list of price lists.
@@ -281,7 +246,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllPriceListsResponse401, GetAllPriceListsResponse429, GetAllPriceListsResponse500, PriceListListResponse]
+        Union[ErrorResponse, PriceListListResponse]
     """
 
     return (

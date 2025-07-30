@@ -19,12 +19,12 @@ class StocktakeRow:
     stocktake_id: int
     variant_id: int
     system_quantity: float
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
     batch_id: None | Unset | int = UNSET
     actual_quantity: None | Unset | float = UNSET
     variance_quantity: None | Unset | float = UNSET
     notes: None | Unset | str = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -35,6 +35,14 @@ class StocktakeRow:
         variant_id = self.variant_id
 
         system_quantity = self.system_quantity
+
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
 
         batch_id: None | Unset | int
         if isinstance(self.batch_id, Unset):
@@ -60,14 +68,6 @@ class StocktakeRow:
         else:
             notes = self.notes
 
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -78,6 +78,10 @@ class StocktakeRow:
                 "system_quantity": system_quantity,
             }
         )
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
         if batch_id is not UNSET:
             field_dict["batch_id"] = batch_id
         if actual_quantity is not UNSET:
@@ -86,10 +90,6 @@ class StocktakeRow:
             field_dict["variance_quantity"] = variance_quantity
         if notes is not UNSET:
             field_dict["notes"] = notes
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
 
         return field_dict
 
@@ -103,6 +103,20 @@ class StocktakeRow:
         variant_id = d.pop("variant_id")
 
         system_quantity = d.pop("system_quantity")
+
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
+
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
 
         def _parse_batch_id(data: object) -> None | Unset | int:
             if data is None:
@@ -140,31 +154,17 @@ class StocktakeRow:
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
-
         stocktake_row = cls(
             id=id,
             stocktake_id=stocktake_id,
             variant_id=variant_id,
             system_quantity=system_quantity,
+            created_at=created_at,
+            updated_at=updated_at,
             batch_id=batch_id,
             actual_quantity=actual_quantity,
             variance_quantity=variance_quantity,
             notes=notes,
-            created_at=created_at,
-            updated_at=updated_at,
         )
 
         stocktake_row.additional_properties = d

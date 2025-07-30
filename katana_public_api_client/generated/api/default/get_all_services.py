@@ -5,9 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.get_all_services_response_401 import GetAllServicesResponse401
-from ...models.get_all_services_response_429 import GetAllServicesResponse429
-from ...models.get_all_services_response_500 import GetAllServicesResponse500
+from ...models.error_response import ErrorResponse
 from ...models.service_list_response import ServiceListResponse
 from ...types import Response
 
@@ -23,27 +21,21 @@ def _get_kwargs() -> dict[str, Any]:
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    GetAllServicesResponse401
-    | GetAllServicesResponse429
-    | GetAllServicesResponse500
-    | ServiceListResponse
-    | None
-):
+) -> ErrorResponse | ServiceListResponse | None:
     if response.status_code == 200:
         response_200 = ServiceListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = GetAllServicesResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 429:
-        response_429 = GetAllServicesResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = GetAllServicesResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -54,12 +46,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    GetAllServicesResponse401
-    | GetAllServicesResponse429
-    | GetAllServicesResponse500
-    | ServiceListResponse
-]:
+) -> Response[ErrorResponse | ServiceListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -71,12 +58,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    GetAllServicesResponse401
-    | GetAllServicesResponse429
-    | GetAllServicesResponse500
-    | ServiceListResponse
-]:
+) -> Response[ErrorResponse | ServiceListResponse]:
     """Get All Services
 
      Retrieve a list of all Service objects. (See: [Get All
@@ -88,7 +70,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllServicesResponse401, GetAllServicesResponse429, GetAllServicesResponse500, ServiceListResponse]]
+        Response[Union[ErrorResponse, ServiceListResponse]]
     """
 
     kwargs = _get_kwargs()
@@ -103,13 +85,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    GetAllServicesResponse401
-    | GetAllServicesResponse429
-    | GetAllServicesResponse500
-    | ServiceListResponse
-    | None
-):
+) -> ErrorResponse | ServiceListResponse | None:
     """Get All Services
 
      Retrieve a list of all Service objects. (See: [Get All
@@ -121,7 +97,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllServicesResponse401, GetAllServicesResponse429, GetAllServicesResponse500, ServiceListResponse]
+        Union[ErrorResponse, ServiceListResponse]
     """
 
     return sync_detailed(
@@ -132,12 +108,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-) -> Response[
-    GetAllServicesResponse401
-    | GetAllServicesResponse429
-    | GetAllServicesResponse500
-    | ServiceListResponse
-]:
+) -> Response[ErrorResponse | ServiceListResponse]:
     """Get All Services
 
      Retrieve a list of all Service objects. (See: [Get All
@@ -149,7 +120,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllServicesResponse401, GetAllServicesResponse429, GetAllServicesResponse500, ServiceListResponse]]
+        Response[Union[ErrorResponse, ServiceListResponse]]
     """
 
     kwargs = _get_kwargs()
@@ -162,13 +133,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-) -> (
-    GetAllServicesResponse401
-    | GetAllServicesResponse429
-    | GetAllServicesResponse500
-    | ServiceListResponse
-    | None
-):
+) -> ErrorResponse | ServiceListResponse | None:
     """Get All Services
 
      Retrieve a list of all Service objects. (See: [Get All
@@ -180,7 +145,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllServicesResponse401, GetAllServicesResponse429, GetAllServicesResponse500, ServiceListResponse]
+        Union[ErrorResponse, ServiceListResponse]
     """
 
     return (

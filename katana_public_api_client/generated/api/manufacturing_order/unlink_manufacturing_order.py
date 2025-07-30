@@ -5,16 +5,8 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.unlink_manufacturing_order_request import UnlinkManufacturingOrderRequest
-from ...models.unlink_manufacturing_order_response_204 import (
-    UnlinkManufacturingOrderResponse204,
-)
-from ...models.unlink_manufacturing_order_response_401 import (
-    UnlinkManufacturingOrderResponse401,
-)
-from ...models.unlink_manufacturing_order_response_500 import (
-    UnlinkManufacturingOrderResponse500,
-)
 from ...types import Response
 
 
@@ -39,22 +31,17 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    UnlinkManufacturingOrderResponse204
-    | UnlinkManufacturingOrderResponse401
-    | UnlinkManufacturingOrderResponse500
-    | None
-):
+) -> ErrorResponse | None:
     if response.status_code == 204:
-        response_204 = UnlinkManufacturingOrderResponse204.from_dict(response.json())
+        response_204 = ErrorResponse.from_dict(response.json())
 
         return response_204
     if response.status_code == 401:
-        response_401 = UnlinkManufacturingOrderResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 500:
-        response_500 = UnlinkManufacturingOrderResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -65,11 +52,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    UnlinkManufacturingOrderResponse204
-    | UnlinkManufacturingOrderResponse401
-    | UnlinkManufacturingOrderResponse500
-]:
+) -> Response[ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -82,11 +65,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UnlinkManufacturingOrderRequest,
-) -> Response[
-    UnlinkManufacturingOrderResponse204
-    | UnlinkManufacturingOrderResponse401
-    | UnlinkManufacturingOrderResponse500
-]:
+) -> Response[ErrorResponse]:
     """Unlink a manufacturing order from sales order row
 
      Unlinks the manufacturing order from a particular sales order row.
@@ -100,7 +79,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[UnlinkManufacturingOrderResponse204, UnlinkManufacturingOrderResponse401, UnlinkManufacturingOrderResponse500]]
+        Response[ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -118,12 +97,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: UnlinkManufacturingOrderRequest,
-) -> (
-    UnlinkManufacturingOrderResponse204
-    | UnlinkManufacturingOrderResponse401
-    | UnlinkManufacturingOrderResponse500
-    | None
-):
+) -> ErrorResponse | None:
     """Unlink a manufacturing order from sales order row
 
      Unlinks the manufacturing order from a particular sales order row.
@@ -137,7 +111,7 @@ def sync(
 
 
     Returns:
-        Union[UnlinkManufacturingOrderResponse204, UnlinkManufacturingOrderResponse401, UnlinkManufacturingOrderResponse500]
+        ErrorResponse
     """
 
     return sync_detailed(
@@ -150,11 +124,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UnlinkManufacturingOrderRequest,
-) -> Response[
-    UnlinkManufacturingOrderResponse204
-    | UnlinkManufacturingOrderResponse401
-    | UnlinkManufacturingOrderResponse500
-]:
+) -> Response[ErrorResponse]:
     """Unlink a manufacturing order from sales order row
 
      Unlinks the manufacturing order from a particular sales order row.
@@ -168,7 +138,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[UnlinkManufacturingOrderResponse204, UnlinkManufacturingOrderResponse401, UnlinkManufacturingOrderResponse500]]
+        Response[ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -184,12 +154,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: UnlinkManufacturingOrderRequest,
-) -> (
-    UnlinkManufacturingOrderResponse204
-    | UnlinkManufacturingOrderResponse401
-    | UnlinkManufacturingOrderResponse500
-    | None
-):
+) -> ErrorResponse | None:
     """Unlink a manufacturing order from sales order row
 
      Unlinks the manufacturing order from a particular sales order row.
@@ -203,7 +168,7 @@ async def asyncio(
 
 
     Returns:
-        Union[UnlinkManufacturingOrderResponse204, UnlinkManufacturingOrderResponse401, UnlinkManufacturingOrderResponse500]
+        ErrorResponse
     """
 
     return (

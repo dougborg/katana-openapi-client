@@ -5,23 +5,10 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.detailed_error_response import DetailedErrorResponse
+from ...models.error_response import ErrorResponse
 from ...models.manufacturing_order import ManufacturingOrder
 from ...models.update_manufacturing_order_request import UpdateManufacturingOrderRequest
-from ...models.update_manufacturing_order_response_401 import (
-    UpdateManufacturingOrderResponse401,
-)
-from ...models.update_manufacturing_order_response_404 import (
-    UpdateManufacturingOrderResponse404,
-)
-from ...models.update_manufacturing_order_response_422 import (
-    UpdateManufacturingOrderResponse422,
-)
-from ...models.update_manufacturing_order_response_429 import (
-    UpdateManufacturingOrderResponse429,
-)
-from ...models.update_manufacturing_order_response_500 import (
-    UpdateManufacturingOrderResponse500,
-)
 from ...types import Response
 
 
@@ -47,37 +34,29 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    ManufacturingOrder
-    | UpdateManufacturingOrderResponse401
-    | UpdateManufacturingOrderResponse404
-    | UpdateManufacturingOrderResponse422
-    | UpdateManufacturingOrderResponse429
-    | UpdateManufacturingOrderResponse500
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | ManufacturingOrder | None:
     if response.status_code == 200:
         response_200 = ManufacturingOrder.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
-        response_401 = UpdateManufacturingOrderResponse401.from_dict(response.json())
+        response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
     if response.status_code == 404:
-        response_404 = UpdateManufacturingOrderResponse404.from_dict(response.json())
+        response_404 = ErrorResponse.from_dict(response.json())
 
         return response_404
     if response.status_code == 422:
-        response_422 = UpdateManufacturingOrderResponse422.from_dict(response.json())
+        response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
     if response.status_code == 429:
-        response_429 = UpdateManufacturingOrderResponse429.from_dict(response.json())
+        response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
     if response.status_code == 500:
-        response_500 = UpdateManufacturingOrderResponse500.from_dict(response.json())
+        response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
     if client.raise_on_unexpected_status:
@@ -88,14 +67,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    ManufacturingOrder
-    | UpdateManufacturingOrderResponse401
-    | UpdateManufacturingOrderResponse404
-    | UpdateManufacturingOrderResponse422
-    | UpdateManufacturingOrderResponse429
-    | UpdateManufacturingOrderResponse500
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | ManufacturingOrder]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -109,14 +81,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderRequest,
-) -> Response[
-    ManufacturingOrder
-    | UpdateManufacturingOrderResponse401
-    | UpdateManufacturingOrderResponse404
-    | UpdateManufacturingOrderResponse422
-    | UpdateManufacturingOrderResponse429
-    | UpdateManufacturingOrderResponse500
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | ManufacturingOrder]:
     """Update a manufacturing order
 
      Updates the specified manufacturing order by setting the values of the parameters passed.
@@ -132,7 +97,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ManufacturingOrder, UpdateManufacturingOrderResponse401, UpdateManufacturingOrderResponse404, UpdateManufacturingOrderResponse422, UpdateManufacturingOrderResponse429, UpdateManufacturingOrderResponse500]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrder]]
     """
 
     kwargs = _get_kwargs(
@@ -152,15 +117,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderRequest,
-) -> (
-    ManufacturingOrder
-    | UpdateManufacturingOrderResponse401
-    | UpdateManufacturingOrderResponse404
-    | UpdateManufacturingOrderResponse422
-    | UpdateManufacturingOrderResponse429
-    | UpdateManufacturingOrderResponse500
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | ManufacturingOrder | None:
     """Update a manufacturing order
 
      Updates the specified manufacturing order by setting the values of the parameters passed.
@@ -176,7 +133,7 @@ def sync(
 
 
     Returns:
-        Union[ManufacturingOrder, UpdateManufacturingOrderResponse401, UpdateManufacturingOrderResponse404, UpdateManufacturingOrderResponse422, UpdateManufacturingOrderResponse429, UpdateManufacturingOrderResponse500]
+        Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrder]
     """
 
     return sync_detailed(
@@ -191,14 +148,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderRequest,
-) -> Response[
-    ManufacturingOrder
-    | UpdateManufacturingOrderResponse401
-    | UpdateManufacturingOrderResponse404
-    | UpdateManufacturingOrderResponse422
-    | UpdateManufacturingOrderResponse429
-    | UpdateManufacturingOrderResponse500
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | ManufacturingOrder]:
     """Update a manufacturing order
 
      Updates the specified manufacturing order by setting the values of the parameters passed.
@@ -214,7 +164,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ManufacturingOrder, UpdateManufacturingOrderResponse401, UpdateManufacturingOrderResponse404, UpdateManufacturingOrderResponse422, UpdateManufacturingOrderResponse429, UpdateManufacturingOrderResponse500]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrder]]
     """
 
     kwargs = _get_kwargs(
@@ -232,15 +182,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderRequest,
-) -> (
-    ManufacturingOrder
-    | UpdateManufacturingOrderResponse401
-    | UpdateManufacturingOrderResponse404
-    | UpdateManufacturingOrderResponse422
-    | UpdateManufacturingOrderResponse429
-    | UpdateManufacturingOrderResponse500
-    | None
-):
+) -> DetailedErrorResponse | ErrorResponse | ManufacturingOrder | None:
     """Update a manufacturing order
 
      Updates the specified manufacturing order by setting the values of the parameters passed.
@@ -256,7 +198,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ManufacturingOrder, UpdateManufacturingOrderResponse401, UpdateManufacturingOrderResponse404, UpdateManufacturingOrderResponse422, UpdateManufacturingOrderResponse429, UpdateManufacturingOrderResponse500]
+        Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrder]
     """
 
     return (
