@@ -5,7 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.purchase_order_response import PurchaseOrderResponse
+from ...models.purchase_order import PurchaseOrder
 from ...models.update_purchase_order_request import UpdatePurchaseOrderRequest
 from ...models.update_purchase_order_response_401 import UpdatePurchaseOrderResponse401
 from ...models.update_purchase_order_response_422 import UpdatePurchaseOrderResponse422
@@ -37,7 +37,7 @@ def _get_kwargs(
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> (
-    PurchaseOrderResponse
+    PurchaseOrder
     | UpdatePurchaseOrderResponse401
     | UpdatePurchaseOrderResponse422
     | UpdatePurchaseOrderResponse429
@@ -45,7 +45,7 @@ def _parse_response(
     | None
 ):
     if response.status_code == 200:
-        response_200 = PurchaseOrderResponse.from_dict(response.json())
+        response_200 = PurchaseOrder.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -73,7 +73,7 @@ def _parse_response(
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    PurchaseOrderResponse
+    PurchaseOrder
     | UpdatePurchaseOrderResponse401
     | UpdatePurchaseOrderResponse422
     | UpdatePurchaseOrderResponse429
@@ -93,7 +93,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRequest,
 ) -> Response[
-    PurchaseOrderResponse
+    PurchaseOrder
     | UpdatePurchaseOrderResponse401
     | UpdatePurchaseOrderResponse422
     | UpdatePurchaseOrderResponse429
@@ -114,7 +114,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[PurchaseOrderResponse, UpdatePurchaseOrderResponse401, UpdatePurchaseOrderResponse422, UpdatePurchaseOrderResponse429, UpdatePurchaseOrderResponse500]]
+        Response[Union[PurchaseOrder, UpdatePurchaseOrderResponse401, UpdatePurchaseOrderResponse422, UpdatePurchaseOrderResponse429, UpdatePurchaseOrderResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -135,7 +135,7 @@ def sync(
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRequest,
 ) -> (
-    PurchaseOrderResponse
+    PurchaseOrder
     | UpdatePurchaseOrderResponse401
     | UpdatePurchaseOrderResponse422
     | UpdatePurchaseOrderResponse429
@@ -157,7 +157,7 @@ def sync(
 
 
     Returns:
-        Union[PurchaseOrderResponse, UpdatePurchaseOrderResponse401, UpdatePurchaseOrderResponse422, UpdatePurchaseOrderResponse429, UpdatePurchaseOrderResponse500]
+        Union[PurchaseOrder, UpdatePurchaseOrderResponse401, UpdatePurchaseOrderResponse422, UpdatePurchaseOrderResponse429, UpdatePurchaseOrderResponse500]
     """
 
     return sync_detailed(
@@ -173,7 +173,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRequest,
 ) -> Response[
-    PurchaseOrderResponse
+    PurchaseOrder
     | UpdatePurchaseOrderResponse401
     | UpdatePurchaseOrderResponse422
     | UpdatePurchaseOrderResponse429
@@ -194,7 +194,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[PurchaseOrderResponse, UpdatePurchaseOrderResponse401, UpdatePurchaseOrderResponse422, UpdatePurchaseOrderResponse429, UpdatePurchaseOrderResponse500]]
+        Response[Union[PurchaseOrder, UpdatePurchaseOrderResponse401, UpdatePurchaseOrderResponse422, UpdatePurchaseOrderResponse429, UpdatePurchaseOrderResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -213,7 +213,7 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRequest,
 ) -> (
-    PurchaseOrderResponse
+    PurchaseOrder
     | UpdatePurchaseOrderResponse401
     | UpdatePurchaseOrderResponse422
     | UpdatePurchaseOrderResponse429
@@ -235,7 +235,7 @@ async def asyncio(
 
 
     Returns:
-        Union[PurchaseOrderResponse, UpdatePurchaseOrderResponse401, UpdatePurchaseOrderResponse422, UpdatePurchaseOrderResponse429, UpdatePurchaseOrderResponse500]
+        Union[PurchaseOrder, UpdatePurchaseOrderResponse401, UpdatePurchaseOrderResponse422, UpdatePurchaseOrderResponse429, UpdatePurchaseOrderResponse500]
     """
 
     return (

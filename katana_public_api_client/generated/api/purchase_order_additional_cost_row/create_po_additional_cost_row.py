@@ -20,9 +20,7 @@ from ...models.create_po_additional_cost_row_response_500 import (
 from ...models.create_purchase_order_additional_cost_row_request import (
     CreatePurchaseOrderAdditionalCostRowRequest,
 )
-from ...models.purchase_order_additional_cost_row_response import (
-    PurchaseOrderAdditionalCostRowResponse,
-)
+from ...models.purchase_order_additional_cost_row import PurchaseOrderAdditionalCostRow
 from ...types import Response
 
 
@@ -52,11 +50,11 @@ def _parse_response(
     | CreatePoAdditionalCostRowResponse422
     | CreatePoAdditionalCostRowResponse429
     | CreatePoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    | PurchaseOrderAdditionalCostRow
     | None
 ):
     if response.status_code == 200:
-        response_200 = PurchaseOrderAdditionalCostRowResponse.from_dict(response.json())
+        response_200 = PurchaseOrderAdditionalCostRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -88,7 +86,7 @@ def _build_response(
     | CreatePoAdditionalCostRowResponse422
     | CreatePoAdditionalCostRowResponse429
     | CreatePoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    | PurchaseOrderAdditionalCostRow
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -107,7 +105,7 @@ def sync_detailed(
     | CreatePoAdditionalCostRowResponse422
     | CreatePoAdditionalCostRowResponse429
     | CreatePoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    | PurchaseOrderAdditionalCostRow
 ]:
     """Create a purchase order additional cost row
 
@@ -122,7 +120,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreatePoAdditionalCostRowResponse401, CreatePoAdditionalCostRowResponse422, CreatePoAdditionalCostRowResponse429, CreatePoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRowResponse]]
+        Response[Union[CreatePoAdditionalCostRowResponse401, CreatePoAdditionalCostRowResponse422, CreatePoAdditionalCostRowResponse429, CreatePoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]]
     """
 
     kwargs = _get_kwargs(
@@ -145,7 +143,7 @@ def sync(
     | CreatePoAdditionalCostRowResponse422
     | CreatePoAdditionalCostRowResponse429
     | CreatePoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    | PurchaseOrderAdditionalCostRow
     | None
 ):
     """Create a purchase order additional cost row
@@ -161,7 +159,7 @@ def sync(
 
 
     Returns:
-        Union[CreatePoAdditionalCostRowResponse401, CreatePoAdditionalCostRowResponse422, CreatePoAdditionalCostRowResponse429, CreatePoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRowResponse]
+        Union[CreatePoAdditionalCostRowResponse401, CreatePoAdditionalCostRowResponse422, CreatePoAdditionalCostRowResponse429, CreatePoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]
     """
 
     return sync_detailed(
@@ -179,7 +177,7 @@ async def asyncio_detailed(
     | CreatePoAdditionalCostRowResponse422
     | CreatePoAdditionalCostRowResponse429
     | CreatePoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    | PurchaseOrderAdditionalCostRow
 ]:
     """Create a purchase order additional cost row
 
@@ -194,7 +192,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreatePoAdditionalCostRowResponse401, CreatePoAdditionalCostRowResponse422, CreatePoAdditionalCostRowResponse429, CreatePoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRowResponse]]
+        Response[Union[CreatePoAdditionalCostRowResponse401, CreatePoAdditionalCostRowResponse422, CreatePoAdditionalCostRowResponse429, CreatePoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]]
     """
 
     kwargs = _get_kwargs(
@@ -215,7 +213,7 @@ async def asyncio(
     | CreatePoAdditionalCostRowResponse422
     | CreatePoAdditionalCostRowResponse429
     | CreatePoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    | PurchaseOrderAdditionalCostRow
     | None
 ):
     """Create a purchase order additional cost row
@@ -231,7 +229,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreatePoAdditionalCostRowResponse401, CreatePoAdditionalCostRowResponse422, CreatePoAdditionalCostRowResponse429, CreatePoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRowResponse]
+        Union[CreatePoAdditionalCostRowResponse401, CreatePoAdditionalCostRowResponse422, CreatePoAdditionalCostRowResponse429, CreatePoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]
     """
 
     return (

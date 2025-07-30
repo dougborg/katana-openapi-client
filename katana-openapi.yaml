@@ -1297,6 +1297,15 @@ components:
           type: [integer, "null"]
         minimum_order_quantity:
           type: [number, "null"]
+        custom_fields:
+          type: array
+          items:
+            type: object
+            properties:
+              field_name:
+                type: string
+              field_value:
+                type: string
         config_attributes:
           type: array
           items:
@@ -1306,35 +1315,6 @@ components:
                 type: string
               config_value:
                 type: string
-        product_or_material:
-          type: object
-          properties:
-            id:
-              type: integer
-            name:
-              type: string
-            uom:
-              type: string
-            category_name:
-              type: string
-            is_producible:
-              type: boolean
-            default_supplier_id:
-              type: integer
-            is_purchasable:
-              type: boolean
-            type:
-              type: string
-            purchase_uom:
-              type: string
-            purchase_uom_conversion_rate:
-              type: number
-            batch_tracked:
-              type: boolean
-            variants:
-              type: array
-              items:
-                type: object
       required:
         - id
         - sku
@@ -1697,7 +1677,6 @@ components:
         deleted_at:
           type: [string, "null"]
           format: date-time
-
         ingredients:
           type: array
           items:
@@ -1816,7 +1795,6 @@ components:
         completed_at:
           type: [string, "null"]
           format: date-time
-
         created_at:
           type: string
           format: date-time
@@ -2011,6 +1989,13 @@ components:
           type: string
         resource_type:
           type: string
+          enum:
+            - ManufacturingOrder
+            - Production
+            - StockAdjustmentRow
+            - StockTransferRow
+            - PurchaseOrderRow
+            - SalesOrderRow
         resource_id:
           type: integer
         transaction_date:
@@ -2160,7 +2145,6 @@ components:
               custom_field_collection_id:
                 type: [integer, "null"]
                 maximum: 2147483647
-
               custom_fields:
                 type: array
                 maxItems: 3
@@ -2430,7 +2414,6 @@ components:
         lead_time:
           type: [integer, "null"]
           maximum: 999
-
         minimum_order_quantity:
           type: number
           maximum: 999999999
@@ -2454,47 +2437,11 @@ components:
         custom_field_collection_id:
           type: [integer, "null"]
           maximum: 2147483647
-
         variants:
           type: array
           minItems: 1
           items:
-            type: object
-            additionalProperties: false
-            required:
-              - sku
-            properties:
-              sku:
-                type: string
-              purchase_price:
-                type: [number, "null"]
-
-              sales_price:
-                type: [number, "null"]
-
-              config_attributes:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    config_name:
-                      type: string
-                    config_value:
-                      type: string
-              internal_barcode:
-                type: string
-                maxLength: 40
-              registered_barcode:
-                type: string
-                maxLength: 40
-              supplier_item_codes:
-                type: array
-                items:
-                  type: string
-              custom_fields:
-                type: array
-                items:
-                  type: object
+            $ref: "#/components/schemas/Variant"
 
     UpdateProductRequest:
       type: object
@@ -2586,61 +2533,7 @@ components:
         variants:
           type: array
           items:
-            type: object
-            properties:
-              id:
-                type: integer
-              sku:
-                type: string
-              sales_price:
-                type: [number, "null"]
-              product_id:
-                type: [integer, "null"]
-              material_id:
-                type: [integer, "null"]
-              purchase_price:
-                type: number
-              type:
-                type: string
-              created_at:
-                type: string
-                format: date-time
-              updated_at:
-                type: string
-                format: date-time
-              deleted_at:
-                type: [string, "null"]
-                format: date-time
-              config_attributes:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    config_name:
-                      type: string
-                    config_value:
-                      type: string
-              internal_barcode:
-                type: string
-              registered_barcode:
-                type: string
-              supplier_item_codes:
-                type: array
-                items:
-                  type: string
-              lead_time:
-                type: [number, "null"]
-              minimum_order_quantity:
-                type: number
-              custom_fields:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    field_name:
-                      type: string
-                    field_value:
-                      type: string
+            $ref: "#/components/schemas/Variant"
         configs:
           type: array
           items:
@@ -2669,26 +2562,7 @@ components:
           format: date-time
         supplier:
           type: object
-          properties:
-            id:
-              type: integer
-            name:
-              type: string
-            email:
-              type: string
-            comment:
-              type: string
-            currency:
-              type: string
-            created_at:
-              type: string
-              format: date-time
-            updated_at:
-              type: string
-              format: date-time
-            deleted_at:
-              type: [string, "null"]
-              format: date-time
+          $ref: "#/components/schemas/Supplier"
 
     ProductListResponse:
       type: object
@@ -3571,7 +3445,7 @@ components:
             variants:
               type: array
               items:
-                type: object
+                $ref: "#/components/schemas/Variant"
 
     UpdateVariantRequest:
       type: object
@@ -3590,11 +3464,9 @@ components:
         product_id:
           type: [integer, "null"]
           maximum: 2147483647
-
         material_id:
           type: [integer, "null"]
           maximum: 2147483647
-
         supplier_item_codes:
           type: array
           items:
@@ -3609,7 +3481,6 @@ components:
         lead_time:
           type: [integer, "null"]
           maximum: 999
-
         minimum_order_quantity:
           type: number
           minimum: 0
@@ -3639,7 +3510,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/Variant"
+            $ref: "#/components/schemas/VariantResponse"
 
     VariantDefaultStorageBinLink:
       type: object
@@ -3686,7 +3557,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/VariantDefaultStorageBinLink"
+            $ref: "#/components/schemas/VariantDefaultStorageBinLinkResponse"
 
     UnlinkVariantBinLocationRequest:
       type: object
@@ -4614,12 +4485,6 @@ components:
         - name
         - currency
 
-    PriceListResponse:
-      type: object
-      properties:
-        data:
-          $ref: "#/components/schemas/PriceList"
-
     CreatePriceListRequest:
       type: object
       additionalProperties: false
@@ -4815,14 +4680,6 @@ components:
         - id
         - name
         - currency
-
-    FactoryListResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: "#/components/schemas/Factory"
 
     # Operators (enhanced)
     Operator:
@@ -6662,7 +6519,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ManufacturingOrderProductionIngredient"
+                $ref: "#/components/schemas/ManufacturingOrderProductionIngredientResponse"
               example:
                 id: 252
                 location_id: 321
@@ -6851,35 +6708,34 @@ paths:
               schema:
                 $ref: "#/components/schemas/ManufacturingOrderOperationRow"
               example:
-                moOperationRowResponseExample:
-                  id: 1
-                  status: IN_PROGRESS
-                  type: process
-                  rank: 1
-                  manufacturing_order_id: 1
-                  operation_id: 1
-                  operation_name: Pack
-                  resource_id: 1
-                  resource_name: Table
-                  assigned_operators:
-                    - operator_id: 1
-                      name: Pack
-                      deleted_at: null
-                  completed_by_operators: []
-                  active_operator_id: 1
-                  planned_time_per_unit: 1
-                  planned_time_parameter: 1
-                  total_actual_time: 1
-                  planned_cost_per_unit: 1
-                  total_actual_cost: 1
-                  cost_per_hour: 1
-                  cost_parameter: 1
-                  group_boundary: 1000
-                  is_status_actionable: true
-                  completed_at: "2020-10-23T10:37:05.085Z"
-                  created_at: "2020-10-23T10:37:05.085Z"
-                  updated_at: "2020-10-23T10:37:05.085Z"
-                  deleted_at: null
+                id: 1
+                status: IN_PROGRESS
+                type: process
+                rank: 1
+                manufacturing_order_id: 1
+                operation_id: 1
+                operation_name: Pack
+                resource_id: 1
+                resource_name: Table
+                assigned_operators:
+                  - id: 1
+                    name: Pack
+                    deleted_at: null
+                completed_by_operators: []
+                active_operator_id: 1
+                planned_time_per_unit: 1
+                planned_time_parameter: 1
+                total_actual_time: 1
+                planned_cost_per_unit: 1
+                total_actual_cost: 1
+                cost_per_hour: 1
+                cost_parameter: 1
+                group_boundary: 1000
+                is_status_actionable: true
+                completed_at: "2020-10-23T10:37:05.085Z"
+                created_at: "2020-10-23T10:37:05.085Z"
+                updated_at: "2020-10-23T10:37:05.085Z"
+                deleted_at: null
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -6924,35 +6780,34 @@ paths:
               schema:
                 $ref: "#/components/schemas/ManufacturingOrderOperationRow"
               example:
-                moOperationRowResponseExample:
-                  id: 1
-                  status: IN_PROGRESS
-                  type: process
-                  rank: 1
-                  manufacturing_order_id: 1
-                  operation_id: 1
-                  operation_name: Pack
-                  resource_id: 1
-                  resource_name: Table
-                  assigned_operators:
-                    - operator_id: 1
-                      name: Pack
-                      deleted_at: null
-                  completed_by_operators: []
-                  active_operator_id: 1
-                  planned_time_per_unit: 1
-                  planned_time_parameter: 1
-                  total_actual_time: 1
-                  planned_cost_per_unit: 1
-                  total_actual_cost: 1
-                  cost_per_hour: 1
-                  cost_parameter: 1
-                  group_boundary: 1000
-                  is_status_actionable: true
-                  completed_at: "2020-10-23T10:37:05.085Z"
-                  created_at: "2020-10-23T10:37:05.085Z"
-                  updated_at: "2020-10-23T10:37:05.085Z"
-                  deleted_at: null
+                id: 1
+                status: IN_PROGRESS
+                type: process
+                rank: 1
+                manufacturing_order_id: 1
+                operation_id: 1
+                operation_name: Pack
+                resource_id: 1
+                resource_name: Table
+                assigned_operators:
+                  - id: 1
+                    name: Pack
+                    deleted_at: null
+                completed_by_operators: []
+                active_operator_id: 1
+                planned_time_per_unit: 1
+                planned_time_parameter: 1
+                total_actual_time: 1
+                planned_cost_per_unit: 1
+                total_actual_cost: 1
+                cost_per_hour: 1
+                cost_parameter: 1
+                group_boundary: 1000
+                is_status_actionable: true
+                completed_at: "2020-10-23T10:37:05.085Z"
+                created_at: "2020-10-23T10:37:05.085Z"
+                updated_at: "2020-10-23T10:37:05.085Z"
+                deleted_at: null
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -9813,7 +9668,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Variant"
+                $ref: "#/components/schemas/VariantResponse"
               example:
                 id: 1
                 sku: EM
@@ -11990,23 +11845,27 @@ paths:
       description: Returns a list of serial numbers.
       operationId: getAllSerialNumbers
       parameters:
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/page"
-        - name: variant_id
+        - name: resource_type
           in: query
-          description: Filter by variant ID
-          schema:
-            type: integer
-        - name: location_id
-          in: query
-          description: Filter by location ID
-          schema:
-            type: integer
-        - name: serial_number
-          in: query
-          description: Filter by serial number
+          required: true
+          description: Resource type
           schema:
             type: string
+            enum:
+              - ManufacturingOrder
+              - Production
+              - StockAdjustmentRow
+              - StockTransferRow
+              - PurchaseOrderRow
+              - SalesOrderRow
+        - name: resource_id
+          in: query
+          required: true
+          description: Resource id
+          schema:
+            type: integer
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
       responses:
         "200":
           description: List of serial numbers
@@ -12020,7 +11879,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SerialNumberStockListResponse"
+                $ref: "#/components/schemas/SerialNumberListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":

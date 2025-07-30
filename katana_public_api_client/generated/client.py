@@ -26,7 +26,6 @@ class Client:
         ``follow_redirects``: Whether or not to follow redirects. Default value is False.
 
         ``httpx_args``: A dictionary of additional arguments to be passed to the ``httpx.Client`` and ``httpx.AsyncClient`` constructor.
-
     """
 
     raise_on_unexpected_status: bool = field(default=False, kw_only=True)
@@ -152,7 +151,6 @@ class AuthenticatedClient:
         ``follow_redirects``: Whether or not to follow redirects. Default value is False.
 
         ``httpx_args``: A dictionary of additional arguments to be passed to the ``httpx.Client`` and ``httpx.AsyncClient`` constructor.
-
     """
 
     raise_on_unexpected_status: bool = field(default=False, kw_only=True)

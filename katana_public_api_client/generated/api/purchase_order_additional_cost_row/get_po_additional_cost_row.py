@@ -14,9 +14,7 @@ from ...models.get_po_additional_cost_row_response_429 import (
 from ...models.get_po_additional_cost_row_response_500 import (
     GetPoAdditionalCostRowResponse500,
 )
-from ...models.purchase_order_additional_cost_row_response import (
-    PurchaseOrderAdditionalCostRowResponse,
-)
+from ...models.purchase_order_additional_cost_row import PurchaseOrderAdditionalCostRow
 from ...types import Response
 
 
@@ -37,11 +35,11 @@ def _parse_response(
     GetPoAdditionalCostRowResponse401
     | GetPoAdditionalCostRowResponse429
     | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    | PurchaseOrderAdditionalCostRow
     | None
 ):
     if response.status_code == 200:
-        response_200 = PurchaseOrderAdditionalCostRowResponse.from_dict(response.json())
+        response_200 = PurchaseOrderAdditionalCostRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -68,7 +66,7 @@ def _build_response(
     GetPoAdditionalCostRowResponse401
     | GetPoAdditionalCostRowResponse429
     | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    | PurchaseOrderAdditionalCostRow
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -86,7 +84,7 @@ def sync_detailed(
     GetPoAdditionalCostRowResponse401
     | GetPoAdditionalCostRowResponse429
     | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    | PurchaseOrderAdditionalCostRow
 ]:
     """Retrieve a purchase order additional cost row
 
@@ -101,7 +99,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRowResponse]]
+        Response[Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]]
     """
 
     kwargs = _get_kwargs(
@@ -123,7 +121,7 @@ def sync(
     GetPoAdditionalCostRowResponse401
     | GetPoAdditionalCostRowResponse429
     | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    | PurchaseOrderAdditionalCostRow
     | None
 ):
     """Retrieve a purchase order additional cost row
@@ -139,7 +137,7 @@ def sync(
 
 
     Returns:
-        Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRowResponse]
+        Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]
     """
 
     return sync_detailed(
@@ -156,7 +154,7 @@ async def asyncio_detailed(
     GetPoAdditionalCostRowResponse401
     | GetPoAdditionalCostRowResponse429
     | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    | PurchaseOrderAdditionalCostRow
 ]:
     """Retrieve a purchase order additional cost row
 
@@ -171,7 +169,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRowResponse]]
+        Response[Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]]
     """
 
     kwargs = _get_kwargs(
@@ -191,7 +189,7 @@ async def asyncio(
     GetPoAdditionalCostRowResponse401
     | GetPoAdditionalCostRowResponse429
     | GetPoAdditionalCostRowResponse500
-    | PurchaseOrderAdditionalCostRowResponse
+    | PurchaseOrderAdditionalCostRow
     | None
 ):
     """Retrieve a purchase order additional cost row
@@ -207,7 +205,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRowResponse]
+        Union[GetPoAdditionalCostRowResponse401, GetPoAdditionalCostRowResponse429, GetPoAdditionalCostRowResponse500, PurchaseOrderAdditionalCostRow]
     """
 
     return (

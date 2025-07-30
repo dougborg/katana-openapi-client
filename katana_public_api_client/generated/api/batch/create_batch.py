@@ -6,7 +6,6 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.batch import Batch
-from ...models.batch_response import BatchResponse
 from ...models.create_batch_response_401 import CreateBatchResponse401
 from ...models.create_batch_response_422 import CreateBatchResponse422
 from ...models.create_batch_response_429 import CreateBatchResponse429
@@ -36,7 +35,7 @@ def _get_kwargs(
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> (
-    BatchResponse
+    Batch
     | CreateBatchResponse401
     | CreateBatchResponse422
     | CreateBatchResponse429
@@ -44,7 +43,7 @@ def _parse_response(
     | None
 ):
     if response.status_code == 200:
-        response_200 = BatchResponse.from_dict(response.json())
+        response_200 = Batch.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -72,7 +71,7 @@ def _parse_response(
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    BatchResponse
+    Batch
     | CreateBatchResponse401
     | CreateBatchResponse422
     | CreateBatchResponse429
@@ -91,7 +90,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: Batch,
 ) -> Response[
-    BatchResponse
+    Batch
     | CreateBatchResponse401
     | CreateBatchResponse422
     | CreateBatchResponse429
@@ -110,7 +109,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[BatchResponse, CreateBatchResponse401, CreateBatchResponse422, CreateBatchResponse429, CreateBatchResponse500]]
+        Response[Union[Batch, CreateBatchResponse401, CreateBatchResponse422, CreateBatchResponse429, CreateBatchResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -129,7 +128,7 @@ def sync(
     client: AuthenticatedClient | Client,
     body: Batch,
 ) -> (
-    BatchResponse
+    Batch
     | CreateBatchResponse401
     | CreateBatchResponse422
     | CreateBatchResponse429
@@ -149,7 +148,7 @@ def sync(
 
 
     Returns:
-        Union[BatchResponse, CreateBatchResponse401, CreateBatchResponse422, CreateBatchResponse429, CreateBatchResponse500]
+        Union[Batch, CreateBatchResponse401, CreateBatchResponse422, CreateBatchResponse429, CreateBatchResponse500]
     """
 
     return sync_detailed(
@@ -163,7 +162,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: Batch,
 ) -> Response[
-    BatchResponse
+    Batch
     | CreateBatchResponse401
     | CreateBatchResponse422
     | CreateBatchResponse429
@@ -182,7 +181,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[BatchResponse, CreateBatchResponse401, CreateBatchResponse422, CreateBatchResponse429, CreateBatchResponse500]]
+        Response[Union[Batch, CreateBatchResponse401, CreateBatchResponse422, CreateBatchResponse429, CreateBatchResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -199,7 +198,7 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: Batch,
 ) -> (
-    BatchResponse
+    Batch
     | CreateBatchResponse401
     | CreateBatchResponse422
     | CreateBatchResponse429
@@ -219,7 +218,7 @@ async def asyncio(
 
 
     Returns:
-        Union[BatchResponse, CreateBatchResponse401, CreateBatchResponse422, CreateBatchResponse429, CreateBatchResponse500]
+        Union[Batch, CreateBatchResponse401, CreateBatchResponse422, CreateBatchResponse429, CreateBatchResponse500]
     """
 
     return (

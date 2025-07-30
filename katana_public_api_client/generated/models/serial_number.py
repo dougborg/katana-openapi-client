@@ -8,6 +8,7 @@ from attrs import (
 )
 from dateutil.parser import isoparse
 
+from ..models.serial_number_resource_type import SerialNumberResourceType
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="SerialNumber")
@@ -18,7 +19,7 @@ class SerialNumber:
     id: Unset | int = UNSET
     transaction_id: Unset | str = UNSET
     serial_number: Unset | str = UNSET
-    resource_type: Unset | str = UNSET
+    resource_type: Unset | SerialNumberResourceType = UNSET
     resource_id: Unset | int = UNSET
     transaction_date: Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -30,7 +31,9 @@ class SerialNumber:
 
         serial_number = self.serial_number
 
-        resource_type = self.resource_type
+        resource_type: Unset | str = UNSET
+        if not isinstance(self.resource_type, Unset):
+            resource_type = self.resource_type.value
 
         resource_id = self.resource_id
 
@@ -65,7 +68,12 @@ class SerialNumber:
 
         serial_number = d.pop("serial_number", UNSET)
 
-        resource_type = d.pop("resource_type", UNSET)
+        _resource_type = d.pop("resource_type", UNSET)
+        resource_type: Unset | SerialNumberResourceType
+        if isinstance(_resource_type, Unset):
+            resource_type = UNSET
+        else:
+            resource_type = SerialNumberResourceType(_resource_type)
 
         resource_id = d.pop("resource_id", UNSET)
 

@@ -11,11 +11,9 @@ from dateutil.parser import isoparse
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.variant import Variant
     from ..models.variant_response_product_or_material_configs_item import (
         VariantResponseProductOrMaterialConfigsItem,
-    )
-    from ..models.variant_response_product_or_material_variants_item import (
-        VariantResponseProductOrMaterialVariantsItem,
     )
 
 
@@ -39,7 +37,7 @@ class VariantResponseProductOrMaterial:
     additional_info: Unset | str = UNSET
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    variants: Unset | list["VariantResponseProductOrMaterialVariantsItem"] = UNSET
+    variants: Unset | list["Variant"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -129,11 +127,9 @@ class VariantResponseProductOrMaterial:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.variant import Variant
         from ..models.variant_response_product_or_material_configs_item import (
             VariantResponseProductOrMaterialConfigsItem,
-        )
-        from ..models.variant_response_product_or_material_variants_item import (
-            VariantResponseProductOrMaterialVariantsItem,
         )
 
         d = dict(src_dict)
@@ -187,9 +183,7 @@ class VariantResponseProductOrMaterial:
         variants = []
         _variants = d.pop("variants", UNSET)
         for variants_item_data in _variants or []:
-            variants_item = VariantResponseProductOrMaterialVariantsItem.from_dict(
-                variants_item_data
-            )
+            variants_item = Variant.from_dict(variants_item_data)
 
             variants.append(variants_item)
 

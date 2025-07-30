@@ -17,9 +17,7 @@ from ...models.create_manufacturing_order_recipe_rows_response_429 import (
 from ...models.create_manufacturing_order_recipe_rows_response_500 import (
     CreateManufacturingOrderRecipeRowsResponse500,
 )
-from ...models.manufacturing_order_recipe_row_response import (
-    ManufacturingOrderRecipeRowResponse,
-)
+from ...models.manufacturing_order_recipe_row import ManufacturingOrderRecipeRow
 from ...types import Response
 
 
@@ -48,11 +46,11 @@ def _parse_response(
     CreateManufacturingOrderRecipeRowsResponse401
     | CreateManufacturingOrderRecipeRowsResponse429
     | CreateManufacturingOrderRecipeRowsResponse500
-    | ManufacturingOrderRecipeRowResponse
+    | ManufacturingOrderRecipeRow
     | None
 ):
     if response.status_code == 200:
-        response_200 = ManufacturingOrderRecipeRowResponse.from_dict(response.json())
+        response_200 = ManufacturingOrderRecipeRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -85,7 +83,7 @@ def _build_response(
     CreateManufacturingOrderRecipeRowsResponse401
     | CreateManufacturingOrderRecipeRowsResponse429
     | CreateManufacturingOrderRecipeRowsResponse500
-    | ManufacturingOrderRecipeRowResponse
+    | ManufacturingOrderRecipeRow
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -103,7 +101,7 @@ def sync_detailed(
     CreateManufacturingOrderRecipeRowsResponse401
     | CreateManufacturingOrderRecipeRowsResponse429
     | CreateManufacturingOrderRecipeRowsResponse500
-    | ManufacturingOrderRecipeRowResponse
+    | ManufacturingOrderRecipeRow
 ]:
     """Create a manufacturing order recipe row
 
@@ -119,7 +117,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateManufacturingOrderRecipeRowsResponse401, CreateManufacturingOrderRecipeRowsResponse429, CreateManufacturingOrderRecipeRowsResponse500, ManufacturingOrderRecipeRowResponse]]
+        Response[Union[CreateManufacturingOrderRecipeRowsResponse401, CreateManufacturingOrderRecipeRowsResponse429, CreateManufacturingOrderRecipeRowsResponse500, ManufacturingOrderRecipeRow]]
     """
 
     kwargs = _get_kwargs(
@@ -141,7 +139,7 @@ def sync(
     CreateManufacturingOrderRecipeRowsResponse401
     | CreateManufacturingOrderRecipeRowsResponse429
     | CreateManufacturingOrderRecipeRowsResponse500
-    | ManufacturingOrderRecipeRowResponse
+    | ManufacturingOrderRecipeRow
     | None
 ):
     """Create a manufacturing order recipe row
@@ -158,7 +156,7 @@ def sync(
 
 
     Returns:
-        Union[CreateManufacturingOrderRecipeRowsResponse401, CreateManufacturingOrderRecipeRowsResponse429, CreateManufacturingOrderRecipeRowsResponse500, ManufacturingOrderRecipeRowResponse]
+        Union[CreateManufacturingOrderRecipeRowsResponse401, CreateManufacturingOrderRecipeRowsResponse429, CreateManufacturingOrderRecipeRowsResponse500, ManufacturingOrderRecipeRow]
     """
 
     return sync_detailed(
@@ -175,7 +173,7 @@ async def asyncio_detailed(
     CreateManufacturingOrderRecipeRowsResponse401
     | CreateManufacturingOrderRecipeRowsResponse429
     | CreateManufacturingOrderRecipeRowsResponse500
-    | ManufacturingOrderRecipeRowResponse
+    | ManufacturingOrderRecipeRow
 ]:
     """Create a manufacturing order recipe row
 
@@ -191,7 +189,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateManufacturingOrderRecipeRowsResponse401, CreateManufacturingOrderRecipeRowsResponse429, CreateManufacturingOrderRecipeRowsResponse500, ManufacturingOrderRecipeRowResponse]]
+        Response[Union[CreateManufacturingOrderRecipeRowsResponse401, CreateManufacturingOrderRecipeRowsResponse429, CreateManufacturingOrderRecipeRowsResponse500, ManufacturingOrderRecipeRow]]
     """
 
     kwargs = _get_kwargs(
@@ -211,7 +209,7 @@ async def asyncio(
     CreateManufacturingOrderRecipeRowsResponse401
     | CreateManufacturingOrderRecipeRowsResponse429
     | CreateManufacturingOrderRecipeRowsResponse500
-    | ManufacturingOrderRecipeRowResponse
+    | ManufacturingOrderRecipeRow
     | None
 ):
     """Create a manufacturing order recipe row
@@ -228,7 +226,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateManufacturingOrderRecipeRowsResponse401, CreateManufacturingOrderRecipeRowsResponse429, CreateManufacturingOrderRecipeRowsResponse500, ManufacturingOrderRecipeRowResponse]
+        Union[CreateManufacturingOrderRecipeRowsResponse401, CreateManufacturingOrderRecipeRowsResponse429, CreateManufacturingOrderRecipeRowsResponse500, ManufacturingOrderRecipeRow]
     """
 
     return (

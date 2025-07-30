@@ -10,7 +10,7 @@ from ...models.create_material_response_401 import CreateMaterialResponse401
 from ...models.create_material_response_422 import CreateMaterialResponse422
 from ...models.create_material_response_429 import CreateMaterialResponse429
 from ...models.create_material_response_500 import CreateMaterialResponse500
-from ...models.material_response import MaterialResponse
+from ...models.material import Material
 from ...types import Response
 
 
@@ -40,11 +40,11 @@ def _parse_response(
     | CreateMaterialResponse422
     | CreateMaterialResponse429
     | CreateMaterialResponse500
-    | MaterialResponse
+    | Material
     | None
 ):
     if response.status_code == 200:
-        response_200 = MaterialResponse.from_dict(response.json())
+        response_200 = Material.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -76,7 +76,7 @@ def _build_response(
     | CreateMaterialResponse422
     | CreateMaterialResponse429
     | CreateMaterialResponse500
-    | MaterialResponse
+    | Material
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -95,7 +95,7 @@ def sync_detailed(
     | CreateMaterialResponse422
     | CreateMaterialResponse429
     | CreateMaterialResponse500
-    | MaterialResponse
+    | Material
 ]:
     """Create a material
 
@@ -110,7 +110,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, MaterialResponse]]
+        Response[Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, Material]]
     """
 
     kwargs = _get_kwargs(
@@ -133,7 +133,7 @@ def sync(
     | CreateMaterialResponse422
     | CreateMaterialResponse429
     | CreateMaterialResponse500
-    | MaterialResponse
+    | Material
     | None
 ):
     """Create a material
@@ -149,7 +149,7 @@ def sync(
 
 
     Returns:
-        Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, MaterialResponse]
+        Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, Material]
     """
 
     return sync_detailed(
@@ -167,7 +167,7 @@ async def asyncio_detailed(
     | CreateMaterialResponse422
     | CreateMaterialResponse429
     | CreateMaterialResponse500
-    | MaterialResponse
+    | Material
 ]:
     """Create a material
 
@@ -182,7 +182,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, MaterialResponse]]
+        Response[Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, Material]]
     """
 
     kwargs = _get_kwargs(
@@ -203,7 +203,7 @@ async def asyncio(
     | CreateMaterialResponse422
     | CreateMaterialResponse429
     | CreateMaterialResponse500
-    | MaterialResponse
+    | Material
     | None
 ):
     """Create a material
@@ -219,7 +219,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, MaterialResponse]
+        Union[CreateMaterialResponse401, CreateMaterialResponse422, CreateMaterialResponse429, CreateMaterialResponse500, Material]
     """
 
     return (

@@ -9,8 +9,8 @@ from ...models.export_webhook_logs_response_401 import ExportWebhookLogsResponse
 from ...models.export_webhook_logs_response_422 import ExportWebhookLogsResponse422
 from ...models.export_webhook_logs_response_429 import ExportWebhookLogsResponse429
 from ...models.export_webhook_logs_response_500 import ExportWebhookLogsResponse500
+from ...models.webhook_logs_export import WebhookLogsExport
 from ...models.webhook_logs_export_request import WebhookLogsExportRequest
-from ...models.webhook_logs_export_response import WebhookLogsExportResponse
 from ...types import Response
 
 
@@ -40,11 +40,11 @@ def _parse_response(
     | ExportWebhookLogsResponse422
     | ExportWebhookLogsResponse429
     | ExportWebhookLogsResponse500
-    | WebhookLogsExportResponse
+    | WebhookLogsExport
     | None
 ):
     if response.status_code == 200:
-        response_200 = WebhookLogsExportResponse.from_dict(response.json())
+        response_200 = WebhookLogsExport.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -76,7 +76,7 @@ def _build_response(
     | ExportWebhookLogsResponse422
     | ExportWebhookLogsResponse429
     | ExportWebhookLogsResponse500
-    | WebhookLogsExportResponse
+    | WebhookLogsExport
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -95,7 +95,7 @@ def sync_detailed(
     | ExportWebhookLogsResponse422
     | ExportWebhookLogsResponse429
     | ExportWebhookLogsResponse500
-    | WebhookLogsExportResponse
+    | WebhookLogsExport
 ]:
     """Export webhook logs
 
@@ -112,7 +112,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExportResponse]]
+        Response[Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExport]]
     """
 
     kwargs = _get_kwargs(
@@ -135,7 +135,7 @@ def sync(
     | ExportWebhookLogsResponse422
     | ExportWebhookLogsResponse429
     | ExportWebhookLogsResponse500
-    | WebhookLogsExportResponse
+    | WebhookLogsExport
     | None
 ):
     """Export webhook logs
@@ -153,7 +153,7 @@ def sync(
 
 
     Returns:
-        Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExportResponse]
+        Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExport]
     """
 
     return sync_detailed(
@@ -171,7 +171,7 @@ async def asyncio_detailed(
     | ExportWebhookLogsResponse422
     | ExportWebhookLogsResponse429
     | ExportWebhookLogsResponse500
-    | WebhookLogsExportResponse
+    | WebhookLogsExport
 ]:
     """Export webhook logs
 
@@ -188,7 +188,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExportResponse]]
+        Response[Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExport]]
     """
 
     kwargs = _get_kwargs(
@@ -209,7 +209,7 @@ async def asyncio(
     | ExportWebhookLogsResponse422
     | ExportWebhookLogsResponse429
     | ExportWebhookLogsResponse500
-    | WebhookLogsExportResponse
+    | WebhookLogsExport
     | None
 ):
     """Export webhook logs
@@ -227,7 +227,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExportResponse]
+        Union[ExportWebhookLogsResponse401, ExportWebhookLogsResponse422, ExportWebhookLogsResponse429, ExportWebhookLogsResponse500, WebhookLogsExport]
     """
 
     return (

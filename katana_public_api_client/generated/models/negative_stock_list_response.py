@@ -9,7 +9,7 @@ from attrs import (
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.negative_stock_response import NegativeStockResponse
+    from ..models.negative_stock import NegativeStock
 
 
 T = TypeVar("T", bound="NegativeStockListResponse")
@@ -17,7 +17,7 @@ T = TypeVar("T", bound="NegativeStockListResponse")
 
 @_attrs_define
 class NegativeStockListResponse:
-    data: Unset | list["NegativeStockResponse"] = UNSET
+    data: Unset | list["NegativeStock"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,13 +38,13 @@ class NegativeStockListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.negative_stock_response import NegativeStockResponse
+        from ..models.negative_stock import NegativeStock
 
         d = dict(src_dict)
         data = []
         _data = d.pop("data", UNSET)
         for data_item_data in _data or []:
-            data_item = NegativeStockResponse.from_dict(data_item_data)
+            data_item = NegativeStock.from_dict(data_item_data)
 
             data.append(data_item)
 

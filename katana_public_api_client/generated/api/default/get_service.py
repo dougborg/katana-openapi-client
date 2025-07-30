@@ -8,7 +8,7 @@ from ...client import AuthenticatedClient, Client
 from ...models.get_service_response_401 import GetServiceResponse401
 from ...models.get_service_response_429 import GetServiceResponse429
 from ...models.get_service_response_500 import GetServiceResponse500
-from ...models.service_response import ServiceResponse
+from ...models.service import Service
 from ...types import Response
 
 
@@ -30,11 +30,11 @@ def _parse_response(
     | GetServiceResponse401
     | GetServiceResponse429
     | GetServiceResponse500
-    | ServiceResponse
+    | Service
     | None
 ):
     if response.status_code == 200:
-        response_200 = ServiceResponse.from_dict(response.json())
+        response_200 = Service.from_dict(response.json())
 
         return response_200
     if response.status_code == 404:
@@ -65,7 +65,7 @@ def _build_response(
     | GetServiceResponse401
     | GetServiceResponse429
     | GetServiceResponse500
-    | ServiceResponse
+    | Service
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -84,7 +84,7 @@ def sync_detailed(
     | GetServiceResponse401
     | GetServiceResponse429
     | GetServiceResponse500
-    | ServiceResponse
+    | Service
 ]:
     """Get Service
 
@@ -100,7 +100,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[Any, GetServiceResponse401, GetServiceResponse429, GetServiceResponse500, ServiceResponse]]
+        Response[Union[Any, GetServiceResponse401, GetServiceResponse429, GetServiceResponse500, Service]]
     """
 
     kwargs = _get_kwargs(
@@ -123,7 +123,7 @@ def sync(
     | GetServiceResponse401
     | GetServiceResponse429
     | GetServiceResponse500
-    | ServiceResponse
+    | Service
     | None
 ):
     """Get Service
@@ -140,7 +140,7 @@ def sync(
 
 
     Returns:
-        Union[Any, GetServiceResponse401, GetServiceResponse429, GetServiceResponse500, ServiceResponse]
+        Union[Any, GetServiceResponse401, GetServiceResponse429, GetServiceResponse500, Service]
     """
 
     return sync_detailed(
@@ -158,7 +158,7 @@ async def asyncio_detailed(
     | GetServiceResponse401
     | GetServiceResponse429
     | GetServiceResponse500
-    | ServiceResponse
+    | Service
 ]:
     """Get Service
 
@@ -174,7 +174,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[Any, GetServiceResponse401, GetServiceResponse429, GetServiceResponse500, ServiceResponse]]
+        Response[Union[Any, GetServiceResponse401, GetServiceResponse429, GetServiceResponse500, Service]]
     """
 
     kwargs = _get_kwargs(
@@ -195,7 +195,7 @@ async def asyncio(
     | GetServiceResponse401
     | GetServiceResponse429
     | GetServiceResponse500
-    | ServiceResponse
+    | Service
     | None
 ):
     """Get Service
@@ -212,7 +212,7 @@ async def asyncio(
 
 
     Returns:
-        Union[Any, GetServiceResponse401, GetServiceResponse429, GetServiceResponse500, ServiceResponse]
+        Union[Any, GetServiceResponse401, GetServiceResponse429, GetServiceResponse500, Service]
     """
 
     return (

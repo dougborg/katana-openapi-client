@@ -8,11 +8,15 @@ from attrs import (
 )
 from dateutil.parser import isoparse
 
-from ..models.sales_order_ingredient_availability import (
-    SalesOrderIngredientAvailability,
+from ..models.sales_order_ingredient_availability_type_0 import (
+    SalesOrderIngredientAvailabilityType0,
 )
-from ..models.sales_order_product_availability import SalesOrderProductAvailability
-from ..models.sales_order_production_status import SalesOrderProductionStatus
+from ..models.sales_order_product_availability_type_0 import (
+    SalesOrderProductAvailabilityType0,
+)
+from ..models.sales_order_production_status_type_0 import (
+    SalesOrderProductionStatusType0,
+)
 from ..models.sales_order_status import SalesOrderStatus
 from ..types import UNSET, Unset
 
@@ -47,11 +51,13 @@ class SalesOrder:
     ecommerce_order_type: None | Unset | str = UNSET
     ecommerce_store_name: None | Unset | str = UNSET
     ecommerce_order_id: None | Unset | str = UNSET
-    product_availability: Unset | SalesOrderProductAvailability = UNSET
+    product_availability: None | SalesOrderProductAvailabilityType0 | Unset = UNSET
     product_expected_date: None | Unset | datetime.datetime = UNSET
-    ingredient_availability: Unset | SalesOrderIngredientAvailability = UNSET
+    ingredient_availability: None | SalesOrderIngredientAvailabilityType0 | Unset = (
+        UNSET
+    )
     ingredient_expected_date: None | Unset | datetime.datetime = UNSET
-    production_status: Unset | SalesOrderProductionStatus = UNSET
+    production_status: None | SalesOrderProductionStatusType0 | Unset = UNSET
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     tracking_number: None | Unset | str = UNSET
@@ -161,9 +167,13 @@ class SalesOrder:
         else:
             ecommerce_order_id = self.ecommerce_order_id
 
-        product_availability: Unset | str = UNSET
-        if not isinstance(self.product_availability, Unset):
+        product_availability: None | Unset | str
+        if isinstance(self.product_availability, Unset):
+            product_availability = UNSET
+        elif isinstance(self.product_availability, SalesOrderProductAvailabilityType0):
             product_availability = self.product_availability.value
+        else:
+            product_availability = self.product_availability
 
         product_expected_date: None | Unset | str
         if isinstance(self.product_expected_date, Unset):
@@ -173,9 +183,15 @@ class SalesOrder:
         else:
             product_expected_date = self.product_expected_date
 
-        ingredient_availability: Unset | str = UNSET
-        if not isinstance(self.ingredient_availability, Unset):
+        ingredient_availability: None | Unset | str
+        if isinstance(self.ingredient_availability, Unset):
+            ingredient_availability = UNSET
+        elif isinstance(
+            self.ingredient_availability, SalesOrderIngredientAvailabilityType0
+        ):
             ingredient_availability = self.ingredient_availability.value
+        else:
+            ingredient_availability = self.ingredient_availability
 
         ingredient_expected_date: None | Unset | str
         if isinstance(self.ingredient_expected_date, Unset):
@@ -185,9 +201,13 @@ class SalesOrder:
         else:
             ingredient_expected_date = self.ingredient_expected_date
 
-        production_status: Unset | str = UNSET
-        if not isinstance(self.production_status, Unset):
+        production_status: None | Unset | str
+        if isinstance(self.production_status, Unset):
+            production_status = UNSET
+        elif isinstance(self.production_status, SalesOrderProductionStatusType0):
             production_status = self.production_status.value
+        else:
+            production_status = self.production_status
 
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
@@ -465,12 +485,26 @@ class SalesOrder:
             d.pop("ecommerce_order_id", UNSET)
         )
 
-        _product_availability = d.pop("product_availability", UNSET)
-        product_availability: Unset | SalesOrderProductAvailability
-        if isinstance(_product_availability, Unset):
-            product_availability = UNSET
-        else:
-            product_availability = SalesOrderProductAvailability(_product_availability)
+        def _parse_product_availability(
+            data: object,
+        ) -> None | SalesOrderProductAvailabilityType0 | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                product_availability_type_0 = SalesOrderProductAvailabilityType0(data)
+
+                return product_availability_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | SalesOrderProductAvailabilityType0 | Unset, data)
+
+        product_availability = _parse_product_availability(
+            d.pop("product_availability", UNSET)
+        )
 
         def _parse_product_expected_date(
             data: object,
@@ -493,14 +527,28 @@ class SalesOrder:
             d.pop("product_expected_date", UNSET)
         )
 
-        _ingredient_availability = d.pop("ingredient_availability", UNSET)
-        ingredient_availability: Unset | SalesOrderIngredientAvailability
-        if isinstance(_ingredient_availability, Unset):
-            ingredient_availability = UNSET
-        else:
-            ingredient_availability = SalesOrderIngredientAvailability(
-                _ingredient_availability
-            )
+        def _parse_ingredient_availability(
+            data: object,
+        ) -> None | SalesOrderIngredientAvailabilityType0 | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                ingredient_availability_type_0 = SalesOrderIngredientAvailabilityType0(
+                    data
+                )
+
+                return ingredient_availability_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | SalesOrderIngredientAvailabilityType0 | Unset, data)
+
+        ingredient_availability = _parse_ingredient_availability(
+            d.pop("ingredient_availability", UNSET)
+        )
 
         def _parse_ingredient_expected_date(
             data: object,
@@ -523,12 +571,24 @@ class SalesOrder:
             d.pop("ingredient_expected_date", UNSET)
         )
 
-        _production_status = d.pop("production_status", UNSET)
-        production_status: Unset | SalesOrderProductionStatus
-        if isinstance(_production_status, Unset):
-            production_status = UNSET
-        else:
-            production_status = SalesOrderProductionStatus(_production_status)
+        def _parse_production_status(
+            data: object,
+        ) -> None | SalesOrderProductionStatusType0 | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                production_status_type_0 = SalesOrderProductionStatusType0(data)
+
+                return production_status_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | SalesOrderProductionStatusType0 | Unset, data)
+
+        production_status = _parse_production_status(d.pop("production_status", UNSET))
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime

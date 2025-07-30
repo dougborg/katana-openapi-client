@@ -9,7 +9,7 @@ from attrs import (
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.purchase_order_response import PurchaseOrderResponse
+    from ..models.purchase_order import PurchaseOrder
 
 
 T = TypeVar("T", bound="PurchaseOrderListResponse")
@@ -17,7 +17,7 @@ T = TypeVar("T", bound="PurchaseOrderListResponse")
 
 @_attrs_define
 class PurchaseOrderListResponse:
-    data: Unset | list["PurchaseOrderResponse"] = UNSET
+    data: Unset | list["PurchaseOrder"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,13 +38,13 @@ class PurchaseOrderListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.purchase_order_response import PurchaseOrderResponse
+        from ..models.purchase_order import PurchaseOrder
 
         d = dict(src_dict)
         data = []
         _data = d.pop("data", UNSET)
         for data_item_data in _data or []:
-            data_item = PurchaseOrderResponse.from_dict(data_item_data)
+            data_item = PurchaseOrder.from_dict(data_item_data)
 
             data.append(data_item)
 

@@ -10,7 +10,7 @@ from ...models.create_product_response_401 import CreateProductResponse401
 from ...models.create_product_response_422 import CreateProductResponse422
 from ...models.create_product_response_429 import CreateProductResponse429
 from ...models.create_product_response_500 import CreateProductResponse500
-from ...models.product_response import ProductResponse
+from ...models.product import Product
 from ...types import Response
 
 
@@ -40,11 +40,11 @@ def _parse_response(
     | CreateProductResponse422
     | CreateProductResponse429
     | CreateProductResponse500
-    | ProductResponse
+    | Product
     | None
 ):
     if response.status_code == 200:
-        response_200 = ProductResponse.from_dict(response.json())
+        response_200 = Product.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -76,7 +76,7 @@ def _build_response(
     | CreateProductResponse422
     | CreateProductResponse429
     | CreateProductResponse500
-    | ProductResponse
+    | Product
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -95,7 +95,7 @@ def sync_detailed(
     | CreateProductResponse422
     | CreateProductResponse429
     | CreateProductResponse500
-    | ProductResponse
+    | Product
 ]:
     """Create a product
 
@@ -110,7 +110,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, ProductResponse]]
+        Response[Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, Product]]
     """
 
     kwargs = _get_kwargs(
@@ -133,7 +133,7 @@ def sync(
     | CreateProductResponse422
     | CreateProductResponse429
     | CreateProductResponse500
-    | ProductResponse
+    | Product
     | None
 ):
     """Create a product
@@ -149,7 +149,7 @@ def sync(
 
 
     Returns:
-        Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, ProductResponse]
+        Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, Product]
     """
 
     return sync_detailed(
@@ -167,7 +167,7 @@ async def asyncio_detailed(
     | CreateProductResponse422
     | CreateProductResponse429
     | CreateProductResponse500
-    | ProductResponse
+    | Product
 ]:
     """Create a product
 
@@ -182,7 +182,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, ProductResponse]]
+        Response[Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, Product]]
     """
 
     kwargs = _get_kwargs(
@@ -203,7 +203,7 @@ async def asyncio(
     | CreateProductResponse422
     | CreateProductResponse429
     | CreateProductResponse500
-    | ProductResponse
+    | Product
     | None
 ):
     """Create a product
@@ -219,7 +219,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, ProductResponse]
+        Union[CreateProductResponse401, CreateProductResponse422, CreateProductResponse429, CreateProductResponse500, Product]
     """
 
     return (

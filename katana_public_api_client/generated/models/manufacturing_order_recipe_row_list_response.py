@@ -9,9 +9,7 @@ from attrs import (
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.manufacturing_order_recipe_row_response import (
-        ManufacturingOrderRecipeRowResponse,
-    )
+    from ..models.manufacturing_order_recipe_row import ManufacturingOrderRecipeRow
 
 
 T = TypeVar("T", bound="ManufacturingOrderRecipeRowListResponse")
@@ -19,7 +17,7 @@ T = TypeVar("T", bound="ManufacturingOrderRecipeRowListResponse")
 
 @_attrs_define
 class ManufacturingOrderRecipeRowListResponse:
-    data: Unset | list["ManufacturingOrderRecipeRowResponse"] = UNSET
+    data: Unset | list["ManufacturingOrderRecipeRow"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -40,15 +38,13 @@ class ManufacturingOrderRecipeRowListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.manufacturing_order_recipe_row_response import (
-            ManufacturingOrderRecipeRowResponse,
-        )
+        from ..models.manufacturing_order_recipe_row import ManufacturingOrderRecipeRow
 
         d = dict(src_dict)
         data = []
         _data = d.pop("data", UNSET)
         for data_item_data in _data or []:
-            data_item = ManufacturingOrderRecipeRowResponse.from_dict(data_item_data)
+            data_item = ManufacturingOrderRecipeRow.from_dict(data_item_data)
 
             data.append(data_item)
 

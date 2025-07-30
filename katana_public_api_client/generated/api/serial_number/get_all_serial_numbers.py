@@ -5,32 +5,33 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.get_all_serial_numbers_resource_type import (
+    GetAllSerialNumbersResourceType,
+)
 from ...models.get_all_serial_numbers_response_401 import GetAllSerialNumbersResponse401
 from ...models.get_all_serial_numbers_response_429 import GetAllSerialNumbersResponse429
 from ...models.get_all_serial_numbers_response_500 import GetAllSerialNumbersResponse500
-from ...models.serial_number_stock_list_response import SerialNumberStockListResponse
+from ...models.serial_number_list_response import SerialNumberListResponse
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
+    resource_type: GetAllSerialNumbersResourceType,
+    resource_id: int,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    variant_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    serial_number: Unset | str = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
+
+    json_resource_type = resource_type.value
+    params["resource_type"] = json_resource_type
+
+    params["resource_id"] = resource_id
 
     params["limit"] = limit
 
     params["page"] = page
-
-    params["variant_id"] = variant_id
-
-    params["location_id"] = location_id
-
-    params["serial_number"] = serial_number
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -49,11 +50,11 @@ def _parse_response(
     GetAllSerialNumbersResponse401
     | GetAllSerialNumbersResponse429
     | GetAllSerialNumbersResponse500
-    | SerialNumberStockListResponse
+    | SerialNumberListResponse
     | None
 ):
     if response.status_code == 200:
-        response_200 = SerialNumberStockListResponse.from_dict(response.json())
+        response_200 = SerialNumberListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -80,7 +81,7 @@ def _build_response(
     GetAllSerialNumbersResponse401
     | GetAllSerialNumbersResponse429
     | GetAllSerialNumbersResponse500
-    | SerialNumberStockListResponse
+    | SerialNumberListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -93,27 +94,26 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
+    resource_type: GetAllSerialNumbersResourceType,
+    resource_id: int,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    variant_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    serial_number: Unset | str = UNSET,
 ) -> Response[
     GetAllSerialNumbersResponse401
     | GetAllSerialNumbersResponse429
     | GetAllSerialNumbersResponse500
-    | SerialNumberStockListResponse
+    | SerialNumberListResponse
 ]:
     """List serial numbers
 
      Returns a list of serial numbers.
 
     Args:
+        resource_type (GetAllSerialNumbersResourceType):
+        resource_id (int):
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        variant_id (Union[Unset, int]):
-        location_id (Union[Unset, int]):
-        serial_number (Union[Unset, str]):
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -121,15 +121,14 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberStockListResponse]]
+        Response[Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberListResponse]]
     """
 
     kwargs = _get_kwargs(
+        resource_type=resource_type,
+        resource_id=resource_id,
         limit=limit,
         page=page,
-        variant_id=variant_id,
-        location_id=location_id,
-        serial_number=serial_number,
     )
 
     response = client.get_httpx_client().request(
@@ -142,16 +141,15 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
+    resource_type: GetAllSerialNumbersResourceType,
+    resource_id: int,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    variant_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    serial_number: Unset | str = UNSET,
 ) -> (
     GetAllSerialNumbersResponse401
     | GetAllSerialNumbersResponse429
     | GetAllSerialNumbersResponse500
-    | SerialNumberStockListResponse
+    | SerialNumberListResponse
     | None
 ):
     """List serial numbers
@@ -159,11 +157,11 @@ def sync(
      Returns a list of serial numbers.
 
     Args:
+        resource_type (GetAllSerialNumbersResourceType):
+        resource_id (int):
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        variant_id (Union[Unset, int]):
-        location_id (Union[Unset, int]):
-        serial_number (Union[Unset, str]):
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -171,43 +169,41 @@ def sync(
 
 
     Returns:
-        Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberStockListResponse]
+        Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberListResponse]
     """
 
     return sync_detailed(
         client=client,
+        resource_type=resource_type,
+        resource_id=resource_id,
         limit=limit,
         page=page,
-        variant_id=variant_id,
-        location_id=location_id,
-        serial_number=serial_number,
     ).parsed
 
 
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
+    resource_type: GetAllSerialNumbersResourceType,
+    resource_id: int,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    variant_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    serial_number: Unset | str = UNSET,
 ) -> Response[
     GetAllSerialNumbersResponse401
     | GetAllSerialNumbersResponse429
     | GetAllSerialNumbersResponse500
-    | SerialNumberStockListResponse
+    | SerialNumberListResponse
 ]:
     """List serial numbers
 
      Returns a list of serial numbers.
 
     Args:
+        resource_type (GetAllSerialNumbersResourceType):
+        resource_id (int):
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        variant_id (Union[Unset, int]):
-        location_id (Union[Unset, int]):
-        serial_number (Union[Unset, str]):
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -215,15 +211,14 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberStockListResponse]]
+        Response[Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberListResponse]]
     """
 
     kwargs = _get_kwargs(
+        resource_type=resource_type,
+        resource_id=resource_id,
         limit=limit,
         page=page,
-        variant_id=variant_id,
-        location_id=location_id,
-        serial_number=serial_number,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -234,16 +229,15 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
+    resource_type: GetAllSerialNumbersResourceType,
+    resource_id: int,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    variant_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    serial_number: Unset | str = UNSET,
 ) -> (
     GetAllSerialNumbersResponse401
     | GetAllSerialNumbersResponse429
     | GetAllSerialNumbersResponse500
-    | SerialNumberStockListResponse
+    | SerialNumberListResponse
     | None
 ):
     """List serial numbers
@@ -251,11 +245,11 @@ async def asyncio(
      Returns a list of serial numbers.
 
     Args:
+        resource_type (GetAllSerialNumbersResourceType):
+        resource_id (int):
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        variant_id (Union[Unset, int]):
-        location_id (Union[Unset, int]):
-        serial_number (Union[Unset, str]):
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -263,16 +257,15 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberStockListResponse]
+        Union[GetAllSerialNumbersResponse401, GetAllSerialNumbersResponse429, GetAllSerialNumbersResponse500, SerialNumberListResponse]
     """
 
     return (
         await asyncio_detailed(
             client=client,
+            resource_type=resource_type,
+            resource_id=resource_id,
             limit=limit,
             page=page,
-            variant_id=variant_id,
-            location_id=location_id,
-            serial_number=serial_number,
         )
     ).parsed

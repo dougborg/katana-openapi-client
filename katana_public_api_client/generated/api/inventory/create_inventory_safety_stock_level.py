@@ -18,9 +18,6 @@ from ...models.create_inventory_safety_stock_level_response_500 import (
     CreateInventorySafetyStockLevelResponse500,
 )
 from ...models.inventory_safety_stock_level import InventorySafetyStockLevel
-from ...models.inventory_safety_stock_level_response import (
-    InventorySafetyStockLevelResponse,
-)
 from ...types import Response
 
 
@@ -50,11 +47,11 @@ def _parse_response(
     | CreateInventorySafetyStockLevelResponse422
     | CreateInventorySafetyStockLevelResponse429
     | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevelResponse
+    | InventorySafetyStockLevel
     | None
 ):
     if response.status_code == 200:
-        response_200 = InventorySafetyStockLevelResponse.from_dict(response.json())
+        response_200 = InventorySafetyStockLevel.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -94,7 +91,7 @@ def _build_response(
     | CreateInventorySafetyStockLevelResponse422
     | CreateInventorySafetyStockLevelResponse429
     | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevelResponse
+    | InventorySafetyStockLevel
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -113,7 +110,7 @@ def sync_detailed(
     | CreateInventorySafetyStockLevelResponse422
     | CreateInventorySafetyStockLevelResponse429
     | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevelResponse
+    | InventorySafetyStockLevel
 ]:
     """Update the safety stock level
 
@@ -128,7 +125,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevelResponse]]
+        Response[Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevel]]
     """
 
     kwargs = _get_kwargs(
@@ -151,7 +148,7 @@ def sync(
     | CreateInventorySafetyStockLevelResponse422
     | CreateInventorySafetyStockLevelResponse429
     | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevelResponse
+    | InventorySafetyStockLevel
     | None
 ):
     """Update the safety stock level
@@ -167,7 +164,7 @@ def sync(
 
 
     Returns:
-        Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevelResponse]
+        Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevel]
     """
 
     return sync_detailed(
@@ -185,7 +182,7 @@ async def asyncio_detailed(
     | CreateInventorySafetyStockLevelResponse422
     | CreateInventorySafetyStockLevelResponse429
     | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevelResponse
+    | InventorySafetyStockLevel
 ]:
     """Update the safety stock level
 
@@ -200,7 +197,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevelResponse]]
+        Response[Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevel]]
     """
 
     kwargs = _get_kwargs(
@@ -221,7 +218,7 @@ async def asyncio(
     | CreateInventorySafetyStockLevelResponse422
     | CreateInventorySafetyStockLevelResponse429
     | CreateInventorySafetyStockLevelResponse500
-    | InventorySafetyStockLevelResponse
+    | InventorySafetyStockLevel
     | None
 ):
     """Update the safety stock level
@@ -237,7 +234,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevelResponse]
+        Union[CreateInventorySafetyStockLevelResponse401, CreateInventorySafetyStockLevelResponse422, CreateInventorySafetyStockLevelResponse429, CreateInventorySafetyStockLevelResponse500, InventorySafetyStockLevel]
     """
 
     return (

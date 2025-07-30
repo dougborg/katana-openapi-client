@@ -233,7 +233,7 @@ exclude_lines = [
 
 [tool.ruff]
 line-length = 88
-src = ["katana_public_api_client", "tests", "scripts"]
+src = ["katana_public_api_client", "tests", "scripts", "katana_public_api_client/generated"]
 target-version = "py311"  # Updated to reflect minimum Python version
 fix = true
 show-fixes = true
@@ -378,6 +378,7 @@ test-all = "pytest"  # Run everything including docs (if CI_DOCS_BUILD is set)
 # -----------------------------------------------------------------------------
 regenerate-client = "python scripts/regenerate_client.py"
 validate-openapi = "openapi-spec-validator katana-openapi.yaml"
+validate-openapi-redocly = "npx @redocly/cli lint katana-openapi.yaml"
 
 # -----------------------------------------------------------------------------
 # Documentation Tasks
@@ -401,7 +402,8 @@ pre-commit-update = "pre-commit autoupdate"
 check = ["format-check", "lint", "test"]
 fix = ["format", "lint-ruff-fix"]
 ci = ["format-check", "lint", "test-coverage", "docs-build"]
-prepare = ["format", "lint", "test", "validate-openapi"]
+prepare = ["format", "lint", "test", "validate-openapi", "validate-openapi-redocly"]
+validate-all = ["validate-openapi", "validate-openapi-redocly"]
 
 
 # -----------------------------------------------------------------------------
@@ -453,7 +455,9 @@ echo "   poe prepare             - Prepare code for commit"
 echo ""
 echo "📁 OpenAPI:"
 echo "   poe regenerate-client   - Regenerate API client from OpenAPI spec"
-echo "   poe validate-openapi    - Validate OpenAPI specification"
+echo "   poe validate-openapi    - Validate OpenAPI specification (basic)"
+echo "   poe validate-openapi-redocly - Validate OpenAPI specification (Redocly)"
+echo "   poe validate-all        - Run both OpenAPI validators"
 echo ""
 echo "📁 Utilities:"
 echo "   poe clean               - Clean build artifacts and cache"

@@ -5,9 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.purchase_order_additional_cost_row_response import (
-    PurchaseOrderAdditionalCostRowResponse,
-)
+from ...models.purchase_order_additional_cost_row import PurchaseOrderAdditionalCostRow
 from ...models.update_additional_cost_row_response_401 import (
     UpdateAdditionalCostRowResponse401,
 )
@@ -49,7 +47,7 @@ def _get_kwargs(
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> (
-    PurchaseOrderAdditionalCostRowResponse
+    PurchaseOrderAdditionalCostRow
     | UpdateAdditionalCostRowResponse401
     | UpdateAdditionalCostRowResponse422
     | UpdateAdditionalCostRowResponse429
@@ -57,7 +55,7 @@ def _parse_response(
     | None
 ):
     if response.status_code == 200:
-        response_200 = PurchaseOrderAdditionalCostRowResponse.from_dict(response.json())
+        response_200 = PurchaseOrderAdditionalCostRow.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -85,7 +83,7 @@ def _parse_response(
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    PurchaseOrderAdditionalCostRowResponse
+    PurchaseOrderAdditionalCostRow
     | UpdateAdditionalCostRowResponse401
     | UpdateAdditionalCostRowResponse422
     | UpdateAdditionalCostRowResponse429
@@ -105,7 +103,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
 ) -> Response[
-    PurchaseOrderAdditionalCostRowResponse
+    PurchaseOrderAdditionalCostRow
     | UpdateAdditionalCostRowResponse401
     | UpdateAdditionalCostRowResponse422
     | UpdateAdditionalCostRowResponse429
@@ -127,7 +125,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[PurchaseOrderAdditionalCostRowResponse, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]]
+        Response[Union[PurchaseOrderAdditionalCostRow, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -148,7 +146,7 @@ def sync(
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
 ) -> (
-    PurchaseOrderAdditionalCostRowResponse
+    PurchaseOrderAdditionalCostRow
     | UpdateAdditionalCostRowResponse401
     | UpdateAdditionalCostRowResponse422
     | UpdateAdditionalCostRowResponse429
@@ -171,7 +169,7 @@ def sync(
 
 
     Returns:
-        Union[PurchaseOrderAdditionalCostRowResponse, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]
+        Union[PurchaseOrderAdditionalCostRow, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]
     """
 
     return sync_detailed(
@@ -187,7 +185,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
 ) -> Response[
-    PurchaseOrderAdditionalCostRowResponse
+    PurchaseOrderAdditionalCostRow
     | UpdateAdditionalCostRowResponse401
     | UpdateAdditionalCostRowResponse422
     | UpdateAdditionalCostRowResponse429
@@ -209,7 +207,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[PurchaseOrderAdditionalCostRowResponse, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]]
+        Response[Union[PurchaseOrderAdditionalCostRow, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]]
     """
 
     kwargs = _get_kwargs(
@@ -228,7 +226,7 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
 ) -> (
-    PurchaseOrderAdditionalCostRowResponse
+    PurchaseOrderAdditionalCostRow
     | UpdateAdditionalCostRowResponse401
     | UpdateAdditionalCostRowResponse422
     | UpdateAdditionalCostRowResponse429
@@ -251,7 +249,7 @@ async def asyncio(
 
 
     Returns:
-        Union[PurchaseOrderAdditionalCostRowResponse, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]
+        Union[PurchaseOrderAdditionalCostRow, UpdateAdditionalCostRowResponse401, UpdateAdditionalCostRowResponse422, UpdateAdditionalCostRowResponse429, UpdateAdditionalCostRowResponse500]
     """
 
     return (

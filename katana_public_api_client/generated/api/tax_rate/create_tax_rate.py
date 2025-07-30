@@ -10,7 +10,7 @@ from ...models.create_tax_rate_response_401 import CreateTaxRateResponse401
 from ...models.create_tax_rate_response_422 import CreateTaxRateResponse422
 from ...models.create_tax_rate_response_429 import CreateTaxRateResponse429
 from ...models.create_tax_rate_response_500 import CreateTaxRateResponse500
-from ...models.tax_rate_response import TaxRateResponse
+from ...models.tax_rate import TaxRate
 from ...types import Response
 
 
@@ -40,11 +40,11 @@ def _parse_response(
     | CreateTaxRateResponse422
     | CreateTaxRateResponse429
     | CreateTaxRateResponse500
-    | TaxRateResponse
+    | TaxRate
     | None
 ):
     if response.status_code == 200:
-        response_200 = TaxRateResponse.from_dict(response.json())
+        response_200 = TaxRate.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -76,7 +76,7 @@ def _build_response(
     | CreateTaxRateResponse422
     | CreateTaxRateResponse429
     | CreateTaxRateResponse500
-    | TaxRateResponse
+    | TaxRate
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -95,7 +95,7 @@ def sync_detailed(
     | CreateTaxRateResponse422
     | CreateTaxRateResponse429
     | CreateTaxRateResponse500
-    | TaxRateResponse
+    | TaxRate
 ]:
     """Create a tax rate
 
@@ -110,7 +110,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRateResponse]]
+        Response[Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRate]]
     """
 
     kwargs = _get_kwargs(
@@ -133,7 +133,7 @@ def sync(
     | CreateTaxRateResponse422
     | CreateTaxRateResponse429
     | CreateTaxRateResponse500
-    | TaxRateResponse
+    | TaxRate
     | None
 ):
     """Create a tax rate
@@ -149,7 +149,7 @@ def sync(
 
 
     Returns:
-        Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRateResponse]
+        Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRate]
     """
 
     return sync_detailed(
@@ -167,7 +167,7 @@ async def asyncio_detailed(
     | CreateTaxRateResponse422
     | CreateTaxRateResponse429
     | CreateTaxRateResponse500
-    | TaxRateResponse
+    | TaxRate
 ]:
     """Create a tax rate
 
@@ -182,7 +182,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRateResponse]]
+        Response[Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRate]]
     """
 
     kwargs = _get_kwargs(
@@ -203,7 +203,7 @@ async def asyncio(
     | CreateTaxRateResponse422
     | CreateTaxRateResponse429
     | CreateTaxRateResponse500
-    | TaxRateResponse
+    | TaxRate
     | None
 ):
     """Create a tax rate
@@ -219,7 +219,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRateResponse]
+        Union[CreateTaxRateResponse401, CreateTaxRateResponse422, CreateTaxRateResponse429, CreateTaxRateResponse500, TaxRate]
     """
 
     return (

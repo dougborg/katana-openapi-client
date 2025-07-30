@@ -9,7 +9,7 @@ from attrs import (
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.product_response import ProductResponse
+    from ..models.product import Product
 
 
 T = TypeVar("T", bound="ProductListResponse")
@@ -17,7 +17,7 @@ T = TypeVar("T", bound="ProductListResponse")
 
 @_attrs_define
 class ProductListResponse:
-    data: Unset | list["ProductResponse"] = UNSET
+    data: Unset | list["Product"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,13 +38,13 @@ class ProductListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.product_response import ProductResponse
+        from ..models.product import Product
 
         d = dict(src_dict)
         data = []
         _data = d.pop("data", UNSET)
         for data_item_data in _data or []:
-            data_item = ProductResponse.from_dict(data_item_data)
+            data_item = Product.from_dict(data_item_data)
 
             data.append(data_item)
 

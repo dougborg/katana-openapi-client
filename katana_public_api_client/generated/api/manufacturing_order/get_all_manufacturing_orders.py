@@ -18,7 +18,7 @@ from ...models.get_all_manufacturing_orders_response_500 import (
 from ...models.get_all_manufacturing_orders_status import (
     GetAllManufacturingOrdersStatus,
 )
-from ...models.manufacturing_order_list import ManufacturingOrderList
+from ...models.manufacturing_order_list_response import ManufacturingOrderListResponse
 from ...types import UNSET, Response, Unset
 
 
@@ -103,11 +103,11 @@ def _parse_response(
     GetAllManufacturingOrdersResponse401
     | GetAllManufacturingOrdersResponse429
     | GetAllManufacturingOrdersResponse500
-    | ManufacturingOrderList
+    | ManufacturingOrderListResponse
     | None
 ):
     if response.status_code == 200:
-        response_200 = ManufacturingOrderList.from_dict(response.json())
+        response_200 = ManufacturingOrderListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -134,7 +134,7 @@ def _build_response(
     GetAllManufacturingOrdersResponse401
     | GetAllManufacturingOrdersResponse429
     | GetAllManufacturingOrdersResponse500
-    | ManufacturingOrderList
+    | ManufacturingOrderListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -164,7 +164,7 @@ def sync_detailed(
     GetAllManufacturingOrdersResponse401
     | GetAllManufacturingOrdersResponse429
     | GetAllManufacturingOrdersResponse500
-    | ManufacturingOrderList
+    | ManufacturingOrderListResponse
 ]:
     """List all manufacturing orders
 
@@ -193,7 +193,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllManufacturingOrdersResponse401, GetAllManufacturingOrdersResponse429, GetAllManufacturingOrdersResponse500, ManufacturingOrderList]]
+        Response[Union[GetAllManufacturingOrdersResponse401, GetAllManufacturingOrdersResponse429, GetAllManufacturingOrdersResponse500, ManufacturingOrderListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -239,7 +239,7 @@ def sync(
     GetAllManufacturingOrdersResponse401
     | GetAllManufacturingOrdersResponse429
     | GetAllManufacturingOrdersResponse500
-    | ManufacturingOrderList
+    | ManufacturingOrderListResponse
     | None
 ):
     """List all manufacturing orders
@@ -269,7 +269,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllManufacturingOrdersResponse401, GetAllManufacturingOrdersResponse429, GetAllManufacturingOrdersResponse500, ManufacturingOrderList]
+        Union[GetAllManufacturingOrdersResponse401, GetAllManufacturingOrdersResponse429, GetAllManufacturingOrdersResponse500, ManufacturingOrderListResponse]
     """
 
     return sync_detailed(
@@ -310,7 +310,7 @@ async def asyncio_detailed(
     GetAllManufacturingOrdersResponse401
     | GetAllManufacturingOrdersResponse429
     | GetAllManufacturingOrdersResponse500
-    | ManufacturingOrderList
+    | ManufacturingOrderListResponse
 ]:
     """List all manufacturing orders
 
@@ -339,7 +339,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllManufacturingOrdersResponse401, GetAllManufacturingOrdersResponse429, GetAllManufacturingOrdersResponse500, ManufacturingOrderList]]
+        Response[Union[GetAllManufacturingOrdersResponse401, GetAllManufacturingOrdersResponse429, GetAllManufacturingOrdersResponse500, ManufacturingOrderListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -383,7 +383,7 @@ async def asyncio(
     GetAllManufacturingOrdersResponse401
     | GetAllManufacturingOrdersResponse429
     | GetAllManufacturingOrdersResponse500
-    | ManufacturingOrderList
+    | ManufacturingOrderListResponse
     | None
 ):
     """List all manufacturing orders
@@ -413,7 +413,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllManufacturingOrdersResponse401, GetAllManufacturingOrdersResponse429, GetAllManufacturingOrdersResponse500, ManufacturingOrderList]
+        Union[GetAllManufacturingOrdersResponse401, GetAllManufacturingOrdersResponse429, GetAllManufacturingOrdersResponse500, ManufacturingOrderListResponse]
     """
 
     return (

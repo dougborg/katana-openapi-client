@@ -9,7 +9,7 @@ from ...models.get_purchase_order_extend_item import GetPurchaseOrderExtendItem
 from ...models.get_purchase_order_response_401 import GetPurchaseOrderResponse401
 from ...models.get_purchase_order_response_429 import GetPurchaseOrderResponse429
 from ...models.get_purchase_order_response_500 import GetPurchaseOrderResponse500
-from ...models.purchase_order_response import PurchaseOrderResponse
+from ...models.purchase_order import PurchaseOrder
 from ...types import UNSET, Response, Unset
 
 
@@ -46,11 +46,11 @@ def _parse_response(
     GetPurchaseOrderResponse401
     | GetPurchaseOrderResponse429
     | GetPurchaseOrderResponse500
-    | PurchaseOrderResponse
+    | PurchaseOrder
     | None
 ):
     if response.status_code == 200:
-        response_200 = PurchaseOrderResponse.from_dict(response.json())
+        response_200 = PurchaseOrder.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -77,7 +77,7 @@ def _build_response(
     GetPurchaseOrderResponse401
     | GetPurchaseOrderResponse429
     | GetPurchaseOrderResponse500
-    | PurchaseOrderResponse
+    | PurchaseOrder
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -96,7 +96,7 @@ def sync_detailed(
     GetPurchaseOrderResponse401
     | GetPurchaseOrderResponse429
     | GetPurchaseOrderResponse500
-    | PurchaseOrderResponse
+    | PurchaseOrder
 ]:
     """Retrieve a purchase order
 
@@ -112,7 +112,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrderResponse]]
+        Response[Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrder]]
     """
 
     kwargs = _get_kwargs(
@@ -136,7 +136,7 @@ def sync(
     GetPurchaseOrderResponse401
     | GetPurchaseOrderResponse429
     | GetPurchaseOrderResponse500
-    | PurchaseOrderResponse
+    | PurchaseOrder
     | None
 ):
     """Retrieve a purchase order
@@ -153,7 +153,7 @@ def sync(
 
 
     Returns:
-        Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrderResponse]
+        Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrder]
     """
 
     return sync_detailed(
@@ -172,7 +172,7 @@ async def asyncio_detailed(
     GetPurchaseOrderResponse401
     | GetPurchaseOrderResponse429
     | GetPurchaseOrderResponse500
-    | PurchaseOrderResponse
+    | PurchaseOrder
 ]:
     """Retrieve a purchase order
 
@@ -188,7 +188,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrderResponse]]
+        Response[Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrder]]
     """
 
     kwargs = _get_kwargs(
@@ -210,7 +210,7 @@ async def asyncio(
     GetPurchaseOrderResponse401
     | GetPurchaseOrderResponse429
     | GetPurchaseOrderResponse500
-    | PurchaseOrderResponse
+    | PurchaseOrder
     | None
 ):
     """Retrieve a purchase order
@@ -227,7 +227,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrderResponse]
+        Union[GetPurchaseOrderResponse401, GetPurchaseOrderResponse429, GetPurchaseOrderResponse500, PurchaseOrder]
     """
 
     return (

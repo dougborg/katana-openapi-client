@@ -10,7 +10,7 @@ from ...models.create_webhook_response_401 import CreateWebhookResponse401
 from ...models.create_webhook_response_422 import CreateWebhookResponse422
 from ...models.create_webhook_response_429 import CreateWebhookResponse429
 from ...models.create_webhook_response_500 import CreateWebhookResponse500
-from ...models.webhook_response import WebhookResponse
+from ...models.webhook import Webhook
 from ...types import Response
 
 
@@ -40,11 +40,11 @@ def _parse_response(
     | CreateWebhookResponse422
     | CreateWebhookResponse429
     | CreateWebhookResponse500
-    | WebhookResponse
+    | Webhook
     | None
 ):
     if response.status_code == 200:
-        response_200 = WebhookResponse.from_dict(response.json())
+        response_200 = Webhook.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -76,7 +76,7 @@ def _build_response(
     | CreateWebhookResponse422
     | CreateWebhookResponse429
     | CreateWebhookResponse500
-    | WebhookResponse
+    | Webhook
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -95,7 +95,7 @@ def sync_detailed(
     | CreateWebhookResponse422
     | CreateWebhookResponse429
     | CreateWebhookResponse500
-    | WebhookResponse
+    | Webhook
 ]:
     """Create a webhook
 
@@ -110,7 +110,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, WebhookResponse]]
+        Response[Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -133,7 +133,7 @@ def sync(
     | CreateWebhookResponse422
     | CreateWebhookResponse429
     | CreateWebhookResponse500
-    | WebhookResponse
+    | Webhook
     | None
 ):
     """Create a webhook
@@ -149,7 +149,7 @@ def sync(
 
 
     Returns:
-        Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, WebhookResponse]
+        Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, Webhook]
     """
 
     return sync_detailed(
@@ -167,7 +167,7 @@ async def asyncio_detailed(
     | CreateWebhookResponse422
     | CreateWebhookResponse429
     | CreateWebhookResponse500
-    | WebhookResponse
+    | Webhook
 ]:
     """Create a webhook
 
@@ -182,7 +182,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, WebhookResponse]]
+        Response[Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, Webhook]]
     """
 
     kwargs = _get_kwargs(
@@ -203,7 +203,7 @@ async def asyncio(
     | CreateWebhookResponse422
     | CreateWebhookResponse429
     | CreateWebhookResponse500
-    | WebhookResponse
+    | Webhook
     | None
 ):
     """Create a webhook
@@ -219,7 +219,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, WebhookResponse]
+        Union[CreateWebhookResponse401, CreateWebhookResponse422, CreateWebhookResponse429, CreateWebhookResponse500, Webhook]
     """
 
     return (

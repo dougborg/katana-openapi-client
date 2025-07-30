@@ -18,7 +18,7 @@ from ...models.create_supplier_address_response_429 import (
 from ...models.create_supplier_address_response_500 import (
     CreateSupplierAddressResponse500,
 )
-from ...models.supplier_address_response import SupplierAddressResponse
+from ...models.supplier_address import SupplierAddress
 from ...types import Response
 
 
@@ -48,11 +48,11 @@ def _parse_response(
     | CreateSupplierAddressResponse422
     | CreateSupplierAddressResponse429
     | CreateSupplierAddressResponse500
-    | SupplierAddressResponse
+    | SupplierAddress
     | None
 ):
     if response.status_code == 200:
-        response_200 = SupplierAddressResponse.from_dict(response.json())
+        response_200 = SupplierAddress.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -84,7 +84,7 @@ def _build_response(
     | CreateSupplierAddressResponse422
     | CreateSupplierAddressResponse429
     | CreateSupplierAddressResponse500
-    | SupplierAddressResponse
+    | SupplierAddress
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -103,7 +103,7 @@ def sync_detailed(
     | CreateSupplierAddressResponse422
     | CreateSupplierAddressResponse429
     | CreateSupplierAddressResponse500
-    | SupplierAddressResponse
+    | SupplierAddress
 ]:
     """Create a supplier address
 
@@ -119,7 +119,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddressResponse]]
+        Response[Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddress]]
     """
 
     kwargs = _get_kwargs(
@@ -142,7 +142,7 @@ def sync(
     | CreateSupplierAddressResponse422
     | CreateSupplierAddressResponse429
     | CreateSupplierAddressResponse500
-    | SupplierAddressResponse
+    | SupplierAddress
     | None
 ):
     """Create a supplier address
@@ -159,7 +159,7 @@ def sync(
 
 
     Returns:
-        Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddressResponse]
+        Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddress]
     """
 
     return sync_detailed(
@@ -177,7 +177,7 @@ async def asyncio_detailed(
     | CreateSupplierAddressResponse422
     | CreateSupplierAddressResponse429
     | CreateSupplierAddressResponse500
-    | SupplierAddressResponse
+    | SupplierAddress
 ]:
     """Create a supplier address
 
@@ -193,7 +193,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddressResponse]]
+        Response[Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddress]]
     """
 
     kwargs = _get_kwargs(
@@ -214,7 +214,7 @@ async def asyncio(
     | CreateSupplierAddressResponse422
     | CreateSupplierAddressResponse429
     | CreateSupplierAddressResponse500
-    | SupplierAddressResponse
+    | SupplierAddress
     | None
 ):
     """Create a supplier address
@@ -231,7 +231,7 @@ async def asyncio(
 
 
     Returns:
-        Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddressResponse]
+        Union[CreateSupplierAddressResponse401, CreateSupplierAddressResponse422, CreateSupplierAddressResponse429, CreateSupplierAddressResponse500, SupplierAddress]
     """
 
     return (

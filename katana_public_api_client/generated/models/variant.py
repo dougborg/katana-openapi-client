@@ -1,6 +1,6 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -12,7 +12,7 @@ from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.variant_config_attributes_item import VariantConfigAttributesItem
-    from ..models.variant_product_or_material import VariantProductOrMaterial
+    from ..models.variant_custom_fields_item import VariantCustomFieldsItem
 
 
 T = TypeVar("T", bound="Variant")
@@ -36,8 +36,8 @@ class Variant:
     supplier_item_codes: Unset | list[str] = UNSET
     lead_time: None | Unset | int = UNSET
     minimum_order_quantity: None | Unset | float = UNSET
+    custom_fields: Unset | list["VariantCustomFieldsItem"] = UNSET
     config_attributes: Unset | list["VariantConfigAttributesItem"] = UNSET
-    product_or_material: Union[Unset, "VariantProductOrMaterial"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -105,16 +105,19 @@ class Variant:
         else:
             minimum_order_quantity = self.minimum_order_quantity
 
+        custom_fields: Unset | list[dict[str, Any]] = UNSET
+        if not isinstance(self.custom_fields, Unset):
+            custom_fields = []
+            for custom_fields_item_data in self.custom_fields:
+                custom_fields_item = custom_fields_item_data.to_dict()
+                custom_fields.append(custom_fields_item)
+
         config_attributes: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.config_attributes, Unset):
             config_attributes = []
             for config_attributes_item_data in self.config_attributes:
                 config_attributes_item = config_attributes_item_data.to_dict()
                 config_attributes.append(config_attributes_item)
-
-        product_or_material: Unset | dict[str, Any] = UNSET
-        if not isinstance(self.product_or_material, Unset):
-            product_or_material = self.product_or_material.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -152,17 +155,17 @@ class Variant:
             field_dict["lead_time"] = lead_time
         if minimum_order_quantity is not UNSET:
             field_dict["minimum_order_quantity"] = minimum_order_quantity
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
         if config_attributes is not UNSET:
             field_dict["config_attributes"] = config_attributes
-        if product_or_material is not UNSET:
-            field_dict["product_or_material"] = product_or_material
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.variant_config_attributes_item import VariantConfigAttributesItem
-        from ..models.variant_product_or_material import VariantProductOrMaterial
+        from ..models.variant_custom_fields_item import VariantCustomFieldsItem
 
         d = dict(src_dict)
         id = d.pop("id")
@@ -259,6 +262,15 @@ class Variant:
             d.pop("minimum_order_quantity", UNSET)
         )
 
+        custom_fields = []
+        _custom_fields = d.pop("custom_fields", UNSET)
+        for custom_fields_item_data in _custom_fields or []:
+            custom_fields_item = VariantCustomFieldsItem.from_dict(
+                custom_fields_item_data
+            )
+
+            custom_fields.append(custom_fields_item)
+
         config_attributes = []
         _config_attributes = d.pop("config_attributes", UNSET)
         for config_attributes_item_data in _config_attributes or []:
@@ -267,15 +279,6 @@ class Variant:
             )
 
             config_attributes.append(config_attributes_item)
-
-        _product_or_material = d.pop("product_or_material", UNSET)
-        product_or_material: Unset | VariantProductOrMaterial
-        if isinstance(_product_or_material, Unset):
-            product_or_material = UNSET
-        else:
-            product_or_material = VariantProductOrMaterial.from_dict(
-                _product_or_material
-            )
 
         variant = cls(
             id=id,
@@ -294,8 +297,8 @@ class Variant:
             supplier_item_codes=supplier_item_codes,
             lead_time=lead_time,
             minimum_order_quantity=minimum_order_quantity,
+            custom_fields=custom_fields,
             config_attributes=config_attributes,
-            product_or_material=product_or_material,
         )
 
         variant.additional_properties = d

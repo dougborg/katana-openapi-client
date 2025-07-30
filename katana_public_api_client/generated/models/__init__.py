@@ -1,7 +1,7 @@
 """Contains all the data models used in inputs/outputs"""
 
 from .additional_cost import AdditionalCost
-from .additional_cost_list import AdditionalCostList
+from .additional_cost_list_response import AdditionalCostListResponse
 from .batch import Batch
 from .batch_create_bom_rows_request import BatchCreateBomRowsRequest
 from .batch_create_bom_rows_response_401 import BatchCreateBomRowsResponse401
@@ -13,7 +13,7 @@ from .batch_create_bom_rows_response_429 import BatchCreateBomRowsResponse429
 from .batch_create_bom_rows_response_500 import BatchCreateBomRowsResponse500
 from .batch_response import BatchResponse
 from .batch_stock import BatchStock
-from .batch_stock_list import BatchStockList
+from .batch_stock_list_response import BatchStockListResponse
 from .batch_stock_update import BatchStockUpdate
 from .bom_row import BomRow
 from .bom_row_list_response import BomRowListResponse
@@ -161,13 +161,6 @@ from .create_price_list_row_response_429 import CreatePriceListRowResponse429
 from .create_price_list_row_response_500 import CreatePriceListRowResponse500
 from .create_product_request import CreateProductRequest
 from .create_product_request_configs_item import CreateProductRequestConfigsItem
-from .create_product_request_variants_item import CreateProductRequestVariantsItem
-from .create_product_request_variants_item_config_attributes_item import (
-    CreateProductRequestVariantsItemConfigAttributesItem,
-)
-from .create_product_request_variants_item_custom_fields_item import (
-    CreateProductRequestVariantsItemCustomFieldsItem,
-)
 from .create_product_response_401 import CreateProductResponse401
 from .create_product_response_422 import CreateProductResponse422
 from .create_product_response_422_details_item import (
@@ -590,6 +583,7 @@ from .get_all_sales_returns_response_401 import GetAllSalesReturnsResponse401
 from .get_all_sales_returns_response_429 import GetAllSalesReturnsResponse429
 from .get_all_sales_returns_response_500 import GetAllSalesReturnsResponse500
 from .get_all_sales_returns_status import GetAllSalesReturnsStatus
+from .get_all_serial_numbers_resource_type import GetAllSerialNumbersResourceType
 from .get_all_serial_numbers_response_401 import GetAllSerialNumbersResponse401
 from .get_all_serial_numbers_response_429 import GetAllSerialNumbersResponse429
 from .get_all_serial_numbers_response_500 import GetAllSerialNumbersResponse500
@@ -770,9 +764,9 @@ from .get_webhook_response_401 import GetWebhookResponse401
 from .get_webhook_response_429 import GetWebhookResponse429
 from .get_webhook_response_500 import GetWebhookResponse500
 from .inventory import Inventory
-from .inventory_list import InventoryList
+from .inventory_list_response import InventoryListResponse
 from .inventory_movement import InventoryMovement
-from .inventory_movement_list import InventoryMovementList
+from .inventory_movement_list_response import InventoryMovementListResponse
 from .inventory_movement_resource_type import InventoryMovementResourceType
 from .inventory_reorder_point import InventoryReorderPoint
 from .inventory_reorder_point_list_response import InventoryReorderPointListResponse
@@ -809,7 +803,7 @@ from .make_to_order_manufacturing_order_response_500 import (
     MakeToOrderManufacturingOrderResponse500,
 )
 from .manufacturing_order import ManufacturingOrder
-from .manufacturing_order_list import ManufacturingOrderList
+from .manufacturing_order_list_response import ManufacturingOrderListResponse
 from .manufacturing_order_operation_production import (
     ManufacturingOrderOperationProduction,
 )
@@ -820,6 +814,7 @@ from .manufacturing_order_operation_row_list_response import (
 from .manufacturing_order_operation_row_status import (
     ManufacturingOrderOperationRowStatus,
 )
+from .manufacturing_order_production import ManufacturingOrderProduction
 from .manufacturing_order_production_ingredient import (
     ManufacturingOrderProductionIngredient,
 )
@@ -829,30 +824,27 @@ from .manufacturing_order_production_ingredient_response import (
 from .manufacturing_order_production_list_response import (
     ManufacturingOrderProductionListResponse,
 )
-from .manufacturing_order_production_response import (
-    ManufacturingOrderProductionResponse,
+from .manufacturing_order_recipe_row import ManufacturingOrderRecipeRow
+from .manufacturing_order_recipe_row_batch_transactions_item import (
+    ManufacturingOrderRecipeRowBatchTransactionsItem,
 )
 from .manufacturing_order_recipe_row_list_response import (
     ManufacturingOrderRecipeRowListResponse,
 )
-from .manufacturing_order_recipe_row_response import ManufacturingOrderRecipeRowResponse
-from .manufacturing_order_recipe_row_response_batch_transactions_item import (
-    ManufacturingOrderRecipeRowResponseBatchTransactionsItem,
-)
 from .manufacturing_order_status import ManufacturingOrderStatus
+from .material import Material
+from .material_configs_item import MaterialConfigsItem
 from .material_list_response import MaterialListResponse
-from .material_response import MaterialResponse
-from .material_response_configs_item import MaterialResponseConfigsItem
-from .material_response_supplier import MaterialResponseSupplier
-from .material_response_variants_item import MaterialResponseVariantsItem
-from .material_response_variants_item_config_attributes_item import (
-    MaterialResponseVariantsItemConfigAttributesItem,
+from .material_supplier import MaterialSupplier
+from .material_variants_item import MaterialVariantsItem
+from .material_variants_item_config_attributes_item import (
+    MaterialVariantsItemConfigAttributesItem,
 )
-from .material_response_variants_item_custom_fields_item import (
-    MaterialResponseVariantsItemCustomFieldsItem,
+from .material_variants_item_custom_fields_item import (
+    MaterialVariantsItemCustomFieldsItem,
 )
+from .negative_stock import NegativeStock
 from .negative_stock_list_response import NegativeStockListResponse
-from .negative_stock_response import NegativeStockResponse
 from .operator import Operator
 from .operator_list_response import OperatorListResponse
 from .outsourced_purchase_order_recipe_row import OutsourcedPurchaseOrderRecipeRow
@@ -865,45 +857,35 @@ from .price_list_customer_list_response import PriceListCustomerListResponse
 from .price_list_list_response import PriceListListResponse
 from .price_list_row import PriceListRow
 from .price_list_row_list_response import PriceListRowListResponse
+from .product import Product
+from .product_configs_item import ProductConfigsItem
 from .product_list_response import ProductListResponse
+from .product_operation_rerank import ProductOperationRerank
 from .product_operation_rerank_request import ProductOperationRerankRequest
 from .product_operation_rerank_request_operation_ranks_item import (
     ProductOperationRerankRequestOperationRanksItem,
 )
-from .product_operation_rerank_response import ProductOperationRerankResponse
-from .product_response import ProductResponse
-from .product_response_configs_item import ProductResponseConfigsItem
-from .product_response_supplier import ProductResponseSupplier
-from .product_response_variants_item import ProductResponseVariantsItem
-from .product_response_variants_item_config_attributes_item import (
-    ProductResponseVariantsItemConfigAttributesItem,
-)
-from .product_response_variants_item_custom_fields_item import (
-    ProductResponseVariantsItemCustomFieldsItem,
-)
+from .purchase_order import PurchaseOrder
 from .purchase_order_accounting_metadata import PurchaseOrderAccountingMetadata
 from .purchase_order_accounting_metadata_list_response import (
     PurchaseOrderAccountingMetadataListResponse,
 )
+from .purchase_order_additional_cost_row import PurchaseOrderAdditionalCostRow
 from .purchase_order_additional_cost_row_list_response import (
     PurchaseOrderAdditionalCostRowListResponse,
-)
-from .purchase_order_additional_cost_row_response import (
-    PurchaseOrderAdditionalCostRowResponse,
 )
 from .purchase_order_list_response import PurchaseOrderListResponse
 from .purchase_order_receive_row import PurchaseOrderReceiveRow
 from .purchase_order_receive_row_batch_transactions_item import (
     PurchaseOrderReceiveRowBatchTransactionsItem,
 )
-from .purchase_order_response import PurchaseOrderResponse
-from .purchase_order_response_supplier import PurchaseOrderResponseSupplier
+from .purchase_order_row import PurchaseOrderRow
+from .purchase_order_row_batch_transactions_item import (
+    PurchaseOrderRowBatchTransactionsItem,
+)
 from .purchase_order_row_list_response import PurchaseOrderRowListResponse
 from .purchase_order_row_request import PurchaseOrderRowRequest
-from .purchase_order_row_response import PurchaseOrderRowResponse
-from .purchase_order_row_response_batch_transactions_item import (
-    PurchaseOrderRowResponseBatchTransactionsItem,
-)
+from .purchase_order_supplier import PurchaseOrderSupplier
 from .receive_purchase_order_response_401 import ReceivePurchaseOrderResponse401
 from .receive_purchase_order_response_422 import ReceivePurchaseOrderResponse422
 from .receive_purchase_order_response_422_details_item import (
@@ -925,10 +907,12 @@ from .sales_order_address_entity_type import SalesOrderAddressEntityType
 from .sales_order_address_list_response import SalesOrderAddressListResponse
 from .sales_order_fulfillment import SalesOrderFulfillment
 from .sales_order_fulfillment_list_response import SalesOrderFulfillmentListResponse
-from .sales_order_ingredient_availability import SalesOrderIngredientAvailability
+from .sales_order_ingredient_availability_type_0 import (
+    SalesOrderIngredientAvailabilityType0,
+)
 from .sales_order_list_response import SalesOrderListResponse
-from .sales_order_product_availability import SalesOrderProductAvailability
-from .sales_order_production_status import SalesOrderProductionStatus
+from .sales_order_product_availability_type_0 import SalesOrderProductAvailabilityType0
+from .sales_order_production_status_type_0 import SalesOrderProductionStatusType0
 from .sales_order_row import SalesOrderRow
 from .sales_order_row_attributes_item import SalesOrderRowAttributesItem
 from .sales_order_row_batch_transactions_item import SalesOrderRowBatchTransactionsItem
@@ -945,6 +929,8 @@ from .sales_return_row import SalesReturnRow
 from .sales_return_row_list_response import SalesReturnRowListResponse
 from .sales_return_status import SalesReturnStatus
 from .serial_number import SerialNumber
+from .serial_number_list_response import SerialNumberListResponse
+from .serial_number_resource_type import SerialNumberResourceType
 from .serial_number_stock import SerialNumberStock
 from .serial_number_stock_list_response import SerialNumberStockListResponse
 from .serial_number_stock_status import SerialNumberStockStatus
@@ -955,7 +941,6 @@ from .service_list_response import ServiceListResponse
 from .service_request import ServiceRequest
 from .service_request_data import ServiceRequestData
 from .service_request_data_type import ServiceRequestDataType
-from .service_response import ServiceResponse
 from .service_type import ServiceType
 from .stock_adjustment import StockAdjustment
 from .stock_adjustment_list_response import StockAdjustmentListResponse
@@ -969,14 +954,14 @@ from .stocktake_row import StocktakeRow
 from .stocktake_row_list_response import StocktakeRowListResponse
 from .stocktake_status import StocktakeStatus
 from .storage_bin import StorageBin
-from .storage_bin_list import StorageBinList
+from .storage_bin_list_response import StorageBinListResponse
+from .supplier import Supplier
+from .supplier_address import SupplierAddress
 from .supplier_address_list_response import SupplierAddressListResponse
 from .supplier_address_request import SupplierAddressRequest
-from .supplier_address_response import SupplierAddressResponse
 from .supplier_list_response import SupplierListResponse
-from .supplier_response import SupplierResponse
+from .tax_rate import TaxRate
 from .tax_rate_list_response import TaxRateListResponse
-from .tax_rate_response import TaxRateResponse
 from .unlink_manufacturing_order_request import UnlinkManufacturingOrderRequest
 from .unlink_manufacturing_order_response_204 import UnlinkManufacturingOrderResponse204
 from .unlink_manufacturing_order_response_401 import UnlinkManufacturingOrderResponse401
@@ -1200,6 +1185,7 @@ from .validation_error_detail_info import ValidationErrorDetailInfo
 from .validation_error_response import ValidationErrorResponse
 from .variant import Variant
 from .variant_config_attributes_item import VariantConfigAttributesItem
+from .variant_custom_fields_item import VariantCustomFieldsItem
 from .variant_default_storage_bin_link import VariantDefaultStorageBinLink
 from .variant_default_storage_bin_link_list_response import (
     VariantDefaultStorageBinLinkListResponse,
@@ -1208,10 +1194,6 @@ from .variant_default_storage_bin_link_response import (
     VariantDefaultStorageBinLinkResponse,
 )
 from .variant_list_response import VariantListResponse
-from .variant_product_or_material import VariantProductOrMaterial
-from .variant_product_or_material_variants_item import (
-    VariantProductOrMaterialVariantsItem,
-)
 from .variant_response import VariantResponse
 from .variant_response_config_attributes_item import VariantResponseConfigAttributesItem
 from .variant_response_custom_fields_item import VariantResponseCustomFieldsItem
@@ -1219,19 +1201,16 @@ from .variant_response_product_or_material import VariantResponseProductOrMateri
 from .variant_response_product_or_material_configs_item import (
     VariantResponseProductOrMaterialConfigsItem,
 )
-from .variant_response_product_or_material_variants_item import (
-    VariantResponseProductOrMaterialVariantsItem,
-)
 from .variant_response_type import VariantResponseType
+from .webhook import Webhook
 from .webhook_event import WebhookEvent
 from .webhook_list_response import WebhookListResponse
+from .webhook_logs_export import WebhookLogsExport
 from .webhook_logs_export_request import WebhookLogsExportRequest
-from .webhook_logs_export_response import WebhookLogsExportResponse
-from .webhook_response import WebhookResponse
 
 __all__ = (
     "AdditionalCost",
-    "AdditionalCostList",
+    "AdditionalCostListResponse",
     "Batch",
     "BatchCreateBomRowsRequest",
     "BatchCreateBomRowsResponse401",
@@ -1241,7 +1220,7 @@ __all__ = (
     "BatchCreateBomRowsResponse500",
     "BatchResponse",
     "BatchStock",
-    "BatchStockList",
+    "BatchStockListResponse",
     "BatchStockUpdate",
     "BomRow",
     "BomRowListResponse",
@@ -1327,9 +1306,6 @@ __all__ = (
     "CreatePriceListRowResponse500",
     "CreateProductRequest",
     "CreateProductRequestConfigsItem",
-    "CreateProductRequestVariantsItem",
-    "CreateProductRequestVariantsItemConfigAttributesItem",
-    "CreateProductRequestVariantsItemCustomFieldsItem",
     "CreateProductResponse401",
     "CreateProductResponse422",
     "CreateProductResponse422DetailsItem",
@@ -1600,6 +1576,7 @@ __all__ = (
     "GetAllSalesReturnsResponse429",
     "GetAllSalesReturnsResponse500",
     "GetAllSalesReturnsStatus",
+    "GetAllSerialNumbersResourceType",
     "GetAllSerialNumbersResponse401",
     "GetAllSerialNumbersResponse429",
     "GetAllSerialNumbersResponse500",
@@ -1724,9 +1701,9 @@ __all__ = (
     "GetWebhookResponse429",
     "GetWebhookResponse500",
     "Inventory",
-    "InventoryList",
+    "InventoryListResponse",
     "InventoryMovement",
-    "InventoryMovementList",
+    "InventoryMovementListResponse",
     "InventoryMovementResourceType",
     "InventoryReorderPoint",
     "InventoryReorderPointListResponse",
@@ -1745,28 +1722,28 @@ __all__ = (
     "MakeToOrderManufacturingOrderResponse429",
     "MakeToOrderManufacturingOrderResponse500",
     "ManufacturingOrder",
-    "ManufacturingOrderList",
+    "ManufacturingOrderListResponse",
     "ManufacturingOrderOperationProduction",
     "ManufacturingOrderOperationRow",
     "ManufacturingOrderOperationRowListResponse",
     "ManufacturingOrderOperationRowStatus",
+    "ManufacturingOrderProduction",
     "ManufacturingOrderProductionIngredient",
     "ManufacturingOrderProductionIngredientResponse",
     "ManufacturingOrderProductionListResponse",
-    "ManufacturingOrderProductionResponse",
+    "ManufacturingOrderRecipeRow",
+    "ManufacturingOrderRecipeRowBatchTransactionsItem",
     "ManufacturingOrderRecipeRowListResponse",
-    "ManufacturingOrderRecipeRowResponse",
-    "ManufacturingOrderRecipeRowResponseBatchTransactionsItem",
     "ManufacturingOrderStatus",
+    "Material",
+    "MaterialConfigsItem",
     "MaterialListResponse",
-    "MaterialResponse",
-    "MaterialResponseConfigsItem",
-    "MaterialResponseSupplier",
-    "MaterialResponseVariantsItem",
-    "MaterialResponseVariantsItemConfigAttributesItem",
-    "MaterialResponseVariantsItemCustomFieldsItem",
+    "MaterialSupplier",
+    "MaterialVariantsItem",
+    "MaterialVariantsItemConfigAttributesItem",
+    "MaterialVariantsItemCustomFieldsItem",
+    "NegativeStock",
     "NegativeStockListResponse",
-    "NegativeStockResponse",
     "Operator",
     "OperatorListResponse",
     "OutsourcedPurchaseOrderRecipeRow",
@@ -1777,29 +1754,25 @@ __all__ = (
     "PriceListListResponse",
     "PriceListRow",
     "PriceListRowListResponse",
+    "Product",
+    "ProductConfigsItem",
     "ProductListResponse",
+    "ProductOperationRerank",
     "ProductOperationRerankRequest",
     "ProductOperationRerankRequestOperationRanksItem",
-    "ProductOperationRerankResponse",
-    "ProductResponse",
-    "ProductResponseConfigsItem",
-    "ProductResponseSupplier",
-    "ProductResponseVariantsItem",
-    "ProductResponseVariantsItemConfigAttributesItem",
-    "ProductResponseVariantsItemCustomFieldsItem",
+    "PurchaseOrder",
     "PurchaseOrderAccountingMetadata",
     "PurchaseOrderAccountingMetadataListResponse",
+    "PurchaseOrderAdditionalCostRow",
     "PurchaseOrderAdditionalCostRowListResponse",
-    "PurchaseOrderAdditionalCostRowResponse",
     "PurchaseOrderListResponse",
     "PurchaseOrderReceiveRow",
     "PurchaseOrderReceiveRowBatchTransactionsItem",
-    "PurchaseOrderResponse",
-    "PurchaseOrderResponseSupplier",
+    "PurchaseOrderRow",
+    "PurchaseOrderRowBatchTransactionsItem",
     "PurchaseOrderRowListResponse",
     "PurchaseOrderRowRequest",
-    "PurchaseOrderRowResponse",
-    "PurchaseOrderRowResponseBatchTransactionsItem",
+    "PurchaseOrderSupplier",
     "ReceivePurchaseOrderResponse401",
     "ReceivePurchaseOrderResponse422",
     "ReceivePurchaseOrderResponse422DetailsItem",
@@ -1817,10 +1790,10 @@ __all__ = (
     "SalesOrderAddressListResponse",
     "SalesOrderFulfillment",
     "SalesOrderFulfillmentListResponse",
-    "SalesOrderIngredientAvailability",
+    "SalesOrderIngredientAvailabilityType0",
     "SalesOrderListResponse",
-    "SalesOrderProductAvailability",
-    "SalesOrderProductionStatus",
+    "SalesOrderProductAvailabilityType0",
+    "SalesOrderProductionStatusType0",
     "SalesOrderRow",
     "SalesOrderRowAttributesItem",
     "SalesOrderRowBatchTransactionsItem",
@@ -1835,6 +1808,8 @@ __all__ = (
     "SalesReturnRowListResponse",
     "SalesReturnStatus",
     "SerialNumber",
+    "SerialNumberListResponse",
+    "SerialNumberResourceType",
     "SerialNumberStock",
     "SerialNumberStockListResponse",
     "SerialNumberStockStatus",
@@ -1845,7 +1820,6 @@ __all__ = (
     "ServiceRequest",
     "ServiceRequestData",
     "ServiceRequestDataType",
-    "ServiceResponse",
     "ServiceType",
     "StockAdjustment",
     "StockAdjustmentListResponse",
@@ -1859,14 +1833,14 @@ __all__ = (
     "StocktakeRowListResponse",
     "StocktakeStatus",
     "StorageBin",
-    "StorageBinList",
+    "StorageBinListResponse",
+    "Supplier",
+    "SupplierAddress",
     "SupplierAddressListResponse",
     "SupplierAddressRequest",
-    "SupplierAddressResponse",
     "SupplierListResponse",
-    "SupplierResponse",
+    "TaxRate",
     "TaxRateListResponse",
-    "TaxRateResponse",
     "UnlinkManufacturingOrderRequest",
     "UnlinkManufacturingOrderResponse204",
     "UnlinkManufacturingOrderResponse401",
@@ -2002,22 +1976,20 @@ __all__ = (
     "ValidationErrorResponse",
     "Variant",
     "VariantConfigAttributesItem",
+    "VariantCustomFieldsItem",
     "VariantDefaultStorageBinLink",
     "VariantDefaultStorageBinLinkListResponse",
     "VariantDefaultStorageBinLinkResponse",
     "VariantListResponse",
-    "VariantProductOrMaterial",
-    "VariantProductOrMaterialVariantsItem",
     "VariantResponse",
     "VariantResponseConfigAttributesItem",
     "VariantResponseCustomFieldsItem",
     "VariantResponseProductOrMaterial",
     "VariantResponseProductOrMaterialConfigsItem",
-    "VariantResponseProductOrMaterialVariantsItem",
     "VariantResponseType",
+    "Webhook",
     "WebhookEvent",
     "WebhookListResponse",
+    "WebhookLogsExport",
     "WebhookLogsExportRequest",
-    "WebhookLogsExportResponse",
-    "WebhookResponse",
 )

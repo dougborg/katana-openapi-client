@@ -24,61 +24,27 @@ client = AuthenticatedClient(base_url="https://api.example.com", token="SuperSec
 Now call your endpoint and use your models:
 
 ```python
-from katana_public_api_client.generated.models import ProductListResponse
-from katana_public_api_client.generated.api.product import get_all_products
+from katana_public_api_client.models import MyDataModel
+from katana_public_api_client.api.my_tag import get_my_data_model
+from katana_public_api_client.types import Response
 
-# Synchronous usage
-products: ProductListResponse = get_all_products.sync(client=client)
-
-# Asynchronous usage  
-products: ProductListResponse = await get_all_products.asyncio(client=client)
+with client as client:
+    my_data: MyDataModel = get_my_data_model.sync(client=client)
+    # or if you need more info (e.g. status_code)
+    response: Response[MyDataModel] = get_my_data_model.sync_detailed(client=client)
 ```
 
-## 📚 Complete Examples
+Or do the same thing with an async version:
 
-For comprehensive usage examples with real models, error handling, and advanced features, see the **[examples/ directory](examples/)**:
+```python
+from katana_public_api_client.models import MyDataModel
+from katana_public_api_client.api.my_tag import get_my_data_model
+from katana_public_api_client.types import Response
 
-### Asynchronous Examples
-- **[`examples/basic_usage.py`](examples/basic_usage.py)** - Complete async examples with:
-  - Automatic pagination and resilience features
-  - Real Katana API models (`ProductListResponse`, product filtering)
-  - Proper error handling patterns
-  - Type-safe access to structured data
-
-### Synchronous Examples  
-- **[`examples/sync_usage.py`](examples/sync_usage.py)** - Complete sync examples with:
-  - Same features as async examples but without async/await
-  - Simpler execution model for scripts and simple applications
-  - Direct return values instead of coroutines
-
-### Configuration & Patterns
-- **[`examples/README.md`](examples/README.md)** - Detailed configuration options and patterns
-
-**Run the examples:**
-```bash
-# Set your API key
-export KATANA_API_KEY="your_api_key_here"
-
-# Run the asynchronous demo
-poetry run python examples/basic_usage.py
-
-# Run the synchronous demo
-poetry run python examples/sync_usage.py
+async with client as client:
+    my_data: MyDataModel = await get_my_data_model.asyncio(client=client)
+    response: Response[MyDataModel] = await get_my_data_model.asyncio_detailed(client=client)
 ```
-
-### When to Use Async vs Sync
-
-**Use Asynchronous (`asyncio`) when:**
-- Building web applications (FastAPI, Django async views, etc.)
-- Making multiple concurrent API calls
-- Integrating with other async libraries
-- Need maximum performance for I/O-bound operations
-
-**Use Synchronous (`sync`) when:**
-- Writing simple scripts or command-line tools
-- Working in environments without async support
-- Prefer simpler, more traditional Python code patterns
-- Making only a few API calls sequentially
 
 By default, when you're calling an HTTPS API it will attempt to verify that SSL is
 working correctly. Using certificate verification is highly recommended most of the

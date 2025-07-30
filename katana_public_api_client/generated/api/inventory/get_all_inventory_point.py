@@ -15,7 +15,7 @@ from ...models.get_all_inventory_point_response_429 import (
 from ...models.get_all_inventory_point_response_500 import (
     GetAllInventoryPointResponse500,
 )
-from ...models.inventory_list import InventoryList
+from ...models.inventory_list_response import InventoryListResponse
 from ...types import UNSET, Response, Unset
 
 
@@ -73,11 +73,11 @@ def _parse_response(
     GetAllInventoryPointResponse401
     | GetAllInventoryPointResponse429
     | GetAllInventoryPointResponse500
-    | InventoryList
+    | InventoryListResponse
     | None
 ):
     if response.status_code == 200:
-        response_200 = InventoryList.from_dict(response.json())
+        response_200 = InventoryListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -104,7 +104,7 @@ def _build_response(
     GetAllInventoryPointResponse401
     | GetAllInventoryPointResponse429
     | GetAllInventoryPointResponse500
-    | InventoryList
+    | InventoryListResponse
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -128,7 +128,7 @@ def sync_detailed(
     GetAllInventoryPointResponse401
     | GetAllInventoryPointResponse429
     | GetAllInventoryPointResponse500
-    | InventoryList
+    | InventoryListResponse
 ]:
     """List current inventory
 
@@ -151,7 +151,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[GetAllInventoryPointResponse401, GetAllInventoryPointResponse429, GetAllInventoryPointResponse500, InventoryList]]
+        Response[Union[GetAllInventoryPointResponse401, GetAllInventoryPointResponse429, GetAllInventoryPointResponse500, InventoryListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -185,7 +185,7 @@ def sync(
     GetAllInventoryPointResponse401
     | GetAllInventoryPointResponse429
     | GetAllInventoryPointResponse500
-    | InventoryList
+    | InventoryListResponse
     | None
 ):
     """List current inventory
@@ -209,7 +209,7 @@ def sync(
 
 
     Returns:
-        Union[GetAllInventoryPointResponse401, GetAllInventoryPointResponse429, GetAllInventoryPointResponse500, InventoryList]
+        Union[GetAllInventoryPointResponse401, GetAllInventoryPointResponse429, GetAllInventoryPointResponse500, InventoryListResponse]
     """
 
     return sync_detailed(
@@ -238,7 +238,7 @@ async def asyncio_detailed(
     GetAllInventoryPointResponse401
     | GetAllInventoryPointResponse429
     | GetAllInventoryPointResponse500
-    | InventoryList
+    | InventoryListResponse
 ]:
     """List current inventory
 
@@ -261,7 +261,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[GetAllInventoryPointResponse401, GetAllInventoryPointResponse429, GetAllInventoryPointResponse500, InventoryList]]
+        Response[Union[GetAllInventoryPointResponse401, GetAllInventoryPointResponse429, GetAllInventoryPointResponse500, InventoryListResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -293,7 +293,7 @@ async def asyncio(
     GetAllInventoryPointResponse401
     | GetAllInventoryPointResponse429
     | GetAllInventoryPointResponse500
-    | InventoryList
+    | InventoryListResponse
     | None
 ):
     """List current inventory
@@ -317,7 +317,7 @@ async def asyncio(
 
 
     Returns:
-        Union[GetAllInventoryPointResponse401, GetAllInventoryPointResponse429, GetAllInventoryPointResponse500, InventoryList]
+        Union[GetAllInventoryPointResponse401, GetAllInventoryPointResponse429, GetAllInventoryPointResponse500, InventoryListResponse]
     """
 
     return (

@@ -3,21 +3,24 @@
 Regenerate the Katana OpenAPI client from the specification.
 
 This script:
-1. Validates the OpenAPI specification
+1. Validates the OpenAPI specification using multiple validators:
+   - openapi-spec-validator (basic OpenAPI compliance)
+   - Redocly CLI (advanced linting with detailed rules)
 2. Generates a new client using openapi-python-client
 3. Moves the generated client to the main workspace
 4. Formats the generated code (now includes generated files)
 5. Runs linting checks on the generated code
 6. Installs dependencies and runs tests
 
-Note: Generated files are now included in formatting and linting,
-so they will be consistently styled according to project standards.
+The script will fail if any validation errors are found, unless --force is used.
+Validation warnings will be displayed but won't cause failure.
 
 Usage:
     poetry run python regenerate_client.py [--force] [--skip-validation] [--skip-tests]
 
 The script should be run with 'poetry run python' to ensure all dependencies
 (including PyYAML and openapi-spec-validator) are available.
+Node.js and npx are required for Redocly validation.
 """
 
 import argparse
@@ -51,13 +54,29 @@ def run_command(
 
 
 def validate_openapi_spec(spec_path: Path) -> bool:
-    """Validate the OpenAPI specification."""
+    """Validate the OpenAPI specification using multiple validators."""
     print("🔍 Validating OpenAPI specification...")
 
     # First check if the spec file exists
     if not spec_path.exists():
         print(f"❌ OpenAPI spec file not found: {spec_path}")
         return False
+
+    # Run basic OpenAPI spec validation
+    if not _validate_with_openapi_spec_validator(spec_path):
+        return False
+
+    # Run Redocly validation
+    if not _validate_with_redocly(spec_path):
+        return False
+
+    print("✅ All OpenAPI validations passed")
+    return True
+
+
+def _validate_with_openapi_spec_validator(spec_path: Path) -> bool:
+    """Validate using openapi-spec-validator."""
+    print("   📋 Running openapi-spec-validator...")
 
     try:
         # Import required validation dependencies
@@ -70,21 +89,53 @@ def validate_openapi_spec(spec_path: Path) -> bool:
                 spec = yaml.safe_load(f)
 
             openapi_validate_spec(spec)
-            print("✅ OpenAPI spec is valid")
+            print("   ✅ openapi-spec-validator passed")
             return True
 
         except yaml.YAMLError as e:
-            print(f"❌ YAML parsing error: {e}")
+            print(f"   ❌ YAML parsing error: {e}")
             return False
-        except Exception as e:
-            print(f"❌ OpenAPI spec validation failed: {e}")
+        except (TypeError, ImportError) as e:
+            print(f"   ❌ OpenAPI spec validation failed: {e}")
+            return False
+        except openapi_validate_spec.__globals__.get(
+            "OpenAPIValidationError", Exception
+        ) as e:
+            print(f"   ❌ OpenAPI spec validation error: {e}")
             return False
 
     except ImportError as e:
-        print("❌ Required validation dependencies missing:")
-        print(f"   Missing: {e.name}")
-        print("   Run: poetry add --group dev pyyaml openapi-spec-validator")
+        print("   ❌ Required validation dependencies missing:")
+        print(f"      Missing: {e.name}")
+        print("      Run: poetry add --group dev pyyaml openapi-spec-validator")
         return False
+
+
+def _validate_with_redocly(spec_path: Path) -> bool:
+    """Validate using Redocly CLI."""
+    print("   🎯 Running Redocly validation...")
+
+    # Check if npx is available
+    npx_check = run_command(["which", "npx"], check=False)
+    if npx_check.returncode != 0:
+        print("   ⚠️  npx not found, skipping Redocly validation")
+        print("      Install Node.js to enable Redocly validation")
+        return True  # Don't fail if Node.js is not available
+
+    # Run Redocly validation
+    result = run_command(
+        ["npx", "@redocly/cli", "lint", str(spec_path)],
+        cwd=spec_path.parent,
+        check=False,
+    )
+
+    if result.returncode != 0:
+        print("   ❌ Redocly validation failed")
+        print("      Check the output above for specific errors and warnings")
+        return False
+
+    print("   ✅ Redocly validation passed")
+    return True
 
 
 def generate_client(spec_path: Path, workspace_path: Path) -> bool:
@@ -246,7 +297,7 @@ __all__ = (
         print("✅ Client moved successfully with proper separation")
         return True
 
-    except Exception as e:
+    except (OSError, shutil.Error) as e:
         print(f"❌ Failed to move client: {e}")
         return False
 

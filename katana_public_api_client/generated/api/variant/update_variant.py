@@ -10,7 +10,7 @@ from ...models.update_variant_response_401 import UpdateVariantResponse401
 from ...models.update_variant_response_422 import UpdateVariantResponse422
 from ...models.update_variant_response_429 import UpdateVariantResponse429
 from ...models.update_variant_response_500 import UpdateVariantResponse500
-from ...models.variant_response import VariantResponse
+from ...models.variant import Variant
 from ...types import Response
 
 
@@ -41,11 +41,11 @@ def _parse_response(
     | UpdateVariantResponse422
     | UpdateVariantResponse429
     | UpdateVariantResponse500
-    | VariantResponse
+    | Variant
     | None
 ):
     if response.status_code == 200:
-        response_200 = VariantResponse.from_dict(response.json())
+        response_200 = Variant.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -77,7 +77,7 @@ def _build_response(
     | UpdateVariantResponse422
     | UpdateVariantResponse429
     | UpdateVariantResponse500
-    | VariantResponse
+    | Variant
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -97,7 +97,7 @@ def sync_detailed(
     | UpdateVariantResponse422
     | UpdateVariantResponse429
     | UpdateVariantResponse500
-    | VariantResponse
+    | Variant
 ]:
     """Update a variant
 
@@ -114,7 +114,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, VariantResponse]]
+        Response[Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, Variant]]
     """
 
     kwargs = _get_kwargs(
@@ -139,7 +139,7 @@ def sync(
     | UpdateVariantResponse422
     | UpdateVariantResponse429
     | UpdateVariantResponse500
-    | VariantResponse
+    | Variant
     | None
 ):
     """Update a variant
@@ -157,7 +157,7 @@ def sync(
 
 
     Returns:
-        Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, VariantResponse]
+        Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, Variant]
     """
 
     return sync_detailed(
@@ -177,7 +177,7 @@ async def asyncio_detailed(
     | UpdateVariantResponse422
     | UpdateVariantResponse429
     | UpdateVariantResponse500
-    | VariantResponse
+    | Variant
 ]:
     """Update a variant
 
@@ -194,7 +194,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, VariantResponse]]
+        Response[Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, Variant]]
     """
 
     kwargs = _get_kwargs(
@@ -217,7 +217,7 @@ async def asyncio(
     | UpdateVariantResponse422
     | UpdateVariantResponse429
     | UpdateVariantResponse500
-    | VariantResponse
+    | Variant
     | None
 ):
     """Update a variant
@@ -235,7 +235,7 @@ async def asyncio(
 
 
     Returns:
-        Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, VariantResponse]
+        Union[UpdateVariantResponse401, UpdateVariantResponse422, UpdateVariantResponse429, UpdateVariantResponse500, Variant]
     """
 
     return (

@@ -9,7 +9,7 @@ from attrs import (
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.tax_rate_response import TaxRateResponse
+    from ..models.tax_rate import TaxRate
 
 
 T = TypeVar("T", bound="TaxRateListResponse")
@@ -17,7 +17,7 @@ T = TypeVar("T", bound="TaxRateListResponse")
 
 @_attrs_define
 class TaxRateListResponse:
-    data: Unset | list["TaxRateResponse"] = UNSET
+    data: Unset | list["TaxRate"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,13 +38,13 @@ class TaxRateListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.tax_rate_response import TaxRateResponse
+        from ..models.tax_rate import TaxRate
 
         d = dict(src_dict)
         data = []
         _data = d.pop("data", UNSET)
         for data_item_data in _data or []:
-            data_item = TaxRateResponse.from_dict(data_item_data)
+            data_item = TaxRate.from_dict(data_item_data)
 
             data.append(data_item)
 

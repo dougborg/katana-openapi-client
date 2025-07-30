@@ -9,9 +9,7 @@ if TYPE_CHECKING:
     from ..models.create_product_request_configs_item import (
         CreateProductRequestConfigsItem,
     )
-    from ..models.create_product_request_variants_item import (
-        CreateProductRequestVariantsItem,
-    )
+    from ..models.variant import Variant
 
 
 T = TypeVar("T", bound="CreateProductRequest")
@@ -20,7 +18,7 @@ T = TypeVar("T", bound="CreateProductRequest")
 @_attrs_define
 class CreateProductRequest:
     name: str
-    variants: list["CreateProductRequestVariantsItem"]
+    variants: list["Variant"]
     uom: Unset | str = UNSET
     category_name: Unset | str = UNSET
     is_sellable: Unset | bool = UNSET
@@ -144,9 +142,7 @@ class CreateProductRequest:
         from ..models.create_product_request_configs_item import (
             CreateProductRequestConfigsItem,
         )
-        from ..models.create_product_request_variants_item import (
-            CreateProductRequestVariantsItem,
-        )
+        from ..models.variant import Variant
 
         d = dict(src_dict)
         name = d.pop("name")
@@ -154,9 +150,7 @@ class CreateProductRequest:
         variants = []
         _variants = d.pop("variants")
         for variants_item_data in _variants:
-            variants_item = CreateProductRequestVariantsItem.from_dict(
-                variants_item_data
-            )
+            variants_item = Variant.from_dict(variants_item_data)
 
             variants.append(variants_item)
 
