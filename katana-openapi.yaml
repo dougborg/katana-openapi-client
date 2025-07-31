@@ -3048,6 +3048,7 @@ components:
               enum:
                 - product
                 - material
+                - service
             internal_barcode:
               type: string
             registered_barcode:
