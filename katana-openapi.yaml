@@ -324,9 +324,18 @@ components:
     sku:
       name: sku
       required: false
-      description: Filters negative stock by a sku
+      description: Filters results by a sku
       schema:
         type: string
+      in: query
+    sku_list:
+      name: sku
+      required: false
+      description: Filters results by list of skus
+      schema:
+        type: array
+        items:
+          type: string
       in: query
     category:
       name: category
@@ -9100,7 +9109,7 @@ paths:
         - $ref: "#/components/parameters/ids"
         - $ref: "#/components/parameters/product_id"
         - $ref: "#/components/parameters/material_id"
-        - $ref: "#/components/parameters/sku"
+        - $ref: "#/components/parameters/sku_list"
         - $ref: "#/components/parameters/sales_price"
         - $ref: "#/components/parameters/purchase_price"
         - $ref: "#/components/parameters/internal_barcode"

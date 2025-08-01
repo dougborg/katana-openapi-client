@@ -17,7 +17,7 @@ def _get_kwargs(
     ids: Unset | list[int] = UNSET,
     product_id: Unset | int = UNSET,
     material_id: Unset | int = UNSET,
-    sku: Unset | str = UNSET,
+    sku: Unset | list[str] = UNSET,
     sales_price: Unset | float = UNSET,
     purchase_price: Unset | float = UNSET,
     internal_barcode: Unset | str = UNSET,
@@ -45,7 +45,11 @@ def _get_kwargs(
 
     params["material_id"] = material_id
 
-    params["sku"] = sku
+    json_sku: Unset | list[str] = UNSET
+    if not isinstance(sku, Unset):
+        json_sku = sku
+
+    params["sku"] = json_sku
 
     params["sales_price"] = sales_price
 
@@ -151,7 +155,7 @@ def sync_detailed(
     ids: Unset | list[int] = UNSET,
     product_id: Unset | int = UNSET,
     material_id: Unset | int = UNSET,
-    sku: Unset | str = UNSET,
+    sku: Unset | list[str] = UNSET,
     sales_price: Unset | float = UNSET,
     purchase_price: Unset | float = UNSET,
     internal_barcode: Unset | str = UNSET,
@@ -176,7 +180,7 @@ def sync_detailed(
         ids (Union[Unset, list[int]]):
         product_id (Union[Unset, int]):
         material_id (Union[Unset, int]):
-        sku (Union[Unset, str]):
+        sku (Union[Unset, list[str]]):
         sales_price (Union[Unset, float]):
         purchase_price (Union[Unset, float]):
         internal_barcode (Union[Unset, str]):
@@ -235,7 +239,7 @@ def sync(
     ids: Unset | list[int] = UNSET,
     product_id: Unset | int = UNSET,
     material_id: Unset | int = UNSET,
-    sku: Unset | str = UNSET,
+    sku: Unset | list[str] = UNSET,
     sales_price: Unset | float = UNSET,
     purchase_price: Unset | float = UNSET,
     internal_barcode: Unset | str = UNSET,
@@ -260,7 +264,7 @@ def sync(
         ids (Union[Unset, list[int]]):
         product_id (Union[Unset, int]):
         material_id (Union[Unset, int]):
-        sku (Union[Unset, str]):
+        sku (Union[Unset, list[str]]):
         sales_price (Union[Unset, float]):
         purchase_price (Union[Unset, float]):
         internal_barcode (Union[Unset, str]):
@@ -314,7 +318,7 @@ async def asyncio_detailed(
     ids: Unset | list[int] = UNSET,
     product_id: Unset | int = UNSET,
     material_id: Unset | int = UNSET,
-    sku: Unset | str = UNSET,
+    sku: Unset | list[str] = UNSET,
     sales_price: Unset | float = UNSET,
     purchase_price: Unset | float = UNSET,
     internal_barcode: Unset | str = UNSET,
@@ -339,7 +343,7 @@ async def asyncio_detailed(
         ids (Union[Unset, list[int]]):
         product_id (Union[Unset, int]):
         material_id (Union[Unset, int]):
-        sku (Union[Unset, str]):
+        sku (Union[Unset, list[str]]):
         sales_price (Union[Unset, float]):
         purchase_price (Union[Unset, float]):
         internal_barcode (Union[Unset, str]):
@@ -396,7 +400,7 @@ async def asyncio(
     ids: Unset | list[int] = UNSET,
     product_id: Unset | int = UNSET,
     material_id: Unset | int = UNSET,
-    sku: Unset | str = UNSET,
+    sku: Unset | list[str] = UNSET,
     sales_price: Unset | float = UNSET,
     purchase_price: Unset | float = UNSET,
     internal_barcode: Unset | str = UNSET,
@@ -421,7 +425,7 @@ async def asyncio(
         ids (Union[Unset, list[int]]):
         product_id (Union[Unset, int]):
         material_id (Union[Unset, int]):
-        sku (Union[Unset, str]):
+        sku (Union[Unset, list[str]]):
         sales_price (Union[Unset, float]):
         purchase_price (Union[Unset, float]):
         internal_barcode (Union[Unset, str]):
