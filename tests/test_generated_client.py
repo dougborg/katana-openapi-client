@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from katana_public_api_client import AuthenticatedClient, KatanaClient
+from katana_public_api_client import ApiClient, KatanaClient
 
 
 class TestGeneratedClientStructure:
@@ -18,8 +18,8 @@ class TestGeneratedClientStructure:
     @pytest.mark.asyncio
     async def test_authenticated_client_creation(self, mock_api_credentials):
         """Test that we can create the underlying authenticated client."""
-        # Test backward compatibility - AuthenticatedClient is now an alias to ApiClient
-        # But the new approach is to use KatanaClient
+        # Test that KatanaClient wraps the new ApiClient properly
+        # The new approach uses KatanaClient instead of direct AuthenticatedClient
         async with KatanaClient(
             api_key=mock_api_credentials["api_key"],
             base_url=mock_api_credentials["base_url"],
@@ -30,7 +30,7 @@ class TestGeneratedClientStructure:
     @pytest.mark.asyncio
     async def test_katana_client_wraps_generated_client(self, mock_api_credentials):
         """Test that Katana client wraps the generated client."""
-        # KatanaClient now wraps ApiClient instead of inheriting from AuthenticatedClient
+        # KatanaClient now wraps ApiClient instead of the old AuthenticatedClient
         async with KatanaClient(
             api_key=mock_api_credentials["api_key"],
             base_url=mock_api_credentials["base_url"],
@@ -133,10 +133,10 @@ class TestImportStructure:
     def test_main_imports(self):
         """Test that main classes can be imported correctly."""
         # These imports should work without errors
-        from katana_public_api_client import AuthenticatedClient, KatanaClient
+        from katana_public_api_client import ApiClient, KatanaClient
 
         # Classes should be available
-        assert AuthenticatedClient is not None
+        assert ApiClient is not None
         assert KatanaClient is not None
 
     @pytest.mark.asyncio
@@ -151,7 +151,7 @@ class TestImportStructure:
         import katana_public_api_client
 
         # Main module should have expected exports
-        assert hasattr(katana_public_api_client, "AuthenticatedClient")
+        assert hasattr(katana_public_api_client, "ApiClient")
         assert hasattr(katana_public_api_client, "KatanaClient")
 
 
