@@ -133,6 +133,12 @@ class KatanaClient:
         base_url: Optional[str] = None,
         enable_logging: bool = True,
         log_level: int = logging.INFO,
+        # Additional backward compatibility parameters
+        max_retries: int = 5,
+        headers: Optional[dict] = None,
+        timeout: Optional[float] = None,
+        logger: Optional[logging.Logger] = None,
+        **kwargs: Any,  # Accept additional kwargs for forward compatibility
     ):
         """
         Initialize KatanaClient.
@@ -142,6 +148,11 @@ class KatanaClient:
             base_url: Base URL (defaults to production API)
             enable_logging: Enable HTTP logging
             log_level: Logging level
+            max_retries: Maximum retry attempts (backward compatibility)
+            headers: Additional headers (backward compatibility)
+            timeout: Request timeout (backward compatibility)
+            logger: Custom logger (backward compatibility)
+            **kwargs: Additional arguments for forward compatibility
         """
         # Load environment variables
         load_dotenv()
@@ -159,7 +170,12 @@ class KatanaClient:
         # Set up logging  
         if enable_logging:
             logging.basicConfig(level=log_level)
-        self.logger = logging.getLogger(__name__)
+        self.logger = logger or logging.getLogger(__name__)
+
+        # Store backward compatibility parameters
+        self.max_retries = max_retries
+        self.headers = headers or {}
+        self.timeout = timeout
 
         # Create OpenAPI Generator configuration
         self._config = Configuration(
