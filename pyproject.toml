@@ -1,6 +1,6 @@
 [project]
 name = "katana-openapi-client"
-version = "0.3.1"
+version = "0.3.2"
 description = "A modern, pythonic Katana Manufacturing ERP API client with automatic retries, rate limiting, and smart pagination"
 authors = [
     {name = "Doug Borg", email = "dougborg@dougborg.org"},
