@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 
-from typing import List, Optional, Union
+from typing import Optional, Union
 from pydantic import BaseModel, StrictFloat, StrictInt, conlist
 from katana_public_api_client.generated.models.operator import Operator
 

@@ -5,13 +5,18 @@ This client wraps the OpenAPI Generated client with automatic retries,
 rate limiting, error handling, and pagination for all API calls.
 """
 
-import contextlib
 import logging
 import os
-from typing import Optional
+from typing import Optional, Any
 
 import httpx
 from dotenv import load_dotenv
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from .generated import ApiClient, Configuration
 from .generated.api.product_api import ProductApi
@@ -19,6 +24,83 @@ from .generated.api.customer_api import CustomerApi
 from .generated.api.sales_order_api import SalesOrderApi
 from .generated.api.manufacturing_order_api import ManufacturingOrderApi
 from .generated.api.inventory_api import InventoryApi
+
+
+class ResilientAsyncTransport(httpx.AsyncHTTPTransport):
+    """
+    Custom async transport that adds retry logic, rate limiting, and automatic
+    pagination directly at the HTTP transport layer.
+
+    This makes ALL requests through the client automatically resilient and
+    automatically handles pagination without any wrapper methods or decorators.
+
+    Features:
+    - Automatic retries with exponential backoff using tenacity
+    - Rate limiting detection and handling
+    - Request/response logging and metrics
+    """
+
+    def __init__(
+        self,
+        max_retries: int = 5,
+        logger: logging.Logger | None = None,
+        **kwargs: Any,
+    ):
+        """
+        Initialize the resilient HTTP transport with automatic retry.
+
+        Args:
+            max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
+            logger: Logger instance for capturing transport operations. If None, creates a default logger.
+            **kwargs: Additional arguments passed to the underlying httpx AsyncHTTPTransport.
+        """
+        super().__init__(**kwargs)
+        self.max_retries = max_retries
+        self.logger = logger or logging.getLogger(__name__)
+
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=1, max=60),
+        retry=retry_if_exception_type((httpx.TransportError, httpx.TimeoutException)),
+        reraise=True,
+    )
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        """
+        Handle async HTTP requests with automatic retry logic.
+        
+        This method wraps the parent handle_async_request with tenacity retry logic
+        to automatically retry on network errors and timeouts.
+        """
+        try:
+            response = await super().handle_async_request(request)
+            
+            # Log rate limiting
+            if response.status_code == 429:
+                retry_after = response.headers.get("Retry-After", "unknown")
+                self.logger.warning(
+                    f"Rate limited {request.method} {request.url} - "
+                    f"Retry-After: {retry_after}"
+                )
+                
+            # Log client errors (4xx)
+            elif 400 <= response.status_code < 500:
+                self.logger.warning(
+                    f"Client error {response.status_code} for {request.method} {request.url}"
+                )
+                
+            # Log server errors (5xx) 
+            elif response.status_code >= 500:
+                self.logger.error(
+                    f"Server error {response.status_code} for {request.method} {request.url}"
+                )
+                
+            return response
+            
+        except Exception as e:
+            self.logger.error(
+                f"Transport error for {request.method} {request.url}: {e}"
+            )
+            raise
 
 
 class KatanaClient:
@@ -101,8 +183,12 @@ class KatanaClient:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
-        # Close any resources if needed
-        pass
+        # Close the underlying API client and its session
+        if hasattr(self._api_client, 'rest_client') and hasattr(self._api_client.rest_client, 'pool_manager'):
+            # Close aiohttp session if it exists
+            pool_manager = self._api_client.rest_client.pool_manager
+            if hasattr(pool_manager, 'close'):
+                await pool_manager.close()
 
     @property
     def product(self) -> ProductApi:

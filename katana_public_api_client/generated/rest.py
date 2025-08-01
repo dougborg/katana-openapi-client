@@ -19,7 +19,7 @@ import re
 import ssl
 
 import aiohttp
-from urllib.parse import urlencode, quote_plus
+from urllib.parse import urlencode
 
 from katana_public_api_client.generated.errors import ApiException, ApiValueError
 

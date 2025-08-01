@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 
-from typing import List, Optional, Union
+from typing import Optional, Union
 from pydantic import BaseModel, Field, StrictStr, confloat, conint, conlist
 from katana_public_api_client.generated.models.purchase_order_receive_row_batch_transactions_inner import PurchaseOrderReceiveRowBatchTransactionsInner
 

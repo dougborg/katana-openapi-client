@@ -13,16 +13,14 @@
 
 
 from __future__ import annotations
-from inspect import getfullargspec
 import json
 import pprint
 import re  # noqa: F401
 
 from typing import List, Optional
-from pydantic import BaseModel, Field, StrictStr, ValidationError, conlist, validator
+from pydantic import BaseModel, Field, ValidationError, conlist, validator
 from katana_public_api_client.generated.models.purchase_order_receive_row import PurchaseOrderReceiveRow
-from typing import Union, Any, List, TYPE_CHECKING
-from pydantic import StrictStr, Field
+from typing import Union, Any, TYPE_CHECKING
 
 PURCHASEORDERRECEIVEREQUEST_ANY_OF_SCHEMAS = ["List[PurchaseOrderReceiveRow]", "PurchaseOrderReceiveRow"]
 

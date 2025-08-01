@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 
-from typing import List, Optional, Union
+from typing import Optional, Union
 from pydantic import BaseModel, StrictStr, confloat, conint, conlist, constr
 from katana_public_api_client.generated.models.variant_all_of_config_attributes import VariantAllOfConfigAttributes
 from katana_public_api_client.generated.models.variant_all_of_custom_fields import VariantAllOfCustomFields

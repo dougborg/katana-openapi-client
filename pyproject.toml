@@ -41,14 +41,15 @@ dependencies = [
   # Generated client dependencies (pydantic-based)
   "pydantic>=1.10.0,<2.0.0",  # Using Pydantic V1 for OpenAPI Generator compatibility
   "httpx>=0.28.0",
+  "aiohttp>=3.8.0",  # Required by generated OpenAPI client
   "python-dateutil>=2.8.0",
-  "typing-extensions>=4.0.0",
+  "typing-extensions>=4.7.0",
+  "aenum>=3.1.0",  # Required for generated enum classes
   # Enhanced client dependencies
   "tenacity>=9.0.0",
   "python-dotenv>=1.0.0",
   # HTTP client dependencies
   "urllib3>=2.5.0,<4.0.0",
-  "typing-extensions>=4.7.0",
 ]
 
 [project.urls]
@@ -93,8 +94,8 @@ dev = [
   "types-PyYAML>=6.0.0",
   "types-urllib3>=1.26.0",
   # OpenAPI tools (OpenAPI Generator CLI jar will be downloaded separately)
-  # Semantic release
-  "python-semantic-release>=9.0.0",
+  # Semantic release (compatible with Pydantic v1)
+  "python-semantic-release>=8.0.0,<9.0.0",
   "mypy-extensions>=1.1.0",
   # Documentation generation
   "sphinx>=7.0.0",

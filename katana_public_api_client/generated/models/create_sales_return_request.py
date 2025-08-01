@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 from pydantic import BaseModel, Field, StrictInt, StrictStr, conlist
 from katana_public_api_client.generated.models.create_sales_return_row_request import CreateSalesReturnRowRequest
 

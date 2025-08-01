@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import Optional, Union
 from pydantic import BaseModel, StrictFloat, StrictInt, conlist
 from katana_public_api_client.generated.models.update_manufacturing_order_operation_row_request import UpdateManufacturingOrderOperationRowRequest
 from katana_public_api_client.generated.models.update_manufacturing_order_production_ingredient_request import UpdateManufacturingOrderProductionIngredientRequest

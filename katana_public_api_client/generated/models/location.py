@@ -13,17 +13,15 @@
 
 
 from __future__ import annotations
-from inspect import getfullargspec
 import json
 import pprint
 import re  # noqa: F401
 
 from typing import Optional
-from pydantic import BaseModel, Field, StrictStr, ValidationError, validator
+from pydantic import BaseModel, Field, ValidationError, validator
 from katana_public_api_client.generated.models.deletable_entity import DeletableEntity
 from katana_public_api_client.generated.models.location_any_of import LocationAnyOf
 from typing import Union, Any, List, TYPE_CHECKING
-from pydantic import StrictStr, Field
 
 LOCATION_ANY_OF_SCHEMAS = ["DeletableEntity", "LocationAnyOf"]
 

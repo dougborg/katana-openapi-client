@@ -13,18 +13,15 @@
 
 
 import re  # noqa: F401
-import io
-import warnings
 
-from pydantic import validate_arguments, ValidationError
-from typing import overload, Optional, Union, Awaitable
+from pydantic import validate_arguments
+from typing import Optional
 
 from typing_extensions import Annotated
 from datetime import datetime
 
 from pydantic import Field, StrictBool, StrictInt, StrictStr, conlist
 
-from typing import Optional
 
 from katana_public_api_client.generated.models.create_manufacturing_order_request import CreateManufacturingOrderRequest
 from katana_public_api_client.generated.models.error_response import ErrorResponse

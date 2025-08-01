@@ -18,7 +18,6 @@ import re  # noqa: F401
 import json
 
 
-from typing import List
 from pydantic import BaseModel, Field, conlist
 from katana_public_api_client.generated.models.inventory import Inventory
 

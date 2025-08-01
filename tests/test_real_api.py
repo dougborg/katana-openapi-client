@@ -7,7 +7,7 @@ import pytest
 from dotenv import load_dotenv
 
 from katana_public_api_client import AuthenticatedClient, KatanaClient
-from katana_public_api_client.generated.api.product import get_all_products
+from katana_public_api_client.generated.api.product_api import ProductApi
 
 # Load environment variables from .env file
 load_dotenv()

@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 
-from typing import List, Optional
+from typing import Optional
 from pydantic import BaseModel, Field, StrictStr, conlist
 from katana_public_api_client.generated.models.supplier_address_request import SupplierAddressRequest
 
