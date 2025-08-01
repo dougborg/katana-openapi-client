@@ -157,6 +157,10 @@ quick_test_*.py
 api_docs/
 openapi_docs/
 
+# OpenAPI Generator
+openapi-generator-cli.jar
+katana_api_client_generated/
+
 # Backup files
 *.orig
 *.rej

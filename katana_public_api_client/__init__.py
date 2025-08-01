@@ -2,19 +2,23 @@
 
 __version__ = "0.3.2"
 
-# Re-export generated modules for backward compatibility
+# Re-export generated modules for direct access
 from .generated import api, models
-from .generated.client import AuthenticatedClient, Client
-from .katana_client import KatanaClient
+from .generated.api_client import ApiClient
+from .generated.configuration import Configuration
+from .katana_client import KatanaClient, ResilientAsyncTransport
 from .log_setup import get_logger, setup_logging
 
+# Remove all old openapi-python-client backward compatibility
+# The new KatanaClient is the only supported interface
 __all__ = (
-    "AuthenticatedClient",
-    "Client",
+    "ApiClient",
+    "Configuration", 
     "KatanaClient",
+    "ResilientAsyncTransport",
     "__version__",
     "api",
     "get_logger",
-    "models",
+    "models", 
     "setup_logging",
 )

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Regenerate the Katana OpenAPI client from the specification.
+Regenerate the Katana OpenAPI client from the specification using OpenAPI Generator.
 
 This script:
 1. Validates the OpenAPI specification using multiple validators:
    - openapi-spec-validator (basic OpenAPI compliance)
    - Redocly CLI (advanced linting with detailed rules)
-2. Generates a new client using openapi-python-client
+2. Generates a new client using OpenAPI Generator (java-based) with python-pydantic-v1
 3. Moves the generated client to the main workspace
 4. Formats the generated code (now includes generated files)
 5. Runs linting checks on the generated code
@@ -20,6 +20,7 @@ Usage:
 
 The script should be run with 'poetry run python' to ensure all dependencies
 (including PyYAML and openapi-spec-validator) are available.
+Java 11+ is required for OpenAPI Generator.
 Node.js and npx are required for Redocly validation.
 """
 
@@ -139,22 +140,43 @@ def _validate_with_redocly(spec_path: Path) -> bool:
 
 
 def generate_client(spec_path: Path, workspace_path: Path) -> bool:
-    """Generate the OpenAPI client."""
-    print("🚀 Generating OpenAPI client...")
+    """Generate the OpenAPI client using OpenAPI Generator."""
+    print("🚀 Generating OpenAPI client with OpenAPI Generator...")
 
     # Remove old generated directory if it exists
-    temp_client_dir = workspace_path / "katana-public-api-client"
+    temp_client_dir = workspace_path / "katana_api_client_generated"
     if temp_client_dir.exists():
         print(f"🗑️  Removing old temporary client directory: {temp_client_dir}")
         shutil.rmtree(temp_client_dir)
 
-    # Generate the client
+    # Check if OpenAPI Generator CLI jar exists
+    jar_path = workspace_path / "openapi-generator-cli.jar"
+    if not jar_path.exists():
+        print("📥 Downloading OpenAPI Generator CLI...")
+        # Download the OpenAPI Generator CLI jar
+        result = run_command([
+            "wget", 
+            "-q",
+            "https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/7.10.0/openapi-generator-cli-7.10.0.jar",
+            "-O", str(jar_path)
+        ], cwd=workspace_path, check=False)
+        
+        if result.returncode != 0:
+            print("❌ Failed to download OpenAPI Generator CLI")
+            return False
+
+    # Generate the client using OpenAPI Generator with python-pydantic-v1
+    print("📦 Generating Pydantic-based client...")
     result = run_command(
         [
-            "openapi-python-client",
+            "java", "-jar", str(jar_path),
             "generate",
-            "--path",
-            str(spec_path),
+            "-g", "python-pydantic-v1",
+            "-i", str(spec_path),
+            "-o", str(temp_client_dir),
+            "--package-name", "katana_api_client",
+            "--additional-properties=library=asyncio,generateSourceCodeOnly=true",
+            "--model-name-mappings", "error=ErrorResponse"  # Avoid naming conflicts
         ],
         cwd=workspace_path,
         check=False,
@@ -165,20 +187,21 @@ def generate_client(spec_path: Path, workspace_path: Path) -> bool:
         return False
 
     # Check if the client was generated
-    if not temp_client_dir.exists():
+    generated_client_path = temp_client_dir / "katana_api_client"
+    if not generated_client_path.exists():
         print("❌ Generated client directory not found")
         return False
 
-    print("✅ Client generated successfully")
+    print("✅ Pydantic-based client generated successfully")
     return True
 
 
 def move_client_to_workspace(workspace_path: Path) -> bool:
-    """Move the generated client to the main workspace using proper separation."""
-    print("📁 Moving client to main workspace with proper separation...")
+    """Move the generated client to the main workspace, replacing the old Union-based client."""
+    print("📁 Moving Pydantic-based client to main workspace...")
 
-    temp_client_dir = workspace_path / "katana-public-api-client"
-    source_client_path = temp_client_dir / "katana_public_api_client"
+    temp_client_dir = workspace_path / "katana_api_client_generated"
+    source_client_path = temp_client_dir / "katana_api_client"
     target_client_path = workspace_path / "katana_public_api_client"
     generated_path = target_client_path / "generated"
 
@@ -190,115 +213,128 @@ def move_client_to_workspace(workspace_path: Path) -> bool:
         # Ensure the target client directory exists
         target_client_path.mkdir(parents=True, exist_ok=True)
 
-        # Create the generated subdirectory structure
+        # Remove the old generated directory completely and replace it
+        if generated_path.exists():
+            shutil.rmtree(generated_path)
+            print("   🗑️  Removed old generated directory")
+
+        # Create new generated subdirectory structure
         generated_path.mkdir(parents=True, exist_ok=True)
 
-        # Define which files/directories are generated (should be replaced)
-        generated_items = [
-            "client.py",
-            "errors.py",
-            "types.py",
-            "py.typed",
-            "api",
-            "models",
-        ]
+        # OpenAPI Generator creates different structure - we need to map the files
+        generated_items_mapping = {
+            # Core client files
+            "api_client.py": "client.py",  # Map to expected name
+            "configuration.py": "configuration.py",
+            "exceptions.py": "errors.py",  # Map to expected name
+            "api_response.py": "api_response.py",
+            "rest.py": "rest.py",
+            # Directories
+            "api": "api",
+            "models": "models",
+        }
 
-        print("🔄 Updating generated files in generated/ subdirectory...")
+        print("🔄 Moving generated files to generated/ subdirectory...")
 
         # Move generated files to the generated/ subdirectory
-        for item_name in generated_items:
-            source_item = source_client_path / item_name
-            target_item = generated_path / item_name
+        for source_name, target_name in generated_items_mapping.items():
+            source_item = source_client_path / source_name
+            target_item = generated_path / target_name
 
             if source_item.exists():
-                # Remove existing generated item
-                if target_item.exists():
-                    if target_item.is_dir():
-                        shutil.rmtree(target_item)
-                        print(
-                            f"   🗑️  Removed existing directory: generated/{item_name}"
-                        )
-                    else:
-                        target_item.unlink()
-                        print(f"   🗑️  Removed existing file: generated/{item_name}")
-
                 # Copy the new generated item
                 if source_item.is_dir():
                     shutil.copytree(source_item, target_item)
-                    print(f"   📦 Updated directory: generated/{item_name}")
+                    print(f"   📦 Added directory: generated/{target_name}")
                 else:
                     shutil.copy2(source_item, target_item)
-                    print(f"   📄 Updated file: generated/{item_name}")
+                    print(f"   📄 Added file: generated/{target_name}")
 
-        # Create/update the generated/__init__.py
+        # Create/update the generated/__init__.py with appropriate imports for new structure
         generated_init = generated_path / "__init__.py"
-        generated_init_content = '''"""Generated OpenAPI client code - do not edit manually."""
+        generated_init_content = '''"""Generated OpenAPI client code - do not edit manually.
 
-from .client import AuthenticatedClient, Client
+This module contains the Pydantic-based client generated by OpenAPI Generator.
+It provides direct model access and exception-based error handling.
+"""
+
+from .client import ApiClient
+from .configuration import Configuration
 from .errors import *
-from .types import *
+from .api_response import ApiResponse
+
+# Import all API classes
+from .api import *
+
+# Import all model classes  
+from .models import *
 
 __all__ = [
-    "AuthenticatedClient",
-    "Client",
+    "ApiClient",
+    "Configuration", 
+    "ApiResponse",
 ]
 '''
         generated_init.write_text(generated_init_content, encoding="utf-8")
-        print("   📄 Updated generated/__init__.py")
+        print("   📄 Created generated/__init__.py")
 
-        # Ensure main __init__.py has correct imports (don't overwrite custom content)
+        # Copy the main __init__.py from source to see what imports we need
+        source_init = source_client_path / "__init__.py"
+        if source_init.exists():
+            # Read the source init to get the actual imports and API classes
+            source_init_content = source_init.read_text(encoding="utf-8")
+            
+            # Extract API imports from the source (these will be our API classes)
+            api_imports = []
+            model_imports = []
+            
+            for line in source_init_content.split('\n'):
+                if 'from katana_api_client.api.' in line:
+                    # Extract the API class name
+                    import_part = line.split('import ')[-1].strip()
+                    api_imports.append(import_part)
+                elif 'from katana_api_client.models.' in line:
+                    # Extract the model class name
+                    import_part = line.split('import ')[-1].strip()
+                    model_imports.append(import_part)
+            
+            # Update the generated __init__.py with proper exports
+            if api_imports or model_imports:
+                all_exports = ["ApiClient", "Configuration", "ApiResponse"] + api_imports + model_imports
+                updated_init_content = generated_init_content.replace(
+                    '__all__ = [\n    "ApiClient",\n    "Configuration", \n    "ApiResponse",\n]',
+                    '__all__ = [\n' + '\n'.join(f'    "{item}",' for item in all_exports) + '\n]'
+                )
+                generated_init.write_text(updated_init_content, encoding="utf-8")
+                print(f"   📄 Updated generated/__init__.py with {len(api_imports)} APIs and {len(model_imports)} models")
+
+        # Update main __init__.py to import from the new generated structure
         main_init = target_client_path / "__init__.py"
         if main_init.exists():
             current_content = main_init.read_text(encoding="utf-8")
-
-            # Only update if it doesn't already have the correct import
-            if "from .generated.client import" not in current_content:
-                # Update imports to use the new structure
-                updated_content = current_content.replace(
-                    "from .client import AuthenticatedClient, Client",
-                    "from .generated.client import AuthenticatedClient, Client",
-                )
-
-                main_init.write_text(updated_content, encoding="utf-8")
-                print("   📄 Updated main __init__.py imports")
-        else:
-            # Create main __init__.py if it doesn't exist
-            main_init_content = '''"""A client library for accessing Katana Public API"""
-
-__version__ = "0.1.0"
-
-from .generated.client import AuthenticatedClient, Client
-from .katana_client import KatanaClient
-from .log_setup import get_logger, setup_logging
-
-__all__ = (
-    "AuthenticatedClient",
-    "Client",
-    "KatanaClient",
-    "setup_logging",
-    "get_logger",
-    "__version__",
-)
-'''
-            main_init.write_text(main_init_content, encoding="utf-8")
-            print("   📄 Created main __init__.py")
-
-        # Copy the generated README for reference
-        source_readme = temp_client_dir / "README.md"
-        target_readme = workspace_path / "CLIENT_README.md"
-        if source_readme.exists():
-            shutil.copy2(source_readme, target_readme)
-            print(f"📝 Updated client README: {target_readme}")
+            
+            # Update to import from the new generated structure
+            updated_content = current_content.replace(
+                'from .generated.client import AuthenticatedClient, Client',
+                'from .generated import ApiClient, Configuration'
+            ).replace(
+                'from .generated import *',
+                'from .generated import *'
+            )
+            
+            main_init.write_text(updated_content, encoding="utf-8")
+            print("   📄 Updated main __init__.py imports for new structure")
 
         # Clean up temporary directory
-        print(f"🗑️  Cleaning up temporary directory: {temp_client_dir}")
-        shutil.rmtree(temp_client_dir)
+        if temp_client_dir.exists():
+            shutil.rmtree(temp_client_dir)
+            print("   🗑️  Cleaned up temporary generation directory")
 
-        print("✅ Client moved successfully with proper separation")
+        print("✅ Successfully moved Pydantic-based client to workspace")
         return True
 
-    except (OSError, shutil.Error) as e:
-        print(f"❌ Failed to move client: {e}")
+    except Exception as e:
+        print(f"❌ Error moving client to workspace: {e}")
         return False
 
 
