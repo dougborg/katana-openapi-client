@@ -38,16 +38,16 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  # Generated client dependencies
+  # Generated client dependencies (pydantic-based)
+  "pydantic>=1.10.0,<2.0.0",  # Using Pydantic V1 for OpenAPI Generator compatibility
   "httpx>=0.28.0",
-  "attrs>=22.2.0",
   "python-dateutil>=2.8.0",
+  "typing-extensions>=4.0.0",
   # Enhanced client dependencies
   "tenacity>=9.0.0",
   "python-dotenv>=1.0.0",
-  # Legacy dependencies (keeping for compatibility)
+  # HTTP client dependencies
   "urllib3>=2.5.0,<4.0.0",
-  "pydantic>=2,<3",
   "typing-extensions>=4.7.0",
 ]
 
@@ -92,8 +92,7 @@ dev = [
   "types-python-dateutil>=2.8.0",
   "types-PyYAML>=6.0.0",
   "types-urllib3>=1.26.0",
-  # OpenAPI tools
-  "openapi-python-client>=0.25.2",
+  # OpenAPI tools (OpenAPI Generator CLI jar will be downloaded separately)
   # Semantic release
   "python-semantic-release>=9.0.0",
   "mypy-extensions>=1.1.0",

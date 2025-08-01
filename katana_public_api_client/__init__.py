@@ -2,19 +2,19 @@
 
 __version__ = "0.3.2"
 
-# Re-export generated modules for backward compatibility
+# Re-export generated modules for direct access
 from .generated import api, models
-from .generated.client import AuthenticatedClient, Client
+from .generated import ApiClient, Configuration
 from .katana_client import KatanaClient
 from .log_setup import get_logger, setup_logging
 
 __all__ = (
-    "AuthenticatedClient",
-    "Client",
+    "ApiClient",
+    "Configuration", 
     "KatanaClient",
     "__version__",
     "api",
     "get_logger",
-    "models",
+    "models", 
     "setup_logging",
 )
