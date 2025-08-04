@@ -269,6 +269,29 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR2004"]  # magic value used in comparison
+"katana_public_api_client/generated/*" = [
+    "F403",    # star imports are acceptable in generated __init__.py files
+    "F405",    # names from star imports are expected in generated code
+    "UP009",   # utf8-encoding-declaration is auto-generated
+    "RUF100",  # unused noqa is common in generated code
+    "I001",    # import sorting may not match our preferences in generated code
+    "F401",    # unused imports are common in generated API files
+    "UP045",   # non-pep604-annotation-optional (legacy style in generated code)
+    "UP007",   # non-pep604-annotation-union (legacy style in generated code)
+    "UP006",   # non-pep585-annotation (legacy style in generated code)
+    "UP008",   # super() style (legacy in generated code)
+    "UP031",   # format specifiers (legacy style in generated code)
+    "UP038",   # isinstance union syntax (legacy in generated code)
+    "UP030",   # format fields (legacy style in generated code)
+    "E721",    # type comparisons (acceptable in generated code)
+    "PLW2901", # loop variable overwriting (acceptable in generated code)
+    "C409",    # unnecessary list literal (generated code pattern)
+    "B904",    # exception chaining (not always applicable in generated code)
+    "F841",    # unused variable (common in generated validation code)
+    "F601",    # duplicate dictionary keys (will be fixed in post-processing)
+    "F821",    # undefined names (will be fixed in post-processing)
+    "B011",    # assert False (acceptable in generated test/validation code)
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["katana_public_api_client"]

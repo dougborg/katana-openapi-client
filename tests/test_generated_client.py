@@ -4,9 +4,6 @@ These tests verify that our Katana client properly integrates with
 the generated OpenAPI client and doesn't break existing functionality.
 """
 
-from typing import Any
-from unittest.mock import MagicMock
-
 import pytest
 
 from katana_public_api_client import ApiClient, KatanaClient
@@ -122,7 +119,6 @@ class TestTypeSystemCompatibility:
             assert hasattr(product_api, "get_all_products")
 
             # The method should be a coroutine function
-            import inspect
 
             # The method is actually a bound method, but calling it returns a coroutine
             assert callable(product_api.get_all_products)
@@ -134,7 +130,7 @@ class TestImportStructure:
     def test_main_imports(self):
         """Test that main classes can be imported correctly."""
         # These imports should work without errors
-        from katana_public_api_client import ApiClient, KatanaClient
+        from katana_public_api_client import KatanaClient
 
         # Classes should be available
         assert ApiClient is not None

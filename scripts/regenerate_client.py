@@ -272,18 +272,18 @@ It provides direct model access and exception-based error handling.
 
 from .client import ApiClient
 from .configuration import Configuration
-from .errors import *
+from .errors import *  # noqa: F403
 from .api_response import ApiResponse
 
 # Import all API classes
-from .api import *
+from .api import *  # noqa: F403
 
-# Import all model classes  
-from .models import *
+# Import all model classes
+from .models import *  # noqa: F403
 
 __all__ = [
     "ApiClient",
-    "Configuration", 
+    "Configuration",
     "ApiResponse",
 ]
 '''
@@ -312,11 +312,13 @@ __all__ = [
 
             # Update the generated __init__.py with proper exports
             if api_imports or model_imports:
-                all_exports = (
-                    ["ApiClient", "Configuration", "ApiResponse"]
-                    + api_imports
-                    + model_imports
-                )
+                all_exports = [
+                    "ApiClient",
+                    "Configuration",
+                    "ApiResponse",
+                    *api_imports,
+                    *model_imports,
+                ]
                 updated_init_content = generated_init_content.replace(
                     '__all__ = [\n    "ApiClient",\n    "Configuration", \n    "ApiResponse",\n]',
                     "__all__ = [\n"
@@ -418,6 +420,15 @@ def format_generated_code(workspace_path: Path) -> bool:
         print("❌ Failed to format files")
         return False
 
+    # Run auto-fix linting to fix as many issues as possible
+    print("🔧 Auto-fixing linting issues with ruff...")
+    lint_result = run_command(
+        ["poetry", "run", "poe", "lint-ruff-fix"], cwd=workspace_path, check=False
+    )
+
+    if lint_result.returncode != 0:
+        print("⚠️  Some linting issues couldn't be auto-fixed, but continuing")
+
     print("✅ Code formatted successfully")
     return True
 
@@ -470,7 +481,7 @@ def post_process_generated_docstrings(workspace_path: Path) -> bool:
     This function applies targeted fixes to common RST formatting issues in
     generated OpenAPI client code that cause Sphinx warnings. It also removes
     "Attributes:" sections from class docstrings to prevent AutoAPI 3.2+
-    duplicate object warnings.
+    duplicate object warnings, and fixes common import and code issues.
     """
     generated_path = workspace_path / "katana_public_api_client" / "generated"
     if not generated_path.exists():
@@ -516,6 +527,78 @@ def post_process_generated_docstrings(workspace_path: Path) -> bool:
                 content,
             )
 
+            # Fix: Add missing imports for typing annotations
+            if (
+                "Dict" in content or "Any" in content
+            ) and "from typing import" not in content:
+                # Add typing imports at the top after encoding declaration
+                if "# coding: utf-8" in content:
+                    content = content.replace(
+                        "# coding: utf-8\n",
+                        "# coding: utf-8\n\nfrom typing import Any\n",
+                    )
+                elif "from __future__ import annotations" in content:
+                    content = content.replace(
+                        "from __future__ import annotations\n",
+                        "from __future__ import annotations\n\nfrom typing import Any\n",
+                    )
+                else:
+                    # Add after the first import if no encoding/future imports
+                    lines = content.split("\n")
+                    first_import_idx = -1
+                    for i, line in enumerate(lines):
+                        if (
+                            line.startswith(("import ", "from "))
+                            and "typing" not in line
+                        ):
+                            first_import_idx = i
+                            break
+                    if first_import_idx > -1:
+                        lines.insert(first_import_idx, "from typing import Any")
+                        content = "\n".join(lines)
+
+            # Fix: Replace deprecated typing.Dict with dict
+            content = content.replace(
+                "from typing import Any, Dict", "from typing import Any"
+            )
+            content = content.replace("Dict[", "dict[")
+            content = content.replace("typing.Dict", "dict")
+
+            # Fix: Undefined name issues for self-referencing types
+            if py_file.name == "webhook_event.py":
+                content = content.replace(
+                    "F821 Undefined name `WebhookEvent`", ""
+                ).replace(
+                    ": WebhookEvent",
+                    ': "WebhookEvent"',  # Quote self-references
+                )
+
+            # Fix: Remove duplicate dictionary keys
+            if "purchase_order_accounting_metadata.py" in py_file.name:
+                # This is a known issue in generated code - need to remove duplicate keys
+                content = re.sub(
+                    r'(\s+"purchase_order_id":\s+\{[^}]+\},)\s+"purchase_order_id":\s+\{[^}]+\},',
+                    r"\1",
+                    content,
+                )
+
+            # Fix: Unused variables
+            content = re.sub(r"(\s+)instance\s*=\s*[^,]+,\s*\n", r"", content)
+
+            # Fix: Add ClassVar annotations for mutable class attributes
+            if "api_client.py" in py_file.name:
+                content = re.sub(
+                    r"(\s+)(default_headers\s*:\s*)(dict\[[^]]+\])(\s*=\s*\{\})",
+                    r"\1\2typing.ClassVar[\3]\4",
+                    content,
+                )
+                # Ensure typing is imported
+                if (
+                    "import typing" not in content
+                    and "from typing import" not in content
+                ):
+                    content = "import typing\n" + content
+
             # Only write if we made changes
             if content != original_content:
                 py_file.write_text(content, encoding="utf-8")
@@ -526,7 +609,7 @@ def post_process_generated_docstrings(workspace_path: Path) -> bool:
             # Continue processing other files
 
     print(
-        f"📝 Post-processed {processed_count} generated files for better RST formatting and AutoAPI compatibility"
+        f"📝 Post-processed {processed_count} generated files for better RST formatting and code quality"
     )
     return True
 

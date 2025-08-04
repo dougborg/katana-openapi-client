@@ -7,6 +7,7 @@ the Union type hell and defensive programming patterns.
 """
 
 import asyncio
+
 from katana_public_api_client import KatanaClient
 
 

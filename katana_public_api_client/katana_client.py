@@ -5,32 +5,31 @@ This client wraps the OpenAPI Generated client with automatic retries,
 rate limiting, error handling, and pagination for all API calls.
 """
 
-import asyncio
+from __future__ import annotations
+
 import json
 import logging
 import os
-from typing import Optional, Any, Dict, List
-from urllib.parse import urlencode, parse_qs, urlparse
+from typing import Any
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
 from dotenv import load_dotenv
 from tenacity import (
     retry,
     retry_if_exception_type,
+    retry_if_result,
     stop_after_attempt,
     wait_exponential,
-    retry_if_result,
-    RetryError,
 )
 
+from .generated.api.customer_api import CustomerApi
+from .generated.api.inventory_api import InventoryApi
+from .generated.api.manufacturing_order_api import ManufacturingOrderApi
+from .generated.api.product_api import ProductApi
+from .generated.api.sales_order_api import SalesOrderApi
 from .generated.api_client import ApiClient
 from .generated.configuration import Configuration
-from .generated.api.product_api import ProductApi
-from .generated.api.customer_api import CustomerApi
-from .generated.api.sales_order_api import SalesOrderApi
-from .generated.api.manufacturing_order_api import ManufacturingOrderApi
-from .generated.api.inventory_api import InventoryApi
-from .generated.errors import ApiException
 
 
 class ResilientAsyncTransport(httpx.AsyncHTTPTransport):
@@ -172,7 +171,7 @@ class ResilientAsyncTransport(httpx.AsyncHTTPTransport):
 
             query_string = urlencode(page_params, doseq=True)
             page_url = request.url.copy_with(params=query_string)
-            page_request = request.copy_with(url=page_url)
+            page_request = request.copy_with(url=page_url)  # type: ignore[attr-defined]
 
             # Make the request for this page
             response = await super().handle_async_request(page_request)
@@ -253,16 +252,16 @@ class KatanaClient:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         enable_logging: bool = True,
         log_level: int = logging.INFO,
         # Additional backward compatibility parameters
         max_retries: int = 5,
         max_pages: int = 100,
-        headers: Optional[dict] = None,
-        timeout: Optional[float] = None,
-        logger: Optional[logging.Logger] = None,
+        headers: dict[str, str] | None = None,
+        timeout: float | None = None,
+        logger: logging.Logger | None = None,
         **kwargs: Any,  # Accept additional kwargs for forward compatibility
     ):
         """
@@ -316,7 +315,7 @@ class KatanaClient:
         )
 
         # Delay API client creation until async context is entered
-        self._api_client = None
+        self._api_client: ApiClient | None = None
 
         # API instances will be created on demand
         self._product_api = None
@@ -353,8 +352,10 @@ class KatanaClient:
             await self._http_client.aclose()
 
         # Close the underlying API client if it has sessions
-        if hasattr(self._api_client, "rest_client") and hasattr(
-            self._api_client.rest_client, "pool_manager"
+        if (
+            self._api_client is not None
+            and hasattr(self._api_client, "rest_client")
+            and hasattr(self._api_client.rest_client, "pool_manager")
         ):
             pool_manager = self._api_client.rest_client.pool_manager
             if hasattr(pool_manager, "aclose"):
@@ -432,7 +433,7 @@ class KatanaClient:
             raise RuntimeError("KatanaClient must be used as an async context manager")
         return self._http_client
 
-    def with_headers(self, headers: Dict[str, str]) -> "KatanaClient":
+    def with_headers(self, headers: dict[str, str]) -> KatanaClient:
         """Get a new client with additional headers (backward compatibility)."""
         new_headers = {**self.headers, **headers}
         return KatanaClient(
