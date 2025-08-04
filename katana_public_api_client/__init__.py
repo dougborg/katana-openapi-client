@@ -13,12 +13,12 @@ from .log_setup import get_logger, setup_logging
 # The new KatanaClient is the only supported interface
 __all__ = (
     "ApiClient",
-    "Configuration", 
+    "Configuration",
     "KatanaClient",
     "ResilientAsyncTransport",
     "__version__",
     "api",
     "get_logger",
-    "models", 
+    "models",
     "setup_logging",
 )

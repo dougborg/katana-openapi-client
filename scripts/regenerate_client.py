@@ -154,13 +154,18 @@ def generate_client(spec_path: Path, workspace_path: Path) -> bool:
     if not jar_path.exists():
         print("📥 Downloading OpenAPI Generator CLI...")
         # Download the OpenAPI Generator CLI jar
-        result = run_command([
-            "wget", 
-            "-q",
-            "https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/7.10.0/openapi-generator-cli-7.10.0.jar",
-            "-O", str(jar_path)
-        ], cwd=workspace_path, check=False)
-        
+        result = run_command(
+            [
+                "wget",
+                "-q",
+                "https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/7.10.0/openapi-generator-cli-7.10.0.jar",
+                "-O",
+                str(jar_path),
+            ],
+            cwd=workspace_path,
+            check=False,
+        )
+
         if result.returncode != 0:
             print("❌ Failed to download OpenAPI Generator CLI")
             return False
@@ -169,14 +174,21 @@ def generate_client(spec_path: Path, workspace_path: Path) -> bool:
     print("📦 Generating Pydantic-based client...")
     result = run_command(
         [
-            "java", "-jar", str(jar_path),
+            "java",
+            "-jar",
+            str(jar_path),
             "generate",
-            "-g", "python-pydantic-v1",
-            "-i", str(spec_path),
-            "-o", str(temp_client_dir),
-            "--package-name", "katana_api_client",
+            "-g",
+            "python-pydantic-v1",
+            "-i",
+            str(spec_path),
+            "-o",
+            str(temp_client_dir),
+            "--package-name",
+            "katana_api_client",
             "--additional-properties=library=asyncio,generateSourceCodeOnly=true",
-            "--model-name-mappings", "error=ErrorResponse"  # Avoid naming conflicts
+            "--model-name-mappings",
+            "error=ErrorResponse",  # Avoid naming conflicts
         ],
         cwd=workspace_path,
         check=False,
@@ -283,45 +295,50 @@ __all__ = [
         if source_init.exists():
             # Read the source init to get the actual imports and API classes
             source_init_content = source_init.read_text(encoding="utf-8")
-            
+
             # Extract API imports from the source (these will be our API classes)
             api_imports = []
             model_imports = []
-            
-            for line in source_init_content.split('\n'):
-                if 'from katana_api_client.api.' in line:
+
+            for line in source_init_content.split("\n"):
+                if "from katana_api_client.api." in line:
                     # Extract the API class name
-                    import_part = line.split('import ')[-1].strip()
+                    import_part = line.split("import ")[-1].strip()
                     api_imports.append(import_part)
-                elif 'from katana_api_client.models.' in line:
+                elif "from katana_api_client.models." in line:
                     # Extract the model class name
-                    import_part = line.split('import ')[-1].strip()
+                    import_part = line.split("import ")[-1].strip()
                     model_imports.append(import_part)
-            
+
             # Update the generated __init__.py with proper exports
             if api_imports or model_imports:
-                all_exports = ["ApiClient", "Configuration", "ApiResponse"] + api_imports + model_imports
+                all_exports = (
+                    ["ApiClient", "Configuration", "ApiResponse"]
+                    + api_imports
+                    + model_imports
+                )
                 updated_init_content = generated_init_content.replace(
                     '__all__ = [\n    "ApiClient",\n    "Configuration", \n    "ApiResponse",\n]',
-                    '__all__ = [\n' + '\n'.join(f'    "{item}",' for item in all_exports) + '\n]'
+                    "__all__ = [\n"
+                    + "\n".join(f'    "{item}",' for item in all_exports)
+                    + "\n]",
                 )
                 generated_init.write_text(updated_init_content, encoding="utf-8")
-                print(f"   📄 Updated generated/__init__.py with {len(api_imports)} APIs and {len(model_imports)} models")
+                print(
+                    f"   📄 Updated generated/__init__.py with {len(api_imports)} APIs and {len(model_imports)} models"
+                )
 
         # Update main __init__.py to import from the new generated structure
         main_init = target_client_path / "__init__.py"
         if main_init.exists():
             current_content = main_init.read_text(encoding="utf-8")
-            
+
             # Update to import from the new generated structure
             updated_content = current_content.replace(
-                'from .generated.client import AuthenticatedClient, Client',
-                'from .generated import ApiClient, Configuration'
-            ).replace(
-                'from .generated import *',
-                'from .generated import *'
-            )
-            
+                "from .generated.client import AuthenticatedClient, Client",
+                "from .generated import ApiClient, Configuration",
+            ).replace("from .generated import *", "from .generated import *")
+
             main_init.write_text(updated_content, encoding="utf-8")
             print("   📄 Updated main __init__.py imports for new structure")
 
@@ -329,6 +346,14 @@ __all__ = [
         if temp_client_dir.exists():
             shutil.rmtree(temp_client_dir)
             print("   🗑️  Cleaned up temporary generation directory")
+
+        # Ensure all file operations are flushed to disk before proceeding
+        import os
+        import time
+
+        os.sync()  # Force filesystem sync
+        time.sleep(0.5)  # Small delay to ensure all files are available
+        print("   💾 Synced filesystem after file operations")
 
         print("✅ Successfully moved Pydantic-based client to workspace")
         return True
@@ -382,22 +407,9 @@ def format_generated_code(workspace_path: Path) -> bool:
     if not post_process_generated_docstrings(workspace_path):
         print("⚠️  Post-processing had issues but continuing")
 
-    # Run ruff format specifically on the generated code to ensure it's properly formatted
-    generated_path = workspace_path / "katana_public_api_client" / "generated"
-    if generated_path.exists():
-        print("🎨 Formatting generated Python files with ruff...")
-        result = run_command(
-            ["poetry", "run", "ruff", "format", str(generated_path)],
-            cwd=workspace_path,
-            check=False,
-        )
-
-        if result.returncode != 0:
-            print("❌ Failed to format generated files with ruff")
-            return False
-
-    # Run the full format command for any other files
-    print("🎨 Running full format command for all files...")
+    # Run the full format command for all files (includes generated code)
+    # This uses the project's ruff configuration which properly handles all source paths
+    print("🎨 Formatting all Python files with ruff...")
     result = run_command(
         ["poetry", "run", "poe", "format-python"], cwd=workspace_path, check=False
     )

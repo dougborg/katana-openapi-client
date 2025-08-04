@@ -53,7 +53,7 @@ class TestGeneratedClientStructure:
             assert client.sales_order is not None
             assert client.manufacturing_order is not None
             assert client.inventory is not None
-            
+
             # Should be able to access the underlying client for advanced usage
             assert client.client is not None
 
@@ -70,8 +70,8 @@ class TestGeneratedMethodCompatibility:
         ) as client:
             # Test that we can access API methods
             product_api = client.product
-            assert hasattr(product_api, 'get_all_products')
-            
+            assert hasattr(product_api, "get_all_products")
+
             # Method should be callable (we're not actually calling it since it would make a real request)
             assert callable(product_api.get_all_products)
 
@@ -81,8 +81,8 @@ class TestGeneratedMethodCompatibility:
         async with KatanaClient(**mock_api_credentials) as client:
             # The new approach uses direct Pydantic models instead of response wrappers
             # Test that the client provides access to API methods that will return Pydantic models
-            assert hasattr(client.product, 'get_all_products')
-            
+            assert hasattr(client.product, "get_all_products")
+
             # The method signature should indicate it returns a Pydantic model (ProductListResponse)
             method = client.product.get_all_products
             assert callable(method)
@@ -108,7 +108,7 @@ class TestTypeSystemCompatibility:
             assert hasattr(client, "api_key")
             assert hasattr(client, "base_url")
             assert hasattr(client, "_api_client")  # Underlying API client
-            
+
             # Properties should be accessible
             assert client.api_key is not None
             assert client.base_url is not None
@@ -119,10 +119,11 @@ class TestTypeSystemCompatibility:
         async with KatanaClient(**mock_api_credentials) as client:
             # Test that API methods are accessible and callable
             product_api = client.product
-            assert hasattr(product_api, 'get_all_products')
-            
-            # The method should be a coroutine function  
+            assert hasattr(product_api, "get_all_products")
+
+            # The method should be a coroutine function
             import inspect
+
             # The method is actually a bound method, but calling it returns a coroutine
             assert callable(product_api.get_all_products)
 
@@ -143,7 +144,9 @@ class TestImportStructure:
     async def test_direct_client_creation(self):
         """Test that clients can be created directly."""
         # Should be able to create a client directly
-        async with KatanaClient(api_key="test-key", base_url="https://test.example.com") as client:
+        async with KatanaClient(
+            api_key="test-key", base_url="https://test.example.com"
+        ) as client:
             assert isinstance(client, KatanaClient)
 
     def test_module_structure(self):
@@ -164,7 +167,9 @@ class TestConfigurationCompatibility:
         # Test that additional httpx configuration can be passed
         custom_headers = {"User-Agent": "Custom-Agent/1.0"}
 
-        async with KatanaClient(**mock_api_credentials, headers=custom_headers) as client:
+        async with KatanaClient(
+            **mock_api_credentials, headers=custom_headers
+        ) as client:
             # Should create successfully with custom configuration
             assert client is not None
             assert client.headers == custom_headers

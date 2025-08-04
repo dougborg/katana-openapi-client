@@ -82,13 +82,15 @@ class TestRealAPIIntegration:
             try:
                 response = await client.product.get_all_products(limit=1)
                 # Should get a response (ProductListResponse)
-                assert hasattr(response, 'data'), "Response should have data attribute"
+                assert hasattr(response, "data"), "Response should have data attribute"
                 print(f"✅ Successfully fetched products: {len(response.data or [])}")
             except Exception as e:
                 # Allow network/auth errors in tests
                 error_msg = str(e).lower()
                 expected_errors = ["connection", "network", "auth", "401", "403", "404"]
-                assert any(word in error_msg for word in expected_errors), f"Unexpected error: {e}"
+                assert any(word in error_msg for word in expected_errors), (
+                    f"Unexpected error: {e}"
+                )
 
     @pytest.mark.asyncio
     @pytest.mark.integration
@@ -122,6 +124,7 @@ class TestRealAPIIntegration:
 
         async with KatanaClient(api_key=api_key, base_url=base_url) as client:
             try:
+
                 async def test_katana_pagination():
                     # Test basic API call with new class-based approach
                     response = await client.product.get_all_products(limit=5)
@@ -133,18 +136,30 @@ class TestRealAPIIntegration:
                 )
 
                 # Should get a valid response (ProductListResponse object)
-                assert hasattr(response, 'data'), "Response should have data attribute"
-                
+                assert hasattr(response, "data"), "Response should have data attribute"
+
                 # If we got data, it should be a list
                 if response.data:
-                    assert isinstance(response.data, list), "Response data should be a list"
+                    assert isinstance(response.data, list), (
+                        "Response data should be a list"
+                    )
                     print(f"✅ Successfully fetched {len(response.data)} products")
 
             except Exception as e:
                 # Allow network/auth errors in tests
                 error_msg = str(e).lower()
-                expected_errors = ["connection", "network", "auth", "401", "403", "404", "timeout"]
-                assert any(word in error_msg for word in expected_errors), f"Unexpected error: {e}"
+                expected_errors = [
+                    "connection",
+                    "network",
+                    "auth",
+                    "401",
+                    "403",
+                    "404",
+                    "timeout",
+                ]
+                assert any(word in error_msg for word in expected_errors), (
+                    f"Unexpected error: {e}"
+                )
 
     def test_environment_variable_loading(self):
         """Test that environment variables are loaded correctly."""
@@ -170,7 +185,7 @@ class TestRealAPIIntegration:
             # Should be able to create client in async context
             async with KatanaClient(api_key=api_key, base_url=base_url) as client:
                 assert client.api_key == api_key
-                assert hasattr(client, 'base_url'), "Client should have base_url"
+                assert hasattr(client, "base_url"), "Client should have base_url"
         else:
             pytest.skip("No API credentials available in environment")
 
@@ -199,7 +214,7 @@ class TestRealAPIIntegration:
                 os.environ["KATANA_BASE_URL"] = original_url
 
     @pytest.mark.asyncio
-    @pytest.mark.integration  
+    @pytest.mark.integration
     @pytest.mark.skipif(
         not os.getenv("KATANA_API_KEY"),
         reason="Real API credentials not available (set KATANA_API_KEY in .env file)",
@@ -230,10 +245,19 @@ class TestRealAPIIntegration:
                     # If we get here without exception, check that error was handled properly
                     assert False, "Should have raised an exception for invalid API key"
                 except Exception as e:
-                    # Should get an authentication error or similar  
+                    # Should get an authentication error or similar
                     error_msg = str(e).lower()
-                    expected_errors = ["auth", "401", "403", "unauthorized", "forbidden", "invalid"]
-                    assert any(word in error_msg for word in expected_errors), f"Unexpected error type: {e}"
+                    expected_errors = [
+                        "auth",
+                        "401",
+                        "403",
+                        "unauthorized",
+                        "forbidden",
+                        "invalid",
+                    ]
+                    assert any(word in error_msg for word in expected_errors), (
+                        f"Unexpected error type: {e}"
+                    )
 
         finally:
             # Restore original environment values
