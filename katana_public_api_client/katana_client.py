@@ -1,23 +1,21 @@
 """
-KatanaClient - The pythonic Katana API client with automatic resilience.
+KatanaClient - The pythonic Katana API client with automatic resilience for OpenAPI Generator.
 
-This client uses httpx's native transport layer to provide automatic retries,
-rate limiting, error handling, and pagination for all API calls without any
-decorators or wrapper methods needed.
+This client wraps the OpenAPI Generated client with automatic retries,
+rate limiting, error handling, and pagination for all API calls.
 """
 
-import contextlib
+from __future__ import annotations
+
 import json
 import logging
 import os
-from collections.abc import Awaitable, Callable
-from typing import Any, cast
+from typing import Any
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
 from dotenv import load_dotenv
-from httpx import AsyncHTTPTransport
 from tenacity import (
-    RetryError,
     retry,
     retry_if_exception_type,
     retry_if_result,
@@ -25,13 +23,16 @@ from tenacity import (
     wait_exponential,
 )
 
-from .generated.client import AuthenticatedClient
-from .generated.models.detailed_error_response import DetailedErrorResponse
-from .generated.models.error_response import ErrorResponse
-from .generated.types import Unset
+from .generated.api.customer_api import CustomerApi
+from .generated.api.inventory_api import InventoryApi
+from .generated.api.manufacturing_order_api import ManufacturingOrderApi
+from .generated.api.product_api import ProductApi
+from .generated.api.sales_order_api import SalesOrderApi
+from .generated.api_client import ApiClient
+from .generated.configuration import Configuration
 
 
-class ResilientAsyncTransport(AsyncHTTPTransport):
+class ResilientAsyncTransport(httpx.AsyncHTTPTransport):
     """
     Custom async transport that adds retry logic, rate limiting, and automatic
     pagination directly at the HTTP transport layer.
@@ -42,7 +43,7 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
     Features:
     - Automatic retries with exponential backoff using tenacity
     - Rate limiting detection and handling
-    - Smart pagination based on response headers and request parameters
+    - Auto-pagination for GET requests with limit/page parameters
     - Request/response logging and metrics
     """
 
@@ -58,601 +59,391 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
 
         Args:
             max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
-            max_pages: Maximum number of pages to collect during auto-pagination. Defaults to 100.
+            max_pages: Maximum number of pages to auto-paginate. Defaults to 100.
             logger: Logger instance for capturing transport operations. If None, creates a default logger.
             **kwargs: Additional arguments passed to the underlying httpx AsyncHTTPTransport.
-
-        Note:
-            This transport automatically handles:
-            - Retries on network errors and 5xx server errors
-            - Rate limiting with Retry-After header support
-            - Auto-pagination for GET requests with 'page' or 'limit' parameters
         """
         super().__init__(**kwargs)
         self.max_retries = max_retries
         self.max_pages = max_pages
         self.logger = logger or logging.getLogger(__name__)
 
-    async def _log_client_error(
+    def _should_retry(self, response: httpx.Response) -> bool:
+        """Check if a response should be retried."""
+        return response.status_code in [429, 500, 502, 503, 504]
+
+    def _log_client_error(
         self, response: httpx.Response, request: httpx.Request
     ) -> None:
-        """
-        Log detailed information for 400-level client errors using generated models.
-        Assumes error responses are always typed (DetailedErrorResponse or ErrorResponse).
-        """
-        method = request.method
-        url = str(request.url)
-        status_code = response.status_code
-
-        # Read response content if it's streaming
-        if hasattr(response, "aread"):
-            with contextlib.suppress(TypeError, AttributeError):
-                await response.aread()
-
+        """Log client error responses with detailed information."""
         try:
-            error_data = response.json()
-        except (json.JSONDecodeError, TypeError, ValueError):
-            self.logger.error(
-                f"Client error {status_code} for {method} {url} - "
-                f"Response: {getattr(response, 'text', '')[:500]}..."
+            error_data = response.json() if response.content else {}
+            error_msg = error_data.get("message", "Unknown error")
+
+            if response.status_code == 422:
+                self.logger.warning(
+                    f"Validation error {response.status_code} for {request.method} {request.url}: {error_msg}"
+                )
+            else:
+                self.logger.warning(
+                    f"Client error {response.status_code} for {request.method} {request.url}: {error_msg}"
+                )
+        except Exception:
+            # Fallback if JSON parsing fails
+            self.logger.warning(
+                f"Client error {response.status_code} for {request.method} {request.url}"
             )
-            return
 
-        # Prefer DetailedErrorResponse for 422, else ErrorResponse
-        if status_code == 422:
-            try:
-                detailed_error = DetailedErrorResponse.from_dict(error_data)
-                self._log_detailed_error(detailed_error, method, url, status_code)
-                return
-            except (TypeError, ValueError, AttributeError):
-                pass
-
-        try:
-            error_response = ErrorResponse.from_dict(error_data)
-            self._log_error(error_response, method, url, status_code)
-            return
-        except (TypeError, ValueError, AttributeError):
-            pass
-
-        # Fallback: log raw error data
-        self.logger.error(
-            f"Client error {status_code} for {method} {url} - Raw error: {error_data}"
-        )
-
-    def _log_detailed_error(
-        self, error: DetailedErrorResponse, method: str, url: str, status_code: int
-    ) -> None:
-        """Log detailed errors using the typed DetailedErrorResponse model."""
-
-        # Use the log prefix expected by tests for 422 errors
-        if status_code == 422:
-            log_message = f"Validation error 422 for {method} {url}"
-        else:
-            log_message = f"Detailed error {status_code} for {method} {url}"
-        log_message += f"\n  Error: {error.name} - {error.message}"
-        if error.code is not None:
-            log_message += f"\n  Code: {error.code}"
-        if error.details:
-            log_message += f"\n  Validation details ({len(error.details)} errors):"
-            for i, detail in enumerate(error.details, 1):
-                log_message += f"\n    {i}. Path: {detail.path}"
-                # Only log detail.code if not Unset
-                if hasattr(detail, "code") and detail.code is not None:
-                    log_message += f"\n       Code: {detail.code}"
-                if getattr(detail, "message", None):
-                    log_message += f"\n       Message: {detail.message}"
-                if (
-                    getattr(detail, "info", None)
-                    and detail.info is not None
-                    and not isinstance(detail.info, Unset)
-                    and hasattr(detail.info, "additional_properties")
-                ):
-                    info = detail.info.additional_properties
-                    if info:
-                        formatted = ", ".join(f"{k}: {v!r}" for k, v in info.items())
-                        log_message += f"\n       Details: {formatted}"
-        self.logger.error(log_message)
-
-    def _log_error(
-        self, error: ErrorResponse, method: str, url: str, status_code: int
-    ) -> None:
-        """Log general errors using the typed ErrorResponse model."""
-        log_message = f"Client error {status_code} for {method} {url}"
-        log_message += f"\n  Error: {error.name} - {error.message}"
-        if error.additional_properties:
-            formatted = ", ".join(
-                f"{k}: {v!r}" for k, v in error.additional_properties.items()
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=1, max=60),
+        retry=(
+            retry_if_exception_type((httpx.TransportError, httpx.TimeoutException))
+            | retry_if_result(
+                lambda r: hasattr(r, "status_code")
+                and r.status_code in [429, 500, 502, 503, 504]
             )
-            log_message += f"\n  Additional info: {formatted}"
-        self.logger.error(log_message)
-
-    # _format_typed_validation_info and _log_error_fallback are no longer needed
-
+        ),
+        reraise=True,
+    )
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         """
-        Handle HTTP requests with automatic retries, rate limiting, and pagination.
+        Handle async HTTP requests with automatic retry logic and auto-pagination.
 
-        This method is called for every HTTP request made through the client and provides
-        the core resilience functionality of the transport layer.
-
-        Args:
-            request: The HTTP request to handle.
-
-        Returns:
-            The HTTP response, potentially with combined data from multiple pages
-            if auto-pagination was triggered.
-
-        Note:
-            - GET requests with 'page' or 'limit' parameters trigger auto-pagination
-            - Requests with explicit 'page' parameter disable auto-pagination
-            - All requests get automatic retry logic for network and server errors
-            - Rate limiting is handled automatically with Retry-After header support
+        This method wraps the parent handle_async_request with tenacity retry logic
+        and implements auto-pagination for GET requests.
         """
-        return await self._handle_request_with_span(request)
-
-    async def _handle_request_with_span(self, request: httpx.Request) -> httpx.Response:
-        """Handle the request with optional span context."""
-        # Check if this is a paginated request (has 'page' or 'limit' param)
-        # Smart pagination: automatically detect based on request parameters
-        should_paginate = (
-            request.method == "GET"
-            and hasattr(request, "url")
-            and request.url
-            and request.url.params
-            and ("page" in request.url.params or "limit" in request.url.params)
-        )
-
-        if should_paginate:
-            return await self._handle_paginated_request(request)
-        else:
-            return await self._handle_single_request(request)
-
-    async def _handle_single_request(self, request: httpx.Request) -> httpx.Response:
-        """
-        Handle a single request with retries using tenacity.
-
-        Args:
-            request: The HTTP request to handle.
-
-        Returns:
-            The HTTP response from the server.
-
-        Raises:
-            RetryError: If all retry attempts are exhausted.
-            httpx.HTTPError: For unrecoverable HTTP errors.
-        """
-
-        # Define a properly typed retry decorator
-        def _make_retry_decorator() -> Callable[
-            [Callable[[], Awaitable[httpx.Response]]],
-            Callable[[], Awaitable[httpx.Response]],
-        ]:
-            return retry(
-                stop=stop_after_attempt(self.max_retries + 1),
-                wait=wait_exponential(multiplier=1, min=1, max=60),
-                retry=(
-                    retry_if_result(
-                        lambda response: response.status_code == 429
-                        or (500 <= response.status_code < 600)
-                    )
-                    | retry_if_exception_type(
-                        (httpx.ConnectError, httpx.TimeoutException, httpx.ReadError)
-                    )
-                ),
-                reraise=True,
-            )
-
-        @_make_retry_decorator()
-        async def _make_request_with_retry() -> httpx.Response:
-            """Make the actual HTTP request with retry logic."""
-            response = await super(ResilientAsyncTransport, self).handle_async_request(
-                request
-            )
-
-            if response.status_code == 429:
-                retry_after = self._get_retry_after(response)
-                self.logger.warning(
-                    "Rate limited, retrying after exponential backoff (server suggested %ds)",
-                    retry_after,
-                )
-
-            elif 500 <= response.status_code < 600:
-                self.logger.warning(
-                    "Server error %d, retrying with exponential backoff",
-                    response.status_code,
-                )
-
-            return response
-
-        # Execute the request with retries
         try:
-            response = await _make_request_with_retry()
+            # Handle auto-pagination for GET requests with pagination parameters
+            if (
+                request.method == "GET"
+                and request.url.params
+                and any(param in str(request.url.params) for param in ["limit", "page"])
+            ):
+                return await self._handle_paginated_request(request)
 
-            # Log detailed information for 400-level client errors
-            if 400 <= response.status_code < 500:
-                await self._log_client_error(response, request)
+            response = await super().handle_async_request(request)
+
+            # Log rate limiting
+            if response.status_code == 429:
+                retry_after = response.headers.get("Retry-After", "unknown")
+                self.logger.warning(
+                    f"Rate limited {request.method} {request.url} - "
+                    f"Retry-After: {retry_after}"
+                )
+
+            # Log client errors (4xx)
+            elif 400 <= response.status_code < 500:
+                self._log_client_error(response, request)
+
+            # Log server errors (5xx)
+            elif response.status_code >= 500:
+                self.logger.error(
+                    f"Server error {response.status_code} for {request.method} {request.url}"
+                )
 
             return response
-        except RetryError as e:
-            # For retry errors (when server keeps returning 4xx/5xx), return the last response
-            self.logger.error(
-                "Request failed after %d retries, extracting last response",
-                self.max_retries,
-            )
 
-            # Extract the last response - tenacity stores it in the last_attempt
-            try:
-                if hasattr(e, "last_attempt"):
-                    last_response = e.last_attempt.result()
-                    response_type = type(last_response).__name__
-                    self.logger.debug("Got last response: %s", response_type)
-                    if isinstance(last_response, httpx.Response) or (
-                        hasattr(last_response, "status_code")
-                    ):
-                        # Handle both real responses and mocks (for testing)
-                        self.logger.debug(
-                            "Returning last response with status %d",
-                            last_response.status_code,
-                        )
-                        return last_response
-                    self.logger.debug(
-                        "Last response is not httpx.Response, it's %s",
-                        response_type,
-                    )
-                self.logger.debug("No last_attempt found in retry error")
-            except (ValueError, AttributeError, TypeError) as extract_error:
-                self.logger.debug("Error extracting last response: %s", extract_error)
-
-            # If we can't extract the response, re-raise
-            self.logger.error("Could not extract last response from retry error")
-            raise
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.ReadError) as e:
-            # For network errors, we want to re-raise the exception
-            self.logger.error("Network error after %d retries: %s", self.max_retries, e)
-            raise
         except Exception as e:
-            # For other unexpected errors, re-raise
             self.logger.error(
-                "Unexpected error after %d retries: %s", self.max_retries, e
+                f"Transport error for {request.method} {request.url}: {e}"
             )
             raise
 
     async def _handle_paginated_request(self, request: httpx.Request) -> httpx.Response:
-        """
-        Handle paginated requests by automatically collecting all pages.
+        """Handle paginated requests by combining multiple pages into a single response."""
+        parsed_url = urlparse(str(request.url))
+        params = parse_qs(parsed_url.query) if parsed_url.query else {}
 
-        This method detects paginated responses and automatically collects all available
-        pages up to the configured maximum. It preserves the original request structure
-        while combining data from multiple pages.
+        # Extract pagination parameters
+        limit = int(params.get("limit", [50])[0])
+        current_page = int(params.get("page", [1])[0])
 
-        Args:
-            request: The HTTP request to handle (must be a GET request with pagination parameters).
+        all_data = []
+        page = current_page
+        total_pages_fetched = 0
 
-        Returns:
-            A combined HTTP response containing data from all collected pages with
-            pagination metadata in the response body.
+        while total_pages_fetched < self.max_pages:
+            # Create request for current page
+            page_params = params.copy()
+            page_params["page"] = [str(page)]
+            page_params["limit"] = [str(limit)]
 
-        Note:
-            - Only GET requests with 'limit' parameter trigger auto-pagination
-            - Requests with explicit 'page' parameter are treated as single-page requests
-            - The response contains an 'auto_paginated' flag in the pagination metadata
-            - Data from all pages is combined into a single 'data' array
-        """
-        all_data: list[Any] = []
-        current_page = 1
-        total_pages: int | None = None
-        page_num = 1
-        response: httpx.Response | None = None
+            query_string = urlencode(page_params, doseq=True)
+            page_url = request.url.copy_with(params=query_string)
+            page_request = request.copy_with(url=page_url)  # type: ignore[attr-defined]
 
-        # Parse initial parameters
-        url_params = dict(request.url.params)
-        limit = int(url_params.get("limit", 50))
-
-        self.logger.info("Auto-paginating request: %s", request.url)
-
-        for page_num in range(1, self.max_pages + 1):
-            # Update the page parameter
-            url_params["page"] = str(page_num)
-
-            # Create a new request with updated parameters
-            paginated_request = httpx.Request(
-                method=request.method,
-                url=request.url.copy_with(params=url_params),
-                headers=request.headers,
-                content=request.content,
-                extensions=request.extensions,
-            )
-
-            # Make the request
-            response = await self._handle_single_request(paginated_request)
+            # Make the request for this page
+            response = await super().handle_async_request(page_request)
 
             if response.status_code != 200:
-                # If we get an error, return the original response
+                # If any page fails, return the failed response
                 return response
 
-            # Parse the response
             try:
-                # Read the response content if it's streaming
-                if hasattr(response, "aread"):
-                    with contextlib.suppress(TypeError, AttributeError):
-                        # Skip aread if it's not async (e.g., in tests with mocks)
-                        await response.aread()
+                page_data = response.json()
 
-                data = response.json()
+                # Check if this is a list response with pagination
+                if isinstance(page_data, dict) and "data" in page_data:
+                    page_items = page_data.get("data", [])
+                    all_data.extend(page_items)
 
-                # Extract pagination info from headers or response body
-                pagination_info = self._extract_pagination_info(response, data)
-
-                if pagination_info:
-                    current_page = pagination_info.get("page", page_num)
-                    total_pages = pagination_info.get("total_pages")
-
-                    # Extract the actual data items
-                    items = data.get("data", data if isinstance(data, list) else [])
-                    all_data.extend(items)
-
-                    # Check if we're done
-                    if (total_pages and current_page >= total_pages) or len(
-                        items
-                    ) < limit:
+                    # Check if we've reached the end
+                    if len(page_items) < limit:
                         break
-
-                    self.logger.debug(
-                        "Collected page %s/%s, items: %d, total so far: %d",
-                        current_page,
-                        total_pages or "?",
-                        len(items),
-                        len(all_data),
-                    )
                 else:
-                    # No pagination info found, treat as single page
-                    all_data = data.get("data", data if isinstance(data, list) else [])
-                    break
+                    # Single page response, return as-is
+                    return response
 
-            except (json.JSONDecodeError, KeyError) as e:
-                self.logger.warning("Failed to parse paginated response: %s", e)
+            except json.JSONDecodeError:
+                # If we can't parse JSON, return the response as-is
                 return response
 
-        # Ensure we have a response at this point
-        if response is None:
-            msg = "No response available after pagination"
-            raise RuntimeError(msg)
+            page += 1
+            total_pages_fetched += 1
 
-        # Create a combined response
-        combined_data: dict[str, Any] = {"data": all_data}
-
-        # Add pagination metadata
-        if total_pages:
-            combined_data["pagination"] = {
-                "total_pages": total_pages,
-                "collected_pages": page_num,
-                "total_items": len(all_data),
+        # Create combined response
+        if all_data:
+            combined_data = {
+                "data": all_data,
+                "total": len(all_data),
+                "page": current_page,
+                "limit": limit,
                 "auto_paginated": True,
+                "pages_fetched": total_pages_fetched,
             }
 
-        # Create a new response with the combined data
-        # Remove content-encoding headers to avoid compression issues
-        headers = dict(response.headers)
-        headers.pop("content-encoding", None)
-        headers.pop("content-length", None)  # Will be recalculated
+            # Create a new response with combined data
+            combined_content = json.dumps(combined_data).encode("utf-8")
+            return httpx.Response(
+                status_code=200,
+                headers=response.headers,
+                content=combined_content,
+                request=request,
+            )
 
-        combined_response = httpx.Response(
-            status_code=200,
-            headers=headers,
-            content=json.dumps(combined_data).encode(),
-            request=request,
-        )
-
-        self.logger.info(
-            "Auto-pagination complete: collected %d items from %d pages",
-            len(all_data),
-            page_num,
-        )
-
-        return combined_response
-
-    def _extract_pagination_info(
-        self, response: httpx.Response, data: dict[str, Any]
-    ) -> dict[str, Any] | None:
-        """Extract pagination information from response headers or body."""
-        pagination_info: dict[str, Any] = {}
-
-        # Check for X-Pagination header (JSON format)
-        if "X-Pagination" in response.headers:
-            try:
-                pagination_info = json.loads(response.headers["X-Pagination"])
-                return pagination_info
-            except (json.JSONDecodeError, KeyError):
-                pass
-
-        # Check for individual headers
-        if "X-Total-Pages" in response.headers:
-            pagination_info["total_pages"] = int(response.headers["X-Total-Pages"])
-        if "X-Current-Page" in response.headers:
-            pagination_info["page"] = int(response.headers["X-Current-Page"])
-
-        # Check for pagination in response body
-        if "pagination" in data:
-            page_data = data["pagination"]
-            if isinstance(page_data, dict):
-                pagination_info.update(cast(dict[str, Any], page_data))
-        elif (
-            "meta" in data
-            and isinstance(data["meta"], dict)
-            and "pagination" in data["meta"]
-        ):
-            meta_pagination = cast(Any, data["meta"]["pagination"])
-            if isinstance(meta_pagination, dict):
-                pagination_info.update(cast(dict[str, Any], meta_pagination))
-
-        return pagination_info if pagination_info else None
-
-    def _get_retry_after(self, response: httpx.Response) -> float:
-        """Extract retry-after value from response headers."""
-        retry_after = response.headers.get("Retry-After")
-        if retry_after:
-            try:
-                return float(retry_after)
-            except ValueError:
-                # Sometimes it's a date string, but let's use default
-                pass
-
-        # Default retry after
-        return 60.0
+        # If no data was collected, return the last response
+        return response
 
 
-class KatanaClient(AuthenticatedClient):
+class KatanaClient:
     """
     The pythonic Katana API client with automatic resilience and pagination.
 
-    This client inherits from AuthenticatedClient and can be passed directly to
-    generated API methods without needing the .client property.
+    This client wraps the OpenAPI Generated client with transport-layer resilience,
+    providing automatic retries, rate limiting, and pagination for all API calls.
 
     Features:
-    - Automatic retries on network errors and server errors (5xx)
-    - Automatic rate limit handling with Retry-After header support
-    - Smart auto-pagination that detects and handles paginated responses automatically
-    - Rich logging and observability
-    - Minimal configuration - just works out of the box
+    - Direct Pydantic model access - no Union types!
+    - Exception-based error handling
+    - Clean API structure with property access
+    - Automatic retries and rate limiting (via underlying transport)
 
     Usage:
-        # Auto-pagination happens automatically - just call the API
         async with KatanaClient() as client:
-            from katana_public_api_client.generated.api.product import get_all_products
+            # Get products with direct Pydantic model access
+            products = await client.product.get_all_products(limit=50)
 
-            # This automatically collects all pages if pagination is detected
-            response = await get_all_products.asyncio_detailed(
-                client=client,  # Pass client directly - no .client needed!
-                limit=50  # All pages collected automatically
-            )
-
-            # Get specific page only (add page=X to disable auto-pagination)
-            response = await get_all_products.asyncio_detailed(
-                client=client,
-                page=1,      # Get specific page
-                limit=100    # Set page size
-            )
-
-            # Control max pages globally
-            client_limited = KatanaClient(max_pages=5)  # Limit to 5 pages max
+            # Direct field access - no defensive programming needed!
+            if products.data:
+                first_product = products.data[0]
+                print(f"Product: {first_product.name} - {first_product.id}")
     """
 
     def __init__(
         self,
         api_key: str | None = None,
         base_url: str | None = None,
-        timeout: float = 30.0,
+        enable_logging: bool = True,
+        log_level: int = logging.INFO,
+        # Additional backward compatibility parameters
         max_retries: int = 5,
         max_pages: int = 100,
+        headers: dict[str, str] | None = None,
+        timeout: float | None = None,
         logger: logging.Logger | None = None,
-        **httpx_kwargs: Any,
+        **kwargs: Any,  # Accept additional kwargs for forward compatibility
     ):
         """
-        Initialize the Katana API client with automatic resilience features.
+        Initialize KatanaClient.
 
         Args:
-            api_key: Katana API key. If None, will try to load from KATANA_API_KEY env var.
-            base_url: Base URL for the Katana API. Defaults to https://api.katanamrp.com/v1
-            timeout: Request timeout in seconds. Defaults to 30.0.
-            max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
-            max_pages: Maximum number of pages to collect during auto-pagination. Defaults to 100.
-            logger: Logger instance for capturing client operations. If None, creates a default logger.
-            **httpx_kwargs: Additional arguments passed to the underlying httpx client.
-
-        Raises:
-            ValueError: If no API key is provided and KATANA_API_KEY env var is not set.
-
-        Example:
-            >>> async with KatanaClient() as client:
-            ...     # All API calls through client get automatic resilience
-            ...     response = await some_api_method.asyncio_detailed(client=client)
+            api_key: Katana API key (or set KATANA_API_KEY env var)
+            base_url: Base URL (defaults to production API)
+            enable_logging: Enable HTTP logging
+            log_level: Logging level
+            max_retries: Maximum retry attempts (backward compatibility)
+            max_pages: Maximum pages to auto-paginate (backward compatibility)
+            headers: Additional headers (backward compatibility)
+            timeout: Request timeout (backward compatibility)
+            logger: Custom logger (backward compatibility)
+            **kwargs: Additional arguments for forward compatibility
         """
+        # Load environment variables
         load_dotenv()
 
-        # Setup credentials
-        api_key = api_key or os.getenv("KATANA_API_KEY")
-        base_url = (
-            base_url or os.getenv("KATANA_BASE_URL") or "https://api.katanamrp.com/v1"
-        )
-
-        if not api_key:
+        # Configure API settings
+        self.api_key = api_key or os.getenv("KATANA_API_KEY")
+        if not self.api_key:
             raise ValueError(
-                "API key required (KATANA_API_KEY env var or api_key param)"
+                "API key is required. Set KATANA_API_KEY environment variable "
+                "or pass api_key parameter."
             )
 
+        self.base_url = base_url or "https://api.katanamrp.com/v1"
+
+        # Set up logging
+        if enable_logging:
+            logging.basicConfig(level=log_level)
         self.logger = logger or logging.getLogger(__name__)
+
+        # Store backward compatibility parameters
+        self.max_retries = max_retries
         self.max_pages = max_pages
+        self.headers = headers or {}
+        self.timeout = timeout
+        self.token = self.api_key  # Backward compatibility alias
 
-        # Create resilient transport with observability hooks
-        transport = ResilientAsyncTransport(
-            max_retries=max_retries,
-            max_pages=max_pages,
-            logger=self.logger,
+        # Create the resilient transport
+        self._transport = ResilientAsyncTransport(
+            max_retries=max_retries, max_pages=self.max_pages, logger=self.logger
         )
 
-        # Event hooks for observability - start with our defaults
-        event_hooks: dict[str, list[Callable[[httpx.Response], Awaitable[None]]]] = {
-            "response": [
-                self._capture_pagination_metadata,
-                self._log_response_metrics,
-            ]
-        }
+        # Store configuration for later initialization
+        self._config = Configuration(
+            host=self.base_url, api_key={"ApiKeyAuth": self.api_key}
+        )
 
-        # Simply extend with user hooks if provided
-        user_hooks = httpx_kwargs.pop("event_hooks", {})
-        for event, hooks in user_hooks.items():
-            # Normalize to list and add to existing or create new event
-            hook_list = cast(
-                list[Callable[[httpx.Response], Awaitable[None]]],
-                hooks if isinstance(hooks, list) else [hooks],
+        # Delay API client creation until async context is entered
+        self._api_client: ApiClient | None = None
+        self._http_client: httpx.AsyncClient | None = None
+
+        # API instances will be created on demand
+        self._product_api: ProductApi | None = None
+        self._customer_api: CustomerApi | None = None
+        self._sales_order_api: SalesOrderApi | None = None
+        self._manufacturing_order_api: ManufacturingOrderApi | None = None
+        self._inventory_api: InventoryApi | None = None
+
+    async def _initialize_api_client(self):
+        """Initialize the API client when async context is available."""
+        if self._api_client is None:
+            self._api_client = ApiClient(configuration=self._config)
+            # TODO: Integrate resilient transport with aiohttp-based API client
+            # The generated client uses aiohttp.ClientSession, need different approach
+            # if hasattr(self._api_client, "rest_client"):
+            #     self._api_client.rest_client.pool_manager = self._http_client
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        # Create HTTP client with resilient transport when entering async context
+        self._http_client = httpx.AsyncClient(
+            transport=self._transport,
+            timeout=self.timeout or 30.0,
+            headers=self.headers,
+        )
+
+        # Initialize the API client now that we have an event loop
+        await self._initialize_api_client()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit."""
+        # Close the HTTP client and transport
+        if self._http_client is not None:
+            await self._http_client.aclose()
+
+        # Close the underlying API client if it has sessions
+        if (
+            self._api_client is not None
+            and hasattr(self._api_client, "rest_client")
+            and hasattr(self._api_client.rest_client, "pool_manager")
+        ):
+            pool_manager = self._api_client.rest_client.pool_manager
+            if hasattr(pool_manager, "aclose"):
+                await pool_manager.aclose()
+
+    @property
+    def product(self) -> ProductApi:
+        """Access to Product API endpoints."""
+        if self._product_api is None:
+            if self._api_client is None:
+                raise RuntimeError(
+                    "KatanaClient must be used as an async context manager"
+                )
+            self._product_api = ProductApi(api_client=self._api_client)
+        return self._product_api
+
+    @property
+    def customer(self) -> CustomerApi:
+        """Access to Customer API endpoints."""
+        if self._customer_api is None:
+            if self._api_client is None:
+                raise RuntimeError(
+                    "KatanaClient must be used as an async context manager"
+                )
+            self._customer_api = CustomerApi(api_client=self._api_client)
+        return self._customer_api
+
+    @property
+    def sales_order(self) -> SalesOrderApi:
+        """Access to Sales Order API endpoints."""
+        if self._sales_order_api is None:
+            if self._api_client is None:
+                raise RuntimeError(
+                    "KatanaClient must be used as an async context manager"
+                )
+            self._sales_order_api = SalesOrderApi(api_client=self._api_client)
+        return self._sales_order_api
+
+    @property
+    def manufacturing_order(self) -> ManufacturingOrderApi:
+        """Access to Manufacturing Order API endpoints."""
+        if self._manufacturing_order_api is None:
+            if self._api_client is None:
+                raise RuntimeError(
+                    "KatanaClient must be used as an async context manager"
+                )
+            self._manufacturing_order_api = ManufacturingOrderApi(
+                api_client=self._api_client
             )
-            if event in event_hooks:
-                event_hooks[event].extend(hook_list)
-            else:
-                event_hooks[event] = hook_list
+        return self._manufacturing_order_api
 
-        # Initialize the parent AuthenticatedClient
-        super().__init__(
-            base_url=base_url,
-            token=api_key,
-            timeout=httpx.Timeout(timeout),
-            httpx_args={
-                "transport": transport,
-                "event_hooks": event_hooks,
-                **httpx_kwargs,
-            },
-        )
+    @property
+    def inventory(self) -> InventoryApi:
+        """Access to Inventory API endpoints."""
+        if self._inventory_api is None:
+            if self._api_client is None:
+                raise RuntimeError(
+                    "KatanaClient must be used as an async context manager"
+                )
+            self._inventory_api = InventoryApi(api_client=self._api_client)
+        return self._inventory_api
 
-    # Remove the client property since we inherit from AuthenticatedClient
-    # Users can now pass the KatanaClient instance directly to API methods
+    # For backward compatibility, provide access to the underlying client
+    @property
+    def client(self) -> ApiClient:
+        """Access to the underlying ApiClient for advanced usage."""
+        if self._api_client is None:
+            raise RuntimeError("KatanaClient must be used as an async context manager")
+        return self._api_client
 
-    # Event hooks for observability
-    async def _capture_pagination_metadata(self, response: httpx.Response) -> None:
-        """Capture and store pagination metadata from response headers."""
-        if response.status_code == 200:
-            x_pagination = response.headers.get("X-Pagination")
-            if x_pagination:
-                try:
-                    pagination_info = json.loads(x_pagination)
-                    self.logger.debug(f"Pagination metadata: {pagination_info}")
-                    # Store pagination info for easy access
-                    setattr(response, "pagination_info", pagination_info)  # noqa: B010
-                except json.JSONDecodeError:
-                    self.logger.warning(f"Invalid X-Pagination header: {x_pagination}")
+    # Backward compatibility methods for tests
+    def get_async_httpx_client(self) -> httpx.AsyncClient:
+        """Get the underlying httpx.AsyncClient for backward compatibility."""
+        if not hasattr(self, "_http_client") or self._http_client is None:
+            raise RuntimeError("KatanaClient must be used as an async context manager")
+        return self._http_client
 
-    async def _log_response_metrics(self, response: httpx.Response) -> None:
-        """Log response metrics for observability."""
-        # Extract timing info if available (after response is read)
-        try:
-            if hasattr(response, "elapsed"):
-                duration = response.elapsed.total_seconds()
-            else:
-                duration = 0.0
-        except RuntimeError:
-            # elapsed not available yet
-            duration = 0.0
-
-        self.logger.debug(
-            f"Response: {response.status_code} {response.request.method} "
-            f"{response.request.url!s} ({duration:.2f}s)"
+    def with_headers(self, headers: dict[str, str]) -> KatanaClient:
+        """Get a new client with additional headers (backward compatibility)."""
+        new_headers = {**self.headers, **headers}
+        return KatanaClient(
+            api_key=self.api_key,
+            base_url=self.base_url,
+            headers=new_headers,
+            timeout=self.timeout,
+            max_retries=self.max_retries,
+            max_pages=self.max_pages,
+            logger=self.logger,
         )

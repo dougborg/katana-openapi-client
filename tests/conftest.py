@@ -19,9 +19,10 @@ def mock_api_credentials():
 
 
 @pytest.fixture
-def katana_client(mock_api_credentials):
+async def katana_client(mock_api_credentials):
     """Create a KatanaClient for testing."""
-    return KatanaClient(**mock_api_credentials)
+    async with KatanaClient(**mock_api_credentials) as client:
+        yield client
 
 
 @pytest.fixture
