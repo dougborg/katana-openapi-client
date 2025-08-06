@@ -316,21 +316,23 @@ class KatanaClient:
 
         # Delay API client creation until async context is entered
         self._api_client: ApiClient | None = None
+        self._http_client: httpx.AsyncClient | None = None
 
         # API instances will be created on demand
-        self._product_api = None
-        self._customer_api = None
-        self._sales_order_api = None
-        self._manufacturing_order_api = None
-        self._inventory_api = None
+        self._product_api: ProductApi | None = None
+        self._customer_api: CustomerApi | None = None
+        self._sales_order_api: SalesOrderApi | None = None
+        self._manufacturing_order_api: ManufacturingOrderApi | None = None
+        self._inventory_api: InventoryApi | None = None
 
     async def _initialize_api_client(self):
         """Initialize the API client when async context is available."""
         if self._api_client is None:
             self._api_client = ApiClient(configuration=self._config)
-            # Override the API client's REST client to use our resilient HTTP client
-            if hasattr(self._api_client, "rest_client"):
-                self._api_client.rest_client.pool_manager = self._http_client
+            # TODO: Integrate resilient transport with aiohttp-based API client
+            # The generated client uses aiohttp.ClientSession, need different approach
+            # if hasattr(self._api_client, "rest_client"):
+            #     self._api_client.rest_client.pool_manager = self._http_client
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -348,7 +350,7 @@ class KatanaClient:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
         # Close the HTTP client and transport
-        if hasattr(self, "_http_client"):
+        if self._http_client is not None:
             await self._http_client.aclose()
 
         # Close the underlying API client if it has sessions

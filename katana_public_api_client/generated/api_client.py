@@ -10,6 +10,7 @@ Do not edit the class manually.
 """
 
 from typing import Any
+import typing
 import datetime
 import json
 import mimetypes
