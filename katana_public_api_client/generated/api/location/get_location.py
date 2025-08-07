@@ -1,13 +1,12 @@
 from http import HTTPStatus
-from typing import Any, Union
+from typing import Any
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.deletable_entity import DeletableEntity
 from ...models.error_response import ErrorResponse
-from ...models.location_type_0 import LocationType0
+from ...models.location import Location
 from ...types import Response
 
 
@@ -24,27 +23,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
+) -> ErrorResponse | Location | None:
     if response.status_code == 200:
-
-        def _parse_response_200(
-            data: object,
-        ) -> Union["DeletableEntity", "LocationType0"]:
-            try:
-                if not isinstance(data, dict):
-                    raise TypeError()
-                componentsschemas_location_type_0 = LocationType0.from_dict(data)
-
-                return componentsschemas_location_type_0
-            except:  # noqa: E722
-                pass
-            if not isinstance(data, dict):
-                raise TypeError()
-            componentsschemas_location_type_1 = DeletableEntity.from_dict(data)
-
-            return componentsschemas_location_type_1
-
-        response_200 = _parse_response_200(response.json())
+        response_200 = Location.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -71,7 +52,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
+) -> Response[ErrorResponse | Location]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -84,7 +65,7 @@ def sync_detailed(
     id: float,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
+) -> Response[ErrorResponse | Location]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -98,7 +79,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]]
+        Response[Union[ErrorResponse, Location]]
     """
 
     kwargs = _get_kwargs(
@@ -116,7 +97,7 @@ def sync(
     id: float,
     *,
     client: AuthenticatedClient | Client,
-) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
+) -> ErrorResponse | Location | None:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -130,7 +111,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]
+        Union[ErrorResponse, Location]
     """
 
     return sync_detailed(
@@ -143,7 +124,7 @@ async def asyncio_detailed(
     id: float,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
+) -> Response[ErrorResponse | Location]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -157,7 +138,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]]
+        Response[Union[ErrorResponse, Location]]
     """
 
     kwargs = _get_kwargs(
@@ -173,7 +154,7 @@ async def asyncio(
     id: float,
     *,
     client: AuthenticatedClient | Client,
-) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
+) -> ErrorResponse | Location | None:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -187,7 +168,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]
+        Union[ErrorResponse, Location]
     """
 
     return (

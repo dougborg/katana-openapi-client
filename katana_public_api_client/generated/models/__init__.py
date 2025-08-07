@@ -3,6 +3,7 @@
 from .additional_cost import AdditionalCost
 from .additional_cost_list_response import AdditionalCostListResponse
 from .archivable_entity import ArchivableEntity
+from .base_address import BaseAddress
 from .base_entity import BaseEntity
 from .batch import Batch
 from .batch_create_bom_rows_request import BatchCreateBomRowsRequest
@@ -84,7 +85,6 @@ from .custom_fields_collection_list_response import CustomFieldsCollectionListRe
 from .custom_fields_collection_resource_type import CustomFieldsCollectionResourceType
 from .customer import Customer
 from .customer_address import CustomerAddress
-from .customer_address_entity_type import CustomerAddressEntityType
 from .customer_address_list_response import CustomerAddressListResponse
 from .customer_list_response import CustomerListResponse
 from .deletable_entity import DeletableEntity
@@ -136,8 +136,8 @@ from .inventory_reorder_point_list_response import InventoryReorderPointListResp
 from .inventory_reorder_point_response import InventoryReorderPointResponse
 from .inventory_safety_stock_level import InventorySafetyStockLevel
 from .inventory_safety_stock_level_response import InventorySafetyStockLevelResponse
+from .location import Location
 from .location_address import LocationAddress
-from .location_type_0 import LocationType0
 from .make_to_order_manufacturing_order_request import (
     MakeToOrderManufacturingOrderRequest,
 )
@@ -188,6 +188,8 @@ from .outsourced_purchase_order_recipe_row_ingredient_availability import (
 from .outsourced_purchase_order_recipe_row_list_response import (
     OutsourcedPurchaseOrderRecipeRowListResponse,
 )
+from .personal_address import PersonalAddress
+from .personal_address_entity_type import PersonalAddressEntityType
 from .price_list import PriceList
 from .price_list_customer import PriceListCustomer
 from .price_list_customer_list_response import PriceListCustomerListResponse
@@ -228,7 +230,6 @@ from .sales_order_accounting_metadata_list_response import (
     SalesOrderAccountingMetadataListResponse,
 )
 from .sales_order_address import SalesOrderAddress
-from .sales_order_address_entity_type import SalesOrderAddressEntityType
 from .sales_order_address_list_response import SalesOrderAddressListResponse
 from .sales_order_fulfillment import SalesOrderFulfillment
 from .sales_order_fulfillment_list_response import SalesOrderFulfillmentListResponse
@@ -370,6 +371,7 @@ __all__ = (
     "AdditionalCost",
     "AdditionalCostListResponse",
     "ArchivableEntity",
+    "BaseAddress",
     "BaseEntity",
     "Batch",
     "BatchCreateBomRowsRequest",
@@ -423,7 +425,6 @@ __all__ = (
     "CustomFieldsCollectionResourceType",
     "Customer",
     "CustomerAddress",
-    "CustomerAddressEntityType",
     "CustomerAddressListResponse",
     "CustomerListResponse",
     "DeletableEntity",
@@ -465,8 +466,8 @@ __all__ = (
     "InventoryReorderPointResponse",
     "InventorySafetyStockLevel",
     "InventorySafetyStockLevelResponse",
+    "Location",
     "LocationAddress",
-    "LocationType0",
     "MakeToOrderManufacturingOrderRequest",
     "ManufacturingOrder",
     "ManufacturingOrderListResponse",
@@ -493,6 +494,8 @@ __all__ = (
     "OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem",
     "OutsourcedPurchaseOrderRecipeRowIngredientAvailability",
     "OutsourcedPurchaseOrderRecipeRowListResponse",
+    "PersonalAddress",
+    "PersonalAddressEntityType",
     "PriceList",
     "PriceListCustomer",
     "PriceListCustomerListResponse",
@@ -521,7 +524,6 @@ __all__ = (
     "SalesOrderAccountingMetadataIntegrationType",
     "SalesOrderAccountingMetadataListResponse",
     "SalesOrderAddress",
-    "SalesOrderAddressEntityType",
     "SalesOrderAddressListResponse",
     "SalesOrderFulfillment",
     "SalesOrderFulfillmentListResponse",

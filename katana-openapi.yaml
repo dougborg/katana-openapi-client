@@ -1410,57 +1410,66 @@ components:
             - sku
         - $ref: "#/components/schemas/DeletableEntity"
 
-    LocationAddress:
+    # Base address schema with common address fields (not an entity)
+    BaseAddress:
       type: object
       properties:
-        id:
-          type: integer
-        city:
-          type: string
-        country:
-          type: string
         line_1:
           type: string
+          description: The first line of the address (street name and house number)
         line_2:
           type: string
+          description: The second line of the address (apartment, suite, unit, or building)
+        city:
+          type: string
+          description: The city of the address
         state:
           type: string
+          description: The state of the address
         zip:
           type: string
-      required:
-        - id
-        - city
-        - country
-        - line_1
-        - state
-        - zip
+          description: The zip code of the address
+        country:
+          type: string
+          description: The country of the address
+
+    # Location-specific address (inherits BaseAddress + BaseEntity)
+    LocationAddress:
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/BaseAddress"
 
     Location:
-      anyOf:
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             name:
               type: string
+              description: Name of the location
             legal_name:
               type: string
+              description: This name is added to the "Ship to" information when a purchase order for this location is printed or saved as PDF
             address_id:
               type: integer
+              description: ID of the location's address
             address:
               $ref: "#/components/schemas/LocationAddress"
             is_primary:
               type: boolean
+              description: Indicates if the location is your primary location
             sales_allowed:
               type: boolean
+              description: If true, Katana enables you to select the location for sales orders and manage location-specific list for those orders
             purchase_allowed:
               type: boolean
+              description: If true, Katana enables you to select the location for purchase orders and manage location-specific list for those orders
             manufacturing_allowed:
               type: boolean
+              description: If true, Katana enables you to select the location for manufacturing orders and manage location-specific list for those orders for manufacturing orders
           required:
-            - id
             - name
-        - $ref: "#/components/schemas/DeletableEntity"
       example:
         data:
           - id: 1
@@ -3112,25 +3121,34 @@ components:
 
     SupplierAddress:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             supplier_id:
               type: integer
+              description: ID of the supplier this address belongs to
             line_1:
               type: string
+              description: The first line of the address (street name and house number)
             line_2:
               type: [string, "null"]
+              description: The second line of the address (apartment, suite, unit, or building)
             city:
               type: [string, "null"]
+              description: The city of the address
             state:
               type: [string, "null"]
+              description: The state of the address
             zip:
               type: [string, "null"]
+              description: The zip code of the address
             country:
               type: [string, "null"]
-        - $ref: "#/components/schemas/DeletableEntity"
+              description: The country of the address
+          required:
+            - supplier_id
+            - line_1
 
     SupplierAddressListResponse:
       type: object
@@ -3806,46 +3824,63 @@ components:
             - name
         - $ref: "#/components/schemas/DeletableEntity"
 
-    CustomerAddress:
+    # Base address schema with personal information fields
+    PersonalAddress:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
         - type: object
           properties:
-            id:
-              type: integer
-            customer_id:
-              type: integer
             entity_type:
               type: string
               enum:
                 - billing
                 - shipping
-            default:
-              type: boolean
+              description: Type of address - billing or shipping
             first_name:
               type: [string, "null"]
+              description: First name associated with the address
             last_name:
               type: [string, "null"]
+              description: Last name associated with the address
             company:
               type: [string, "null"]
+              description: Company name associated with the address
             phone:
               type: [string, "null"]
+              description: Phone number associated with the address
             line_1:
               type: [string, "null"]
+              description: The first line of the address (street name and house number)
             line_2:
               type: [string, "null"]
+              description: The second line of the address (apartment, suite, unit, or building)
             city:
               type: [string, "null"]
+              description: The city of the address
             state:
               type: [string, "null"]
+              description: The state of the address
             zip:
               type: [string, "null"]
+              description: The zip code of the address
             country:
               type: [string, "null"]
-          required:
-            - id
-            - customer_id
-            - entity_type
+              description: The country of the address
+
+    CustomerAddress:
+      allOf:
+        - $ref: "#/components/schemas/PersonalAddress"
         - $ref: "#/components/schemas/UpdatableEntity"
+        - type: object
+          properties:
+            customer_id:
+              type: integer
+              description: ID of the customer this address belongs to
+            default:
+              type: boolean
+              description: Whether this is the default address for the customer
+          required:
+            - customer_id
 
     CustomerListResponse:
       type: object
@@ -4075,41 +4110,14 @@ components:
 
     SalesOrderAddress:
       allOf:
+        - $ref: "#/components/schemas/PersonalAddress"
         - type: object
           properties:
-            id:
-              type: integer
             sales_order_id:
               type: integer
-            entity_type:
-              type: string
-              enum:
-                - billing
-                - shipping
-            first_name:
-              type: [string, "null"]
-            last_name:
-              type: [string, "null"]
-            company:
-              type: [string, "null"]
-            phone:
-              type: [string, "null"]
-            line_1:
-              type: [string, "null"]
-            line_2:
-              type: [string, "null"]
-            city:
-              type: [string, "null"]
-            state:
-              type: [string, "null"]
-            zip:
-              type: [string, "null"]
-            country:
-              type: [string, "null"]
+              description: ID of the sales order this address belongs to
           required:
-            - id
             - sales_order_id
-            - entity_type
         - $ref: "#/components/schemas/UpdatableEntity"
 
     SalesOrderListResponse:

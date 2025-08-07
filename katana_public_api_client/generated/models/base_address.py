@@ -8,12 +8,11 @@ from attrs import (
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="LocationAddress")
+T = TypeVar("T", bound="BaseAddress")
 
 
 @_attrs_define
-class LocationAddress:
-    id: int
+class BaseAddress:
     line_1: Unset | str = UNSET
     line_2: Unset | str = UNSET
     city: Unset | str = UNSET
@@ -23,8 +22,6 @@ class LocationAddress:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        id = self.id
-
         line_1 = self.line_1
 
         line_2 = self.line_2
@@ -39,11 +36,7 @@ class LocationAddress:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "id": id,
-            }
-        )
+        field_dict.update({})
         if line_1 is not UNSET:
             field_dict["line_1"] = line_1
         if line_2 is not UNSET:
@@ -62,8 +55,6 @@ class LocationAddress:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        id = d.pop("id")
-
         line_1 = d.pop("line_1", UNSET)
 
         line_2 = d.pop("line_2", UNSET)
@@ -76,8 +67,7 @@ class LocationAddress:
 
         country = d.pop("country", UNSET)
 
-        location_address = cls(
-            id=id,
+        base_address = cls(
             line_1=line_1,
             line_2=line_2,
             city=city,
@@ -86,8 +76,8 @@ class LocationAddress:
             country=country,
         )
 
-        location_address.additional_properties = d
-        return location_address
+        base_address.additional_properties = d
+        return base_address
 
     @property
     def additional_keys(self) -> list[str]:

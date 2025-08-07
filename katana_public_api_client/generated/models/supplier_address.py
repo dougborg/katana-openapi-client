@@ -15,12 +15,12 @@ T = TypeVar("T", bound="SupplierAddress")
 
 @_attrs_define
 class SupplierAddress:
+    id: int
+    supplier_id: int
+    line_1: str
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | str = UNSET
-    id: Unset | int = UNSET
-    supplier_id: Unset | int = UNSET
-    line_1: Unset | str = UNSET
     line_2: None | Unset | str = UNSET
     city: None | Unset | str = UNSET
     state: None | Unset | str = UNSET
@@ -29,6 +29,12 @@ class SupplierAddress:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
+        supplier_id = self.supplier_id
+
+        line_1 = self.line_1
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -42,12 +48,6 @@ class SupplierAddress:
             deleted_at = UNSET
         else:
             deleted_at = self.deleted_at
-
-        id = self.id
-
-        supplier_id = self.supplier_id
-
-        line_1 = self.line_1
 
         line_2: None | Unset | str
         if isinstance(self.line_2, Unset):
@@ -81,19 +81,19 @@ class SupplierAddress:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+                "supplier_id": supplier_id,
+                "line_1": line_1,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
-        if supplier_id is not UNSET:
-            field_dict["supplier_id"] = supplier_id
-        if line_1 is not UNSET:
-            field_dict["line_1"] = line_1
         if line_2 is not UNSET:
             field_dict["line_2"] = line_2
         if city is not UNSET:
@@ -110,6 +110,12 @@ class SupplierAddress:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
+        supplier_id = d.pop("supplier_id")
+
+        line_1 = d.pop("line_1")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -132,12 +138,6 @@ class SupplierAddress:
             return cast(None | Unset | str, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
-
-        id = d.pop("id", UNSET)
-
-        supplier_id = d.pop("supplier_id", UNSET)
-
-        line_1 = d.pop("line_1", UNSET)
 
         def _parse_line_2(data: object) -> None | Unset | str:
             if data is None:
@@ -185,12 +185,12 @@ class SupplierAddress:
         country = _parse_country(d.pop("country", UNSET))
 
         supplier_address = cls(
-            created_at=created_at,
-            updated_at=updated_at,
-            deleted_at=deleted_at,
             id=id,
             supplier_id=supplier_id,
             line_1=line_1,
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
             line_2=line_2,
             city=city,
             state=state,
