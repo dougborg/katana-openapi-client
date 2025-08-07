@@ -220,21 +220,21 @@ components:
     include_empty:
       name: include_empty
       in: query
-      description: Include empty result objects.
+      description: Include empty records in result.
       schema:
         type: boolean
     name:
       name: name
       in: query
       required: false
-      description: Filters additional costs by a name
+      description: Filters records by name.
       schema:
         type: string
     include_deleted:
       name: include_deleted
       in: query
       required: false
-      description: Include soft-deleted items.
+      description: Soft-deleted data is excluded from result set by default. Set to true to include it.
       schema:
         type: boolean
     legal_name:
@@ -282,42 +282,42 @@ components:
     uom:
       name: uom
       required: false
-      description: Filters results by a uom
+      description: Filters records by unit of measure.
       schema:
         type: string
       in: query
     default_supplier_id:
       name: default_supplier_id
       required: false
-      description: Filters results by a default_supplier_id
+      description: Filters records by default supplier ID.
       schema:
         type: integer
       in: query
     is_sellable:
       name: is_sellable
       required: false
-      description: Filters results by a is_sellable
+      description: Filters records by whether they are sellable.
       schema:
         type: boolean
       in: query
     batch_tracked:
       name: batch_tracked
       required: false
-      description: Filters results by batch_tracked
+      description: Filters records by whether they are batch tracked.
       schema:
         type: boolean
       in: query
     purchase_uom:
       name: purchase_uom
       required: false
-      description: Filters results by a purchase_uom
+      description: Filters records by purchase unit of measure.
       schema:
         type: string
       in: query
     purchase_uom_conversion_rate:
       name: purchase_uom_conversion_rate
       required: false
-      description: Filters results by a purchase_uom_conversion_rate
+      description: Filters records by purchase unit of measure conversion rate.
       schema:
         type: number
       in: query
@@ -959,6 +959,16 @@ components:
 
     # Common Schema
 
+    BaseEntity:
+      type: object
+      description: Base entity with unique identifier
+      properties:
+        id:
+          type: integer
+          description: Unique identifier
+      required:
+        - id
+
     UpdatableEntity:
       type: object
       description: Common fields for entities that can be updated
@@ -1001,12 +1011,13 @@ components:
     # Main Entities
     AdditionalCost:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
         - type: object
           properties:
-            id:
-              type: integer
             name:
               type: string
+          required:
+            - name
         - $ref: "#/components/schemas/DeletableEntity"
 
     AdditionalCostListResponse:
@@ -1019,6 +1030,7 @@ components:
 
     Batch:
       type: object
+      description: Core batch business properties
       additionalProperties: false
       required:
         - batch_number
@@ -1026,17 +1038,24 @@ components:
       properties:
         batch_number:
           type: string
+          description: Unique batch number identifier
         expiration_date:
           type: string
+          format: date-time
+          description: Batch expiration date (ISO 8601)
         batch_created_date:
           type: string
+          format: date-time
+          description: Batch creation date (ISO 8601)
         variant_id:
           type: integer
           maximum: 2147483647
+          description: ID of the variant this batch belongs to
         batch_barcode:
           type: [string, "null"]
           minLength: 3
           maxLength: 40
+          description: Optional barcode for the batch
 
     BatchStock:
       allOf:
@@ -1045,6 +1064,12 @@ components:
           properties:
             batch_id:
               type: integer
+            location_id:
+              type: integer
+              description: ID of the location where the batch is stored
+            quantity_in_stock:
+              type: string
+              description: Current quantity in stock for this batch
       example:
         batch_id: 1109
         batch_number: B2
@@ -1076,33 +1101,49 @@ components:
     BatchStockUpdate:
       type: object
       additionalProperties: false
-      required:
-        - batch_number
       properties:
         batch_number:
           type: string
+          description: Updated batch number
         expiration_date:
           type: string
           format: date-time
+          description: Updated expiration date (ISO 8601)
         batch_created_date:
           type: string
           format: date-time
+          description: Updated batch creation date (ISO 8601)
         batch_barcode:
           type: [string, "null"]
           minLength: 3
           maxLength: 40
+          description: Updated barcode for the batch
       example:
         batch_number: BAT-1
         expiration_date: "2020-10-23T10:37:05.085Z"
         batch_created_date: "2020-10-23T10:37:05.085Z"
         batch_barcode: "0040"
 
+    BatchResponse:
+      allOf:
+        - $ref: "#/components/schemas/Batch"
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 1
+        batch_number: "BAT-1"
+        expiration_date: "2020-10-23T10:37:05.085Z"
+        batch_created_date: "2020-10-23T10:37:05.085Z"
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2020-10-23T10:37:05.085Z"
+        variant_id: 1
+        batch_barcode: "0040"
+
     StorageBin:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
         - type: object
           properties:
-            id:
-              type: integer
             name:
               type: string
             location_id:
@@ -4987,7 +5028,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Batch"
+                $ref: "#/components/schemas/BatchResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "422":
@@ -5050,10 +5091,10 @@ paths:
         Any parameters not provided will be left unchanged.
       operationId: updateBatchStock
       parameters:
-        - $ref: "#/components/parameters/location_id"
         - name: batch_id
           in: path
           required: true
+          description: Batch id
           schema:
             type: integer
       requestBody:
@@ -5076,7 +5117,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BatchStock"
+                $ref: "#/components/schemas/BatchResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "404":

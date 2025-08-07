@@ -1,3 +1,4 @@
+import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
@@ -5,6 +6,7 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
+from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
 
@@ -22,10 +24,12 @@ class BatchStock:
 
     batch_number: str
     variant_id: int
-    expiration_date: Unset | str = UNSET
-    batch_created_date: Unset | str = UNSET
+    expiration_date: Unset | datetime.datetime = UNSET
+    batch_created_date: Unset | datetime.datetime = UNSET
     batch_barcode: None | Unset | str = UNSET
     batch_id: Unset | int = UNSET
+    location_id: Unset | int = UNSET
+    quantity_in_stock: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -33,9 +37,13 @@ class BatchStock:
 
         variant_id = self.variant_id
 
-        expiration_date = self.expiration_date
+        expiration_date: Unset | str = UNSET
+        if not isinstance(self.expiration_date, Unset):
+            expiration_date = self.expiration_date.isoformat()
 
-        batch_created_date = self.batch_created_date
+        batch_created_date: Unset | str = UNSET
+        if not isinstance(self.batch_created_date, Unset):
+            batch_created_date = self.batch_created_date.isoformat()
 
         batch_barcode: None | Unset | str
         if isinstance(self.batch_barcode, Unset):
@@ -44,6 +52,10 @@ class BatchStock:
             batch_barcode = self.batch_barcode
 
         batch_id = self.batch_id
+
+        location_id = self.location_id
+
+        quantity_in_stock = self.quantity_in_stock
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -61,6 +73,10 @@ class BatchStock:
             field_dict["batch_barcode"] = batch_barcode
         if batch_id is not UNSET:
             field_dict["batch_id"] = batch_id
+        if location_id is not UNSET:
+            field_dict["location_id"] = location_id
+        if quantity_in_stock is not UNSET:
+            field_dict["quantity_in_stock"] = quantity_in_stock
 
         return field_dict
 
@@ -71,9 +87,19 @@ class BatchStock:
 
         variant_id = d.pop("variant_id")
 
-        expiration_date = d.pop("expiration_date", UNSET)
+        _expiration_date = d.pop("expiration_date", UNSET)
+        expiration_date: Unset | datetime.datetime
+        if isinstance(_expiration_date, Unset):
+            expiration_date = UNSET
+        else:
+            expiration_date = isoparse(_expiration_date)
 
-        batch_created_date = d.pop("batch_created_date", UNSET)
+        _batch_created_date = d.pop("batch_created_date", UNSET)
+        batch_created_date: Unset | datetime.datetime
+        if isinstance(_batch_created_date, Unset):
+            batch_created_date = UNSET
+        else:
+            batch_created_date = isoparse(_batch_created_date)
 
         def _parse_batch_barcode(data: object) -> None | Unset | str:
             if data is None:
@@ -86,6 +112,10 @@ class BatchStock:
 
         batch_id = d.pop("batch_id", UNSET)
 
+        location_id = d.pop("location_id", UNSET)
+
+        quantity_in_stock = d.pop("quantity_in_stock", UNSET)
+
         batch_stock = cls(
             batch_number=batch_number,
             variant_id=variant_id,
@@ -93,6 +123,8 @@ class BatchStock:
             batch_created_date=batch_created_date,
             batch_barcode=batch_barcode,
             batch_id=batch_id,
+            location_id=location_id,
+            quantity_in_stock=quantity_in_stock,
         )
 
         batch_stock.additional_properties = d

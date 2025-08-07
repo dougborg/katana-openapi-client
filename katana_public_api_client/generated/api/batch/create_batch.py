@@ -6,6 +6,7 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.batch import Batch
+from ...models.batch_response import BatchResponse
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...types import Response
@@ -32,9 +33,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Batch | DetailedErrorResponse | ErrorResponse | None:
+) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 200:
-        response_200 = Batch.from_dict(response.json())
+        response_200 = BatchResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -61,7 +62,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Batch | DetailedErrorResponse | ErrorResponse]:
+) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -74,13 +75,13 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: Batch,
-) -> Response[Batch | DetailedErrorResponse | ErrorResponse]:
+) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
     """Create a batch
 
      Creates a batch object.
 
     Args:
-        body (Batch):
+        body (Batch): Core batch business properties
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -88,7 +89,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[Batch, DetailedErrorResponse, ErrorResponse]]
+        Response[Union[BatchResponse, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -106,13 +107,13 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: Batch,
-) -> Batch | DetailedErrorResponse | ErrorResponse | None:
+) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
     """Create a batch
 
      Creates a batch object.
 
     Args:
-        body (Batch):
+        body (Batch): Core batch business properties
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -120,7 +121,7 @@ def sync(
 
 
     Returns:
-        Union[Batch, DetailedErrorResponse, ErrorResponse]
+        Union[BatchResponse, DetailedErrorResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -133,13 +134,13 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: Batch,
-) -> Response[Batch | DetailedErrorResponse | ErrorResponse]:
+) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
     """Create a batch
 
      Creates a batch object.
 
     Args:
-        body (Batch):
+        body (Batch): Core batch business properties
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -147,7 +148,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[Batch, DetailedErrorResponse, ErrorResponse]]
+        Response[Union[BatchResponse, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -163,13 +164,13 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: Batch,
-) -> Batch | DetailedErrorResponse | ErrorResponse | None:
+) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
     """Create a batch
 
      Creates a batch object.
 
     Args:
-        body (Batch):
+        body (Batch): Core batch business properties
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -177,7 +178,7 @@ async def asyncio(
 
 
     Returns:
-        Union[Batch, DetailedErrorResponse, ErrorResponse]
+        Union[BatchResponse, DetailedErrorResponse, ErrorResponse]
     """
 
     return (

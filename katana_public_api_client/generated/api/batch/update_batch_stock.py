@@ -5,31 +5,23 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.batch_stock import BatchStock
+from ...models.batch_response import BatchResponse
 from ...models.batch_stock_update import BatchStockUpdate
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
-from ...types import UNSET, Response, Unset
+from ...types import Response
 
 
 def _get_kwargs(
     batch_id: int,
     *,
     body: BatchStockUpdate,
-    location_id: Unset | int = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
-
-    params: dict[str, Any] = {}
-
-    params["location_id"] = location_id
-
-    params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
     _kwargs: dict[str, Any] = {
         "method": "patch",
         "url": f"/batch_stocks/{batch_id}",
-        "params": params,
     }
 
     _kwargs["json"] = body.to_dict()
@@ -42,9 +34,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> BatchStock | DetailedErrorResponse | ErrorResponse | None:
+) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 200:
-        response_200 = BatchStock.from_dict(response.json())
+        response_200 = BatchResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -75,7 +67,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[BatchStock | DetailedErrorResponse | ErrorResponse]:
+) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -89,8 +81,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
-    location_id: Unset | int = UNSET,
-) -> Response[BatchStock | DetailedErrorResponse | ErrorResponse]:
+) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
@@ -98,7 +89,6 @@ def sync_detailed(
 
     Args:
         batch_id (int):
-        location_id (Union[Unset, int]):
         body (BatchStockUpdate):  Example: {'batch_number': 'BAT-1', 'expiration_date':
             '2020-10-23T10:37:05.085Z', 'batch_created_date': '2020-10-23T10:37:05.085Z',
             'batch_barcode': '0040'}.
@@ -109,13 +99,12 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[BatchStock, DetailedErrorResponse, ErrorResponse]]
+        Response[Union[BatchResponse, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
         batch_id=batch_id,
         body=body,
-        location_id=location_id,
     )
 
     response = client.get_httpx_client().request(
@@ -130,8 +119,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
-    location_id: Unset | int = UNSET,
-) -> BatchStock | DetailedErrorResponse | ErrorResponse | None:
+) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
@@ -139,7 +127,6 @@ def sync(
 
     Args:
         batch_id (int):
-        location_id (Union[Unset, int]):
         body (BatchStockUpdate):  Example: {'batch_number': 'BAT-1', 'expiration_date':
             '2020-10-23T10:37:05.085Z', 'batch_created_date': '2020-10-23T10:37:05.085Z',
             'batch_barcode': '0040'}.
@@ -150,14 +137,13 @@ def sync(
 
 
     Returns:
-        Union[BatchStock, DetailedErrorResponse, ErrorResponse]
+        Union[BatchResponse, DetailedErrorResponse, ErrorResponse]
     """
 
     return sync_detailed(
         batch_id=batch_id,
         client=client,
         body=body,
-        location_id=location_id,
     ).parsed
 
 
@@ -166,8 +152,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
-    location_id: Unset | int = UNSET,
-) -> Response[BatchStock | DetailedErrorResponse | ErrorResponse]:
+) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
@@ -175,7 +160,6 @@ async def asyncio_detailed(
 
     Args:
         batch_id (int):
-        location_id (Union[Unset, int]):
         body (BatchStockUpdate):  Example: {'batch_number': 'BAT-1', 'expiration_date':
             '2020-10-23T10:37:05.085Z', 'batch_created_date': '2020-10-23T10:37:05.085Z',
             'batch_barcode': '0040'}.
@@ -186,13 +170,12 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[BatchStock, DetailedErrorResponse, ErrorResponse]]
+        Response[Union[BatchResponse, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
         batch_id=batch_id,
         body=body,
-        location_id=location_id,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -205,8 +188,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
-    location_id: Unset | int = UNSET,
-) -> BatchStock | DetailedErrorResponse | ErrorResponse | None:
+) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
@@ -214,7 +196,6 @@ async def asyncio(
 
     Args:
         batch_id (int):
-        location_id (Union[Unset, int]):
         body (BatchStockUpdate):  Example: {'batch_number': 'BAT-1', 'expiration_date':
             '2020-10-23T10:37:05.085Z', 'batch_created_date': '2020-10-23T10:37:05.085Z',
             'batch_barcode': '0040'}.
@@ -225,7 +206,7 @@ async def asyncio(
 
 
     Returns:
-        Union[BatchStock, DetailedErrorResponse, ErrorResponse]
+        Union[BatchResponse, DetailedErrorResponse, ErrorResponse]
     """
 
     return (
@@ -233,6 +214,5 @@ async def asyncio(
             batch_id=batch_id,
             client=client,
             body=body,
-            location_id=location_id,
         )
     ).parsed

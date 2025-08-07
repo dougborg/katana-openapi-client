@@ -15,15 +15,17 @@ T = TypeVar("T", bound="StorageBin")
 
 @_attrs_define
 class StorageBin:
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | str = UNSET
-    id: Unset | int = UNSET
     name: Unset | str = UNSET
     location_id: Unset | int = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -38,23 +40,23 @@ class StorageBin:
         else:
             deleted_at = self.deleted_at
 
-        id = self.id
-
         name = self.name
 
         location_id = self.location_id
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if name is not UNSET:
             field_dict["name"] = name
         if location_id is not UNSET:
@@ -65,6 +67,8 @@ class StorageBin:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -88,17 +92,15 @@ class StorageBin:
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        id = d.pop("id", UNSET)
-
         name = d.pop("name", UNSET)
 
         location_id = d.pop("location_id", UNSET)
 
         storage_bin = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            id=id,
             name=name,
             location_id=location_id,
         )

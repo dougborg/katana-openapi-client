@@ -18,7 +18,7 @@ class BatchStockUpdate:
             '2020-10-23T10:37:05.085Z', 'batch_barcode': '0040'}
     """
 
-    batch_number: str
+    batch_number: Unset | str = UNSET
     expiration_date: Unset | datetime.datetime = UNSET
     batch_created_date: Unset | datetime.datetime = UNSET
     batch_barcode: None | Unset | str = UNSET
@@ -42,11 +42,9 @@ class BatchStockUpdate:
 
         field_dict: dict[str, Any] = {}
 
-        field_dict.update(
-            {
-                "batch_number": batch_number,
-            }
-        )
+        field_dict.update({})
+        if batch_number is not UNSET:
+            field_dict["batch_number"] = batch_number
         if expiration_date is not UNSET:
             field_dict["expiration_date"] = expiration_date
         if batch_created_date is not UNSET:
@@ -59,7 +57,7 @@ class BatchStockUpdate:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        batch_number = d.pop("batch_number")
+        batch_number = d.pop("batch_number", UNSET)
 
         _expiration_date = d.pop("expiration_date", UNSET)
         expiration_date: Unset | datetime.datetime
