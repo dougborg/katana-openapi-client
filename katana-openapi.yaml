@@ -12042,6 +12042,45 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Update the reorder point
+      tags:
+        - Inventory
+      description: >
+        Updates an item's reorder point in a certain location and variant combination.
+        **DEPRECATED**: This endpoint is deprecated. Use safety stock levels instead
+        (`POST /inventory_safety_stock_levels`).
+      deprecated: true
+      operationId: updateInventoryReorderPoint
+      requestBody:
+        description: Reorder point details to update.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryReorderPoint"
+      responses:
+        "200":
+          description: Updated inventory reorder point.
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryReorderPointResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   # Outsourced purchase order recipe rows endpoint
   /outsourced_purchase_order_recipe_rows:

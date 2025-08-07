@@ -56,6 +56,25 @@ and current API documentation.
 - **Recommendation**: Update documentation to show correct 200 response code for BOM row
   creation.
 
+## Inventory Endpoints
+
+### Deprecated Reorder Point Endpoint
+
+**Issue**: Reorder point update endpoint exists but is deprecated in favor of safety
+stock levels.
+
+- **Endpoint**: `POST /inventory_reorder_points`
+- **Official documentation**:
+  <https://developer.katanamrp.com/reference/update-reorder-point>
+- **Status**: "(Endpoint deprecation, we recommend using safety_stock instead)"
+- **Replacement**: `POST /inventory_safety_stock_levels`
+- **Resolution**: Added deprecated POST endpoint to OpenAPI spec with proper deprecation
+  warning
+- **Question**: Should deprecated endpoints be included in client SDKs, or excluded to
+  encourage migration?
+- **Business impact**: Existing integrations may rely on reorder point endpoint, but new
+  integrations should use safety stock levels.
+
 ## General API Design Questions
 
 ### CRUD Pattern Completeness
@@ -181,6 +200,6 @@ ______________________________________________________________________
    questions
 1. **Schema Improvements**: Propose our common schema patterns for official adoption
 
-______________________________________________________________________
+## Document Information
 
 *Document created during systematic API validation - Last updated: August 7, 2025*
