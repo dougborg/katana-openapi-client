@@ -11,7 +11,11 @@ T = TypeVar("T", bound="BaseEntity")
 
 @_attrs_define
 class BaseEntity:
-    """Base entity with unique identifier"""
+    """Base entity with unique identifier
+
+    Example:
+        {'id': 12345}
+    """
 
     id: int
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

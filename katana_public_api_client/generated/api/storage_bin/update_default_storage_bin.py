@@ -5,22 +5,23 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.batch import Batch
-from ...models.batch_response import BatchResponse
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
+from ...models.storage_bin_response import StorageBinResponse
+from ...models.storage_bin_update import StorageBinUpdate
 from ...types import Response
 
 
 def _get_kwargs(
+    id: int,
     *,
-    body: Batch,
+    body: StorageBinUpdate,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
     _kwargs: dict[str, Any] = {
-        "method": "post",
-        "url": "/batches",
+        "method": "patch",
+        "url": f"/bin_locations/{id}",
     }
 
     _kwargs["json"] = body.to_dict()
@@ -33,15 +34,19 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
+) -> DetailedErrorResponse | ErrorResponse | StorageBinResponse | None:
     if response.status_code == 200:
-        response_200 = BatchResponse.from_dict(response.json())
+        response_200 = StorageBinResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
         response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
+    if response.status_code == 404:
+        response_404 = ErrorResponse.from_dict(response.json())
+
+        return response_404
     if response.status_code == 422:
         response_422 = DetailedErrorResponse.from_dict(response.json())
 
@@ -62,7 +67,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
+) -> Response[DetailedErrorResponse | ErrorResponse | StorageBinResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -72,18 +77,21 @@ def _build_response(
 
 
 def sync_detailed(
+    id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: Batch,
-) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
-    """Create a batch
+    body: StorageBinUpdate,
+) -> Response[DetailedErrorResponse | ErrorResponse | StorageBinResponse]:
+    """Update a storage bin
 
-     Creates a batch object.
+     Updates the specified storage bin by setting the values of the parameters passed. Any parameters not
+    provided will be left unchanged.
 
     Args:
-        body (Batch): Core batch business properties Example: {'batch_number': 'BAT-2024-001',
-            'expiration_date': '2025-10-23T10:37:05.085Z', 'batch_created_date':
-            '2024-01-15T08:00:00.000Z', 'variant_id': 1001, 'batch_barcode': '0317'}.
+        id (int):
+        body (StorageBinUpdate): Storage bin fields for update operations (all optional for PATCH)
+            Example: {'bin_name': 'A-01-SHELF-2', 'location_id': 2}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -91,10 +99,11 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[BatchResponse, DetailedErrorResponse, ErrorResponse]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]]
     """
 
     kwargs = _get_kwargs(
+        id=id,
         body=body,
     )
 
@@ -106,18 +115,21 @@ def sync_detailed(
 
 
 def sync(
+    id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: Batch,
-) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
-    """Create a batch
+    body: StorageBinUpdate,
+) -> DetailedErrorResponse | ErrorResponse | StorageBinResponse | None:
+    """Update a storage bin
 
-     Creates a batch object.
+     Updates the specified storage bin by setting the values of the parameters passed. Any parameters not
+    provided will be left unchanged.
 
     Args:
-        body (Batch): Core batch business properties Example: {'batch_number': 'BAT-2024-001',
-            'expiration_date': '2025-10-23T10:37:05.085Z', 'batch_created_date':
-            '2024-01-15T08:00:00.000Z', 'variant_id': 1001, 'batch_barcode': '0317'}.
+        id (int):
+        body (StorageBinUpdate): Storage bin fields for update operations (all optional for PATCH)
+            Example: {'bin_name': 'A-01-SHELF-2', 'location_id': 2}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -125,28 +137,32 @@ def sync(
 
 
     Returns:
-        Union[BatchResponse, DetailedErrorResponse, ErrorResponse]
+        Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]
     """
 
     return sync_detailed(
+        id=id,
         client=client,
         body=body,
     ).parsed
 
 
 async def asyncio_detailed(
+    id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: Batch,
-) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
-    """Create a batch
+    body: StorageBinUpdate,
+) -> Response[DetailedErrorResponse | ErrorResponse | StorageBinResponse]:
+    """Update a storage bin
 
-     Creates a batch object.
+     Updates the specified storage bin by setting the values of the parameters passed. Any parameters not
+    provided will be left unchanged.
 
     Args:
-        body (Batch): Core batch business properties Example: {'batch_number': 'BAT-2024-001',
-            'expiration_date': '2025-10-23T10:37:05.085Z', 'batch_created_date':
-            '2024-01-15T08:00:00.000Z', 'variant_id': 1001, 'batch_barcode': '0317'}.
+        id (int):
+        body (StorageBinUpdate): Storage bin fields for update operations (all optional for PATCH)
+            Example: {'bin_name': 'A-01-SHELF-2', 'location_id': 2}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -154,10 +170,11 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[BatchResponse, DetailedErrorResponse, ErrorResponse]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]]
     """
 
     kwargs = _get_kwargs(
+        id=id,
         body=body,
     )
 
@@ -167,18 +184,21 @@ async def asyncio_detailed(
 
 
 async def asyncio(
+    id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: Batch,
-) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
-    """Create a batch
+    body: StorageBinUpdate,
+) -> DetailedErrorResponse | ErrorResponse | StorageBinResponse | None:
+    """Update a storage bin
 
-     Creates a batch object.
+     Updates the specified storage bin by setting the values of the parameters passed. Any parameters not
+    provided will be left unchanged.
 
     Args:
-        body (Batch): Core batch business properties Example: {'batch_number': 'BAT-2024-001',
-            'expiration_date': '2025-10-23T10:37:05.085Z', 'batch_created_date':
-            '2024-01-15T08:00:00.000Z', 'variant_id': 1001, 'batch_barcode': '0317'}.
+        id (int):
+        body (StorageBinUpdate): Storage bin fields for update operations (all optional for PATCH)
+            Example: {'bin_name': 'A-01-SHELF-2', 'location_id': 2}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -186,11 +206,12 @@ async def asyncio(
 
 
     Returns:
-        Union[BatchResponse, DetailedErrorResponse, ErrorResponse]
+        Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]
     """
 
     return (
         await asyncio_detailed(
+            id=id,
             client=client,
             body=body,
         )

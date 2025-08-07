@@ -12,7 +12,12 @@ T = TypeVar("T", bound="Batch")
 
 @_attrs_define
 class Batch:
-    """Core batch business properties"""
+    """Core batch business properties
+
+    Example:
+        {'batch_number': 'BAT-2024-001', 'expiration_date': '2025-10-23T10:37:05.085Z', 'batch_created_date':
+            '2024-01-15T08:00:00.000Z', 'variant_id': 1001, 'batch_barcode': '0317'}
+    """
 
     batch_number: str
     variant_id: int

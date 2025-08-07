@@ -279,6 +279,13 @@ components:
       required: false
       schema:
         type: integer
+    bin_name:
+      name: bin_name
+      in: query
+      required: false
+      description: Filters storage bins by name.
+      schema:
+        type: string
     uom:
       name: uom
       required: false
@@ -968,6 +975,8 @@ components:
           description: Unique identifier
       required:
         - id
+      example:
+        id: 12345
 
     UpdatableEntity:
       type: object
@@ -979,6 +988,9 @@ components:
         updated_at:
           type: string
           format: date-time
+      example:
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2020-10-23T10:37:05.085Z"
 
     ArchivableEntity:
       type: object
@@ -993,6 +1005,10 @@ components:
         archived_at:
           type: [string, "null"]
           description: Nullable archive timestamp
+      example:
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2020-10-23T10:37:05.085Z"
+        archived_at: null
 
     DeletableEntity:
       type: object
@@ -1007,6 +1023,10 @@ components:
         deleted_at:
           type: [string, "null"]
           description: Nullable deletion timestamp
+      example:
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2020-10-23T10:37:05.085Z"
+        deleted_at: null
 
     # Main Entities
     AdditionalCost:
@@ -1019,6 +1039,12 @@ components:
           required:
             - name
         - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 1
+        name: "Shipping Cost"
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2020-10-23T10:37:05.085Z"
+        deleted_at: null
 
     AdditionalCostListResponse:
       type: object
@@ -1027,6 +1053,18 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AdditionalCost"
+      example:
+        data:
+          - id: 1
+            name: "Shipping Cost"
+            created_at: "2020-10-23T10:37:05.085Z"
+            updated_at: "2020-10-23T10:37:05.085Z"
+            deleted_at: null
+          - id: 2
+            name: "Import Duty"
+            created_at: "2020-10-23T10:37:05.085Z"
+            updated_at: "2020-10-23T10:37:05.085Z"
+            deleted_at: null
 
     Batch:
       type: object
@@ -1056,6 +1094,12 @@ components:
           minLength: 3
           maxLength: 40
           description: Optional barcode for the batch
+      example:
+        batch_number: "BAT-2024-001"
+        expiration_date: "2025-10-23T10:37:05.085Z"
+        batch_created_date: "2024-01-15T08:00:00.000Z"
+        variant_id: 1001
+        batch_barcode: "0317"
 
     BatchStock:
       allOf:
@@ -1072,12 +1116,12 @@ components:
               description: Current quantity in stock for this batch
       example:
         batch_id: 1109
-        batch_number: B2
-        batch_created_date: "2020-09-29T11:40:29.628Z"
-        expiration_date: "2021-04-30T10:35:00.000Z"
-        location_id: 1433
-        variant_id: 350880
-        quantity_in_stock: "10.00000"
+        batch_number: "BAT-2024-001"
+        batch_created_date: "2024-01-15T08:00:00.000Z"
+        expiration_date: "2025-10-23T10:37:05.085Z"
+        location_id: 1
+        variant_id: 1001
+        quantity_in_stock: "25.00000"
         batch_barcode: "0317"
 
     BatchStockListResponse:
@@ -1090,13 +1134,21 @@ components:
       example:
         data:
           - batch_id: 1109
-            batch_number: B2
-            batch_created_date: "2020-09-29T11:40:29.628Z"
-            expiration_date: "2021-04-30T10:35:00.000Z"
-            location_id: 1433
-            variant_id: 350880
-            quantity_in_stock: "10.00000"
+            batch_number: "BAT-2024-001"
+            batch_created_date: "2024-01-15T08:00:00.000Z"
+            expiration_date: "2025-10-23T10:37:05.085Z"
+            location_id: 1
+            variant_id: 1001
+            quantity_in_stock: "25.00000"
             batch_barcode: "0317"
+          - batch_id: 1110
+            batch_number: "BAT-2024-002"
+            batch_created_date: "2024-01-16T09:30:00.000Z"
+            expiration_date: "2025-11-15T10:37:05.085Z"
+            location_id: 1
+            variant_id: 1002
+            quantity_in_stock: "50.00000"
+            batch_barcode: "0318"
 
     BatchStockUpdate:
       type: object
@@ -1119,10 +1171,9 @@ components:
           maxLength: 40
           description: Updated barcode for the batch
       example:
-        batch_number: BAT-1
-        expiration_date: "2020-10-23T10:37:05.085Z"
-        batch_created_date: "2020-10-23T10:37:05.085Z"
-        batch_barcode: "0040"
+        batch_number: "BAT-2024-001-UPDATED"
+        expiration_date: "2025-12-31T23:59:59.000Z"
+        batch_barcode: "0317-V2"
 
     BatchResponse:
       allOf:
@@ -1130,25 +1181,60 @@ components:
         - $ref: "#/components/schemas/BaseEntity"
         - $ref: "#/components/schemas/UpdatableEntity"
       example:
-        id: 1
-        batch_number: "BAT-1"
-        expiration_date: "2020-10-23T10:37:05.085Z"
-        batch_created_date: "2020-10-23T10:37:05.085Z"
-        created_at: "2020-10-23T10:37:05.085Z"
-        updated_at: "2020-10-23T10:37:05.085Z"
-        variant_id: 1
-        batch_barcode: "0040"
+        id: 1109
+        batch_number: "BAT-2024-001"
+        expiration_date: "2025-10-23T10:37:05.085Z"
+        batch_created_date: "2024-01-15T08:00:00.000Z"
+        created_at: "2024-01-15T08:00:00.000Z"
+        updated_at: "2024-01-15T08:00:00.000Z"
+        variant_id: 1001
+        batch_barcode: "0317"
 
     StorageBin:
+      type: object
+      description: Core storage bin business properties
+      additionalProperties: false
+      required:
+        - bin_name
+        - location_id
+      properties:
+        bin_name:
+          type: string
+          description: Name of the storage bin
+        location_id:
+          type: integer
+          description: Unique identifier of the location where storage bin is located
+      example:
+        bin_name: "A-01-SHELF-1"
+        location_id: 1
+
+    StorageBinResponse:
       allOf:
+        - $ref: "#/components/schemas/StorageBin"
         - $ref: "#/components/schemas/BaseEntity"
-        - type: object
-          properties:
-            name:
-              type: string
-            location_id:
-              type: integer
         - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 12345
+        bin_name: "A-01-SHELF-1"
+        location_id: 1
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2020-10-23T10:37:05.085Z"
+        deleted_at: null
+
+    StorageBinUpdate:
+      type: object
+      description: Storage bin fields for update operations (all optional for PATCH)
+      additionalProperties: false
+      properties:
+        bin_name:
+          type: string
+          description: Name of the storage bin
+        location_id:
+          type: integer
+          description: Unique identifier of the location where storage bin is located
+      example:
+        bin_name: "A-01-SHELF-2"
+        location_id: 2
 
     StorageBinListResponse:
       type: object
@@ -1156,12 +1242,18 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/StorageBin"
+            $ref: "#/components/schemas/StorageBinResponse"
       example:
         data:
           - id: 12345
-            name: Bin-2
-            location_id: 12346
+            bin_name: "A-01-SHELF-1"
+            location_id: 1
+            created_at: "2020-10-23T10:37:05.085Z"
+            updated_at: "2020-10-23T10:37:05.085Z"
+            deleted_at: null
+          - id: 12346
+            bin_name: "A-02-SHELF-1"
+            location_id: 1
             created_at: "2020-10-23T10:37:05.085Z"
             updated_at: "2020-10-23T10:37:05.085Z"
             deleted_at: null
@@ -4985,13 +5077,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdditionalCostListResponse"
-              example:
-                data:
-                  - id: 1
-                    name: Shipping
-                    created_at: "2023-10-21T10:37:05.085Z"
-                    updated_at: "2023-10-21T10:37:05.085Z"
-                    deleted_at: null
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -5143,12 +5228,7 @@ paths:
         - $ref: "#/components/parameters/include_deleted"
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
-        - name: bin_name
-          in: query
-          required: false
-          description: Filters storage bins by name.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/bin_name"
       responses:
         "200":
           description: List of storage bins.
@@ -5167,6 +5247,78 @@ paths:
                 $ref: "#/components/schemas/StorageBinListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /bin_locations/{id}:
+    patch:
+      summary: Update a storage bin
+      tags:
+        - Storage bin
+      description: >
+        Updates the specified storage bin by setting the values of the parameters passed.
+        Any parameters not provided will be left unchanged.
+      operationId: updateDefaultStorageBin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Storage bin id
+          schema:
+            type: integer
+      requestBody:
+        description: Storage bin fields to be updated with new values
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageBinUpdate"
+      responses:
+        "200":
+          description: Storage bin updated
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageBinResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Delete a storage bin
+      tags:
+        - Storage bin
+      description: Deletes a storage bin by id.
+      operationId: deleteStorageBin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Storage bin id
+          schema:
+            type: integer
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":

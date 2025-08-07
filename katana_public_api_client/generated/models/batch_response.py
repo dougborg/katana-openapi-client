@@ -17,9 +17,9 @@ T = TypeVar("T", bound="BatchResponse")
 class BatchResponse:
     """
     Example:
-        {'id': 1, 'batch_number': 'BAT-1', 'expiration_date': '2020-10-23T10:37:05.085Z', 'batch_created_date':
-            '2020-10-23T10:37:05.085Z', 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z',
-            'variant_id': 1, 'batch_barcode': '0040'}
+        {'id': 1109, 'batch_number': 'BAT-2024-001', 'expiration_date': '2025-10-23T10:37:05.085Z',
+            'batch_created_date': '2024-01-15T08:00:00.000Z', 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at':
+            '2024-01-15T08:00:00.000Z', 'variant_id': 1001, 'batch_barcode': '0317'}
     """
 
     batch_number: str

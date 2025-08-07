@@ -9,7 +9,7 @@ from attrs import (
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.storage_bin import StorageBin
+    from ..models.storage_bin_response import StorageBinResponse
 
 
 T = TypeVar("T", bound="StorageBinListResponse")
@@ -19,11 +19,13 @@ T = TypeVar("T", bound="StorageBinListResponse")
 class StorageBinListResponse:
     """
     Example:
-        {'data': [{'id': 12345, 'name': 'Bin-2', 'location_id': 12346, 'created_at': '2020-10-23T10:37:05.085Z',
-            'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}]}
+        {'data': [{'id': 12345, 'bin_name': 'A-01-SHELF-1', 'location_id': 1, 'created_at': '2020-10-23T10:37:05.085Z',
+            'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}, {'id': 12346, 'bin_name': 'A-02-SHELF-1',
+            'location_id': 1, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z',
+            'deleted_at': None}]}
     """
 
-    data: Unset | list["StorageBin"] = UNSET
+    data: Unset | list["StorageBinResponse"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -44,13 +46,13 @@ class StorageBinListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.storage_bin import StorageBin
+        from ..models.storage_bin_response import StorageBinResponse
 
         d = dict(src_dict)
         data = []
         _data = d.pop("data", UNSET)
         for data_item_data in _data or []:
-            data_item = StorageBin.from_dict(data_item_data)
+            data_item = StorageBinResponse.from_dict(data_item_data)
 
             data.append(data_item)
 

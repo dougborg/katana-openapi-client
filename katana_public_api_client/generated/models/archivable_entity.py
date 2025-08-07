@@ -15,7 +15,11 @@ T = TypeVar("T", bound="ArchivableEntity")
 
 @_attrs_define
 class ArchivableEntity:
-    """Common fields for entities that can be archived"""
+    """Common fields for entities that can be archived
+
+    Example:
+        {'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'archived_at': None}
+    """
 
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET

@@ -5,47 +5,36 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.batch import Batch
-from ...models.batch_response import BatchResponse
-from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...types import Response
 
 
 def _get_kwargs(
-    *,
-    body: Batch,
+    id: int,
 ) -> dict[str, Any]:
-    headers: dict[str, Any] = {}
-
     _kwargs: dict[str, Any] = {
-        "method": "post",
-        "url": "/batches",
+        "method": "delete",
+        "url": f"/bin_locations/{id}",
     }
 
-    _kwargs["json"] = body.to_dict()
-
-    headers["Content-Type"] = "application/json"
-
-    _kwargs["headers"] = headers
     return _kwargs
 
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
-    if response.status_code == 200:
-        response_200 = BatchResponse.from_dict(response.json())
+) -> ErrorResponse | None:
+    if response.status_code == 204:
+        response_204 = ErrorResponse.from_dict(response.json())
 
-        return response_200
+        return response_204
     if response.status_code == 401:
         response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
-    if response.status_code == 422:
-        response_422 = DetailedErrorResponse.from_dict(response.json())
+    if response.status_code == 404:
+        response_404 = ErrorResponse.from_dict(response.json())
 
-        return response_422
+        return response_404
     if response.status_code == 429:
         response_429 = ErrorResponse.from_dict(response.json())
 
@@ -62,7 +51,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
+) -> Response[ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -72,18 +61,16 @@ def _build_response(
 
 
 def sync_detailed(
+    id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: Batch,
-) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
-    """Create a batch
+) -> Response[ErrorResponse]:
+    """Delete a storage bin
 
-     Creates a batch object.
+     Deletes a storage bin by id.
 
     Args:
-        body (Batch): Core batch business properties Example: {'batch_number': 'BAT-2024-001',
-            'expiration_date': '2025-10-23T10:37:05.085Z', 'batch_created_date':
-            '2024-01-15T08:00:00.000Z', 'variant_id': 1001, 'batch_barcode': '0317'}.
+        id (int):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -91,11 +78,11 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[BatchResponse, DetailedErrorResponse, ErrorResponse]]
+        Response[ErrorResponse]
     """
 
     kwargs = _get_kwargs(
-        body=body,
+        id=id,
     )
 
     response = client.get_httpx_client().request(
@@ -106,18 +93,16 @@ def sync_detailed(
 
 
 def sync(
+    id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: Batch,
-) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
-    """Create a batch
+) -> ErrorResponse | None:
+    """Delete a storage bin
 
-     Creates a batch object.
+     Deletes a storage bin by id.
 
     Args:
-        body (Batch): Core batch business properties Example: {'batch_number': 'BAT-2024-001',
-            'expiration_date': '2025-10-23T10:37:05.085Z', 'batch_created_date':
-            '2024-01-15T08:00:00.000Z', 'variant_id': 1001, 'batch_barcode': '0317'}.
+        id (int):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -125,28 +110,26 @@ def sync(
 
 
     Returns:
-        Union[BatchResponse, DetailedErrorResponse, ErrorResponse]
+        ErrorResponse
     """
 
     return sync_detailed(
+        id=id,
         client=client,
-        body=body,
     ).parsed
 
 
 async def asyncio_detailed(
+    id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: Batch,
-) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
-    """Create a batch
+) -> Response[ErrorResponse]:
+    """Delete a storage bin
 
-     Creates a batch object.
+     Deletes a storage bin by id.
 
     Args:
-        body (Batch): Core batch business properties Example: {'batch_number': 'BAT-2024-001',
-            'expiration_date': '2025-10-23T10:37:05.085Z', 'batch_created_date':
-            '2024-01-15T08:00:00.000Z', 'variant_id': 1001, 'batch_barcode': '0317'}.
+        id (int):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -154,11 +137,11 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[BatchResponse, DetailedErrorResponse, ErrorResponse]]
+        Response[ErrorResponse]
     """
 
     kwargs = _get_kwargs(
-        body=body,
+        id=id,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -167,18 +150,16 @@ async def asyncio_detailed(
 
 
 async def asyncio(
+    id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: Batch,
-) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
-    """Create a batch
+) -> ErrorResponse | None:
+    """Delete a storage bin
 
-     Creates a batch object.
+     Deletes a storage bin by id.
 
     Args:
-        body (Batch): Core batch business properties Example: {'batch_number': 'BAT-2024-001',
-            'expiration_date': '2025-10-23T10:37:05.085Z', 'batch_created_date':
-            '2024-01-15T08:00:00.000Z', 'variant_id': 1001, 'batch_barcode': '0317'}.
+        id (int):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -186,12 +167,12 @@ async def asyncio(
 
 
     Returns:
-        Union[BatchResponse, DetailedErrorResponse, ErrorResponse]
+        ErrorResponse
     """
 
     return (
         await asyncio_detailed(
+            id=id,
             client=client,
-            body=body,
         )
     ).parsed

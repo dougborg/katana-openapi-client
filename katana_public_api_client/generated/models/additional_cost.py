@@ -15,6 +15,12 @@ T = TypeVar("T", bound="AdditionalCost")
 
 @_attrs_define
 class AdditionalCost:
+    """
+    Example:
+        {'id': 1, 'name': 'Shipping Cost', 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at':
+            '2020-10-23T10:37:05.085Z', 'deleted_at': None}
+    """
+
     id: int
     name: str
     created_at: Unset | datetime.datetime = UNSET

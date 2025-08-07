@@ -89,9 +89,8 @@ def sync_detailed(
 
     Args:
         batch_id (int):
-        body (BatchStockUpdate):  Example: {'batch_number': 'BAT-1', 'expiration_date':
-            '2020-10-23T10:37:05.085Z', 'batch_created_date': '2020-10-23T10:37:05.085Z',
-            'batch_barcode': '0040'}.
+        body (BatchStockUpdate):  Example: {'batch_number': 'BAT-2024-001-UPDATED',
+            'expiration_date': '2025-12-31T23:59:59.000Z', 'batch_barcode': '0317-V2'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -127,9 +126,8 @@ def sync(
 
     Args:
         batch_id (int):
-        body (BatchStockUpdate):  Example: {'batch_number': 'BAT-1', 'expiration_date':
-            '2020-10-23T10:37:05.085Z', 'batch_created_date': '2020-10-23T10:37:05.085Z',
-            'batch_barcode': '0040'}.
+        body (BatchStockUpdate):  Example: {'batch_number': 'BAT-2024-001-UPDATED',
+            'expiration_date': '2025-12-31T23:59:59.000Z', 'batch_barcode': '0317-V2'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -160,9 +158,8 @@ async def asyncio_detailed(
 
     Args:
         batch_id (int):
-        body (BatchStockUpdate):  Example: {'batch_number': 'BAT-1', 'expiration_date':
-            '2020-10-23T10:37:05.085Z', 'batch_created_date': '2020-10-23T10:37:05.085Z',
-            'batch_barcode': '0040'}.
+        body (BatchStockUpdate):  Example: {'batch_number': 'BAT-2024-001-UPDATED',
+            'expiration_date': '2025-12-31T23:59:59.000Z', 'batch_barcode': '0317-V2'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -196,9 +193,8 @@ async def asyncio(
 
     Args:
         batch_id (int):
-        body (BatchStockUpdate):  Example: {'batch_number': 'BAT-1', 'expiration_date':
-            '2020-10-23T10:37:05.085Z', 'batch_created_date': '2020-10-23T10:37:05.085Z',
-            'batch_barcode': '0040'}.
+        body (BatchStockUpdate):  Example: {'batch_number': 'BAT-2024-001-UPDATED',
+            'expiration_date': '2025-12-31T23:59:59.000Z', 'batch_barcode': '0317-V2'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

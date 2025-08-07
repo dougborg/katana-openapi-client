@@ -10,23 +10,32 @@ from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="DeletableEntity")
+T = TypeVar("T", bound="StorageBinResponse")
 
 
 @_attrs_define
-class DeletableEntity:
-    """Common fields for entities that can be deleted
-
+class StorageBinResponse:
+    """
     Example:
-        {'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}
+        {'id': 12345, 'bin_name': 'A-01-SHELF-1', 'location_id': 1, 'created_at': '2020-10-23T10:37:05.085Z',
+            'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}
     """
 
+    bin_name: str
+    location_id: int
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        bin_name = self.bin_name
+
+        location_id = self.location_id
+
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -43,7 +52,13 @@ class DeletableEntity:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "bin_name": bin_name,
+                "location_id": location_id,
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
@@ -56,6 +71,12 @@ class DeletableEntity:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        bin_name = d.pop("bin_name")
+
+        location_id = d.pop("location_id")
+
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -79,14 +100,17 @@ class DeletableEntity:
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        deletable_entity = cls(
+        storage_bin_response = cls(
+            bin_name=bin_name,
+            location_id=location_id,
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
         )
 
-        deletable_entity.additional_properties = d
-        return deletable_entity
+        storage_bin_response.additional_properties = d
+        return storage_bin_response
 
     @property
     def additional_keys(self) -> list[str]:

@@ -14,8 +14,8 @@ T = TypeVar("T", bound="BatchStockUpdate")
 class BatchStockUpdate:
     """
     Example:
-        {'batch_number': 'BAT-1', 'expiration_date': '2020-10-23T10:37:05.085Z', 'batch_created_date':
-            '2020-10-23T10:37:05.085Z', 'batch_barcode': '0040'}
+        {'batch_number': 'BAT-2024-001-UPDATED', 'expiration_date': '2025-12-31T23:59:59.000Z', 'batch_barcode':
+            '0317-V2'}
     """
 
     batch_number: Unset | str = UNSET
