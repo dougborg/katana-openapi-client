@@ -4315,92 +4315,157 @@ components:
     # BOM (Bill of Materials) rows
     BomRow:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             product_variant_id:
               type: integer
               minimum: 1
               maximum: 2147483647
+              description: ID of the product variant this BOM row belongs to
             product_item_id:
               type: integer
               minimum: 1
               maximum: 2147483647
+              description: ID of the product item this BOM row belongs to
             ingredient_variant_id:
               type: integer
               minimum: 1
               maximum: 2147483647
+              description: ID of the ingredient variant used in this BOM row
             quantity:
               type: [number, "null"]
               minimum: 0
               maximum: 100000000000000000
+              description: Required quantity of the ingredient variant
             notes:
               type: [string, "null"]
+              description: Additional notes for this BOM row
           required:
-            - id
             - product_variant_id
             - product_item_id
             - ingredient_variant_id
-        - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 501
+        product_variant_id: 2001
+        product_item_id: 3001
+        ingredient_variant_id: 2002
+        quantity: 2.5
+        notes: "Handle with care - fragile component"
+        created_at: "2023-10-15T14:30:00Z"
+        updated_at: "2023-10-16T09:15:00Z"
 
     CreateBomRowRequest:
       type: object
+      description: Request payload for creating a new BOM row
       properties:
         product_item_id:
           type: integer
           minimum: 1
           maximum: 2147483647
+          description: ID of the product item this BOM row belongs to
         product_variant_id:
           type: integer
           minimum: 1
           maximum: 2147483647
+          description: ID of the product variant this BOM row belongs to
         ingredient_variant_id:
           type: integer
           minimum: 1
           maximum: 2147483647
+          description: ID of the ingredient variant used in this BOM row
         quantity:
           type: [number, "null"]
           minimum: 0
           maximum: 100000000000000000
+          description: Required quantity of the ingredient variant
         notes:
           type: [string, "null"]
+          description: Additional notes for this BOM row
       required:
         - product_item_id
         - product_variant_id
         - ingredient_variant_id
+      example:
+        product_item_id: 3001
+        product_variant_id: 2001
+        ingredient_variant_id: 2002
+        quantity: 2.5
+        notes: "Handle with care - fragile component"
 
     BatchCreateBomRowsRequest:
       type: object
+      description: Request payload for creating multiple BOM rows in a single operation
       properties:
         bom_rows:
           type: array
+          description: Array of BOM rows to create
           items:
             $ref: "#/components/schemas/CreateBomRowRequest"
       required:
         - bom_rows
+      example:
+        bom_rows:
+          - product_item_id: 3001
+            product_variant_id: 2001
+            ingredient_variant_id: 2002
+            quantity: 2.5
+            notes: "Primary component"
+          - product_item_id: 3001
+            product_variant_id: 2001
+            ingredient_variant_id: 2003
+            quantity: 1.0
+            notes: "Secondary component"
 
     UpdateBomRowRequest:
       type: object
+      description: Request payload for updating an existing BOM row. Only provided fields will be updated.
       properties:
         ingredient_variant_id:
           type: integer
           minimum: 1
           maximum: 2147483647
+          description: ID of the ingredient variant used in this BOM row
         quantity:
           type: [number, "null"]
           minimum: 0
           maximum: 100000000000000000
+          description: Required quantity of the ingredient variant
         notes:
           type: [string, "null"]
+          description: Additional notes for this BOM row
+      example:
+        quantity: 3.0
+        notes: "Updated quantity based on new specifications"
 
     BomRowListResponse:
       type: object
+      description: Response containing a list of BOM rows
       properties:
         data:
           type: array
+          description: Array of BOM row objects
           items:
             $ref: "#/components/schemas/BomRow"
+      example:
+        data:
+          - id: 501
+            product_variant_id: 2001
+            product_item_id: 3001
+            ingredient_variant_id: 2002
+            quantity: 2.5
+            notes: "Handle with care - fragile component"
+            created_at: "2023-10-15T14:30:00Z"
+            updated_at: "2023-10-16T09:15:00Z"
+          - id: 502
+            product_variant_id: 2001
+            product_item_id: 3001
+            ingredient_variant_id: 2003
+            quantity: 1.0
+            notes: "Standard component"
+            created_at: "2023-10-15T14:31:00Z"
+            updated_at: "2023-10-15T14:31:00Z"
 
     # Factory
     Factory:

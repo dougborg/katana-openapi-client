@@ -42,6 +42,20 @@ and current API documentation.
 - **Recommendation**: Ensure OpenAPI spec is kept in sync with actual API
   implementation.
 
+## BOM Row Endpoints
+
+### Documentation Response Code Discrepancy
+
+**Issue**: Official documentation shows incorrect response code for BOM row creation.
+
+- **Documentation states**: `POST /bom_rows` returns `204 No Content`
+- **Actual API behavior**: Returns `200 OK` (verified through testing)
+- **Question**: Should documentation be updated to reflect the actual 200 response?
+- **Impact**: Integration developers may expect 204 status and implement incorrect
+  response handling.
+- **Recommendation**: Update documentation to show correct 200 response code for BOM row
+  creation.
+
 ## General API Design Questions
 
 ### CRUD Pattern Completeness
