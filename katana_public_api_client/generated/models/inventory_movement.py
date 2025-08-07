@@ -1,6 +1,6 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -28,9 +28,9 @@ class InventoryMovement:
     average_cost_after: float
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    resource_id: Unset | int = UNSET
-    caused_by_order_no: Unset | str = UNSET
-    caused_by_resource_id: Unset | int = UNSET
+    resource_id: None | Unset | int = UNSET
+    caused_by_order_no: None | Unset | str = UNSET
+    caused_by_resource_id: None | Unset | int = UNSET
     rank: Unset | int = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -63,11 +63,23 @@ class InventoryMovement:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        resource_id = self.resource_id
+        resource_id: None | Unset | int
+        if isinstance(self.resource_id, Unset):
+            resource_id = UNSET
+        else:
+            resource_id = self.resource_id
 
-        caused_by_order_no = self.caused_by_order_no
+        caused_by_order_no: None | Unset | str
+        if isinstance(self.caused_by_order_no, Unset):
+            caused_by_order_no = UNSET
+        else:
+            caused_by_order_no = self.caused_by_order_no
 
-        caused_by_resource_id = self.caused_by_resource_id
+        caused_by_resource_id: None | Unset | int
+        if isinstance(self.caused_by_resource_id, Unset):
+            caused_by_resource_id = UNSET
+        else:
+            caused_by_resource_id = self.caused_by_resource_id
 
         rank = self.rank
 
@@ -139,11 +151,36 @@ class InventoryMovement:
         else:
             updated_at = isoparse(_updated_at)
 
-        resource_id = d.pop("resource_id", UNSET)
+        def _parse_resource_id(data: object) -> None | Unset | int:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | int, data)
 
-        caused_by_order_no = d.pop("caused_by_order_no", UNSET)
+        resource_id = _parse_resource_id(d.pop("resource_id", UNSET))
 
-        caused_by_resource_id = d.pop("caused_by_resource_id", UNSET)
+        def _parse_caused_by_order_no(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        caused_by_order_no = _parse_caused_by_order_no(
+            d.pop("caused_by_order_no", UNSET)
+        )
+
+        def _parse_caused_by_resource_id(data: object) -> None | Unset | int:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | int, data)
+
+        caused_by_resource_id = _parse_caused_by_resource_id(
+            d.pop("caused_by_resource_id", UNSET)
+        )
 
         rank = d.pop("rank", UNSET)
 

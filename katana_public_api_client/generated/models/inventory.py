@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
 from attrs import (
     define as _attrs_define,
@@ -19,16 +19,25 @@ T = TypeVar("T", bound="Inventory")
 
 @_attrs_define
 class Inventory:
+    """Current inventory status for a variant at a specific location
+
+    Example:
+        {'variant_id': 2001, 'location_id': 101, 'safety_stock_level': 50.0, 'reorder_point': 50.0, 'average_cost':
+            25.75, 'value_in_stock': 1287.5, 'quantity_in_stock': 50.0, 'quantity_committed': 15.0, 'quantity_expected':
+            25.0, 'quantity_missing_or_excess': 10.0, 'quantity_potential': 35.0}
+    """
+
     variant_id: int
     location_id: int
-    reorder_point: str
-    average_cost: str
-    value_in_stock: str
-    quantity_in_stock: str
-    quantity_committed: str
-    quantity_expected: str
-    quantity_missing_or_excess: str
-    quantity_potential: str
+    safety_stock_level: None | Unset | float = UNSET
+    reorder_point: None | Unset | float = UNSET
+    average_cost: None | Unset | float = UNSET
+    value_in_stock: None | Unset | float = UNSET
+    quantity_in_stock: None | Unset | float = UNSET
+    quantity_committed: None | Unset | float = UNSET
+    quantity_expected: None | Unset | float = UNSET
+    quantity_missing_or_excess: None | Unset | float = UNSET
+    quantity_potential: None | Unset | float = UNSET
     variant: Union[Unset, "Variant"] = UNSET
     location: Union["DeletableEntity", "LocationType0", Unset] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -40,21 +49,59 @@ class Inventory:
 
         location_id = self.location_id
 
-        reorder_point = self.reorder_point
+        safety_stock_level: None | Unset | float
+        if isinstance(self.safety_stock_level, Unset):
+            safety_stock_level = UNSET
+        else:
+            safety_stock_level = self.safety_stock_level
 
-        average_cost = self.average_cost
+        reorder_point: None | Unset | float
+        if isinstance(self.reorder_point, Unset):
+            reorder_point = UNSET
+        else:
+            reorder_point = self.reorder_point
 
-        value_in_stock = self.value_in_stock
+        average_cost: None | Unset | float
+        if isinstance(self.average_cost, Unset):
+            average_cost = UNSET
+        else:
+            average_cost = self.average_cost
 
-        quantity_in_stock = self.quantity_in_stock
+        value_in_stock: None | Unset | float
+        if isinstance(self.value_in_stock, Unset):
+            value_in_stock = UNSET
+        else:
+            value_in_stock = self.value_in_stock
 
-        quantity_committed = self.quantity_committed
+        quantity_in_stock: None | Unset | float
+        if isinstance(self.quantity_in_stock, Unset):
+            quantity_in_stock = UNSET
+        else:
+            quantity_in_stock = self.quantity_in_stock
 
-        quantity_expected = self.quantity_expected
+        quantity_committed: None | Unset | float
+        if isinstance(self.quantity_committed, Unset):
+            quantity_committed = UNSET
+        else:
+            quantity_committed = self.quantity_committed
 
-        quantity_missing_or_excess = self.quantity_missing_or_excess
+        quantity_expected: None | Unset | float
+        if isinstance(self.quantity_expected, Unset):
+            quantity_expected = UNSET
+        else:
+            quantity_expected = self.quantity_expected
 
-        quantity_potential = self.quantity_potential
+        quantity_missing_or_excess: None | Unset | float
+        if isinstance(self.quantity_missing_or_excess, Unset):
+            quantity_missing_or_excess = UNSET
+        else:
+            quantity_missing_or_excess = self.quantity_missing_or_excess
+
+        quantity_potential: None | Unset | float
+        if isinstance(self.quantity_potential, Unset):
+            quantity_potential = UNSET
+        else:
+            quantity_potential = self.quantity_potential
 
         variant: Unset | dict[str, Any] = UNSET
         if not isinstance(self.variant, Unset):
@@ -74,16 +121,26 @@ class Inventory:
             {
                 "variant_id": variant_id,
                 "location_id": location_id,
-                "reorder_point": reorder_point,
-                "average_cost": average_cost,
-                "value_in_stock": value_in_stock,
-                "quantity_in_stock": quantity_in_stock,
-                "quantity_committed": quantity_committed,
-                "quantity_expected": quantity_expected,
-                "quantity_missing_or_excess": quantity_missing_or_excess,
-                "quantity_potential": quantity_potential,
             }
         )
+        if safety_stock_level is not UNSET:
+            field_dict["safety_stock_level"] = safety_stock_level
+        if reorder_point is not UNSET:
+            field_dict["reorder_point"] = reorder_point
+        if average_cost is not UNSET:
+            field_dict["average_cost"] = average_cost
+        if value_in_stock is not UNSET:
+            field_dict["value_in_stock"] = value_in_stock
+        if quantity_in_stock is not UNSET:
+            field_dict["quantity_in_stock"] = quantity_in_stock
+        if quantity_committed is not UNSET:
+            field_dict["quantity_committed"] = quantity_committed
+        if quantity_expected is not UNSET:
+            field_dict["quantity_expected"] = quantity_expected
+        if quantity_missing_or_excess is not UNSET:
+            field_dict["quantity_missing_or_excess"] = quantity_missing_or_excess
+        if quantity_potential is not UNSET:
+            field_dict["quantity_potential"] = quantity_potential
         if variant is not UNSET:
             field_dict["variant"] = variant
         if location is not UNSET:
@@ -102,21 +159,96 @@ class Inventory:
 
         location_id = d.pop("location_id")
 
-        reorder_point = d.pop("reorder_point")
+        def _parse_safety_stock_level(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
 
-        average_cost = d.pop("average_cost")
+        safety_stock_level = _parse_safety_stock_level(
+            d.pop("safety_stock_level", UNSET)
+        )
 
-        value_in_stock = d.pop("value_in_stock")
+        def _parse_reorder_point(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
 
-        quantity_in_stock = d.pop("quantity_in_stock")
+        reorder_point = _parse_reorder_point(d.pop("reorder_point", UNSET))
 
-        quantity_committed = d.pop("quantity_committed")
+        def _parse_average_cost(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
 
-        quantity_expected = d.pop("quantity_expected")
+        average_cost = _parse_average_cost(d.pop("average_cost", UNSET))
 
-        quantity_missing_or_excess = d.pop("quantity_missing_or_excess")
+        def _parse_value_in_stock(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
 
-        quantity_potential = d.pop("quantity_potential")
+        value_in_stock = _parse_value_in_stock(d.pop("value_in_stock", UNSET))
+
+        def _parse_quantity_in_stock(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
+
+        quantity_in_stock = _parse_quantity_in_stock(d.pop("quantity_in_stock", UNSET))
+
+        def _parse_quantity_committed(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
+
+        quantity_committed = _parse_quantity_committed(
+            d.pop("quantity_committed", UNSET)
+        )
+
+        def _parse_quantity_expected(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
+
+        quantity_expected = _parse_quantity_expected(d.pop("quantity_expected", UNSET))
+
+        def _parse_quantity_missing_or_excess(
+            data: object,
+        ) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
+
+        quantity_missing_or_excess = _parse_quantity_missing_or_excess(
+            d.pop("quantity_missing_or_excess", UNSET)
+        )
+
+        def _parse_quantity_potential(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
+
+        quantity_potential = _parse_quantity_potential(
+            d.pop("quantity_potential", UNSET)
+        )
 
         _variant = d.pop("variant", UNSET)
         variant: Unset | Variant
@@ -149,6 +281,7 @@ class Inventory:
         inventory = cls(
             variant_id=variant_id,
             location_id=location_id,
+            safety_stock_level=safety_stock_level,
             reorder_point=reorder_point,
             average_cost=average_cost,
             value_in_stock=value_in_stock,

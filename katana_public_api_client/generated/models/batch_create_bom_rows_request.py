@@ -15,6 +15,14 @@ T = TypeVar("T", bound="BatchCreateBomRowsRequest")
 
 @_attrs_define
 class BatchCreateBomRowsRequest:
+    """Request payload for creating multiple BOM rows in a single operation
+
+    Example:
+        {'bom_rows': [{'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2002, 'quantity':
+            2.5, 'notes': 'Primary component'}, {'product_item_id': 3001, 'product_variant_id': 2001,
+            'ingredient_variant_id': 2003, 'quantity': 1.0, 'notes': 'Secondary component'}]}
+    """
+
     bom_rows: list["CreateBomRowRequest"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

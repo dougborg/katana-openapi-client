@@ -1260,18 +1260,19 @@ components:
 
     InventoryMovement:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
-          description: Details of a single inventory movement record.
+          description: Details of a single inventory movement record tracking stock changes over time.
           properties:
-            id:
-              type: integer
-              description: Unique identifier for the inventory movement.
             variant_id:
               type: integer
               description: Identifier of the product variant associated with the movement.
+              example: 3001
             location_id:
               type: integer
               description: Identifier of the location where the movement occurred.
+              example: 12001
             resource_type:
               type: string
               description: The type of resource that caused the movement.
@@ -1284,51 +1285,64 @@ components:
                 - StockTransferRow
                 - ManufacturingOrder
                 - SystemGenerated
+              example: PurchaseOrderRow
             resource_id:
-              type: integer
+              oneOf:
+                - type: integer
+                - type: "null"
               description: Identifier of the resource that initiated the movement.
+              example: 50001
             caused_by_order_no:
-              type: string
+              oneOf:
+                - type: string
+                - type: "null"
               description: Order number that triggered the movement.
+              example: "PO-2024-001"
             caused_by_resource_id:
-              type: integer
+              oneOf:
+                - type: integer
+                - type: "null"
               description: Identifier for the resource that caused the movement.
+              example: 50001
             movement_date:
               type: string
               format: date-time
               description: Date and time when the inventory movement occurred.
+              example: "2024-01-15T10:30:00Z"
             quantity_change:
               type: number
-              description: The change in quantity as a result of the movement.
+              description: The change in quantity as a result of the movement (positive for increases, negative for decreases).
+              example: 50.0
             balance_after:
               type: number
               description: The quantity balance after the movement.
+              example: 125.0
             value_per_unit:
               type: number
               description: The value per unit for the movement.
+              example: 25.50
             value_in_stock_after:
               type: number
               description: The total value in stock after the movement.
+              example: 3187.50
             average_cost_after:
               type: number
               description: The average cost per unit after the movement.
+              example: 25.50
             rank:
               type: integer
-              description: A rank or order index for the movement.
-        - $ref: "#/components/schemas/UpdatableEntity"
-      required:
-        - id
-        - variant_id
-        - location_id
-        - resource_type
-        - movement_date
-        - quantity_change
-        - balance_after
-        - value_per_unit
-        - value_in_stock_after
-        - average_cost_after
-        - created_at
-        - updated_at
+              description: A rank or order index for the movement within a sequence.
+              example: 1
+          required:
+            - variant_id
+            - location_id
+            - resource_type
+            - movement_date
+            - quantity_change
+            - balance_after
+            - value_per_unit
+            - value_in_stock_after
+            - average_cost_after
 
     InventoryMovementListResponse:
       type: object
@@ -1483,50 +1497,118 @@ components:
 
     Inventory:
       type: object
+      description: Current inventory status for a variant at a specific location
       properties:
         variant_id:
           type: integer
+          description: ID of product or material variant tracked in inventory
         location_id:
           type: integer
+          description: ID of the location of the inventory
+        safety_stock_level:
+          type: [number, "null"]
+          description: The quantity of a product or material which indicates an acceptable stock level for unexpected demand without overstocking
         reorder_point:
-          type: string
+          type: [number, "null"]
+          description: "(Deprecated - queries safety_stock_level instead) The reorder point for this variant"
         average_cost:
-          type: string
+          type: [number, "null"]
+          description: >
+            Current average unit cost of the item in stock
+            (= value_in_stock / quantity_in_stock).
+            Katana applies average cost methodology for stock costing
         value_in_stock:
-          type: string
+          type: [number, "null"]
+          description: >
+            The total value of items you have in stock.
+            This is the sum of purchasing price for materials and manufacturing cost for
+            products (not the sum of sales price). Does not include expected stock
         quantity_in_stock:
-          type: string
+          type: [number, "null"]
+          description: >
+            The quantity of stock you currently have on hand.
+            Updated automatically based on sales orders, manufacturing orders,
+            purchase orders, and stock adjustments
         quantity_committed:
-          type: string
+          type: [number, "null"]
+          description: >
+            The quantity of stock that is required by open sales and manufacturing orders.
+            Products are committed to open sales orders or as subassemblies to open
+            manufacturing orders. Materials are committed to both open sales and manufacturing orders
         quantity_expected:
-          type: string
+          type: [number, "null"]
+          description: >
+            Amount of stock that is expected to arrive in the stock.
+            Products are expected from open manufacturing orders and materials from open
+            purchase orders
         quantity_missing_or_excess:
-          type: string
+          type: [number, "null"]
+          description: >
+            Indicates whether your stock level is above or below an optimal level
+            (= quantity_in_stock - quantity_commited + quantity_expected - safety_stock_level).
+            Negative values indicate a need to buy more materials or make more products
         quantity_potential:
-          type: string
+          type: [number, "null"]
+          description: >
+            Returns the number of kits or bundles that can be sold based on the available
+            stock of each component. It calculates the maximum possible kits or bundles
+            available for sale by considering current stock levels and any stock already
+            committed to open orders
         variant:
           $ref: "#/components/schemas/Variant"
+          description: Details of the variant being tracked
         location:
           $ref: "#/components/schemas/Location"
+          description: Details of the location where inventory is stored
       required:
         - variant_id
         - location_id
-        - reorder_point
-        - average_cost
-        - value_in_stock
-        - quantity_in_stock
-        - quantity_committed
-        - quantity_expected
-        - quantity_missing_or_excess
-        - quantity_potential
+      example:
+        variant_id: 2001
+        location_id: 101
+        safety_stock_level: 50.0
+        reorder_point: 50.0
+        average_cost: 25.75
+        value_in_stock: 1287.50
+        quantity_in_stock: 50.0
+        quantity_committed: 15.0
+        quantity_expected: 25.0
+        quantity_missing_or_excess: 10.0
+        quantity_potential: 35.0
 
     InventoryListResponse:
       type: object
+      description: Response containing a list of inventory items
       properties:
         data:
           type: array
+          description: Array of inventory objects
           items:
             $ref: "#/components/schemas/Inventory"
+      example:
+        data:
+          - variant_id: 2001
+            location_id: 101
+            safety_stock_level: 50.0
+            reorder_point: 50.0
+            average_cost: 25.75
+            value_in_stock: 1287.50
+            quantity_in_stock: 50.0
+            quantity_committed: 15.0
+            quantity_expected: 25.0
+            quantity_missing_or_excess: 10.0
+            quantity_potential: 35.0
+          - variant_id: 2002
+            location_id: 101
+            safety_stock_level: 20.0
+            reorder_point: 20.0
+            average_cost: 15.50
+            value_in_stock: 465.00
+            quantity_in_stock: 30.0
+            quantity_committed: 8.0
+            quantity_expected: 10.0
+            quantity_missing_or_excess: 12.0
+            quantity_potential: 22.0
       required:
         - data
 
@@ -2246,28 +2328,62 @@ components:
 
     NegativeStock:
       type: object
+      description: Variant with negative stock balance information
       properties:
         variant_id:
           type: integer
+          description: ID of the variant with negative stock
         location_id:
           type: integer
+          description: ID of the location with negative stock
         latest_negative_stock_date:
           type: string
           format: date-time
+          description: Date of the latest stock movement that resulted in negative stock balance
         name:
           type: string
+          description: Name of the variant
         sku:
           type: string
+          description: SKU of the variant
         category:
           type: string
+          description: Category of the variant
+      required:
+        - variant_id
+        - location_id
+        - latest_negative_stock_date
+      example:
+        variant_id: 2005
+        location_id: 101
+        latest_negative_stock_date: "2023-10-20T14:30:00Z"
+        name: "Premium Steel Widget"
+        sku: "PSW-001"
+        category: "Widgets"
 
     NegativeStockListResponse:
       type: object
+      description: Response containing a list of variants with negative stock
       properties:
         data:
           type: array
+          description: Array of variants with negative stock
           items:
             $ref: "#/components/schemas/NegativeStock"
+      example:
+        data:
+          - variant_id: 2005
+            location_id: 101
+            latest_negative_stock_date: "2023-10-20T14:30:00Z"
+            name: "Premium Steel Widget"
+            sku: "PSW-001"
+            category: "Widgets"
+          - variant_id: 2006
+            location_id: 102
+            latest_negative_stock_date: "2023-10-21T09:15:00Z"
+            name: "Standard Aluminum Component"
+            sku: "SAC-002"
+            category: "Components"
 
     CreateProductRequest:
       type: object

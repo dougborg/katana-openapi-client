@@ -17,6 +17,15 @@ T = TypeVar("T", bound="NegativeStockListResponse")
 
 @_attrs_define
 class NegativeStockListResponse:
+    """Response containing a list of variants with negative stock
+
+    Example:
+        {'data': [{'variant_id': 2005, 'location_id': 101, 'latest_negative_stock_date': '2023-10-20T14:30:00Z', 'name':
+            'Premium Steel Widget', 'sku': 'PSW-001', 'category': 'Widgets'}, {'variant_id': 2006, 'location_id': 102,
+            'latest_negative_stock_date': '2023-10-21T09:15:00Z', 'name': 'Standard Aluminum Component', 'sku': 'SAC-002',
+            'category': 'Components'}]}
+    """
+
     data: Unset | list["NegativeStock"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

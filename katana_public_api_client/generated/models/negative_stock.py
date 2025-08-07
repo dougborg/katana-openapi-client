@@ -15,9 +15,16 @@ T = TypeVar("T", bound="NegativeStock")
 
 @_attrs_define
 class NegativeStock:
-    variant_id: Unset | int = UNSET
-    location_id: Unset | int = UNSET
-    latest_negative_stock_date: Unset | datetime.datetime = UNSET
+    """Variant with negative stock balance information
+
+    Example:
+        {'variant_id': 2005, 'location_id': 101, 'latest_negative_stock_date': '2023-10-20T14:30:00Z', 'name': 'Premium
+            Steel Widget', 'sku': 'PSW-001', 'category': 'Widgets'}
+    """
+
+    variant_id: int
+    location_id: int
+    latest_negative_stock_date: datetime.datetime
     name: Unset | str = UNSET
     sku: Unset | str = UNSET
     category: Unset | str = UNSET
@@ -28,9 +35,7 @@ class NegativeStock:
 
         location_id = self.location_id
 
-        latest_negative_stock_date: Unset | str = UNSET
-        if not isinstance(self.latest_negative_stock_date, Unset):
-            latest_negative_stock_date = self.latest_negative_stock_date.isoformat()
+        latest_negative_stock_date = self.latest_negative_stock_date.isoformat()
 
         name = self.name
 
@@ -40,13 +45,13 @@ class NegativeStock:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
-        if variant_id is not UNSET:
-            field_dict["variant_id"] = variant_id
-        if location_id is not UNSET:
-            field_dict["location_id"] = location_id
-        if latest_negative_stock_date is not UNSET:
-            field_dict["latest_negative_stock_date"] = latest_negative_stock_date
+        field_dict.update(
+            {
+                "variant_id": variant_id,
+                "location_id": location_id,
+                "latest_negative_stock_date": latest_negative_stock_date,
+            }
+        )
         if name is not UNSET:
             field_dict["name"] = name
         if sku is not UNSET:
@@ -59,16 +64,11 @@ class NegativeStock:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        variant_id = d.pop("variant_id", UNSET)
+        variant_id = d.pop("variant_id")
 
-        location_id = d.pop("location_id", UNSET)
+        location_id = d.pop("location_id")
 
-        _latest_negative_stock_date = d.pop("latest_negative_stock_date", UNSET)
-        latest_negative_stock_date: Unset | datetime.datetime
-        if isinstance(_latest_negative_stock_date, Unset):
-            latest_negative_stock_date = UNSET
-        else:
-            latest_negative_stock_date = isoparse(_latest_negative_stock_date)
+        latest_negative_stock_date = isoparse(d.pop("latest_negative_stock_date"))
 
         name = d.pop("name", UNSET)
 
