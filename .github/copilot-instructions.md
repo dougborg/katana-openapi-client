@@ -316,6 +316,47 @@ git commit -m "fix!: remove deprecated API methods"
 1. Run `poetry run poe format`
 1. Update tests if endpoint signatures changed
 
+### OpenAPI Schema Patterns (Established Standards)
+
+**Common Entity Patterns**: We've established consistent schema inheritance patterns for
+the Katana API:
+
+- **`BaseEntity`**: Provides common `id` property for all entities
+- **`UpdatableEntity`**: Adds `created_at` and `updated_at` timestamps
+- **`DeletableEntity`**: Extends UpdatableEntity with `deleted_at` (soft delete)
+- **`ArchivableEntity`**: Extends UpdatableEntity with `archived_at`
+
+**Schema Composition Pattern**:
+
+```yaml
+# CORRECT pattern for entity schemas:
+SomeEntity:
+  allOf:
+    - $ref: "#/components/schemas/BaseEntity"
+    - $ref: "#/components/schemas/UpdatableEntity"  # or DeletableEntity/ArchivableEntity
+    - type: object
+      properties:
+        # entity-specific properties
+      required:
+        - # entity-specific required fields
+```
+
+**Example Standards**:
+
+- **Always include realistic examples** in schemas with industry-appropriate naming
+- **Add comprehensive descriptions** to all properties
+- **Use consistent ID ranges** in examples (1xx for simple IDs, 2xxx for variants, 3xxx
+  for items, etc.)
+- **Schema examples over endpoint examples** - avoid duplication by preferring
+  schema-level examples
+
+**Validation Approach**:
+
+- Validate against official Katana documentation at developer.katanamrp.com
+- Document discrepancies in `docs/KATANA_API_QUESTIONS.md`
+- Use `fix:` commits for individual resource improvements
+- Use `feat:` only for major structural changes affecting multiple resources
+
 ### Type Safety
 
 - **MyPy strict checking** on custom code (443+ files)
@@ -335,6 +376,14 @@ git commit -m "fix!: remove deprecated API methods"
    checks
 1. **Use correct conventional commit types** - See "Conventional Commits" section above.
    Wrong commit types trigger unwanted releases or miss important version bumps.
+1. **Always use BaseEntity pattern** - Don't add `id` property directly to schemas, use
+   `BaseEntity` reference
+1. **Schema examples over endpoint examples** - Avoid duplication by putting examples in
+   schemas, not endpoints
+1. **Validate against official docs** - Always check developer.katanamrp.com when
+   modifying OpenAPI spec
+1. **Document discrepancies** - Add any API inconsistencies to
+   `docs/KATANA_API_QUESTIONS.md`
 
 ## Version Support Policy
 
