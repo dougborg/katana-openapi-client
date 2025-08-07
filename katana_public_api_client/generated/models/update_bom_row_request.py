@@ -8,20 +8,24 @@ from attrs import (
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="UpdateBomRowBody")
+T = TypeVar("T", bound="UpdateBomRowRequest")
 
 
 @_attrs_define
-class UpdateBomRowBody:
+class UpdateBomRowRequest:
     ingredient_variant_id: Unset | int = UNSET
-    quantity: Unset | float = UNSET
+    quantity: None | Unset | float = UNSET
     notes: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         ingredient_variant_id = self.ingredient_variant_id
 
-        quantity = self.quantity
+        quantity: None | Unset | float
+        if isinstance(self.quantity, Unset):
+            quantity = UNSET
+        else:
+            quantity = self.quantity
 
         notes: None | Unset | str
         if isinstance(self.notes, Unset):
@@ -46,7 +50,14 @@ class UpdateBomRowBody:
         d = dict(src_dict)
         ingredient_variant_id = d.pop("ingredient_variant_id", UNSET)
 
-        quantity = d.pop("quantity", UNSET)
+        def _parse_quantity(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
+
+        quantity = _parse_quantity(d.pop("quantity", UNSET))
 
         def _parse_notes(data: object) -> None | Unset | str:
             if data is None:
@@ -57,14 +68,14 @@ class UpdateBomRowBody:
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
-        update_bom_row_body = cls(
+        update_bom_row_request = cls(
             ingredient_variant_id=ingredient_variant_id,
             quantity=quantity,
             notes=notes,
         )
 
-        update_bom_row_body.additional_properties = d
-        return update_bom_row_body
+        update_bom_row_request.additional_properties = d
+        return update_bom_row_request
 
     @property
     def additional_keys(self) -> list[str]:

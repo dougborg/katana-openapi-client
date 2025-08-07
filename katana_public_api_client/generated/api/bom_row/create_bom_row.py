@@ -1,11 +1,10 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.bom_row import BomRow
 from ...models.create_bom_row_request import CreateBomRowRequest
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
@@ -33,10 +32,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> BomRow | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 200:
-        response_200 = BomRow.from_dict(response.json())
-
+        response_200 = cast(Any, None)
         return response_200
     if response.status_code == 401:
         response_401 = ErrorResponse.from_dict(response.json())
@@ -62,7 +60,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[BomRow | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -75,7 +73,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateBomRowRequest,
-) -> Response[BomRow | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Create a BOM row
 
      Create a new BOM row for a product.
@@ -89,7 +87,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[BomRow, DetailedErrorResponse, ErrorResponse]]
+        Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -107,7 +105,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateBomRowRequest,
-) -> BomRow | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Create a BOM row
 
      Create a new BOM row for a product.
@@ -121,7 +119,7 @@ def sync(
 
 
     Returns:
-        Union[BomRow, DetailedErrorResponse, ErrorResponse]
+        Union[Any, DetailedErrorResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -134,7 +132,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateBomRowRequest,
-) -> Response[BomRow | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Create a BOM row
 
      Create a new BOM row for a product.
@@ -148,7 +146,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[BomRow, DetailedErrorResponse, ErrorResponse]]
+        Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -164,7 +162,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateBomRowRequest,
-) -> BomRow | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Create a BOM row
 
      Create a new BOM row for a product.
@@ -178,7 +176,7 @@ async def asyncio(
 
 
     Returns:
-        Union[BomRow, DetailedErrorResponse, ErrorResponse]
+        Union[Any, DetailedErrorResponse, ErrorResponse]
     """
 
     return (

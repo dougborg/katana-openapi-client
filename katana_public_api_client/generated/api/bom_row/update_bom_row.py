@@ -8,14 +8,14 @@ from ...client import AuthenticatedClient, Client
 from ...models.bom_row import BomRow
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
-from ...models.update_bom_row_body import UpdateBomRowBody
+from ...models.update_bom_row_request import UpdateBomRowRequest
 from ...types import Response
 
 
 def _get_kwargs(
     id: int,
     *,
-    body: UpdateBomRowBody,
+    body: UpdateBomRowRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -80,7 +80,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateBomRowBody,
+    body: UpdateBomRowRequest,
 ) -> Response[BomRow | DetailedErrorResponse | ErrorResponse]:
     """Update a BOM row
 
@@ -89,7 +89,7 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateBomRowBody):
+        body (UpdateBomRowRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -116,7 +116,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateBomRowBody,
+    body: UpdateBomRowRequest,
 ) -> BomRow | DetailedErrorResponse | ErrorResponse | None:
     """Update a BOM row
 
@@ -125,7 +125,7 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateBomRowBody):
+        body (UpdateBomRowRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -147,7 +147,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateBomRowBody,
+    body: UpdateBomRowRequest,
 ) -> Response[BomRow | DetailedErrorResponse | ErrorResponse]:
     """Update a BOM row
 
@@ -156,7 +156,7 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateBomRowBody):
+        body (UpdateBomRowRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -181,7 +181,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateBomRowBody,
+    body: UpdateBomRowRequest,
 ) -> BomRow | DetailedErrorResponse | ErrorResponse | None:
     """Update a BOM row
 
@@ -190,7 +190,7 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateBomRowBody):
+        body (UpdateBomRowRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

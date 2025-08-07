@@ -1263,6 +1263,31 @@ components:
             - sku
         - $ref: "#/components/schemas/DeletableEntity"
 
+    LocationAddress:
+      type: object
+      properties:
+        id:
+          type: integer
+        city:
+          type: string
+        country:
+          type: string
+        line_1:
+          type: string
+        line_2:
+          type: string
+        state:
+          type: string
+        zip:
+          type: string
+      required:
+        - id
+        - city
+        - country
+        - line_1
+        - state
+        - zip
+
     Location:
       anyOf:
         - type: object
@@ -1276,29 +1301,7 @@ components:
             address_id:
               type: integer
             address:
-              type: object
-              properties:
-                id:
-                  type: integer
-                city:
-                  type: string
-                country:
-                  type: string
-                line_1:
-                  type: string
-                line_2:
-                  type: string
-                state:
-                  type: string
-                zip:
-                  type: string
-              required:
-                - id
-                - city
-                - country
-                - line_1
-                - state
-                - zip
+              $ref: "#/components/schemas/LocationAddress"
             is_primary:
               type: boolean
             sales_allowed:
@@ -4185,12 +4188,20 @@ components:
               type: integer
             product_variant_id:
               type: integer
+              minimum: 1
+              maximum: 2147483647
             product_item_id:
               type: integer
+              minimum: 1
+              maximum: 2147483647
             ingredient_variant_id:
               type: integer
+              minimum: 1
+              maximum: 2147483647
             quantity:
-              type: number
+              type: [number, "null"]
+              minimum: 0
+              maximum: 100000000000000000
             notes:
               type: [string, "null"]
           required:
@@ -4198,24 +4209,33 @@ components:
             - product_variant_id
             - product_item_id
             - ingredient_variant_id
-            - quantity
         - $ref: "#/components/schemas/UpdatableEntity"
 
     CreateBomRowRequest:
       type: object
       properties:
+        product_item_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
         product_variant_id:
           type: integer
+          minimum: 1
+          maximum: 2147483647
         ingredient_variant_id:
           type: integer
+          minimum: 1
+          maximum: 2147483647
         quantity:
-          type: number
+          type: [number, "null"]
+          minimum: 0
+          maximum: 100000000000000000
         notes:
           type: [string, "null"]
       required:
+        - product_item_id
         - product_variant_id
         - ingredient_variant_id
-        - quantity
 
     BatchCreateBomRowsRequest:
       type: object
@@ -4226,6 +4246,20 @@ components:
             $ref: "#/components/schemas/CreateBomRowRequest"
       required:
         - bom_rows
+
+    UpdateBomRowRequest:
+      type: object
+      properties:
+        ingredient_variant_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        quantity:
+          type: [number, "null"]
+          minimum: 0
+          maximum: 100000000000000000
+        notes:
+          type: [string, "null"]
 
     BomRowListResponse:
       type: object
@@ -11143,6 +11177,8 @@ paths:
         "200":
           description: List of BOM rows
           headers:
+            X-Pagination:
+              $ref: "#/components/headers/X-Pagination"
             X-Ratelimit-Limit:
               $ref: "#/components/headers/X-Ratelimit-Limit"
             X-Ratelimit-Remaining:
@@ -11175,7 +11211,7 @@ paths:
               $ref: "#/components/schemas/CreateBomRowRequest"
       responses:
         "200":
-          description: BOM row created
+          description: BOM row created successfully
           headers:
             X-Ratelimit-Limit:
               $ref: "#/components/headers/X-Ratelimit-Limit"
@@ -11183,10 +11219,6 @@ paths:
               $ref: "#/components/headers/X-Ratelimit-Remaining"
             X-Ratelimit-Reset:
               $ref: "#/components/headers/X-Ratelimit-Reset"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/BomRow"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "422":
@@ -11253,14 +11285,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                ingredient_variant_id:
-                  type: integer
-                quantity:
-                  type: number
-                notes:
-                  type: [string, "null"]
+              $ref: "#/components/schemas/UpdateBomRowRequest"
       responses:
         "200":
           description: BOM row updated

@@ -19,9 +19,9 @@ class BomRow:
     product_variant_id: int
     product_item_id: int
     ingredient_variant_id: int
-    quantity: float
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
+    quantity: None | Unset | float = UNSET
     notes: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -34,8 +34,6 @@ class BomRow:
 
         ingredient_variant_id = self.ingredient_variant_id
 
-        quantity = self.quantity
-
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -43,6 +41,12 @@ class BomRow:
         updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
+
+        quantity: None | Unset | float
+        if isinstance(self.quantity, Unset):
+            quantity = UNSET
+        else:
+            quantity = self.quantity
 
         notes: None | Unset | str
         if isinstance(self.notes, Unset):
@@ -58,13 +62,14 @@ class BomRow:
                 "product_variant_id": product_variant_id,
                 "product_item_id": product_item_id,
                 "ingredient_variant_id": ingredient_variant_id,
-                "quantity": quantity,
             }
         )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
+        if quantity is not UNSET:
+            field_dict["quantity"] = quantity
         if notes is not UNSET:
             field_dict["notes"] = notes
 
@@ -81,8 +86,6 @@ class BomRow:
 
         ingredient_variant_id = d.pop("ingredient_variant_id")
 
-        quantity = d.pop("quantity")
-
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -96,6 +99,15 @@ class BomRow:
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
+
+        def _parse_quantity(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
+
+        quantity = _parse_quantity(d.pop("quantity", UNSET))
 
         def _parse_notes(data: object) -> None | Unset | str:
             if data is None:
@@ -111,9 +123,9 @@ class BomRow:
             product_variant_id=product_variant_id,
             product_item_id=product_item_id,
             ingredient_variant_id=ingredient_variant_id,
-            quantity=quantity,
             created_at=created_at,
             updated_at=updated_at,
+            quantity=quantity,
             notes=notes,
         )
 

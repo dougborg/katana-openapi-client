@@ -134,7 +134,8 @@ from .inventory_reorder_point_list_response import InventoryReorderPointListResp
 from .inventory_reorder_point_response import InventoryReorderPointResponse
 from .inventory_safety_stock_level import InventorySafetyStockLevel
 from .inventory_safety_stock_level_response import InventorySafetyStockLevelResponse
-from .location_type_0_address import LocationType0Address
+from .location_address import LocationAddress
+from .location_type_0 import LocationType0
 from .make_to_order_manufacturing_order_request import (
     MakeToOrderManufacturingOrderRequest,
 )
@@ -287,7 +288,7 @@ from .tax_rate_list_response import TaxRateListResponse
 from .unlink_manufacturing_order_request import UnlinkManufacturingOrderRequest
 from .unlink_variant_bin_location_request import UnlinkVariantBinLocationRequest
 from .updatable_entity import UpdatableEntity
-from .update_bom_row_body import UpdateBomRowBody
+from .update_bom_row_request import UpdateBomRowRequest
 from .update_customer_address_body import UpdateCustomerAddressBody
 from .update_customer_address_body_entity_type import (
     UpdateCustomerAddressBodyEntityType,
@@ -458,7 +459,8 @@ __all__ = (
     "InventoryReorderPointResponse",
     "InventorySafetyStockLevel",
     "InventorySafetyStockLevelResponse",
-    "LocationType0Address",
+    "LocationAddress",
+    "LocationType0",
     "MakeToOrderManufacturingOrderRequest",
     "ManufacturingOrder",
     "ManufacturingOrderListResponse",
@@ -571,7 +573,7 @@ __all__ = (
     "UnlinkManufacturingOrderRequest",
     "UnlinkVariantBinLocationRequest",
     "UpdatableEntity",
-    "UpdateBomRowBody",
+    "UpdateBomRowRequest",
     "UpdateCustomerAddressBody",
     "UpdateCustomerAddressBodyEntityType",
     "UpdateManufacturingOrderOperationRowRequest",

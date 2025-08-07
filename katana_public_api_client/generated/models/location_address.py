@@ -8,11 +8,11 @@ from attrs import (
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="LocationType0Address")
+T = TypeVar("T", bound="LocationAddress")
 
 
 @_attrs_define
-class LocationType0Address:
+class LocationAddress:
     id: int
     city: str
     country: str
@@ -71,7 +71,7 @@ class LocationType0Address:
 
         line_2 = d.pop("line_2", UNSET)
 
-        location_type_0_address = cls(
+        location_address = cls(
             id=id,
             city=city,
             country=country,
@@ -81,8 +81,8 @@ class LocationType0Address:
             line_2=line_2,
         )
 
-        location_type_0_address.additional_properties = d
-        return location_type_0_address
+        location_address.additional_properties = d
+        return location_address
 
     @property
     def additional_keys(self) -> list[str]:

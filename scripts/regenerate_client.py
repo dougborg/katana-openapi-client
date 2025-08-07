@@ -597,6 +597,16 @@ def main():
         # Step 7: Run linting checks
         if not run_lint_check(workspace_path):
             print("⚠️  Linting had issues but continuing")
+
+        # Step 8: Final formatting pass to ensure everything is properly formatted
+        print("🎨 Running final formatting pass...")
+        final_format_result = run_command(
+            ["poetry", "run", "ruff", "format", "."], cwd=workspace_path, check=False
+        )
+        if final_format_result.returncode != 0:
+            print("⚠️  Final formatting had issues but continuing")
+        else:
+            print("✅ Final formatting completed")
     else:
         print("⏭️  Skipping formatting and linting")
 
