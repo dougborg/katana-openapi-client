@@ -8,6 +8,9 @@ from attrs import (
 )
 from dateutil.parser import isoparse
 
+from ..models.manufacturing_order_recipe_row_ingredient_availability import (
+    ManufacturingOrderRecipeRowIngredientAvailability,
+)
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -21,17 +24,29 @@ T = TypeVar("T", bound="ManufacturingOrderRecipeRow")
 
 @_attrs_define
 class ManufacturingOrderRecipeRow:
+    """A recipe row in a manufacturing order representing an ingredient/material requirement
+
+    Example:
+        {'id': 6001, 'manufacturing_order_id': 21400, 'variant_id': 1418017, 'notes': 'Pay close attention to this',
+            'planned_quantity_per_unit': 1.2, 'total_actual_quantity': 12, 'ingredient_availability': 'IN_STOCK',
+            'ingredient_expected_date': '2021-03-18T12:33:39.957Z', 'batch_transactions': [{'batch_id': 11, 'quantity':
+            7.4}, {'batch_id': 12, 'quantity': 4.6}], 'cost': 50.4, 'created_at': '2021-02-18T12:33:39.957Z', 'updated_at':
+            '2021-02-18T12:33:39.957Z', 'deleted_at': None}
+    """
+
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | str = UNSET
-    id: Unset | int = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
     manufacturing_order_id: Unset | int = UNSET
     variant_id: Unset | int = UNSET
     notes: Unset | str = UNSET
     planned_quantity_per_unit: Unset | float = UNSET
     total_actual_quantity: Unset | float = UNSET
-    ingredient_availability: Unset | str = UNSET
-    ingredient_expected_date: Unset | datetime.datetime = UNSET
+    ingredient_availability: (
+        Unset | ManufacturingOrderRecipeRowIngredientAvailability
+    ) = UNSET
+    ingredient_expected_date: None | Unset | datetime.datetime = UNSET
     batch_transactions: (
         Unset | list["ManufacturingOrderRecipeRowBatchTransactionsItem"]
     ) = UNSET
@@ -39,6 +54,8 @@ class ManufacturingOrderRecipeRow:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -50,10 +67,10 @@ class ManufacturingOrderRecipeRow:
         deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
-
-        id = self.id
 
         manufacturing_order_id = self.manufacturing_order_id
 
@@ -65,11 +82,17 @@ class ManufacturingOrderRecipeRow:
 
         total_actual_quantity = self.total_actual_quantity
 
-        ingredient_availability = self.ingredient_availability
+        ingredient_availability: Unset | str = UNSET
+        if not isinstance(self.ingredient_availability, Unset):
+            ingredient_availability = self.ingredient_availability.value
 
-        ingredient_expected_date: Unset | str = UNSET
-        if not isinstance(self.ingredient_expected_date, Unset):
+        ingredient_expected_date: None | Unset | str
+        if isinstance(self.ingredient_expected_date, Unset):
+            ingredient_expected_date = UNSET
+        elif isinstance(self.ingredient_expected_date, datetime.datetime):
             ingredient_expected_date = self.ingredient_expected_date.isoformat()
+        else:
+            ingredient_expected_date = self.ingredient_expected_date
 
         batch_transactions: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.batch_transactions, Unset):
@@ -82,15 +105,17 @@ class ManufacturingOrderRecipeRow:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if manufacturing_order_id is not UNSET:
             field_dict["manufacturing_order_id"] = manufacturing_order_id
         if variant_id is not UNSET:
@@ -119,6 +144,8 @@ class ManufacturingOrderRecipeRow:
         )
 
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -133,16 +160,22 @@ class ManufacturingOrderRecipeRow:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | str:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
-
-        id = d.pop("id", UNSET)
 
         manufacturing_order_id = d.pop("manufacturing_order_id", UNSET)
 
@@ -154,14 +187,37 @@ class ManufacturingOrderRecipeRow:
 
         total_actual_quantity = d.pop("total_actual_quantity", UNSET)
 
-        ingredient_availability = d.pop("ingredient_availability", UNSET)
-
-        _ingredient_expected_date = d.pop("ingredient_expected_date", UNSET)
-        ingredient_expected_date: Unset | datetime.datetime
-        if isinstance(_ingredient_expected_date, Unset):
-            ingredient_expected_date = UNSET
+        _ingredient_availability = d.pop("ingredient_availability", UNSET)
+        ingredient_availability: (
+            Unset | ManufacturingOrderRecipeRowIngredientAvailability
+        )
+        if isinstance(_ingredient_availability, Unset):
+            ingredient_availability = UNSET
         else:
-            ingredient_expected_date = isoparse(_ingredient_expected_date)
+            ingredient_availability = ManufacturingOrderRecipeRowIngredientAvailability(
+                _ingredient_availability
+            )
+
+        def _parse_ingredient_expected_date(
+            data: object,
+        ) -> None | Unset | datetime.datetime:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                ingredient_expected_date_type_0 = isoparse(data)
+
+                return ingredient_expected_date_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
+
+        ingredient_expected_date = _parse_ingredient_expected_date(
+            d.pop("ingredient_expected_date", UNSET)
+        )
 
         batch_transactions = []
         _batch_transactions = d.pop("batch_transactions", UNSET)
@@ -177,10 +233,10 @@ class ManufacturingOrderRecipeRow:
         cost = d.pop("cost", UNSET)
 
         manufacturing_order_recipe_row = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            id=id,
             manufacturing_order_id=manufacturing_order_id,
             variant_id=variant_id,
             notes=notes,

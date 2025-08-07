@@ -79,7 +79,12 @@ def sync_detailed(
       Recipe rows cannot be added when the manufacturing order status is DONE.
 
     Args:
-        body (CreateManufacturingOrderRecipeRowRequest):
+        body (CreateManufacturingOrderRecipeRowRequest): Request object for creating a new
+            manufacturing order recipe row Example: {'manufacturing_order_id': 21400, 'variant_id':
+            1418017, 'notes': 'Pay close attention to this', 'planned_quantity_per_unit': 1.2,
+            'total_actual_quantity': 12, 'ingredient_availability': 'IN_STOCK',
+            'ingredient_expected_date': '2021-03-18T12:33:39.957Z', 'batch_transactions':
+            [{'batch_id': 11, 'quantity': 7.4}, {'batch_id': 12, 'quantity': 4.6}], 'cost': 50.4}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -112,7 +117,12 @@ def sync(
       Recipe rows cannot be added when the manufacturing order status is DONE.
 
     Args:
-        body (CreateManufacturingOrderRecipeRowRequest):
+        body (CreateManufacturingOrderRecipeRowRequest): Request object for creating a new
+            manufacturing order recipe row Example: {'manufacturing_order_id': 21400, 'variant_id':
+            1418017, 'notes': 'Pay close attention to this', 'planned_quantity_per_unit': 1.2,
+            'total_actual_quantity': 12, 'ingredient_availability': 'IN_STOCK',
+            'ingredient_expected_date': '2021-03-18T12:33:39.957Z', 'batch_transactions':
+            [{'batch_id': 11, 'quantity': 7.4}, {'batch_id': 12, 'quantity': 4.6}], 'cost': 50.4}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -140,7 +150,12 @@ async def asyncio_detailed(
       Recipe rows cannot be added when the manufacturing order status is DONE.
 
     Args:
-        body (CreateManufacturingOrderRecipeRowRequest):
+        body (CreateManufacturingOrderRecipeRowRequest): Request object for creating a new
+            manufacturing order recipe row Example: {'manufacturing_order_id': 21400, 'variant_id':
+            1418017, 'notes': 'Pay close attention to this', 'planned_quantity_per_unit': 1.2,
+            'total_actual_quantity': 12, 'ingredient_availability': 'IN_STOCK',
+            'ingredient_expected_date': '2021-03-18T12:33:39.957Z', 'batch_transactions':
+            [{'batch_id': 11, 'quantity': 7.4}, {'batch_id': 12, 'quantity': 4.6}], 'cost': 50.4}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -171,7 +186,12 @@ async def asyncio(
       Recipe rows cannot be added when the manufacturing order status is DONE.
 
     Args:
-        body (CreateManufacturingOrderRecipeRowRequest):
+        body (CreateManufacturingOrderRecipeRowRequest): Request object for creating a new
+            manufacturing order recipe row Example: {'manufacturing_order_id': 21400, 'variant_id':
+            1418017, 'notes': 'Pay close attention to this', 'planned_quantity_per_unit': 1.2,
+            'total_actual_quantity': 12, 'ingredient_availability': 'IN_STOCK',
+            'ingredient_expected_date': '2021-03-18T12:33:39.957Z', 'batch_transactions':
+            [{'batch_id': 11, 'quantity': 7.4}, {'batch_id': 12, 'quantity': 4.6}], 'cost': 50.4}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

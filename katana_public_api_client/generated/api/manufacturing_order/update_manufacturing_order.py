@@ -89,7 +89,10 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRequest):
+        body (UpdateManufacturingOrderRequest): Request object for updating an existing
+            manufacturing order Example: {'planned_quantity': 2, 'additional_info': 'Updated
+            production requirements', 'production_deadline_date': '2021-10-20T08:00:00.000Z'}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -125,7 +128,10 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRequest):
+        body (UpdateManufacturingOrderRequest): Request object for updating an existing
+            manufacturing order Example: {'planned_quantity': 2, 'additional_info': 'Updated
+            production requirements', 'production_deadline_date': '2021-10-20T08:00:00.000Z'}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -156,7 +162,10 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRequest):
+        body (UpdateManufacturingOrderRequest): Request object for updating an existing
+            manufacturing order Example: {'planned_quantity': 2, 'additional_info': 'Updated
+            production requirements', 'production_deadline_date': '2021-10-20T08:00:00.000Z'}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -190,7 +199,10 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRequest):
+        body (UpdateManufacturingOrderRequest): Request object for updating an existing
+            manufacturing order Example: {'planned_quantity': 2, 'additional_info': 'Updated
+            production requirements', 'production_deadline_date': '2021-10-20T08:00:00.000Z'}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

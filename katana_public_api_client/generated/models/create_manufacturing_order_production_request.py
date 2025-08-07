@@ -24,6 +24,13 @@ T = TypeVar("T", bound="CreateManufacturingOrderProductionRequest")
 
 @_attrs_define
 class CreateManufacturingOrderProductionRequest:
+    """Request object for creating a new manufacturing order production
+
+    Example:
+        {'manufacturing_order_id': 21400, 'quantity': 5, 'production_date': '2021-09-01T07:49:29.000Z', 'ingredients':
+            [], 'operations': []}
+    """
+
     manufacturing_order_id: int
     quantity: float
     production_date: datetime.datetime

@@ -79,7 +79,9 @@ def sync_detailed(
       manufacturing order status is DONE.
 
     Args:
-        body (CreateManufacturingOrderOperationRowRequest):
+        body (CreateManufacturingOrderOperationRowRequest): Request object for creating a new
+            manufacturing order operation row Example: {'manufacturing_order_id': 21400,
+            'operation_id': 501, 'time': 1800}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -112,7 +114,9 @@ def sync(
       manufacturing order status is DONE.
 
     Args:
-        body (CreateManufacturingOrderOperationRowRequest):
+        body (CreateManufacturingOrderOperationRowRequest): Request object for creating a new
+            manufacturing order operation row Example: {'manufacturing_order_id': 21400,
+            'operation_id': 501, 'time': 1800}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -140,7 +144,9 @@ async def asyncio_detailed(
       manufacturing order status is DONE.
 
     Args:
-        body (CreateManufacturingOrderOperationRowRequest):
+        body (CreateManufacturingOrderOperationRowRequest): Request object for creating a new
+            manufacturing order operation row Example: {'manufacturing_order_id': 21400,
+            'operation_id': 501, 'time': 1800}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -171,7 +177,9 @@ async def asyncio(
       manufacturing order status is DONE.
 
     Args:
-        body (CreateManufacturingOrderOperationRowRequest):
+        body (CreateManufacturingOrderOperationRowRequest): Request object for creating a new
+            manufacturing order operation row Example: {'manufacturing_order_id': 21400,
+            'operation_id': 501, 'time': 1800}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

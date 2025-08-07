@@ -142,6 +142,12 @@ from .make_to_order_manufacturing_order_request import (
     MakeToOrderManufacturingOrderRequest,
 )
 from .manufacturing_order import ManufacturingOrder
+from .manufacturing_order_batch_transactions_item import (
+    ManufacturingOrderBatchTransactionsItem,
+)
+from .manufacturing_order_ingredient_availability import (
+    ManufacturingOrderIngredientAvailability,
+)
 from .manufacturing_order_list_response import ManufacturingOrderListResponse
 from .manufacturing_order_operation_production import (
     ManufacturingOrderOperationProduction,
@@ -166,6 +172,9 @@ from .manufacturing_order_production_list_response import (
 from .manufacturing_order_recipe_row import ManufacturingOrderRecipeRow
 from .manufacturing_order_recipe_row_batch_transactions_item import (
     ManufacturingOrderRecipeRowBatchTransactionsItem,
+)
+from .manufacturing_order_recipe_row_ingredient_availability import (
+    ManufacturingOrderRecipeRowIngredientAvailability,
 )
 from .manufacturing_order_recipe_row_list_response import (
     ManufacturingOrderRecipeRowListResponse,
@@ -470,6 +479,8 @@ __all__ = (
     "LocationAddress",
     "MakeToOrderManufacturingOrderRequest",
     "ManufacturingOrder",
+    "ManufacturingOrderBatchTransactionsItem",
+    "ManufacturingOrderIngredientAvailability",
     "ManufacturingOrderListResponse",
     "ManufacturingOrderOperationProduction",
     "ManufacturingOrderOperationRow",
@@ -481,6 +492,7 @@ __all__ = (
     "ManufacturingOrderProductionListResponse",
     "ManufacturingOrderRecipeRow",
     "ManufacturingOrderRecipeRowBatchTransactionsItem",
+    "ManufacturingOrderRecipeRowIngredientAvailability",
     "ManufacturingOrderRecipeRowListResponse",
     "ManufacturingOrderStatus",
     "Material",

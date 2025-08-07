@@ -22,10 +22,22 @@ T = TypeVar("T", bound="ManufacturingOrderOperationRow")
 
 @_attrs_define
 class ManufacturingOrderOperationRow:
+    """An operation row in a manufacturing order representing a specific operation step
+
+    Example:
+        {'id': 5001, 'status': 'COMPLETED', 'type': 'Manual Assembly', 'rank': 1, 'manufacturing_order_id': 21400,
+            'operation_id': 501, 'operation_name': 'Final Assembly', 'resource_id': 301, 'resource_name': 'Assembly Station
+            A', 'assigned_operators': [], 'completed_by_operators': [], 'active_operator_id': None, 'planned_time_per_unit':
+            1800, 'planned_time_parameter': 1.0, 'total_actual_time': 1900, 'planned_cost_per_unit': 15.0,
+            'total_actual_cost': 16.25, 'cost_per_hour': 30.0, 'cost_parameter': 1.0, 'group_boundary': 0,
+            'is_status_actionable': True, 'completed_at': '2021-09-01T09:49:29.000Z', 'created_at':
+            '2021-09-01T07:49:29.813Z', 'updated_at': '2021-09-01T09:50:00.000Z', 'deleted_at': None}
+    """
+
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | str = UNSET
-    id: Unset | int = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
     status: Unset | ManufacturingOrderOperationRowStatus = UNSET
     type_: Unset | str = UNSET
     rank: Unset | float = UNSET
@@ -36,7 +48,7 @@ class ManufacturingOrderOperationRow:
     resource_name: Unset | str = UNSET
     assigned_operators: Unset | list["Operator"] = UNSET
     completed_by_operators: Unset | list["Operator"] = UNSET
-    active_operator_id: Unset | float = UNSET
+    active_operator_id: None | Unset | float = UNSET
     planned_time_per_unit: Unset | float = UNSET
     planned_time_parameter: Unset | float = UNSET
     total_actual_time: Unset | float = UNSET
@@ -50,6 +62,8 @@ class ManufacturingOrderOperationRow:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -61,10 +75,10 @@ class ManufacturingOrderOperationRow:
         deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
-
-        id = self.id
 
         status: Unset | str = UNSET
         if not isinstance(self.status, Unset):
@@ -98,7 +112,11 @@ class ManufacturingOrderOperationRow:
                 completed_by_operators_item = completed_by_operators_item_data.to_dict()
                 completed_by_operators.append(completed_by_operators_item)
 
-        active_operator_id = self.active_operator_id
+        active_operator_id: None | Unset | float
+        if isinstance(self.active_operator_id, Unset):
+            active_operator_id = UNSET
+        else:
+            active_operator_id = self.active_operator_id
 
         planned_time_per_unit = self.planned_time_per_unit
 
@@ -128,15 +146,17 @@ class ManufacturingOrderOperationRow:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if status is not UNSET:
             field_dict["status"] = status
         if type_ is not UNSET:
@@ -187,6 +207,8 @@ class ManufacturingOrderOperationRow:
         from ..models.operator import Operator
 
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -201,16 +223,22 @@ class ManufacturingOrderOperationRow:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | str:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
-
-        id = d.pop("id", UNSET)
 
         _status = d.pop("status", UNSET)
         status: Unset | ManufacturingOrderOperationRowStatus
@@ -249,7 +277,16 @@ class ManufacturingOrderOperationRow:
 
             completed_by_operators.append(completed_by_operators_item)
 
-        active_operator_id = d.pop("active_operator_id", UNSET)
+        def _parse_active_operator_id(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
+
+        active_operator_id = _parse_active_operator_id(
+            d.pop("active_operator_id", UNSET)
+        )
 
         planned_time_per_unit = d.pop("planned_time_per_unit", UNSET)
 
@@ -287,10 +324,10 @@ class ManufacturingOrderOperationRow:
         completed_at = _parse_completed_at(d.pop("completed_at", UNSET))
 
         manufacturing_order_operation_row = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            id=id,
             status=status,
             type_=type_,
             rank=rank,

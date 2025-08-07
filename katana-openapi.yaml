@@ -993,40 +993,29 @@ components:
         updated_at: "2020-10-23T10:37:05.085Z"
 
     ArchivableEntity:
-      type: object
-      description: Common fields for entities that can be archived
-      properties:
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        archived_at:
-          type: [string, "null"]
-          description: Nullable archive timestamp
-      example:
-        created_at: "2020-10-23T10:37:05.085Z"
-        updated_at: "2020-10-23T10:37:05.085Z"
-        archived_at: null
+      allOf:
+        - $ref: "#/components/schemas/UpdatableEntity"
+        - type: object
+          description: Common fields for entities that can be archived
+          properties:
+            archived_at:
+              type: [string, "null"]
+              format: date-time
+              description: Nullable archive timestamp - when the entity was archived
+              example: null
 
     DeletableEntity:
-      type: object
-      description: Common fields for entities that can be deleted
-      properties:
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        deleted_at:
-          type: [string, "null"]
-          description: Nullable deletion timestamp
-      example:
-        created_at: "2020-10-23T10:37:05.085Z"
-        updated_at: "2020-10-23T10:37:05.085Z"
-        deleted_at: null
+      allOf:
+        - $ref: "#/components/schemas/UpdatableEntity"
+        - type: object
+          description: Common fields for entities that can be deleted
+          properties:
+            deleted_at:
+              type: [string, "null"]
+              format: date-time
+              description: Nullable deletion timestamp
+          example:
+            deleted_at: null
 
     # Main Entities
     AdditionalCost:
@@ -1675,6 +1664,7 @@ components:
 
     CreateManufacturingOrderRequest:
       type: object
+      description: Request object for creating a new manufacturing order
       required:
         - variant_id
         - planned_quantity
@@ -1682,88 +1672,184 @@ components:
       properties:
         variant_id:
           type: integer
+          description: The ID of the product variant being produced
         planned_quantity:
           type: number
+          description: The quantity planned to produce with the manufacturing order
         location_id:
           type: integer
+          description: The ID of the location to which items are produced
         order_created_date:
           type: string
           format: date-time
+          description: The timestamp of creating the document. ISO 8601 format with time and timezone must be used
         production_deadline_date:
           type: string
           format: date-time
+          description: The timestamp of the production deadline for the manufacturing order. ISO 8601 format with time and timezone must be used
         additional_info:
           type: string
+          description: A string attached to the object to add any internal comments, links to external files, additional instructions, etc
+      example:
+        variant_id: 1418016
+        planned_quantity: 1
+        location_id: 2327
+        order_created_date: "2021-09-01T07:49:29.000Z"
+        production_deadline_date: "2021-10-18T08:00:00.000Z"
+        additional_info: ""
 
     ManufacturingOrder:
+      description: A manufacturing order represents a production order in the system
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             status:
               type: string
               enum: [NOT_STARTED, BLOCKED, IN_PROGRESS, DONE]
+              description: Status of the order
             order_no:
               type: string
+              description: A unique, identifying string used in the UI and controlled by the user
             variant_id:
               type: integer
+              description: The ID of the product variant being produced
             planned_quantity:
               type: number
+              description: The quantity planned to produce with the manufacturing order
             actual_quantity:
               type: [number, "null"]
+              description: The actual quantity of the product made with the manufacturing order
             location_id:
               type: integer
+              description: The ID of the location to which items are produced
             order_created_date:
               type: string
               format: date-time
+              description: The timestamp of creating the document. ISO 8601 format with time and timezone must be used
+            done_date:
+              type: [string, "null"]
+              format: date-time
+              description: The timestamp of completing the manufacturing order. ISO 8601 format with time and timezone must be used
             production_deadline_date:
               type: string
               format: date-time
+              description: The timestamp of the production deadline for the manufacturing order. ISO 8601 format with time and timezone must be used
             additional_info:
               type: string
+              description: A string attached to the object to add any internal comments, links to external files, additional instructions, etc
             is_linked_to_sales_order:
               type: boolean
+              description: If a manufacturing order was made to order, it can be linked to a sales order
+            sales_order_id:
+              type: [integer, "null"]
+              description: The ID of the sales order that is linked to the manufacturing order
+            sales_order_row_id:
+              type: [integer, "null"]
+              description: The ID of the sales order row that is linked to the manufacturing order
+            sales_order_delivery_deadline:
+              type: [string, "null"]
+              format: date-time
+              description: Delivery deadline of the sales order that is linked to the manufacturing order
             ingredient_availability:
               type: string
+              enum: [PROCESSED, IN_STOCK, NOT_AVAILABLE, EXPECTED, NO_RECIPE, NOT_APPLICABLE]
+              description: The stock status of required materials or subassemblies listed in the manufacturing order recipe rows
             total_cost:
               type: number
+              description: The total cost of manufacturing the selected quantity of the product
             total_actual_time:
               type: number
+              description: The actual time for completing the manufacturing order operations measured in seconds
             total_planned_time:
               type: number
-            sales_order_id:
-              type: integer
-            sales_order_row_id:
-              type: integer
-            sales_order_delivery_deadline:
-              type: string
-              format: date-time
+              description: The planned duration of manufacturing order operations measured in seconds
             material_cost:
               type: number
+              description: The total cost of materials used to make the product. Calculated once the manufacturing order is marked as DONE
             subassemblies_cost:
               type: number
+              description: The total cost of subassemblies used to make the product. Calculated once the manufacturing order is marked as DONE
             operations_cost:
               type: number
+              description: The total cost of operations for making the product. Calculated once the manufacturing order is marked as DONE
+            batch_transactions:
+              type: array
+              description: An array of batch transactions and their quantities. A manufacturing order will always contain one batch transaction since it supports producing into a single batch
+              items:
+                type: object
+                properties:
+                  batch_id:
+                    type: integer
+                    description: ID of the batch for the manufactured product
+                  quantity:
+                    type: number
+                    description: The quantity produced in a particular batch
             serial_numbers:
               type: array
+              description: Array of serial numbers associated with this manufacturing order
               items:
                 $ref: "#/components/schemas/SerialNumber"
-        - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 21400
+        status: NOT_STARTED
+        order_no: "SO-2 / 1"
+        variant_id: 1418016
+        planned_quantity: 1
+        actual_quantity: null
+        location_id: 2327
+        order_created_date: "2021-09-01T07:49:29.000Z"
+        done_date: null
+        production_deadline_date: "2021-10-18T08:00:00.000Z"
+        additional_info: ""
+        is_linked_to_sales_order: true
+        sales_order_id: 1
+        sales_order_row_id: 1
+        sales_order_delivery_deadline: "2021-09-01T07:49:29.813Z"
+        ingredient_availability: IN_STOCK
+        total_cost: 0
+        total_actual_time: 0
+        total_planned_time: 18000
+        material_cost: 10
+        subassemblies_cost: 10
+        operations_cost: 10
+        batch_transactions:
+          - batch_id: 12345
+            quantity: 1
+        serial_numbers:
+          - id: 1
+            transaction_id: "eb4da756-0842-4495-9118-f8135f681234"
+            serial_number: "SN1"
+            resource_type: "Production"
+            resource_id: 2
+            transaction_date: "2023-02-10T10:06:14.435Z"
+        created_at: "2021-09-01T07:49:29.813Z"
+        updated_at: "2021-10-15T14:05:47.625Z"
+        deleted_at: null
 
     UpdateManufacturingOrderRequest:
       type: object
+      description: Request object for updating an existing manufacturing order
       properties:
         planned_quantity:
           type: number
+          description: The quantity planned to produce with the manufacturing order
         additional_info:
           type: string
+          description: A string attached to the object to add any internal comments, links to external files, additional instructions, etc
         production_deadline_date:
           type: string
           format: date-time
+          description: The timestamp of the production deadline for the manufacturing order. ISO 8601 format with time and timezone must be used
+      example:
+        planned_quantity: 2
+        additional_info: "Updated production requirements"
+        production_deadline_date: "2021-10-20T08:00:00.000Z"
 
     CreateManufacturingOrderProductionRequest:
       type: object
+      description: Request object for creating a new manufacturing order production
       required:
         - manufacturing_order_id
         - quantity
@@ -1771,63 +1857,101 @@ components:
       properties:
         manufacturing_order_id:
           type: integer
+          description: The ID of the manufacturing order this production belongs to
         quantity:
           type: number
+          description: The quantity being produced in this production run
         production_date:
           type: string
           format: date-time
+          description: The date and time when production is scheduled/completed
         ingredients:
           type: array
+          description: List of ingredients used in this production
           items:
             $ref: "#/components/schemas/ManufacturingOrderProductionIngredient"
         operations:
           type: array
+          description: List of operations performed in this production
           items:
             $ref: "#/components/schemas/ManufacturingOrderOperationRow"
+      example:
+        manufacturing_order_id: 21400
+        quantity: 5
+        production_date: "2021-09-01T07:49:29.000Z"
+        ingredients: []
+        operations: []
 
     UpdateManufacturingOrderProductionRequest:
       type: object
+      description: Request object for updating an existing manufacturing order production
       properties:
         quantity:
           type: number
+          description: The quantity being produced in this production run
         production_date:
           type: string
           format: date-time
+          description: The date and time when production is scheduled/completed
         ingredients:
           type: array
+          description: List of ingredients used in this production
           items:
             $ref: "#/components/schemas/UpdateManufacturingOrderProductionIngredientRequest"
         operations:
           type: array
+          description: List of operations performed in this production
           items:
             $ref: "#/components/schemas/UpdateManufacturingOrderOperationRowRequest"
+      example:
+        quantity: 3
+        production_date: "2021-09-01T08:00:00.000Z"
+        ingredients: []
+        operations: []
 
     ManufacturingOrderProduction:
+      description: A manufacturing order production represents a production run for a manufacturing order
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             manufacturing_order_id:
               type: integer
+              description: The ID of the manufacturing order this production belongs to
             quantity:
               type: number
+              description: The quantity being produced in this production run
             production_date:
               type: string
               format: date-time
+              description: The date and time when production is scheduled/completed
             ingredients:
               type: array
+              description: List of ingredients used in this production
               items:
                 $ref: "#/components/schemas/ManufacturingOrderProductionIngredient"
             operations:
               type: array
+              description: List of operations performed in this production
               items:
                 $ref: "#/components/schemas/ManufacturingOrderOperationProduction"
             serial_numbers:
               type: array
+              description: Array of serial numbers associated with this production
               items:
                 $ref: "#/components/schemas/SerialNumber"
-        - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 3001
+        manufacturing_order_id: 21400
+        quantity: 5
+        production_date: "2021-09-01T07:49:29.000Z"
+        ingredients: []
+        operations: []
+        serial_numbers: []
+        created_at: "2021-09-01T07:49:29.813Z"
+        updated_at: "2021-09-01T08:15:30.000Z"
+        deleted_at: null
 
     ManufacturingOrderProductionListResponse:
       type: object
@@ -1838,100 +1962,177 @@ components:
             $ref: "#/components/schemas/ManufacturingOrderProduction"
 
     ManufacturingOrderProductionIngredient:
+      description: An ingredient consumed in a manufacturing order production
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             location_id:
               type: integer
+              description: The ID of the location where the ingredient is consumed
             variant_id:
               type: integer
+              description: The ID of the variant being consumed as an ingredient
             manufacturing_order_id:
               type: integer
+              description: The ID of the manufacturing order this ingredient belongs to
             manufacturing_order_recipe_row_id:
               type: integer
+              description: The ID of the recipe row this ingredient is based on
             production_id:
               type: integer
+              description: The ID of the production run this ingredient is used in
             quantity:
               type: number
+              description: The quantity of the ingredient consumed
             production_date:
               type: string
               format: date-time
+              description: The date and time when the ingredient was consumed
             cost:
               type: number
-        - $ref: "#/components/schemas/DeletableEntity"
+              description: The cost of the ingredient consumed
+      example:
+        id: 4001
+        location_id: 2327
+        variant_id: 1418017
+        manufacturing_order_id: 21400
+        manufacturing_order_recipe_row_id: 50123
+        production_id: 3001
+        quantity: 2.5
+        production_date: "2021-09-01T07:49:29.000Z"
+        cost: 25.50
+        created_at: "2021-09-01T07:49:29.813Z"
+        updated_at: "2021-09-01T07:50:15.000Z"
+        deleted_at: null
 
     UpdateManufacturingOrderProductionIngredientRequest:
       type: object
+      description: Request object for updating a manufacturing order production ingredient
       properties:
         quantity:
           type: number
+          description: The quantity of the ingredient consumed
         production_date:
           type: string
           format: date-time
+          description: The date and time when the ingredient was consumed
         cost:
           type: number
+          description: The cost of the ingredient consumed
+      example:
+        quantity: 3.0
+        production_date: "2021-09-01T08:00:00.000Z"
+        cost: 30.00
 
     # Manufacturing Order Operation Row Schemas
     ManufacturingOrderOperationRow:
+      description: An operation row in a manufacturing order representing a specific operation step
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             status:
               type: string
               enum: [IN_PROGRESS, COMPLETED, PAUSED]
+              description: Status of the operation
             type:
               type: string
+              description: Type of the operation
             rank:
               type: number
+              description: Order/rank of this operation in the manufacturing sequence
             manufacturing_order_id:
               type: integer
+              description: The ID of the manufacturing order this operation belongs to
             operation_id:
               type: integer
+              description: The ID of the operation template
             operation_name:
               type: string
+              description: Name of the operation
             resource_id:
               type: integer
+              description: The ID of the resource/workstation used for this operation
             resource_name:
               type: string
+              description: Name of the resource/workstation
             assigned_operators:
               type: array
+              description: List of operators assigned to this operation
               items:
                 $ref: "#/components/schemas/Operator"
             completed_by_operators:
               type: array
+              description: List of operators who completed this operation
               items:
                 $ref: "#/components/schemas/Operator"
             active_operator_id:
-              type: number
+              type: [number, "null"]
+              description: ID of the currently active operator
             planned_time_per_unit:
               type: number
+              description: Planned time per unit in seconds
             planned_time_parameter:
               type: number
+              description: Planned time parameter for calculations
             total_actual_time:
               type: number
+              description: Total actual time spent on this operation in seconds
             planned_cost_per_unit:
               type: number
+              description: Planned cost per unit for this operation
             total_actual_cost:
               type: number
+              description: Total actual cost for this operation
             cost_per_hour:
               type: number
+              description: Cost per hour for this operation
             cost_parameter:
               type: number
+              description: Cost parameter for calculations
             group_boundary:
               type: number
+              description: Group boundary for operation grouping
             is_status_actionable:
               type: boolean
+              description: Whether the status of this operation can be changed
             completed_at:
               type: [string, "null"]
               format: date-time
-        - $ref: "#/components/schemas/DeletableEntity"
+              description: Timestamp when the operation was completed
+      example:
+        id: 5001
+        status: COMPLETED
+        type: "Manual Assembly"
+        rank: 1
+        manufacturing_order_id: 21400
+        operation_id: 501
+        operation_name: "Final Assembly"
+        resource_id: 301
+        resource_name: "Assembly Station A"
+        assigned_operators: []
+        completed_by_operators: []
+        active_operator_id: null
+        planned_time_per_unit: 1800
+        planned_time_parameter: 1.0
+        total_actual_time: 1900
+        planned_cost_per_unit: 15.00
+        total_actual_cost: 16.25
+        cost_per_hour: 30.00
+        cost_parameter: 1.0
+        group_boundary: 0
+        is_status_actionable: true
+        completed_at: "2021-09-01T09:49:29.000Z"
+        created_at: "2021-09-01T07:49:29.813Z"
+        updated_at: "2021-09-01T09:50:00.000Z"
+        deleted_at: null
 
     CreateManufacturingOrderOperationRowRequest:
       type: object
+      description: Request object for creating a new manufacturing order operation row
       required:
         - manufacturing_order_id
         - operation_id
@@ -1939,20 +2140,33 @@ components:
       properties:
         manufacturing_order_id:
           type: integer
+          description: The ID of the manufacturing order this operation belongs to
         operation_id:
           type: integer
+          description: The ID of the operation template
         time:
           type: number
+          description: Time allocated for this operation in seconds
+      example:
+        manufacturing_order_id: 21400
+        operation_id: 501
+        time: 1800
 
     UpdateManufacturingOrderOperationRowRequest:
       type: object
+      description: Request object for updating a manufacturing order operation row
       properties:
         completed_by_operators:
           type: array
+          description: List of operators who completed this operation
           items:
             $ref: "#/components/schemas/Operator"
         total_actual_time:
           type: number
+          description: Total actual time spent on this operation in seconds
+      example:
+        completed_by_operators: []
+        total_actual_time: 1900
 
     ManufacturingOrderOperationRowResponse:
       type: object
@@ -1984,6 +2198,7 @@ components:
 
     # Manufacturing Order Recipe Row Schemas
     CreateManufacturingOrderRecipeRowRequest:
+      description: Request object for creating a new manufacturing order recipe row
       type: object
       required:
         - manufacturing_order_id
@@ -1992,21 +2207,29 @@ components:
       properties:
         manufacturing_order_id:
           type: integer
+          description: The ID of the manufacturing order this recipe row belongs to
         variant_id:
           type: integer
+          description: The ID of the variant/material required for this recipe row
         notes:
           type: string
+          description: Additional notes or instructions for this ingredient
         planned_quantity_per_unit:
           type: number
+          description: Planned quantity of this ingredient per unit of production
         total_actual_quantity:
           type: number
+          description: Total actual quantity consumed of this ingredient
         ingredient_availability:
           type: string
+          description: The stock status of this ingredient
         ingredient_expected_date:
           type: string
           format: date-time
+          description: Expected date when the ingredient will be available
         batch_transactions:
           type: array
+          description: List of batch transactions for this ingredient
           items:
             type: object
             required:
@@ -2015,70 +2238,139 @@ components:
             properties:
               batch_id:
                 type: integer
+                description: ID of the batch
               quantity:
                 type: number
+                description: Quantity from this batch
         cost:
           type: number
+          description: Total cost of this ingredient
+      example:
+        manufacturing_order_id: 21400
+        variant_id: 1418017
+        notes: "Pay close attention to this"
+        planned_quantity_per_unit: 1.2
+        total_actual_quantity: 12
+        ingredient_availability: IN_STOCK
+        ingredient_expected_date: "2021-03-18T12:33:39.957Z"
+        batch_transactions:
+          - batch_id: 11
+            quantity: 7.4
+          - batch_id: 12
+            quantity: 4.6
+        cost: 50.4
 
     UpdateManufacturingOrderRecipeRowRequest:
+      description: Request object for updating an existing manufacturing order recipe row
       type: object
       properties:
         notes:
           type: string
+          description: Additional notes or instructions for this ingredient
         planned_quantity_per_unit:
           type: number
+          description: Planned quantity of this ingredient per unit of production
         total_actual_quantity:
           type: number
+          description: Total actual quantity consumed of this ingredient
         ingredient_availability:
           type: string
+          description: The stock status of this ingredient
         ingredient_expected_date:
           type: string
           format: date-time
+          description: Expected date when the ingredient will be available
         batch_transactions:
           type: array
+          description: List of batch transactions for this ingredient
           items:
             type: object
             properties:
               batch_id:
                 type: integer
+                description: ID of the batch
               quantity:
                 type: number
+                description: Quantity from this batch
         cost:
           type: number
+          description: Total cost of this ingredient
+      example:
+        notes: "Updated preparation instructions"
+        planned_quantity_per_unit: 1.5
+        total_actual_quantity: 15
+        ingredient_availability: IN_STOCK
+        ingredient_expected_date: "2021-03-20T12:33:39.957Z"
+        batch_transactions:
+          - batch_id: 13
+            quantity: 8.5
+          - batch_id: 14
+            quantity: 6.5
+        cost: 62.5
 
     ManufacturingOrderRecipeRow:
+      description: A recipe row in a manufacturing order representing an ingredient/material requirement
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             manufacturing_order_id:
               type: integer
+              description: The ID of the manufacturing order this recipe row belongs to
             variant_id:
               type: integer
+              description: The ID of the variant/material required for this recipe row
             notes:
               type: string
+              description: Additional notes or instructions for this ingredient
             planned_quantity_per_unit:
               type: number
+              description: Planned quantity of this ingredient per unit of production
             total_actual_quantity:
               type: number
+              description: Total actual quantity consumed of this ingredient
             ingredient_availability:
               type: string
+              enum: [PROCESSED, IN_STOCK, NOT_AVAILABLE, EXPECTED, NO_RECIPE, NOT_APPLICABLE]
+              description: The stock status of this ingredient
             ingredient_expected_date:
-              type: string
+              type: [string, "null"]
               format: date-time
+              description: Expected date when the ingredient will be available
             batch_transactions:
               type: array
+              description: List of batch transactions for this ingredient
               items:
                 type: object
                 properties:
                   batch_id:
                     type: integer
+                    description: ID of the batch
                   quantity:
                     type: number
+                    description: Quantity from this batch
             cost:
               type: number
-        - $ref: "#/components/schemas/DeletableEntity"
+              description: Total cost of this ingredient
+      example:
+        id: 6001
+        manufacturing_order_id: 21400
+        variant_id: 1418017
+        notes: "Pay close attention to this"
+        planned_quantity_per_unit: 1.2
+        total_actual_quantity: 12
+        ingredient_availability: IN_STOCK
+        ingredient_expected_date: "2021-03-18T12:33:39.957Z"
+        batch_transactions:
+          - batch_id: 11
+            quantity: 7.4
+          - batch_id: 12
+            quantity: 4.6
+        cost: 50.4
+        created_at: "2021-02-18T12:33:39.957Z"
+        updated_at: "2021-02-18T12:33:39.957Z"
+        deleted_at: null
 
     ManufacturingOrderRecipeRowListResponse:
       type: object

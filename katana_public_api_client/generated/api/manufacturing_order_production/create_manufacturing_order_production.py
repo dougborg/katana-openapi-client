@@ -78,7 +78,9 @@ def sync_detailed(
      Creates a new manufacturing order production object.
 
     Args:
-        body (CreateManufacturingOrderProductionRequest):
+        body (CreateManufacturingOrderProductionRequest): Request object for creating a new
+            manufacturing order production Example: {'manufacturing_order_id': 21400, 'quantity': 5,
+            'production_date': '2021-09-01T07:49:29.000Z', 'ingredients': [], 'operations': []}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -110,7 +112,9 @@ def sync(
      Creates a new manufacturing order production object.
 
     Args:
-        body (CreateManufacturingOrderProductionRequest):
+        body (CreateManufacturingOrderProductionRequest): Request object for creating a new
+            manufacturing order production Example: {'manufacturing_order_id': 21400, 'quantity': 5,
+            'production_date': '2021-09-01T07:49:29.000Z', 'ingredients': [], 'operations': []}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -137,7 +141,9 @@ async def asyncio_detailed(
      Creates a new manufacturing order production object.
 
     Args:
-        body (CreateManufacturingOrderProductionRequest):
+        body (CreateManufacturingOrderProductionRequest): Request object for creating a new
+            manufacturing order production Example: {'manufacturing_order_id': 21400, 'quantity': 5,
+            'production_date': '2021-09-01T07:49:29.000Z', 'ingredients': [], 'operations': []}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -167,7 +173,9 @@ async def asyncio(
      Creates a new manufacturing order production object.
 
     Args:
-        body (CreateManufacturingOrderProductionRequest):
+        body (CreateManufacturingOrderProductionRequest): Request object for creating a new
+            manufacturing order production Example: {'manufacturing_order_id': 21400, 'quantity': 5,
+            'production_date': '2021-09-01T07:49:29.000Z', 'ingredients': [], 'operations': []}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

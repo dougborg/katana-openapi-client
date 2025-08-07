@@ -21,6 +21,14 @@ T = TypeVar("T", bound="UpdateManufacturingOrderRecipeRowRequest")
 
 @_attrs_define
 class UpdateManufacturingOrderRecipeRowRequest:
+    """Request object for updating an existing manufacturing order recipe row
+
+    Example:
+        {'notes': 'Updated preparation instructions', 'planned_quantity_per_unit': 1.5, 'total_actual_quantity': 15,
+            'ingredient_availability': 'IN_STOCK', 'ingredient_expected_date': '2021-03-20T12:33:39.957Z',
+            'batch_transactions': [{'batch_id': 13, 'quantity': 8.5}, {'batch_id': 14, 'quantity': 6.5}], 'cost': 62.5}
+    """
+
     notes: Unset | str = UNSET
     planned_quantity_per_unit: Unset | float = UNSET
     total_actual_quantity: Unset | float = UNSET

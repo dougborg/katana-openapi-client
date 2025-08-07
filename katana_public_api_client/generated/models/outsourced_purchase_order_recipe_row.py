@@ -29,7 +29,7 @@ class OutsourcedPurchaseOrderRecipeRow:
     planned_quantity_per_unit: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | str = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
     id: Unset | int = UNSET
     purchase_order_id: Unset | int = UNSET
     ingredient_availability: (
@@ -61,6 +61,8 @@ class OutsourcedPurchaseOrderRecipeRow:
         deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
 
@@ -150,12 +152,20 @@ class OutsourcedPurchaseOrderRecipeRow:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | str:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

@@ -24,6 +24,12 @@ T = TypeVar("T", bound="UpdateManufacturingOrderProductionRequest")
 
 @_attrs_define
 class UpdateManufacturingOrderProductionRequest:
+    """Request object for updating an existing manufacturing order production
+
+    Example:
+        {'quantity': 3, 'production_date': '2021-09-01T08:00:00.000Z', 'ingredients': [], 'operations': []}
+    """
+
     quantity: Unset | float = UNSET
     production_date: Unset | datetime.datetime = UNSET
     ingredients: Unset | list["UpdateManufacturingOrderProductionIngredientRequest"] = (

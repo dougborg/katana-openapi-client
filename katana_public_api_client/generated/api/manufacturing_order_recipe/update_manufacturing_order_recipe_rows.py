@@ -83,7 +83,11 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRecipeRowRequest):
+        body (UpdateManufacturingOrderRecipeRowRequest): Request object for updating an existing
+            manufacturing order recipe row Example: {'notes': 'Updated preparation instructions',
+            'planned_quantity_per_unit': 1.5, 'total_actual_quantity': 15, 'ingredient_availability':
+            'IN_STOCK', 'ingredient_expected_date': '2021-03-20T12:33:39.957Z', 'batch_transactions':
+            [{'batch_id': 13, 'quantity': 8.5}, {'batch_id': 14, 'quantity': 6.5}], 'cost': 62.5}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -120,7 +124,11 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRecipeRowRequest):
+        body (UpdateManufacturingOrderRecipeRowRequest): Request object for updating an existing
+            manufacturing order recipe row Example: {'notes': 'Updated preparation instructions',
+            'planned_quantity_per_unit': 1.5, 'total_actual_quantity': 15, 'ingredient_availability':
+            'IN_STOCK', 'ingredient_expected_date': '2021-03-20T12:33:39.957Z', 'batch_transactions':
+            [{'batch_id': 13, 'quantity': 8.5}, {'batch_id': 14, 'quantity': 6.5}], 'cost': 62.5}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -152,7 +160,11 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRecipeRowRequest):
+        body (UpdateManufacturingOrderRecipeRowRequest): Request object for updating an existing
+            manufacturing order recipe row Example: {'notes': 'Updated preparation instructions',
+            'planned_quantity_per_unit': 1.5, 'total_actual_quantity': 15, 'ingredient_availability':
+            'IN_STOCK', 'ingredient_expected_date': '2021-03-20T12:33:39.957Z', 'batch_transactions':
+            [{'batch_id': 13, 'quantity': 8.5}, {'batch_id': 14, 'quantity': 6.5}], 'cost': 62.5}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -187,7 +199,11 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRecipeRowRequest):
+        body (UpdateManufacturingOrderRecipeRowRequest): Request object for updating an existing
+            manufacturing order recipe row Example: {'notes': 'Updated preparation instructions',
+            'planned_quantity_per_unit': 1.5, 'total_actual_quantity': 15, 'ingredient_availability':
+            'IN_STOCK', 'ingredient_expected_date': '2021-03-20T12:33:39.957Z', 'batch_transactions':
+            [{'batch_id': 13, 'quantity': 8.5}, {'batch_id': 14, 'quantity': 6.5}], 'cost': 62.5}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

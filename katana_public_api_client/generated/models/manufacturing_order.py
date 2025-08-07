@@ -8,10 +8,16 @@ from attrs import (
 )
 from dateutil.parser import isoparse
 
+from ..models.manufacturing_order_ingredient_availability import (
+    ManufacturingOrderIngredientAvailability,
+)
 from ..models.manufacturing_order_status import ManufacturingOrderStatus
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.manufacturing_order_batch_transactions_item import (
+        ManufacturingOrderBatchTransactionsItem,
+    )
     from ..models.serial_number import SerialNumber
 
 
@@ -20,10 +26,25 @@ T = TypeVar("T", bound="ManufacturingOrder")
 
 @_attrs_define
 class ManufacturingOrder:
+    """A manufacturing order represents a production order in the system
+
+    Example:
+        {'id': 21400, 'status': 'NOT_STARTED', 'order_no': 'SO-2 / 1', 'variant_id': 1418016, 'planned_quantity': 1,
+            'actual_quantity': None, 'location_id': 2327, 'order_created_date': '2021-09-01T07:49:29.000Z', 'done_date':
+            None, 'production_deadline_date': '2021-10-18T08:00:00.000Z', 'additional_info': '', 'is_linked_to_sales_order':
+            True, 'sales_order_id': 1, 'sales_order_row_id': 1, 'sales_order_delivery_deadline': '2021-09-01T07:49:29.813Z',
+            'ingredient_availability': 'IN_STOCK', 'total_cost': 0, 'total_actual_time': 0, 'total_planned_time': 18000,
+            'material_cost': 10, 'subassemblies_cost': 10, 'operations_cost': 10, 'batch_transactions': [{'batch_id': 12345,
+            'quantity': 1}], 'serial_numbers': [{'id': 1, 'transaction_id': 'eb4da756-0842-4495-9118-f8135f681234',
+            'serial_number': 'SN1', 'resource_type': 'Production', 'resource_id': 2, 'transaction_date':
+            '2023-02-10T10:06:14.435Z'}], 'created_at': '2021-09-01T07:49:29.813Z', 'updated_at':
+            '2021-10-15T14:05:47.625Z', 'deleted_at': None}
+    """
+
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | str = UNSET
-    id: Unset | int = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
     status: Unset | ManufacturingOrderStatus = UNSET
     order_no: Unset | str = UNSET
     variant_id: Unset | int = UNSET
@@ -31,23 +52,27 @@ class ManufacturingOrder:
     actual_quantity: None | Unset | float = UNSET
     location_id: Unset | int = UNSET
     order_created_date: Unset | datetime.datetime = UNSET
+    done_date: None | Unset | datetime.datetime = UNSET
     production_deadline_date: Unset | datetime.datetime = UNSET
     additional_info: Unset | str = UNSET
     is_linked_to_sales_order: Unset | bool = UNSET
-    ingredient_availability: Unset | str = UNSET
+    sales_order_id: None | Unset | int = UNSET
+    sales_order_row_id: None | Unset | int = UNSET
+    sales_order_delivery_deadline: None | Unset | datetime.datetime = UNSET
+    ingredient_availability: Unset | ManufacturingOrderIngredientAvailability = UNSET
     total_cost: Unset | float = UNSET
     total_actual_time: Unset | float = UNSET
     total_planned_time: Unset | float = UNSET
-    sales_order_id: Unset | int = UNSET
-    sales_order_row_id: Unset | int = UNSET
-    sales_order_delivery_deadline: Unset | datetime.datetime = UNSET
     material_cost: Unset | float = UNSET
     subassemblies_cost: Unset | float = UNSET
     operations_cost: Unset | float = UNSET
+    batch_transactions: Unset | list["ManufacturingOrderBatchTransactionsItem"] = UNSET
     serial_numbers: Unset | list["SerialNumber"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -59,10 +84,10 @@ class ManufacturingOrder:
         deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
-
-        id = self.id
 
         status: Unset | str = UNSET
         if not isinstance(self.status, Unset):
@@ -86,6 +111,14 @@ class ManufacturingOrder:
         if not isinstance(self.order_created_date, Unset):
             order_created_date = self.order_created_date.isoformat()
 
+        done_date: None | Unset | str
+        if isinstance(self.done_date, Unset):
+            done_date = UNSET
+        elif isinstance(self.done_date, datetime.datetime):
+            done_date = self.done_date.isoformat()
+        else:
+            done_date = self.done_date
+
         production_deadline_date: Unset | str = UNSET
         if not isinstance(self.production_deadline_date, Unset):
             production_deadline_date = self.production_deadline_date.isoformat()
@@ -94,7 +127,31 @@ class ManufacturingOrder:
 
         is_linked_to_sales_order = self.is_linked_to_sales_order
 
-        ingredient_availability = self.ingredient_availability
+        sales_order_id: None | Unset | int
+        if isinstance(self.sales_order_id, Unset):
+            sales_order_id = UNSET
+        else:
+            sales_order_id = self.sales_order_id
+
+        sales_order_row_id: None | Unset | int
+        if isinstance(self.sales_order_row_id, Unset):
+            sales_order_row_id = UNSET
+        else:
+            sales_order_row_id = self.sales_order_row_id
+
+        sales_order_delivery_deadline: None | Unset | str
+        if isinstance(self.sales_order_delivery_deadline, Unset):
+            sales_order_delivery_deadline = UNSET
+        elif isinstance(self.sales_order_delivery_deadline, datetime.datetime):
+            sales_order_delivery_deadline = (
+                self.sales_order_delivery_deadline.isoformat()
+            )
+        else:
+            sales_order_delivery_deadline = self.sales_order_delivery_deadline
+
+        ingredient_availability: Unset | str = UNSET
+        if not isinstance(self.ingredient_availability, Unset):
+            ingredient_availability = self.ingredient_availability.value
 
         total_cost = self.total_cost
 
@@ -102,21 +159,18 @@ class ManufacturingOrder:
 
         total_planned_time = self.total_planned_time
 
-        sales_order_id = self.sales_order_id
-
-        sales_order_row_id = self.sales_order_row_id
-
-        sales_order_delivery_deadline: Unset | str = UNSET
-        if not isinstance(self.sales_order_delivery_deadline, Unset):
-            sales_order_delivery_deadline = (
-                self.sales_order_delivery_deadline.isoformat()
-            )
-
         material_cost = self.material_cost
 
         subassemblies_cost = self.subassemblies_cost
 
         operations_cost = self.operations_cost
+
+        batch_transactions: Unset | list[dict[str, Any]] = UNSET
+        if not isinstance(self.batch_transactions, Unset):
+            batch_transactions = []
+            for batch_transactions_item_data in self.batch_transactions:
+                batch_transactions_item = batch_transactions_item_data.to_dict()
+                batch_transactions.append(batch_transactions_item)
 
         serial_numbers: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.serial_numbers, Unset):
@@ -127,15 +181,17 @@ class ManufacturingOrder:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if status is not UNSET:
             field_dict["status"] = status
         if order_no is not UNSET:
@@ -150,12 +206,20 @@ class ManufacturingOrder:
             field_dict["location_id"] = location_id
         if order_created_date is not UNSET:
             field_dict["order_created_date"] = order_created_date
+        if done_date is not UNSET:
+            field_dict["done_date"] = done_date
         if production_deadline_date is not UNSET:
             field_dict["production_deadline_date"] = production_deadline_date
         if additional_info is not UNSET:
             field_dict["additional_info"] = additional_info
         if is_linked_to_sales_order is not UNSET:
             field_dict["is_linked_to_sales_order"] = is_linked_to_sales_order
+        if sales_order_id is not UNSET:
+            field_dict["sales_order_id"] = sales_order_id
+        if sales_order_row_id is not UNSET:
+            field_dict["sales_order_row_id"] = sales_order_row_id
+        if sales_order_delivery_deadline is not UNSET:
+            field_dict["sales_order_delivery_deadline"] = sales_order_delivery_deadline
         if ingredient_availability is not UNSET:
             field_dict["ingredient_availability"] = ingredient_availability
         if total_cost is not UNSET:
@@ -164,18 +228,14 @@ class ManufacturingOrder:
             field_dict["total_actual_time"] = total_actual_time
         if total_planned_time is not UNSET:
             field_dict["total_planned_time"] = total_planned_time
-        if sales_order_id is not UNSET:
-            field_dict["sales_order_id"] = sales_order_id
-        if sales_order_row_id is not UNSET:
-            field_dict["sales_order_row_id"] = sales_order_row_id
-        if sales_order_delivery_deadline is not UNSET:
-            field_dict["sales_order_delivery_deadline"] = sales_order_delivery_deadline
         if material_cost is not UNSET:
             field_dict["material_cost"] = material_cost
         if subassemblies_cost is not UNSET:
             field_dict["subassemblies_cost"] = subassemblies_cost
         if operations_cost is not UNSET:
             field_dict["operations_cost"] = operations_cost
+        if batch_transactions is not UNSET:
+            field_dict["batch_transactions"] = batch_transactions
         if serial_numbers is not UNSET:
             field_dict["serial_numbers"] = serial_numbers
 
@@ -183,9 +243,14 @@ class ManufacturingOrder:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.manufacturing_order_batch_transactions_item import (
+            ManufacturingOrderBatchTransactionsItem,
+        )
         from ..models.serial_number import SerialNumber
 
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -200,16 +265,22 @@ class ManufacturingOrder:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | str:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
-
-        id = d.pop("id", UNSET)
 
         _status = d.pop("status", UNSET)
         status: Unset | ManufacturingOrderStatus
@@ -242,6 +313,23 @@ class ManufacturingOrder:
         else:
             order_created_date = isoparse(_order_created_date)
 
+        def _parse_done_date(data: object) -> None | Unset | datetime.datetime:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                done_date_type_0 = isoparse(data)
+
+                return done_date_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
+
+        done_date = _parse_done_date(d.pop("done_date", UNSET))
+
         _production_deadline_date = d.pop("production_deadline_date", UNSET)
         production_deadline_date: Unset | datetime.datetime
         if isinstance(_production_deadline_date, Unset):
@@ -253,7 +341,55 @@ class ManufacturingOrder:
 
         is_linked_to_sales_order = d.pop("is_linked_to_sales_order", UNSET)
 
-        ingredient_availability = d.pop("ingredient_availability", UNSET)
+        def _parse_sales_order_id(data: object) -> None | Unset | int:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | int, data)
+
+        sales_order_id = _parse_sales_order_id(d.pop("sales_order_id", UNSET))
+
+        def _parse_sales_order_row_id(data: object) -> None | Unset | int:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | int, data)
+
+        sales_order_row_id = _parse_sales_order_row_id(
+            d.pop("sales_order_row_id", UNSET)
+        )
+
+        def _parse_sales_order_delivery_deadline(
+            data: object,
+        ) -> None | Unset | datetime.datetime:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                sales_order_delivery_deadline_type_0 = isoparse(data)
+
+                return sales_order_delivery_deadline_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
+
+        sales_order_delivery_deadline = _parse_sales_order_delivery_deadline(
+            d.pop("sales_order_delivery_deadline", UNSET)
+        )
+
+        _ingredient_availability = d.pop("ingredient_availability", UNSET)
+        ingredient_availability: Unset | ManufacturingOrderIngredientAvailability
+        if isinstance(_ingredient_availability, Unset):
+            ingredient_availability = UNSET
+        else:
+            ingredient_availability = ManufacturingOrderIngredientAvailability(
+                _ingredient_availability
+            )
 
         total_cost = d.pop("total_cost", UNSET)
 
@@ -261,22 +397,20 @@ class ManufacturingOrder:
 
         total_planned_time = d.pop("total_planned_time", UNSET)
 
-        sales_order_id = d.pop("sales_order_id", UNSET)
-
-        sales_order_row_id = d.pop("sales_order_row_id", UNSET)
-
-        _sales_order_delivery_deadline = d.pop("sales_order_delivery_deadline", UNSET)
-        sales_order_delivery_deadline: Unset | datetime.datetime
-        if isinstance(_sales_order_delivery_deadline, Unset):
-            sales_order_delivery_deadline = UNSET
-        else:
-            sales_order_delivery_deadline = isoparse(_sales_order_delivery_deadline)
-
         material_cost = d.pop("material_cost", UNSET)
 
         subassemblies_cost = d.pop("subassemblies_cost", UNSET)
 
         operations_cost = d.pop("operations_cost", UNSET)
+
+        batch_transactions = []
+        _batch_transactions = d.pop("batch_transactions", UNSET)
+        for batch_transactions_item_data in _batch_transactions or []:
+            batch_transactions_item = ManufacturingOrderBatchTransactionsItem.from_dict(
+                batch_transactions_item_data
+            )
+
+            batch_transactions.append(batch_transactions_item)
 
         serial_numbers = []
         _serial_numbers = d.pop("serial_numbers", UNSET)
@@ -286,10 +420,10 @@ class ManufacturingOrder:
             serial_numbers.append(serial_numbers_item)
 
         manufacturing_order = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            id=id,
             status=status,
             order_no=order_no,
             variant_id=variant_id,
@@ -297,19 +431,21 @@ class ManufacturingOrder:
             actual_quantity=actual_quantity,
             location_id=location_id,
             order_created_date=order_created_date,
+            done_date=done_date,
             production_deadline_date=production_deadline_date,
             additional_info=additional_info,
             is_linked_to_sales_order=is_linked_to_sales_order,
+            sales_order_id=sales_order_id,
+            sales_order_row_id=sales_order_row_id,
+            sales_order_delivery_deadline=sales_order_delivery_deadline,
             ingredient_availability=ingredient_availability,
             total_cost=total_cost,
             total_actual_time=total_actual_time,
             total_planned_time=total_planned_time,
-            sales_order_id=sales_order_id,
-            sales_order_row_id=sales_order_row_id,
-            sales_order_delivery_deadline=sales_order_delivery_deadline,
             material_cost=material_cost,
             subassemblies_cost=subassemblies_cost,
             operations_cost=operations_cost,
+            batch_transactions=batch_transactions,
             serial_numbers=serial_numbers,
         )
 

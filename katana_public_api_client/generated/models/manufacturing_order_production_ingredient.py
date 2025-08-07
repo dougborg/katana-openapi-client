@@ -15,10 +15,19 @@ T = TypeVar("T", bound="ManufacturingOrderProductionIngredient")
 
 @_attrs_define
 class ManufacturingOrderProductionIngredient:
+    """An ingredient consumed in a manufacturing order production
+
+    Example:
+        {'id': 4001, 'location_id': 2327, 'variant_id': 1418017, 'manufacturing_order_id': 21400,
+            'manufacturing_order_recipe_row_id': 50123, 'production_id': 3001, 'quantity': 2.5, 'production_date':
+            '2021-09-01T07:49:29.000Z', 'cost': 25.5, 'created_at': '2021-09-01T07:49:29.813Z', 'updated_at':
+            '2021-09-01T07:50:15.000Z', 'deleted_at': None}
+    """
+
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | str = UNSET
-    id: Unset | int = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
     location_id: Unset | int = UNSET
     variant_id: Unset | int = UNSET
     manufacturing_order_id: Unset | int = UNSET
@@ -30,6 +39,8 @@ class ManufacturingOrderProductionIngredient:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -41,10 +52,10 @@ class ManufacturingOrderProductionIngredient:
         deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
-
-        id = self.id
 
         location_id = self.location_id
 
@@ -66,15 +77,17 @@ class ManufacturingOrderProductionIngredient:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if location_id is not UNSET:
             field_dict["location_id"] = location_id
         if variant_id is not UNSET:
@@ -99,6 +112,8 @@ class ManufacturingOrderProductionIngredient:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -113,16 +128,22 @@ class ManufacturingOrderProductionIngredient:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | str:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
-
-        id = d.pop("id", UNSET)
 
         location_id = d.pop("location_id", UNSET)
 
@@ -148,10 +169,10 @@ class ManufacturingOrderProductionIngredient:
         cost = d.pop("cost", UNSET)
 
         manufacturing_order_production_ingredient = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            id=id,
             location_id=location_id,
             variant_id=variant_id,
             manufacturing_order_id=manufacturing_order_id,

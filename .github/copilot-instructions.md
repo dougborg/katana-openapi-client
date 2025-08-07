@@ -343,12 +343,19 @@ SomeEntity:
 
 **Example Standards**:
 
+- **Schema examples over endpoint examples** - Prefer schema-level examples to avoid
+  duplication
+- **Endpoint examples only when necessary** - Add endpoint examples only for:
+  - Complex response structures that benefit from showing the full context
+  - Endpoints where the response differs significantly from the base schema
+  - List endpoints to show the array structure with multiple items
+  - Endpoints with unique field combinations not covered by schema examples
 - **Always include realistic examples** in schemas with industry-appropriate naming
-- **Add comprehensive descriptions** to all properties
+- **Add comprehensive descriptions** to all properties (but no property-level examples)
 - **Use consistent ID ranges** in examples (1xx for simple IDs, 2xxx for variants, 3xxx
   for items, etc.)
-- **Schema examples over endpoint examples** - avoid duplication by preferring
-  schema-level examples
+- **Single coherent example per schema** - All field values should relate to each other
+  realistically
 
 **Validation Approach**:
 
@@ -378,8 +385,10 @@ SomeEntity:
    Wrong commit types trigger unwanted releases or miss important version bumps.
 1. **Always use BaseEntity pattern** - Don't add `id` property directly to schemas, use
    `BaseEntity` reference
-1. **Schema examples over endpoint examples** - Avoid duplication by putting examples in
-   schemas, not endpoints
+1. **Schema examples over endpoint examples** - Add endpoint examples only when
+   necessary (see Example Standards above), prefer comprehensive schema-level examples
+1. **No property-level examples** - Use schema-level examples, not individual property
+   examples that clutter the schema definition
 1. **Validate against official docs** - Always check developer.katanamrp.com when
    modifying OpenAPI spec
 1. **Document discrepancies** - Add any API inconsistencies to
