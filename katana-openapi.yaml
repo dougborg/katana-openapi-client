@@ -2756,27 +2756,59 @@ components:
           type: number
 
     ManufacturingOrderProductionIngredientResponse:
-      type: object
-      properties:
-        id:
-          type: integer
-        location_id:
-          type: integer
-        variant_id:
-          type: integer
-        manufacturing_order_id:
-          type: integer
-        manufacturing_order_recipe_row_id:
-          type: integer
-        production_id:
-          type: integer
-        quantity:
-          type: number
-        production_date:
-          type: string
-          format: date-time
-        cost:
-          type: number
+      description: Represents an ingredient used in manufacturing order production, tracking consumption and costs
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
+        - type: object
+          properties:
+            location_id:
+              type: integer
+              description: The ID of the location of the ingredient
+            variant_id:
+              type: integer
+              description: The ID of product or material variant required for producing the manufacturing order production
+            manufacturing_order_id:
+              type: integer
+              description: The manufacturing order the manufacturing order production belongs to
+            manufacturing_order_recipe_row_id:
+              type: integer
+              description: The recipe row ID the manufacturing order production ingredient belongs to
+            production_id:
+              type: integer
+              description: The ID of the manufacturing order production the ingredient belongs to
+            quantity:
+              type: number
+              description: The quantity of the ingredients
+            production_date:
+              type: string
+              format: date-time
+              description: The timestamp of the manufacturing order production. ISO 8601 format with time and timezone must be used
+            cost:
+              type: number
+              description: The cost of the ingredients
+          required:
+            - location_id
+            - variant_id
+            - manufacturing_order_id
+            - manufacturing_order_recipe_row_id
+            - production_id
+            - quantity
+            - production_date
+            - cost
+          example:
+            id: 5001
+            location_id: 101
+            variant_id: 2002
+            manufacturing_order_id: 3001
+            manufacturing_order_recipe_row_id: 4001
+            production_id: 6001
+            quantity: 2.5
+            production_date: "2024-01-15T14:30:00Z"
+            cost: 125.50
+            created_at: "2024-01-15T14:30:00Z"
+            updated_at: "2024-01-15T14:30:00Z"
+            deleted_at: null
 
     ManufacturingOrderOperationRowListResponse:
       type: object
@@ -6386,30 +6418,41 @@ components:
 
     # Serial numbers
     SerialNumberStock:
+      description: Represents serial number stock tracking for individual units with their location and status
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             variant_id:
               type: integer
+              description: The ID of the product variant this serial number belongs to
             location_id:
               type: integer
+              description: The ID of the location where this serial number is stored
             serial_number:
               type: string
+              description: The unique serial number identifier for this unit
             status:
               type: string
               enum:
                 - IN_STOCK
                 - SOLD
                 - TRANSFERRED
+              description: Current status of the serial number (in stock, sold, or transferred)
           required:
-            - id
             - variant_id
             - location_id
             - serial_number
             - status
-        - $ref: "#/components/schemas/UpdatableEntity"
+          example:
+            id: 7001
+            variant_id: 2003
+            location_id: 102
+            serial_number: "SN-ABC123-001"
+            status: "IN_STOCK"
+            created_at: "2024-01-15T10:00:00Z"
+            updated_at: "2024-01-15T10:00:00Z"
 
     # Sales Return schemas
     SalesReturn:
