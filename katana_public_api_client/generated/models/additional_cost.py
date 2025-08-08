@@ -15,10 +15,9 @@ T = TypeVar("T", bound="AdditionalCost")
 
 @_attrs_define
 class AdditionalCost:
-    """
-    Example:
-        {'id': 1, 'name': 'Shipping Cost', 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at':
-            '2020-10-23T10:37:05.085Z', 'deleted_at': None}
+    """Additional cost categories and templates used for tracking extra charges beyond base product costs, such as
+    shipping, handling, insurance, duties, and other fees that can be applied to purchase orders and manufacturing
+    processes
     """
 
     id: int

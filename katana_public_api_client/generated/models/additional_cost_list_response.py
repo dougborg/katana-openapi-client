@@ -19,9 +19,10 @@ T = TypeVar("T", bound="AdditionalCostListResponse")
 class AdditionalCostListResponse:
     """
     Example:
-        {'data': [{'id': 1, 'name': 'Shipping Cost', 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at':
-            '2020-10-23T10:37:05.085Z', 'deleted_at': None}, {'id': 2, 'name': 'Import Duty', 'created_at':
-            '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}]}
+        {'data': [{'id': 801, 'name': 'Express Shipping', 'created_at': '2024-01-01T00:00:00Z', 'updated_at':
+            '2024-01-15T10:30:00Z', 'deleted_at': None}, {'id': 802, 'name': 'Import Duty', 'created_at':
+            '2024-01-01T00:00:00Z', 'updated_at': '2024-01-15T10:30:00Z', 'deleted_at': None}, {'id': 803, 'name': 'Handling
+            Fee', 'created_at': '2024-01-01T00:00:00Z', 'updated_at': '2024-01-15T10:30:00Z', 'deleted_at': None}]}
     """
 
     data: Unset | list["AdditionalCost"] = UNSET

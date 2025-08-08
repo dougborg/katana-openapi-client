@@ -15,6 +15,10 @@ T = TypeVar("T", bound="PriceListCustomer")
 
 @_attrs_define
 class PriceListCustomer:
+    """Associations between price lists and customers, enabling customer-specific pricing structures and allowing different
+    customers to have access to different pricing tiers or special pricing arrangements
+    """
+
     id: int
     price_list_id: int
     customer_id: int

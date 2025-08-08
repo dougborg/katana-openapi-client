@@ -15,6 +15,10 @@ T = TypeVar("T", bound="PriceListRow")
 
 @_attrs_define
 class PriceListRow:
+    """Individual product pricing entries within a price list, defining specific prices for product variants with currency
+    information and linking to parent price lists for comprehensive pricing management
+    """
+
     id: int
     price_list_id: int
     variant_id: int

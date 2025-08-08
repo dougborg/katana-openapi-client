@@ -15,17 +15,27 @@ T = TypeVar("T", bound="TaxRate")
 
 @_attrs_define
 class TaxRate:
+    """Tax rate configurations used throughout the system for sales and purchase transactions, defining percentage rates
+    and default usage settings for automated tax calculations in financial operations
+    """
+
+    id: int
+    name: str
+    rate: float
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    id: Unset | int = UNSET
-    name: Unset | str = UNSET
-    rate: Unset | float = UNSET
     is_default_sales: Unset | bool = UNSET
     is_default_purchases: Unset | bool = UNSET
     display_name: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
+        name = self.name
+
+        rate = self.rate
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -33,12 +43,6 @@ class TaxRate:
         updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
-
-        id = self.id
-
-        name = self.name
-
-        rate = self.rate
 
         is_default_sales = self.is_default_sales
 
@@ -48,17 +52,17 @@ class TaxRate:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+                "name": name,
+                "rate": rate,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
-        if id is not UNSET:
-            field_dict["id"] = id
-        if name is not UNSET:
-            field_dict["name"] = name
-        if rate is not UNSET:
-            field_dict["rate"] = rate
         if is_default_sales is not UNSET:
             field_dict["is_default_sales"] = is_default_sales
         if is_default_purchases is not UNSET:
@@ -71,6 +75,12 @@ class TaxRate:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
+        name = d.pop("name")
+
+        rate = d.pop("rate")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -85,12 +95,6 @@ class TaxRate:
         else:
             updated_at = isoparse(_updated_at)
 
-        id = d.pop("id", UNSET)
-
-        name = d.pop("name", UNSET)
-
-        rate = d.pop("rate", UNSET)
-
         is_default_sales = d.pop("is_default_sales", UNSET)
 
         is_default_purchases = d.pop("is_default_purchases", UNSET)
@@ -98,11 +102,11 @@ class TaxRate:
         display_name = d.pop("display_name", UNSET)
 
         tax_rate = cls(
-            created_at=created_at,
-            updated_at=updated_at,
             id=id,
             name=name,
             rate=rate,
+            created_at=created_at,
+            updated_at=updated_at,
             is_default_sales=is_default_sales,
             is_default_purchases=is_default_purchases,
             display_name=display_name,

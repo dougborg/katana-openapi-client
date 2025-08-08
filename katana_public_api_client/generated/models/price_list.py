@@ -15,6 +15,11 @@ T = TypeVar("T", bound="PriceList")
 
 @_attrs_define
 class PriceList:
+    """Price lists define custom pricing structures for products, allowing different pricing tiers, currency
+    configurations, markup percentages, and time-based pricing validity periods for flexible customer-specific or
+    market-specific pricing strategies
+    """
+
     id: int
     name: str
     currency: str

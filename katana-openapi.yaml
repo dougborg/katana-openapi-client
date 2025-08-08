@@ -1079,21 +1079,28 @@ components:
 
     # Main Entities
     AdditionalCost:
+      description: >-
+        Additional cost categories and templates used for tracking extra charges beyond base product costs,
+        such as shipping, handling, insurance, duties, and other fees that can be applied to purchase orders
+        and manufacturing processes
       allOf:
         - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
             name:
               type: string
+              description: >-
+                Name of the additional cost category for identification and selection in cost calculations
+                (e.g., "Shipping Cost", "Import Duty", "Handling Fee")
           required:
             - name
-        - $ref: "#/components/schemas/DeletableEntity"
-      example:
-        id: 1
-        name: "Shipping Cost"
-        created_at: "2020-10-23T10:37:05.085Z"
-        updated_at: "2020-10-23T10:37:05.085Z"
-        deleted_at: null
+          example:
+            id: 801
+            name: "Express Shipping"
+            created_at: "2024-01-01T00:00:00Z"
+            updated_at: "2024-01-15T10:30:00Z"
+            deleted_at: null
 
     AdditionalCostListResponse:
       type: object
@@ -1104,15 +1111,20 @@ components:
             $ref: "#/components/schemas/AdditionalCost"
       example:
         data:
-          - id: 1
-            name: "Shipping Cost"
-            created_at: "2020-10-23T10:37:05.085Z"
-            updated_at: "2020-10-23T10:37:05.085Z"
+          - id: 801
+            name: "Express Shipping"
+            created_at: "2024-01-01T00:00:00Z"
+            updated_at: "2024-01-15T10:30:00Z"
             deleted_at: null
-          - id: 2
+          - id: 802
             name: "Import Duty"
-            created_at: "2020-10-23T10:37:05.085Z"
-            updated_at: "2020-10-23T10:37:05.085Z"
+            created_at: "2024-01-01T00:00:00Z"
+            updated_at: "2024-01-15T10:30:00Z"
+            deleted_at: null
+          - id: 803
+            name: "Handling Fee"
+            created_at: "2024-01-01T00:00:00Z"
+            updated_at: "2024-01-15T10:30:00Z"
             deleted_at: null
 
     Batch:
@@ -3727,19 +3739,19 @@ components:
             - currency
           example:
             id: 4501
-            additional_cost_id: 701
+            additional_cost_id: 801
             group_id: 1
             name: "Express Shipping"
-            distribution_method: "proportional"
-            tax_rate_id: 2
-            tax_rate: 8.5
+            distribution_method: "BY_VALUE"
+            tax_rate_id: 701
+            tax_rate: 20.0
             price: 85.00
             price_in_base: 85.00
             currency: "USD"
             currency_conversion_rate: 1.0
-            currency_conversion_rate_fix_date: "2024-02-20T14:30:00.000Z"
-            created_at: "2024-02-20T14:30:00.000Z"
-            updated_at: "2024-02-20T14:30:00.000Z"
+            currency_conversion_rate_fix_date: "2024-02-20T14:30:00Z"
+            created_at: "2024-02-20T14:30:00Z"
+            updated_at: "2024-02-20T14:30:00Z"
             deleted_at: null
 
     PurchaseOrderAdditionalCostRowListResponse:
@@ -3890,23 +3902,38 @@ components:
           description: Updatable only when received_date is not null
 
     PurchaseOrderAccountingMetadata:
-      type: object
-      properties:
-        id:
-          type: integer
-        purchase_order_id:
-          type: integer
-        purchaseOrderId:
-          type: integer
-        porReceivedGroupId:
-          type: integer
-        integrationType:
-          type: string
-        billId:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
+      description: >-
+        Accounting integration metadata that tracks the status and details of financial record synchronization
+        between Katana and external accounting systems like Xero or QuickBooks Online for purchase order
+        billing and financial reporting
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - type: object
+          properties:
+            purchase_order_id:
+              type: integer
+              description: ID of the associated purchase order for which accounting data is being tracked
+            purchaseOrderId:
+              type: integer
+              description: Alternative reference to the purchase order ID for backwards compatibility
+            porReceivedGroupId:
+              type: integer
+              description: ID of the purchase order received items group for which this accounting metadata applies
+            integrationType:
+              type: string
+              description: Type of accounting integration system (e.g., "XERO", "QUICKBOOKS_ONLINE")
+            billId:
+              type: string
+              description: External bill or invoice ID generated in the accounting system for tracking and reconciliation
+          example:
+            id: 5001
+            purchase_order_id: 2001
+            purchaseOrderId: 2001
+            porReceivedGroupId: 301
+            integrationType: "XERO"
+            billId: "BILL-2024-001234"
+            created_at: "2024-02-20T15:30:00Z"
+            updated_at: "2024-02-20T15:30:00Z"
 
     PurchaseOrderAccountingMetadataListResponse:
       type: object
@@ -4158,22 +4185,44 @@ components:
           multipleOf: 0.001
 
     TaxRate:
+      description: >-
+        Tax rate configurations used throughout the system for sales and purchase transactions,
+        defining percentage rates and default usage settings for automated tax calculations in financial operations
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             name:
               type: string
+              description: Name of the tax rate for identification and management purposes (e.g., "Standard VAT", "State Sales Tax", "Import Duty")
             rate:
               type: number
+              minimum: 0
+              maximum: 999.999
+              multipleOf: 0.001
+              description: Tax rate as a percentage (e.g., 8.5 for 8.5% tax rate)
             is_default_sales:
               type: boolean
+              description: Whether this tax rate is used as the default for sales transactions when no specific rate is specified
             is_default_purchases:
               type: boolean
+              description: Whether this tax rate is used as the default for purchase transactions when no specific rate is specified
             display_name:
               type: string
-        - $ref: "#/components/schemas/UpdatableEntity"
+              description: User-friendly display name shown in interfaces and reports
+          required:
+            - name
+            - rate
+          example:
+            id: 701
+            name: "Standard VAT"
+            rate: 20.0
+            is_default_sales: true
+            is_default_purchases: false
+            display_name: "Standard VAT (20%)"
+            created_at: "2024-01-01T00:00:00Z"
+            updated_at: "2024-01-15T10:30:00Z"
 
     TaxRateListResponse:
       type: object
@@ -5815,30 +5864,49 @@ components:
 
     # Price Lists
     PriceList:
+      description: >-
+        Price lists define custom pricing structures for products, allowing different pricing tiers,
+        currency configurations, markup percentages, and time-based pricing validity periods
+        for flexible customer-specific or market-specific pricing strategies
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             name:
               type: string
+              description: Name of the price list for identification and management purposes
             currency:
               type: string
+              description: ISO 4217 currency code for this price list (e.g., USD, EUR, GBP)
             is_default:
               type: boolean
+              description: Whether this price list serves as the default pricing structure for new customers or transactions
             markup_percentage:
               type: [number, "null"]
+              description: Default markup percentage applied to base costs when generating prices in this list
             start_date:
               type: [string, "null"]
               format: date-time
+              description: Date when this price list becomes active and available for use
             end_date:
               type: [string, "null"]
               format: date-time
+              description: Date when this price list expires and is no longer available for new transactions
           required:
-            - id
             - name
             - currency
-        - $ref: "#/components/schemas/DeletableEntity"
+          example:
+            id: 2001
+            name: "Premium Customer Pricing - USD"
+            currency: "USD"
+            is_default: false
+            markup_percentage: 25.5
+            start_date: "2024-01-01T00:00:00Z"
+            end_date: "2024-12-31T23:59:59Z"
+            created_at: "2023-12-15T10:00:00Z"
+            updated_at: "2024-01-15T14:30:00Z"
+            deleted_at: null
 
     CreatePriceListRequest:
       type: object
@@ -5904,41 +5972,63 @@ components:
           description: ID of the customer to assign to price list
 
     PriceListRow:
+      description: >-
+        Individual product pricing entries within a price list, defining specific prices for product variants
+        with currency information and linking to parent price lists for comprehensive pricing management
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             price_list_id:
               type: integer
+              description: ID of the parent price list that contains this pricing entry
             variant_id:
               type: integer
+              description: ID of the product variant for which this pricing is defined
             price:
               type: number
+              description: Price amount for this product variant in the specified currency
             currency:
               type: string
+              description: ISO 4217 currency code for this pricing entry (e.g., USD, EUR, GBP)
           required:
-            - id
             - price_list_id
             - variant_id
             - price
-        - $ref: "#/components/schemas/UpdatableEntity"
+          example:
+            id: 3001
+            price_list_id: 2001
+            variant_id: 1501
+            price: 127.50
+            currency: "USD"
+            created_at: "2024-01-01T00:00:00Z"
+            updated_at: "2024-01-15T14:30:00Z"
 
     PriceListCustomer:
+      description: >-
+        Associations between price lists and customers, enabling customer-specific pricing structures
+        and allowing different customers to have access to different pricing tiers or special pricing arrangements
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             price_list_id:
               type: integer
+              description: ID of the price list assigned to this customer relationship
             customer_id:
               type: integer
+              description: ID of the customer who has access to this price list
           required:
-            - id
             - price_list_id
             - customer_id
-        - $ref: "#/components/schemas/UpdatableEntity"
+          example:
+            id: 3101
+            price_list_id: 2001
+            customer_id: 1201
+            created_at: "2024-01-01T00:00:00Z"
+            updated_at: "2024-01-15T14:30:00Z"
 
     # BOM (Bill of Materials) rows
     BomRow:

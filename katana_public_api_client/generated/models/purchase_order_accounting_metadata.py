@@ -1,4 +1,3 @@
-import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -6,7 +5,6 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
 
@@ -15,13 +13,17 @@ T = TypeVar("T", bound="PurchaseOrderAccountingMetadata")
 
 @_attrs_define
 class PurchaseOrderAccountingMetadata:
-    id: Unset | int = UNSET
+    """Accounting integration metadata that tracks the status and details of financial record synchronization between
+    Katana and external accounting systems like Xero or QuickBooks Online for purchase order billing and financial
+    reporting
+    """
+
+    id: int
     purchase_order_id: Unset | int = UNSET
     purchaseOrderId: Unset | int = UNSET
     por_received_group_id: Unset | int = UNSET
     integration_type: Unset | str = UNSET
     bill_id: Unset | str = UNSET
-    created_at: Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -37,15 +39,13 @@ class PurchaseOrderAccountingMetadata:
 
         bill_id = self.bill_id
 
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
-        if id is not UNSET:
-            field_dict["id"] = id
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if purchase_order_id is not UNSET:
             field_dict["purchase_order_id"] = purchase_order_id
         if purchaseOrderId is not UNSET:
@@ -56,15 +56,13 @@ class PurchaseOrderAccountingMetadata:
             field_dict["integrationType"] = integration_type
         if bill_id is not UNSET:
             field_dict["billId"] = bill_id
-        if created_at is not UNSET:
-            field_dict["createdAt"] = created_at
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        id = d.pop("id", UNSET)
+        id = d.pop("id")
 
         purchase_order_id = d.pop("purchase_order_id", UNSET)
 
@@ -76,13 +74,6 @@ class PurchaseOrderAccountingMetadata:
 
         bill_id = d.pop("billId", UNSET)
 
-        _created_at = d.pop("createdAt", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
         purchase_order_accounting_metadata = cls(
             id=id,
             purchase_order_id=purchase_order_id,
@@ -90,7 +81,6 @@ class PurchaseOrderAccountingMetadata:
             por_received_group_id=por_received_group_id,
             integration_type=integration_type,
             bill_id=bill_id,
-            created_at=created_at,
         )
 
         purchase_order_accounting_metadata.additional_properties = d
