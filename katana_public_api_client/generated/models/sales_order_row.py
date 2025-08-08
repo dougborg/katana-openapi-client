@@ -25,6 +25,17 @@ T = TypeVar("T", bound="SalesOrderRow")
 
 @_attrs_define
 class SalesOrderRow:
+    """
+    Example:
+        {'id': 1101, 'quantity': 5.0, 'variant_id': 2001, 'tax_rate_id': 101, 'location_id': 1, 'product_availability':
+            'IN_STOCK', 'product_expected_date': None, 'price_per_unit': 199.99, 'price_per_unit_in_base_currency': 199.99,
+            'total': 999.95, 'total_in_base_currency': 999.95, 'cogs_value': 750.0, 'attributes': [{'key': 'gift_wrap',
+            'value': 'premium'}, {'key': 'special_instructions', 'value': 'handle with care'}], 'batch_transactions':
+            [{'batch_id': 501, 'quantity': 3.0}, {'batch_id': 502, 'quantity': 2.0}], 'serial_numbers': [10001, 10002,
+            10003, 10004, 10005], 'linked_manufacturing_order_id': 2001, 'conversion_rate': 1.0, 'conversion_date':
+            '2024-01-15T10:30:00Z', 'created_at': '2024-01-15T10:30:00Z', 'updated_at': '2024-01-28T14:15:00Z'}
+    """
+
     id: int
     quantity: float
     variant_id: int

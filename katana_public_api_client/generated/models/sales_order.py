@@ -30,6 +30,20 @@ T = TypeVar("T", bound="SalesOrder")
 
 @_attrs_define
 class SalesOrder:
+    """
+    Example:
+        {'id': 1001, 'customer_id': 201, 'order_no': 'SO-2024-001', 'source': 'API', 'order_created_date':
+            '2024-01-15T10:30:00Z', 'delivery_date': '2024-01-30T12:00:00Z', 'picked_date': '2024-01-28T14:15:00Z',
+            'location_id': 1, 'status': 'DELIVERED', 'currency': 'USD', 'conversion_rate': 1.0, 'conversion_date':
+            '2024-01-15T10:30:00Z', 'invoicing_status': 'INVOICED', 'total': 1250.0, 'total_in_base_currency': 1250.0,
+            'additional_info': 'Priority customer - expedite delivery', 'customer_ref': 'CUST-REF-12345',
+            'ecommerce_order_type': 'shopify', 'ecommerce_store_name': 'Premium Electronics Store', 'ecommerce_order_id':
+            'SHOP-789123', 'product_availability': 'IN_STOCK', 'product_expected_date': None, 'ingredient_availability':
+            'IN_STOCK', 'ingredient_expected_date': None, 'production_status': 'DONE', 'tracking_number':
+            '1Z999AA1234567890', 'tracking_number_url': 'https://tracking.ups.com/1Z999AA1234567890', 'billing_address_id':
+            301, 'shipping_address_id': 302, 'created_at': '2024-01-15T10:30:00Z', 'updated_at': '2024-01-28T14:15:00Z'}
+    """
+
     id: int
     customer_id: int
     order_no: str

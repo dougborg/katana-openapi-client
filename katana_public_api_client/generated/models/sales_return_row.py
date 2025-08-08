@@ -15,6 +15,13 @@ T = TypeVar("T", bound="SalesReturnRow")
 
 @_attrs_define
 class SalesReturnRow:
+    """
+    Example:
+        {'id': 2101, 'sales_return_id': 2001, 'variant_id': 2001, 'quantity': 2.0, 'return_reason_id': 1, 'notes':
+            'Items arrived damaged during shipping', 'unit_price': 199.99, 'total_price': 399.98, 'created_at':
+            '2024-02-05T09:00:00Z', 'updated_at': '2024-02-05T09:00:00Z'}
+    """
+
     id: int
     sales_return_id: int
     variant_id: int

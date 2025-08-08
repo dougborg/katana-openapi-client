@@ -17,6 +17,19 @@ T = TypeVar("T", bound="CustomerAddressListResponse")
 
 @_attrs_define
 class CustomerAddressListResponse:
+    """Response containing a list of customer addresses
+
+    Example:
+        {'data': [{'id': 301, 'customer_id': 201, 'entity_type': 'billing', 'first_name': 'John', 'last_name': 'Smith',
+            'company': 'Tech Solutions Inc', 'phone': '+1-555-123-4567', 'line_1': '123 Business Ave', 'line_2': 'Suite
+            456', 'city': 'New York', 'state': 'NY', 'zip': '10001', 'country': 'United States', 'default': True,
+            'created_at': '2024-01-10T08:00:00Z', 'updated_at': '2024-01-10T08:00:00Z'}, {'id': 302, 'customer_id': 201,
+            'entity_type': 'shipping', 'first_name': 'John', 'last_name': 'Smith', 'company': 'Tech Solutions Inc', 'phone':
+            '+1-555-123-4567', 'line_1': '456 Delivery Lane', 'line_2': 'Loading Dock B', 'city': 'Brooklyn', 'state': 'NY',
+            'zip': '11201', 'country': 'United States', 'default': False, 'created_at': '2024-01-10T08:05:00Z',
+            'updated_at': '2024-01-10T08:05:00Z'}]}
+    """
+
     data: Unset | list["CustomerAddress"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

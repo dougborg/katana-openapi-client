@@ -13,6 +13,11 @@ T = TypeVar("T", bound="SalesOrderShippingFee")
 
 @_attrs_define
 class SalesOrderShippingFee:
+    """
+    Example:
+        {'id': 1501, 'sales_order_id': 1001, 'amount': 25.5, 'tax_rate_id': 101, 'description': 'UPS Ground Shipping'}
+    """
+
     id: int
     sales_order_id: int
     amount: float

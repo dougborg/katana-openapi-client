@@ -17,6 +17,21 @@ T = TypeVar("T", bound="CustomerListResponse")
 
 @_attrs_define
 class CustomerListResponse:
+    """Response containing a list of customers
+
+    Example:
+        {'data': [{'id': 201, 'name': 'Tech Solutions Inc', 'first_name': 'John', 'last_name': 'Smith', 'company': 'Tech
+            Solutions Inc', 'email': 'john.smith@techsolutions.com', 'phone': '+1-555-123-4567', 'comment': 'Priority
+            customer - net 30 payment terms', 'currency': 'USD', 'reference_id': 'CRM-12345', 'category': 'Enterprise',
+            'discount_rate': 5.0, 'default_billing_id': 301, 'default_shipping_id': 302, 'created_at':
+            '2024-01-10T08:00:00Z', 'updated_at': '2024-01-15T10:30:00Z', 'deleted_at': None}, {'id': 202, 'name': 'Small
+            Business LLC', 'first_name': 'Jane', 'last_name': 'Doe', 'company': 'Small Business LLC', 'email':
+            'jane.doe@smallbiz.com', 'phone': '+1-555-987-6543', 'comment': 'Local supplier - weekly orders', 'currency':
+            'USD', 'reference_id': 'CRM-67890', 'category': 'SMB', 'discount_rate': 2.0, 'default_billing_id': 303,
+            'default_shipping_id': 304, 'created_at': '2024-01-12T14:20:00Z', 'updated_at': '2024-01-20T09:45:00Z',
+            'deleted_at': None}]}
+    """
+
     data: Unset | list["Customer"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

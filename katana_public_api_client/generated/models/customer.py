@@ -15,6 +15,15 @@ T = TypeVar("T", bound="Customer")
 
 @_attrs_define
 class Customer:
+    """
+    Example:
+        {'id': 201, 'name': 'Tech Solutions Inc', 'first_name': 'John', 'last_name': 'Smith', 'company': 'Tech Solutions
+            Inc', 'email': 'john.smith@techsolutions.com', 'phone': '+1-555-123-4567', 'comment': 'Priority customer - net
+            30 payment terms', 'currency': 'USD', 'reference_id': 'CRM-12345', 'category': 'Enterprise', 'discount_rate':
+            5.0, 'default_billing_id': 301, 'default_shipping_id': 302, 'created_at': '2024-01-10T08:00:00Z', 'updated_at':
+            '2024-01-15T10:30:00Z', 'deleted_at': None}
+    """
+
     id: int
     name: str
     created_at: Unset | datetime.datetime = UNSET

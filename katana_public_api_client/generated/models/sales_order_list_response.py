@@ -17,6 +17,30 @@ T = TypeVar("T", bound="SalesOrderListResponse")
 
 @_attrs_define
 class SalesOrderListResponse:
+    """Response containing a list of sales orders
+
+    Example:
+        {'data': [{'id': 1001, 'customer_id': 201, 'order_no': 'SO-2024-001', 'source': 'API', 'order_created_date':
+            '2024-01-15T10:30:00Z', 'delivery_date': '2024-01-30T12:00:00Z', 'picked_date': '2024-01-28T14:15:00Z',
+            'location_id': 1, 'status': 'DELIVERED', 'currency': 'USD', 'conversion_rate': 1.0, 'conversion_date':
+            '2024-01-15T10:30:00Z', 'invoicing_status': 'INVOICED', 'total': 1250.0, 'total_in_base_currency': 1250.0,
+            'additional_info': 'Priority customer - expedite delivery', 'customer_ref': 'CUST-REF-12345',
+            'ecommerce_order_type': 'shopify', 'ecommerce_store_name': 'Premium Electronics Store', 'ecommerce_order_id':
+            'SHOP-789123', 'product_availability': 'IN_STOCK', 'product_expected_date': None, 'ingredient_availability':
+            'IN_STOCK', 'ingredient_expected_date': None, 'production_status': 'DONE', 'tracking_number':
+            '1Z999AA1234567890', 'tracking_number_url': 'https://tracking.ups.com/1Z999AA1234567890', 'billing_address_id':
+            301, 'shipping_address_id': 302, 'created_at': '2024-01-15T10:30:00Z', 'updated_at': '2024-01-28T14:15:00Z'},
+            {'id': 1002, 'customer_id': 202, 'order_no': 'SO-2024-002', 'source': 'MANUAL', 'order_created_date':
+            '2024-01-16T09:15:00Z', 'delivery_date': '2024-02-01T10:00:00Z', 'picked_date': None, 'location_id': 1,
+            'status': 'NOT_SHIPPED', 'currency': 'USD', 'conversion_rate': 1.0, 'conversion_date': '2024-01-16T09:15:00Z',
+            'invoicing_status': None, 'total': 750.0, 'total_in_base_currency': 750.0, 'additional_info': None,
+            'customer_ref': 'CUST-REF-67890', 'ecommerce_order_type': None, 'ecommerce_store_name': None,
+            'ecommerce_order_id': None, 'product_availability': 'IN_STOCK', 'product_expected_date': None,
+            'ingredient_availability': 'IN_STOCK', 'ingredient_expected_date': None, 'production_status': 'NOT_STARTED',
+            'tracking_number': None, 'tracking_number_url': None, 'billing_address_id': 303, 'shipping_address_id': 304,
+            'created_at': '2024-01-16T09:15:00Z', 'updated_at': '2024-01-16T09:15:00Z'}]}
+    """
+
     data: Unset | list["SalesOrder"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

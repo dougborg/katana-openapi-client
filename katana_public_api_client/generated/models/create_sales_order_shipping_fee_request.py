@@ -10,6 +10,12 @@ T = TypeVar("T", bound="CreateSalesOrderShippingFeeRequest")
 
 @_attrs_define
 class CreateSalesOrderShippingFeeRequest:
+    """Request payload for creating a new sales order shipping fee
+
+    Example:
+        {'sales_order_id': 1001, 'amount': 25.5, 'description': 'UPS Ground Shipping', 'tax_rate_id': 101}
+    """
+
     sales_order_id: int
     amount: float
     description: Unset | str = UNSET

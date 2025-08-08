@@ -15,6 +15,15 @@ T = TypeVar("T", bound="SalesOrderFulfillment")
 
 @_attrs_define
 class SalesOrderFulfillment:
+    """
+    Example:
+        {'id': 1301, 'sales_order_id': 1001, 'tracking_number': '1Z999AA1234567890', 'tracking_number_url':
+            'https://tracking.ups.com/track?tracknum=1Z999AA1234567890', 'shipped_date': '2024-01-28T09:00:00Z',
+            'estimated_delivery_date': '2024-01-30T17:00:00Z', 'actual_delivery_date': '2024-01-30T15:30:00Z',
+            'shipping_cost': 25.5, 'shipping_method': 'UPS Ground', 'carrier': 'UPS', 'notes': 'Signature required upon
+            delivery', 'created_at': '2024-01-28T09:00:00Z', 'updated_at': '2024-01-30T15:30:00Z'}
+    """
+
     id: int
     sales_order_id: int
     created_at: Unset | datetime.datetime = UNSET

@@ -4445,40 +4445,71 @@ components:
     # Customer schemas
     Customer:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             name:
               type: string
+              description: Full name or company name of the customer
             first_name:
               type: [string, "null"]
+              description: First name of the customer (for individual customers)
             last_name:
               type: [string, "null"]
+              description: Last name of the customer (for individual customers)
             company:
               type: [string, "null"]
+              description: Company name (for business customers)
             email:
               type: [string, "null"]
+              description: Email address of the customer
             phone:
               type: [string, "null"]
+              description: Phone number of the customer
             comment:
               type: [string, "null"]
+              description: Additional notes or comments about the customer
             currency:
               type: string
+              description: Default currency for this customer (e.g., USD, EUR)
             reference_id:
               type: [string, "null"]
+              description: External reference ID for integration with other systems
             category:
               type: [string, "null"]
+              description: Customer category for segmentation and reporting
             discount_rate:
               type: [number, "null"]
+              minimum: 0
+              maximum: 100
+              description: Default discount percentage for this customer
             default_billing_id:
               type: [integer, "null"]
+              description: ID of the default billing address for this customer
             default_shipping_id:
               type: [integer, "null"]
+              description: ID of the default shipping address for this customer
           required:
-            - id
             - name
-        - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 201
+        name: "Tech Solutions Inc"
+        first_name: "John"
+        last_name: "Smith"
+        company: "Tech Solutions Inc"
+        email: "john.smith@techsolutions.com"
+        phone: "+1-555-123-4567"
+        comment: "Priority customer - net 30 payment terms"
+        currency: "USD"
+        reference_id: "CRM-12345"
+        category: "Enterprise"
+        discount_rate: 5.0
+        default_billing_id: 301
+        default_shipping_id: 302
+        created_at: "2024-01-10T08:00:00Z"
+        updated_at: "2024-01-15T10:30:00Z"
+        deleted_at: null
 
     # Base address schema with personal information fields
     PersonalAddress:
@@ -4531,75 +4562,172 @@ components:
           properties:
             customer_id:
               type: integer
+              minimum: 1
+              maximum: 2147483647
               description: ID of the customer this address belongs to
             default:
               type: boolean
               description: Whether this is the default address for the customer
           required:
             - customer_id
+      example:
+        id: 301
+        customer_id: 201
+        entity_type: "billing"
+        first_name: "John"
+        last_name: "Smith"
+        company: "Tech Solutions Inc"
+        phone: "+1-555-123-4567"
+        line_1: "123 Business Ave"
+        line_2: "Suite 456"
+        city: "New York"
+        state: "NY"
+        zip: "10001"
+        country: "United States"
+        default: true
+        created_at: "2024-01-10T08:00:00Z"
+        updated_at: "2024-01-10T08:00:00Z"
 
     CustomerListResponse:
       type: object
+      description: Response containing a list of customers
       properties:
         data:
           type: array
+          description: Array of customer objects
           items:
             $ref: "#/components/schemas/Customer"
+      example:
+        data:
+          - id: 201
+            name: "Tech Solutions Inc"
+            first_name: "John"
+            last_name: "Smith"
+            company: "Tech Solutions Inc"
+            email: "john.smith@techsolutions.com"
+            phone: "+1-555-123-4567"
+            comment: "Priority customer - net 30 payment terms"
+            currency: "USD"
+            reference_id: "CRM-12345"
+            category: "Enterprise"
+            discount_rate: 5.0
+            default_billing_id: 301
+            default_shipping_id: 302
+            created_at: "2024-01-10T08:00:00Z"
+            updated_at: "2024-01-15T10:30:00Z"
+            deleted_at: null
+          - id: 202
+            name: "Small Business LLC"
+            first_name: "Jane"
+            last_name: "Doe"
+            company: "Small Business LLC"
+            email: "jane.doe@smallbiz.com"
+            phone: "+1-555-987-6543"
+            comment: "Local supplier - weekly orders"
+            currency: "USD"
+            reference_id: "CRM-67890"
+            category: "SMB"
+            discount_rate: 2.0
+            default_billing_id: 303
+            default_shipping_id: 304
+            created_at: "2024-01-12T14:20:00Z"
+            updated_at: "2024-01-20T09:45:00Z"
+            deleted_at: null
 
     CreateCustomerRequest:
       type: object
+      description: Request payload for creating a new customer
+      additionalProperties: false
       properties:
         name:
           type: string
+          description: Full name or company name of the customer
         first_name:
           type: [string, "null"]
+          description: First name of the customer (for individual customers)
         last_name:
           type: [string, "null"]
+          description: Last name of the customer (for individual customers)
         company:
           type: [string, "null"]
+          description: Company name (for business customers)
         email:
           type: [string, "null"]
+          format: email
+          description: Email address of the customer
         phone:
           type: [string, "null"]
+          description: Phone number of the customer
         comment:
           type: [string, "null"]
+          description: Additional notes or comments about the customer
         currency:
           type: [string, "null"]
+          description: Default currency for this customer (e.g., USD, EUR)
         reference_id:
           type: [string, "null"]
+          description: External reference ID for integration with other systems
         category:
           type: [string, "null"]
+          description: Customer category for segmentation and reporting
         discount_rate:
           type: [number, "null"]
+          minimum: 0
+          maximum: 100
+          description: Default discount percentage for this customer
       required:
         - name
+      example:
+        name: "Tech Solutions Inc"
+        first_name: "John"
+        last_name: "Smith"
+        company: "Tech Solutions Inc"
+        email: "john.smith@techsolutions.com"
+        phone: "+1-555-123-4567"
+        comment: "Priority customer - net 30 payment terms"
+        currency: "USD"
+        reference_id: "CRM-12345"
+        category: "Enterprise"
+        discount_rate: 5.0
 
     # Sales Order schemas
     SalesOrder:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             customer_id:
               type: integer
+              minimum: 1
+              maximum: 2147483647
+              description: ID of the customer who this order belongs to
             order_no:
               type: string
+              description: A unique, identifying string used in the UI and controlled by the user
             source:
               type: [string, "null"]
+              description: Indication of whether the sales order was created manually, by API or imported from somewhere else
             order_created_date:
               type: string
               format: date-time
+              description: The timestamp of creating the document. ISO 8601 format with time and timezone must be used
             delivery_date:
               type: [string, "null"]
               format: date-time
+              description: A timestamp when the items are required to be delivered to the customer. ISO 8601 format with time and timezone must be used
             picked_date:
               type: [string, "null"]
               format: date-time
+              description: The timestamp when the Sales Order Delivery status was initially marked as "PACKED" or "DELIVERED". ISO 8601 format with time and timezone must be used
             location_id:
               type: integer
+              minimum: 1
+              maximum: 2147483647
+              description: ID of the location from which the order is shipped by default
             status:
               type: string
+              description: Status of the order. Possible values are "NOT_SHIPPED", "PARTIALLY_PACKED", "PARTIALLY_DELIVERED", "PACKED", "DELIVERED", and "PENDING"
               enum:
                 - NOT_SHIPPED
                 - PARTIALLY_PACKED
@@ -4609,34 +4737,47 @@ components:
                 - PENDING
             currency:
               type: string
+              description: Currency of the sales order. Filled with customer currency by default
             conversion_rate:
               type: [number, "null"]
+              description: Currency rate used to convert from sales order currency into factory base currency
             conversion_date:
               type: [string, "null"]
               format: date-time
+              description: The date of the conversion rate used
             invoicing_status:
               type: [string, "null"]
+              description: Indicating the status of generating the invoice through accounting integration to either Xero or QuickBooks Online
             total:
               type: number
+              description: The total value of the order (including taxes) in sales order currency
             total_in_base_currency:
               type: number
+              description: The total value of the order (including taxes) in base currency
             additional_info:
               type: [string, "null"]
+              description: A string attached to the object to add any internal comments, links to external files, additional instructions, etc
             customer_ref:
               type: [string, "null"]
+              description: An identifier to reference the customer associated with the sales order
             sales_order_rows:
               type: array
+              description: An array of sales order rows
               items:
                 $ref: "#/components/schemas/SalesOrderRow"
             ecommerce_order_type:
               type: [string, "null"]
+              description: Name of the ecommerce platform in case the order is imported from one
             ecommerce_store_name:
               type: [string, "null"]
+              description: Name of the ecommerce store in case the order is imported from an ecommerce platform
             ecommerce_order_id:
               type: [string, "null"]
+              description: ID of the order in the source system in case it is imported from an ecommerce platform
             product_availability:
               anyOf:
                 - type: string
+                  description: Stock status for the products required by the sales order
                   enum:
                     - IN_STOCK
                     - EXPECTED
@@ -4647,9 +4788,11 @@ components:
             product_expected_date:
               type: [string, "null"]
               format: date-time
+              description: The latest date of a manufacturing order production deadline or a purchasing order expected arrival date that relates to the required products
             ingredient_availability:
               anyOf:
                 - type: string
+                  description: Stock status for ingredients required to produce the products on the sales order
                   enum:
                     - PROCESSED
                     - IN_STOCK
@@ -4661,9 +4804,11 @@ components:
             ingredient_expected_date:
               type: [string, "null"]
               format: date-time
+              description: The latest date of a manufacturing order production deadline or a purchasing order expected arrival date that relates to the required ingredients to produce the products
             production_status:
               anyOf:
                 - type: string
+                  description: Production status of the manufacturing order that is making products for the respective sales order
                   enum:
                     - NOT_STARTED
                     - NONE
@@ -4674,41 +4819,91 @@ components:
                 - type: "null"
             tracking_number:
               type: [string, "null"]
+              description: "Deprecated - use tracking_number from sales order fulfillment instead"
             tracking_number_url:
               type: [string, "null"]
+              description: "Deprecated - use tracking_number_url from sales order fulfillment instead"
             billing_address_id:
               type: [integer, "null"]
+              description: The ID of the billing address of the sales order
             shipping_address_id:
               type: [integer, "null"]
+              description: The ID of the shipping address of the sales order
             addresses:
               type: array
+              description: An array of shipping and billing addresses
               items:
                 $ref: "#/components/schemas/SalesOrderAddress"
           required:
-            - id
             - customer_id
             - order_no
             - location_id
             - status
-        - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 1001
+        customer_id: 201
+        order_no: "SO-2024-001"
+        source: "API"
+        order_created_date: "2024-01-15T10:30:00Z"
+        delivery_date: "2024-01-30T12:00:00Z"
+        picked_date: "2024-01-28T14:15:00Z"
+        location_id: 1
+        status: "DELIVERED"
+        currency: "USD"
+        conversion_rate: 1.0
+        conversion_date: "2024-01-15T10:30:00Z"
+        invoicing_status: "INVOICED"
+        total: 1250.00
+        total_in_base_currency: 1250.00
+        additional_info: "Priority customer - expedite delivery"
+        customer_ref: "CUST-REF-12345"
+        ecommerce_order_type: "shopify"
+        ecommerce_store_name: "Premium Electronics Store"
+        ecommerce_order_id: "SHOP-789123"
+        product_availability: "IN_STOCK"
+        product_expected_date: null
+        ingredient_availability: "IN_STOCK"
+        ingredient_expected_date: null
+        production_status: "DONE"
+        tracking_number: "1Z999AA1234567890"
+        tracking_number_url: "https://tracking.ups.com/1Z999AA1234567890"
+        billing_address_id: 301
+        shipping_address_id: 302
+        created_at: "2024-01-15T10:30:00Z"
+        updated_at: "2024-01-28T14:15:00Z"
 
     SalesOrderRow:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             quantity:
               type: number
+              minimum: 0
+              maximum: 100000000000000000
+              description: The quantity of items for the order line
             variant_id:
               type: integer
+              minimum: 1
+              maximum: 2147483647
+              description: ID of product variant added to the order line
             tax_rate_id:
               type: [integer, "null"]
+              minimum: 1
+              maximum: 2147483647
+              description: ID of tax added to price per unit
             location_id:
               type: [integer, "null"]
+              minimum: 1
+              maximum: 2147483647
+              description: >
+                ID of the location from which the order row is shipped
+                (leave empty, when sales order location should be used for all sales order rows)
             product_availability:
               anyOf:
                 - type: string
+                  description: Stock status for the products required by the sales order row
                   enum:
                     - IN_STOCK
                     - EXPECTED
@@ -4719,144 +4914,393 @@ components:
             product_expected_date:
               type: [string, "null"]
               format: date-time
+              description: >
+                The latest date of a manufacturing order production deadline or a purchasing order
+                expected arrival date that relates to the required products
             price_per_unit:
               type: number
+              description: The sales price of one unit (excluding taxes) in sales order currency
             price_per_unit_in_base_currency:
               type: number
+              description: The sales price of one unit (excluding taxes) in base currency
             total:
               type: number
+              description: The total value of the sales order row (excluding taxes) in sales order currency
             total_in_base_currency:
               type: number
+              description: The total value of the order (excluding taxes) in base currency
             cogs_value:
               type: [number, "null"]
+              description: >
+                Total Cost of Goods Sold (COGS) for the delivered quantity in a sales order row.
+                Calculated based on the average cost of the product at the time of delivery
             attributes:
               type: array
+              description: >
+                An array of sales order row attributes. Each attribute is a key-value pair.
+                Used to add extra details to the sales order row
               items:
                 type: object
                 properties:
                   key:
                     type: string
+                    description: Custom key for the sales order row attribute
                   value:
                     type: string
+                    description: Custom value for the key in sales order row attribute
             batch_transactions:
               type: array
+              description: >
+                An array of batch transactions and their quantities.
+                You can fulfill the item on the order from multiple batches
               items:
                 type: object
                 properties:
                   batch_id:
                     type: integer
+                    description: ID of the batch for the fulfilled item
                   quantity:
                     type: number
+                    description: The quantity fulfilled from a particular batch
             serial_numbers:
               type: array
+              description: An array of serial number IDs
               items:
                 type: integer
             linked_manufacturing_order_id:
               type: [integer, "null"]
+              description: >
+                The ID of the manufacturing order if there is a make-to-order (MTO)
+                manufacturing order related to the sales order row
             conversion_rate:
               type: [number, "null"]
+              description: >
+                Currency rate used to convert from sales order currency into factory base currency.
+                If multiple fulfillments exist for a sales order row, the latest date and corresponding rate are used
             conversion_date:
               type: [string, "null"]
               format: date-time
+              description: >
+                The date of the conversion rate used. If multiple fulfillments exist for a sales order row,
+                the latest date is used
           required:
-            - id
             - quantity
             - variant_id
-        - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 1101
+        quantity: 5.0
+        variant_id: 2001
+        tax_rate_id: 101
+        location_id: 1
+        product_availability: "IN_STOCK"
+        product_expected_date: null
+        price_per_unit: 199.99
+        price_per_unit_in_base_currency: 199.99
+        total: 999.95
+        total_in_base_currency: 999.95
+        cogs_value: 750.00
+        attributes:
+          - key: "gift_wrap"
+            value: "premium"
+          - key: "special_instructions"
+            value: "handle with care"
+        batch_transactions:
+          - batch_id: 501
+            quantity: 3.0
+          - batch_id: 502
+            quantity: 2.0
+        serial_numbers: [10001, 10002, 10003, 10004, 10005]
+        linked_manufacturing_order_id: 2001
+        conversion_rate: 1.0
+        conversion_date: "2024-01-15T10:30:00Z"
+        created_at: "2024-01-15T10:30:00Z"
+        updated_at: "2024-01-28T14:15:00Z"
 
     SalesOrderAddress:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
         - $ref: "#/components/schemas/PersonalAddress"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
             sales_order_id:
               type: integer
+              minimum: 1
+              maximum: 2147483647
               description: ID of the sales order this address belongs to
           required:
             - sales_order_id
-        - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 1201
+        sales_order_id: 1001
+        entity_type: "shipping"
+        first_name: "John"
+        last_name: "Smith"
+        company: "Tech Solutions Inc"
+        phone: "+1-555-123-4567"
+        line_1: "123 Business Ave"
+        line_2: "Suite 456"
+        city: "New York"
+        state: "NY"
+        zip: "10001"
+        country: "United States"
+        created_at: "2024-01-15T10:30:00Z"
+        updated_at: "2024-01-15T10:30:00Z"
 
     SalesOrderListResponse:
       type: object
+      description: Response containing a list of sales orders
       properties:
         data:
           type: array
+          description: Array of sales order objects
           items:
             $ref: "#/components/schemas/SalesOrder"
+      example:
+        data:
+          - id: 1001
+            customer_id: 201
+            order_no: "SO-2024-001"
+            source: "API"
+            order_created_date: "2024-01-15T10:30:00Z"
+            delivery_date: "2024-01-30T12:00:00Z"
+            picked_date: "2024-01-28T14:15:00Z"
+            location_id: 1
+            status: "DELIVERED"
+            currency: "USD"
+            conversion_rate: 1.0
+            conversion_date: "2024-01-15T10:30:00Z"
+            invoicing_status: "INVOICED"
+            total: 1250.00
+            total_in_base_currency: 1250.00
+            additional_info: "Priority customer - expedite delivery"
+            customer_ref: "CUST-REF-12345"
+            ecommerce_order_type: "shopify"
+            ecommerce_store_name: "Premium Electronics Store"
+            ecommerce_order_id: "SHOP-789123"
+            product_availability: "IN_STOCK"
+            product_expected_date: null
+            ingredient_availability: "IN_STOCK"
+            ingredient_expected_date: null
+            production_status: "DONE"
+            tracking_number: "1Z999AA1234567890"
+            tracking_number_url: "https://tracking.ups.com/1Z999AA1234567890"
+            billing_address_id: 301
+            shipping_address_id: 302
+            created_at: "2024-01-15T10:30:00Z"
+            updated_at: "2024-01-28T14:15:00Z"
+          - id: 1002
+            customer_id: 202
+            order_no: "SO-2024-002"
+            source: "MANUAL"
+            order_created_date: "2024-01-16T09:15:00Z"
+            delivery_date: "2024-02-01T10:00:00Z"
+            picked_date: null
+            location_id: 1
+            status: "NOT_SHIPPED"
+            currency: "USD"
+            conversion_rate: 1.0
+            conversion_date: "2024-01-16T09:15:00Z"
+            invoicing_status: null
+            total: 750.00
+            total_in_base_currency: 750.00
+            additional_info: null
+            customer_ref: "CUST-REF-67890"
+            ecommerce_order_type: null
+            ecommerce_store_name: null
+            ecommerce_order_id: null
+            product_availability: "IN_STOCK"
+            product_expected_date: null
+            ingredient_availability: "IN_STOCK"
+            ingredient_expected_date: null
+            production_status: "NOT_STARTED"
+            tracking_number: null
+            tracking_number_url: null
+            billing_address_id: 303
+            shipping_address_id: 304
+            created_at: "2024-01-16T09:15:00Z"
+            updated_at: "2024-01-16T09:15:00Z"
 
     CreateSalesOrderRequest:
       type: object
+      description: Request payload for creating a new sales order
+      additionalProperties: false
       properties:
         order_no:
           type: string
+          description: A unique, identifying string used in the UI and controlled by the user
         customer_id:
           type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: ID of the customer who this order belongs to
         sales_order_rows:
           type: array
+          description: An array of sales order rows to be created with the order
           items:
             type: object
+            description: Sales order row data for creation
+            additionalProperties: false
             properties:
               quantity:
                 type: number
+                minimum: 0
+                maximum: 100000000000000000
+                description: The quantity of items for the order line
               variant_id:
                 type: integer
+                minimum: 1
+                maximum: 2147483647
+                description: ID of product variant added to the order line
               tax_rate_id:
                 type: [integer, "null"]
+                minimum: 1
+                maximum: 2147483647
+                description: ID of tax added to price per unit
               location_id:
                 type: [integer, "null"]
+                minimum: 1
+                maximum: 2147483647
+                description: >
+                  ID of the location from which the order row is shipped
+                  (leave empty to use sales order location for all rows)
               price_per_unit:
                 type: [number, "null"]
+                description: The sales price of one unit (excluding taxes) in sales order currency
               total_discount:
                 type: [number, "null"]
+                description: Total discount applied to this order row
               attributes:
                 type: array
+                description: An array of sales order row attributes (key-value pairs)
                 items:
                   type: object
+                  additionalProperties: false
                   properties:
                     key:
                       type: string
+                      description: Custom key for the sales order row attribute
                     value:
                       type: string
+                      description: Custom value for the key in sales order row attribute
+                  required:
+                    - key
+                    - value
             required:
               - quantity
               - variant_id
         tracking_number:
           type: [string, "null"]
+          description: "Deprecated - use SalesOrderFulfillment instead"
         tracking_number_url:
           type: [string, "null"]
+          description: "Deprecated - use SalesOrderFulfillment instead"
         addresses:
           type: array
+          description: An array of shipping and billing addresses for the order
           items:
-            $ref: "#/components/schemas/SalesOrderAddress"
-            required:
-              - entity_type
+            allOf:
+              - $ref: "#/components/schemas/PersonalAddress"
+              - type: object
+                properties:
+                  entity_type:
+                    type: string
+                    description: Type of address (billing or shipping)
+                    enum:
+                      - billing
+                      - shipping
+                required:
+                  - entity_type
         order_created_date:
           type: [string, "null"]
+          format: date-time
+          description: The timestamp of creating the document. ISO 8601 format with time and timezone must be used
         delivery_date:
           type: [string, "null"]
+          format: date-time
+          description: >
+            A timestamp when the items are required to be delivered to the customer.
+            ISO 8601 format with time and timezone must be used
         currency:
           type: [string, "null"]
+          description: Currency of the sales order. If not provided, customer currency will be used by default
         location_id:
           type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: ID of the location from which the order is shipped by default
         status:
           type: string
+          description: Initial status of the order
           enum:
             - NOT_SHIPPED
             - PENDING
         additional_info:
           type: [string, "null"]
+          description: >
+            A string attached to the object to add any internal comments, links to external files,
+            additional instructions, etc
         customer_ref:
           type: [string, "null"]
+          description: An identifier to reference the customer associated with the sales order
         ecommerce_order_type:
           type: [string, "null"]
+          description: Name of the ecommerce platform in case the order is imported from one
         ecommerce_store_name:
           type: [string, "null"]
+          description: Name of the ecommerce store in case the order is imported from an ecommerce platform
         ecommerce_order_id:
           type: [string, "null"]
+          description: ID of the order in the source system in case it is imported from an ecommerce platform
       required:
         - order_no
         - customer_id
         - sales_order_rows
+        - location_id
+      example:
+        order_no: "SO-2024-002"
+        customer_id: 201
+        location_id: 1
+        sales_order_rows:
+          - quantity: 3.0
+            variant_id: 2001
+            tax_rate_id: 101
+            price_per_unit: 199.99
+            attributes:
+              - key: "gift_wrap"
+                value: "premium"
+          - quantity: 2.0
+            variant_id: 2002
+            tax_rate_id: 101
+            price_per_unit: 149.99
+        addresses:
+          - entity_type: "billing"
+            first_name: "John"
+            last_name: "Smith"
+            company: "Tech Solutions Inc"
+            line_1: "123 Business Ave"
+            city: "New York"
+            state: "NY"
+            zip: "10001"
+            country: "United States"
+          - entity_type: "shipping"
+            first_name: "John"
+            last_name: "Smith"
+            company: "Tech Solutions Inc"
+            line_1: "456 Delivery St"
+            city: "New York"
+            state: "NY"
+            zip: "10002"
+            country: "United States"
+        order_created_date: "2024-02-01T11:00:00Z"
+        delivery_date: "2024-02-15T12:00:00Z"
+        currency: "USD"
+        status: "PENDING"
+        additional_info: "Rush order - customer needs by Feb 15th"
+        customer_ref: "CUST-ORDER-456"
+        ecommerce_order_type: "shopify"
+        ecommerce_store_name: "Premium Electronics Store"
+        ecommerce_order_id: "SHOP-456789"
 
     # Stock management schemas
     StockAdjustment:
@@ -4933,37 +5377,61 @@ components:
     # Sales Order sub-resources
     SalesOrderFulfillment:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             sales_order_id:
               type: integer
+              minimum: 1
+              maximum: 2147483647
+              description: ID of the sales order this fulfillment belongs to
             tracking_number:
               type: [string, "null"]
+              description: Shipping tracking number for this fulfillment
             tracking_number_url:
               type: [string, "null"]
+              description: URL to track the shipment using the tracking number
             shipped_date:
               type: [string, "null"]
               format: date-time
+              description: The timestamp when the shipment was dispatched
             estimated_delivery_date:
               type: [string, "null"]
               format: date-time
+              description: The expected delivery date as provided by the carrier
             actual_delivery_date:
               type: [string, "null"]
               format: date-time
+              description: The actual date when the shipment was delivered
             shipping_cost:
               type: [number, "null"]
+              description: Cost of shipping for this fulfillment
             shipping_method:
               type: [string, "null"]
+              description: Method of shipping (e.g., Standard, Express, Overnight)
             carrier:
               type: [string, "null"]
+              description: Shipping carrier (e.g., UPS, FedEx, DHL)
             notes:
               type: [string, "null"]
+              description: Additional notes or instructions for this fulfillment
           required:
-            - id
             - sales_order_id
-        - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 1301
+        sales_order_id: 1001
+        tracking_number: "1Z999AA1234567890"
+        tracking_number_url: "https://tracking.ups.com/track?tracknum=1Z999AA1234567890"
+        shipped_date: "2024-01-28T09:00:00Z"
+        estimated_delivery_date: "2024-01-30T17:00:00Z"
+        actual_delivery_date: "2024-01-30T15:30:00Z"
+        shipping_cost: 25.50
+        shipping_method: "UPS Ground"
+        carrier: "UPS"
+        notes: "Signature required upon delivery"
+        created_at: "2024-01-28T09:00:00Z"
+        updated_at: "2024-01-30T15:30:00Z"
 
     # Price Lists
     PriceList:
@@ -5432,50 +5900,81 @@ components:
     # Sales Return schemas
     SalesReturn:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             customer_id:
               type: integer
+              minimum: 1
+              maximum: 2147483647
+              description: ID of the customer initiating the return
             sales_order_id:
               type: [integer, "null"]
+              minimum: 1
+              maximum: 2147483647
+              description: ID of the original sales order being returned
             order_no:
               type: string
+              description: Return order reference number
             return_location_id:
               type: integer
+              minimum: 1
+              maximum: 2147483647
+              description: ID of the location where items are being returned to
             status:
               type: string
+              description: Status of the return order
               enum:
                 - DRAFT
                 - RETURNED
                 - CANCELLED
             currency:
               type: string
+              description: Currency code (e.g., USD, EUR)
             return_date:
               type: [string, "null"]
               format: date-time
+              description: Date when the return was processed
             order_created_date:
               type: string
               format: date-time
+              description: Date when the original order was created
             additional_info:
               type: [string, "null"]
+              description: Optional notes or comments about the return
             refund_status:
               type: [string, "null"]
+              description: Status of the refund processing
             sales_return_rows:
               type: array
+              description: Array of items being returned
               items:
                 $ref: "#/components/schemas/SalesReturnRow"
           required:
-            - id
             - customer_id
             - order_no
             - return_location_id
             - status
-        - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 2001
+        customer_id: 201
+        sales_order_id: 1001
+        order_no: "RET-2024-001"
+        return_location_id: 1
+        status: "RETURNED"
+        currency: "USD"
+        return_date: "2024-02-05T10:30:00Z"
+        order_created_date: "2024-01-15T10:30:00Z"
+        additional_info: "Customer reported defective items"
+        refund_status: "PROCESSED"
+        created_at: "2024-02-05T09:00:00Z"
+        updated_at: "2024-02-05T10:30:00Z"
+        deleted_at: null
 
     CreateSalesReturnRequest:
       type: object
+      description: Request payload for creating a new sales return
       additionalProperties: false
       required:
         - customer_id
@@ -5485,15 +5984,21 @@ components:
       properties:
         customer_id:
           type: integer
+          minimum: 1
+          maximum: 2147483647
           description: ID of the customer initiating the return
         sales_order_id:
           type: integer
+          minimum: 1
+          maximum: 2147483647
           description: ID of the original sales order being returned
         order_no:
           type: string
           description: Return order reference number
         return_location_id:
           type: integer
+          minimum: 1
+          maximum: 2147483647
           description: ID of the location where items are being returned to
         currency:
           type: string
@@ -5507,39 +6012,81 @@ components:
           description: Optional notes or comments about the return
         sales_return_rows:
           type: array
+          description: Array of items being returned
           items:
             $ref: "#/components/schemas/CreateSalesReturnRowRequest"
-          description: Array of items being returned
+      example:
+        customer_id: 201
+        sales_order_id: 1001
+        order_no: "RET-2024-001"
+        return_location_id: 1
+        currency: "USD"
+        order_created_date: "2024-01-15T10:30:00Z"
+        additional_info: "Customer reported defective items"
+        sales_return_rows:
+          - variant_id: 2001
+            quantity: 2.0
+            return_reason_id: 1
+            notes: "Items arrived damaged"
+          - variant_id: 2002
+            quantity: 1.0
+            return_reason_id: 2
+            notes: "Wrong item shipped"
 
     SalesReturnRow:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             sales_return_id:
               type: integer
+              minimum: 1
+              maximum: 2147483647
+              description: ID of the sales return this row belongs to
             variant_id:
               type: integer
+              minimum: 1
+              maximum: 2147483647
+              description: ID of the variant being returned
             quantity:
               type: number
+              minimum: 0
+              maximum: 100000000000000000
+              description: Quantity being returned
             return_reason_id:
               type: [integer, "null"]
+              minimum: 1
+              maximum: 2147483647
+              description: ID of the return reason
             notes:
               type: [string, "null"]
+              description: Optional notes about this returned item
             unit_price:
               type: [number, "null"]
+              description: Unit price of the returned item
             total_price:
               type: [number, "null"]
+              description: Total price of the returned items (quantity × unit price)
           required:
-            - id
             - sales_return_id
             - variant_id
             - quantity
-        - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 2101
+        sales_return_id: 2001
+        variant_id: 2001
+        quantity: 2.0
+        return_reason_id: 1
+        notes: "Items arrived damaged during shipping"
+        unit_price: 199.99
+        total_price: 399.98
+        created_at: "2024-02-05T09:00:00Z"
+        updated_at: "2024-02-05T09:00:00Z"
 
     CreateSalesReturnRowRequest:
       type: object
+      description: Request payload for creating a new sales return row
       additionalProperties: false
       required:
         - variant_id
@@ -5547,16 +6094,27 @@ components:
       properties:
         variant_id:
           type: integer
+          minimum: 1
+          maximum: 2147483647
           description: ID of the variant being returned
         quantity:
           type: number
+          minimum: 0
+          maximum: 100000000000000000
           description: Quantity being returned
         return_reason_id:
           type: integer
+          minimum: 1
+          maximum: 2147483647
           description: ID of the return reason
         notes:
           type: string
           description: Optional notes about this returned item
+      example:
+        variant_id: 2001
+        quantity: 2.0
+        return_reason_id: 1
+        notes: "Items arrived damaged during shipping"
 
     # User schemas
     User:
@@ -5613,47 +6171,114 @@ components:
 
     CustomerAddressListResponse:
       type: object
+      description: Response containing a list of customer addresses
       properties:
         data:
           type: array
+          description: Array of customer address objects
           items:
             $ref: "#/components/schemas/CustomerAddress"
+      example:
+        data:
+          - id: 301
+            customer_id: 201
+            entity_type: "billing"
+            first_name: "John"
+            last_name: "Smith"
+            company: "Tech Solutions Inc"
+            phone: "+1-555-123-4567"
+            line_1: "123 Business Ave"
+            line_2: "Suite 456"
+            city: "New York"
+            state: "NY"
+            zip: "10001"
+            country: "United States"
+            default: true
+            created_at: "2024-01-10T08:00:00Z"
+            updated_at: "2024-01-10T08:00:00Z"
+          - id: 302
+            customer_id: 201
+            entity_type: "shipping"
+            first_name: "John"
+            last_name: "Smith"
+            company: "Tech Solutions Inc"
+            phone: "+1-555-123-4567"
+            line_1: "456 Delivery Lane"
+            line_2: "Loading Dock B"
+            city: "Brooklyn"
+            state: "NY"
+            zip: "11201"
+            country: "United States"
+            default: false
+            created_at: "2024-01-10T08:05:00Z"
+            updated_at: "2024-01-10T08:05:00Z"
 
     CreateCustomerAddressRequest:
       type: object
+      description: Request payload for creating a new customer address
+      additionalProperties: false
       properties:
         customer_id:
           type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: ID of the customer this address belongs to
         entity_type:
           type: string
+          description: Type of address - billing or shipping
           enum:
             - billing
             - shipping
         first_name:
           type: [string, "null"]
+          description: First name associated with the address
         last_name:
           type: [string, "null"]
+          description: Last name associated with the address
         company:
           type: [string, "null"]
+          description: Company name associated with the address
         phone:
           type: [string, "null"]
+          description: Phone number associated with the address
         line_1:
           type: [string, "null"]
+          description: The first line of the address (street name and house number)
         line_2:
           type: [string, "null"]
+          description: The second line of the address (apartment, suite, unit, or building)
         city:
           type: [string, "null"]
+          description: The city of the address
         state:
           type: [string, "null"]
+          description: The state of the address
         zip:
           type: [string, "null"]
+          description: The zip code of the address
         country:
           type: [string, "null"]
+          description: The country of the address
         is_default:
           type: boolean
+          description: Whether this should be set as the default address for the customer
       required:
         - customer_id
         - entity_type
+      example:
+        customer_id: 201
+        entity_type: "shipping"
+        first_name: "John"
+        last_name: "Smith"
+        company: "Tech Solutions Inc"
+        phone: "+1-555-123-4567"
+        line_1: "456 Delivery Lane"
+        line_2: "Loading Dock B"
+        city: "Brooklyn"
+        state: "NY"
+        zip: "11201"
+        country: "United States"
+        is_default: false
 
     PriceListListResponse:
       type: object
@@ -5816,33 +6441,48 @@ components:
             $ref: "#/components/schemas/SalesOrderAccountingMetadata"
 
     SalesOrderAccountingMetadata:
-      type: object
-      properties:
-        id:
-          type: integer
-        sales_order_id:
-          type: integer
-        fulfillment_id:
-          type: integer
-        invoice_id:
-          type: string
-        integration_type:
-          type: string
-          enum:
-            - xero
-            - quickBooks
-            - sage
-            - custom
-        created_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - sales_order_id
-        - invoice_id
-        - integration_type
-        - created_at
-        - fulfillment_id
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - type: object
+          properties:
+            sales_order_id:
+              type: integer
+              minimum: 1
+              maximum: 2147483647
+              description: ID of the sales order this metadata belongs to
+            fulfillment_id:
+              type: integer
+              minimum: 1
+              maximum: 2147483647
+              description: ID of the fulfillment this metadata relates to
+            invoice_id:
+              type: string
+              description: Invoice identifier in the external accounting system
+            integration_type:
+              type: string
+              description: Type of accounting integration used
+              enum:
+                - xero
+                - quickBooks
+                - sage
+                - custom
+            created_at:
+              type: string
+              format: date-time
+              description: The timestamp when the accounting metadata was created
+          required:
+            - sales_order_id
+            - invoice_id
+            - integration_type
+            - created_at
+            - fulfillment_id
+      example:
+        id: 1401
+        sales_order_id: 1001
+        fulfillment_id: 1301
+        invoice_id: "INV-2024-001"
+        integration_type: "xero"
+        created_at: "2024-01-30T16:00:00Z"
 
     SalesOrderShippingFeeListResponse:
       type: object
@@ -5853,25 +6493,39 @@ components:
             $ref: "#/components/schemas/SalesOrderShippingFee"
 
     SalesOrderShippingFee:
-      type: object
-      properties:
-        id:
-          type: integer
-        sales_order_id:
-          type: integer
-        amount:
-          type: number
-        tax_rate_id:
-          type: integer
-        description:
-          type: [string, "null"]
-      required:
-        - id
-        - sales_order_id
-        - amount
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - type: object
+          properties:
+            sales_order_id:
+              type: integer
+              minimum: 1
+              maximum: 2147483647
+              description: ID of the sales order to add shipping fee to
+            amount:
+              type: number
+              description: Shipping fee amount
+            tax_rate_id:
+              type: integer
+              minimum: 1
+              maximum: 2147483647
+              description: ID of the tax rate to apply to the shipping fee
+            description:
+              type: [string, "null"]
+              description: Description of the shipping fee
+          required:
+            - sales_order_id
+            - amount
+      example:
+        id: 1501
+        sales_order_id: 1001
+        amount: 25.50
+        tax_rate_id: 101
+        description: "UPS Ground Shipping"
 
     CreateSalesOrderShippingFeeRequest:
       type: object
+      description: Request payload for creating a new sales order shipping fee
       additionalProperties: false
       required:
         - sales_order_id
@@ -5879,6 +6533,8 @@ components:
       properties:
         sales_order_id:
           type: integer
+          minimum: 1
+          maximum: 2147483647
           description: ID of the sales order to add shipping fee to
         amount:
           type: number
@@ -5888,7 +6544,14 @@ components:
           description: Description of the shipping fee
         tax_rate_id:
           type: integer
+          minimum: 1
+          maximum: 2147483647
           description: ID of the tax rate to apply to the shipping fee
+      example:
+        sales_order_id: 1001
+        amount: 25.50
+        description: "UPS Ground Shipping"
+        tax_rate_id: 101
 
 paths:
   /additional_costs:

@@ -54,6 +54,12 @@ from .create_purchase_order_request_entity_type import (
 from .create_purchase_order_request_status import CreatePurchaseOrderRequestStatus
 from .create_purchase_order_row_request import CreatePurchaseOrderRowRequest
 from .create_sales_order_request import CreateSalesOrderRequest
+from .create_sales_order_request_addresses_item import (
+    CreateSalesOrderRequestAddressesItem,
+)
+from .create_sales_order_request_addresses_item_entity_type import (
+    CreateSalesOrderRequestAddressesItemEntityType,
+)
 from .create_sales_order_request_sales_order_rows_item import (
     CreateSalesOrderRequestSalesOrderRowsItem,
 )
@@ -416,6 +422,8 @@ __all__ = (
     "CreatePurchaseOrderRequestStatus",
     "CreatePurchaseOrderRowRequest",
     "CreateSalesOrderRequest",
+    "CreateSalesOrderRequestAddressesItem",
+    "CreateSalesOrderRequestAddressesItemEntityType",
     "CreateSalesOrderRequestSalesOrderRowsItem",
     "CreateSalesOrderRequestSalesOrderRowsItemAttributesItem",
     "CreateSalesOrderRequestStatus",

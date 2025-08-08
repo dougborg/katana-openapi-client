@@ -76,7 +76,20 @@ def sync_detailed(
      Creates a new sales order object.
 
     Args:
-        body (CreateSalesOrderRequest):
+        body (CreateSalesOrderRequest): Request payload for creating a new sales order Example:
+            {'order_no': 'SO-2024-002', 'customer_id': 201, 'location_id': 1, 'sales_order_rows':
+            [{'quantity': 3.0, 'variant_id': 2001, 'tax_rate_id': 101, 'price_per_unit': 199.99,
+            'attributes': [{'key': 'gift_wrap', 'value': 'premium'}]}, {'quantity': 2.0, 'variant_id':
+            2002, 'tax_rate_id': 101, 'price_per_unit': 149.99}], 'addresses': [{'entity_type':
+            'billing', 'first_name': 'John', 'last_name': 'Smith', 'company': 'Tech Solutions Inc',
+            'line_1': '123 Business Ave', 'city': 'New York', 'state': 'NY', 'zip': '10001',
+            'country': 'United States'}, {'entity_type': 'shipping', 'first_name': 'John',
+            'last_name': 'Smith', 'company': 'Tech Solutions Inc', 'line_1': '456 Delivery St',
+            'city': 'New York', 'state': 'NY', 'zip': '10002', 'country': 'United States'}],
+            'order_created_date': '2024-02-01T11:00:00Z', 'delivery_date': '2024-02-15T12:00:00Z',
+            'currency': 'USD', 'status': 'PENDING', 'additional_info': 'Rush order - customer needs by
+            Feb 15th', 'customer_ref': 'CUST-ORDER-456', 'ecommerce_order_type': 'shopify',
+            'ecommerce_store_name': 'Premium Electronics Store', 'ecommerce_order_id': 'SHOP-456789'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -108,7 +121,20 @@ def sync(
      Creates a new sales order object.
 
     Args:
-        body (CreateSalesOrderRequest):
+        body (CreateSalesOrderRequest): Request payload for creating a new sales order Example:
+            {'order_no': 'SO-2024-002', 'customer_id': 201, 'location_id': 1, 'sales_order_rows':
+            [{'quantity': 3.0, 'variant_id': 2001, 'tax_rate_id': 101, 'price_per_unit': 199.99,
+            'attributes': [{'key': 'gift_wrap', 'value': 'premium'}]}, {'quantity': 2.0, 'variant_id':
+            2002, 'tax_rate_id': 101, 'price_per_unit': 149.99}], 'addresses': [{'entity_type':
+            'billing', 'first_name': 'John', 'last_name': 'Smith', 'company': 'Tech Solutions Inc',
+            'line_1': '123 Business Ave', 'city': 'New York', 'state': 'NY', 'zip': '10001',
+            'country': 'United States'}, {'entity_type': 'shipping', 'first_name': 'John',
+            'last_name': 'Smith', 'company': 'Tech Solutions Inc', 'line_1': '456 Delivery St',
+            'city': 'New York', 'state': 'NY', 'zip': '10002', 'country': 'United States'}],
+            'order_created_date': '2024-02-01T11:00:00Z', 'delivery_date': '2024-02-15T12:00:00Z',
+            'currency': 'USD', 'status': 'PENDING', 'additional_info': 'Rush order - customer needs by
+            Feb 15th', 'customer_ref': 'CUST-ORDER-456', 'ecommerce_order_type': 'shopify',
+            'ecommerce_store_name': 'Premium Electronics Store', 'ecommerce_order_id': 'SHOP-456789'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -135,7 +161,20 @@ async def asyncio_detailed(
      Creates a new sales order object.
 
     Args:
-        body (CreateSalesOrderRequest):
+        body (CreateSalesOrderRequest): Request payload for creating a new sales order Example:
+            {'order_no': 'SO-2024-002', 'customer_id': 201, 'location_id': 1, 'sales_order_rows':
+            [{'quantity': 3.0, 'variant_id': 2001, 'tax_rate_id': 101, 'price_per_unit': 199.99,
+            'attributes': [{'key': 'gift_wrap', 'value': 'premium'}]}, {'quantity': 2.0, 'variant_id':
+            2002, 'tax_rate_id': 101, 'price_per_unit': 149.99}], 'addresses': [{'entity_type':
+            'billing', 'first_name': 'John', 'last_name': 'Smith', 'company': 'Tech Solutions Inc',
+            'line_1': '123 Business Ave', 'city': 'New York', 'state': 'NY', 'zip': '10001',
+            'country': 'United States'}, {'entity_type': 'shipping', 'first_name': 'John',
+            'last_name': 'Smith', 'company': 'Tech Solutions Inc', 'line_1': '456 Delivery St',
+            'city': 'New York', 'state': 'NY', 'zip': '10002', 'country': 'United States'}],
+            'order_created_date': '2024-02-01T11:00:00Z', 'delivery_date': '2024-02-15T12:00:00Z',
+            'currency': 'USD', 'status': 'PENDING', 'additional_info': 'Rush order - customer needs by
+            Feb 15th', 'customer_ref': 'CUST-ORDER-456', 'ecommerce_order_type': 'shopify',
+            'ecommerce_store_name': 'Premium Electronics Store', 'ecommerce_order_id': 'SHOP-456789'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -165,7 +204,20 @@ async def asyncio(
      Creates a new sales order object.
 
     Args:
-        body (CreateSalesOrderRequest):
+        body (CreateSalesOrderRequest): Request payload for creating a new sales order Example:
+            {'order_no': 'SO-2024-002', 'customer_id': 201, 'location_id': 1, 'sales_order_rows':
+            [{'quantity': 3.0, 'variant_id': 2001, 'tax_rate_id': 101, 'price_per_unit': 199.99,
+            'attributes': [{'key': 'gift_wrap', 'value': 'premium'}]}, {'quantity': 2.0, 'variant_id':
+            2002, 'tax_rate_id': 101, 'price_per_unit': 149.99}], 'addresses': [{'entity_type':
+            'billing', 'first_name': 'John', 'last_name': 'Smith', 'company': 'Tech Solutions Inc',
+            'line_1': '123 Business Ave', 'city': 'New York', 'state': 'NY', 'zip': '10001',
+            'country': 'United States'}, {'entity_type': 'shipping', 'first_name': 'John',
+            'last_name': 'Smith', 'company': 'Tech Solutions Inc', 'line_1': '456 Delivery St',
+            'city': 'New York', 'state': 'NY', 'zip': '10002', 'country': 'United States'}],
+            'order_created_date': '2024-02-01T11:00:00Z', 'delivery_date': '2024-02-15T12:00:00Z',
+            'currency': 'USD', 'status': 'PENDING', 'additional_info': 'Rush order - customer needs by
+            Feb 15th', 'customer_ref': 'CUST-ORDER-456', 'ecommerce_order_type': 'shopify',
+            'ecommerce_store_name': 'Premium Electronics Store', 'ecommerce_order_id': 'SHOP-456789'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

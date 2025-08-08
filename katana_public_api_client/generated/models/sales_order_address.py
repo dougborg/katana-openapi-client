@@ -16,6 +16,14 @@ T = TypeVar("T", bound="SalesOrderAddress")
 
 @_attrs_define
 class SalesOrderAddress:
+    """
+    Example:
+        {'id': 1201, 'sales_order_id': 1001, 'entity_type': 'shipping', 'first_name': 'John', 'last_name': 'Smith',
+            'company': 'Tech Solutions Inc', 'phone': '+1-555-123-4567', 'line_1': '123 Business Ave', 'line_2': 'Suite
+            456', 'city': 'New York', 'state': 'NY', 'zip': '10001', 'country': 'United States', 'created_at':
+            '2024-01-15T10:30:00Z', 'updated_at': '2024-01-15T10:30:00Z'}
+    """
+
     id: int
     sales_order_id: int
     entity_type: Unset | PersonalAddressEntityType = UNSET

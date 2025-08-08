@@ -87,7 +87,10 @@ def sync_detailed(
      Creates a sales order shipping fee and adds it to a sales order.
 
     Args:
-        body (CreateSalesOrderShippingFeeRequest):
+        body (CreateSalesOrderShippingFeeRequest): Request payload for creating a new sales order
+            shipping fee Example: {'sales_order_id': 1001, 'amount': 25.5, 'description': 'UPS Ground
+            Shipping', 'tax_rate_id': 101}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -119,7 +122,10 @@ def sync(
      Creates a sales order shipping fee and adds it to a sales order.
 
     Args:
-        body (CreateSalesOrderShippingFeeRequest):
+        body (CreateSalesOrderShippingFeeRequest): Request payload for creating a new sales order
+            shipping fee Example: {'sales_order_id': 1001, 'amount': 25.5, 'description': 'UPS Ground
+            Shipping', 'tax_rate_id': 101}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -146,7 +152,10 @@ async def asyncio_detailed(
      Creates a sales order shipping fee and adds it to a sales order.
 
     Args:
-        body (CreateSalesOrderShippingFeeRequest):
+        body (CreateSalesOrderShippingFeeRequest): Request payload for creating a new sales order
+            shipping fee Example: {'sales_order_id': 1001, 'amount': 25.5, 'description': 'UPS Ground
+            Shipping', 'tax_rate_id': 101}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -176,7 +185,10 @@ async def asyncio(
      Creates a sales order shipping fee and adds it to a sales order.
 
     Args:
-        body (CreateSalesOrderShippingFeeRequest):
+        body (CreateSalesOrderShippingFeeRequest): Request payload for creating a new sales order
+            shipping fee Example: {'sales_order_id': 1001, 'amount': 25.5, 'description': 'UPS Ground
+            Shipping', 'tax_rate_id': 101}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

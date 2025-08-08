@@ -1,28 +1,21 @@
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-
-from ..models.create_customer_address_request_entity_type import (
-    CreateCustomerAddressRequestEntityType,
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
 )
+
+from ..models.personal_address_entity_type import PersonalAddressEntityType
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="CreateCustomerAddressRequest")
+T = TypeVar("T", bound="CreateSalesOrderRequestAddressesItem")
 
 
 @_attrs_define
-class CreateCustomerAddressRequest:
-    """Request payload for creating a new customer address
-
-    Example:
-        {'customer_id': 201, 'entity_type': 'shipping', 'first_name': 'John', 'last_name': 'Smith', 'company': 'Tech
-            Solutions Inc', 'phone': '+1-555-123-4567', 'line_1': '456 Delivery Lane', 'line_2': 'Loading Dock B', 'city':
-            'Brooklyn', 'state': 'NY', 'zip': '11201', 'country': 'United States', 'is_default': False}
-    """
-
-    customer_id: int
-    entity_type: CreateCustomerAddressRequestEntityType
+class CreateSalesOrderRequestAddressesItem:
+    id: int
+    entity_type: PersonalAddressEntityType
     first_name: None | Unset | str = UNSET
     last_name: None | Unset | str = UNSET
     company: None | Unset | str = UNSET
@@ -33,10 +26,10 @@ class CreateCustomerAddressRequest:
     state: None | Unset | str = UNSET
     zip_: None | Unset | str = UNSET
     country: None | Unset | str = UNSET
-    is_default: Unset | bool = UNSET
+    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        customer_id = self.customer_id
+        id = self.id
 
         entity_type = self.entity_type.value
 
@@ -100,13 +93,11 @@ class CreateCustomerAddressRequest:
         else:
             country = self.country
 
-        is_default = self.is_default
-
         field_dict: dict[str, Any] = {}
-
+        field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "customer_id": customer_id,
+                "id": id,
                 "entity_type": entity_type,
             }
         )
@@ -130,17 +121,15 @@ class CreateCustomerAddressRequest:
             field_dict["zip"] = zip_
         if country is not UNSET:
             field_dict["country"] = country
-        if is_default is not UNSET:
-            field_dict["is_default"] = is_default
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        customer_id = d.pop("customer_id")
+        id = d.pop("id")
 
-        entity_type = CreateCustomerAddressRequestEntityType(d.pop("entity_type"))
+        entity_type = PersonalAddressEntityType(d.pop("entity_type"))
 
         def _parse_first_name(data: object) -> None | Unset | str:
             if data is None:
@@ -232,10 +221,8 @@ class CreateCustomerAddressRequest:
 
         country = _parse_country(d.pop("country", UNSET))
 
-        is_default = d.pop("is_default", UNSET)
-
-        create_customer_address_request = cls(
-            customer_id=customer_id,
+        create_sales_order_request_addresses_item = cls(
+            id=id,
             entity_type=entity_type,
             first_name=first_name,
             last_name=last_name,
@@ -247,7 +234,23 @@ class CreateCustomerAddressRequest:
             state=state,
             zip_=zip_,
             country=country,
-            is_default=is_default,
         )
 
-        return create_customer_address_request
+        create_sales_order_request_addresses_item.additional_properties = d
+        return create_sales_order_request_addresses_item
+
+    @property
+    def additional_keys(self) -> list[str]:
+        return list(self.additional_properties.keys())
+
+    def __getitem__(self, key: str) -> Any:
+        return self.additional_properties[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.additional_properties[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self.additional_properties[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.additional_properties

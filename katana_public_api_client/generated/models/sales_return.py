@@ -20,6 +20,14 @@ T = TypeVar("T", bound="SalesReturn")
 
 @_attrs_define
 class SalesReturn:
+    """
+    Example:
+        {'id': 2001, 'customer_id': 201, 'sales_order_id': 1001, 'order_no': 'RET-2024-001', 'return_location_id': 1,
+            'status': 'RETURNED', 'currency': 'USD', 'return_date': '2024-02-05T10:30:00Z', 'order_created_date':
+            '2024-01-15T10:30:00Z', 'additional_info': 'Customer reported defective items', 'refund_status': 'PROCESSED',
+            'created_at': '2024-02-05T09:00:00Z', 'updated_at': '2024-02-05T10:30:00Z', 'deleted_at': None}
+    """
+
     id: int
     customer_id: int
     order_no: str

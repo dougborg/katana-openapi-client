@@ -76,7 +76,11 @@ def sync_detailed(
      Creates a new customer.
 
     Args:
-        body (CreateCustomerRequest):
+        body (CreateCustomerRequest): Request payload for creating a new customer Example:
+            {'name': 'Tech Solutions Inc', 'first_name': 'John', 'last_name': 'Smith', 'company':
+            'Tech Solutions Inc', 'email': 'john.smith@techsolutions.com', 'phone': '+1-555-123-4567',
+            'comment': 'Priority customer - net 30 payment terms', 'currency': 'USD', 'reference_id':
+            'CRM-12345', 'category': 'Enterprise', 'discount_rate': 5.0}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -108,7 +112,11 @@ def sync(
      Creates a new customer.
 
     Args:
-        body (CreateCustomerRequest):
+        body (CreateCustomerRequest): Request payload for creating a new customer Example:
+            {'name': 'Tech Solutions Inc', 'first_name': 'John', 'last_name': 'Smith', 'company':
+            'Tech Solutions Inc', 'email': 'john.smith@techsolutions.com', 'phone': '+1-555-123-4567',
+            'comment': 'Priority customer - net 30 payment terms', 'currency': 'USD', 'reference_id':
+            'CRM-12345', 'category': 'Enterprise', 'discount_rate': 5.0}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -135,7 +143,11 @@ async def asyncio_detailed(
      Creates a new customer.
 
     Args:
-        body (CreateCustomerRequest):
+        body (CreateCustomerRequest): Request payload for creating a new customer Example:
+            {'name': 'Tech Solutions Inc', 'first_name': 'John', 'last_name': 'Smith', 'company':
+            'Tech Solutions Inc', 'email': 'john.smith@techsolutions.com', 'phone': '+1-555-123-4567',
+            'comment': 'Priority customer - net 30 payment terms', 'currency': 'USD', 'reference_id':
+            'CRM-12345', 'category': 'Enterprise', 'discount_rate': 5.0}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -165,7 +177,11 @@ async def asyncio(
      Creates a new customer.
 
     Args:
-        body (CreateCustomerRequest):
+        body (CreateCustomerRequest): Request payload for creating a new customer Example:
+            {'name': 'Tech Solutions Inc', 'first_name': 'John', 'last_name': 'Smith', 'company':
+            'Tech Solutions Inc', 'email': 'john.smith@techsolutions.com', 'phone': '+1-555-123-4567',
+            'comment': 'Priority customer - net 30 payment terms', 'currency': 'USD', 'reference_id':
+            'CRM-12345', 'category': 'Enterprise', 'discount_rate': 5.0}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

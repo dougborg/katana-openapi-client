@@ -16,6 +16,15 @@ T = TypeVar("T", bound="CreateSalesReturnRequest")
 
 @_attrs_define
 class CreateSalesReturnRequest:
+    """Request payload for creating a new sales return
+
+    Example:
+        {'customer_id': 201, 'sales_order_id': 1001, 'order_no': 'RET-2024-001', 'return_location_id': 1, 'currency':
+            'USD', 'order_created_date': '2024-01-15T10:30:00Z', 'additional_info': 'Customer reported defective items',
+            'sales_return_rows': [{'variant_id': 2001, 'quantity': 2.0, 'return_reason_id': 1, 'notes': 'Items arrived
+            damaged'}, {'variant_id': 2002, 'quantity': 1.0, 'return_reason_id': 2, 'notes': 'Wrong item shipped'}]}
+    """
+
     customer_id: int
     order_no: str
     return_location_id: int

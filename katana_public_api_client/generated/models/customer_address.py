@@ -16,6 +16,14 @@ T = TypeVar("T", bound="CustomerAddress")
 
 @_attrs_define
 class CustomerAddress:
+    """
+    Example:
+        {'id': 301, 'customer_id': 201, 'entity_type': 'billing', 'first_name': 'John', 'last_name': 'Smith', 'company':
+            'Tech Solutions Inc', 'phone': '+1-555-123-4567', 'line_1': '123 Business Ave', 'line_2': 'Suite 456', 'city':
+            'New York', 'state': 'NY', 'zip': '10001', 'country': 'United States', 'default': True, 'created_at':
+            '2024-01-10T08:00:00Z', 'updated_at': '2024-01-10T08:00:00Z'}
+    """
+
     id: int
     customer_id: int
     entity_type: Unset | PersonalAddressEntityType = UNSET

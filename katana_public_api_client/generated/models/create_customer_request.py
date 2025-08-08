@@ -1,10 +1,7 @@
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
 
 from ..types import UNSET, Unset
 
@@ -13,6 +10,14 @@ T = TypeVar("T", bound="CreateCustomerRequest")
 
 @_attrs_define
 class CreateCustomerRequest:
+    """Request payload for creating a new customer
+
+    Example:
+        {'name': 'Tech Solutions Inc', 'first_name': 'John', 'last_name': 'Smith', 'company': 'Tech Solutions Inc',
+            'email': 'john.smith@techsolutions.com', 'phone': '+1-555-123-4567', 'comment': 'Priority customer - net 30
+            payment terms', 'currency': 'USD', 'reference_id': 'CRM-12345', 'category': 'Enterprise', 'discount_rate': 5.0}
+    """
+
     name: str
     first_name: None | Unset | str = UNSET
     last_name: None | Unset | str = UNSET
@@ -24,7 +29,6 @@ class CreateCustomerRequest:
     reference_id: None | Unset | str = UNSET
     category: None | Unset | str = UNSET
     discount_rate: None | Unset | float = UNSET
-    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -90,7 +94,7 @@ class CreateCustomerRequest:
             discount_rate = self.discount_rate
 
         field_dict: dict[str, Any] = {}
-        field_dict.update(self.additional_properties)
+
         field_dict.update(
             {
                 "name": name,
@@ -228,21 +232,4 @@ class CreateCustomerRequest:
             discount_rate=discount_rate,
         )
 
-        create_customer_request.additional_properties = d
         return create_customer_request
-
-    @property
-    def additional_keys(self) -> list[str]:
-        return list(self.additional_properties.keys())
-
-    def __getitem__(self, key: str) -> Any:
-        return self.additional_properties[key]
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        self.additional_properties[key] = value
-
-    def __delitem__(self, key: str) -> None:
-        del self.additional_properties[key]
-
-    def __contains__(self, key: str) -> bool:
-        return key in self.additional_properties

@@ -17,6 +17,12 @@ T = TypeVar("T", bound="SalesOrderAccountingMetadata")
 
 @_attrs_define
 class SalesOrderAccountingMetadata:
+    """
+    Example:
+        {'id': 1401, 'sales_order_id': 1001, 'fulfillment_id': 1301, 'invoice_id': 'INV-2024-001', 'integration_type':
+            'xero', 'created_at': '2024-01-30T16:00:00Z'}
+    """
+
     id: int
     sales_order_id: int
     fulfillment_id: int
