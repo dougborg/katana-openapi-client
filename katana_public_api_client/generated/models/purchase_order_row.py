@@ -21,14 +21,19 @@ T = TypeVar("T", bound="PurchaseOrderRow")
 
 @_attrs_define
 class PurchaseOrderRow:
+    """A line item in a purchase order representing a specific material or product being ordered with quantity, pricing,
+    and delivery details
+    """
+
+    id: int
+    quantity: float
+    variant_id: int
+    price_per_unit: float
+    purchase_order_id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | datetime.datetime = UNSET
-    id: Unset | int = UNSET
-    quantity: Unset | float = UNSET
-    variant_id: Unset | int = UNSET
     tax_rate_id: Unset | int = UNSET
-    price_per_unit: Unset | float = UNSET
     price_per_unit_in_base_currency: Unset | float = UNSET
     purchase_uom_conversion_rate: Unset | float = UNSET
     purchase_uom: Unset | str = UNSET
@@ -40,12 +45,21 @@ class PurchaseOrderRow:
     received_date: None | Unset | datetime.datetime = UNSET
     arrival_date: None | Unset | datetime.datetime = UNSET
     batch_transactions: Unset | list["PurchaseOrderRowBatchTransactionsItem"] = UNSET
-    purchase_order_id: Unset | int = UNSET
     landed_cost: Unset | float | str = UNSET
     group_id: Unset | int = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
+        quantity = self.quantity
+
+        variant_id = self.variant_id
+
+        price_per_unit = self.price_per_unit
+
+        purchase_order_id = self.purchase_order_id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -62,15 +76,7 @@ class PurchaseOrderRow:
         else:
             deleted_at = self.deleted_at
 
-        id = self.id
-
-        quantity = self.quantity
-
-        variant_id = self.variant_id
-
         tax_rate_id = self.tax_rate_id
-
-        price_per_unit = self.price_per_unit
 
         price_per_unit_in_base_currency = self.price_per_unit_in_base_currency
 
@@ -121,8 +127,6 @@ class PurchaseOrderRow:
                 batch_transactions_item = batch_transactions_item_data.to_dict()
                 batch_transactions.append(batch_transactions_item)
 
-        purchase_order_id = self.purchase_order_id
-
         landed_cost: Unset | float | str
         if isinstance(self.landed_cost, Unset):
             landed_cost = UNSET
@@ -133,23 +137,23 @@ class PurchaseOrderRow:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+                "quantity": quantity,
+                "variant_id": variant_id,
+                "price_per_unit": price_per_unit,
+                "purchase_order_id": purchase_order_id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
-        if quantity is not UNSET:
-            field_dict["quantity"] = quantity
-        if variant_id is not UNSET:
-            field_dict["variant_id"] = variant_id
         if tax_rate_id is not UNSET:
             field_dict["tax_rate_id"] = tax_rate_id
-        if price_per_unit is not UNSET:
-            field_dict["price_per_unit"] = price_per_unit
         if price_per_unit_in_base_currency is not UNSET:
             field_dict["price_per_unit_in_base_currency"] = (
                 price_per_unit_in_base_currency
@@ -174,8 +178,6 @@ class PurchaseOrderRow:
             field_dict["arrival_date"] = arrival_date
         if batch_transactions is not UNSET:
             field_dict["batch_transactions"] = batch_transactions
-        if purchase_order_id is not UNSET:
-            field_dict["purchase_order_id"] = purchase_order_id
         if landed_cost is not UNSET:
             field_dict["landed_cost"] = landed_cost
         if group_id is not UNSET:
@@ -190,6 +192,16 @@ class PurchaseOrderRow:
         )
 
         d = dict(src_dict)
+        id = d.pop("id")
+
+        quantity = d.pop("quantity")
+
+        variant_id = d.pop("variant_id")
+
+        price_per_unit = d.pop("price_per_unit")
+
+        purchase_order_id = d.pop("purchase_order_id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -221,15 +233,7 @@ class PurchaseOrderRow:
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        id = d.pop("id", UNSET)
-
-        quantity = d.pop("quantity", UNSET)
-
-        variant_id = d.pop("variant_id", UNSET)
-
         tax_rate_id = d.pop("tax_rate_id", UNSET)
-
-        price_per_unit = d.pop("price_per_unit", UNSET)
 
         price_per_unit_in_base_currency = d.pop(
             "price_per_unit_in_base_currency", UNSET
@@ -316,8 +320,6 @@ class PurchaseOrderRow:
 
             batch_transactions.append(batch_transactions_item)
 
-        purchase_order_id = d.pop("purchase_order_id", UNSET)
-
         def _parse_landed_cost(data: object) -> Unset | float | str:
             if isinstance(data, Unset):
                 return data
@@ -328,14 +330,15 @@ class PurchaseOrderRow:
         group_id = d.pop("group_id", UNSET)
 
         purchase_order_row = cls(
-            created_at=created_at,
-            updated_at=updated_at,
-            deleted_at=deleted_at,
             id=id,
             quantity=quantity,
             variant_id=variant_id,
-            tax_rate_id=tax_rate_id,
             price_per_unit=price_per_unit,
+            purchase_order_id=purchase_order_id,
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
+            tax_rate_id=tax_rate_id,
             price_per_unit_in_base_currency=price_per_unit_in_base_currency,
             purchase_uom_conversion_rate=purchase_uom_conversion_rate,
             purchase_uom=purchase_uom,
@@ -347,7 +350,6 @@ class PurchaseOrderRow:
             received_date=received_date,
             arrival_date=arrival_date,
             batch_transactions=batch_transactions,
-            purchase_order_id=purchase_order_id,
             landed_cost=landed_cost,
             group_id=group_id,
         )

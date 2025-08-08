@@ -8,6 +8,9 @@ from attrs import (
 )
 from dateutil.parser import isoparse
 
+from ..models.purchase_order_additional_cost_row_distribution_method import (
+    PurchaseOrderAdditionalCostRowDistributionMethod,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="PurchaseOrderAdditionalCostRow")
@@ -15,24 +18,38 @@ T = TypeVar("T", bound="PurchaseOrderAdditionalCostRow")
 
 @_attrs_define
 class PurchaseOrderAdditionalCostRow:
+    """Additional costs associated with a purchase order such as shipping, duties, handling fees, or other charges that are
+    not part of the base product cost
+    """
+
+    id: int
+    name: str
+    price: float
+    currency: str
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | datetime.datetime = UNSET
-    id: Unset | int = UNSET
     additional_cost_id: Unset | int = UNSET
     group_id: Unset | int = UNSET
-    name: Unset | str = UNSET
-    distribution_method: Unset | str = UNSET
+    distribution_method: Unset | PurchaseOrderAdditionalCostRowDistributionMethod = (
+        UNSET
+    )
     tax_rate_id: Unset | int = UNSET
     tax_rate: Unset | float = UNSET
-    price: Unset | float = UNSET
     price_in_base: Unset | float = UNSET
-    currency: Unset | str = UNSET
     currency_conversion_rate: Unset | float = UNSET
     currency_conversion_rate_fix_date: Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
+        name = self.name
+
+        price = self.price
+
+        currency = self.currency
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -49,25 +66,19 @@ class PurchaseOrderAdditionalCostRow:
         else:
             deleted_at = self.deleted_at
 
-        id = self.id
-
         additional_cost_id = self.additional_cost_id
 
         group_id = self.group_id
 
-        name = self.name
-
-        distribution_method = self.distribution_method
+        distribution_method: Unset | str = UNSET
+        if not isinstance(self.distribution_method, Unset):
+            distribution_method = self.distribution_method.value
 
         tax_rate_id = self.tax_rate_id
 
         tax_rate = self.tax_rate
 
-        price = self.price
-
         price_in_base = self.price_in_base
-
-        currency = self.currency
 
         currency_conversion_rate = self.currency_conversion_rate
 
@@ -79,33 +90,32 @@ class PurchaseOrderAdditionalCostRow:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+                "name": name,
+                "price": price,
+                "currency": currency,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if additional_cost_id is not UNSET:
             field_dict["additional_cost_id"] = additional_cost_id
         if group_id is not UNSET:
             field_dict["group_id"] = group_id
-        if name is not UNSET:
-            field_dict["name"] = name
         if distribution_method is not UNSET:
             field_dict["distribution_method"] = distribution_method
         if tax_rate_id is not UNSET:
             field_dict["tax_rate_id"] = tax_rate_id
         if tax_rate is not UNSET:
             field_dict["tax_rate"] = tax_rate
-        if price is not UNSET:
-            field_dict["price"] = price
         if price_in_base is not UNSET:
             field_dict["price_in_base"] = price_in_base
-        if currency is not UNSET:
-            field_dict["currency"] = currency
         if currency_conversion_rate is not UNSET:
             field_dict["currency_conversion_rate"] = currency_conversion_rate
         if currency_conversion_rate_fix_date is not UNSET:
@@ -118,6 +128,14 @@ class PurchaseOrderAdditionalCostRow:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
+        name = d.pop("name")
+
+        price = d.pop("price")
+
+        currency = d.pop("currency")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -149,25 +167,24 @@ class PurchaseOrderAdditionalCostRow:
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        id = d.pop("id", UNSET)
-
         additional_cost_id = d.pop("additional_cost_id", UNSET)
 
         group_id = d.pop("group_id", UNSET)
 
-        name = d.pop("name", UNSET)
-
-        distribution_method = d.pop("distribution_method", UNSET)
+        _distribution_method = d.pop("distribution_method", UNSET)
+        distribution_method: Unset | PurchaseOrderAdditionalCostRowDistributionMethod
+        if isinstance(_distribution_method, Unset):
+            distribution_method = UNSET
+        else:
+            distribution_method = PurchaseOrderAdditionalCostRowDistributionMethod(
+                _distribution_method
+            )
 
         tax_rate_id = d.pop("tax_rate_id", UNSET)
 
         tax_rate = d.pop("tax_rate", UNSET)
 
-        price = d.pop("price", UNSET)
-
         price_in_base = d.pop("price_in_base", UNSET)
-
-        currency = d.pop("currency", UNSET)
 
         currency_conversion_rate = d.pop("currency_conversion_rate", UNSET)
 
@@ -183,19 +200,19 @@ class PurchaseOrderAdditionalCostRow:
             )
 
         purchase_order_additional_cost_row = cls(
+            id=id,
+            name=name,
+            price=price,
+            currency=currency,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            id=id,
             additional_cost_id=additional_cost_id,
             group_id=group_id,
-            name=name,
             distribution_method=distribution_method,
             tax_rate_id=tax_rate_id,
             tax_rate=tax_rate,
-            price=price,
             price_in_base=price_in_base,
-            currency=currency,
             currency_conversion_rate=currency_conversion_rate,
             currency_conversion_rate_fix_date=currency_conversion_rate_fix_date,
         )

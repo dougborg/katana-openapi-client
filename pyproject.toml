@@ -355,10 +355,12 @@ format-check = ["format-python-check", "format-markdown-check"]
 # -----------------------------------------------------------------------------
 lint-mypy = "mypy katana_public_api_client tests scripts"
 lint-ruff = "ruff check ."
-lint-ruff-fix = "ruff check --fix ."
+lint-ruff-fix = "ruff check --fix --unsafe-fixes ."
+lint-ruff-fix-safe = "ruff check --fix ."
 lint-yaml = "yamllint ."
+lint-openapi = "openapi-spec-validator katana-openapi.yaml"
 
-lint = ["lint-ruff", "lint-mypy", "lint-yaml"]
+lint = ["lint-ruff", "lint-mypy", "lint-yaml", "lint-openapi"]
 
 # -----------------------------------------------------------------------------
 # Testing Tasks
@@ -425,10 +427,13 @@ echo "   poe format-python       - Format Python code with ruff"
 echo "   poe format-markdown     - Format markdown files"
 echo ""
 echo "📁 Linting & Type Checking:"
-echo "   poe lint                - Run all linters (mypy, ruff, yaml)"
+echo "   poe lint                - Run all linters (ruff, mypy, yaml, openapi)"
 echo "   poe lint-mypy           - Type checking with mypy"
 echo "   poe lint-ruff           - Fast linting with ruff"
+echo "   poe lint-ruff-fix       - Auto-fix linting issues with ruff (includes unsafe fixes)"
+echo "   poe lint-ruff-fix-safe  - Auto-fix linting issues with ruff (safe fixes only)"
 echo "   poe lint-yaml           - YAML file linting"
+echo "   poe lint-openapi        - OpenAPI specification validation"
 echo ""
 echo "📁 Testing:"
 echo "   poe test                - Run all tests"

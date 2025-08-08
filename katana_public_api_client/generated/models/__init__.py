@@ -212,9 +212,24 @@ from .purchase_order_accounting_metadata_list_response import (
     PurchaseOrderAccountingMetadataListResponse,
 )
 from .purchase_order_additional_cost_row import PurchaseOrderAdditionalCostRow
+from .purchase_order_additional_cost_row_distribution_method import (
+    PurchaseOrderAdditionalCostRowDistributionMethod,
+)
 from .purchase_order_additional_cost_row_list_response import (
     PurchaseOrderAdditionalCostRowListResponse,
 )
+from .purchase_order_billing_status import PurchaseOrderBillingStatus
+from .purchase_order_entity_type import PurchaseOrderEntityType
+from .purchase_order_ingredient_availability_type_1 import (
+    PurchaseOrderIngredientAvailabilityType1,
+)
+from .purchase_order_ingredient_availability_type_2_type_1 import (
+    PurchaseOrderIngredientAvailabilityType2Type1,
+)
+from .purchase_order_ingredient_availability_type_3_type_1 import (
+    PurchaseOrderIngredientAvailabilityType3Type1,
+)
+from .purchase_order_last_document_status import PurchaseOrderLastDocumentStatus
 from .purchase_order_list_response import PurchaseOrderListResponse
 from .purchase_order_receive_row import PurchaseOrderReceiveRow
 from .purchase_order_receive_row_batch_transactions_item import (
@@ -226,6 +241,7 @@ from .purchase_order_row_batch_transactions_item import (
 )
 from .purchase_order_row_list_response import PurchaseOrderRowListResponse
 from .purchase_order_row_request import PurchaseOrderRowRequest
+from .purchase_order_status import PurchaseOrderStatus
 from .sales_order import SalesOrder
 from .sales_order_accounting_metadata import SalesOrderAccountingMetadata
 from .sales_order_accounting_metadata_integration_type import (
@@ -508,7 +524,14 @@ __all__ = (
     "PurchaseOrderAccountingMetadata",
     "PurchaseOrderAccountingMetadataListResponse",
     "PurchaseOrderAdditionalCostRow",
+    "PurchaseOrderAdditionalCostRowDistributionMethod",
     "PurchaseOrderAdditionalCostRowListResponse",
+    "PurchaseOrderBillingStatus",
+    "PurchaseOrderEntityType",
+    "PurchaseOrderIngredientAvailabilityType1",
+    "PurchaseOrderIngredientAvailabilityType2Type1",
+    "PurchaseOrderIngredientAvailabilityType3Type1",
+    "PurchaseOrderLastDocumentStatus",
     "PurchaseOrderListResponse",
     "PurchaseOrderReceiveRow",
     "PurchaseOrderReceiveRowBatchTransactionsItem",
@@ -516,6 +539,7 @@ __all__ = (
     "PurchaseOrderRowBatchTransactionsItem",
     "PurchaseOrderRowListResponse",
     "PurchaseOrderRowRequest",
+    "PurchaseOrderStatus",
     "SalesOrder",
     "SalesOrderAccountingMetadata",
     "SalesOrderAccountingMetadataIntegrationType",

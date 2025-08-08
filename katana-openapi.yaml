@@ -3126,52 +3126,132 @@ components:
           type: string
 
     PurchaseOrder:
+      description: A purchase order represents a formal request to purchase materials or products from a supplier, including pricing, quantities, and delivery terms
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             status:
               type: string
+              description: Current status of the purchase order
+              enum:
+                - "NOT_RECEIVED"
+                - "PARTIALLY_RECEIVED"
+                - "RECEIVED"
             order_no:
               type: string
+              description: Unique purchase order number for tracking and reference
             entity_type:
               type: string
+              description: Type of purchase order - either regular or outsourced
+              enum:
+                - "regular"
+                - "outsourced"
             default_group_id:
               type: integer
+              description: ID of the default group for organizing purchase order items
             supplier_id:
               type: integer
+              description: ID of the supplier from whom materials/products are being purchased
             currency:
               type: string
+              description: Currency code for this purchase order (e.g., USD, EUR)
             expected_arrival_date:
               type: string
+              format: date-time
+              description: Expected date when the ordered items will arrive (ISO 8601 format)
             order_created_date:
               type: string
+              format: date-time
+              description: Date and time when this purchase order was created (ISO 8601 format)
             additional_info:
               type: string
+              description: Additional notes or special instructions for this purchase order
             location_id:
               type: integer
+              description: ID of the location where ordered items will be received
             tracking_location_id:
               type: [integer, "null"]
+              description: Optional ID of the location for tracking purposes (null if not tracked)
             total:
               type: number
+              description: Total amount of the purchase order in the specified currency
             total_in_base_currency:
               type: number
+              description: Total amount converted to the base currency of the organization
             billing_status:
               type: string
+              description: Status of generating the bill through accounting integration
+              enum:
+                - "BILLED"
+                - "NOT_BILLED"
+                - "PARTIALLY_BILLED"
             last_document_status:
               type: string
+              description: Status of the last e-mail sent from purchase order card
+              enum:
+                - "NOT_SENT"
+                - "SENDING"
+                - "FAILED"
+                - "SENT"
             ingredient_availability:
               type: [string, "null"]
+              description: Status of ingredients required for outsourced purchase orders (null for regular orders)
+              enum:
+                - "PROCESSED"
+                - "IN_STOCK"
+                - "NOT_AVAILABLE"
+                - "EXPECTED"
+                - "NO_RECIPE"
+                - "NOT_APPLICABLE"
+                - null
             ingredient_expected_date:
               type: [string, "null"]
+              format: date-time
+              description: Latest date of manufacturing order production deadline or purchasing order expected arrival date for required ingredients (outsourced orders only)
             purchase_order_rows:
               type: array
               items:
                 $ref: "#/components/schemas/PurchaseOrderRow"
+              description: Array of purchase order line items
             supplier:
               $ref: "#/components/schemas/Supplier"
-        - $ref: "#/components/schemas/DeletableEntity"
+              description: Details of the supplier from whom items are being purchased
+          required:
+            - status
+            - order_no
+            - supplier_id
+            - currency
+          example:
+            id: 1201
+            status: "NOT_RECEIVED"
+            order_no: "PO-2024-001"
+            entity_type: "regular"
+            default_group_id: 1
+            supplier_id: 1801
+            currency: "USD"
+            expected_arrival_date: "2024-03-15T10:00:00.000Z"
+            order_created_date: "2024-02-20T14:30:00.000Z"
+            additional_info: "Urgent order for production schedule - please expedite shipping"
+            location_id: 2327
+            tracking_location_id: 2327
+            total: 2475.50
+            total_in_base_currency: 2475.50
+            billing_status: "NOT_BILLED"
+            last_document_status: "NOT_SENT"
+            ingredient_availability: null
+            ingredient_expected_date: null
+            purchase_order_rows: []
+            supplier:
+              id: 1801
+              name: "Premium Fabric Suppliers Inc."
+              email: "orders@premiumfabric.com"
+              phone: "+1-555-0123"
+              currency: "USD"
+            created_at: "2024-02-20T14:30:00.000Z"
+            updated_at: "2024-02-20T14:30:00.000Z"
+            deleted_at: null
 
     PurchaseOrderListResponse:
       type: object
@@ -3182,42 +3262,57 @@ components:
             $ref: "#/components/schemas/PurchaseOrder"
 
     PurchaseOrderRow:
+      description: A line item in a purchase order representing a specific material or product being ordered with quantity, pricing, and delivery details
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             quantity:
               type: number
+              description: Quantity of the item being ordered
             variant_id:
               type: integer
+              description: ID of the variant (specific SKU) being ordered
             tax_rate_id:
               type: integer
+              description: ID of the tax rate applied to this line item
             price_per_unit:
               type: number
+              description: Price per unit in the purchase order currency
             price_per_unit_in_base_currency:
               type: number
+              description: Price per unit converted to the organization's base currency
             purchase_uom_conversion_rate:
               type: number
+              description: Conversion rate between the purchase unit of measure and base unit of measure
             purchase_uom:
               type: string
+              description: Unit of measure used for purchasing (e.g., box, pallet, case)
             currency:
               type: string
+              description: Currency code for this line item (e.g., USD, EUR)
             conversion_rate:
               type: [number, "null"]
+              description: Currency conversion rate to base currency (null if same currency)
             total:
               type: number
+              description: Total amount for this line item (quantity × price_per_unit)
             total_in_base_currency:
               type: number
+              description: Total amount converted to the organization's base currency
             conversion_date:
               type: [string, "null"]
               format: date-time
+              description: Date when currency conversion rate was applied (null if not applicable)
             received_date:
               type: [string, "null"]
               format: date-time
+              description: Date and time when this line item was received (null if not yet received)
             arrival_date:
               type: [string, "null"]
               format: date-time
+              description: Date when this line item arrived at the facility (null if not yet arrived)
             batch_transactions:
               type: array
               items:
@@ -3225,15 +3320,50 @@ components:
                 properties:
                   quantity:
                     type: number
+                    description: Quantity assigned to this batch
                   batch_id:
                     type: integer
+                    description: ID of the batch for inventory tracking
+              description: Batch tracking information for items that require batch management
             purchase_order_id:
               type: integer
+              description: ID of the parent purchase order
             landed_cost:
               type: [string, number]
+              description: Total landed cost including shipping, duties, and other charges
             group_id:
               type: integer
-        - $ref: "#/components/schemas/DeletableEntity"
+              description: ID of the group for organizing related line items
+          required:
+            - quantity
+            - variant_id
+            - price_per_unit
+            - purchase_order_id
+          example:
+            id: 3401
+            quantity: 100
+            variant_id: 2018016
+            tax_rate_id: 1
+            price_per_unit: 15.50
+            price_per_unit_in_base_currency: 15.50
+            purchase_uom_conversion_rate: 1.0
+            purchase_uom: "yard"
+            currency: "USD"
+            conversion_rate: 1.0
+            total: 1550.00
+            total_in_base_currency: 1550.00
+            conversion_date: "2024-02-20T14:30:00.000Z"
+            received_date: null
+            arrival_date: null
+            batch_transactions:
+              - quantity: 100
+                batch_id: 501
+            purchase_order_id: 1201
+            landed_cost: 1575.00
+            group_id: 1
+            created_at: "2024-02-20T14:30:00.000Z"
+            updated_at: "2024-02-20T14:30:00.000Z"
+            deleted_at: null
 
     PurchaseOrderRowListResponse:
       type: object
@@ -3306,35 +3436,69 @@ components:
             - NON_DISTRIBUTED
 
     PurchaseOrderAdditionalCostRow:
+      description: Additional costs associated with a purchase order such as shipping, duties, handling fees, or other charges that are not part of the base product cost
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             additional_cost_id:
               type: integer
+              description: ID of the additional cost template or category
             group_id:
               type: integer
+              description: ID of the group for organizing related cost items
             name:
               type: string
+              description: Name or description of the additional cost (e.g., "Shipping", "Import Duty", "Handling Fee")
             distribution_method:
               type: string
+              enum:
+                - "BY_VALUE"
+                - "NON_DISTRIBUTED"
+              description: Method for distributing this cost across purchase order line items
             tax_rate_id:
               type: integer
+              description: ID of the tax rate applied to this additional cost
             tax_rate:
               type: number
+              description: Tax rate percentage applied to this cost
             price:
               type: number
+              description: Amount of the additional cost in the specified currency
             price_in_base:
               type: number
+              description: Amount converted to the organization's base currency
             currency:
               type: string
+              description: Currency code for this cost (e.g., USD, EUR)
             currency_conversion_rate:
               type: number
+              description: Currency conversion rate to base currency
             currency_conversion_rate_fix_date:
               type: string
               format: date-time
-        - $ref: "#/components/schemas/DeletableEntity"
+              description: Date when currency conversion rate was fixed
+          required:
+            - name
+            - price
+            - currency
+          example:
+            id: 4501
+            additional_cost_id: 701
+            group_id: 1
+            name: "Express Shipping"
+            distribution_method: "proportional"
+            tax_rate_id: 2
+            tax_rate: 8.5
+            price: 85.00
+            price_in_base: 85.00
+            currency: "USD"
+            currency_conversion_rate: 1.0
+            currency_conversion_rate_fix_date: "2024-02-20T14:30:00.000Z"
+            created_at: "2024-02-20T14:30:00.000Z"
+            updated_at: "2024-02-20T14:30:00.000Z"
+            deleted_at: null
 
     PurchaseOrderAdditionalCostRowListResponse:
       type: object
@@ -3553,28 +3717,62 @@ components:
           type: string
 
     Supplier:
+      description: A supplier or vendor that provides materials, products, or services to the organization
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             name:
               type: string
+              description: Legal or business name of the supplier
             email:
               type: string
+              format: email
+              description: Primary email address for supplier communications
             phone:
               type: string
+              description: Primary phone number for supplier contact
             currency:
               type: string
+              description: Default currency for transactions with this supplier (ISO 4217 code)
             comment:
               type: string
+              description: Internal notes or comments about the supplier
             default_address_id:
               type: integer
+              description: ID of the default address for this supplier
             addresses:
               type: array
               items:
                 $ref: "#/components/schemas/SupplierAddress"
-        - $ref: "#/components/schemas/DeletableEntity"
+              description: List of addresses associated with this supplier
+          required:
+            - name
+          example:
+            id: 1801
+            name: "Premium Fabric Suppliers Inc."
+            email: "orders@premiumfabric.com"
+            phone: "+1-555-0123"
+            currency: "USD"
+            comment: "Reliable supplier for high-quality cotton and polyester fabrics. Standard payment terms: Net 30"
+            default_address_id: 2601
+            addresses:
+              - id: 2601
+                supplier_id: 1801
+                company: "Premium Fabric Suppliers Inc."
+                address_line_1: "123 Industrial Park Drive"
+                address_line_2: "Building C"
+                city: "Charlotte"
+                state: "NC"
+                zip: "28269"
+                country: "United States"
+                created_at: "2024-01-15T10:00:00.000Z"
+                updated_at: "2024-01-15T10:00:00.000Z"
+                deleted_at: null
+            created_at: "2024-01-15T10:00:00.000Z"
+            updated_at: "2024-02-10T14:22:00.000Z"
+            deleted_at: null
 
     SupplierListResponse:
       type: object
@@ -3601,6 +3799,7 @@ components:
           type: string
 
     SupplierAddress:
+      description: A physical address associated with a supplier for shipping, billing, or contact purposes
       allOf:
         - $ref: "#/components/schemas/BaseEntity"
         - $ref: "#/components/schemas/DeletableEntity"
@@ -3609,6 +3808,9 @@ components:
             supplier_id:
               type: integer
               description: ID of the supplier this address belongs to
+            company:
+              type: string
+              description: Company name at this address (may differ from supplier name for subsidiaries)
             line_1:
               type: string
               description: The first line of the address (street name and house number)
@@ -3627,9 +3829,30 @@ components:
             country:
               type: [string, "null"]
               description: The country of the address
+            address_line_1:
+              type: string
+              description: Primary address line (same as line_1, used for consistency)
+            address_line_2:
+              type: [string, "null"]
+              description: Secondary address line (same as line_2, used for consistency)
           required:
             - supplier_id
             - line_1
+          example:
+            id: 2601
+            supplier_id: 1801
+            company: "Premium Fabric Suppliers Inc."
+            line_1: "123 Industrial Park Drive"
+            line_2: "Building C"
+            city: "Charlotte"
+            state: "NC"
+            zip: "28269"
+            country: "United States"
+            address_line_1: "123 Industrial Park Drive"
+            address_line_2: "Building C"
+            created_at: "2024-01-15T10:00:00.000Z"
+            updated_at: "2024-01-15T10:00:00.000Z"
+            deleted_at: null
 
     SupplierAddressListResponse:
       type: object

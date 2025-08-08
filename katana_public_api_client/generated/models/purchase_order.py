@@ -8,6 +8,19 @@ from attrs import (
 )
 from dateutil.parser import isoparse
 
+from ..models.purchase_order_billing_status import PurchaseOrderBillingStatus
+from ..models.purchase_order_entity_type import PurchaseOrderEntityType
+from ..models.purchase_order_ingredient_availability_type_1 import (
+    PurchaseOrderIngredientAvailabilityType1,
+)
+from ..models.purchase_order_ingredient_availability_type_2_type_1 import (
+    PurchaseOrderIngredientAvailabilityType2Type1,
+)
+from ..models.purchase_order_ingredient_availability_type_3_type_1 import (
+    PurchaseOrderIngredientAvailabilityType3Type1,
+)
+from ..models.purchase_order_last_document_status import PurchaseOrderLastDocumentStatus
+from ..models.purchase_order_status import PurchaseOrderStatus
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -20,32 +33,52 @@ T = TypeVar("T", bound="PurchaseOrder")
 
 @_attrs_define
 class PurchaseOrder:
+    """A purchase order represents a formal request to purchase materials or products from a supplier, including pricing,
+    quantities, and delivery terms
+    """
+
+    id: int
+    status: PurchaseOrderStatus
+    order_no: str
+    supplier_id: int
+    currency: str
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | datetime.datetime = UNSET
-    id: Unset | int = UNSET
-    status: Unset | str = UNSET
-    order_no: Unset | str = UNSET
-    entity_type: Unset | str = UNSET
+    entity_type: Unset | PurchaseOrderEntityType = UNSET
     default_group_id: Unset | int = UNSET
-    supplier_id: Unset | int = UNSET
-    currency: Unset | str = UNSET
-    expected_arrival_date: Unset | str = UNSET
-    order_created_date: Unset | str = UNSET
+    expected_arrival_date: Unset | datetime.datetime = UNSET
+    order_created_date: Unset | datetime.datetime = UNSET
     additional_info: Unset | str = UNSET
     location_id: Unset | int = UNSET
     tracking_location_id: None | Unset | int = UNSET
     total: Unset | float = UNSET
     total_in_base_currency: Unset | float = UNSET
-    billing_status: Unset | str = UNSET
-    last_document_status: Unset | str = UNSET
-    ingredient_availability: None | Unset | str = UNSET
-    ingredient_expected_date: None | Unset | str = UNSET
+    billing_status: Unset | PurchaseOrderBillingStatus = UNSET
+    last_document_status: Unset | PurchaseOrderLastDocumentStatus = UNSET
+    ingredient_availability: (
+        None
+        | PurchaseOrderIngredientAvailabilityType1
+        | PurchaseOrderIngredientAvailabilityType2Type1
+        | PurchaseOrderIngredientAvailabilityType3Type1
+        | Unset
+    ) = UNSET
+    ingredient_expected_date: None | Unset | datetime.datetime = UNSET
     purchase_order_rows: Unset | list["PurchaseOrderRow"] = UNSET
     supplier: Union[Unset, "Supplier"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
+        status = self.status.value
+
+        order_no = self.order_no
+
+        supplier_id = self.supplier_id
+
+        currency = self.currency
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -62,23 +95,19 @@ class PurchaseOrder:
         else:
             deleted_at = self.deleted_at
 
-        id = self.id
-
-        status = self.status
-
-        order_no = self.order_no
-
-        entity_type = self.entity_type
+        entity_type: Unset | str = UNSET
+        if not isinstance(self.entity_type, Unset):
+            entity_type = self.entity_type.value
 
         default_group_id = self.default_group_id
 
-        supplier_id = self.supplier_id
+        expected_arrival_date: Unset | str = UNSET
+        if not isinstance(self.expected_arrival_date, Unset):
+            expected_arrival_date = self.expected_arrival_date.isoformat()
 
-        currency = self.currency
-
-        expected_arrival_date = self.expected_arrival_date
-
-        order_created_date = self.order_created_date
+        order_created_date: Unset | str = UNSET
+        if not isinstance(self.order_created_date, Unset):
+            order_created_date = self.order_created_date.isoformat()
 
         additional_info = self.additional_info
 
@@ -94,19 +123,32 @@ class PurchaseOrder:
 
         total_in_base_currency = self.total_in_base_currency
 
-        billing_status = self.billing_status
+        billing_status: Unset | str = UNSET
+        if not isinstance(self.billing_status, Unset):
+            billing_status = self.billing_status.value
 
-        last_document_status = self.last_document_status
+        last_document_status: Unset | str = UNSET
+        if not isinstance(self.last_document_status, Unset):
+            last_document_status = self.last_document_status.value
 
         ingredient_availability: None | Unset | str
         if isinstance(self.ingredient_availability, Unset):
             ingredient_availability = UNSET
+        elif isinstance(
+            self.ingredient_availability,
+            PurchaseOrderIngredientAvailabilityType1
+            | PurchaseOrderIngredientAvailabilityType2Type1
+            | PurchaseOrderIngredientAvailabilityType3Type1,
+        ):
+            ingredient_availability = self.ingredient_availability.value
         else:
             ingredient_availability = self.ingredient_availability
 
         ingredient_expected_date: None | Unset | str
         if isinstance(self.ingredient_expected_date, Unset):
             ingredient_expected_date = UNSET
+        elif isinstance(self.ingredient_expected_date, datetime.datetime):
+            ingredient_expected_date = self.ingredient_expected_date.isoformat()
         else:
             ingredient_expected_date = self.ingredient_expected_date
 
@@ -123,27 +165,25 @@ class PurchaseOrder:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+                "status": status,
+                "order_no": order_no,
+                "supplier_id": supplier_id,
+                "currency": currency,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
-        if status is not UNSET:
-            field_dict["status"] = status
-        if order_no is not UNSET:
-            field_dict["order_no"] = order_no
         if entity_type is not UNSET:
             field_dict["entity_type"] = entity_type
         if default_group_id is not UNSET:
             field_dict["default_group_id"] = default_group_id
-        if supplier_id is not UNSET:
-            field_dict["supplier_id"] = supplier_id
-        if currency is not UNSET:
-            field_dict["currency"] = currency
         if expected_arrival_date is not UNSET:
             field_dict["expected_arrival_date"] = expected_arrival_date
         if order_created_date is not UNSET:
@@ -179,6 +219,16 @@ class PurchaseOrder:
         from ..models.supplier import Supplier
 
         d = dict(src_dict)
+        id = d.pop("id")
+
+        status = PurchaseOrderStatus(d.pop("status"))
+
+        order_no = d.pop("order_no")
+
+        supplier_id = d.pop("supplier_id")
+
+        currency = d.pop("currency")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -210,23 +260,28 @@ class PurchaseOrder:
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        id = d.pop("id", UNSET)
-
-        status = d.pop("status", UNSET)
-
-        order_no = d.pop("order_no", UNSET)
-
-        entity_type = d.pop("entity_type", UNSET)
+        _entity_type = d.pop("entity_type", UNSET)
+        entity_type: Unset | PurchaseOrderEntityType
+        if isinstance(_entity_type, Unset):
+            entity_type = UNSET
+        else:
+            entity_type = PurchaseOrderEntityType(_entity_type)
 
         default_group_id = d.pop("default_group_id", UNSET)
 
-        supplier_id = d.pop("supplier_id", UNSET)
+        _expected_arrival_date = d.pop("expected_arrival_date", UNSET)
+        expected_arrival_date: Unset | datetime.datetime
+        if isinstance(_expected_arrival_date, Unset):
+            expected_arrival_date = UNSET
+        else:
+            expected_arrival_date = isoparse(_expected_arrival_date)
 
-        currency = d.pop("currency", UNSET)
-
-        expected_arrival_date = d.pop("expected_arrival_date", UNSET)
-
-        order_created_date = d.pop("order_created_date", UNSET)
+        _order_created_date = d.pop("order_created_date", UNSET)
+        order_created_date: Unset | datetime.datetime
+        if isinstance(_order_created_date, Unset):
+            order_created_date = UNSET
+        else:
+            order_created_date = isoparse(_order_created_date)
 
         additional_info = d.pop("additional_info", UNSET)
 
@@ -247,27 +302,94 @@ class PurchaseOrder:
 
         total_in_base_currency = d.pop("total_in_base_currency", UNSET)
 
-        billing_status = d.pop("billing_status", UNSET)
+        _billing_status = d.pop("billing_status", UNSET)
+        billing_status: Unset | PurchaseOrderBillingStatus
+        if isinstance(_billing_status, Unset):
+            billing_status = UNSET
+        else:
+            billing_status = PurchaseOrderBillingStatus(_billing_status)
 
-        last_document_status = d.pop("last_document_status", UNSET)
+        _last_document_status = d.pop("last_document_status", UNSET)
+        last_document_status: Unset | PurchaseOrderLastDocumentStatus
+        if isinstance(_last_document_status, Unset):
+            last_document_status = UNSET
+        else:
+            last_document_status = PurchaseOrderLastDocumentStatus(
+                _last_document_status
+            )
 
-        def _parse_ingredient_availability(data: object) -> None | Unset | str:
+        def _parse_ingredient_availability(
+            data: object,
+        ) -> (
+            None
+            | PurchaseOrderIngredientAvailabilityType1
+            | PurchaseOrderIngredientAvailabilityType2Type1
+            | PurchaseOrderIngredientAvailabilityType3Type1
+            | Unset
+        ):
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                ingredient_availability_type_1 = (
+                    PurchaseOrderIngredientAvailabilityType1(data)
+                )
+
+                return ingredient_availability_type_1
+            except:  # noqa: E722
+                pass
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                ingredient_availability_type_2_type_1 = (
+                    PurchaseOrderIngredientAvailabilityType2Type1(data)
+                )
+
+                return ingredient_availability_type_2_type_1
+            except:  # noqa: E722
+                pass
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                ingredient_availability_type_3_type_1 = (
+                    PurchaseOrderIngredientAvailabilityType3Type1(data)
+                )
+
+                return ingredient_availability_type_3_type_1
+            except:  # noqa: E722
+                pass
+            return cast(
+                None
+                | PurchaseOrderIngredientAvailabilityType1
+                | PurchaseOrderIngredientAvailabilityType2Type1
+                | PurchaseOrderIngredientAvailabilityType3Type1
+                | Unset,
+                data,
+            )
 
         ingredient_availability = _parse_ingredient_availability(
             d.pop("ingredient_availability", UNSET)
         )
 
-        def _parse_ingredient_expected_date(data: object) -> None | Unset | str:
+        def _parse_ingredient_expected_date(
+            data: object,
+        ) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                ingredient_expected_date_type_0 = isoparse(data)
+
+                return ingredient_expected_date_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         ingredient_expected_date = _parse_ingredient_expected_date(
             d.pop("ingredient_expected_date", UNSET)
@@ -290,16 +412,16 @@ class PurchaseOrder:
             supplier = Supplier.from_dict(_supplier)
 
         purchase_order = cls(
-            created_at=created_at,
-            updated_at=updated_at,
-            deleted_at=deleted_at,
             id=id,
             status=status,
             order_no=order_no,
-            entity_type=entity_type,
-            default_group_id=default_group_id,
             supplier_id=supplier_id,
             currency=currency,
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
+            entity_type=entity_type,
+            default_group_id=default_group_id,
             expected_arrival_date=expected_arrival_date,
             order_created_date=order_created_date,
             additional_info=additional_info,
