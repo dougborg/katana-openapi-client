@@ -17,13 +17,16 @@ T = TypeVar("T", bound="BatchStockListResponse")
 
 @_attrs_define
 class BatchStockListResponse:
-    """
+    """Response containing batch inventory levels across multiple batches
+
     Example:
-        {'data': [{'batch_id': 1109, 'batch_number': 'BAT-2024-001', 'batch_created_date': '2024-01-15T08:00:00.000Z',
-            'expiration_date': '2025-10-23T10:37:05.085Z', 'location_id': 1, 'variant_id': 1001, 'quantity_in_stock':
-            '25.00000', 'batch_barcode': '0317'}, {'batch_id': 1110, 'batch_number': 'BAT-2024-002', 'batch_created_date':
-            '2024-01-16T09:30:00.000Z', 'expiration_date': '2025-11-15T10:37:05.085Z', 'location_id': 1, 'variant_id': 1002,
-            'quantity_in_stock': '50.00000', 'batch_barcode': '0318'}]}
+        {'data': [{'id': 4001, 'batch_number': 'BATCH-ALU6061-240315', 'batch_created_date': '2024-03-15T10:30:00.000Z',
+            'expiration_date': '2025-03-15T23:59:59.000Z', 'variant_id': 3001, 'batch_barcode': 'ALU6061240315',
+            'location_id': 101, 'quantity_in_stock': '150.00000', 'created_at': '2024-03-15T10:30:00.000Z', 'updated_at':
+            '2024-03-15T10:30:00.000Z'}, {'id': 4002, 'batch_number': 'BATCH-SS316-240314', 'batch_created_date':
+            '2024-03-14T14:15:00.000Z', 'expiration_date': '2026-03-14T23:59:59.000Z', 'variant_id': 3005, 'batch_barcode':
+            'SS316240314', 'location_id': 101, 'quantity_in_stock': '75.50000', 'created_at': '2024-03-14T14:15:00.000Z',
+            'updated_at': '2024-03-14T14:15:00.000Z'}]}
     """
 
     data: Unset | list["BatchStock"] = UNSET

@@ -20,10 +20,11 @@ class NegativeStockListResponse:
     """Response containing a list of variants with negative stock
 
     Example:
-        {'data': [{'variant_id': 2005, 'location_id': 101, 'latest_negative_stock_date': '2023-10-20T14:30:00Z', 'name':
-            'Premium Steel Widget', 'sku': 'PSW-001', 'category': 'Widgets'}, {'variant_id': 2006, 'location_id': 102,
-            'latest_negative_stock_date': '2023-10-21T09:15:00Z', 'name': 'Standard Aluminum Component', 'sku': 'SAC-002',
-            'category': 'Components'}]}
+        {'data': [{'id': 8001, 'variant_id': 3005, 'location_id': 101, 'latest_negative_stock_date':
+            '2024-03-14T16:45:00.000Z', 'name': 'Stainless Steel Grade 316 Sheet', 'sku': 'SS316-SHEET-3MM', 'category':
+            'Raw Materials'}, {'id': 8002, 'variant_id': 3008, 'location_id': 102, 'latest_negative_stock_date':
+            '2024-03-13T11:20:00.000Z', 'name': 'Titanium Alloy Rod 10mm', 'sku': 'TI-ROD-10MM', 'category': 'Raw
+            Materials'}]}
     """
 
     data: Unset | list["NegativeStock"] = UNSET

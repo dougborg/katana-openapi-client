@@ -15,7 +15,19 @@ T = TypeVar("T", bound="InventoryMovementListResponse")
 
 @_attrs_define
 class InventoryMovementListResponse:
-    """A list of inventory movement records."""
+    """Response containing historical inventory movements for audit and tracking
+
+    Example:
+        {'data': [{'id': 10001, 'variant_id': 3005, 'location_id': 101, 'resource_type': 'PurchaseOrderRow',
+            'resource_id': 5001, 'caused_by_order_no': 'PO-240315-001', 'caused_by_resource_id': 5001, 'movement_date':
+            '2024-03-15T10:30:00.000Z', 'quantity_change': 100.0, 'balance_after': 250.0, 'value_per_unit': 42.5,
+            'value_in_stock_after': 10625.0, 'average_cost_after': 42.5, 'rank': 1, 'created_at':
+            '2024-03-15T10:30:00.000Z', 'updated_at': '2024-03-15T10:30:00.000Z'}, {'id': 10002, 'variant_id': 3005,
+            'location_id': 101, 'resource_type': 'SalesOrderRow', 'resource_id': 8001, 'caused_by_order_no':
+            'SO-240315-001', 'caused_by_resource_id': 8001, 'movement_date': '2024-03-15T14:45:00.000Z', 'quantity_change':
+            -45.0, 'balance_after': 205.0, 'value_per_unit': 42.5, 'value_in_stock_after': 8712.5, 'average_cost_after':
+            42.5, 'rank': 2, 'created_at': '2024-03-15T14:45:00.000Z', 'updated_at': '2024-03-15T14:45:00.000Z'}]}
+    """
 
     data: list["InventoryMovement"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

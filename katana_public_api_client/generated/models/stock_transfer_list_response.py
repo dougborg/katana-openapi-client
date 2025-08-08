@@ -17,6 +17,18 @@ T = TypeVar("T", bound="StockTransferListResponse")
 
 @_attrs_define
 class StockTransferListResponse:
+    """Response containing inter-location transfer records for inventory movement tracking
+
+    Example:
+        {'data': [{'id': 7001, 'reference_no': 'TXR-240315-001', 'from_location_id': 101, 'to_location_id': 102,
+            'status': 'COMPLETED', 'transfer_date': '2024-03-15T13:45:00.000Z', 'additional_info': 'Rebalancing inventory
+            between warehouses', 'created_at': '2024-03-15T13:00:00.000Z', 'updated_at': '2024-03-15T13:45:00.000Z',
+            'deleted_at': None}, {'id': 7002, 'reference_no': 'TXR-240313-001', 'from_location_id': 102, 'to_location_id':
+            103, 'status': 'COMPLETED', 'transfer_date': '2024-03-13T10:20:00.000Z', 'additional_info': 'Moving materials
+            closer to production line', 'created_at': '2024-03-13T09:30:00.000Z', 'updated_at': '2024-03-13T10:20:00.000Z',
+            'deleted_at': None}]}
+    """
+
     data: Unset | list["StockTransfer"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

@@ -1116,88 +1116,108 @@ components:
             deleted_at: null
 
     Batch:
-      type: object
-      description: Core batch business properties
-      additionalProperties: false
-      required:
-        - batch_number
-        - variant_id
-      properties:
-        batch_number:
-          type: string
-          description: Unique batch number identifier
-        expiration_date:
-          type: string
-          format: date-time
-          description: Batch expiration date (ISO 8601)
-        batch_created_date:
-          type: string
-          format: date-time
-          description: Batch creation date (ISO 8601)
-        variant_id:
-          type: integer
-          maximum: 2147483647
-          description: ID of the variant this batch belongs to
-        batch_barcode:
-          type: [string, "null"]
-          minLength: 3
-          maxLength: 40
-          description: Optional barcode for the batch
-      example:
-        batch_number: "BAT-2024-001"
-        expiration_date: "2025-10-23T10:37:05.085Z"
-        batch_created_date: "2024-01-15T08:00:00.000Z"
-        variant_id: 1001
-        batch_barcode: "0317"
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
+        - type: object
+          description: Manufacturing batch tracking with expiration and traceability management
+          additionalProperties: false
+          required:
+            - batch_number
+            - variant_id
+          properties:
+            batch_number:
+              type: string
+              description: Unique batch number identifier for manufacturing traceability
+              example: "BATCH-ALU6061-240315"
+            expiration_date:
+              type: string
+              format: date-time
+              description: Batch expiration date for quality control (ISO 8601)
+              example: "2025-03-15T23:59:59.000Z"
+            batch_created_date:
+              type: string
+              format: date-time
+              description: Batch production completion date (ISO 8601)
+              example: "2024-03-15T10:30:00.000Z"
+            variant_id:
+              type: integer
+              maximum: 2147483647
+              description: ID of the product variant this batch represents
+              example: 3001
+            batch_barcode:
+              type: [string, "null"]
+              minLength: 3
+              maxLength: 40
+              description: Scannable barcode for warehouse operations
+              example: "ALU6061240315"
+          example:
+            id: 4001
+            batch_number: "BATCH-ALU6061-240315"
+            expiration_date: "2025-03-15T23:59:59.000Z"
+            batch_created_date: "2024-03-15T10:30:00.000Z"
+            variant_id: 3001
+            batch_barcode: "ALU6061240315"
+            created_at: "2024-03-15T10:30:00.000Z"
+            updated_at: "2024-03-15T10:30:00.000Z"
 
     BatchStock:
       allOf:
         - $ref: "#/components/schemas/Batch"
         - type: object
+          description: Batch inventory status with location and quantity tracking
           properties:
-            batch_id:
-              type: integer
             location_id:
               type: integer
-              description: ID of the location where the batch is stored
+              description: ID of the warehouse location where the batch is stored
+              example: 101
             quantity_in_stock:
               type: string
-              description: Current quantity in stock for this batch
-      example:
-        batch_id: 1109
-        batch_number: "BAT-2024-001"
-        batch_created_date: "2024-01-15T08:00:00.000Z"
-        expiration_date: "2025-10-23T10:37:05.085Z"
-        location_id: 1
-        variant_id: 1001
-        quantity_in_stock: "25.00000"
-        batch_barcode: "0317"
+              description: Current quantity available for this batch
+              example: "150.00000"
+          example:
+            id: 4001
+            batch_number: "BATCH-ALU6061-240315"
+            batch_created_date: "2024-03-15T10:30:00.000Z"
+            expiration_date: "2025-03-15T23:59:59.000Z"
+            variant_id: 3001
+            batch_barcode: "ALU6061240315"
+            location_id: 101
+            quantity_in_stock: "150.00000"
+            created_at: "2024-03-15T10:30:00.000Z"
+            updated_at: "2024-03-15T10:30:00.000Z"
 
     BatchStockListResponse:
       type: object
+      description: Response containing batch inventory levels across multiple batches
       properties:
         data:
           type: array
+          description: Array of batch stock records with expiration and quantity tracking
           items:
             $ref: "#/components/schemas/BatchStock"
       example:
         data:
-          - batch_id: 1109
-            batch_number: "BAT-2024-001"
-            batch_created_date: "2024-01-15T08:00:00.000Z"
-            expiration_date: "2025-10-23T10:37:05.085Z"
-            location_id: 1
-            variant_id: 1001
-            quantity_in_stock: "25.00000"
-            batch_barcode: "0317"
-          - batch_id: 1110
-            batch_number: "BAT-2024-002"
-            batch_created_date: "2024-01-16T09:30:00.000Z"
-            expiration_date: "2025-11-15T10:37:05.085Z"
-            location_id: 1
-            variant_id: 1002
-            quantity_in_stock: "50.00000"
-            batch_barcode: "0318"
+          - id: 4001
+            batch_number: "BATCH-ALU6061-240315"
+            batch_created_date: "2024-03-15T10:30:00.000Z"
+            expiration_date: "2025-03-15T23:59:59.000Z"
+            variant_id: 3001
+            batch_barcode: "ALU6061240315"
+            location_id: 101
+            quantity_in_stock: "150.00000"
+            created_at: "2024-03-15T10:30:00.000Z"
+            updated_at: "2024-03-15T10:30:00.000Z"
+          - id: 4002
+            batch_number: "BATCH-SS316-240314"
+            batch_created_date: "2024-03-14T14:15:00.000Z"
+            expiration_date: "2026-03-14T23:59:59.000Z"
+            variant_id: 3005
+            batch_barcode: "SS316240314"
+            location_id: 101
+            quantity_in_stock: "75.50000"
+            created_at: "2024-03-14T14:15:00.000Z"
+            updated_at: "2024-03-14T14:15:00.000Z"
 
     BatchStockUpdate:
       type: object
@@ -1395,12 +1415,47 @@ components:
 
     InventoryMovementListResponse:
       type: object
-      description: A list of inventory movement records.
+      description: Response containing historical inventory movements for audit and tracking
       properties:
         data:
           type: array
+          description: Array of inventory movement records showing all stock changes over time
           items:
             $ref: "#/components/schemas/InventoryMovement"
+      example:
+        data:
+          - id: 10001
+            variant_id: 3005
+            location_id: 101
+            resource_type: "PurchaseOrderRow"
+            resource_id: 5001
+            caused_by_order_no: "PO-240315-001"
+            caused_by_resource_id: 5001
+            movement_date: "2024-03-15T10:30:00.000Z"
+            quantity_change: 100.0
+            balance_after: 250.0
+            value_per_unit: 42.50
+            value_in_stock_after: 10625.00
+            average_cost_after: 42.50
+            rank: 1
+            created_at: "2024-03-15T10:30:00.000Z"
+            updated_at: "2024-03-15T10:30:00.000Z"
+          - id: 10002
+            variant_id: 3005
+            location_id: 101
+            resource_type: "SalesOrderRow"
+            resource_id: 8001
+            caused_by_order_no: "SO-240315-001"
+            caused_by_resource_id: 8001
+            movement_date: "2024-03-15T14:45:00.000Z"
+            quantity_change: -45.0
+            balance_after: 205.0
+            value_per_unit: 42.50
+            value_in_stock_after: 8712.50
+            average_cost_after: 42.50
+            rank: 2
+            created_at: "2024-03-15T14:45:00.000Z"
+            updated_at: "2024-03-15T14:45:00.000Z"
       required:
         - data
 
@@ -1579,118 +1634,128 @@ components:
 
     Inventory:
       type: object
-      description: Current inventory status for a variant at a specific location
+      description: Real-time inventory status showing stock levels, commitments, and availability
       properties:
         variant_id:
           type: integer
           description: ID of product or material variant tracked in inventory
+          example: 3005
         location_id:
           type: integer
-          description: ID of the location of the inventory
+          description: ID of the warehouse location of the inventory
+          example: 101
         safety_stock_level:
           type: [number, "null"]
-          description: The quantity of a product or material which indicates an acceptable stock level for unexpected demand without overstocking
+          description: Minimum stock threshold to prevent stockouts during lead time
+          example: 75.0
         reorder_point:
           type: [number, "null"]
           description: "(Deprecated - queries safety_stock_level instead) The reorder point for this variant"
+          example: 75.0
         average_cost:
           type: [number, "null"]
           description: >
-            Current average unit cost of the item in stock
-            (= value_in_stock / quantity_in_stock).
-            Katana applies average cost methodology for stock costing
+            Current weighted average cost per unit in stock.
+            Calculated as total value divided by quantity in stock.
+            Uses average cost methodology for accurate cost tracking
+          example: 42.50
         value_in_stock:
           type: [number, "null"]
           description: >
-            The total value of items you have in stock.
-            This is the sum of purchasing price for materials and manufacturing cost for
-            products (not the sum of sales price). Does not include expected stock
+            Total monetary value of inventory at average cost.
+            Based on purchase cost for materials and manufacturing cost for products.
+            Excludes expected/committed stock value
+          example: 6375.00
         quantity_in_stock:
           type: [number, "null"]
           description: >
-            The quantity of stock you currently have on hand.
-            Updated automatically based on sales orders, manufacturing orders,
-            purchase orders, and stock adjustments
+            Physical quantity currently available in warehouse.
+            Updated real-time from sales orders, manufacturing orders,
+            purchase orders, and manual stock adjustments
+          example: 150.0
         quantity_committed:
           type: [number, "null"]
           description: >
-            The quantity of stock that is required by open sales and manufacturing orders.
-            Products are committed to open sales orders or as subassemblies to open
-            manufacturing orders. Materials are committed to both open sales and manufacturing orders
+            Quantity allocated to open orders and production requirements.
+            Includes materials for manufacturing orders and products for sales orders.
+            Reduces available stock for new commitments
+          example: 45.0
         quantity_expected:
           type: [number, "null"]
           description: >
-            Amount of stock that is expected to arrive in the stock.
-            Products are expected from open manufacturing orders and materials from open
-            purchase orders
+            Incoming stock from open orders and scheduled production.
+            Materials expected from purchase orders, products from manufacturing orders.
+            Increases projected future availability
+          example: 100.0
         quantity_missing_or_excess:
           type: [number, "null"]
           description: >
-            Indicates whether your stock level is above or below an optimal level
-            (= quantity_in_stock - quantity_commited + quantity_expected - safety_stock_level).
-            Negative values indicate a need to buy more materials or make more products
+            Stock balance relative to optimal levels.
+            Formula: (in_stock - committed + expected - safety_stock).
+            Negative values indicate procurement needs
+          example: 130.0
         quantity_potential:
           type: [number, "null"]
           description: >
-            Returns the number of kits or bundles that can be sold based on the available
-            stock of each component. It calculates the maximum possible kits or bundles
-            available for sale by considering current stock levels and any stock already
-            committed to open orders
+            Maximum sellable units considering component availability.
+            For assemblies: calculates based on limiting component stock.
+            Accounts for current commitments and multi-level BOMs
+          example: 105.0
         variant:
           $ref: "#/components/schemas/Variant"
-          description: Details of the variant being tracked
+          description: Detailed variant information including SKU and product data
         location:
           $ref: "#/components/schemas/Location"
-          description: Details of the location where inventory is stored
+          description: Warehouse location details and address information
       required:
         - variant_id
         - location_id
       example:
-        variant_id: 2001
+        variant_id: 3005
         location_id: 101
-        safety_stock_level: 50.0
-        reorder_point: 50.0
-        average_cost: 25.75
-        value_in_stock: 1287.50
-        quantity_in_stock: 50.0
-        quantity_committed: 15.0
-        quantity_expected: 25.0
-        quantity_missing_or_excess: 10.0
-        quantity_potential: 35.0
+        safety_stock_level: 75.0
+        reorder_point: 75.0
+        average_cost: 42.50
+        value_in_stock: 6375.00
+        quantity_in_stock: 150.0
+        quantity_committed: 45.0
+        quantity_expected: 100.0
+        quantity_missing_or_excess: 130.0
+        quantity_potential: 105.0
 
     InventoryListResponse:
       type: object
-      description: Response containing a list of inventory items
+      description: Response containing real-time inventory status across multiple variants
       properties:
         data:
           type: array
-          description: Array of inventory objects
+          description: Array of inventory status records showing stock levels and availability
           items:
             $ref: "#/components/schemas/Inventory"
       example:
         data:
-          - variant_id: 2001
+          - variant_id: 3005
             location_id: 101
-            safety_stock_level: 50.0
-            reorder_point: 50.0
-            average_cost: 25.75
-            value_in_stock: 1287.50
-            quantity_in_stock: 50.0
-            quantity_committed: 15.0
-            quantity_expected: 25.0
-            quantity_missing_or_excess: 10.0
-            quantity_potential: 35.0
-          - variant_id: 2002
+            safety_stock_level: 75.0
+            reorder_point: 75.0
+            average_cost: 42.50
+            value_in_stock: 6375.00
+            quantity_in_stock: 150.0
+            quantity_committed: 45.0
+            quantity_expected: 100.0
+            quantity_missing_or_excess: 130.0
+            quantity_potential: 105.0
+          - variant_id: 3008
             location_id: 101
-            safety_stock_level: 20.0
-            reorder_point: 20.0
-            average_cost: 15.50
-            value_in_stock: 465.00
-            quantity_in_stock: 30.0
-            quantity_committed: 8.0
-            quantity_expected: 10.0
-            quantity_missing_or_excess: 12.0
-            quantity_potential: 22.0
+            safety_stock_level: 25.0
+            reorder_point: 25.0
+            average_cost: 85.75
+            value_in_stock: 1715.00
+            quantity_in_stock: 20.0
+            quantity_committed: 12.0
+            quantity_expected: 50.0
+            quantity_missing_or_excess: 33.0
+            quantity_potential: 8.0
       required:
         - data
 
@@ -2466,36 +2531,83 @@ components:
 
     # Serial Number Schema
     SerialNumber:
-      type: object
-      properties:
-        id:
-          type: integer
-        transaction_id:
-          type: string
-        serial_number:
-          type: string
-        resource_type:
-          type: string
-          enum:
-            - ManufacturingOrder
-            - Production
-            - StockAdjustmentRow
-            - StockTransferRow
-            - PurchaseOrderRow
-            - SalesOrderRow
-        resource_id:
-          type: integer
-        transaction_date:
-          type: string
-          format: date-time
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
+        - type: object
+          description: Serial number tracking for individual item traceability
+          properties:
+            transaction_id:
+              type: string
+              description: Unique identifier for the transaction that created this serial number
+              example: "TXN-240315-001"
+            serial_number:
+              type: string
+              description: Unique serial number for item identification and warranty tracking
+              example: "SN24031500001"
+            resource_type:
+              type: string
+              description: Type of operation that generated this serial number
+              enum:
+                - ManufacturingOrder
+                - Production
+                - StockAdjustmentRow
+                - StockTransferRow
+                - PurchaseOrderRow
+                - SalesOrderRow
+              example: "ManufacturingOrder"
+            resource_id:
+              type: integer
+              description: ID of the resource that created this serial number
+              example: 7001
+            transaction_date:
+              type: string
+              format: date-time
+              description: Date and time when the serial number was generated
+              example: "2024-03-15T14:22:00.000Z"
+          required:
+            - transaction_id
+            - serial_number
+            - resource_type
+            - resource_id
+            - transaction_date
+          example:
+            id: 9001
+            transaction_id: "TXN-240315-001"
+            serial_number: "SN24031500001"
+            resource_type: "ManufacturingOrder"
+            resource_id: 7001
+            transaction_date: "2024-03-15T14:22:00.000Z"
+            created_at: "2024-03-15T14:22:00.000Z"
+            updated_at: "2024-03-15T14:22:00.000Z"
 
     SerialNumberListResponse:
       type: object
+      description: Response containing serial numbers for traceability and warranty tracking
       properties:
         data:
           type: array
+          description: Array of serial number records linked to specific transactions
           items:
             $ref: "#/components/schemas/SerialNumber"
+      example:
+        data:
+          - id: 9001
+            transaction_id: "TXN-240315-001"
+            serial_number: "SN24031500001"
+            resource_type: "ManufacturingOrder"
+            resource_id: 7001
+            transaction_date: "2024-03-15T14:22:00.000Z"
+            created_at: "2024-03-15T14:22:00.000Z"
+            updated_at: "2024-03-15T14:22:00.000Z"
+          - id: 9002
+            transaction_id: "TXN-240315-002"
+            serial_number: "SN24031500002"
+            resource_type: "SalesOrderRow"
+            resource_id: 8001
+            transaction_date: "2024-03-15T16:45:00.000Z"
+            created_at: "2024-03-15T16:45:00.000Z"
+            updated_at: "2024-03-15T16:45:00.000Z"
 
     ManufacturingOrderListResponse:
       type: object
@@ -2761,39 +2873,51 @@ components:
           maximum: 2147483647
 
     NegativeStock:
-      type: object
-      description: Variant with negative stock balance information
-      properties:
-        variant_id:
-          type: integer
-          description: ID of the variant with negative stock
-        location_id:
-          type: integer
-          description: ID of the location with negative stock
-        latest_negative_stock_date:
-          type: string
-          format: date-time
-          description: Date of the latest stock movement that resulted in negative stock balance
-        name:
-          type: string
-          description: Name of the variant
-        sku:
-          type: string
-          description: SKU of the variant
-        category:
-          type: string
-          description: Category of the variant
-      required:
-        - variant_id
-        - location_id
-        - latest_negative_stock_date
-      example:
-        variant_id: 2005
-        location_id: 101
-        latest_negative_stock_date: "2023-10-20T14:30:00Z"
-        name: "Premium Steel Widget"
-        sku: "PSW-001"
-        category: "Widgets"
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - type: object
+          description: Inventory shortage tracking for variants with negative stock balances
+          properties:
+            variant_id:
+              type: integer
+              description: ID of the variant experiencing stock shortage
+              example: 3005
+            location_id:
+              type: integer
+              description: ID of the location with insufficient inventory
+              example: 101
+            latest_negative_stock_date:
+              type: string
+              format: date-time
+              description: Most recent date when stock balance became negative
+              example: "2024-03-14T16:45:00.000Z"
+            name:
+              type: string
+              description: Product or material name for identification
+              example: "Stainless Steel Grade 316 Sheet"
+            sku:
+              type: string
+              description: Stock keeping unit for the affected variant
+              example: "SS316-SHEET-3MM"
+            category:
+              type: string
+              description: Product category for inventory classification
+              example: "Raw Materials"
+          required:
+            - variant_id
+            - location_id
+            - latest_negative_stock_date
+            - name
+            - sku
+            - category
+          example:
+            id: 8001
+            variant_id: 3005
+            location_id: 101
+            latest_negative_stock_date: "2024-03-14T16:45:00.000Z"
+            name: "Stainless Steel Grade 316 Sheet"
+            sku: "SS316-SHEET-3MM"
+            category: "Raw Materials"
 
     NegativeStockListResponse:
       type: object
@@ -2801,23 +2925,25 @@ components:
       properties:
         data:
           type: array
-          description: Array of variants with negative stock
+          description: Array of variants experiencing inventory shortages
           items:
             $ref: "#/components/schemas/NegativeStock"
       example:
         data:
-          - variant_id: 2005
+          - id: 8001
+            variant_id: 3005
             location_id: 101
-            latest_negative_stock_date: "2023-10-20T14:30:00Z"
-            name: "Premium Steel Widget"
-            sku: "PSW-001"
-            category: "Widgets"
-          - variant_id: 2006
+            latest_negative_stock_date: "2024-03-14T16:45:00.000Z"
+            name: "Stainless Steel Grade 316 Sheet"
+            sku: "SS316-SHEET-3MM"
+            category: "Raw Materials"
+          - id: 8002
+            variant_id: 3008
             location_id: 102
-            latest_negative_stock_date: "2023-10-21T09:15:00Z"
-            name: "Standard Aluminum Component"
-            sku: "SAC-002"
-            category: "Components"
+            latest_negative_stock_date: "2024-03-13T11:20:00.000Z"
+            name: "Titanium Alloy Rod 10mm"
+            sku: "TI-ROD-10MM"
+            category: "Raw Materials"
 
     CreateProductRequest:
       type: object
@@ -5305,74 +5431,165 @@ components:
     # Stock management schemas
     StockAdjustment:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
+          description: Inventory adjustment record for correcting stock discrepancies
           properties:
-            id:
-              type: integer
             reference_no:
               type: string
+              description: Unique reference number for the stock adjustment
+              example: "ADJ-240315-001"
             location_id:
               type: integer
+              description: ID of the location where adjustment is performed
+              example: 101
             status:
               type: string
+              description: Current processing status of the adjustment
               enum:
                 - DRAFT
                 - COMPLETED
+              example: "COMPLETED"
             adjustment_date:
               type: string
               format: date-time
+              description: Date when the adjustment was executed
+              example: "2024-03-15T11:30:00.000Z"
             additional_info:
               type: [string, "null"]
+              description: Optional notes about the adjustment reason
+              example: "Cycle count adjustment - damaged goods removed"
           required:
-            - id
             - reference_no
             - location_id
-        - $ref: "#/components/schemas/DeletableEntity"
+            - status
+            - adjustment_date
+          example:
+            id: 6001
+            reference_no: "ADJ-240315-001"
+            location_id: 101
+            status: "COMPLETED"
+            adjustment_date: "2024-03-15T11:30:00.000Z"
+            additional_info: "Cycle count adjustment - damaged goods removed"
+            created_at: "2024-03-15T11:00:00.000Z"
+            updated_at: "2024-03-15T11:30:00.000Z"
+            deleted_at: null
 
     StockAdjustmentListResponse:
       type: object
+      description: Response containing inventory adjustment records for audit and tracking
       properties:
         data:
           type: array
+          description: Array of stock adjustment records showing corrections and reasons
           items:
             $ref: "#/components/schemas/StockAdjustment"
+      example:
+        data:
+          - id: 6001
+            reference_no: "ADJ-240315-001"
+            location_id: 101
+            status: "COMPLETED"
+            adjustment_date: "2024-03-15T11:30:00.000Z"
+            additional_info: "Cycle count adjustment - damaged goods removed"
+            created_at: "2024-03-15T11:00:00.000Z"
+            updated_at: "2024-03-15T11:30:00.000Z"
+            deleted_at: null
+          - id: 6002
+            reference_no: "ADJ-240314-001"
+            location_id: 102
+            status: "COMPLETED"
+            adjustment_date: "2024-03-14T15:45:00.000Z"
+            additional_info: "Found additional inventory during reorganization"
+            created_at: "2024-03-14T15:00:00.000Z"
+            updated_at: "2024-03-14T15:45:00.000Z"
+            deleted_at: null
 
     StockTransfer:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
+          description: Inventory transfer between warehouse locations
           properties:
-            id:
-              type: integer
             reference_no:
               type: string
+              description: Unique reference number for the transfer
+              example: "TXR-240315-001"
             from_location_id:
               type: integer
+              description: Source location ID for the transfer
+              example: 101
             to_location_id:
               type: integer
+              description: Destination location ID for the transfer
+              example: 102
             status:
               type: string
+              description: Current processing status of the transfer
               enum:
                 - DRAFT
                 - COMPLETED
+              example: "COMPLETED"
             transfer_date:
               type: string
               format: date-time
+              description: Date when the transfer was executed
+              example: "2024-03-15T13:45:00.000Z"
             additional_info:
               type: [string, "null"]
+              description: Optional notes about the transfer reason
+              example: "Rebalancing inventory between warehouses"
           required:
-            - id
             - reference_no
             - from_location_id
             - to_location_id
-        - $ref: "#/components/schemas/DeletableEntity"
+            - status
+            - transfer_date
+          example:
+            id: 7001
+            reference_no: "TXR-240315-001"
+            from_location_id: 101
+            to_location_id: 102
+            status: "COMPLETED"
+            transfer_date: "2024-03-15T13:45:00.000Z"
+            additional_info: "Rebalancing inventory between warehouses"
+            created_at: "2024-03-15T13:00:00.000Z"
+            updated_at: "2024-03-15T13:45:00.000Z"
+            deleted_at: null
 
     StockTransferListResponse:
       type: object
+      description: Response containing inter-location transfer records for inventory movement tracking
       properties:
         data:
           type: array
+          description: Array of stock transfer records showing movement between locations
           items:
             $ref: "#/components/schemas/StockTransfer"
+      example:
+        data:
+          - id: 7001
+            reference_no: "TXR-240315-001"
+            from_location_id: 101
+            to_location_id: 102
+            status: "COMPLETED"
+            transfer_date: "2024-03-15T13:45:00.000Z"
+            additional_info: "Rebalancing inventory between warehouses"
+            created_at: "2024-03-15T13:00:00.000Z"
+            updated_at: "2024-03-15T13:45:00.000Z"
+            deleted_at: null
+          - id: 7002
+            reference_no: "TXR-240313-001"
+            from_location_id: 102
+            to_location_id: 103
+            status: "COMPLETED"
+            transfer_date: "2024-03-13T10:20:00.000Z"
+            additional_info: "Moving materials closer to production line"
+            created_at: "2024-03-13T09:30:00.000Z"
+            updated_at: "2024-03-13T10:20:00.000Z"
+            deleted_at: null
 
     # Sales Order sub-resources
     SalesOrderFulfillment:
@@ -5817,58 +6034,101 @@ components:
     # Stocktakes
     Stocktake:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
+          description: Physical inventory count process for stock verification
           properties:
-            id:
-              type: integer
             reference_no:
               type: string
+              description: Unique reference number for the stocktake
+              example: "STK-240315-001"
             location_id:
               type: integer
+              description: ID of the location being counted
+              example: 101
             status:
               type: string
+              description: Current status of the stocktake process
               enum:
                 - DRAFT
                 - IN_PROGRESS
                 - COMPLETED
+              example: "COMPLETED"
             stocktake_date:
               type: string
               format: date-time
+              description: Date when the physical count was performed
+              example: "2024-03-15T08:00:00.000Z"
             notes:
               type: [string, "null"]
+              description: Optional notes about the stocktake process
+              example: "Quarterly physical inventory count - all locations"
           required:
-            - id
             - reference_no
             - location_id
             - status
-        - $ref: "#/components/schemas/UpdatableEntity"
+            - stocktake_date
+          example:
+            id: 5001
+            reference_no: "STK-240315-001"
+            location_id: 101
+            status: "COMPLETED"
+            stocktake_date: "2024-03-15T08:00:00.000Z"
+            notes: "Quarterly physical inventory count - all locations"
+            created_at: "2024-03-15T07:00:00.000Z"
+            updated_at: "2024-03-15T16:30:00.000Z"
 
     StocktakeRow:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
+          description: Individual line item in a stocktake showing count variances
           properties:
-            id:
-              type: integer
             stocktake_id:
               type: integer
+              description: ID of the parent stocktake record
+              example: 5001
             variant_id:
               type: integer
+              description: ID of the variant being counted
+              example: 3005
             batch_id:
               type: [integer, "null"]
+              description: Optional batch ID for batch-tracked items
+              example: 4001
             system_quantity:
               type: number
+              description: Expected quantity according to system records
+              example: 125.50
             actual_quantity:
               type: [number, "null"]
+              description: Physically counted quantity
+              example: 120.00
             variance_quantity:
               type: [number, "null"]
+              description: Difference between system and actual quantities
+              example: -5.50
             notes:
               type: [string, "null"]
+              description: Optional notes about count discrepancy
+              example: "Found damaged items - 5.5 units unusable"
           required:
-            - id
             - stocktake_id
             - variant_id
             - system_quantity
-        - $ref: "#/components/schemas/UpdatableEntity"
+          example:
+            id: 50001
+            stocktake_id: 5001
+            variant_id: 3005
+            batch_id: 4001
+            system_quantity: 125.50
+            actual_quantity: 120.00
+            variance_quantity: -5.50
+            notes: "Found damaged items - 5.5 units unusable"
+            created_at: "2024-03-15T08:00:00.000Z"
+            updated_at: "2024-03-15T10:15:00.000Z"
 
     # Serial numbers
     SerialNumberStock:
@@ -6306,19 +6566,63 @@ components:
 
     StocktakeListResponse:
       type: object
+      description: Response containing physical inventory count records for audit and compliance
       properties:
         data:
           type: array
+          description: Array of stocktake records showing physical count processes
           items:
             $ref: "#/components/schemas/Stocktake"
+      example:
+        data:
+          - id: 5001
+            reference_no: "STK-240315-001"
+            location_id: 101
+            status: "COMPLETED"
+            stocktake_date: "2024-03-15T08:00:00.000Z"
+            notes: "Quarterly physical inventory count - all locations"
+            created_at: "2024-03-15T07:00:00.000Z"
+            updated_at: "2024-03-15T16:30:00.000Z"
+          - id: 5002
+            reference_no: "STK-240301-001"
+            location_id: 102
+            status: "COMPLETED"
+            stocktake_date: "2024-03-01T08:00:00.000Z"
+            notes: "Monthly spot check - high-value items"
+            created_at: "2024-03-01T07:30:00.000Z"
+            updated_at: "2024-03-01T12:15:00.000Z"
 
     StocktakeRowListResponse:
       type: object
+      description: Response containing individual stocktake line items with count variances
       properties:
         data:
           type: array
+          description: Array of stocktake rows showing per-item count details and discrepancies
           items:
             $ref: "#/components/schemas/StocktakeRow"
+      example:
+        data:
+          - id: 50001
+            stocktake_id: 5001
+            variant_id: 3005
+            batch_id: 4001
+            system_quantity: 125.50
+            actual_quantity: 120.00
+            variance_quantity: -5.50
+            notes: "Found damaged items - 5.5 units unusable"
+            created_at: "2024-03-15T08:00:00.000Z"
+            updated_at: "2024-03-15T10:15:00.000Z"
+          - id: 50002
+            stocktake_id: 5001
+            variant_id: 3008
+            batch_id: null
+            system_quantity: 85.00
+            actual_quantity: 87.00
+            variance_quantity: 2.00
+            notes: "Found additional units in back storage"
+            created_at: "2024-03-15T08:00:00.000Z"
+            updated_at: "2024-03-15T11:30:00.000Z"
 
     SerialNumberStockListResponse:
       type: object
@@ -8836,12 +9140,13 @@ paths:
                 $ref: "#/components/schemas/NegativeStockListResponse"
               example:
                 data:
-                  - variant_id: 1
-                    location_id: 1
-                    latest_negative_stock_date: "2022-03-31T12:07:00.000Z"
-                    name: Emitter Matrix
-                    sku: EM
-                    category: Lightsaber component
+                  - id: 8001
+                    variant_id: 3005
+                    location_id: 101
+                    latest_negative_stock_date: "2024-03-14T16:45:00.000Z"
+                    name: "Stainless Steel Grade 316 Sheet"
+                    sku: "SS316-SHEET-3MM"
+                    category: "Raw Materials"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":

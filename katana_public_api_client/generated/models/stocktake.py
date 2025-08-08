@@ -20,9 +20,9 @@ class Stocktake:
     reference_no: str
     location_id: int
     status: StocktakeStatus
+    stocktake_date: datetime.datetime
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    stocktake_date: Unset | datetime.datetime = UNSET
     notes: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -35,6 +35,8 @@ class Stocktake:
 
         status = self.status.value
 
+        stocktake_date = self.stocktake_date.isoformat()
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -42,10 +44,6 @@ class Stocktake:
         updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
-
-        stocktake_date: Unset | str = UNSET
-        if not isinstance(self.stocktake_date, Unset):
-            stocktake_date = self.stocktake_date.isoformat()
 
         notes: None | Unset | str
         if isinstance(self.notes, Unset):
@@ -61,14 +59,13 @@ class Stocktake:
                 "reference_no": reference_no,
                 "location_id": location_id,
                 "status": status,
+                "stocktake_date": stocktake_date,
             }
         )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
-        if stocktake_date is not UNSET:
-            field_dict["stocktake_date"] = stocktake_date
         if notes is not UNSET:
             field_dict["notes"] = notes
 
@@ -85,6 +82,8 @@ class Stocktake:
 
         status = StocktakeStatus(d.pop("status"))
 
+        stocktake_date = isoparse(d.pop("stocktake_date"))
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -98,13 +97,6 @@ class Stocktake:
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
-
-        _stocktake_date = d.pop("stocktake_date", UNSET)
-        stocktake_date: Unset | datetime.datetime
-        if isinstance(_stocktake_date, Unset):
-            stocktake_date = UNSET
-        else:
-            stocktake_date = isoparse(_stocktake_date)
 
         def _parse_notes(data: object) -> None | Unset | str:
             if data is None:
@@ -120,9 +112,9 @@ class Stocktake:
             reference_no=reference_no,
             location_id=location_id,
             status=status,
+            stocktake_date=stocktake_date,
             created_at=created_at,
             updated_at=updated_at,
-            stocktake_date=stocktake_date,
             notes=notes,
         )
 

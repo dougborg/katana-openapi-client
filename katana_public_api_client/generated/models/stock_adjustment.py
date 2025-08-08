@@ -19,11 +19,11 @@ class StockAdjustment:
     id: int
     reference_no: str
     location_id: int
+    status: StockAdjustmentStatus
+    adjustment_date: datetime.datetime
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | datetime.datetime = UNSET
-    status: Unset | StockAdjustmentStatus = UNSET
-    adjustment_date: Unset | datetime.datetime = UNSET
     additional_info: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -33,6 +33,10 @@ class StockAdjustment:
         reference_no = self.reference_no
 
         location_id = self.location_id
+
+        status = self.status.value
+
+        adjustment_date = self.adjustment_date.isoformat()
 
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
@@ -50,14 +54,6 @@ class StockAdjustment:
         else:
             deleted_at = self.deleted_at
 
-        status: Unset | str = UNSET
-        if not isinstance(self.status, Unset):
-            status = self.status.value
-
-        adjustment_date: Unset | str = UNSET
-        if not isinstance(self.adjustment_date, Unset):
-            adjustment_date = self.adjustment_date.isoformat()
-
         additional_info: None | Unset | str
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
@@ -71,6 +67,8 @@ class StockAdjustment:
                 "id": id,
                 "reference_no": reference_no,
                 "location_id": location_id,
+                "status": status,
+                "adjustment_date": adjustment_date,
             }
         )
         if created_at is not UNSET:
@@ -79,10 +77,6 @@ class StockAdjustment:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if status is not UNSET:
-            field_dict["status"] = status
-        if adjustment_date is not UNSET:
-            field_dict["adjustment_date"] = adjustment_date
         if additional_info is not UNSET:
             field_dict["additional_info"] = additional_info
 
@@ -96,6 +90,10 @@ class StockAdjustment:
         reference_no = d.pop("reference_no")
 
         location_id = d.pop("location_id")
+
+        status = StockAdjustmentStatus(d.pop("status"))
+
+        adjustment_date = isoparse(d.pop("adjustment_date"))
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -128,20 +126,6 @@ class StockAdjustment:
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        _status = d.pop("status", UNSET)
-        status: Unset | StockAdjustmentStatus
-        if isinstance(_status, Unset):
-            status = UNSET
-        else:
-            status = StockAdjustmentStatus(_status)
-
-        _adjustment_date = d.pop("adjustment_date", UNSET)
-        adjustment_date: Unset | datetime.datetime
-        if isinstance(_adjustment_date, Unset):
-            adjustment_date = UNSET
-        else:
-            adjustment_date = isoparse(_adjustment_date)
-
         def _parse_additional_info(data: object) -> None | Unset | str:
             if data is None:
                 return data
@@ -155,11 +139,11 @@ class StockAdjustment:
             id=id,
             reference_no=reference_no,
             location_id=location_id,
+            status=status,
+            adjustment_date=adjustment_date,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            status=status,
-            adjustment_date=adjustment_date,
             additional_info=additional_info,
         )
 

@@ -8,29 +8,23 @@ from attrs import (
 )
 from dateutil.parser import isoparse
 
-from ..types import UNSET, Unset
-
 T = TypeVar("T", bound="NegativeStock")
 
 
 @_attrs_define
 class NegativeStock:
-    """Variant with negative stock balance information
-
-    Example:
-        {'variant_id': 2005, 'location_id': 101, 'latest_negative_stock_date': '2023-10-20T14:30:00Z', 'name': 'Premium
-            Steel Widget', 'sku': 'PSW-001', 'category': 'Widgets'}
-    """
-
+    id: int
     variant_id: int
     location_id: int
     latest_negative_stock_date: datetime.datetime
-    name: Unset | str = UNSET
-    sku: Unset | str = UNSET
-    category: Unset | str = UNSET
+    name: str
+    sku: str
+    category: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         variant_id = self.variant_id
 
         location_id = self.location_id
@@ -47,36 +41,37 @@ class NegativeStock:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
+                "id": id,
                 "variant_id": variant_id,
                 "location_id": location_id,
                 "latest_negative_stock_date": latest_negative_stock_date,
+                "name": name,
+                "sku": sku,
+                "category": category,
             }
         )
-        if name is not UNSET:
-            field_dict["name"] = name
-        if sku is not UNSET:
-            field_dict["sku"] = sku
-        if category is not UNSET:
-            field_dict["category"] = category
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
         variant_id = d.pop("variant_id")
 
         location_id = d.pop("location_id")
 
         latest_negative_stock_date = isoparse(d.pop("latest_negative_stock_date"))
 
-        name = d.pop("name", UNSET)
+        name = d.pop("name")
 
-        sku = d.pop("sku", UNSET)
+        sku = d.pop("sku")
 
-        category = d.pop("category", UNSET)
+        category = d.pop("category")
 
         negative_stock = cls(
+            id=id,
             variant_id=variant_id,
             location_id=location_id,
             latest_negative_stock_date=latest_negative_stock_date,

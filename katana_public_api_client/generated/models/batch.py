@@ -2,7 +2,10 @@ import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -12,23 +15,30 @@ T = TypeVar("T", bound="Batch")
 
 @_attrs_define
 class Batch:
-    """Core batch business properties
-
-    Example:
-        {'batch_number': 'BAT-2024-001', 'expiration_date': '2025-10-23T10:37:05.085Z', 'batch_created_date':
-            '2024-01-15T08:00:00.000Z', 'variant_id': 1001, 'batch_barcode': '0317'}
-    """
-
+    id: int
     batch_number: str
     variant_id: int
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
     expiration_date: Unset | datetime.datetime = UNSET
     batch_created_date: Unset | datetime.datetime = UNSET
     batch_barcode: None | Unset | str = UNSET
+    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         batch_number = self.batch_number
 
         variant_id = self.variant_id
+
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
 
         expiration_date: Unset | str = UNSET
         if not isinstance(self.expiration_date, Unset):
@@ -45,13 +55,18 @@ class Batch:
             batch_barcode = self.batch_barcode
 
         field_dict: dict[str, Any] = {}
-
+        field_dict.update(self.additional_properties)
         field_dict.update(
             {
+                "id": id,
                 "batch_number": batch_number,
                 "variant_id": variant_id,
             }
         )
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
         if expiration_date is not UNSET:
             field_dict["expiration_date"] = expiration_date
         if batch_created_date is not UNSET:
@@ -64,9 +79,25 @@ class Batch:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
         batch_number = d.pop("batch_number")
 
         variant_id = d.pop("variant_id")
+
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
+        else:
+            created_at = isoparse(_created_at)
+
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
+        else:
+            updated_at = isoparse(_updated_at)
 
         _expiration_date = d.pop("expiration_date", UNSET)
         expiration_date: Unset | datetime.datetime
@@ -92,11 +123,31 @@ class Batch:
         batch_barcode = _parse_batch_barcode(d.pop("batch_barcode", UNSET))
 
         batch = cls(
+            id=id,
             batch_number=batch_number,
             variant_id=variant_id,
+            created_at=created_at,
+            updated_at=updated_at,
             expiration_date=expiration_date,
             batch_created_date=batch_created_date,
             batch_barcode=batch_barcode,
         )
 
+        batch.additional_properties = d
         return batch
+
+    @property
+    def additional_keys(self) -> list[str]:
+        return list(self.additional_properties.keys())
+
+    def __getitem__(self, key: str) -> Any:
+        return self.additional_properties[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.additional_properties[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self.additional_properties[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.additional_properties

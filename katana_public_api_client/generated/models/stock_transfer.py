@@ -20,11 +20,11 @@ class StockTransfer:
     reference_no: str
     from_location_id: int
     to_location_id: int
+    status: StockTransferStatus
+    transfer_date: datetime.datetime
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | datetime.datetime = UNSET
-    status: Unset | StockTransferStatus = UNSET
-    transfer_date: Unset | datetime.datetime = UNSET
     additional_info: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -36,6 +36,10 @@ class StockTransfer:
         from_location_id = self.from_location_id
 
         to_location_id = self.to_location_id
+
+        status = self.status.value
+
+        transfer_date = self.transfer_date.isoformat()
 
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
@@ -53,14 +57,6 @@ class StockTransfer:
         else:
             deleted_at = self.deleted_at
 
-        status: Unset | str = UNSET
-        if not isinstance(self.status, Unset):
-            status = self.status.value
-
-        transfer_date: Unset | str = UNSET
-        if not isinstance(self.transfer_date, Unset):
-            transfer_date = self.transfer_date.isoformat()
-
         additional_info: None | Unset | str
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
@@ -75,6 +71,8 @@ class StockTransfer:
                 "reference_no": reference_no,
                 "from_location_id": from_location_id,
                 "to_location_id": to_location_id,
+                "status": status,
+                "transfer_date": transfer_date,
             }
         )
         if created_at is not UNSET:
@@ -83,10 +81,6 @@ class StockTransfer:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if status is not UNSET:
-            field_dict["status"] = status
-        if transfer_date is not UNSET:
-            field_dict["transfer_date"] = transfer_date
         if additional_info is not UNSET:
             field_dict["additional_info"] = additional_info
 
@@ -102,6 +96,10 @@ class StockTransfer:
         from_location_id = d.pop("from_location_id")
 
         to_location_id = d.pop("to_location_id")
+
+        status = StockTransferStatus(d.pop("status"))
+
+        transfer_date = isoparse(d.pop("transfer_date"))
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -134,20 +132,6 @@ class StockTransfer:
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        _status = d.pop("status", UNSET)
-        status: Unset | StockTransferStatus
-        if isinstance(_status, Unset):
-            status = UNSET
-        else:
-            status = StockTransferStatus(_status)
-
-        _transfer_date = d.pop("transfer_date", UNSET)
-        transfer_date: Unset | datetime.datetime
-        if isinstance(_transfer_date, Unset):
-            transfer_date = UNSET
-        else:
-            transfer_date = isoparse(_transfer_date)
-
         def _parse_additional_info(data: object) -> None | Unset | str:
             if data is None:
                 return data
@@ -162,11 +146,11 @@ class StockTransfer:
             reference_no=reference_no,
             from_location_id=from_location_id,
             to_location_id=to_location_id,
+            status=status,
+            transfer_date=transfer_date,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            status=status,
-            transfer_date=transfer_date,
             additional_info=additional_info,
         )
 

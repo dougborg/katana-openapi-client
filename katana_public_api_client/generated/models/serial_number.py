@@ -16,12 +16,14 @@ T = TypeVar("T", bound="SerialNumber")
 
 @_attrs_define
 class SerialNumber:
-    id: Unset | int = UNSET
-    transaction_id: Unset | str = UNSET
-    serial_number: Unset | str = UNSET
-    resource_type: Unset | SerialNumberResourceType = UNSET
-    resource_id: Unset | int = UNSET
-    transaction_date: Unset | datetime.datetime = UNSET
+    id: int
+    transaction_id: str
+    serial_number: str
+    resource_type: SerialNumberResourceType
+    resource_id: int
+    transaction_date: datetime.datetime
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -31,58 +33,67 @@ class SerialNumber:
 
         serial_number = self.serial_number
 
-        resource_type: Unset | str = UNSET
-        if not isinstance(self.resource_type, Unset):
-            resource_type = self.resource_type.value
+        resource_type = self.resource_type.value
 
         resource_id = self.resource_id
 
-        transaction_date: Unset | str = UNSET
-        if not isinstance(self.transaction_date, Unset):
-            transaction_date = self.transaction_date.isoformat()
+        transaction_date = self.transaction_date.isoformat()
+
+        created_at: Unset | str = UNSET
+        if not isinstance(self.created_at, Unset):
+            created_at = self.created_at.isoformat()
+
+        updated_at: Unset | str = UNSET
+        if not isinstance(self.updated_at, Unset):
+            updated_at = self.updated_at.isoformat()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
-        if id is not UNSET:
-            field_dict["id"] = id
-        if transaction_id is not UNSET:
-            field_dict["transaction_id"] = transaction_id
-        if serial_number is not UNSET:
-            field_dict["serial_number"] = serial_number
-        if resource_type is not UNSET:
-            field_dict["resource_type"] = resource_type
-        if resource_id is not UNSET:
-            field_dict["resource_id"] = resource_id
-        if transaction_date is not UNSET:
-            field_dict["transaction_date"] = transaction_date
+        field_dict.update(
+            {
+                "id": id,
+                "transaction_id": transaction_id,
+                "serial_number": serial_number,
+                "resource_type": resource_type,
+                "resource_id": resource_id,
+                "transaction_date": transaction_date,
+            }
+        )
+        if created_at is not UNSET:
+            field_dict["created_at"] = created_at
+        if updated_at is not UNSET:
+            field_dict["updated_at"] = updated_at
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        id = d.pop("id", UNSET)
+        id = d.pop("id")
 
-        transaction_id = d.pop("transaction_id", UNSET)
+        transaction_id = d.pop("transaction_id")
 
-        serial_number = d.pop("serial_number", UNSET)
+        serial_number = d.pop("serial_number")
 
-        _resource_type = d.pop("resource_type", UNSET)
-        resource_type: Unset | SerialNumberResourceType
-        if isinstance(_resource_type, Unset):
-            resource_type = UNSET
+        resource_type = SerialNumberResourceType(d.pop("resource_type"))
+
+        resource_id = d.pop("resource_id")
+
+        transaction_date = isoparse(d.pop("transaction_date"))
+
+        _created_at = d.pop("created_at", UNSET)
+        created_at: Unset | datetime.datetime
+        if isinstance(_created_at, Unset):
+            created_at = UNSET
         else:
-            resource_type = SerialNumberResourceType(_resource_type)
+            created_at = isoparse(_created_at)
 
-        resource_id = d.pop("resource_id", UNSET)
-
-        _transaction_date = d.pop("transaction_date", UNSET)
-        transaction_date: Unset | datetime.datetime
-        if isinstance(_transaction_date, Unset):
-            transaction_date = UNSET
+        _updated_at = d.pop("updated_at", UNSET)
+        updated_at: Unset | datetime.datetime
+        if isinstance(_updated_at, Unset):
+            updated_at = UNSET
         else:
-            transaction_date = isoparse(_transaction_date)
+            updated_at = isoparse(_updated_at)
 
         serial_number = cls(
             id=id,
@@ -91,6 +102,8 @@ class SerialNumber:
             resource_type=resource_type,
             resource_id=resource_id,
             transaction_date=transaction_date,
+            created_at=created_at,
+            updated_at=updated_at,
         )
 
         serial_number.additional_properties = d
