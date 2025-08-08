@@ -1017,6 +1017,66 @@ components:
           example:
             deleted_at: null
 
+    # Common Sub-schemas
+
+    CustomField:
+      type: object
+      description: A custom field with name-value pair
+      additionalProperties: false
+      properties:
+        field_name:
+          type: string
+          description: Name of the custom field
+        field_value:
+          type: string
+          description: Value of the custom field
+      required:
+        - field_name
+        - field_value
+      example:
+        field_name: "Priority"
+        field_value: "High"
+
+    CustomFieldsArray:
+      type: array
+      description: Array of custom fields for additional entity metadata
+      items:
+        $ref: "#/components/schemas/CustomField"
+      example:
+        - field_name: "Priority"
+          field_value: "High"
+        - field_name: "Department"
+          field_value: "Production"
+
+    ConfigAttribute:
+      type: object
+      description: A configuration attribute with name-value pair
+      additionalProperties: false
+      properties:
+        config_name:
+          type: string
+          description: Name of the configuration attribute
+        config_value:
+          type: string
+          description: Value of the configuration attribute
+      required:
+        - config_name
+        - config_value
+      example:
+        config_name: "Color"
+        config_value: "Blue"
+
+    ConfigAttributesArray:
+      type: array
+      description: Array of configuration attributes for product variants (size, color, etc.)
+      items:
+        $ref: "#/components/schemas/ConfigAttribute"
+      example:
+        - config_name: "Color"
+          config_value: "Blue"
+        - config_name: "Size"
+          config_value: "Medium"
+
     # Main Entities
     AdditionalCost:
       allOf:
@@ -1345,59 +1405,83 @@ components:
         - data
 
     Variant:
+      description: A variant represents a specific SKU that can be associated with either a product or material, containing unique pricing, barcode, and configuration information
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             sku:
               type: string
+              description: Unique stock keeping unit identifier for this variant
             sales_price:
               type: [number, "null"]
+              description: Price at which this variant is sold to customers
             product_id:
               type: [integer, "null"]
+              description: ID of the associated product (null if this is a material variant)
             material_id:
               type: [integer, "null"]
+              description: ID of the associated material (null if this is a product variant)
             purchase_price:
               type: number
+              description: Price at which this variant is purchased from suppliers
             product_or_material_name:
               type: string
+              description: Name of the associated product or material
             type:
               type: string
+              description: Type of variant indicating whether it's associated with a product or material
             internal_barcode:
               type: string
+              description: Internal barcode used within the organization
             registered_barcode:
               type: string
+              description: Official registered barcode (UPC, EAN, etc.)
             supplier_item_codes:
               type: array
               items:
                 type: string
+              description: List of supplier-specific item codes for this variant
             lead_time:
               type: [integer, "null"]
+              description: Lead time in days for obtaining this variant
             minimum_order_quantity:
               type: [number, "null"]
+              description: Minimum quantity that must be ordered from suppliers
             custom_fields:
-              type: array
-              items:
-                type: object
-                properties:
-                  field_name:
-                    type: string
-                  field_value:
-                    type: string
+              $ref: "#/components/schemas/CustomFieldsArray"
             config_attributes:
-              type: array
-              items:
-                type: object
-                properties:
-                  config_name:
-                    type: string
-                  config_value:
-                    type: string
+              $ref: "#/components/schemas/ConfigAttributesArray"
           required:
-            - id
             - sku
-        - $ref: "#/components/schemas/DeletableEntity"
+          example:
+            id: 2018016
+            sku: "SHIRT-BLUE-M"
+            sales_price: 29.99
+            product_id: 1418016
+            material_id: null
+            purchase_price: 15.50
+            product_or_material_name: "Cotton T-Shirt"
+            type: "product"
+            internal_barcode: "INT-SHIRT-BLUE-M"
+            registered_barcode: "1234567890123"
+            supplier_item_codes: ["SUPP-SHIRT-BLU-M", "ALT-SHIRT-BLUE-MED"]
+            lead_time: 14
+            minimum_order_quantity: 50
+            custom_fields:
+              - field_name: "Season"
+                field_value: "Summer 2024"
+              - field_name: "Brand"
+                field_value: "EcoWear"
+            config_attributes:
+              - config_name: "Color"
+                config_value: "Blue"
+              - config_name: "Size"
+                config_value: "Medium"
+            created_at: "2024-01-15T09:30:00.000Z"
+            updated_at: "2024-02-10T14:22:00.000Z"
+            deleted_at: null
 
     # Base address schema with common address fields (not an entity)
     BaseAddress:
@@ -2513,35 +2597,47 @@ components:
             $ref: "#/components/schemas/Variant"
 
     Material:
+      description: A material represents a raw material, component, or supply item used in manufacturing processes or sold directly to customers
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/ArchivableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             name:
               type: string
+              description: Name of the material
             uom:
               type: string
+              description: Unit of measure for this material (e.g., kg, pcs, meters)
             category_name:
               type: string
+              description: Category this material belongs to for organization purposes
             default_supplier_id:
               type: integer
+              description: ID of the default supplier for this material
             additional_info:
               type: string
+              description: Additional notes or information about this material
             batch_tracked:
               type: boolean
+              description: Whether this material requires batch tracking for traceability
             is_sellable:
               type: boolean
+              description: Whether this material can be sold directly to customers
             type:
               type: string
+              description: Type classification of the material
             purchase_uom:
               type: string
+              description: Unit of measure used when purchasing this material from suppliers
             purchase_uom_conversion_rate:
               type: number
+              description: Conversion rate between purchase UOM and base UOM
             variants:
               type: array
               items:
                 $ref: "#/components/schemas/Variant"
+              description: List of variants available for this material
             configs:
               type: array
               items:
@@ -2549,19 +2645,56 @@ components:
                 properties:
                   id:
                     type: integer
+                    description: Unique identifier for this configuration
                   name:
                     type: string
+                    description: Name of the configuration attribute
                   values:
                     type: array
                     items:
                       type: string
+                    description: Available values for this configuration
                   product_id:
                     type: integer
+                    description: Associated product ID for this configuration
+              description: Configuration options for this material (specifications, grades, etc.)
             custom_field_collection_id:
               type: integer
+              description: ID of the custom field collection applied to this material
             supplier:
               $ref: "#/components/schemas/Supplier"
-        - $ref: "#/components/schemas/ArchivableEntity"
+              description: Default supplier information for this material
+          required:
+            - name
+          example:
+            id: 301
+            name: "Organic Cotton Fabric"
+            uom: "yard"
+            category_name: "Textiles"
+            default_supplier_id: 150
+            additional_info: "100% organic cotton, GOTS certified, suitable for apparel manufacturing"
+            batch_tracked: true
+            is_sellable: false
+            type: "raw_material"
+            purchase_uom: "roll"
+            purchase_uom_conversion_rate: 50.0
+            configs:
+              - id: 1
+                name: "Weight"
+                values: ["150gsm", "180gsm", "210gsm"]
+                product_id: 301
+              - id: 2
+                name: "Color"
+                values: ["Natural", "White", "Black"]
+                product_id: 301
+            custom_field_collection_id: 5
+            supplier:
+              id: 150
+              name: "EcoTextiles Ltd"
+              email: "orders@ecotextiles.com"
+            created_at: "2024-01-10T08:15:00.000Z"
+            updated_at: "2024-02-05T11:30:00.000Z"
+            archived_at: null
 
     MaterialListResponse:
       type: object
@@ -2810,45 +2943,62 @@ components:
           maximum: 2147483647
 
     Product:
+      description: A product represents a finished good that can be manufactured, assembled, or directly sold to customers
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/ArchivableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             name:
               type: string
+              description: Name of the product
             uom:
               type: string
+              description: Unit of measure for this product (e.g., pcs, dozen, set)
             category_name:
               type: string
+              description: Category this product belongs to for organization purposes
             is_sellable:
               type: boolean
+              description: Whether this product can be sold to customers
             is_producible:
               type: boolean
+              description: Whether this product can be manufactured or assembled
             is_purchasable:
               type: boolean
+              description: Whether this product can be purchased from suppliers
             is_auto_assembly:
               type: boolean
+              description: Whether this product is automatically assembled when components are available
             default_supplier_id:
               type: integer
+              description: ID of the default supplier for this product (if purchasable)
             additional_info:
               type: string
+              description: Additional notes or information about this product
             batch_tracked:
               type: boolean
+              description: Whether this product requires batch tracking for traceability
             serial_tracked:
               type: boolean
+              description: Whether this product requires serial number tracking
             operations_in_sequence:
               type: boolean
+              description: Whether manufacturing operations must be performed in sequential order
             type:
               type: string
+              description: Type classification of the product
             purchase_uom:
               type: string
+              description: Unit of measure used when purchasing this product from suppliers
             purchase_uom_conversion_rate:
               type: number
+              description: Conversion rate between purchase UOM and base UOM
             variants:
               type: array
               items:
                 $ref: "#/components/schemas/Variant"
+              description: List of variants available for this product
             configs:
               type: array
               items:
@@ -2856,19 +3006,58 @@ components:
                 properties:
                   id:
                     type: integer
+                    description: Unique identifier for this configuration
                   name:
                     type: string
+                    description: Name of the configuration attribute
                   values:
                     type: array
                     items:
                       type: string
+                    description: Available values for this configuration
                   product_id:
                     type: integer
+                    description: Associated product ID for this configuration
+              description: Configuration options for this product (size, color, features, etc.)
             custom_field_collection_id:
               type: integer
+              description: ID of the custom field collection applied to this product
             supplier:
               $ref: "#/components/schemas/Supplier"
-        - $ref: "#/components/schemas/ArchivableEntity"
+              description: Default supplier information for this product (if purchasable)
+          required:
+            - name
+          example:
+            id: 1001
+            name: "Cotton T-Shirt"
+            uom: "pcs"
+            category_name: "Apparel"
+            is_sellable: true
+            is_producible: true
+            is_purchasable: false
+            is_auto_assembly: false
+            default_supplier_id: null
+            additional_info: "High-quality cotton t-shirt available in multiple sizes and colors"
+            batch_tracked: false
+            serial_tracked: false
+            operations_in_sequence: true
+            type: "finished_good"
+            purchase_uom: null
+            purchase_uom_conversion_rate: null
+            configs:
+              - id: 10
+                name: "Size"
+                values: ["XS", "S", "M", "L", "XL", "XXL"]
+                product_id: 1001
+              - id: 11
+                name: "Color"
+                values: ["White", "Black", "Blue", "Red", "Green"]
+                product_id: 1001
+            custom_field_collection_id: 3
+            supplier: null
+            created_at: "2024-01-08T10:00:00.000Z"
+            updated_at: "2024-02-12T16:45:00.000Z"
+            archived_at: null
 
     ProductListResponse:
       type: object
@@ -3572,31 +3761,9 @@ components:
           minimum: 0
           maximum: 999999999
         config_attributes:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - config_name
-              - config_value
-            properties:
-              config_name:
-                type: string
-              config_value:
-                type: string
+          $ref: "#/components/schemas/ConfigAttributesArray"
         custom_fields:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - field_name
-              - field_value
-            properties:
-              field_name:
-                type: string
-              field_value:
-                type: string
+          $ref: "#/components/schemas/CustomFieldsArray"
 
     VariantResponse:
       allOf:
@@ -3633,23 +3800,9 @@ components:
             minimum_order_quantity:
               type: [number, "null"]
             config_attributes:
-              type: array
-              items:
-                type: object
-                properties:
-                  config_name:
-                    type: string
-                  config_value:
-                    type: string
+              $ref: "#/components/schemas/ConfigAttributesArray"
             custom_fields:
-              type: array
-              items:
-                type: object
-                properties:
-                  field_name:
-                    type: string
-                  field_value:
-                    type: string
+              $ref: "#/components/schemas/CustomFieldsArray"
             product_or_material:
               type: object
               properties:
@@ -3732,23 +3885,9 @@ components:
           minimum: 0
           maximum: 999999999
         config_attributes:
-          type: array
-          items:
-            type: object
-            properties:
-              config_name:
-                type: string
-              config_value:
-                type: string
+          $ref: "#/components/schemas/ConfigAttributesArray"
         custom_fields:
-          type: array
-          items:
-            type: object
-            properties:
-              field_name:
-                type: string
-              field_value:
-                type: string
+          $ref: "#/components/schemas/CustomFieldsArray"
 
     VariantListResponse:
       type: object
@@ -3986,46 +4125,48 @@ components:
           type: boolean
           default: false
 
-    ServiceAttributes:
+
+    Service:
+      description: A service represents a non-physical offering that can be provided to customers, such as consulting, maintenance, or processing work
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
             name:
               type: string
-              description: "Name of the Service."
-              example: "Screen Printing"
+              description: Name of the service
             description:
               type: string
-              description: "A detailed description of the Service."
-              example: "High quality screen printing service for apparel and accessories."
+              description: Detailed description of what this service provides
             price:
               type: number
-              description: "Price of the Service."
-              example: 150.0
+              description: Standard price for this service
             currency:
               type: string
-              description: "Currency code (e.g., USD)."
-              example: "USD"
+              description: Currency code for the service price (e.g., USD, EUR)
             active:
               type: boolean
-              description: "Indicates if the Service is active."
-              example: true
-        - $ref: "#/components/schemas/UpdatableEntity"
-
-    Service:
-      type: object
-      properties:
-        id:
-          type: string
-          description: "Unique identifier of the Service."
-          example: "srv_abc123"
-        type:
-          type: string
-          description: "Resource type - always 'services'."
-          enum:
-            - services
-        attributes:
-          $ref: "#/components/schemas/ServiceAttributes"
+              description: Whether this service is currently active and available for sale
+            type:
+              type: string
+              description: Type or category of service
+              enum:
+                - services
+          required:
+            - name
+            - price
+            - currency
+          example:
+            id: 501
+            name: "Screen Printing Service"
+            description: "High-quality screen printing service for apparel and promotional items. Includes setup, printing, and quality control."
+            price: 150.0
+            currency: "USD"
+            active: true
+            type: "services"
+            created_at: "2024-01-20T12:00:00.000Z"
+            updated_at: "2024-02-15T09:30:00.000Z"
 
     ServiceListResponse:
       type: object

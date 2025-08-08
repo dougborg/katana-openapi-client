@@ -3,11 +3,17 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
-T = TypeVar("T", bound="CreateVariantRequestConfigAttributesItem")
+T = TypeVar("T", bound="ConfigAttribute")
 
 
 @_attrs_define
-class CreateVariantRequestConfigAttributesItem:
+class ConfigAttribute:
+    """A configuration attribute with name-value pair
+
+    Example:
+        {'config_name': 'Color', 'config_value': 'Blue'}
+    """
+
     config_name: str
     config_value: str
 
@@ -34,9 +40,9 @@ class CreateVariantRequestConfigAttributesItem:
 
         config_value = d.pop("config_value")
 
-        create_variant_request_config_attributes_item = cls(
+        config_attribute = cls(
             config_name=config_name,
             config_value=config_value,
         )
 
-        return create_variant_request_config_attributes_item
+        return config_attribute

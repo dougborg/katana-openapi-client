@@ -14,6 +14,7 @@ from .batch_stock_update import BatchStockUpdate
 from .bom_row import BomRow
 from .bom_row_list_response import BomRowListResponse
 from .coded_error_response import CodedErrorResponse
+from .config_attribute import ConfigAttribute
 from .create_bom_row_request import CreateBomRowRequest
 from .create_customer_address_request import CreateCustomerAddressRequest
 from .create_customer_address_request_entity_type import (
@@ -67,13 +68,8 @@ from .create_supplier_address_request import CreateSupplierAddressRequest
 from .create_supplier_request import CreateSupplierRequest
 from .create_tax_rate_request import CreateTaxRateRequest
 from .create_variant_request import CreateVariantRequest
-from .create_variant_request_config_attributes_item import (
-    CreateVariantRequestConfigAttributesItem,
-)
-from .create_variant_request_custom_fields_item import (
-    CreateVariantRequestCustomFieldsItem,
-)
 from .create_webhook_request import CreateWebhookRequest
+from .custom_field import CustomField
 from .custom_fields_collection import CustomFieldsCollection
 from .custom_fields_collection_custom_fields_item import (
     CustomFieldsCollectionCustomFieldsItem,
@@ -270,7 +266,6 @@ from .serial_number_stock import SerialNumberStock
 from .serial_number_stock_list_response import SerialNumberStockListResponse
 from .serial_number_stock_status import SerialNumberStockStatus
 from .service import Service
-from .service_attributes import ServiceAttributes
 from .service_input_attributes import ServiceInputAttributes
 from .service_list_response import ServiceListResponse
 from .service_request import ServiceRequest
@@ -340,20 +335,12 @@ from .update_sales_order_body import UpdateSalesOrderBody
 from .update_supplier_address_request import UpdateSupplierAddressRequest
 from .update_supplier_request import UpdateSupplierRequest
 from .update_variant_request import UpdateVariantRequest
-from .update_variant_request_config_attributes_item import (
-    UpdateVariantRequestConfigAttributesItem,
-)
-from .update_variant_request_custom_fields_item import (
-    UpdateVariantRequestCustomFieldsItem,
-)
 from .update_webhook_request import UpdateWebhookRequest
 from .user import User
 from .user_list_response import UserListResponse
 from .validation_error_detail import ValidationErrorDetail
 from .validation_error_detail_info import ValidationErrorDetailInfo
 from .variant import Variant
-from .variant_config_attributes_item import VariantConfigAttributesItem
-from .variant_custom_fields_item import VariantCustomFieldsItem
 from .variant_default_storage_bin_link import VariantDefaultStorageBinLink
 from .variant_default_storage_bin_link_list_response import (
     VariantDefaultStorageBinLinkListResponse,
@@ -363,8 +350,6 @@ from .variant_default_storage_bin_link_response import (
 )
 from .variant_list_response import VariantListResponse
 from .variant_response import VariantResponse
-from .variant_response_config_attributes_item import VariantResponseConfigAttributesItem
-from .variant_response_custom_fields_item import VariantResponseCustomFieldsItem
 from .variant_response_product_or_material import VariantResponseProductOrMaterial
 from .variant_response_product_or_material_configs_item import (
     VariantResponseProductOrMaterialConfigsItem,
@@ -391,6 +376,7 @@ __all__ = (
     "BomRow",
     "BomRowListResponse",
     "CodedErrorResponse",
+    "ConfigAttribute",
     "CreateBomRowRequest",
     "CreateCustomerAddressRequest",
     "CreateCustomerAddressRequestEntityType",
@@ -424,9 +410,8 @@ __all__ = (
     "CreateSupplierRequest",
     "CreateTaxRateRequest",
     "CreateVariantRequest",
-    "CreateVariantRequestConfigAttributesItem",
-    "CreateVariantRequestCustomFieldsItem",
     "CreateWebhookRequest",
+    "CustomField",
     "CustomFieldsCollection",
     "CustomFieldsCollectionCustomFieldsItem",
     "CustomFieldsCollectionCustomFieldsItemFieldType",
@@ -563,7 +548,6 @@ __all__ = (
     "SerialNumberStockListResponse",
     "SerialNumberStockStatus",
     "Service",
-    "ServiceAttributes",
     "ServiceInputAttributes",
     "ServiceListResponse",
     "ServiceRequest",
@@ -617,23 +601,17 @@ __all__ = (
     "UpdateSupplierAddressRequest",
     "UpdateSupplierRequest",
     "UpdateVariantRequest",
-    "UpdateVariantRequestConfigAttributesItem",
-    "UpdateVariantRequestCustomFieldsItem",
     "UpdateWebhookRequest",
     "User",
     "UserListResponse",
     "ValidationErrorDetail",
     "ValidationErrorDetailInfo",
     "Variant",
-    "VariantConfigAttributesItem",
-    "VariantCustomFieldsItem",
     "VariantDefaultStorageBinLink",
     "VariantDefaultStorageBinLinkListResponse",
     "VariantDefaultStorageBinLinkResponse",
     "VariantListResponse",
     "VariantResponse",
-    "VariantResponseConfigAttributesItem",
-    "VariantResponseCustomFieldsItem",
     "VariantResponseProductOrMaterial",
     "VariantResponseProductOrMaterialConfigsItem",
     "VariantResponseType",

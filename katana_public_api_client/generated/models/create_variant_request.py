@@ -6,12 +6,8 @@ from attrs import define as _attrs_define
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.create_variant_request_config_attributes_item import (
-        CreateVariantRequestConfigAttributesItem,
-    )
-    from ..models.create_variant_request_custom_fields_item import (
-        CreateVariantRequestCustomFieldsItem,
-    )
+    from ..models.config_attribute import ConfigAttribute
+    from ..models.custom_field import CustomField
 
 
 T = TypeVar("T", bound="CreateVariantRequest")
@@ -29,8 +25,8 @@ class CreateVariantRequest:
     registered_barcode: Unset | str = UNSET
     lead_time: None | Unset | int = UNSET
     minimum_order_quantity: Unset | float = UNSET
-    config_attributes: Unset | list["CreateVariantRequestConfigAttributesItem"] = UNSET
-    custom_fields: Unset | list["CreateVariantRequestCustomFieldsItem"] = UNSET
+    config_attributes: Unset | list["ConfigAttribute"] = UNSET
+    custom_fields: Unset | list["CustomField"] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         sku = self.sku
@@ -68,16 +64,22 @@ class CreateVariantRequest:
         config_attributes: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.config_attributes, Unset):
             config_attributes = []
-            for config_attributes_item_data in self.config_attributes:
-                config_attributes_item = config_attributes_item_data.to_dict()
-                config_attributes.append(config_attributes_item)
+            for (
+                componentsschemas_config_attributes_array_item_data
+            ) in self.config_attributes:
+                componentsschemas_config_attributes_array_item = (
+                    componentsschemas_config_attributes_array_item_data.to_dict()
+                )
+                config_attributes.append(componentsschemas_config_attributes_array_item)
 
         custom_fields: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.custom_fields, Unset):
             custom_fields = []
-            for custom_fields_item_data in self.custom_fields:
-                custom_fields_item = custom_fields_item_data.to_dict()
-                custom_fields.append(custom_fields_item)
+            for componentsschemas_custom_fields_array_item_data in self.custom_fields:
+                componentsschemas_custom_fields_array_item = (
+                    componentsschemas_custom_fields_array_item_data.to_dict()
+                )
+                custom_fields.append(componentsschemas_custom_fields_array_item)
 
         field_dict: dict[str, Any] = {}
 
@@ -112,12 +114,8 @@ class CreateVariantRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.create_variant_request_config_attributes_item import (
-            CreateVariantRequestConfigAttributesItem,
-        )
-        from ..models.create_variant_request_custom_fields_item import (
-            CreateVariantRequestCustomFieldsItem,
-        )
+        from ..models.config_attribute import ConfigAttribute
+        from ..models.custom_field import CustomField
 
         d = dict(src_dict)
         sku = d.pop("sku")
@@ -163,21 +161,23 @@ class CreateVariantRequest:
 
         config_attributes = []
         _config_attributes = d.pop("config_attributes", UNSET)
-        for config_attributes_item_data in _config_attributes or []:
-            config_attributes_item = CreateVariantRequestConfigAttributesItem.from_dict(
-                config_attributes_item_data
+        for componentsschemas_config_attributes_array_item_data in (
+            _config_attributes or []
+        ):
+            componentsschemas_config_attributes_array_item = ConfigAttribute.from_dict(
+                componentsschemas_config_attributes_array_item_data
             )
 
-            config_attributes.append(config_attributes_item)
+            config_attributes.append(componentsschemas_config_attributes_array_item)
 
         custom_fields = []
         _custom_fields = d.pop("custom_fields", UNSET)
-        for custom_fields_item_data in _custom_fields or []:
-            custom_fields_item = CreateVariantRequestCustomFieldsItem.from_dict(
-                custom_fields_item_data
+        for componentsschemas_custom_fields_array_item_data in _custom_fields or []:
+            componentsschemas_custom_fields_array_item = CustomField.from_dict(
+                componentsschemas_custom_fields_array_item_data
             )
 
-            custom_fields.append(custom_fields_item)
+            custom_fields.append(componentsschemas_custom_fields_array_item)
 
         create_variant_request = cls(
             sku=sku,

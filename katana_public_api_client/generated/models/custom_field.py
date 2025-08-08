@@ -3,11 +3,17 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
-T = TypeVar("T", bound="CreateVariantRequestCustomFieldsItem")
+T = TypeVar("T", bound="CustomField")
 
 
 @_attrs_define
-class CreateVariantRequestCustomFieldsItem:
+class CustomField:
+    """A custom field with name-value pair
+
+    Example:
+        {'field_name': 'Priority', 'field_value': 'High'}
+    """
+
     field_name: str
     field_value: str
 
@@ -34,9 +40,9 @@ class CreateVariantRequestCustomFieldsItem:
 
         field_value = d.pop("field_value")
 
-        create_variant_request_custom_fields_item = cls(
+        custom_field = cls(
             field_name=field_name,
             field_value=field_value,
         )
 
-        return create_variant_request_custom_fields_item
+        return custom_field

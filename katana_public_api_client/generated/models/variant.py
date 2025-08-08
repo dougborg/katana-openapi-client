@@ -11,8 +11,8 @@ from dateutil.parser import isoparse
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.variant_config_attributes_item import VariantConfigAttributesItem
-    from ..models.variant_custom_fields_item import VariantCustomFieldsItem
+    from ..models.config_attribute import ConfigAttribute
+    from ..models.custom_field import CustomField
 
 
 T = TypeVar("T", bound="Variant")
@@ -20,6 +20,10 @@ T = TypeVar("T", bound="Variant")
 
 @_attrs_define
 class Variant:
+    """A variant represents a specific SKU that can be associated with either a product or material, containing unique
+    pricing, barcode, and configuration information
+    """
+
     id: int
     sku: str
     created_at: Unset | datetime.datetime = UNSET
@@ -36,8 +40,8 @@ class Variant:
     supplier_item_codes: Unset | list[str] = UNSET
     lead_time: None | Unset | int = UNSET
     minimum_order_quantity: None | Unset | float = UNSET
-    custom_fields: Unset | list["VariantCustomFieldsItem"] = UNSET
-    config_attributes: Unset | list["VariantConfigAttributesItem"] = UNSET
+    custom_fields: Unset | list["CustomField"] = UNSET
+    config_attributes: Unset | list["ConfigAttribute"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -108,16 +112,22 @@ class Variant:
         custom_fields: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.custom_fields, Unset):
             custom_fields = []
-            for custom_fields_item_data in self.custom_fields:
-                custom_fields_item = custom_fields_item_data.to_dict()
-                custom_fields.append(custom_fields_item)
+            for componentsschemas_custom_fields_array_item_data in self.custom_fields:
+                componentsschemas_custom_fields_array_item = (
+                    componentsschemas_custom_fields_array_item_data.to_dict()
+                )
+                custom_fields.append(componentsschemas_custom_fields_array_item)
 
         config_attributes: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.config_attributes, Unset):
             config_attributes = []
-            for config_attributes_item_data in self.config_attributes:
-                config_attributes_item = config_attributes_item_data.to_dict()
-                config_attributes.append(config_attributes_item)
+            for (
+                componentsschemas_config_attributes_array_item_data
+            ) in self.config_attributes:
+                componentsschemas_config_attributes_array_item = (
+                    componentsschemas_config_attributes_array_item_data.to_dict()
+                )
+                config_attributes.append(componentsschemas_config_attributes_array_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -164,8 +174,8 @@ class Variant:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.variant_config_attributes_item import VariantConfigAttributesItem
-        from ..models.variant_custom_fields_item import VariantCustomFieldsItem
+        from ..models.config_attribute import ConfigAttribute
+        from ..models.custom_field import CustomField
 
         d = dict(src_dict)
         id = d.pop("id")
@@ -264,21 +274,23 @@ class Variant:
 
         custom_fields = []
         _custom_fields = d.pop("custom_fields", UNSET)
-        for custom_fields_item_data in _custom_fields or []:
-            custom_fields_item = VariantCustomFieldsItem.from_dict(
-                custom_fields_item_data
+        for componentsschemas_custom_fields_array_item_data in _custom_fields or []:
+            componentsschemas_custom_fields_array_item = CustomField.from_dict(
+                componentsschemas_custom_fields_array_item_data
             )
 
-            custom_fields.append(custom_fields_item)
+            custom_fields.append(componentsschemas_custom_fields_array_item)
 
         config_attributes = []
         _config_attributes = d.pop("config_attributes", UNSET)
-        for config_attributes_item_data in _config_attributes or []:
-            config_attributes_item = VariantConfigAttributesItem.from_dict(
-                config_attributes_item_data
+        for componentsschemas_config_attributes_array_item_data in (
+            _config_attributes or []
+        ):
+            componentsschemas_config_attributes_array_item = ConfigAttribute.from_dict(
+                componentsschemas_config_attributes_array_item_data
             )
 
-            config_attributes.append(config_attributes_item)
+            config_attributes.append(componentsschemas_config_attributes_array_item)
 
         variant = cls(
             id=id,

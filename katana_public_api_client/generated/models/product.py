@@ -21,11 +21,13 @@ T = TypeVar("T", bound="Product")
 
 @_attrs_define
 class Product:
+    """A product represents a finished good that can be manufactured, assembled, or directly sold to customers"""
+
+    id: int
+    name: str
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     archived_at: None | Unset | datetime.datetime = UNSET
-    id: Unset | int = UNSET
-    name: Unset | str = UNSET
     uom: Unset | str = UNSET
     category_name: Unset | str = UNSET
     is_sellable: Unset | bool = UNSET
@@ -47,6 +49,10 @@ class Product:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
+        name = self.name
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -62,10 +68,6 @@ class Product:
             archived_at = self.archived_at.isoformat()
         else:
             archived_at = self.archived_at
-
-        id = self.id
-
-        name = self.name
 
         uom = self.uom
 
@@ -117,17 +119,18 @@ class Product:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+                "name": name,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if archived_at is not UNSET:
             field_dict["archived_at"] = archived_at
-        if id is not UNSET:
-            field_dict["id"] = id
-        if name is not UNSET:
-            field_dict["name"] = name
         if uom is not UNSET:
             field_dict["uom"] = uom
         if category_name is not UNSET:
@@ -174,6 +177,10 @@ class Product:
         from ..models.variant import Variant
 
         d = dict(src_dict)
+        id = d.pop("id")
+
+        name = d.pop("name")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -204,10 +211,6 @@ class Product:
             return cast(None | Unset | datetime.datetime, data)
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
-
-        id = d.pop("id", UNSET)
-
-        name = d.pop("name", UNSET)
 
         uom = d.pop("uom", UNSET)
 
@@ -261,11 +264,11 @@ class Product:
             supplier = Supplier.from_dict(_supplier)
 
         product = cls(
+            id=id,
+            name=name,
             created_at=created_at,
             updated_at=updated_at,
             archived_at=archived_at,
-            id=id,
-            name=name,
             uom=uom,
             category_name=category_name,
             is_sellable=is_sellable,
