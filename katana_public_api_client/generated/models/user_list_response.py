@@ -17,6 +17,23 @@ T = TypeVar("T", bound="UserListResponse")
 
 @_attrs_define
 class UserListResponse:
+    """Response containing a list of system users with their roles and access levels
+
+    Example:
+        {'data': [{'id': 1001, 'first_name': 'Sarah', 'last_name': 'Johnson', 'email':
+            'sarah.johnson@acmemanufacturing.com', 'role': 'manager', 'status': 'active', 'last_login_at':
+            '2024-03-15T08:30:00.000Z', 'created_at': '2024-01-15T10:00:00.000Z', 'updated_at': '2024-03-15T08:30:00.000Z'},
+            {'id': 1002, 'first_name': 'David', 'last_name': 'Chen', 'email': 'david.chen@acmemanufacturing.com', 'role':
+            'admin', 'status': 'active', 'last_login_at': '2024-03-15T09:15:00.000Z', 'created_at':
+            '2024-01-10T08:00:00.000Z', 'updated_at': '2024-03-15T09:15:00.000Z'}, {'id': 1003, 'first_name': 'Maria',
+            'last_name': 'Garcia', 'email': 'maria.garcia@acmemanufacturing.com', 'role': 'operator', 'status': 'active',
+            'last_login_at': '2024-03-15T06:00:00.000Z', 'created_at': '2024-02-01T07:00:00.000Z', 'updated_at':
+            '2024-03-15T06:00:00.000Z'}, {'id': 1004, 'first_name': 'Robert', 'last_name': 'Thompson', 'email':
+            'robert.thompson@acmemanufacturing.com', 'role': 'accountant', 'status': 'active', 'last_login_at':
+            '2024-03-14T16:45:00.000Z', 'created_at': '2024-01-20T10:30:00.000Z', 'updated_at':
+            '2024-03-14T16:45:00.000Z'}]}
+    """
+
     data: Unset | list["User"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

@@ -15,8 +15,10 @@ T = TypeVar("T", bound="Operator")
 
 @_attrs_define
 class Operator:
+    """A factory floor operator responsible for manufacturing operations and equipment handling"""
+
     id: int
-    name: str
+    operator_name: str
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | datetime.datetime = UNSET
@@ -28,7 +30,7 @@ class Operator:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        name = self.name
+        operator_name = self.operator_name
 
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
@@ -65,7 +67,7 @@ class Operator:
         field_dict.update(
             {
                 "id": id,
-                "name": name,
+                "operator_name": operator_name,
             }
         )
         if created_at is not UNSET:
@@ -88,7 +90,7 @@ class Operator:
         d = dict(src_dict)
         id = d.pop("id")
 
-        name = d.pop("name")
+        operator_name = d.pop("operator_name")
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -143,7 +145,7 @@ class Operator:
 
         operator = cls(
             id=id,
-            name=name,
+            operator_name=operator_name,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,

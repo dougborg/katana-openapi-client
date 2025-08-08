@@ -15,6 +15,8 @@ T = TypeVar("T", bound="User")
 
 @_attrs_define
 class User:
+    """A system user with role-based access to manufacturing operations and administration"""
+
     id: int
     first_name: str
     last_name: str

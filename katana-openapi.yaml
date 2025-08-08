@@ -6131,31 +6131,86 @@ components:
         updated_at: "2024-01-15T09:30:00.000Z"
 
     Operator:
+      description: A factory floor operator responsible for manufacturing operations and equipment handling
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             operator_id:
               type: integer
-            name:
+              description: Internal operator identification number for manufacturing tracking
+            operator_name:
               type: string
+              description: Full name of the operator
             working_area:
               type: [string, "null"]
+              description: Primary working area or department assignment where the operator performs tasks
             resource_id:
               type: [integer, "null"]
+              description: ID of the primary resource/workstation this operator is assigned to
           required:
-            - id
-            - name
-        - $ref: "#/components/schemas/DeletableEntity"
+            - operator_name
+          example:
+            id: 5001
+            operator_id: 7823
+            operator_name: "Michael Rodriguez"
+            working_area: "Assembly Line A"
+            resource_id: 301
+            created_at: "2024-01-10T09:00:00.000Z"
+            updated_at: "2024-03-15T07:45:00.000Z"
+            deleted_at: null
 
     OperatorListResponse:
       type: object
+      description: Response containing a list of manufacturing floor operators
       properties:
         data:
           type: array
           items:
             $ref: "#/components/schemas/Operator"
+      example:
+        data:
+          - id: 2001
+            operator_id: "OP-001"
+            operator_name: "Mike Rodriguez"
+            working_area: "Assembly Line A"
+            resource_id: 301
+            created_at: "2024-01-10T07:00:00.000Z"
+            updated_at: "2024-03-15T06:30:00.000Z"
+            deleted_at: null
+          - id: 2002
+            operator_id: "OP-002"
+            operator_name: "Jennifer Kim"
+            working_area: "Quality Control"
+            resource_id: 302
+            created_at: "2024-01-12T08:00:00.000Z"
+            updated_at: "2024-03-15T07:45:00.000Z"
+            deleted_at: null
+          - id: 2003
+            operator_id: "OP-003"
+            operator_name: "Carlos Mendez"
+            working_area: "Packaging Station"
+            resource_id: 303
+            created_at: "2024-01-15T06:30:00.000Z"
+            updated_at: "2024-03-15T08:00:00.000Z"
+            deleted_at: null
+          - id: 2004
+            operator_id: "OP-004"
+            operator_name: "Lisa Wang"
+            working_area: "Assembly Line B"
+            resource_id: 304
+            created_at: "2024-02-01T07:30:00.000Z"
+            updated_at: "2024-03-15T06:15:00.000Z"
+            deleted_at: null
+          - id: 2005
+            operator_id: "OP-005"
+            operator_name: "Tom Peterson"
+            working_area: "Maintenance"
+            resource_id: 305
+            created_at: "2024-01-20T08:30:00.000Z"
+            updated_at: "2024-03-10T15:00:00.000Z"
+            deleted_at: "2024-03-10T15:00:00.000Z"
 
     # Custom Fields Collections
     CustomFieldsCollection:
@@ -6555,31 +6610,47 @@ components:
 
     # User schemas
     User:
+      description: A system user with role-based access to manufacturing operations and administration
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
         - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             first_name:
               type: string
+              description: User's first name
             last_name:
               type: string
+              description: User's last name
             email:
               type: string
+              format: email
+              description: User's email address for authentication and notifications
             role:
               type: string
+              description: User's role determining system access permissions
             status:
               type: string
+              description: Current status of the user account
             last_login_at:
               type: [string, "null"]
               format: date-time
+              description: Timestamp of the user's last login to the system
           required:
-            - id
             - first_name
             - last_name
             - email
             - role
+          example:
+            id: 1001
+            first_name: "Sarah"
+            last_name: "Johnson"
+            email: "sarah.johnson@acmemanufacturing.com"
+            role: "manager"
+            status: "active"
+            last_login_at: "2024-03-15T08:30:00.000Z"
+            created_at: "2024-01-15T10:00:00.000Z"
+            updated_at: "2024-03-15T08:30:00.000Z"
 
     # Missing list response schemas
     SalesOrderRowListResponse:
@@ -6827,11 +6898,50 @@ components:
 
     UserListResponse:
       type: object
+      description: Response containing a list of system users with their roles and access levels
       properties:
         data:
           type: array
           items:
             $ref: "#/components/schemas/User"
+      example:
+        data:
+          - id: 1001
+            first_name: "Sarah"
+            last_name: "Johnson"
+            email: "sarah.johnson@acmemanufacturing.com"
+            role: "manager"
+            status: "active"
+            last_login_at: "2024-03-15T08:30:00.000Z"
+            created_at: "2024-01-15T10:00:00.000Z"
+            updated_at: "2024-03-15T08:30:00.000Z"
+          - id: 1002
+            first_name: "David"
+            last_name: "Chen"
+            email: "david.chen@acmemanufacturing.com"
+            role: "admin"
+            status: "active"
+            last_login_at: "2024-03-15T09:15:00.000Z"
+            created_at: "2024-01-10T08:00:00.000Z"
+            updated_at: "2024-03-15T09:15:00.000Z"
+          - id: 1003
+            first_name: "Maria"
+            last_name: "Garcia"
+            email: "maria.garcia@acmemanufacturing.com"
+            role: "operator"
+            status: "active"
+            last_login_at: "2024-03-15T06:00:00.000Z"
+            created_at: "2024-02-01T07:00:00.000Z"
+            updated_at: "2024-03-15T06:00:00.000Z"
+          - id: 1004
+            first_name: "Robert"
+            last_name: "Thompson"
+            email: "robert.thompson@acmemanufacturing.com"
+            role: "accountant"
+            status: "active"
+            last_login_at: "2024-03-14T16:45:00.000Z"
+            created_at: "2024-01-20T10:30:00.000Z"
+            updated_at: "2024-03-14T16:45:00.000Z"
 
     InventoryReorderPointListResponse:
       type: object
@@ -8363,7 +8473,7 @@ paths:
                 assigned_operators:
                   - id: 1
                     operator_id: 1
-                    name: Pack
+                    operator_name: Pack
                     deleted_at: null
                 completed_by_operators: []
                 active_operator_id: 1
@@ -8436,7 +8546,7 @@ paths:
                     assigned_operators:
                       - id: 1
                         operator_id: 1
-                        name: Pack
+                        operator_name: Pack
                         deleted_at: null
                     completed_by_operators: []
                     active_operator_id: 1
@@ -8500,7 +8610,7 @@ paths:
                 resource_name: Table
                 assigned_operators:
                   - id: 1
-                    name: Pack
+                    operator_name: Pack
                     deleted_at: null
                 completed_by_operators: []
                 active_operator_id: 1
@@ -8572,7 +8682,7 @@ paths:
                 resource_name: Table
                 assigned_operators:
                   - id: 1
-                    name: Pack
+                    operator_name: Pack
                     deleted_at: null
                 completed_by_operators: []
                 active_operator_id: 1

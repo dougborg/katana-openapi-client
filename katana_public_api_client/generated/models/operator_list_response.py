@@ -17,6 +17,23 @@ T = TypeVar("T", bound="OperatorListResponse")
 
 @_attrs_define
 class OperatorListResponse:
+    """Response containing a list of manufacturing floor operators
+
+    Example:
+        {'data': [{'id': 2001, 'operator_id': 'OP-001', 'operator_name': 'Mike Rodriguez', 'working_area': 'Assembly
+            Line A', 'resource_id': 301, 'created_at': '2024-01-10T07:00:00.000Z', 'updated_at': '2024-03-15T06:30:00.000Z',
+            'deleted_at': None}, {'id': 2002, 'operator_id': 'OP-002', 'operator_name': 'Jennifer Kim', 'working_area':
+            'Quality Control', 'resource_id': 302, 'created_at': '2024-01-12T08:00:00.000Z', 'updated_at':
+            '2024-03-15T07:45:00.000Z', 'deleted_at': None}, {'id': 2003, 'operator_id': 'OP-003', 'operator_name': 'Carlos
+            Mendez', 'working_area': 'Packaging Station', 'resource_id': 303, 'created_at': '2024-01-15T06:30:00.000Z',
+            'updated_at': '2024-03-15T08:00:00.000Z', 'deleted_at': None}, {'id': 2004, 'operator_id': 'OP-004',
+            'operator_name': 'Lisa Wang', 'working_area': 'Assembly Line B', 'resource_id': 304, 'created_at':
+            '2024-02-01T07:30:00.000Z', 'updated_at': '2024-03-15T06:15:00.000Z', 'deleted_at': None}, {'id': 2005,
+            'operator_id': 'OP-005', 'operator_name': 'Tom Peterson', 'working_area': 'Maintenance', 'resource_id': 305,
+            'created_at': '2024-01-20T08:30:00.000Z', 'updated_at': '2024-03-10T15:00:00.000Z', 'deleted_at':
+            '2024-03-10T15:00:00.000Z'}]}
+    """
+
     data: Unset | list["Operator"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
