@@ -10,6 +10,12 @@ T = TypeVar("T", bound="VariantDefaultStorageBinLink")
 
 @_attrs_define
 class VariantDefaultStorageBinLink:
+    """Link configuration for assigning variants to default storage bins for automated placement
+
+    Example:
+        {'location_id': 101, 'variant_id': 3005, 'bin_name': 'A-01-SHELF-1'}
+    """
+
     variant_id: int
     bin_name: str
     location_id: Unset | int = UNSET

@@ -19,6 +19,16 @@ T = TypeVar("T", bound="VariantDefaultStorageBinLinkListResponse")
 
 @_attrs_define
 class VariantDefaultStorageBinLinkListResponse:
+    """
+    Example:
+        {'data': [{'id': 50001, 'bin_name': 'A-01-SHELF-1', 'variant_id': 3005, 'storage_bin_id': 12345, 'created_at':
+            '2020-10-23T10:37:05.085Z', 'updated_at': '2024-01-15T09:30:00.000Z', 'deleted_at': None}, {'id': 50002,
+            'bin_name': 'A-02-SHELF-2', 'variant_id': 3006, 'storage_bin_id': 12346, 'created_at':
+            '2020-11-15T14:22:15.000Z', 'updated_at': '2024-01-12T14:22:15.000Z', 'deleted_at': None}, {'id': 50003,
+            'bin_name': 'B-01-RACK-A', 'variant_id': 3007, 'storage_bin_id': 12347, 'created_at':
+            '2021-01-10T08:30:00.000Z', 'updated_at': '2024-01-10T11:15:30.000Z', 'deleted_at': None}]}
+    """
+
     data: Unset | list["VariantDefaultStorageBinLinkResponse"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

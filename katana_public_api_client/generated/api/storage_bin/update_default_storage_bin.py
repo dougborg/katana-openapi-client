@@ -7,7 +7,7 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
-from ...models.storage_bin_response import StorageBinResponse
+from ...models.storage_bin import StorageBin
 from ...models.storage_bin_update import StorageBinUpdate
 from ...types import Response
 
@@ -34,9 +34,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | StorageBinResponse | None:
+) -> DetailedErrorResponse | ErrorResponse | StorageBin | None:
     if response.status_code == 200:
-        response_200 = StorageBinResponse.from_dict(response.json())
+        response_200 = StorageBin.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -67,7 +67,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | StorageBinResponse]:
+) -> Response[DetailedErrorResponse | ErrorResponse | StorageBin]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -81,7 +81,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: StorageBinUpdate,
-) -> Response[DetailedErrorResponse | ErrorResponse | StorageBinResponse]:
+) -> Response[DetailedErrorResponse | ErrorResponse | StorageBin]:
     """Update a storage bin
 
      Updates the specified storage bin by setting the values of the parameters passed. Any parameters not
@@ -99,7 +99,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, StorageBin]]
     """
 
     kwargs = _get_kwargs(
@@ -119,7 +119,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: StorageBinUpdate,
-) -> DetailedErrorResponse | ErrorResponse | StorageBinResponse | None:
+) -> DetailedErrorResponse | ErrorResponse | StorageBin | None:
     """Update a storage bin
 
      Updates the specified storage bin by setting the values of the parameters passed. Any parameters not
@@ -137,7 +137,7 @@ def sync(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]
+        Union[DetailedErrorResponse, ErrorResponse, StorageBin]
     """
 
     return sync_detailed(
@@ -152,7 +152,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: StorageBinUpdate,
-) -> Response[DetailedErrorResponse | ErrorResponse | StorageBinResponse]:
+) -> Response[DetailedErrorResponse | ErrorResponse | StorageBin]:
     """Update a storage bin
 
      Updates the specified storage bin by setting the values of the parameters passed. Any parameters not
@@ -170,7 +170,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, StorageBin]]
     """
 
     kwargs = _get_kwargs(
@@ -188,7 +188,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: StorageBinUpdate,
-) -> DetailedErrorResponse | ErrorResponse | StorageBinResponse | None:
+) -> DetailedErrorResponse | ErrorResponse | StorageBin | None:
     """Update a storage bin
 
      Updates the specified storage bin by setting the values of the parameters passed. Any parameters not
@@ -206,7 +206,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]
+        Union[DetailedErrorResponse, ErrorResponse, StorageBin]
     """
 
     return (

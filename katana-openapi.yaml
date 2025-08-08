@@ -1260,34 +1260,39 @@ components:
         batch_barcode: "0317"
 
     StorageBin:
-      type: object
-      description: Core storage bin business properties
-      additionalProperties: false
-      required:
-        - bin_name
-        - location_id
-      properties:
-        bin_name:
-          type: string
-          description: Name of the storage bin
-        location_id:
-          type: integer
-          description: Unique identifier of the location where storage bin is located
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
+        - type: object
+          properties:
+            bin_name:
+              type: string
+              description: Unique identifier name for the storage bin within the location
+              example: "A-01-SHELF-1"
+            location_id:
+              type: integer
+              description: Foreign key reference to the warehouse location containing this storage bin
+              example: 101
+          required:
+            - bin_name
+            - location_id
       example:
+        id: 12345
         bin_name: "A-01-SHELF-1"
-        location_id: 1
+        location_id: 101
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2024-01-15T09:30:00.000Z"
+        deleted_at: null
 
     StorageBinResponse:
       allOf:
         - $ref: "#/components/schemas/StorageBin"
-        - $ref: "#/components/schemas/BaseEntity"
-        - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 12345
         bin_name: "A-01-SHELF-1"
-        location_id: 1
+        location_id: 101
         created_at: "2020-10-23T10:37:05.085Z"
-        updated_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2024-01-15T09:30:00.000Z"
         deleted_at: null
 
     StorageBinUpdate:
@@ -1316,15 +1321,33 @@ components:
         data:
           - id: 12345
             bin_name: "A-01-SHELF-1"
-            location_id: 1
+            location_id: 101
             created_at: "2020-10-23T10:37:05.085Z"
-            updated_at: "2020-10-23T10:37:05.085Z"
+            updated_at: "2024-01-15T09:30:00.000Z"
             deleted_at: null
           - id: 12346
-            bin_name: "A-02-SHELF-1"
-            location_id: 1
+            bin_name: "A-02-SHELF-2"
+            location_id: 101
             created_at: "2020-10-23T10:37:05.085Z"
-            updated_at: "2020-10-23T10:37:05.085Z"
+            updated_at: "2024-01-12T14:22:15.000Z"
+            deleted_at: null
+          - id: 12347
+            bin_name: "B-01-RACK-A"
+            location_id: 101
+            created_at: "2020-11-15T14:22:15.000Z"
+            updated_at: "2024-01-10T11:15:30.000Z"
+            deleted_at: null
+          - id: 12348
+            bin_name: "RECEIVING-BAY-1"
+            location_id: 102
+            created_at: "2021-01-10T08:30:00.000Z"
+            updated_at: "2024-01-08T16:45:22.000Z"
+            deleted_at: null
+          - id: 12349
+            bin_name: "COLD-STORAGE-C3"
+            location_id: 102
+            created_at: "2021-03-01T12:00:00.000Z"
+            updated_at: "2024-01-05T10:30:45.000Z"
             deleted_at: null
 
     InventoryMovement:
@@ -1575,61 +1598,154 @@ components:
           properties:
             name:
               type: string
-              description: Name of the location
+              description: Name of the warehouse or distribution center location
+              example: "Main Warehouse - Brooklyn"
             legal_name:
               type: string
-              description: This name is added to the "Ship to" information when a purchase order for this location is printed or saved as PDF
+              description: Legal business name for this location, used on purchase orders and official documents
+              example: "Acme Manufacturing Co. - Brooklyn Facility"
             address_id:
               type: integer
-              description: ID of the location's address
+              description: Foreign key reference to the location's physical address
+              example: 1001
             address:
               $ref: "#/components/schemas/LocationAddress"
             is_primary:
               type: boolean
-              description: Indicates if the location is your primary location
+              description: Indicates if this is the primary/headquarters location for operations
+              example: true
             sales_allowed:
               type: boolean
-              description: If true, Katana enables you to select the location for sales orders and manage location-specific list for those orders
+              description: Enable sales order creation and fulfillment from this location
+              example: true
             purchase_allowed:
               type: boolean
-              description: If true, Katana enables you to select the location for purchase orders and manage location-specific list for those orders
+              description: Enable purchase order receiving and supplier management for this location
+              example: true
             manufacturing_allowed:
               type: boolean
-              description: If true, Katana enables you to select the location for manufacturing orders and manage location-specific list for those orders for manufacturing orders
+              description: Enable production planning and manufacturing order execution at this location
+              example: true
           required:
             - name
       example:
         data:
-          - id: 1
-            name: Main location
-            legal_name: Amazon
-            address_id: 1
+          - id: 101
+            name: "Main Warehouse - Brooklyn"
+            legal_name: "Acme Manufacturing Co. - Brooklyn Facility"
+            address_id: 1001
             address:
-              id: 1
-              city: New York
-              country: United States
-              line_1: "10 East 20th Example St"
-              line_2: ""
-              state: New York
-              zip: "10000"
+              id: 1001
+              city: "Brooklyn"
+              country: "United States"
+              line_1: "500 Industrial Park Drive"
+              line_2: "Building A"
+              state: "New York"
+              zip: "11201"
             is_primary: true
             sales_allowed: true
             purchase_allowed: true
             manufacturing_allowed: true
             created_at: "2020-10-23T10:37:05.085Z"
-            updated_at: "2020-10-23T10:37:05.085Z"
+            updated_at: "2024-01-15T09:30:00.000Z"
             deleted_at: null
-          - id: 2
-            name: Secondary location
-            legal_name: Amazon
+          - id: 102
+            name: "Distribution Center - Miami"
+            legal_name: "Acme Manufacturing Co. - Miami DC"
+            address_id: 1002
+            address:
+              id: 1002
+              city: "Miami"
+              country: "United States"
+              line_1: "750 Commerce Boulevard"
+              line_2: "Suite 200"
+              state: "Florida"
+              zip: "33126"
+            is_primary: false
+            sales_allowed: true
+            purchase_allowed: false
+            manufacturing_allowed: false
+            created_at: "2020-11-15T14:22:15.000Z"
+            updated_at: "2024-01-10T11:15:30.000Z"
+            deleted_at: null
+          - id: 103
+            name: "West Coast Production"
+            legal_name: "Acme Manufacturing Co. - California Plant"
             address_id: null
             address: null
             is_primary: false
             sales_allowed: false
             purchase_allowed: true
-            manufacturing_allowed: false
+            manufacturing_allowed: true
+            created_at: "2021-03-01T08:00:00.000Z"
+            updated_at: "2024-01-05T16:45:22.000Z"
+            deleted_at: null
+
+    GetAllLocationsResponse200:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Location"
+      example:
+        data:
+          - id: 101
+            name: "Main Warehouse - Brooklyn"
+            legal_name: "Acme Manufacturing Co. - Brooklyn Facility"
+            address_id: 1001
+            address:
+              id: 1001
+              city: "Brooklyn"
+              country: "United States"
+              line_1: "500 Industrial Park Drive"
+              line_2: "Building A"
+              state: "New York"
+              zip: "11201"
+            is_primary: true
+            sales_allowed: true
+            purchase_allowed: true
+            manufacturing_allowed: true
             created_at: "2020-10-23T10:37:05.085Z"
-            updated_at: "2020-10-23T10:37:05.085Z"
+            updated_at: "2024-01-15T09:30:00.000Z"
+            deleted_at: null
+          - id: 102
+            name: "Distribution Center - Miami"
+            legal_name: "Acme Manufacturing Co. - Miami DC"
+            address_id: 1002
+            address:
+              id: 1002
+              city: "Miami"
+              country: "United States"
+              line_1: "750 Commerce Boulevard"
+              line_2: "Suite 200"
+              state: "Florida"
+              zip: "33126"
+            is_primary: false
+            sales_allowed: true
+            purchase_allowed: false
+            manufacturing_allowed: false
+            created_at: "2020-11-15T14:22:15.000Z"
+            updated_at: "2024-01-10T11:15:30.000Z"
+            deleted_at: null
+          - id: 103
+            name: "West Coast Production"
+            legal_name: "Acme Manufacturing Co. - California Plant"
+            address_id: 1003
+            address:
+              id: 1003
+              city: "Los Angeles"
+              country: "United States"
+              line_1: "1250 Manufacturing Way"
+              line_2: "Unit 5"
+              state: "California"
+              zip: "90021"
+            is_primary: false
+            sales_allowed: false
+            purchase_allowed: true
+            manufacturing_allowed: true
+            created_at: "2021-03-01T08:00:00.000Z"
+            updated_at: "2024-01-05T16:45:22.000Z"
             deleted_at: null
 
     Inventory:
@@ -4248,6 +4364,7 @@ components:
 
     VariantDefaultStorageBinLink:
       type: object
+      description: Link configuration for assigning variants to default storage bins for automated placement
       additionalProperties: false
       required:
         - bin_name
@@ -4256,27 +4373,50 @@ components:
         location_id:
           type: integer
           maximum: 2147483647
+          description: ID of the warehouse location containing the storage bin
+          example: 101
         variant_id:
           type: integer
           maximum: 2147483647
+          description: ID of the product or material variant to assign to the storage bin
+          example: 3005
         bin_name:
           type: string
           minLength: 0
           maxLength: 40
+          description: Name of the storage bin to use as default for this variant
+          example: "A-01-SHELF-1"
+      example:
+        location_id: 101
+        variant_id: 3005
+        bin_name: "A-01-SHELF-1"
 
     VariantDefaultStorageBinLinkResponse:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             bin_name:
               type: string
+              description: Name of the assigned default storage bin
+              example: "A-01-SHELF-1"
             variant_id:
               type: integer
+              description: ID of the product or material variant
+              example: 3005
             storage_bin_id:
               type: integer
-        - $ref: "#/components/schemas/DeletableEntity"
+              description: ID of the storage bin record
+              example: 12345
+      example:
+        id: 50001
+        bin_name: "A-01-SHELF-1"
+        variant_id: 3005
+        storage_bin_id: 12345
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2024-01-15T09:30:00.000Z"
+        deleted_at: null
 
     VariantDefaultStorageBinLinkListResponse:
       type: object
@@ -4285,6 +4425,29 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/VariantDefaultStorageBinLinkResponse"
+      example:
+        data:
+          - id: 50001
+            bin_name: "A-01-SHELF-1"
+            variant_id: 3005
+            storage_bin_id: 12345
+            created_at: "2020-10-23T10:37:05.085Z"
+            updated_at: "2024-01-15T09:30:00.000Z"
+            deleted_at: null
+          - id: 50002
+            bin_name: "A-02-SHELF-2"
+            variant_id: 3006
+            storage_bin_id: 12346
+            created_at: "2020-11-15T14:22:15.000Z"
+            updated_at: "2024-01-12T14:22:15.000Z"
+            deleted_at: null
+          - id: 50003
+            bin_name: "B-01-RACK-A"
+            variant_id: 3007
+            storage_bin_id: 12347
+            created_at: "2021-01-10T08:30:00.000Z"
+            updated_at: "2024-01-10T11:15:30.000Z"
+            deleted_at: null
 
     UnlinkVariantBinLocationRequest:
       type: object
@@ -5935,23 +6098,37 @@ components:
     # Factory
     Factory:
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             name:
               type: string
+              description: Name of the manufacturing facility or company
+              example: "Acme Manufacturing Co."
             address:
               type: [string, "null"]
+              description: Physical address of the factory or facility
+              example: "123 Industrial Blvd, Manufacturing District, NY 10001"
             currency:
               type: string
+              description: Primary currency used for financial transactions and pricing
+              example: "USD"
             timezone:
               type: string
+              description: Local timezone for production scheduling and operations
+              example: "America/New_York"
           required:
-            - id
             - name
             - currency
-        - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 1
+        name: "Acme Manufacturing Co."
+        address: "123 Industrial Blvd, Manufacturing District, NY 10001"
+        currency: "USD"
+        timezone: "America/New_York"
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2024-01-15T09:30:00.000Z"
 
     Operator:
       allOf:
@@ -7299,12 +7476,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Location"
+                $ref: "#/components/schemas/GetAllLocationsResponse200"
 
         "401":
           $ref: "#/components/responses/UnauthorizedError"

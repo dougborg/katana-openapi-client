@@ -15,6 +15,13 @@ T = TypeVar("T", bound="Factory")
 
 @_attrs_define
 class Factory:
+    """
+    Example:
+        {'id': 1, 'name': 'Acme Manufacturing Co.', 'address': '123 Industrial Blvd, Manufacturing District, NY 10001',
+            'currency': 'USD', 'timezone': 'America/New_York', 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at':
+            '2024-01-15T09:30:00.000Z'}
+    """
+
     id: int
     name: str
     currency: str

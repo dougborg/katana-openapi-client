@@ -99,7 +99,9 @@ def sync_detailed(
     The endpoint accepts up to 500 variant storage bin objects.
 
     Args:
-        body (VariantDefaultStorageBinLink):
+        body (VariantDefaultStorageBinLink): Link configuration for assigning variants to default
+            storage bins for automated placement Example: {'location_id': 101, 'variant_id': 3005,
+            'bin_name': 'A-01-SHELF-1'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -141,7 +143,9 @@ def sync(
     The endpoint accepts up to 500 variant storage bin objects.
 
     Args:
-        body (VariantDefaultStorageBinLink):
+        body (VariantDefaultStorageBinLink): Link configuration for assigning variants to default
+            storage bins for automated placement Example: {'location_id': 101, 'variant_id': 3005,
+            'bin_name': 'A-01-SHELF-1'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -175,7 +179,9 @@ async def asyncio_detailed(
     The endpoint accepts up to 500 variant storage bin objects.
 
     Args:
-        body (VariantDefaultStorageBinLink):
+        body (VariantDefaultStorageBinLink): Link configuration for assigning variants to default
+            storage bins for automated placement Example: {'location_id': 101, 'variant_id': 3005,
+            'bin_name': 'A-01-SHELF-1'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -215,7 +221,9 @@ async def asyncio(
     The endpoint accepts up to 500 variant storage bin objects.
 
     Args:
-        body (VariantDefaultStorageBinLink):
+        body (VariantDefaultStorageBinLink): Link configuration for assigning variants to default
+            storage bins for automated placement Example: {'location_id': 101, 'variant_id': 3005,
+            'bin_name': 'A-01-SHELF-1'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

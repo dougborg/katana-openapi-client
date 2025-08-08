@@ -9,7 +9,7 @@ from attrs import (
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.storage_bin_response import StorageBinResponse
+    from ..models.storage_bin import StorageBin
 
 
 T = TypeVar("T", bound="StorageBinListResponse")
@@ -19,13 +19,18 @@ T = TypeVar("T", bound="StorageBinListResponse")
 class StorageBinListResponse:
     """
     Example:
-        {'data': [{'id': 12345, 'bin_name': 'A-01-SHELF-1', 'location_id': 1, 'created_at': '2020-10-23T10:37:05.085Z',
-            'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}, {'id': 12346, 'bin_name': 'A-02-SHELF-1',
-            'location_id': 1, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z',
+        {'data': [{'id': 12345, 'bin_name': 'A-01-SHELF-1', 'location_id': 101, 'created_at':
+            '2020-10-23T10:37:05.085Z', 'updated_at': '2024-01-15T09:30:00.000Z', 'deleted_at': None}, {'id': 12346,
+            'bin_name': 'A-02-SHELF-2', 'location_id': 101, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at':
+            '2024-01-12T14:22:15.000Z', 'deleted_at': None}, {'id': 12347, 'bin_name': 'B-01-RACK-A', 'location_id': 101,
+            'created_at': '2020-11-15T14:22:15.000Z', 'updated_at': '2024-01-10T11:15:30.000Z', 'deleted_at': None}, {'id':
+            12348, 'bin_name': 'RECEIVING-BAY-1', 'location_id': 102, 'created_at': '2021-01-10T08:30:00.000Z',
+            'updated_at': '2024-01-08T16:45:22.000Z', 'deleted_at': None}, {'id': 12349, 'bin_name': 'COLD-STORAGE-C3',
+            'location_id': 102, 'created_at': '2021-03-01T12:00:00.000Z', 'updated_at': '2024-01-05T10:30:45.000Z',
             'deleted_at': None}]}
     """
 
-    data: Unset | list["StorageBinResponse"] = UNSET
+    data: Unset | list["StorageBin"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -46,13 +51,13 @@ class StorageBinListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.storage_bin_response import StorageBinResponse
+        from ..models.storage_bin import StorageBin
 
         d = dict(src_dict)
         data = []
         _data = d.pop("data", UNSET)
         for data_item_data in _data or []:
-            data_item = StorageBinResponse.from_dict(data_item_data)
+            data_item = StorageBin.from_dict(data_item_data)
 
             data.append(data_item)
 
