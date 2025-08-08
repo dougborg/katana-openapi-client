@@ -19,16 +19,16 @@ class SupplierAddress:
 
     id: int
     supplier_id: int
-    line_1: str
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | datetime.datetime = UNSET
-    company: Unset | str = UNSET
+    line_1: None | Unset | str = UNSET
     line_2: None | Unset | str = UNSET
     city: None | Unset | str = UNSET
     state: None | Unset | str = UNSET
     zip_: None | Unset | str = UNSET
     country: None | Unset | str = UNSET
+    company: Unset | str = UNSET
     address_line_1: Unset | str = UNSET
     address_line_2: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -37,8 +37,6 @@ class SupplierAddress:
         id = self.id
 
         supplier_id = self.supplier_id
-
-        line_1 = self.line_1
 
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
@@ -56,7 +54,11 @@ class SupplierAddress:
         else:
             deleted_at = self.deleted_at
 
-        company = self.company
+        line_1: None | Unset | str
+        if isinstance(self.line_1, Unset):
+            line_1 = UNSET
+        else:
+            line_1 = self.line_1
 
         line_2: None | Unset | str
         if isinstance(self.line_2, Unset):
@@ -88,6 +90,8 @@ class SupplierAddress:
         else:
             country = self.country
 
+        company = self.company
+
         address_line_1 = self.address_line_1
 
         address_line_2: None | Unset | str
@@ -102,7 +106,6 @@ class SupplierAddress:
             {
                 "id": id,
                 "supplier_id": supplier_id,
-                "line_1": line_1,
             }
         )
         if created_at is not UNSET:
@@ -111,8 +114,8 @@ class SupplierAddress:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if company is not UNSET:
-            field_dict["company"] = company
+        if line_1 is not UNSET:
+            field_dict["line_1"] = line_1
         if line_2 is not UNSET:
             field_dict["line_2"] = line_2
         if city is not UNSET:
@@ -123,6 +126,8 @@ class SupplierAddress:
             field_dict["zip"] = zip_
         if country is not UNSET:
             field_dict["country"] = country
+        if company is not UNSET:
+            field_dict["company"] = company
         if address_line_1 is not UNSET:
             field_dict["address_line_1"] = address_line_1
         if address_line_2 is not UNSET:
@@ -136,8 +141,6 @@ class SupplierAddress:
         id = d.pop("id")
 
         supplier_id = d.pop("supplier_id")
-
-        line_1 = d.pop("line_1")
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -170,7 +173,14 @@ class SupplierAddress:
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        company = d.pop("company", UNSET)
+        def _parse_line_1(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        line_1 = _parse_line_1(d.pop("line_1", UNSET))
 
         def _parse_line_2(data: object) -> None | Unset | str:
             if data is None:
@@ -217,6 +227,8 @@ class SupplierAddress:
 
         country = _parse_country(d.pop("country", UNSET))
 
+        company = d.pop("company", UNSET)
+
         address_line_1 = d.pop("address_line_1", UNSET)
 
         def _parse_address_line_2(data: object) -> None | Unset | str:
@@ -231,16 +243,16 @@ class SupplierAddress:
         supplier_address = cls(
             id=id,
             supplier_id=supplier_id,
-            line_1=line_1,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            company=company,
+            line_1=line_1,
             line_2=line_2,
             city=city,
             state=state,
             zip_=zip_,
             country=country,
+            company=company,
             address_line_1=address_line_1,
             address_line_2=address_line_2,
         )

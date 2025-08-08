@@ -16,46 +16,22 @@ T = TypeVar("T", bound="CreateSalesOrderRequestAddressesItem")
 class CreateSalesOrderRequestAddressesItem:
     id: int
     entity_type: PersonalAddressEntityType
-    first_name: None | Unset | str = UNSET
-    last_name: None | Unset | str = UNSET
-    company: None | Unset | str = UNSET
-    phone: None | Unset | str = UNSET
     line_1: None | Unset | str = UNSET
     line_2: None | Unset | str = UNSET
     city: None | Unset | str = UNSET
     state: None | Unset | str = UNSET
     zip_: None | Unset | str = UNSET
     country: None | Unset | str = UNSET
+    first_name: None | Unset | str = UNSET
+    last_name: None | Unset | str = UNSET
+    company: None | Unset | str = UNSET
+    phone: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
         entity_type = self.entity_type.value
-
-        first_name: None | Unset | str
-        if isinstance(self.first_name, Unset):
-            first_name = UNSET
-        else:
-            first_name = self.first_name
-
-        last_name: None | Unset | str
-        if isinstance(self.last_name, Unset):
-            last_name = UNSET
-        else:
-            last_name = self.last_name
-
-        company: None | Unset | str
-        if isinstance(self.company, Unset):
-            company = UNSET
-        else:
-            company = self.company
-
-        phone: None | Unset | str
-        if isinstance(self.phone, Unset):
-            phone = UNSET
-        else:
-            phone = self.phone
 
         line_1: None | Unset | str
         if isinstance(self.line_1, Unset):
@@ -93,6 +69,30 @@ class CreateSalesOrderRequestAddressesItem:
         else:
             country = self.country
 
+        first_name: None | Unset | str
+        if isinstance(self.first_name, Unset):
+            first_name = UNSET
+        else:
+            first_name = self.first_name
+
+        last_name: None | Unset | str
+        if isinstance(self.last_name, Unset):
+            last_name = UNSET
+        else:
+            last_name = self.last_name
+
+        company: None | Unset | str
+        if isinstance(self.company, Unset):
+            company = UNSET
+        else:
+            company = self.company
+
+        phone: None | Unset | str
+        if isinstance(self.phone, Unset):
+            phone = UNSET
+        else:
+            phone = self.phone
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -101,14 +101,6 @@ class CreateSalesOrderRequestAddressesItem:
                 "entity_type": entity_type,
             }
         )
-        if first_name is not UNSET:
-            field_dict["first_name"] = first_name
-        if last_name is not UNSET:
-            field_dict["last_name"] = last_name
-        if company is not UNSET:
-            field_dict["company"] = company
-        if phone is not UNSET:
-            field_dict["phone"] = phone
         if line_1 is not UNSET:
             field_dict["line_1"] = line_1
         if line_2 is not UNSET:
@@ -121,6 +113,14 @@ class CreateSalesOrderRequestAddressesItem:
             field_dict["zip"] = zip_
         if country is not UNSET:
             field_dict["country"] = country
+        if first_name is not UNSET:
+            field_dict["first_name"] = first_name
+        if last_name is not UNSET:
+            field_dict["last_name"] = last_name
+        if company is not UNSET:
+            field_dict["company"] = company
+        if phone is not UNSET:
+            field_dict["phone"] = phone
 
         return field_dict
 
@@ -130,42 +130,6 @@ class CreateSalesOrderRequestAddressesItem:
         id = d.pop("id")
 
         entity_type = PersonalAddressEntityType(d.pop("entity_type"))
-
-        def _parse_first_name(data: object) -> None | Unset | str:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | Unset | str, data)
-
-        first_name = _parse_first_name(d.pop("first_name", UNSET))
-
-        def _parse_last_name(data: object) -> None | Unset | str:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | Unset | str, data)
-
-        last_name = _parse_last_name(d.pop("last_name", UNSET))
-
-        def _parse_company(data: object) -> None | Unset | str:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | Unset | str, data)
-
-        company = _parse_company(d.pop("company", UNSET))
-
-        def _parse_phone(data: object) -> None | Unset | str:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | Unset | str, data)
-
-        phone = _parse_phone(d.pop("phone", UNSET))
 
         def _parse_line_1(data: object) -> None | Unset | str:
             if data is None:
@@ -221,19 +185,55 @@ class CreateSalesOrderRequestAddressesItem:
 
         country = _parse_country(d.pop("country", UNSET))
 
+        def _parse_first_name(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        first_name = _parse_first_name(d.pop("first_name", UNSET))
+
+        def _parse_last_name(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        last_name = _parse_last_name(d.pop("last_name", UNSET))
+
+        def _parse_company(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        company = _parse_company(d.pop("company", UNSET))
+
+        def _parse_phone(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        phone = _parse_phone(d.pop("phone", UNSET))
+
         create_sales_order_request_addresses_item = cls(
             id=id,
             entity_type=entity_type,
-            first_name=first_name,
-            last_name=last_name,
-            company=company,
-            phone=phone,
             line_1=line_1,
             line_2=line_2,
             city=city,
             state=state,
             zip_=zip_,
             country=country,
+            first_name=first_name,
+            last_name=last_name,
+            company=company,
+            phone=phone,
         )
 
         create_sales_order_request_addresses_item.additional_properties = d

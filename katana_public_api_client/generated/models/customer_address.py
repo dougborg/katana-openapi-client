@@ -26,17 +26,17 @@ class CustomerAddress:
 
     id: int
     customer_id: int
-    entity_type: Unset | PersonalAddressEntityType = UNSET
-    first_name: None | Unset | str = UNSET
-    last_name: None | Unset | str = UNSET
-    company: None | Unset | str = UNSET
-    phone: None | Unset | str = UNSET
     line_1: None | Unset | str = UNSET
     line_2: None | Unset | str = UNSET
     city: None | Unset | str = UNSET
     state: None | Unset | str = UNSET
     zip_: None | Unset | str = UNSET
     country: None | Unset | str = UNSET
+    entity_type: Unset | PersonalAddressEntityType = UNSET
+    first_name: None | Unset | str = UNSET
+    last_name: None | Unset | str = UNSET
+    company: None | Unset | str = UNSET
+    phone: None | Unset | str = UNSET
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     default: Unset | bool = UNSET
@@ -46,34 +46,6 @@ class CustomerAddress:
         id = self.id
 
         customer_id = self.customer_id
-
-        entity_type: Unset | str = UNSET
-        if not isinstance(self.entity_type, Unset):
-            entity_type = self.entity_type.value
-
-        first_name: None | Unset | str
-        if isinstance(self.first_name, Unset):
-            first_name = UNSET
-        else:
-            first_name = self.first_name
-
-        last_name: None | Unset | str
-        if isinstance(self.last_name, Unset):
-            last_name = UNSET
-        else:
-            last_name = self.last_name
-
-        company: None | Unset | str
-        if isinstance(self.company, Unset):
-            company = UNSET
-        else:
-            company = self.company
-
-        phone: None | Unset | str
-        if isinstance(self.phone, Unset):
-            phone = UNSET
-        else:
-            phone = self.phone
 
         line_1: None | Unset | str
         if isinstance(self.line_1, Unset):
@@ -111,6 +83,34 @@ class CustomerAddress:
         else:
             country = self.country
 
+        entity_type: Unset | str = UNSET
+        if not isinstance(self.entity_type, Unset):
+            entity_type = self.entity_type.value
+
+        first_name: None | Unset | str
+        if isinstance(self.first_name, Unset):
+            first_name = UNSET
+        else:
+            first_name = self.first_name
+
+        last_name: None | Unset | str
+        if isinstance(self.last_name, Unset):
+            last_name = UNSET
+        else:
+            last_name = self.last_name
+
+        company: None | Unset | str
+        if isinstance(self.company, Unset):
+            company = UNSET
+        else:
+            company = self.company
+
+        phone: None | Unset | str
+        if isinstance(self.phone, Unset):
+            phone = UNSET
+        else:
+            phone = self.phone
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -129,16 +129,6 @@ class CustomerAddress:
                 "customer_id": customer_id,
             }
         )
-        if entity_type is not UNSET:
-            field_dict["entity_type"] = entity_type
-        if first_name is not UNSET:
-            field_dict["first_name"] = first_name
-        if last_name is not UNSET:
-            field_dict["last_name"] = last_name
-        if company is not UNSET:
-            field_dict["company"] = company
-        if phone is not UNSET:
-            field_dict["phone"] = phone
         if line_1 is not UNSET:
             field_dict["line_1"] = line_1
         if line_2 is not UNSET:
@@ -151,6 +141,16 @@ class CustomerAddress:
             field_dict["zip"] = zip_
         if country is not UNSET:
             field_dict["country"] = country
+        if entity_type is not UNSET:
+            field_dict["entity_type"] = entity_type
+        if first_name is not UNSET:
+            field_dict["first_name"] = first_name
+        if last_name is not UNSET:
+            field_dict["last_name"] = last_name
+        if company is not UNSET:
+            field_dict["company"] = company
+        if phone is not UNSET:
+            field_dict["phone"] = phone
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
@@ -166,49 +166,6 @@ class CustomerAddress:
         id = d.pop("id")
 
         customer_id = d.pop("customer_id")
-
-        _entity_type = d.pop("entity_type", UNSET)
-        entity_type: Unset | PersonalAddressEntityType
-        if isinstance(_entity_type, Unset):
-            entity_type = UNSET
-        else:
-            entity_type = PersonalAddressEntityType(_entity_type)
-
-        def _parse_first_name(data: object) -> None | Unset | str:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | Unset | str, data)
-
-        first_name = _parse_first_name(d.pop("first_name", UNSET))
-
-        def _parse_last_name(data: object) -> None | Unset | str:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | Unset | str, data)
-
-        last_name = _parse_last_name(d.pop("last_name", UNSET))
-
-        def _parse_company(data: object) -> None | Unset | str:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | Unset | str, data)
-
-        company = _parse_company(d.pop("company", UNSET))
-
-        def _parse_phone(data: object) -> None | Unset | str:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | Unset | str, data)
-
-        phone = _parse_phone(d.pop("phone", UNSET))
 
         def _parse_line_1(data: object) -> None | Unset | str:
             if data is None:
@@ -264,6 +221,49 @@ class CustomerAddress:
 
         country = _parse_country(d.pop("country", UNSET))
 
+        _entity_type = d.pop("entity_type", UNSET)
+        entity_type: Unset | PersonalAddressEntityType
+        if isinstance(_entity_type, Unset):
+            entity_type = UNSET
+        else:
+            entity_type = PersonalAddressEntityType(_entity_type)
+
+        def _parse_first_name(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        first_name = _parse_first_name(d.pop("first_name", UNSET))
+
+        def _parse_last_name(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        last_name = _parse_last_name(d.pop("last_name", UNSET))
+
+        def _parse_company(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        company = _parse_company(d.pop("company", UNSET))
+
+        def _parse_phone(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        phone = _parse_phone(d.pop("phone", UNSET))
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -283,17 +283,17 @@ class CustomerAddress:
         customer_address = cls(
             id=id,
             customer_id=customer_id,
-            entity_type=entity_type,
-            first_name=first_name,
-            last_name=last_name,
-            company=company,
-            phone=phone,
             line_1=line_1,
             line_2=line_2,
             city=city,
             state=state,
             zip_=zip_,
             country=country,
+            entity_type=entity_type,
+            first_name=first_name,
+            last_name=last_name,
+            company=company,
+            phone=phone,
             created_at=created_at,
             updated_at=updated_at,
             default=default,

@@ -1576,24 +1576,25 @@ components:
     # Base address schema with common address fields (not an entity)
     BaseAddress:
       type: object
+      description: Common address fields used across all address entities
       properties:
         line_1:
-          type: string
+          type: [string, "null"]
           description: The first line of the address (street name and house number)
         line_2:
-          type: string
+          type: [string, "null"]
           description: The second line of the address (apartment, suite, unit, or building)
         city:
-          type: string
+          type: [string, "null"]
           description: The city of the address
         state:
-          type: string
+          type: [string, "null"]
           description: The state of the address
         zip:
-          type: string
+          type: [string, "null"]
           description: The zip code of the address
         country:
-          type: string
+          type: [string, "null"]
           description: The country of the address
 
     # Location-specific address (inherits BaseAddress + BaseEntity)
@@ -3965,25 +3966,13 @@ components:
             $ref: "#/components/schemas/SupplierAddressRequest"
 
     SupplierAddressRequest:
-      type: object
-      additionalProperties: false
-      required:
-        - line_1
-      properties:
-        supplier_id:
-          type: integer
-        line_1:
-          type: string
-        line_2:
-          type: string
-        city:
-          type: string
-        state:
-          type: string
-        zip:
-          type: string
-        country:
-          type: string
+      allOf:
+        - $ref: "#/components/schemas/BaseAddress"
+        - type: object
+          additionalProperties: false
+          properties:
+            supplier_id:
+              type: integer
 
     Supplier:
       description: A supplier or vendor that provides materials, products, or services to the organization
@@ -4072,6 +4061,7 @@ components:
       allOf:
         - $ref: "#/components/schemas/BaseEntity"
         - $ref: "#/components/schemas/DeletableEntity"
+        - $ref: "#/components/schemas/BaseAddress"
         - type: object
           properties:
             supplier_id:
@@ -4080,24 +4070,6 @@ components:
             company:
               type: string
               description: Company name at this address (may differ from supplier name for subsidiaries)
-            line_1:
-              type: string
-              description: The first line of the address (street name and house number)
-            line_2:
-              type: [string, "null"]
-              description: The second line of the address (apartment, suite, unit, or building)
-            city:
-              type: [string, "null"]
-              description: The city of the address
-            state:
-              type: [string, "null"]
-              description: The state of the address
-            zip:
-              type: [string, "null"]
-              description: The zip code of the address
-            country:
-              type: [string, "null"]
-              description: The country of the address
             address_line_1:
               type: string
               description: Primary address line (same as line_1, used for consistency)
@@ -4106,7 +4078,6 @@ components:
               description: Secondary address line (same as line_2, used for consistency)
           required:
             - supplier_id
-            - line_1
           example:
             id: 2601
             supplier_id: 1801
@@ -4132,43 +4103,21 @@ components:
             $ref: "#/components/schemas/SupplierAddress"
 
     CreateSupplierAddressRequest:
-      type: object
-      additionalProperties: false
-      required:
-        - supplier_id
-        - line_1
-      properties:
-        supplier_id:
-          type: integer
-        line_1:
-          type: string
-        line_2:
-          type: [string, "null"]
-        city:
-          type: [string, "null"]
-        state:
-          type: [string, "null"]
-        zip:
-          type: [string, "null"]
-        country:
-          type: [string, "null"]
+      allOf:
+        - $ref: "#/components/schemas/BaseAddress"
+        - type: object
+          additionalProperties: false
+          required:
+            - supplier_id
+          properties:
+            supplier_id:
+              type: integer
 
     UpdateSupplierAddressRequest:
-      type: object
-      additionalProperties: false
-      properties:
-        line_1:
-          type: [string, "null"]
-        line_2:
-          type: [string, "null"]
-        city:
-          type: [string, "null"]
-        state:
-          type: [string, "null"]
-        zip:
-          type: [string, "null"]
-        country:
-          type: [string, "null"]
+      allOf:
+        - $ref: "#/components/schemas/BaseAddress"
+        - type: object
+          additionalProperties: false
 
     CreateTaxRateRequest:
       type: object
@@ -4853,6 +4802,7 @@ components:
     PersonalAddress:
       allOf:
         - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/BaseAddress"
         - type: object
           properties:
             entity_type:
@@ -4873,24 +4823,6 @@ components:
             phone:
               type: [string, "null"]
               description: Phone number associated with the address
-            line_1:
-              type: [string, "null"]
-              description: The first line of the address (street name and house number)
-            line_2:
-              type: [string, "null"]
-              description: The second line of the address (apartment, suite, unit, or building)
-            city:
-              type: [string, "null"]
-              description: The city of the address
-            state:
-              type: [string, "null"]
-              description: The state of the address
-            zip:
-              type: [string, "null"]
-              description: The zip code of the address
-            country:
-              type: [string, "null"]
-              description: The country of the address
 
     CustomerAddress:
       allOf:
@@ -6812,57 +6744,41 @@ components:
             updated_at: "2024-01-10T08:05:00Z"
 
     CreateCustomerAddressRequest:
-      type: object
-      description: Request payload for creating a new customer address
-      additionalProperties: false
-      properties:
-        customer_id:
-          type: integer
-          minimum: 1
-          maximum: 2147483647
-          description: ID of the customer this address belongs to
-        entity_type:
-          type: string
-          description: Type of address - billing or shipping
-          enum:
-            - billing
-            - shipping
-        first_name:
-          type: [string, "null"]
-          description: First name associated with the address
-        last_name:
-          type: [string, "null"]
-          description: Last name associated with the address
-        company:
-          type: [string, "null"]
-          description: Company name associated with the address
-        phone:
-          type: [string, "null"]
-          description: Phone number associated with the address
-        line_1:
-          type: [string, "null"]
-          description: The first line of the address (street name and house number)
-        line_2:
-          type: [string, "null"]
-          description: The second line of the address (apartment, suite, unit, or building)
-        city:
-          type: [string, "null"]
-          description: The city of the address
-        state:
-          type: [string, "null"]
-          description: The state of the address
-        zip:
-          type: [string, "null"]
-          description: The zip code of the address
-        country:
-          type: [string, "null"]
-          description: The country of the address
-        is_default:
-          type: boolean
-          description: Whether this should be set as the default address for the customer
-      required:
-        - customer_id
-        - entity_type
+      allOf:
+        - $ref: "#/components/schemas/BaseAddress"
+        - type: object
+          description: Request payload for creating a new customer address
+          additionalProperties: false
+          properties:
+            customer_id:
+              type: integer
+              minimum: 1
+              maximum: 2147483647
+              description: ID of the customer this address belongs to
+            entity_type:
+              type: string
+              description: Type of address - billing or shipping
+              enum:
+                - billing
+                - shipping
+            first_name:
+              type: [string, "null"]
+              description: First name associated with the address
+            last_name:
+              type: [string, "null"]
+              description: Last name associated with the address
+            company:
+              type: [string, "null"]
+              description: Company name associated with the address
+            phone:
+              type: [string, "null"]
+              description: Phone number associated with the address
+            is_default:
+              type: boolean
+              description: Whether this should be set as the default address for the customer
+          required:
+            - customer_id
+            - entity_type
       example:
         customer_id: 201
         entity_type: "shipping"

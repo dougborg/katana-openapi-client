@@ -1,7 +1,10 @@
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..types import UNSET, Unset
 
@@ -11,17 +14,22 @@ T = TypeVar("T", bound="CreateSupplierAddressRequest")
 @_attrs_define
 class CreateSupplierAddressRequest:
     supplier_id: int
-    line_1: str
+    line_1: None | Unset | str = UNSET
     line_2: None | Unset | str = UNSET
     city: None | Unset | str = UNSET
     state: None | Unset | str = UNSET
     zip_: None | Unset | str = UNSET
     country: None | Unset | str = UNSET
+    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         supplier_id = self.supplier_id
 
-        line_1 = self.line_1
+        line_1: None | Unset | str
+        if isinstance(self.line_1, Unset):
+            line_1 = UNSET
+        else:
+            line_1 = self.line_1
 
         line_2: None | Unset | str
         if isinstance(self.line_2, Unset):
@@ -54,13 +62,14 @@ class CreateSupplierAddressRequest:
             country = self.country
 
         field_dict: dict[str, Any] = {}
-
+        field_dict.update(self.additional_properties)
         field_dict.update(
             {
                 "supplier_id": supplier_id,
-                "line_1": line_1,
             }
         )
+        if line_1 is not UNSET:
+            field_dict["line_1"] = line_1
         if line_2 is not UNSET:
             field_dict["line_2"] = line_2
         if city is not UNSET:
@@ -79,7 +88,14 @@ class CreateSupplierAddressRequest:
         d = dict(src_dict)
         supplier_id = d.pop("supplier_id")
 
-        line_1 = d.pop("line_1")
+        def _parse_line_1(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        line_1 = _parse_line_1(d.pop("line_1", UNSET))
 
         def _parse_line_2(data: object) -> None | Unset | str:
             if data is None:
@@ -136,4 +152,21 @@ class CreateSupplierAddressRequest:
             country=country,
         )
 
+        create_supplier_address_request.additional_properties = d
         return create_supplier_address_request
+
+    @property
+    def additional_keys(self) -> list[str]:
+        return list(self.additional_properties.keys())
+
+    def __getitem__(self, key: str) -> Any:
+        return self.additional_properties[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.additional_properties[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self.additional_properties[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.additional_properties
