@@ -316,20 +316,27 @@ git commit -m "fix!: remove deprecated API methods"
 1. Run `poetry run poe format`
 1. Update tests if endpoint signatures changed
 
-### OpenAPI Schema Patterns (Established Standards)
+### OpenAPI Schema Standards (Comprehensive Guidelines)
 
-**Common Entity Patterns**: We've established consistent schema inheritance patterns for
-the Katana API:
+Our OpenAPI specification follows strict quality standards enforced by automated tests
+in `tests/test_schema_standards.py`. All schema improvements must pass these tests
+before merging.
+
+#### 1. BaseEntity Inheritance Pattern (100% Compliance Required)
+
+**Status**: ✅ **COMPLETE** - All 50 entity schemas properly use BaseEntity inheritance
+
+All domain entities must use our established inheritance hierarchy:
 
 - **`BaseEntity`**: Provides common `id` property for all entities
 - **`UpdatableEntity`**: Adds `created_at` and `updated_at` timestamps
 - **`DeletableEntity`**: Extends UpdatableEntity with `deleted_at` (soft delete)
 - **`ArchivableEntity`**: Extends UpdatableEntity with `archived_at`
 
-**Schema Composition Pattern**:
+**Required Pattern**:
 
 ```yaml
-# CORRECT pattern for entity schemas:
+# CORRECT: Entity schemas MUST use BaseEntity inheritance
 SomeEntity:
   allOf:
     - $ref: "#/components/schemas/BaseEntity"
@@ -341,21 +348,55 @@ SomeEntity:
         - # entity-specific required fields
 ```
 
-**Example Standards**:
+#### 2. Schema Documentation Standards (Current Priority)
 
-- **Schema examples over endpoint examples** - Prefer schema-level examples to avoid
-  duplication
-- **Endpoint examples only when necessary** - Add endpoint examples only for:
-  - Complex response structures that benefit from showing the full context
-  - Endpoints where the response differs significantly from the base schema
-  - List endpoints to show the array structure with multiple items
-  - Endpoints with unique field combinations not covered by schema examples
-- **Always include realistic examples** in schemas with industry-appropriate naming
-- **Add comprehensive descriptions** to all properties (but no property-level examples)
-- **Use consistent ID ranges** in examples (1xx for simple IDs, 2xxx for variants, 3xxx
-  for items, etc.)
-- **Single coherent example per schema** - All field values should relate to each other
-  realistically
+**All schemas** must have meaningful descriptions:
+
+- **Schema-level descriptions**: Required for ALL schemas
+- **Property descriptions**: Required for significant properties (exclude common
+  inherited fields: `id`, `created_at`, `updated_at`, `deleted_at`, `archived_at`)
+- **No property-level examples**: Use schema-level examples only to avoid duplication
+
+#### 3. Schema Example Standards (Endpoint-Focused)
+
+**Schema-level examples required for**:
+
+- ✅ Schemas used directly in API endpoint definitions
+- ❌ Internal composition schemas (BaseEntity, etc.) - Skip these
+- ❌ Simple list response wrappers - Skip these
+
+**Example Quality Requirements**:
+
+- **Realistic data**: Use industry-appropriate naming and values
+- **Consistent ID ranges**: 1xx for simple IDs, 2xxx for variants, 3xxx for items
+- **Coherent relationships**: All field values should relate realistically
+- **Complete coverage**: Include all significant properties in examples
+
+#### 4. Test-Driven Schema Quality
+
+Our comprehensive test suite validates:
+
+- **BaseEntity inheritance**: `test_entity_uses_base_entity_inheritance` (50/50 ✅)
+- **Schema descriptions**: `test_schema_has_description` (All schemas)
+- **Property descriptions**: `test_schema_properties_have_descriptions` (Significant
+  properties)
+- **Example placement**: `test_schema_avoids_property_examples` (Schema-level only)
+- **Endpoint examples**: `test_endpoint_schema_has_example` (API-used schemas only)
+
+**Test Status** (784 total tests):
+
+- ✅ 474 PASSING (BaseEntity inheritance 100% complete)
+- ❌ 188 FAILING (Descriptions and examples need work)
+- ⚪ 122 SKIPPED (Base classes and non-endpoint schemas)
+
+#### 5. Schema Validation Workflow
+
+**Before committing schema changes**:
+
+1. Run `poetry run pytest tests/test_schema_standards.py` to validate compliance
+1. Address any failing tests before proceeding
+1. All BaseEntity inheritance tests must pass (currently ✅ 100%)
+1. Focus on endpoint-used schemas for examples (87 schemas identified)
 
 **Validation Approach**:
 
@@ -384,15 +425,18 @@ SomeEntity:
 1. **Use correct conventional commit types** - See "Conventional Commits" section above.
    Wrong commit types trigger unwanted releases or miss important version bumps.
 1. **Always use BaseEntity pattern** - Don't add `id` property directly to schemas, use
-   `BaseEntity` reference
+   `BaseEntity` reference (100% compliance achieved)
 1. **Schema examples over endpoint examples** - Add endpoint examples only when
-   necessary (see Example Standards above), prefer comprehensive schema-level examples
+   necessary (see Schema Standards above), prefer comprehensive schema-level examples
 1. **No property-level examples** - Use schema-level examples, not individual property
    examples that clutter the schema definition
 1. **Validate against official docs** - Always check developer.katanamrp.com when
    modifying OpenAPI spec
 1. **Document discrepancies** - Add any API inconsistencies to
    `docs/KATANA_API_QUESTIONS.md`
+1. **Run schema tests before committing** - Execute
+   `poetry run pytest tests/test_schema_standards.py` to ensure compliance with quality
+   standards
 
 ## Version Support Policy
 

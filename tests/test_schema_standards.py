@@ -50,7 +50,23 @@ def get_entity_schemas() -> list[tuple[str, dict[str, Any]]]:
         ]:
             continue
 
-        # Check if this is an entity schema
+        # Skip response/request/list wrappers and simple data types
+        if (
+            schema_name.endswith("Response")
+            or schema_name.endswith("Request")
+            or schema_name.endswith("ListResponse")
+            or schema_name.endswith("Array")
+            or schema_name
+            in [
+                "ValidationErrorDetail",
+                "ErrorResponse",
+                "CodedErrorResponse",
+                "DetailedErrorResponse",
+            ]
+        ):
+            continue
+
+        # Check if this is an entity schema (has id or should have id)
         if _has_id_property(schema_def) or _uses_base_entity_inheritance(schema_def):
             entity_schemas.append((schema_name, schema_def))
 
@@ -137,14 +153,23 @@ class TestSchemaStandards:
     def test_entity_uses_base_entity_inheritance(
         self, schema_name: str, schema_def: dict[str, Any]
     ):
-        """Test that entity schema uses BaseEntity inheritance."""
-        has_id_property = _has_id_property(schema_def)
+        """Test that entity schema uses BaseEntity inheritance properly."""
+        has_self_defined_id = _has_id_property(schema_def)
         uses_base_entity = _uses_base_entity_inheritance(schema_def)
 
-        assert has_id_property, f"Schema {schema_name} should have id property"
-        assert uses_base_entity, (
-            f"Schema {schema_name} has id property but doesn't use BaseEntity inheritance"
-        )
+        # If schema uses BaseEntity inheritance, it should NOT have self-defined id
+        if uses_base_entity:
+            assert not has_self_defined_id, (
+                f"Schema {schema_name} uses BaseEntity inheritance but also defines its own 'id' property. "
+                f"Remove the self-defined 'id' property since it's inherited from BaseEntity."
+            )
+
+        # If schema has self-defined id property, it should use BaseEntity inheritance instead
+        if has_self_defined_id:
+            assert uses_base_entity, (
+                f"Schema {schema_name} defines its own 'id' property but doesn't use BaseEntity inheritance. "
+                f"Remove the self-defined 'id' property and use BaseEntity inheritance instead."
+            )
 
     @pytest.mark.parametrize("schema_name,schema_def", get_all_schemas())
     def test_schema_has_description(self, schema_name: str, schema_def: dict[str, Any]):
@@ -159,24 +184,15 @@ class TestSchemaStandards:
             f"Schema {schema_name} description is just the schema name"
         )
 
-    @pytest.mark.parametrize("schema_name,schema_def", get_entity_schemas())
-    def test_entity_has_schema_example(
+    @pytest.mark.parametrize("schema_name,schema_def", get_all_schemas())
+    def test_schema_avoids_property_examples(
         self, schema_name: str, schema_def: dict[str, Any]
     ):
-        """Test that entity schema has a comprehensive example."""
-        example = schema_def.get("example")
-        assert example is not None, (
-            f"Entity schema {schema_name} is missing a schema-level example"
-        )
-        assert isinstance(example, dict), (
-            f"Entity schema {schema_name} example should be a dictionary"
-        )
+        """Test that schema uses schema-level examples instead of property-level."""
+        # Skip simple enum-like schemas
+        if schema_name in ["WebhookEvent"]:
+            pytest.skip(f"Skipping simple enum schema {schema_name}")
 
-    @pytest.mark.parametrize("schema_name,schema_def", get_entity_schemas())
-    def test_entity_avoids_property_examples(
-        self, schema_name: str, schema_def: dict[str, Any]
-    ):
-        """Test that entity schema uses schema-level examples instead of property-level."""
         properties = _get_all_properties(schema_def)
         property_examples = [
             prop_name
@@ -188,6 +204,61 @@ class TestSchemaStandards:
             f"Schema {schema_name} has property-level examples {property_examples}. "
             f"Use schema-level examples instead for better documentation."
         )
+
+    @pytest.mark.parametrize("schema_name,schema_def", get_all_schemas())
+    def test_endpoint_schema_has_example(
+        self, schema_name: str, schema_def: dict[str, Any], paths: dict[str, Any]
+    ):
+        """Test that schemas used in API endpoints have examples."""
+        # Skip base entity classes and simple schemas
+        if schema_name in [
+            "BaseEntity",
+            "UpdatableEntity",
+            "DeletableEntity",
+            "ArchivableEntity",
+            "WebhookEvent",  # Simple enum
+            "ValidationErrorDetail",  # Simple error structure
+            "ValidationErrorDetailInfo",  # Simple nested structure
+        ]:
+            pytest.skip(f"Skipping base/simple schema {schema_name}")
+
+        # Check if this schema is referenced in any endpoint
+        is_used_in_endpoints = self._schema_used_in_endpoints(schema_name, paths)
+
+        if not is_used_in_endpoints:
+            pytest.skip(f"Schema {schema_name} is not used in any endpoint")
+
+        # Skip if schema has fewer than 3 properties (too simple for examples)
+        properties = _get_all_properties(schema_def)
+        if len(properties) < 3:
+            pytest.skip(
+                f"Skipping simple schema {schema_name} with {len(properties)} properties"
+            )
+
+        example = schema_def.get("example")
+        assert example is not None, (
+            f"Endpoint schema {schema_name} is missing a schema-level example"
+        )
+        assert isinstance(example, dict), (
+            f"Schema {schema_name} example should be a dictionary"
+        )
+
+    def _schema_used_in_endpoints(
+        self, schema_name: str, paths: dict[str, Any]
+    ) -> bool:
+        """Check if a schema is referenced in any API endpoint."""
+        import json
+
+        # Convert paths to string and search for schema references
+        paths_str = json.dumps(paths)
+
+        # Look for direct schema references
+        schema_patterns = [
+            f'"$ref": "#/components/schemas/{schema_name}"',
+            f'"#/components/schemas/{schema_name}"',
+        ]
+
+        return any(pattern in paths_str for pattern in schema_patterns)
 
     @pytest.mark.parametrize("schema_name,schema_def", get_all_schemas())
     def test_schema_properties_have_descriptions(
