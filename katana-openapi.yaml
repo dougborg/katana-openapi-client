@@ -1422,6 +1422,7 @@ components:
         - zip
 
     Location:
+      description: Manufacturing location or warehouse facility where inventory is managed and operations are performed
       anyOf:
         - type: object
           properties:
@@ -2079,6 +2080,7 @@ components:
             $ref: "#/components/schemas/ManufacturingOrderOperationRow"
 
     CreateMaterialRequest:
+      description: Request payload for creating a new raw material with variants and specifications
       type: object
       additionalProperties: false
       required:
@@ -2087,6 +2089,7 @@ components:
       properties:
         name:
           type: string
+          description: Display name for the material used in inventory and manufacturing
         uom:
           type: string
           maxLength: 7
@@ -2189,11 +2192,13 @@ components:
             $ref: "#/components/schemas/Material"
 
     UpdateMaterialRequest:
+      description: Request payload for updating an existing raw material's properties and specifications
       type: object
       additionalProperties: false
       properties:
         name:
           type: string
+          description: Display name for the material used in inventory and manufacturing
         uom:
           type: string
           maxLength: 7
@@ -2270,6 +2275,7 @@ components:
             $ref: "#/components/schemas/NegativeStock"
 
     CreateProductRequest:
+      description: Request payload for creating a new finished product with variants, configurations, and manufacturing specifications
       type: object
       additionalProperties: false
       required:
@@ -2278,6 +2284,7 @@ components:
       properties:
         name:
           type: string
+          description: Display name for the finished product used in sales and manufacturing
         uom:
           type: string
           maxLength: 7
@@ -2341,11 +2348,13 @@ components:
             $ref: "#/components/schemas/Variant"
 
     UpdateProductRequest:
+      description: Request payload for updating an existing finished product's properties, configurations, and manufacturing specifications
       type: object
       additionalProperties: false
       properties:
         name:
           type: string
+          description: Display name for the finished product used in sales and manufacturing
         uom:
           type: string
           maxLength: 7
@@ -2462,6 +2471,7 @@ components:
             $ref: "#/components/schemas/Product"
 
     CreatePurchaseOrderRequest:
+      description: Request payload for creating a new purchase order to procure materials or products from suppliers
       type: object
       additionalProperties: false
       required:
@@ -2472,6 +2482,7 @@ components:
       properties:
         order_no:
           type: string
+          description: Unique purchase order number for tracking and reference
         entity_type:
           type: string
           enum: [regular, outsourced]
@@ -2512,6 +2523,7 @@ components:
       properties:
         quantity:
           type: number
+          description: Quantity of items to order for this purchase order line
         price_per_unit:
           type: number
         purchase_uom_conversion_rate:
@@ -2638,6 +2650,7 @@ components:
             $ref: "#/components/schemas/PurchaseOrderRow"
 
     UpdatePurchaseOrderRequest:
+      description: Request payload for updating an existing purchase order's details, status, and line items
       type: object
       additionalProperties: false
       properties:
@@ -2912,6 +2925,7 @@ components:
       properties:
         name:
           type: string
+          description: Business name of the supplier company or individual
         currency:
           type: string
         email:
@@ -2984,6 +2998,7 @@ components:
       properties:
         name:
           type: string
+          description: Business name of the supplier company or individual
         email:
           type: string
         phone:
@@ -3112,6 +3127,7 @@ components:
       properties:
         sku:
           type: string
+          description: Stock keeping unit code for unique identification of this product variant
         sales_price:
           type: number
           minimum: 0
@@ -3273,6 +3289,7 @@ components:
       properties:
         sku:
           type: string
+          description: Stock keeping unit code for unique identification of this product variant
         sales_price:
           type: number
           minimum: 0
@@ -3654,6 +3671,7 @@ components:
 
     # Customer schemas
     Customer:
+      description: Customer entity representing individuals or companies that purchase products or services
       allOf:
         - type: object
           properties:
@@ -3769,6 +3787,7 @@ components:
 
     # Sales Order schemas
     SalesOrder:
+      description: Sales order representing a customer's request to purchase products with delivery and payment terms
       allOf:
         - type: object
           properties:
