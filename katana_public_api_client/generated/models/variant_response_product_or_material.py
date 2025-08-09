@@ -22,6 +22,8 @@ T = TypeVar("T", bound="VariantResponseProductOrMaterial")
 
 @_attrs_define
 class VariantResponseProductOrMaterial:
+    """Details of the associated product or material"""
+
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     uom: Unset | str = UNSET

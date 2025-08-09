@@ -24,13 +24,23 @@ T = TypeVar("T", bound="OutsourcedPurchaseOrderRecipeRow")
 
 @_attrs_define
 class OutsourcedPurchaseOrderRecipeRow:
+    """Recipe row for outsourced manufacturing, linking purchase order ingredients to production requirements
+
+    Example:
+        {'id': 3201, 'purchase_order_id': 850, 'purchase_order_row_id': 1205, 'ingredient_variant_id': 301,
+            'planned_quantity_per_unit': 2, 'ingredient_availability': 'IN_STOCK', 'ingredient_expected_date':
+            '2024-01-25T10:00:00Z', 'notes': 'Critical component - ensure quality check', 'batch_transactions':
+            [{'batch_id': 101, 'quantity': 50.0}, {'batch_id': 102, 'quantity': 25.0}], 'cost': 87.5, 'created_at':
+            '2024-01-20T09:00:00Z', 'updated_at': '2024-01-22T11:30:00Z', 'deleted_at': None}
+    """
+
+    id: int
     purchase_order_row_id: int
     ingredient_variant_id: int
     planned_quantity_per_unit: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | datetime.datetime = UNSET
-    id: Unset | int = UNSET
     purchase_order_id: Unset | int = UNSET
     ingredient_availability: (
         Unset | OutsourcedPurchaseOrderRecipeRowIngredientAvailability
@@ -44,6 +54,8 @@ class OutsourcedPurchaseOrderRecipeRow:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         purchase_order_row_id = self.purchase_order_row_id
 
         ingredient_variant_id = self.ingredient_variant_id
@@ -65,8 +77,6 @@ class OutsourcedPurchaseOrderRecipeRow:
             deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
-
-        id = self.id
 
         purchase_order_id = self.purchase_order_id
 
@@ -97,6 +107,7 @@ class OutsourcedPurchaseOrderRecipeRow:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
+                "id": id,
                 "purchase_order_row_id": purchase_order_row_id,
                 "ingredient_variant_id": ingredient_variant_id,
                 "planned_quantity_per_unit": planned_quantity_per_unit,
@@ -108,8 +119,6 @@ class OutsourcedPurchaseOrderRecipeRow:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if purchase_order_id is not UNSET:
             field_dict["purchase_order_id"] = purchase_order_id
         if ingredient_availability is not UNSET:
@@ -132,6 +141,8 @@ class OutsourcedPurchaseOrderRecipeRow:
         )
 
         d = dict(src_dict)
+        id = d.pop("id")
+
         purchase_order_row_id = d.pop("purchase_order_row_id")
 
         ingredient_variant_id = d.pop("ingredient_variant_id")
@@ -168,8 +179,6 @@ class OutsourcedPurchaseOrderRecipeRow:
             return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
-
-        id = d.pop("id", UNSET)
 
         purchase_order_id = d.pop("purchase_order_id", UNSET)
 
@@ -216,13 +225,13 @@ class OutsourcedPurchaseOrderRecipeRow:
         cost = d.pop("cost", UNSET)
 
         outsourced_purchase_order_recipe_row = cls(
+            id=id,
             purchase_order_row_id=purchase_order_row_id,
             ingredient_variant_id=ingredient_variant_id,
             planned_quantity_per_unit=planned_quantity_per_unit,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            id=id,
             purchase_order_id=purchase_order_id,
             ingredient_availability=ingredient_availability,
             ingredient_expected_date=ingredient_expected_date,

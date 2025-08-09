@@ -2452,27 +2452,46 @@ components:
         - $ref: "#/components/schemas/ManufacturingOrderOperationRow"
 
     ManufacturingOrderOperationProduction:
+      description: Production record for a specific operation within a manufacturing order
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             location_id:
               type: integer
+              description: ID of the location where the production took place
             manufacturing_order_id:
               type: integer
+              description: ID of the parent manufacturing order
             manufacturing_order_operation_id:
               type: integer
+              description: ID of the specific operation within the manufacturing order
             production_id:
               type: integer
+              description: ID of the production record
             time:
               type: number
+              description: Time spent on this operation in hours
             production_date:
               type: string
               format: date-time
+              description: Date and time when the production was recorded
             cost:
               type: number
-        - $ref: "#/components/schemas/DeletableEntity"
+              description: Cost associated with this production operation
+      example:
+        id: 1501
+        location_id: 3
+        manufacturing_order_id: 450
+        manufacturing_order_operation_id: 2201
+        production_id: 5501
+        time: 2.5
+        production_date: "2024-01-22T14:30:00Z"
+        cost: 125.50
+        created_at: "2024-01-22T14:35:00Z"
+        updated_at: "2024-01-22T14:35:00Z"
+        deleted_at: null
 
     # Manufacturing Order Recipe Row Schemas
     CreateManufacturingOrderRecipeRowRequest:
@@ -4261,45 +4280,58 @@ components:
           $ref: "#/components/schemas/CustomFieldsArray"
 
     VariantResponse:
+      description: Product or material variant response with associated product/material details
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             sku:
               type: string
+              description: Stock Keeping Unit identifier for the variant
             sales_price:
               type: number
+              description: Default sales price for this variant
             purchase_price:
               type: number
+              description: Default purchase price for this variant
             product_id:
               type: [integer, "null"]
+              description: ID of the associated product (null if material variant)
             material_id:
               type: [integer, "null"]
+              description: ID of the associated material (null if product variant)
             type:
               type: string
+              description: Type of variant
               enum:
                 - product
                 - material
                 - service
             internal_barcode:
               type: string
+              description: Internal barcode for inventory tracking
             registered_barcode:
               type: string
+              description: Registered/official barcode
             supplier_item_codes:
               type: array
+              description: Supplier-specific item codes
               items:
                 type: string
             lead_time:
               type: [integer, "null"]
+              description: Lead time in days for procurement
             minimum_order_quantity:
               type: [number, "null"]
+              description: Minimum quantity that can be ordered
             config_attributes:
               $ref: "#/components/schemas/ConfigAttributesArray"
             custom_fields:
               $ref: "#/components/schemas/CustomFieldsArray"
             product_or_material:
               type: object
+              description: Details of the associated product or material
               properties:
                 id:
                   type: integer
@@ -4339,7 +4371,41 @@ components:
                   type: array
                   items:
                     $ref: "#/components/schemas/Variant"
-        - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 501
+        sku: "BOLT-M8-50"
+        sales_price: 2.50
+        purchase_price: 1.80
+        product_id: null
+        material_id: 201
+        type: "material"
+        internal_barcode: "MTL-BOLT-001"
+        registered_barcode: "1234567890123"
+        supplier_item_codes: ["SUP-BOLT-M8", "ALT-BOLT-50"]
+        lead_time: 7
+        minimum_order_quantity: 100
+        config_attributes: []
+        custom_fields: []
+        product_or_material:
+          id: 201
+          name: "M8 Bolt"
+          uom: "pcs"
+          category_name: "Fasteners"
+          is_producible: false
+          default_supplier_id: 10
+          is_purchasable: true
+          type: "material"
+          purchase_uom: "pcs"
+          purchase_uom_conversion_rate: 1.0
+          batch_tracked: false
+          configs: []
+          additional_info: "Standard M8 hex bolt"
+          created_at: "2024-01-08T10:00:00Z"
+          updated_at: "2024-01-12T16:00:00Z"
+          variants: []
+        created_at: "2024-01-08T10:15:00Z"
+        updated_at: "2024-01-12T16:15:00Z"
+        deleted_at: null
 
     UpdateVariantRequest:
       type: object
@@ -4602,24 +4668,41 @@ components:
           type: string
 
     Webhook:
+      description: Webhook configuration for receiving real-time notifications about events in the system
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             url:
               type: string
+              description: The endpoint URL where webhook events will be sent
             token:
               type: string
+              description: Secret token used to verify webhook authenticity
             enabled:
               type: boolean
+              description: Whether the webhook is active and will receive events
             description:
               type: [string, "null"]
+              description: Optional description of the webhook's purpose
             subscribed_events:
               type: array
+              description: List of event types this webhook will receive
               items:
                 type: string
-        - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 301
+        url: "https://api.example.com/webhooks/katana"
+        token: "whk_1234567890abcdef"
+        enabled: true
+        description: "Production status updates"
+        subscribed_events:
+          - "manufacturing_order.created"
+          - "manufacturing_order.completed"
+          - "inventory.updated"
+        created_at: "2024-01-10T08:00:00Z"
+        updated_at: "2024-01-15T12:30:00Z"
 
     WebhookListResponse:
       type: object
@@ -6268,15 +6351,18 @@ components:
 
     # Custom Fields Collections
     CustomFieldsCollection:
+      description: Custom field collection configuration for extending entity schemas with user-defined fields
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             name:
               type: string
+              description: Name of the custom field collection
             resource_type:
               type: string
+              description: Type of resource this collection applies to
               enum:
                 - product
                 - material
@@ -6287,15 +6373,19 @@ components:
                 - stocktake
             custom_fields:
               type: array
+              description: Array of custom field definitions within this collection
               items:
                 type: object
                 properties:
                   id:
                     type: integer
+                    description: Unique identifier of the custom field
                   name:
                     type: string
+                    description: Display name of the custom field
                   field_type:
                     type: string
+                    description: Data type of the custom field
                     enum:
                       - text
                       - number
@@ -6303,11 +6393,25 @@ components:
                       - boolean
                   required:
                     type: boolean
+                    description: Whether this field is required when creating/updating the resource
           required:
-            - id
             - name
             - resource_type
-        - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 101
+        name: "Product Extra Fields"
+        resource_type: "product"
+        custom_fields:
+          - id: 201
+            name: "Warranty Period"
+            field_type: "number"
+            required: false
+          - id: 202
+            name: "Certification Number"
+            field_type: "text"
+            required: true
+        created_at: "2024-01-15T09:30:00Z"
+        updated_at: "2024-01-20T14:45:00Z"
 
     CustomFieldsCollectionListResponse:
       type: object
@@ -7009,21 +7113,27 @@ components:
             $ref: "#/components/schemas/OutsourcedPurchaseOrderRecipeRow"
 
     OutsourcedPurchaseOrderRecipeRow:
+      description: Recipe row for outsourced manufacturing, linking purchase order ingredients to production requirements
       allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             purchase_order_id:
               type: integer
+              description: ID of the purchase order containing the ingredient
             purchase_order_row_id:
               type: integer
+              description: ID of the specific purchase order row for the ingredient
             ingredient_variant_id:
               type: integer
+              description: ID of the ingredient variant required for production
             planned_quantity_per_unit:
               type: integer
+              description: Planned quantity of ingredient needed per unit of output
             ingredient_availability:
               type: string
+              description: Current availability status of the ingredient
               enum:
                 - PROCESSED
                 - IN_STOCK
@@ -7033,24 +7143,47 @@ components:
             ingredient_expected_date:
               type: string
               format: date-time
+              description: Expected date when the ingredient will be available
             notes:
               type: [string, "null"]
+              description: Additional notes or instructions for this recipe row
             batch_transactions:
               type: array
+              description: Batch tracking information for ingredient usage
               items:
                 type: object
                 properties:
                   batch_id:
                     type: integer
+                    description: ID of the batch being used
                   quantity:
                     type: number
+                    description: Quantity from this batch
             cost:
               type: number
+              description: Cost associated with this ingredient in the recipe
           required:
             - purchase_order_row_id
             - ingredient_variant_id
             - planned_quantity_per_unit
-        - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 3201
+        purchase_order_id: 850
+        purchase_order_row_id: 1205
+        ingredient_variant_id: 301
+        planned_quantity_per_unit: 2
+        ingredient_availability: "IN_STOCK"
+        ingredient_expected_date: "2024-01-25T10:00:00Z"
+        notes: "Critical component - ensure quality check"
+        batch_transactions:
+          - batch_id: 101
+            quantity: 50.0
+          - batch_id: 102
+            quantity: 25.0
+        cost: 87.50
+        created_at: "2024-01-20T09:00:00Z"
+        updated_at: "2024-01-22T11:30:00Z"
+        deleted_at: null
 
     ProductOperationRerankRequest:
       type: object

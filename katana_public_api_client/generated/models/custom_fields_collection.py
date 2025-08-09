@@ -24,6 +24,15 @@ T = TypeVar("T", bound="CustomFieldsCollection")
 
 @_attrs_define
 class CustomFieldsCollection:
+    """Custom field collection configuration for extending entity schemas with user-defined fields
+
+    Example:
+        {'id': 101, 'name': 'Product Extra Fields', 'resource_type': 'product', 'custom_fields': [{'id': 201, 'name':
+            'Warranty Period', 'field_type': 'number', 'required': False}, {'id': 202, 'name': 'Certification Number',
+            'field_type': 'text', 'required': True}], 'created_at': '2024-01-15T09:30:00Z', 'updated_at':
+            '2024-01-20T14:45:00Z'}
+    """
+
     id: int
     name: str
     resource_type: CustomFieldsCollectionResourceType

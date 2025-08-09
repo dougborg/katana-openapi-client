@@ -24,10 +24,24 @@ T = TypeVar("T", bound="VariantResponse")
 
 @_attrs_define
 class VariantResponse:
+    """Product or material variant response with associated product/material details
+
+    Example:
+        {'id': 501, 'sku': 'BOLT-M8-50', 'sales_price': 2.5, 'purchase_price': 1.8, 'product_id': None, 'material_id':
+            201, 'type': 'material', 'internal_barcode': 'MTL-BOLT-001', 'registered_barcode': '1234567890123',
+            'supplier_item_codes': ['SUP-BOLT-M8', 'ALT-BOLT-50'], 'lead_time': 7, 'minimum_order_quantity': 100,
+            'config_attributes': [], 'custom_fields': [], 'product_or_material': {'id': 201, 'name': 'M8 Bolt', 'uom':
+            'pcs', 'category_name': 'Fasteners', 'is_producible': False, 'default_supplier_id': 10, 'is_purchasable': True,
+            'type': 'material', 'purchase_uom': 'pcs', 'purchase_uom_conversion_rate': 1.0, 'batch_tracked': False,
+            'configs': [], 'additional_info': 'Standard M8 hex bolt', 'created_at': '2024-01-08T10:00:00Z', 'updated_at':
+            '2024-01-12T16:00:00Z', 'variants': []}, 'created_at': '2024-01-08T10:15:00Z', 'updated_at':
+            '2024-01-12T16:15:00Z', 'deleted_at': None}
+    """
+
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | datetime.datetime = UNSET
-    id: Unset | int = UNSET
     sku: Unset | str = UNSET
     sales_price: Unset | float = UNSET
     purchase_price: Unset | float = UNSET
@@ -45,6 +59,8 @@ class VariantResponse:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -60,8 +76,6 @@ class VariantResponse:
             deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
-
-        id = self.id
 
         sku = self.sku
 
@@ -131,15 +145,17 @@ class VariantResponse:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if sku is not UNSET:
             field_dict["sku"] = sku
         if sales_price is not UNSET:
@@ -180,6 +196,8 @@ class VariantResponse:
         )
 
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -210,8 +228,6 @@ class VariantResponse:
             return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
-
-        id = d.pop("id", UNSET)
 
         sku = d.pop("sku", UNSET)
 
@@ -300,10 +316,10 @@ class VariantResponse:
             )
 
         variant_response = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            id=id,
             sku=sku,
             sales_price=sales_price,
             purchase_price=purchase_price,
