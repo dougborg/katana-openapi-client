@@ -1359,79 +1359,100 @@ components:
         - data
 
     Variant:
+      description: Specific SKU of a product or material with unique pricing, configuration, and inventory tracking
       allOf:
         - $ref: "#/components/schemas/BaseEntity"
         - type: object
           properties:
             sku:
               type: string
+              description: Stock keeping unit - unique identifier for this variant
             sales_price:
               type: [number, "null"]
+              description: Price at which this variant is sold to customers
             product_id:
               type: [integer, "null"]
+              description: ID of the parent product if this variant belongs to a finished good
             material_id:
               type: [integer, "null"]
+              description: ID of the parent material if this variant belongs to a raw material
             purchase_price:
               type: number
+              description: Cost to purchase this variant from suppliers
             product_or_material_name:
               type: string
+              description: Display name combining the parent product/material name with variant attributes
             type:
               type: string
+              description: Type classification - either 'product' or 'material'
             internal_barcode:
               type: string
+              description: Internal barcode for warehouse scanning and tracking
             registered_barcode:
               type: string
+              description: Official registered barcode (UPC, EAN, etc.) for retail use
             supplier_item_codes:
               type: array
+              description: Supplier-specific part numbers or SKUs for purchasing
               items:
                 type: string
             lead_time:
               type: [integer, "null"]
+              description: Days required to manufacture or procure this variant
             minimum_order_quantity:
               type: [number, "null"]
+              description: Minimum quantity that must be ordered from suppliers
             custom_fields:
               type: array
+              description: Custom field values specific to this variant
               items:
                 type: object
                 properties:
                   field_name:
                     type: string
+                    description: Name of the custom field
                   field_value:
                     type: string
+                    description: Value stored in the custom field
             config_attributes:
               type: array
+              description: Configuration attribute values that define this variant (color, size, etc.)
               items:
                 type: object
                 properties:
                   config_name:
                     type: string
+                    description: Name of the configuration attribute (e.g., Color, Size)
                   config_value:
                     type: string
+                    description: Value for this configuration attribute (e.g., Blue, Large)
           required:
             - sku
         - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 3001
-        sku: "EM-BLUE-M"
-        sales_price: 40.0
-        product_id: 1
+        sku: "KNF-PRO-8PC-STL"
+        sales_price: 299.99
+        product_id: 101
         material_id: null
-        purchase_price: 15.0
-        product_or_material_name: "Embroidered Mug - Blue - Medium"
+        purchase_price: 150.00
+        product_or_material_name: "Professional Kitchen Knife Set - 8-Piece - Steel Handles"
         type: "product"
-        internal_barcode: "0315"
-        registered_barcode: "0785223088"
-        supplier_item_codes: ["978-0785223085"]
-        lead_time: 1
-        minimum_order_quantity: 5
-        custom_fields: []
+        internal_barcode: "INT-KNF-001"
+        registered_barcode: "789123456789"
+        supplier_item_codes: ["SUP-KNF-8PC-001"]
+        lead_time: 7
+        minimum_order_quantity: 1
+        custom_fields:
+          - field_name: "Warranty Period"
+            field_value: "5 years"
         config_attributes:
-          - config_name: "Color"
-            config_value: "Blue"
-          - config_name: "Size"
-            config_value: "Medium"
+          - config_name: "Piece Count"
+            config_value: "8-piece"
+          - config_name: "Handle Material"
+            config_value: "Steel"
         created_at: "2024-01-15T08:00:00.000Z"
-        updated_at: "2024-01-15T08:30:00.000Z"
+        updated_at: "2024-08-20T14:45:00.000Z"
         deleted_at: null
 
     LocationAddress:
@@ -2397,116 +2418,243 @@ components:
         uom:
           type: string
           maxLength: 7
+          description: Unit of measurement for the product (e.g., pcs, kg, m)
         category_name:
           type: string
+          description: Product category for organizational grouping and reporting
         is_sellable:
           type: boolean
+          description: Whether this product can be sold to customers
         is_producible:
           type: boolean
+          description: Whether this product can be manufactured in-house
         is_purchasable:
           type: boolean
+          description: Whether this product can be purchased from suppliers
         is_auto_assembly:
           type: boolean
+          description: Whether the product should be automatically assembled when components are available
         default_supplier_id:
           type: integer
           maximum: 2147483647
+          description: Primary supplier ID for purchasing this product
         additional_info:
           type: string
+          description: Additional notes or specifications for the product
         batch_tracked:
           type: boolean
+          description: Whether inventory movements are tracked by batch numbers
         serial_tracked:
           type: boolean
+          description: Whether inventory movements are tracked by individual serial numbers
         operations_in_sequence:
           type: boolean
+          description: Whether manufacturing operations must be completed in a specific sequence
         purchase_uom:
           type: string
           maxLength: 7
+          description: Unit of measurement used when purchasing from suppliers
         purchase_uom_conversion_rate:
           type: number
           maximum: 1000000000000
+          description: Conversion rate between base UOM and purchase UOM
         configs:
           type: array
+          description: Configuration attributes that define variant combinations (size, color, etc.)
           items:
             type: object
             additionalProperties: false
             properties:
               name:
                 type: string
+                description: Name of the configuration attribute (e.g., Size, Color)
               values:
                 type: array
+                description: Available values for this configuration attribute
                 items:
                   type: string
         custom_field_collection_id:
           type: [integer, "null"]
           maximum: 2147483647
+          description: ID of the custom field collection associated with this product
+      example:
+        name: "Professional Kitchen Knife Set"
+        uom: "set"
+        category_name: "Premium Kitchenware"
+        is_sellable: true
+        is_producible: true
+        is_purchasable: false
+        is_auto_assembly: false
+        default_supplier_id: null
+        additional_info: "High-carbon stainless steel with ergonomic handles, dishwasher safe"
+        batch_tracked: false
+        serial_tracked: true
+        operations_in_sequence: true
+        purchase_uom: "set"
+        purchase_uom_conversion_rate: 1.0
+        custom_field_collection_id: 5
+        configs:
+          - name: "Piece Count"
+            values: ["6-piece", "8-piece", "12-piece"]
+          - name: "Handle Material"
+            values: ["Wood", "Steel", "Composite"]
 
     Product:
+      description: A finished good or component that can be sold, manufactured, or purchased, with support for variants and configurations
       allOf:
         - $ref: "#/components/schemas/BaseEntity"
         - type: object
           properties:
             name:
               type: string
+              description: Display name for the product used in sales and manufacturing contexts
             uom:
               type: string
+              description: Unit of measurement for the product (e.g., pcs, kg, m)
             category_name:
               type: string
+              description: Product category for organizational grouping and reporting
             is_sellable:
               type: boolean
+              description: Whether this product can be sold to customers
             is_producible:
               type: boolean
+              description: Whether this product can be manufactured in-house
             is_purchasable:
               type: boolean
+              description: Whether this product can be purchased from suppliers
             is_auto_assembly:
               type: boolean
+              description: Whether the product should be automatically assembled when components are available
             default_supplier_id:
               type: integer
+              description: Primary supplier ID for purchasing this product
             additional_info:
               type: string
+              description: Additional notes or specifications for the product
             batch_tracked:
               type: boolean
+              description: Whether inventory movements are tracked by batch numbers
             serial_tracked:
               type: boolean
+              description: Whether inventory movements are tracked by individual serial numbers
             operations_in_sequence:
               type: boolean
+              description: Whether manufacturing operations must be completed in a specific sequence
             type:
               type: string
+              description: Product classification type (product, material, etc.)
             purchase_uom:
               type: string
+              description: Unit of measurement used when purchasing from suppliers
             purchase_uom_conversion_rate:
               type: number
+              description: Conversion rate between base UOM and purchase UOM
             variants:
               type: array
+              description: Product variants with different SKUs, pricing, and configurations
               items:
                 $ref: "#/components/schemas/Variant"
             configs:
               type: array
+              description: Configuration attributes that define variant combinations (size, color, etc.)
               items:
                 type: object
                 properties:
                   id:
                     type: integer
+                    description: Unique identifier for the configuration attribute
                   name:
                     type: string
+                    description: Name of the configuration attribute (e.g., Size, Color)
                   values:
                     type: array
+                    description: Available values for this configuration attribute
                     items:
                       type: string
                   product_id:
                     type: integer
+                    description: ID of the product this configuration belongs to
             custom_field_collection_id:
               type: integer
+              description: ID of the custom field collection associated with this product
             supplier:
               $ref: "#/components/schemas/Supplier"
         - $ref: "#/components/schemas/ArchivableEntity"
+      example:
+        id: 101
+        name: "Professional Kitchen Knife Set"
+        uom: "set"
+        category_name: "Kitchenware"
+        is_sellable: true
+        is_producible: true
+        is_purchasable: false
+        is_auto_assembly: false
+        default_supplier_id: null
+        additional_info: "High-carbon stainless steel with ergonomic handles"
+        batch_tracked: false
+        serial_tracked: true
+        operations_in_sequence: true
+        type: "product"
+        purchase_uom: "set"
+        purchase_uom_conversion_rate: 1.0
+        custom_field_collection_id: 5
+        created_at: "2024-01-15T09:30:00Z"
+        updated_at: "2024-08-20T14:45:00Z"
+        archived_at: null
+        variants:
+          - id: 301
+            sku: "KNF-PRO-8PC"
+            name: "8-Piece Professional Set"
+            sales_price: 299.99
+            purchase_price: 150.00
+        configs:
+          - id: 1
+            name: "Piece Count"
+            values: ["6-piece", "8-piece", "12-piece"]
+            product_id: 101
+          - id: 2
+            name: "Handle Material"
+            values: ["Wood", "Steel", "Composite"]
+            product_id: 101
 
     ProductListResponse:
+      description: Response containing a paginated list of products with their variants and configurations
       type: object
       properties:
         data:
           type: array
+          description: Array of product objects returned by the API
           items:
             $ref: "#/components/schemas/Product"
+      example:
+        data:
+          - id: 101
+            name: "Professional Kitchen Knife Set"
+            uom: "set"
+            category_name: "Kitchenware"
+            is_sellable: true
+            is_producible: true
+            is_purchasable: false
+            type: "product"
+            variants:
+              - id: 301
+                sku: "KNF-PRO-8PC"
+                name: "8-Piece Professional Set"
+                sales_price: 299.99
+          - id: 102
+            name: "Stainless Steel Mixing Bowls"
+            uom: "set"
+            category_name: "Kitchenware"
+            is_sellable: true
+            is_producible: false
+            is_purchasable: true
+            type: "product"
+            variants:
+              - id: 302
+                sku: "BOWL-SS-5PC"
+                name: "5-Piece Mixing Bowl Set"
+                sales_price: 79.99
 
     CreatePurchaseOrderRequest:
       description: Request payload for creating a new purchase order to procure materials or products from suppliers
@@ -3164,6 +3312,7 @@ components:
             $ref: "#/components/schemas/TaxRate"
 
     CreateVariantRequest:
+      description: Request payload for creating a new product or material variant with specific SKU and configuration attributes
       type: object
       additionalProperties: false
       required:
@@ -3186,30 +3335,38 @@ components:
         product_id:
           type: [integer, "null"]
           maximum: 2147483647
+          description: ID of the parent product if this variant belongs to a finished good
         material_id:
           type: [integer, "null"]
           maximum: 2147483647
+          description: ID of the parent material if this variant belongs to a raw material
         supplier_item_codes:
           type: array
           minItems: 1
+          description: Supplier-specific part numbers or SKUs for purchasing this variant
           items:
             type: string
         internal_barcode:
           type: string
           minLength: 3
           maxLength: 40
+          description: Internal barcode for warehouse scanning and tracking
         registered_barcode:
           type: string
           maxLength: 120
+          description: Official registered barcode (UPC, EAN, etc.) for retail use
         lead_time:
           type: [integer, "null"]
           maximum: 999
+          description: Days required to manufacture or procure this variant
         minimum_order_quantity:
           type: number
           minimum: 0
           maximum: 999999999
+          description: Minimum quantity that must be ordered from suppliers
         config_attributes:
           type: array
+          description: Configuration attribute values that define this variant (color, size, etc.)
           items:
             type: object
             additionalProperties: false
@@ -3219,10 +3376,13 @@ components:
             properties:
               config_name:
                 type: string
+                description: Name of the configuration attribute (e.g., Color, Size)
               config_value:
                 type: string
+                description: Value for this configuration attribute (e.g., Blue, Large)
         custom_fields:
           type: array
+          description: Custom field values specific to this variant
           items:
             type: object
             additionalProperties: false
@@ -3232,103 +3392,192 @@ components:
             properties:
               field_name:
                 type: string
+                description: Name of the custom field
               field_value:
                 type: string
+                description: Value stored in the custom field
+      example:
+        sku: "KNF-PRO-12PC-WD"
+        sales_price: 399.99
+        purchase_price: 200.00
+        product_id: 101
+        material_id: null
+        supplier_item_codes: ["SUP-KNF-12PC-002"]
+        internal_barcode: "INT-KNF-002"
+        registered_barcode: "789123456790"
+        lead_time: 10
+        minimum_order_quantity: 1
+        config_attributes:
+          - config_name: "Piece Count"
+            config_value: "12-piece"
+          - config_name: "Handle Material"
+            config_value: "Wood"
+        custom_fields:
+          - field_name: "Warranty Period"
+            field_value: "5 years"
+          - field_name: "Care Instructions"
+            field_value: "Hand wash only"
 
     VariantResponse:
+      description: Response containing a variant with its configuration attributes and related product or material details
       allOf:
         - type: object
           properties:
             id:
               type: integer
+              description: Unique identifier for this variant
             sku:
               type: string
+              description: Stock keeping unit code for unique identification
             sales_price:
               type: number
+              description: Price at which this variant is sold to customers
             purchase_price:
               type: number
+              description: Cost to purchase this variant from suppliers
             product_id:
               type: [integer, "null"]
+              description: ID of the parent product if this variant belongs to a finished good
             material_id:
               type: [integer, "null"]
+              description: ID of the parent material if this variant belongs to a raw material
             type:
               type: string
+              description: Type classification of this variant
               enum:
                 - product
                 - material
                 - service
             internal_barcode:
               type: string
+              description: Internal barcode for warehouse scanning and tracking
             registered_barcode:
               type: string
+              description: Official registered barcode (UPC, EAN, etc.) for retail use
             supplier_item_codes:
               type: array
+              description: Supplier-specific part numbers or SKUs for purchasing
               items:
                 type: string
             lead_time:
               type: [integer, "null"]
+              description: Days required to manufacture or procure this variant
             minimum_order_quantity:
               type: [number, "null"]
+              description: Minimum quantity that must be ordered from suppliers
             config_attributes:
               type: array
+              description: Configuration attribute values that define this variant
               items:
                 type: object
                 properties:
                   config_name:
                     type: string
+                    description: Name of the configuration attribute (e.g., Color, Size)
                   config_value:
                     type: string
+                    description: Value for this configuration attribute (e.g., Blue, Large)
             custom_fields:
               type: array
+              description: Custom field values specific to this variant
               items:
                 type: object
                 properties:
                   field_name:
                     type: string
+                    description: Name of the custom field
                   field_value:
                     type: string
+                    description: Value stored in the custom field
             product_or_material:
               type: object
+              description: Details of the parent product or material this variant belongs to
               properties:
                 id:
                   type: integer
+                  description: Unique identifier of the parent product or material
                 name:
                   type: string
+                  description: Name of the parent product or material
                 uom:
                   type: string
+                  description: Unit of measurement
                 category_name:
                   type: string
+                  description: Category classification
                 is_producible:
                   type: boolean
+                  description: Whether the parent can be manufactured
                 default_supplier_id:
                   type: integer
+                  description: Primary supplier ID
                 is_purchasable:
                   type: boolean
+                  description: Whether the parent can be purchased
                 type:
                   type: string
+                  description: Type classification (product/material)
                 purchase_uom:
                   type: string
+                  description: Purchase unit of measurement
                 purchase_uom_conversion_rate:
                   type: number
+                  description: Conversion rate for purchase UOM
                 batch_tracked:
                   type: boolean
+                  description: Whether batch tracking is enabled
                 configs:
                   type: array
+                  description: Configuration definitions for variants
                   items:
                     type: object
                 additional_info:
                   type: string
+                  description: Additional notes or specifications
                 created_at:
                   type: string
                   format: date-time
+                  description: Creation timestamp
                 updated_at:
                   type: string
                   format: date-time
+                  description: Last update timestamp
                 variants:
                   type: array
+                  description: All variants of this product or material
                   items:
                     $ref: "#/components/schemas/Variant"
         - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 3001
+        sku: "KNF-PRO-8PC-STL"
+        sales_price: 299.99
+        purchase_price: 150.00
+        product_id: 101
+        material_id: null
+        type: "product"
+        internal_barcode: "INT-KNF-001"
+        registered_barcode: "789123456789"
+        supplier_item_codes: ["SUP-KNF-8PC-001"]
+        lead_time: 7
+        minimum_order_quantity: 1
+        config_attributes:
+          - config_name: "Piece Count"
+            config_value: "8-piece"
+          - config_name: "Handle Material"
+            config_value: "Steel"
+        custom_fields:
+          - field_name: "Warranty Period"
+            field_value: "5 years"
+        product_or_material:
+          id: 101
+          name: "Professional Kitchen Knife Set"
+          uom: "set"
+          category_name: "Kitchenware"
+          type: "product"
+        created_at: "2024-01-15T08:00:00.000Z"
+        updated_at: "2024-08-20T14:45:00.000Z"
+        deleted_at: null
 
     UpdateVariantRequest:
       type: object
@@ -3391,12 +3640,34 @@ components:
                 type: string
 
     VariantListResponse:
+      description: Response containing a paginated list of variants with their configuration attributes and parent product details
       type: object
       properties:
         data:
           type: array
+          description: Array of variant objects returned by the API
           items:
             $ref: "#/components/schemas/VariantResponse"
+      example:
+        data:
+          - id: 3001
+            sku: "KNF-PRO-8PC-STL"
+            sales_price: 299.99
+            type: "product"
+            config_attributes:
+              - config_name: "Piece Count"
+                config_value: "8-piece"
+              - config_name: "Handle Material"
+                config_value: "Steel"
+          - id: 3002
+            sku: "KNF-PRO-12PC-WD"
+            sales_price: 399.99
+            type: "product"
+            config_attributes:
+              - config_name: "Piece Count"
+                config_value: "12-piece"
+              - config_name: "Handle Material"
+                config_value: "Wood"
 
     VariantDefaultStorageBinLink:
       type: object
@@ -3653,12 +3924,12 @@ components:
         - $ref: "#/components/schemas/UpdatableEntity"
 
     Service:
+      description: External service that can be used as part of manufacturing operations or business processes
       type: object
       properties:
         id:
           type: string
           description: "Unique identifier of the Service."
-          example: "srv_abc123"
         type:
           type: string
           description: "Resource type - always 'services'."
@@ -3666,6 +3937,13 @@ components:
             - services
         attributes:
           $ref: "#/components/schemas/ServiceAttributes"
+      example:
+        id: "srv_abc123"
+        type: "services"
+        attributes:
+          name: "CNC Machining Service"
+          description: "Precision CNC machining for metal components"
+          active: true
 
     ServiceListResponse:
       type: object
