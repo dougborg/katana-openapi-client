@@ -1,0 +1,25 @@
+# The inventory object
+
+Attribute Description variant_id ID of product or material variant tracked in inventory.
+location_id ID of the location of the inventory. safety_stock_level The quantity of a
+product or material which indicates an acceptable stock level for unexpected demand
+without overstocking. reorder_point (Endpoint deprecation, we recommend using
+safety_stock_level instead) Queries the safety stock level. average_cost Current average
+unit cost of the item in stock (= value_in_stock / quantity_in_stock). Katana applies
+average cost methodology for stock costing. value_in_stock The total value of items you
+have in stock. This is the sum of purchasing price for materials and manufacturing cost
+for products (not the sum of sales price). Does not include expected stock.
+quantity_in_stock The quantity of stock you currently have on hand. Updated
+automatically based on sales orders, manufacturing orders, purchase orders, and stock
+adjustments. quantity_committed The quantity of stock that is required by open sales and
+manufacturing orders. Products are committed to open sales orders or as subassemblies to
+open manufacturing orders. Materials are committed to both open sales and manufacturing
+orders. quantity_expected Amount of stock that is expected to arrive in the stock.
+Products are expected from open manufacturing orders and materials from open purchase
+orders. quantity_missing_or_excess Indicates whether your stock level is above or below
+an optimal level (= quantity_in_stock - quantity_commited + quantity_expected -
+safety_stock_level). Negative values indicate a need to buy more materials or make more
+products. quantity_potential Returns the number of kits or bundles that can be sold
+based on the available stock of each component. It calculates the maximum possible kits
+or bundles available for sale by considering current stock levels and any stock already
+committed to open orders

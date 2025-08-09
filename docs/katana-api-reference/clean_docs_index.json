@@ -1,0 +1,1758 @@
+{
+  "processed_count": 250,
+  "total_files": 251,
+  "files": [
+    {
+      "title": "List current batch stock",
+      "endpoint_slug": "getbatchstock",
+      "text_file": "getbatchstock.md",
+      "content_length": 210,
+      "original_file": "docs/katana-api-reference/reference_getbatchstock.html"
+    },
+    {
+      "title": "Update a sales order row",
+      "endpoint_slug": "update-sales-order-row",
+      "text_file": "update-sales-order-row.md",
+      "content_length": 221,
+      "original_file": "docs/katana-api-reference/reference_update-sales-order-row.html"
+    },
+    {
+      "title": "Create a sales order row",
+      "endpoint_slug": "create-sales-order-row",
+      "text_file": "create-sales-order-row.md",
+      "content_length": 204,
+      "original_file": "docs/katana-api-reference/reference_create-sales-order-row.html"
+    },
+    {
+      "title": "List all outsourced purchase order recipe rows",
+      "endpoint_slug": "getallpurchaseorderreciperows",
+      "text_file": "getallpurchaseorderreciperows.md",
+      "content_length": 290,
+      "original_file": "docs/katana-api-reference/reference_getallpurchaseorderreciperows.html"
+    },
+    {
+      "title": "Delete a manufacturing order",
+      "endpoint_slug": "deletemanufacturingorder",
+      "text_file": "deletemanufacturingorder.md",
+      "content_length": 136,
+      "original_file": "docs/katana-api-reference/reference_deletemanufacturingorder.html"
+    },
+    {
+      "title": "Retrieve a sales order fulfillment",
+      "endpoint_slug": "retrieve-sales-order-fulfillment",
+      "text_file": "retrieve-sales-order-fulfillment.md",
+      "content_length": 172,
+      "original_file": "docs/katana-api-reference/reference_retrieve-sales-order-fulfillment.html"
+    },
+    {
+      "title": "Delete a sales order fulfillment",
+      "endpoint_slug": "delete-sales-order-fulfillment",
+      "text_file": "delete-sales-order-fulfillment.md",
+      "content_length": 148,
+      "original_file": "docs/katana-api-reference/reference_delete-sales-order-fulfillment.html"
+    },
+    {
+      "title": "Update the safety stock level",
+      "endpoint_slug": "createinventorysafetystocklevel",
+      "text_file": "createinventorysafetystocklevel.md",
+      "content_length": 181,
+      "original_file": "docs/katana-api-reference/reference_createinventorysafetystocklevel.html"
+    },
+    {
+      "title": "List all inventory movements",
+      "endpoint_slug": "list-all-inventory-movements",
+      "text_file": "list-all-inventory-movements.md",
+      "content_length": 256,
+      "original_file": "docs/katana-api-reference/reference_list-all-inventory-movements.html"
+    },
+    {
+      "title": "The sales order object",
+      "endpoint_slug": "the-sales-order-object",
+      "text_file": "the-sales-order-object.md",
+      "content_length": 7913,
+      "original_file": "docs/katana-api-reference/reference_the-sales-order-object.html"
+    },
+    {
+      "title": "Retrieve a price list",
+      "endpoint_slug": "getpricelist",
+      "text_file": "getpricelist.md",
+      "content_length": 133,
+      "original_file": "docs/katana-api-reference/reference_getpricelist.html"
+    },
+    {
+      "title": "Retrieve a location",
+      "endpoint_slug": "getlocation",
+      "text_file": "getlocation.md",
+      "content_length": 128,
+      "original_file": "docs/katana-api-reference/reference_getlocation.html"
+    },
+    {
+      "title": "The variant object",
+      "endpoint_slug": "the-variant-object",
+      "text_file": "the-variant-object.md",
+      "content_length": 2064,
+      "original_file": "docs/katana-api-reference/reference_the-variant-object.html"
+    },
+    {
+      "title": "Retrieve a webhook",
+      "endpoint_slug": "getwebhook",
+      "text_file": "getwebhook.md",
+      "content_length": 124,
+      "original_file": "docs/katana-api-reference/reference_getwebhook.html"
+    },
+    {
+      "title": "Update a sales order fulfillment",
+      "endpoint_slug": "update-sales-order-fulfillment",
+      "text_file": "update-sales-order-fulfillment.md",
+      "content_length": 245,
+      "original_file": "docs/katana-api-reference/reference_update-sales-order-fulfillment.html"
+    },
+    {
+      "title": "Update a price list",
+      "endpoint_slug": "updatepricelist",
+      "text_file": "updatepricelist.md",
+      "content_length": 206,
+      "original_file": "docs/katana-api-reference/reference_updatepricelist.html"
+    },
+    {
+      "title": "Create a material",
+      "endpoint_slug": "creatematerial",
+      "text_file": "creatematerial.md",
+      "content_length": 89,
+      "original_file": "docs/katana-api-reference/reference_creatematerial.html"
+    },
+    {
+      "title": "Retrieve a price list row",
+      "endpoint_slug": "getpricelistrow",
+      "text_file": "getpricelistrow.md",
+      "content_length": 145,
+      "original_file": "docs/katana-api-reference/reference_getpricelistrow.html"
+    },
+    {
+      "title": "List all sales returns",
+      "endpoint_slug": "getallsalesreturns",
+      "text_file": "getallsalesreturns.md",
+      "content_length": 230,
+      "original_file": "docs/katana-api-reference/reference_getallsalesreturns.html"
+    },
+    {
+      "title": "The inventory object",
+      "endpoint_slug": "the-inventory-object",
+      "text_file": "the-inventory-object.md",
+      "content_length": 1901,
+      "original_file": "docs/katana-api-reference/reference_the-inventory-object.html"
+    },
+    {
+      "title": "The customer address object",
+      "endpoint_slug": "the-customer-address-object",
+      "text_file": "the-customer-address-object.md",
+      "content_length": 888,
+      "original_file": "docs/katana-api-reference/reference_the-customer-address-object.html"
+    },
+    {
+      "title": "The sales return row object",
+      "endpoint_slug": "the-sales-return-row-object",
+      "text_file": "the-sales-return-row-object.md",
+      "content_length": 1228,
+      "original_file": "docs/katana-api-reference/reference_the-sales-return-row-object.html"
+    },
+    {
+      "title": "Create a purchase order row",
+      "endpoint_slug": "createpurchaseorderrow",
+      "text_file": "createpurchaseorderrow.md",
+      "content_length": 123,
+      "original_file": "docs/katana-api-reference/reference_createpurchaseorderrow.html"
+    },
+    {
+      "title": "Retrieve a purchase order additional cost row",
+      "endpoint_slug": "getpoadditionalcostrow",
+      "text_file": "getpoadditionalcostrow.md",
+      "content_length": 193,
+      "original_file": "docs/katana-api-reference/reference_getpoadditionalcostrow.html"
+    },
+    {
+      "title": "Create a purchase order",
+      "endpoint_slug": "createpurchaseorder",
+      "text_file": "createpurchaseorder.md",
+      "content_length": 111,
+      "original_file": "docs/katana-api-reference/reference_createpurchaseorder.html"
+    },
+    {
+      "title": "Update a purchase order row",
+      "endpoint_slug": "updatepurchaseorderrow",
+      "text_file": "updatepurchaseorderrow.md",
+      "content_length": 230,
+      "original_file": "docs/katana-api-reference/reference_updatepurchaseorderrow.html"
+    },
+    {
+      "title": "Update a BOM row",
+      "endpoint_slug": "updatebomrow",
+      "text_file": "updatebomrow.md",
+      "content_length": 197,
+      "original_file": "docs/katana-api-reference/reference_updatebomrow.html"
+    },
+    {
+      "title": "The product operation object",
+      "endpoint_slug": "the-product-operation-object",
+      "text_file": "the-product-operation-object.md",
+      "content_length": 3137,
+      "original_file": "docs/katana-api-reference/reference_the-product-operation-object.html"
+    },
+    {
+      "title": "The recipe / BOM object",
+      "endpoint_slug": "the-recipe-bom-object",
+      "text_file": "the-recipe-bom-object.md",
+      "content_length": 766,
+      "original_file": "docs/katana-api-reference/reference_the-recipe-bom-object.html"
+    },
+    {
+      "title": "Introduction",
+      "endpoint_slug": "api-introduction",
+      "text_file": "api-introduction.md",
+      "content_length": 489,
+      "original_file": "docs/katana-api-reference/reference_api-introduction.html"
+    },
+    {
+      "title": "The manufacturing order object",
+      "endpoint_slug": "the-manufacturing-order-object",
+      "text_file": "the-manufacturing-order-object.md",
+      "content_length": 3180,
+      "original_file": "docs/katana-api-reference/reference_the-manufacturing-order-object.html"
+    },
+    {
+      "title": "Delete a customer address",
+      "endpoint_slug": "deletecustomeraddress",
+      "text_file": "deletecustomeraddress.md",
+      "content_length": 121,
+      "original_file": "docs/katana-api-reference/reference_deletecustomeraddress.html"
+    },
+    {
+      "title": "The stocktake row object",
+      "endpoint_slug": "the-stocktake-row-object",
+      "text_file": "the-stocktake-row-object.md",
+      "content_length": 921,
+      "original_file": "docs/katana-api-reference/reference_the-stocktake-row-object.html"
+    },
+    {
+      "title": "List all shipping fees",
+      "endpoint_slug": "getallshippingfees",
+      "text_file": "getallshippingfees.md",
+      "content_length": 140,
+      "original_file": "docs/katana-api-reference/reference_getallshippingfees.html"
+    },
+    {
+      "title": "Delete a stocktake",
+      "endpoint_slug": "deletestocktakebyid",
+      "text_file": "deletestocktakebyid.md",
+      "content_length": 106,
+      "original_file": "docs/katana-api-reference/reference_deletestocktakebyid.html"
+    },
+    {
+      "title": "Create a stocktake",
+      "endpoint_slug": "createstocktake",
+      "text_file": "createstocktake.md",
+      "content_length": 95,
+      "original_file": "docs/katana-api-reference/reference_createstocktake.html"
+    },
+    {
+      "title": "Retrieve a manufacturing order",
+      "endpoint_slug": "getmanufacturingorder",
+      "text_file": "getmanufacturingorder.md",
+      "content_length": 161,
+      "original_file": "docs/katana-api-reference/reference_getmanufacturingorder.html"
+    },
+    {
+      "title": "The material object",
+      "endpoint_slug": "the-material-object",
+      "text_file": "the-material-object.md",
+      "content_length": 1797,
+      "original_file": "docs/katana-api-reference/reference_the-material-object.html"
+    },
+    {
+      "title": "Update a stocktake row",
+      "endpoint_slug": "updatestocktakerowbyid",
+      "text_file": "updatestocktakerowbyid.md",
+      "content_length": 215,
+      "original_file": "docs/katana-api-reference/reference_updatestocktakerowbyid.html"
+    },
+    {
+      "title": "Delete a manufacturing order recipe row",
+      "endpoint_slug": "deletemanufacturingorderreciperow",
+      "text_file": "deletemanufacturingorderreciperow.md",
+      "content_length": 169,
+      "original_file": "docs/katana-api-reference/reference_deletemanufacturingorderreciperow.html"
+    },
+    {
+      "title": "List all variants",
+      "endpoint_slug": "list-all-variants",
+      "text_file": "list-all-variants.md",
+      "content_length": 204,
+      "original_file": "docs/katana-api-reference/reference_list-all-variants.html"
+    },
+    {
+      "title": "Update a shipping fee",
+      "endpoint_slug": "updateshippingfee",
+      "text_file": "updateshippingfee.md",
+      "content_length": 223,
+      "original_file": "docs/katana-api-reference/reference_updateshippingfee.html"
+    },
+    {
+      "title": "Delete a BOM row",
+      "endpoint_slug": "deletebomrow",
+      "text_file": "deletebomrow.md",
+      "content_length": 93,
+      "original_file": "docs/katana-api-reference/reference_deletebomrow.html"
+    },
+    {
+      "title": "Retrieve unassigned batch transactions for a sales return row",
+      "endpoint_slug": "getsalesreturnrowunassignedbatchtransactions",
+      "text_file": "getsalesreturnrowunassignedbatchtransactions.md",
+      "content_length": 246,
+      "original_file": "docs/katana-api-reference/reference_getsalesreturnrowunassignedbatchtransactions.html"
+    },
+    {
+      "title": "List all sales order addresses",
+      "endpoint_slug": "getsalesorderaddresses",
+      "text_file": "getsalesorderaddresses.md",
+      "content_length": 269,
+      "original_file": "docs/katana-api-reference/reference_getsalesorderaddresses.html"
+    },
+    {
+      "title": "List all custom fields collections",
+      "endpoint_slug": "getcustomfieldscollections",
+      "text_file": "getcustomfieldscollections.md",
+      "content_length": 140,
+      "original_file": "docs/katana-api-reference/reference_getcustomfieldscollections.html"
+    },
+    {
+      "title": "Update a manufacturing order",
+      "endpoint_slug": "updatemanufacturingorder",
+      "text_file": "updatemanufacturingorder.md",
+      "content_length": 233,
+      "original_file": "docs/katana-api-reference/reference_updatemanufacturingorder.html"
+    },
+    {
+      "title": "The stock transfer object",
+      "endpoint_slug": "the-stock-transfer-object",
+      "text_file": "the-stock-transfer-object.md",
+      "content_length": 1209,
+      "original_file": "docs/katana-api-reference/reference_the-stock-transfer-object.html"
+    },
+    {
+      "title": "Create many BOM rows",
+      "endpoint_slug": "createbomrow",
+      "text_file": "createbomrow.md",
+      "content_length": 108,
+      "original_file": "docs/katana-api-reference/reference_createbomrow.html"
+    },
+    {
+      "title": "Create a BOM row",
+      "endpoint_slug": "batchcreatebomrows",
+      "text_file": "batchcreatebomrows.md",
+      "content_length": 96,
+      "original_file": "docs/katana-api-reference/reference_batchcreatebomrows.html"
+    },
+    {
+      "title": "Update a material",
+      "endpoint_slug": "updatematerial",
+      "text_file": "updatematerial.md",
+      "content_length": 200,
+      "original_file": "docs/katana-api-reference/reference_updatematerial.html"
+    },
+    {
+      "title": "The tax rate object",
+      "endpoint_slug": "the-tax-rate-object",
+      "text_file": "the-tax-rate-object.md",
+      "content_length": 639,
+      "original_file": "docs/katana-api-reference/reference_the-tax-rate-object.html"
+    },
+    {
+      "title": "Update a sales return",
+      "endpoint_slug": "updatesalesreturn",
+      "text_file": "updatesalesreturn.md",
+      "content_length": 212,
+      "original_file": "docs/katana-api-reference/reference_updatesalesreturn.html"
+    },
+    {
+      "title": "Create a tax rate",
+      "endpoint_slug": "create-tax-rate",
+      "text_file": "create-tax-rate.md",
+      "content_length": 93,
+      "original_file": "docs/katana-api-reference/reference_create-tax-rate.html"
+    },
+    {
+      "title": "Create a customer address",
+      "endpoint_slug": "createcustomeraddress",
+      "text_file": "createcustomeraddress.md",
+      "content_length": 268,
+      "original_file": "docs/katana-api-reference/reference_createcustomeraddress.html"
+    },
+    {
+      "title": "Update a variant",
+      "endpoint_slug": "updatevariant",
+      "text_file": "updatevariant.md",
+      "content_length": 197,
+      "original_file": "docs/katana-api-reference/reference_updatevariant.html"
+    },
+    {
+      "title": "Update a stocktake",
+      "endpoint_slug": "updatestocktakebyid",
+      "text_file": "updatestocktakebyid.md",
+      "content_length": 421,
+      "original_file": "docs/katana-api-reference/reference_updatestocktakebyid.html"
+    },
+    {
+      "title": "The variant default storage bin object",
+      "endpoint_slug": "the-variant-default-storage-bin-object",
+      "text_file": "the-variant-default-storage-bin-object.md",
+      "content_length": 506,
+      "original_file": "docs/katana-api-reference/reference_the-variant-default-storage-bin-object.html"
+    },
+    {
+      "title": "Create price list rows",
+      "endpoint_slug": "createpricelistrow",
+      "text_file": "createpricelistrow.md",
+      "content_length": 103,
+      "original_file": "docs/katana-api-reference/reference_createpricelistrow.html"
+    },
+    {
+      "title": "List all sales return rows",
+      "endpoint_slug": "getallsalesreturnrows",
+      "text_file": "getallsalesreturnrows.md",
+      "content_length": 250,
+      "original_file": "docs/katana-api-reference/reference_getallsalesreturnrows.html"
+    },
+    {
+      "title": "Creates a sales order shipping fee and add it to sales order",
+      "endpoint_slug": "addshippingfee",
+      "text_file": "addshippingfee.md",
+      "content_length": 182,
+      "original_file": "docs/katana-api-reference/reference_addshippingfee.html"
+    },
+    {
+      "title": "The sales order fulfillment object",
+      "endpoint_slug": "the-sales-order-fulfillment-object",
+      "text_file": "the-sales-order-fulfillment-object.md",
+      "content_length": 1770,
+      "original_file": "docs/katana-api-reference/reference_the-sales-order-fulfillment-object.html"
+    },
+    {
+      "title": "The purchase order row object",
+      "endpoint_slug": "the-purchase-order-row-object",
+      "text_file": "the-purchase-order-row-object.md",
+      "content_length": 1761,
+      "original_file": "docs/katana-api-reference/reference_the-purchase-order-row-object.html"
+    },
+    {
+      "title": "Update a product",
+      "endpoint_slug": "updateproduct",
+      "text_file": "updateproduct.md",
+      "content_length": 197,
+      "original_file": "docs/katana-api-reference/reference_updateproduct.html"
+    },
+    {
+      "title": "Delete sales order",
+      "endpoint_slug": "delete-sales-order",
+      "text_file": "delete-sales-order.md",
+      "content_length": 110,
+      "original_file": "docs/katana-api-reference/reference_delete-sales-order.html"
+    },
+    {
+      "title": "Update a customer",
+      "endpoint_slug": "updatecustomer",
+      "text_file": "updatecustomer.md",
+      "content_length": 200,
+      "original_file": "docs/katana-api-reference/reference_updatecustomer.html"
+    },
+    {
+      "title": "Delete a purchase order additional cost row",
+      "endpoint_slug": "deletepoadditionalcost",
+      "text_file": "deletepoadditionalcost.md",
+      "content_length": 162,
+      "original_file": "docs/katana-api-reference/reference_deletepoadditionalcost.html"
+    },
+    {
+      "title": "Rate limiting",
+      "endpoint_slug": "api-rate-limiting",
+      "text_file": "api-rate-limiting.md",
+      "content_length": 1995,
+      "original_file": "docs/katana-api-reference/reference_api-rate-limiting.html"
+    },
+    {
+      "title": "Retrieve a sales order",
+      "endpoint_slug": "retrieve-sales-order",
+      "text_file": "retrieve-sales-order.md",
+      "content_length": 136,
+      "original_file": "docs/katana-api-reference/reference_retrieve-sales-order.html"
+    },
+    {
+      "title": "Get return reasons",
+      "endpoint_slug": "getreturnreasons",
+      "text_file": "getreturnreasons.md",
+      "content_length": 100,
+      "original_file": "docs/katana-api-reference/reference_getreturnreasons.html"
+    },
+    {
+      "title": "Update the reorder point",
+      "endpoint_slug": "update-reorder-point",
+      "text_file": "update-reorder-point.md",
+      "content_length": 232,
+      "original_file": "docs/katana-api-reference/reference_update-reorder-point.html"
+    },
+    {
+      "title": "Create a manufacturing order production",
+      "endpoint_slug": "createmanufacturingorderproduction",
+      "text_file": "createmanufacturingorderproduction.md",
+      "content_length": 159,
+      "original_file": "docs/katana-api-reference/reference_createmanufacturingorderproduction.html"
+    },
+    {
+      "title": "Update a recipe row",
+      "endpoint_slug": "updatereciperow",
+      "text_file": "updatereciperow.md",
+      "content_length": 401,
+      "original_file": "docs/katana-api-reference/reference_updatereciperow.html"
+    },
+    {
+      "title": "Update a stock transfer",
+      "endpoint_slug": "updatestocktransfer",
+      "text_file": "updatestocktransfer.md",
+      "content_length": 218,
+      "original_file": "docs/katana-api-reference/reference_updatestocktransfer.html"
+    },
+    {
+      "title": "List all suppliers",
+      "endpoint_slug": "list-all-suppliers",
+      "text_file": "list-all-suppliers.md",
+      "content_length": 209,
+      "original_file": "docs/katana-api-reference/reference_list-all-suppliers.html"
+    },
+    {
+      "title": "Delete a product",
+      "endpoint_slug": "deleteproduct",
+      "text_file": "deleteproduct.md",
+      "content_length": 93,
+      "original_file": "docs/katana-api-reference/reference_deleteproduct.html"
+    },
+    {
+      "title": "The customer object",
+      "endpoint_slug": "the-customer-object",
+      "text_file": "the-customer-object.md",
+      "content_length": 2211,
+      "original_file": "docs/katana-api-reference/reference_the-customer-object.html"
+    },
+    {
+      "title": "Delete a storage bin",
+      "endpoint_slug": "deletestoragebin",
+      "text_file": "deletestoragebin.md",
+      "content_length": 106,
+      "original_file": "docs/katana-api-reference/reference_deletestoragebin.html"
+    },
+    {
+      "title": "Best practices for webhook use",
+      "endpoint_slug": "docs_webhook-best-practices",
+      "text_file": "docs_webhook-best-practices.md",
+      "content_length": 2820,
+      "original_file": "docs/katana-api-reference/docs_webhook-best-practices.html"
+    },
+    {
+      "title": "The sales order address object",
+      "endpoint_slug": "the-sales-order-address-object",
+      "text_file": "the-sales-order-address-object.md",
+      "content_length": 826,
+      "original_file": "docs/katana-api-reference/reference_the-sales-order-address-object.html"
+    },
+    {
+      "title": "Filtering",
+      "endpoint_slug": "api-filtering",
+      "text_file": "api-filtering.md",
+      "content_length": 1737,
+      "original_file": "docs/katana-api-reference/reference_api-filtering.html"
+    },
+    {
+      "title": "List all price list customers",
+      "endpoint_slug": "getallpricelistcustomers",
+      "text_file": "getallpricelistcustomers.md",
+      "content_length": 266,
+      "original_file": "docs/katana-api-reference/reference_getallpricelistcustomers.html"
+    },
+    {
+      "title": "Change the product operation's rank",
+      "endpoint_slug": "rerankproductoperation",
+      "text_file": "rerankproductoperation.md",
+      "content_length": 361,
+      "original_file": "docs/katana-api-reference/reference_rerankproductoperation.html"
+    },
+    {
+      "title": "Delete a variant",
+      "endpoint_slug": "deletevariant",
+      "text_file": "deletevariant.md",
+      "content_length": 93,
+      "original_file": "docs/katana-api-reference/reference_deletevariant.html"
+    },
+    {
+      "title": "Delete a stocktake row",
+      "endpoint_slug": "deletestocktakerowbyid",
+      "text_file": "deletestocktakerowbyid.md",
+      "content_length": 111,
+      "original_file": "docs/katana-api-reference/reference_deletestocktakerowbyid.html"
+    },
+    {
+      "title": "Update a supplier",
+      "endpoint_slug": "updatesupplier",
+      "text_file": "updatesupplier.md",
+      "content_length": 200,
+      "original_file": "docs/katana-api-reference/reference_updatesupplier.html"
+    },
+    {
+      "title": "List all sales order accounting metadata",
+      "endpoint_slug": "getallsalesorderaccountingmetadata",
+      "text_file": "getallsalesorderaccountingmetadata.md",
+      "content_length": 165,
+      "original_file": "docs/katana-api-reference/reference_getallsalesorderaccountingmetadata.html"
+    },
+    {
+      "title": "Update a manufacturing order operation row",
+      "endpoint_slug": "updatemanufacturingorderoperationrow",
+      "text_file": "updatemanufacturingorderoperationrow.md",
+      "content_length": 384,
+      "original_file": "docs/katana-api-reference/reference_updatemanufacturingorderoperationrow.html"
+    },
+    {
+      "title": "Update stock transfers status",
+      "endpoint_slug": "updatestocktransferstatus",
+      "text_file": "updatestocktransferstatus.md",
+      "content_length": 141,
+      "original_file": "docs/katana-api-reference/reference_updatestocktransferstatus.html"
+    },
+    {
+      "title": "Export webhook logs",
+      "endpoint_slug": "export-webhook-logs",
+      "text_file": "export-webhook-logs.md",
+      "content_length": 277,
+      "original_file": "docs/katana-api-reference/reference_export-webhook-logs.html"
+    },
+    {
+      "title": "Creating a sales order",
+      "endpoint_slug": "docs_creating-a-sales-order",
+      "text_file": "docs_creating-a-sales-order.md",
+      "content_length": 31464,
+      "original_file": "docs/katana-api-reference/docs_creating-a-sales-order.html"
+    },
+    {
+      "title": "Create a sales return",
+      "endpoint_slug": "createsalesreturn",
+      "text_file": "createsalesreturn.md",
+      "content_length": 105,
+      "original_file": "docs/katana-api-reference/reference_createsalesreturn.html"
+    },
+    {
+      "title": "List all product operations",
+      "endpoint_slug": "getallproductoperationrows",
+      "text_file": "getallproductoperationrows.md",
+      "content_length": 153,
+      "original_file": "docs/katana-api-reference/reference_getallproductoperationrows.html"
+    },
+    {
+      "title": "Update a product operation row",
+      "endpoint_slug": "updateproductoperationrow",
+      "text_file": "updateproductoperationrow.md",
+      "content_length": 394,
+      "original_file": "docs/katana-api-reference/reference_updateproductoperationrow.html"
+    },
+    {
+      "title": "Create a manufacturing order",
+      "endpoint_slug": "createmanufacturingorder",
+      "text_file": "createmanufacturingorder.md",
+      "content_length": 242,
+      "original_file": "docs/katana-api-reference/reference_createmanufacturingorder.html"
+    },
+    {
+      "title": "Deletes shipping fee, also removes it from attached sales order.",
+      "endpoint_slug": "deleteshippingfee",
+      "text_file": "deleteshippingfee.md",
+      "content_length": 196,
+      "original_file": "docs/katana-api-reference/reference_deleteshippingfee.html"
+    },
+    {
+      "title": "Delete sales return",
+      "endpoint_slug": "deletesalesreturn",
+      "text_file": "deletesalesreturn.md",
+      "content_length": 113,
+      "original_file": "docs/katana-api-reference/reference_deletesalesreturn.html"
+    },
+    {
+      "title": "Create a make-to-order manufacturing order",
+      "endpoint_slug": "maketoordermanufacturingorder",
+      "text_file": "maketoordermanufacturingorder.md",
+      "content_length": 198,
+      "original_file": "docs/katana-api-reference/reference_maketoordermanufacturingorder.html"
+    },
+    {
+      "title": "List all products",
+      "endpoint_slug": "list-all-products",
+      "text_file": "list-all-products.md",
+      "content_length": 204,
+      "original_file": "docs/katana-api-reference/reference_list-all-products.html"
+    },
+    {
+      "title": "List all stocktake rows",
+      "endpoint_slug": "findstocktakerows",
+      "text_file": "findstocktakerows.md",
+      "content_length": 234,
+      "original_file": "docs/katana-api-reference/reference_findstocktakerows.html"
+    },
+    {
+      "title": "The product object",
+      "endpoint_slug": "the-product-object",
+      "text_file": "the-product-object.md",
+      "content_length": 2605,
+      "original_file": "docs/katana-api-reference/reference_the-product-object.html"
+    },
+    {
+      "title": "Update a sales return row",
+      "endpoint_slug": "updatesalesreturnrow",
+      "text_file": "updatesalesreturnrow.md",
+      "content_length": 224,
+      "original_file": "docs/katana-api-reference/reference_updatesalesreturnrow.html"
+    },
+    {
+      "title": "Create a batch",
+      "endpoint_slug": "createbatch",
+      "text_file": "createbatch.md",
+      "content_length": 81,
+      "original_file": "docs/katana-api-reference/reference_createbatch.html"
+    },
+    {
+      "title": "Retrieve a price list customer",
+      "endpoint_slug": "getpricelistcustomer",
+      "text_file": "getpricelistcustomer.md",
+      "content_length": 160,
+      "original_file": "docs/katana-api-reference/reference_getpricelistcustomer.html"
+    },
+    {
+      "title": "List all materials",
+      "endpoint_slug": "getallmaterials",
+      "text_file": "getallmaterials.md",
+      "content_length": 209,
+      "original_file": "docs/katana-api-reference/reference_getallmaterials.html"
+    },
+    {
+      "title": "Update a manufacturing order recipe row",
+      "endpoint_slug": "updatemanufacturingorderreciperows",
+      "text_file": "updatemanufacturingorderreciperows.md",
+      "content_length": 341,
+      "original_file": "docs/katana-api-reference/reference_updatemanufacturingorderreciperows.html"
+    },
+    {
+      "title": "List all manufacturing orders",
+      "endpoint_slug": "getallmanufacturingorders",
+      "text_file": "getallmanufacturingorders.md",
+      "content_length": 264,
+      "original_file": "docs/katana-api-reference/reference_getallmanufacturingorders.html"
+    },
+    {
+      "title": "Authentication",
+      "endpoint_slug": "api-authentication",
+      "text_file": "api-authentication.md",
+      "content_length": 2336,
+      "original_file": "docs/katana-api-reference/reference_api-authentication.html"
+    },
+    {
+      "title": "Versioning",
+      "endpoint_slug": "api-versioning",
+      "text_file": "api-versioning.md",
+      "content_length": 1223,
+      "original_file": "docs/katana-api-reference/reference_api-versioning.html"
+    },
+    {
+      "title": "The outsourced purchase order recipe row object",
+      "endpoint_slug": "outsourced-purchase-order-recipe-row",
+      "text_file": "outsourced-purchase-order-recipe-row.md",
+      "content_length": 1530,
+      "original_file": "docs/katana-api-reference/reference_outsourced-purchase-order-recipe-row.html"
+    },
+    {
+      "title": "List all webhooks",
+      "endpoint_slug": "getallwebhooks",
+      "text_file": "getallwebhooks.md",
+      "content_length": 201,
+      "original_file": "docs/katana-api-reference/reference_getallwebhooks.html"
+    },
+    {
+      "title": "Update an outsourced purchase order recipe row",
+      "endpoint_slug": "updatepurchaseorderreciperow",
+      "text_file": "updatepurchaseorderreciperow.md",
+      "content_length": 285,
+      "original_file": "docs/katana-api-reference/reference_updatepurchaseorderreciperow.html"
+    },
+    {
+      "title": "List all variants with negative stock",
+      "endpoint_slug": "getallnegativestock",
+      "text_file": "getallnegativestock.md",
+      "content_length": 236,
+      "original_file": "docs/katana-api-reference/reference_getallnegativestock.html"
+    },
+    {
+      "title": "The stocktake object",
+      "endpoint_slug": "the-stocktake-object",
+      "text_file": "the-stocktake-object.md",
+      "content_length": 1518,
+      "original_file": "docs/katana-api-reference/reference_the-stocktake-object.html"
+    },
+    {
+      "title": "Retrieve an outsourced purchase order recipe row",
+      "endpoint_slug": "getpurchaseorderreciperow",
+      "text_file": "getpurchaseorderreciperow.md",
+      "content_length": 201,
+      "original_file": "docs/katana-api-reference/reference_getpurchaseorderreciperow.html"
+    },
+    {
+      "title": "Update batch details",
+      "endpoint_slug": "updatebatchstock",
+      "text_file": "updatebatchstock.md",
+      "content_length": 217,
+      "original_file": "docs/katana-api-reference/reference_updatebatchstock.html"
+    },
+    {
+      "title": "Retrieve a service",
+      "endpoint_slug": "getservice",
+      "text_file": "getservice.md",
+      "content_length": 125,
+      "original_file": "docs/katana-api-reference/reference_getservice.html"
+    },
+    {
+      "title": "Delete a stock transfer",
+      "endpoint_slug": "deletestocktransfer",
+      "text_file": "deletestocktransfer.md",
+      "content_length": 121,
+      "original_file": "docs/katana-api-reference/reference_deletestocktransfer.html"
+    },
+    {
+      "title": "List all sales orders",
+      "endpoint_slug": "list-all-sales-orders",
+      "text_file": "list-all-sales-orders.md",
+      "content_length": 226,
+      "original_file": "docs/katana-api-reference/reference_list-all-sales-orders.html"
+    },
+    {
+      "title": "The purchase order object",
+      "endpoint_slug": "the-purchase-order-object",
+      "text_file": "the-purchase-order-object.md",
+      "content_length": 3904,
+      "original_file": "docs/katana-api-reference/reference_the-purchase-order-object.html"
+    },
+    {
+      "title": "Delete sales order row",
+      "endpoint_slug": "delete-sales-order-row",
+      "text_file": "delete-sales-order-row.md",
+      "content_length": 205,
+      "original_file": "docs/katana-api-reference/reference_delete-sales-order-row.html"
+    },
+    {
+      "title": "The location object",
+      "endpoint_slug": "the-location-object",
+      "text_file": "the-location-object.md",
+      "content_length": 1351,
+      "original_file": "docs/katana-api-reference/reference_the-location-object.html"
+    },
+    {
+      "title": "Update a customer address",
+      "endpoint_slug": "updatecustomeraddress",
+      "text_file": "updatecustomeraddress.md",
+      "content_length": 225,
+      "original_file": "docs/katana-api-reference/reference_updatecustomeraddress.html"
+    },
+    {
+      "title": "Assign serial numbers to a resource",
+      "endpoint_slug": "createserialnumbers",
+      "text_file": "createserialnumbers.md",
+      "content_length": 156,
+      "original_file": "docs/katana-api-reference/reference_createserialnumbers.html"
+    },
+    {
+      "title": "Update a price list row",
+      "endpoint_slug": "updatepricelistrow",
+      "text_file": "updatepricelistrow.md",
+      "content_length": 218,
+      "original_file": "docs/katana-api-reference/reference_updatepricelistrow.html"
+    },
+    {
+      "title": "Pagination",
+      "endpoint_slug": "api-pagination",
+      "text_file": "api-pagination.md",
+      "content_length": 2080,
+      "original_file": "docs/katana-api-reference/reference_api-pagination.html"
+    },
+    {
+      "title": "Delete a price list customer",
+      "endpoint_slug": "deletepricelistcustomer",
+      "text_file": "deletepricelistcustomer.md",
+      "content_length": 136,
+      "original_file": "docs/katana-api-reference/reference_deletepricelistcustomer.html"
+    },
+    {
+      "title": "List current inventory",
+      "endpoint_slug": "list-current-inventory",
+      "text_file": "list-current-inventory.md",
+      "content_length": 190,
+      "original_file": "docs/katana-api-reference/reference_list-current-inventory.html"
+    },
+    {
+      "title": "Delete purchase order row",
+      "endpoint_slug": "deletepurchaseorderrow",
+      "text_file": "deletepurchaseorderrow.md",
+      "content_length": 131,
+      "original_file": "docs/katana-api-reference/reference_deletepurchaseorderrow.html"
+    },
+    {
+      "title": "List all BOM rows",
+      "endpoint_slug": "getallbomrows",
+      "text_file": "getallbomrows.md",
+      "content_length": 208,
+      "original_file": "docs/katana-api-reference/reference_getallbomrows.html"
+    },
+    {
+      "title": "List all services",
+      "endpoint_slug": "getallservices",
+      "text_file": "getallservices.md",
+      "content_length": 204,
+      "original_file": "docs/katana-api-reference/reference_getallservices.html"
+    },
+    {
+      "title": "Update a storage bin",
+      "endpoint_slug": "updatedefaultstoragebin",
+      "text_file": "updatedefaultstoragebin.md",
+      "content_length": 210,
+      "original_file": "docs/katana-api-reference/reference_updatedefaultstoragebin.html"
+    },
+    {
+      "title": "Getting started with Katana API",
+      "endpoint_slug": "docs_getting-started",
+      "text_file": "docs_getting-started.md",
+      "content_length": 3001,
+      "original_file": "docs/katana-api-reference/docs_getting-started.html"
+    },
+    {
+      "title": "Delete a supplier address",
+      "endpoint_slug": "deletesupplieraddress",
+      "text_file": "deletesupplieraddress.md",
+      "content_length": 121,
+      "original_file": "docs/katana-api-reference/reference_deletesupplieraddress.html"
+    },
+    {
+      "title": "The webhook object",
+      "endpoint_slug": "the-webhook-object",
+      "text_file": "the-webhook-object.md",
+      "content_length": 491,
+      "original_file": "docs/katana-api-reference/reference_the-webhook-object.html"
+    },
+    {
+      "title": "Retrieve a sales order row",
+      "endpoint_slug": "retrieve-sales-order-row",
+      "text_file": "retrieve-sales-order-row.md",
+      "content_length": 137,
+      "original_file": "docs/katana-api-reference/reference_retrieve-sales-order-row.html"
+    },
+    {
+      "title": "Delete a customer",
+      "endpoint_slug": "deletecustomer",
+      "text_file": "deletecustomer.md",
+      "content_length": 96,
+      "original_file": "docs/katana-api-reference/reference_deletecustomer.html"
+    },
+    {
+      "title": "Create price list customers",
+      "endpoint_slug": "createpricelistcustomer",
+      "text_file": "createpricelistcustomer.md",
+      "content_length": 114,
+      "original_file": "docs/katana-api-reference/reference_createpricelistcustomer.html"
+    },
+    {
+      "title": "Create recipes",
+      "endpoint_slug": "createrecipes",
+      "text_file": "createrecipes.md",
+      "content_length": 291,
+      "original_file": "docs/katana-api-reference/reference_createrecipes.html"
+    },
+    {
+      "title": "Retrieve a purchase order row",
+      "endpoint_slug": "getpurchaseorderrow",
+      "text_file": "getpurchaseorderrow.md",
+      "content_length": 157,
+      "original_file": "docs/katana-api-reference/reference_getpurchaseorderrow.html"
+    },
+    {
+      "title": "Link variant default storage bins",
+      "endpoint_slug": "linkvariantdefaultstoragebins",
+      "text_file": "linkvariantdefaultstoragebins.md",
+      "content_length": 416,
+      "original_file": "docs/katana-api-reference/reference_linkvariantdefaultstoragebins.html"
+    },
+    {
+      "title": "Create a customer",
+      "endpoint_slug": "create-customer",
+      "text_file": "create-customer.md",
+      "content_length": 93,
+      "original_file": "docs/katana-api-reference/reference_create-customer.html"
+    },
+    {
+      "title": "Unlink variant default storage bins",
+      "endpoint_slug": "unlinkvariantdefaultstoragebins",
+      "text_file": "unlinkvariantdefaultstoragebins.md",
+      "content_length": 262,
+      "original_file": "docs/katana-api-reference/reference_unlinkvariantdefaultstoragebins.html"
+    },
+    {
+      "title": "Delete a price list",
+      "endpoint_slug": "deletepricelist",
+      "text_file": "deletepricelist.md",
+      "content_length": 109,
+      "original_file": "docs/katana-api-reference/reference_deletepricelist.html"
+    },
+    {
+      "title": "Create a variant",
+      "endpoint_slug": "create-variant",
+      "text_file": "create-variant.md",
+      "content_length": 321,
+      "original_file": "docs/katana-api-reference/reference_create-variant.html"
+    },
+    {
+      "title": "List all stock transfers",
+      "endpoint_slug": "findstocktransfers",
+      "text_file": "findstocktransfers.md",
+      "content_length": 239,
+      "original_file": "docs/katana-api-reference/reference_findstocktransfers.html"
+    },
+    {
+      "title": "Delete a material",
+      "endpoint_slug": "deletematerial",
+      "text_file": "deletematerial.md",
+      "content_length": 96,
+      "original_file": "docs/katana-api-reference/reference_deletematerial.html"
+    },
+    {
+      "title": "Delete a manufacturing order production",
+      "endpoint_slug": "deletemanufacturingorderproduction",
+      "text_file": "deletemanufacturingorderproduction.md",
+      "content_length": 169,
+      "original_file": "docs/katana-api-reference/reference_deletemanufacturingorderproduction.html"
+    },
+    {
+      "title": "The serial number object",
+      "endpoint_slug": "the-serial-number-object",
+      "text_file": "the-serial-number-object.md",
+      "content_length": 496,
+      "original_file": "docs/katana-api-reference/reference_the-serial-number-object.html"
+    },
+    {
+      "title": "List all customer addresses",
+      "endpoint_slug": "getcustomeraddresses",
+      "text_file": "getcustomeraddresses.md",
+      "content_length": 254,
+      "original_file": "docs/katana-api-reference/reference_getcustomeraddresses.html"
+    },
+    {
+      "title": "Delete a stock adjustment",
+      "endpoint_slug": "deletestockadjustment",
+      "text_file": "deletestockadjustment.md",
+      "content_length": 127,
+      "original_file": "docs/katana-api-reference/reference_deletestockadjustment.html"
+    },
+    {
+      "title": "Retrieve a material",
+      "endpoint_slug": "getmaterial",
+      "text_file": "getmaterial.md",
+      "content_length": 128,
+      "original_file": "docs/katana-api-reference/reference_getmaterial.html"
+    },
+    {
+      "title": "Create a manufacturing order recipe row",
+      "endpoint_slug": "createmanufacturingorderreciperows",
+      "text_file": "createmanufacturingorderreciperows.md",
+      "content_length": 232,
+      "original_file": "docs/katana-api-reference/reference_createmanufacturingorderreciperows.html"
+    },
+    {
+      "title": "Create a product",
+      "endpoint_slug": "create-product",
+      "text_file": "create-product.md",
+      "content_length": 86,
+      "original_file": "docs/katana-api-reference/reference_create-product.html"
+    },
+    {
+      "title": "The manufacturing order operation row object",
+      "endpoint_slug": "the-manufacturing-order-operation-row-object",
+      "text_file": "the-manufacturing-order-operation-row-object.md",
+      "content_length": 4456,
+      "original_file": "docs/katana-api-reference/reference_the-manufacturing-order-operation-row-object.html"
+    },
+    {
+      "title": "List all purchase order additional cost rows",
+      "endpoint_slug": "getpurchaseorderadditionalcostrows",
+      "text_file": "getpurchaseorderadditionalcostrows.md",
+      "content_length": 183,
+      "original_file": "docs/katana-api-reference/reference_getpurchaseorderadditionalcostrows.html"
+    },
+    {
+      "title": "Update a purchase order",
+      "endpoint_slug": "updatepurchaseorder",
+      "text_file": "updatepurchaseorder.md",
+      "content_length": 218,
+      "original_file": "docs/katana-api-reference/reference_updatepurchaseorder.html"
+    },
+    {
+      "title": "Create an outsourced purchase order recipe row",
+      "endpoint_slug": "createpurchaseorderreciperow",
+      "text_file": "createpurchaseorderreciperow.md",
+      "content_length": 241,
+      "original_file": "docs/katana-api-reference/reference_createpurchaseorderreciperow.html"
+    },
+    {
+      "title": "The service object",
+      "endpoint_slug": "the-service-object",
+      "text_file": "the-service-object.md",
+      "content_length": 1138,
+      "original_file": "docs/katana-api-reference/reference_the-service-object.html"
+    },
+    {
+      "title": "Get returnable items",
+      "endpoint_slug": "getreturnableitems",
+      "text_file": "getreturnableitems.md",
+      "content_length": 130,
+      "original_file": "docs/katana-api-reference/reference_getreturnableitems.html"
+    },
+    {
+      "title": "HTTP status codes",
+      "endpoint_slug": "api-errors",
+      "text_file": "api-errors.md",
+      "content_length": 2076,
+      "original_file": "docs/katana-api-reference/reference_api-errors.html"
+    },
+    {
+      "title": "List all locations",
+      "endpoint_slug": "list-all-locations",
+      "text_file": "list-all-locations.md",
+      "content_length": 209,
+      "original_file": "docs/katana-api-reference/reference_list-all-locations.html"
+    },
+    {
+      "title": "Retrieve a purchase order",
+      "endpoint_slug": "getpurchaseorder",
+      "text_file": "getpurchaseorder.md",
+      "content_length": 145,
+      "original_file": "docs/katana-api-reference/reference_getpurchaseorder.html"
+    },
+    {
+      "title": "List all price list rows",
+      "endpoint_slug": "getallpricelistrows",
+      "text_file": "getallpricelistrows.md",
+      "content_length": 241,
+      "original_file": "docs/katana-api-reference/reference_getallpricelistrows.html"
+    },
+    {
+      "title": "Get all operators",
+      "endpoint_slug": "getoperators",
+      "text_file": "getoperators.md",
+      "content_length": 122,
+      "original_file": "docs/katana-api-reference/reference_getoperators.html"
+    },
+    {
+      "title": "Delete webhook",
+      "endpoint_slug": "deletewebhook",
+      "text_file": "deletewebhook.md",
+      "content_length": 98,
+      "original_file": "docs/katana-api-reference/reference_deletewebhook.html"
+    },
+    {
+      "title": "Retrieve the current factory",
+      "endpoint_slug": "getfactory",
+      "text_file": "getfactory.md",
+      "content_length": 121,
+      "original_file": "docs/katana-api-reference/reference_getfactory.html"
+    },
+    {
+      "title": "The stock adjustment object",
+      "endpoint_slug": "the-stock-adjustment-object",
+      "text_file": "the-stock-adjustment-object.md",
+      "content_length": 1378,
+      "original_file": "docs/katana-api-reference/reference_the-stock-adjustment-object.html"
+    },
+    {
+      "title": "List all supplier addresses",
+      "endpoint_slug": "getsupplieraddresses",
+      "text_file": "getsupplieraddresses.md",
+      "content_length": 254,
+      "original_file": "docs/katana-api-reference/reference_getsupplieraddresses.html"
+    },
+    {
+      "title": "List all purchase order rows",
+      "endpoint_slug": "getallpurchaseorderrows",
+      "text_file": "getallpurchaseorderrows.md",
+      "content_length": 244,
+      "original_file": "docs/katana-api-reference/reference_getallpurchaseorderrows.html"
+    },
+    {
+      "title": "List all stocktakes",
+      "endpoint_slug": "findstocktakes",
+      "text_file": "findstocktakes.md",
+      "content_length": 214,
+      "original_file": "docs/katana-api-reference/reference_findstocktakes.html"
+    },
+    {
+      "title": "Create a supplier address",
+      "endpoint_slug": "createsupplieraddress",
+      "text_file": "createsupplieraddress.md",
+      "content_length": 234,
+      "original_file": "docs/katana-api-reference/reference_createsupplieraddress.html"
+    },
+    {
+      "title": "Update a purchase order additional cost row",
+      "endpoint_slug": "updateadditionalcostrow",
+      "text_file": "updateadditionalcostrow.md",
+      "content_length": 266,
+      "original_file": "docs/katana-api-reference/reference_updateadditionalcostrow.html"
+    },
+    {
+      "title": "Update a service",
+      "endpoint_slug": "updateservice",
+      "text_file": "updateservice.md",
+      "content_length": 197,
+      "original_file": "docs/katana-api-reference/reference_updateservice.html"
+    },
+    {
+      "title": "Verifying a webhook signature",
+      "endpoint_slug": "docs_verifying-webhook-signature",
+      "text_file": "docs_verifying-webhook-signature.md",
+      "content_length": 1916,
+      "original_file": "docs/katana-api-reference/docs_verifying-webhook-signature.html"
+    },
+    {
+      "title": "Update a sales order",
+      "endpoint_slug": "update-sales-order",
+      "text_file": "update-sales-order.md",
+      "content_length": 209,
+      "original_file": "docs/katana-api-reference/reference_update-sales-order.html"
+    },
+    {
+      "title": "The serial number stock object",
+      "endpoint_slug": "the-serial-number-stock-object",
+      "text_file": "the-serial-number-stock-object.md",
+      "content_length": 328,
+      "original_file": "docs/katana-api-reference/reference_the-serial-number-stock-object.html"
+    },
+    {
+      "title": "Delete purchase order",
+      "endpoint_slug": "deletepurchaseorder",
+      "text_file": "deletepurchaseorder.md",
+      "content_length": 119,
+      "original_file": "docs/katana-api-reference/reference_deletepurchaseorder.html"
+    },
+    {
+      "title": "Create a stock adjustment",
+      "endpoint_slug": "createstockadjustment",
+      "text_file": "createstockadjustment.md",
+      "content_length": 113,
+      "original_file": "docs/katana-api-reference/reference_createstockadjustment.html"
+    },
+    {
+      "title": "Update a manufacturing order production",
+      "endpoint_slug": "updatemanufacturingorderproduction",
+      "text_file": "updatemanufacturingorderproduction.md",
+      "content_length": 266,
+      "original_file": "docs/katana-api-reference/reference_updatemanufacturingorderproduction.html"
+    },
+    {
+      "title": "Create a webhook",
+      "endpoint_slug": "createwebhook",
+      "text_file": "createwebhook.md",
+      "content_length": 90,
+      "original_file": "docs/katana-api-reference/reference_createwebhook.html"
+    },
+    {
+      "title": "Delete outsourced purchase order recipe row",
+      "endpoint_slug": "deletepurchaseorderreciperow",
+      "text_file": "deletepurchaseorderreciperow.md",
+      "content_length": 250,
+      "original_file": "docs/katana-api-reference/reference_deletepurchaseorderreciperow.html"
+    },
+    {
+      "title": "List all manufacturing order recipe rows",
+      "endpoint_slug": "getallmanufacturingorderreciperows",
+      "text_file": "getallmanufacturingorderreciperows.md",
+      "content_length": 319,
+      "original_file": "docs/katana-api-reference/reference_getallmanufacturingorderreciperows.html"
+    },
+    {
+      "title": "Retrieve a manufacturing order operation row",
+      "endpoint_slug": "getmanufacturingorderoperationrow",
+      "text_file": "getmanufacturingorderoperationrow.md",
+      "content_length": 191,
+      "original_file": "docs/katana-api-reference/reference_getmanufacturingorderoperationrow.html"
+    },
+    {
+      "title": "The sales return object",
+      "endpoint_slug": "the-sales-return-object",
+      "text_file": "the-sales-return-object.md",
+      "content_length": 938,
+      "original_file": "docs/katana-api-reference/reference_the-sales-return-object.html"
+    },
+    {
+      "title": "Returns a list of in-stock serial numbers",
+      "endpoint_slug": "getserialnumberstock",
+      "text_file": "getserialnumberstock.md",
+      "content_length": 190,
+      "original_file": "docs/katana-api-reference/reference_getserialnumberstock.html"
+    },
+    {
+      "title": "List all manufacturing order operation rows",
+      "endpoint_slug": "getallmanufacturingorderoperationrows",
+      "text_file": "getallmanufacturingorderoperationrows.md",
+      "content_length": 334,
+      "original_file": "docs/katana-api-reference/reference_getallmanufacturingorderoperationrows.html"
+    },
+    {
+      "title": "BOM row",
+      "endpoint_slug": "bom-row",
+      "text_file": "bom-row.md",
+      "content_length": 144,
+      "original_file": "docs/katana-api-reference/reference_bom-row.html"
+    },
+    {
+      "title": "Delete a manufacturing order operation row",
+      "endpoint_slug": "deletemanufacturingorderoperationrow",
+      "text_file": "deletemanufacturingorderoperationrow.md",
+      "content_length": 178,
+      "original_file": "docs/katana-api-reference/reference_deletemanufacturingorderoperationrow.html"
+    },
+    {
+      "title": "List all purchase orders",
+      "endpoint_slug": "findpurchaseorders",
+      "text_file": "findpurchaseorders.md",
+      "content_length": 239,
+      "original_file": "docs/katana-api-reference/reference_findpurchaseorders.html"
+    },
+    {
+      "title": "Delete sales return row",
+      "endpoint_slug": "deletesalesreturnrow",
+      "text_file": "deletesalesreturnrow.md",
+      "content_length": 125,
+      "original_file": "docs/katana-api-reference/reference_deletesalesreturnrow.html"
+    },
+    {
+      "title": "Update a sales order address",
+      "endpoint_slug": "update-sales-order-address",
+      "text_file": "update-sales-order-address.md",
+      "content_length": 234,
+      "original_file": "docs/katana-api-reference/reference_update-sales-order-address.html"
+    },
+    {
+      "title": "Unlink a manufacturing order from sales order row",
+      "endpoint_slug": "unlinkmanufacturingorder",
+      "text_file": "unlinkmanufacturingorder.md",
+      "content_length": 178,
+      "original_file": "docs/katana-api-reference/reference_unlinkmanufacturingorder.html"
+    },
+    {
+      "title": "Returns a list of serial numbers",
+      "endpoint_slug": "getserialnumbers",
+      "text_file": "getserialnumbers.md",
+      "content_length": 171,
+      "original_file": "docs/katana-api-reference/reference_getserialnumbers.html"
+    },
+    {
+      "title": "Delete a product operation row",
+      "endpoint_slug": "deleteproductoperationrow",
+      "text_file": "deleteproductoperationrow.md",
+      "content_length": 253,
+      "original_file": "docs/katana-api-reference/reference_deleteproductoperationrow.html"
+    },
+    {
+      "title": "Create a sales return row",
+      "endpoint_slug": "createsalesreturnrow",
+      "text_file": "createsalesreturnrow.md",
+      "content_length": 117,
+      "original_file": "docs/katana-api-reference/reference_createsalesreturnrow.html"
+    },
+    {
+      "title": "Delete a service",
+      "endpoint_slug": "deleteservice",
+      "text_file": "deleteservice.md",
+      "content_length": 93,
+      "original_file": "docs/katana-api-reference/reference_deleteservice.html"
+    },
+    {
+      "title": "List all additional costs",
+      "endpoint_slug": "getadditionalcosts",
+      "text_file": "getadditionalcosts.md",
+      "content_length": 138,
+      "original_file": "docs/katana-api-reference/reference_getadditionalcosts.html"
+    },
+    {
+      "title": "Create a stock transfer",
+      "endpoint_slug": "createstocktransfer",
+      "text_file": "createstocktransfer.md",
+      "content_length": 107,
+      "original_file": "docs/katana-api-reference/reference_createstocktransfer.html"
+    },
+    {
+      "title": "Receive a purchase order",
+      "endpoint_slug": "receivepurchaseorder",
+      "text_file": "receivepurchaseorder.md",
+      "content_length": 535,
+      "original_file": "docs/katana-api-reference/reference_receivepurchaseorder.html"
+    },
+    {
+      "title": "Update a webhook",
+      "endpoint_slug": "updatewebhook",
+      "text_file": "updatewebhook.md",
+      "content_length": 197,
+      "original_file": "docs/katana-api-reference/reference_updatewebhook.html"
+    },
+    {
+      "title": "List all manufacturing orders",
+      "endpoint_slug": "getallmanufacturingorderproductions",
+      "text_file": "getallmanufacturingorderproductions.md",
+      "content_length": 275,
+      "original_file": "docs/katana-api-reference/reference_getallmanufacturingorderproductions.html"
+    },
+    {
+      "title": "Create stocktake rows",
+      "endpoint_slug": "createstocktakerows",
+      "text_file": "createstocktakerows.md",
+      "content_length": 160,
+      "original_file": "docs/katana-api-reference/reference_createstocktakerows.html"
+    },
+    {
+      "title": "The manufacturing order recipe row object",
+      "endpoint_slug": "the-manufacturing-order-recipe-row-object",
+      "text_file": "the-manufacturing-order-recipe-row-object.md",
+      "content_length": 1600,
+      "original_file": "docs/katana-api-reference/reference_the-manufacturing-order-recipe-row-object.html"
+    },
+    {
+      "title": "Update a price list customer",
+      "endpoint_slug": "updatepricelistcustomer",
+      "text_file": "updatepricelistcustomer.md",
+      "content_length": 233,
+      "original_file": "docs/katana-api-reference/reference_updatepricelistcustomer.html"
+    },
+    {
+      "title": "Getting started with Katana API",
+      "endpoint_slug": "docs",
+      "text_file": "docs.md",
+      "content_length": 3001,
+      "original_file": "docs/katana-api-reference/docs.html"
+    },
+    {
+      "title": "Recipe",
+      "endpoint_slug": "recipe",
+      "text_file": "recipe.md",
+      "content_length": 359,
+      "original_file": "docs/katana-api-reference/reference_recipe.html"
+    },
+    {
+      "title": "Unassign serial numbers from a resource",
+      "endpoint_slug": "deleteserialnumbers",
+      "text_file": "deleteserialnumbers.md",
+      "content_length": 132,
+      "original_file": "docs/katana-api-reference/reference_deleteserialnumbers.html"
+    },
+    {
+      "title": "The sales order row object",
+      "endpoint_slug": "the-sales-order-row-object",
+      "text_file": "the-sales-order-row-object.md",
+      "content_length": 2887,
+      "original_file": "docs/katana-api-reference/reference_the-sales-order-row-object.html"
+    },
+    {
+      "title": "Delete sales order address",
+      "endpoint_slug": "delete-sales-order-address",
+      "text_file": "delete-sales-order-address.md",
+      "content_length": 135,
+      "original_file": "docs/katana-api-reference/reference_delete-sales-order-address.html"
+    },
+    {
+      "title": "Delete a recipe row",
+      "endpoint_slug": "deletereciperow",
+      "text_file": "deletereciperow.md",
+      "content_length": 261,
+      "original_file": "docs/katana-api-reference/reference_deletereciperow.html"
+    },
+    {
+      "title": "The supplier object",
+      "endpoint_slug": "the-supplier-object",
+      "text_file": "the-supplier-object.md",
+      "content_length": 329,
+      "original_file": "docs/katana-api-reference/reference_the-supplier-object.html"
+    },
+    {
+      "title": "Create a service",
+      "endpoint_slug": "createservice",
+      "text_file": "createservice.md",
+      "content_length": 86,
+      "original_file": "docs/katana-api-reference/reference_createservice.html"
+    },
+    {
+      "title": "The BOM row object",
+      "endpoint_slug": "the-bom-row-object",
+      "text_file": "the-bom-row-object.md",
+      "content_length": 550,
+      "original_file": "docs/katana-api-reference/reference_the-bom-row-object.html"
+    },
+    {
+      "title": "Create a manufacturing order operation row",
+      "endpoint_slug": "createmanufacturingorderoperationrow",
+      "text_file": "createmanufacturingorderoperationrow.md",
+      "content_length": 245,
+      "original_file": "docs/katana-api-reference/reference_createmanufacturingorderoperationrow.html"
+    },
+    {
+      "title": "Create a sales order fulfillment",
+      "endpoint_slug": "create-sales-order-fulfillment",
+      "text_file": "create-sales-order-fulfillment.md",
+      "content_length": 147,
+      "original_file": "docs/katana-api-reference/reference_create-sales-order-fulfillment.html"
+    },
+    {
+      "title": "Retrieve a product",
+      "endpoint_slug": "getproduct",
+      "text_file": "getproduct.md",
+      "content_length": 125,
+      "original_file": "docs/katana-api-reference/reference_getproduct.html"
+    },
+    {
+      "title": "List all stock adjustments",
+      "endpoint_slug": "findstockadjustments",
+      "text_file": "findstockadjustments.md",
+      "content_length": 249,
+      "original_file": "docs/katana-api-reference/reference_findstockadjustments.html"
+    },
+    {
+      "title": "Create a supplier",
+      "endpoint_slug": "create-supplier",
+      "text_file": "create-supplier.md",
+      "content_length": 93,
+      "original_file": "docs/katana-api-reference/reference_create-supplier.html"
+    },
+    {
+      "title": "List all purchase order accounting metadata",
+      "endpoint_slug": "getallpurchaseorderaccountingmetadata",
+      "text_file": "getallpurchaseorderaccountingmetadata.md",
+      "content_length": 174,
+      "original_file": "docs/katana-api-reference/reference_getallpurchaseorderaccountingmetadata.html"
+    },
+    {
+      "title": "List all recipes",
+      "endpoint_slug": "getallrecipes",
+      "text_file": "getallrecipes.md",
+      "content_length": 274,
+      "original_file": "docs/katana-api-reference/reference_getallrecipes.html"
+    },
+    {
+      "title": "The storage bin object",
+      "endpoint_slug": "the-storage-bin-object",
+      "text_file": "the-storage-bin-object.md",
+      "content_length": 287,
+      "original_file": "docs/katana-api-reference/reference_the-storage-bin-object.html"
+    },
+    {
+      "title": "Postman collection",
+      "endpoint_slug": "docs_postman-collection",
+      "text_file": "docs_postman-collection.md",
+      "content_length": 377,
+      "original_file": "docs/katana-api-reference/docs_postman-collection.html"
+    },
+    {
+      "title": "Creating Katana webhooks",
+      "endpoint_slug": "docs_getting-started-with-katana-webhooks",
+      "text_file": "docs_getting-started-with-katana-webhooks.md",
+      "content_length": 1989,
+      "original_file": "docs/katana-api-reference/docs_getting-started-with-katana-webhooks.html"
+    },
+    {
+      "title": "Create product operations",
+      "endpoint_slug": "createproductoperationrows",
+      "text_file": "createproductoperationrows.md",
+      "content_length": 278,
+      "original_file": "docs/katana-api-reference/reference_createproductoperationrows.html"
+    },
+    {
+      "title": "Retrieve a manufacturing order production",
+      "endpoint_slug": "getmanufacturingorderproduction",
+      "text_file": "getmanufacturingorderproduction.md",
+      "content_length": 194,
+      "original_file": "docs/katana-api-reference/reference_getmanufacturingorderproduction.html"
+    },
+    {
+      "title": "Create a sales order address",
+      "endpoint_slug": "create-sales-order-address",
+      "text_file": "create-sales-order-address.md",
+      "content_length": 127,
+      "original_file": "docs/katana-api-reference/reference_create-sales-order-address.html"
+    },
+    {
+      "title": "List all sales order fulfillments",
+      "endpoint_slug": "list-all-sales-order-fulfillments",
+      "text_file": "list-all-sales-order-fulfillments.md",
+      "content_length": 286,
+      "original_file": "docs/katana-api-reference/reference_list-all-sales-order-fulfillments.html"
+    },
+    {
+      "title": "Update a supplier address",
+      "endpoint_slug": "updatesupplieraddress",
+      "text_file": "updatesupplieraddress.md",
+      "content_length": 225,
+      "original_file": "docs/katana-api-reference/reference_updatesupplieraddress.html"
+    },
+    {
+      "title": "Webhooks",
+      "endpoint_slug": "webhooks",
+      "text_file": "webhooks.md",
+      "content_length": 8058,
+      "original_file": "docs/katana-api-reference/reference_webhooks.html"
+    },
+    {
+      "title": "List all tax rates",
+      "endpoint_slug": "list-all-tax-rates",
+      "text_file": "list-all-tax-rates.md",
+      "content_length": 206,
+      "original_file": "docs/katana-api-reference/reference_list-all-tax-rates.html"
+    },
+    {
+      "title": "Create a price list",
+      "endpoint_slug": "createpricelist",
+      "text_file": "createpricelist.md",
+      "content_length": 92,
+      "original_file": "docs/katana-api-reference/reference_createpricelist.html"
+    },
+    {
+      "title": "List all sales order rows",
+      "endpoint_slug": "getallsalesorderrows",
+      "text_file": "getallsalesorderrows.md",
+      "content_length": 246,
+      "original_file": "docs/katana-api-reference/reference_getallsalesorderrows.html"
+    },
+    {
+      "title": "Retrieve a variant",
+      "endpoint_slug": "getvariant",
+      "text_file": "getvariant.md",
+      "content_length": 125,
+      "original_file": "docs/katana-api-reference/reference_getvariant.html"
+    },
+    {
+      "title": "The manufacturing order production object",
+      "endpoint_slug": "the-manufacturing-order-production-object",
+      "text_file": "the-manufacturing-order-production-object.md",
+      "content_length": 2187,
+      "original_file": "docs/katana-api-reference/reference_the-manufacturing-order-production-object.html"
+    },
+    {
+      "title": "Delete a supplier",
+      "endpoint_slug": "deletesupplier",
+      "text_file": "deletesupplier.md",
+      "content_length": 96,
+      "original_file": "docs/katana-api-reference/reference_deletesupplier.html"
+    },
+    {
+      "title": "List all users",
+      "endpoint_slug": "getallusers",
+      "text_file": "getallusers.md",
+      "content_length": 108,
+      "original_file": "docs/katana-api-reference/reference_getallusers.html"
+    },
+    {
+      "title": "List all storage bins",
+      "endpoint_slug": "getallstoragebins",
+      "text_file": "getallstoragebins.md",
+      "content_length": 224,
+      "original_file": "docs/katana-api-reference/reference_getallstoragebins.html"
+    },
+    {
+      "title": "Create a purchase order additional cost row",
+      "endpoint_slug": "createpoadditionalcostrow",
+      "text_file": "createpoadditionalcostrow.md",
+      "content_length": 165,
+      "original_file": "docs/katana-api-reference/reference_createpoadditionalcostrow.html"
+    },
+    {
+      "title": "The purchase order accounting metadata object",
+      "endpoint_slug": "the-purchase-order-accounting-metadata-object",
+      "text_file": "the-purchase-order-accounting-metadata-object.md",
+      "content_length": 381,
+      "original_file": "docs/katana-api-reference/reference_the-purchase-order-accounting-metadata-object.html"
+    },
+    {
+      "title": "Create a sales order",
+      "endpoint_slug": "create-sales-order",
+      "text_file": "create-sales-order.md",
+      "content_length": 102,
+      "original_file": "docs/katana-api-reference/reference_create-sales-order.html"
+    },
+    {
+      "title": "List all price lists",
+      "endpoint_slug": "getallpricelists",
+      "text_file": "getallpricelists.md",
+      "content_length": 221,
+      "original_file": "docs/katana-api-reference/reference_getallpricelists.html"
+    },
+    {
+      "title": "Delete price list row",
+      "endpoint_slug": "deletepricelistrow",
+      "text_file": "deletepricelistrow.md",
+      "content_length": 119,
+      "original_file": "docs/katana-api-reference/reference_deletepricelistrow.html"
+    },
+    {
+      "title": "Retrieve a sales return row",
+      "endpoint_slug": "getsalesreturnrow",
+      "text_file": "getsalesreturnrow.md",
+      "content_length": 151,
+      "original_file": "docs/katana-api-reference/reference_getsalesreturnrow.html"
+    },
+    {
+      "title": "Retrieve a sales return",
+      "endpoint_slug": "getsalesreturn",
+      "text_file": "getsalesreturn.md",
+      "content_length": 139,
+      "original_file": "docs/katana-api-reference/reference_getsalesreturn.html"
+    },
+    {
+      "title": "Update a stock adjustment",
+      "endpoint_slug": "updatestockadjustment",
+      "text_file": "updatestockadjustment.md",
+      "content_length": 224,
+      "original_file": "docs/katana-api-reference/reference_updatestockadjustment.html"
+    },
+    {
+      "title": "List all customers",
+      "endpoint_slug": "list-all-customers",
+      "text_file": "list-all-customers.md",
+      "content_length": 209,
+      "original_file": "docs/katana-api-reference/reference_list-all-customers.html"
+    },
+    {
+      "title": "Retrieve a manufacturing order recipe row",
+      "endpoint_slug": "getmanufacturingorderreciperow",
+      "text_file": "getmanufacturingorderreciperow.md",
+      "content_length": 182,
+      "original_file": "docs/katana-api-reference/reference_getmanufacturingorderreciperow.html"
+    },
+    {
+      "title": "Retrieve a shipping fee",
+      "endpoint_slug": "getshippingfee",
+      "text_file": "getshippingfee.md",
+      "content_length": 150,
+      "original_file": "docs/katana-api-reference/reference_getshippingfee.html"
+    },
+    {
+      "title": "Update a manufacturing order production ingredient",
+      "endpoint_slug": "updatemanufacturingorderproductioningredient",
+      "text_file": "updatemanufacturingorderproductioningredient.md",
+      "content_length": 404,
+      "original_file": "docs/katana-api-reference/reference_updatemanufacturingorderproductioningredient.html"
+    }
+  ],
+  "total_content_length": 163660,
+  "description": "Cleaned Katana API documentation in Markdown format only"
+}

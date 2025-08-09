@@ -2360,6 +2360,18 @@ shellingham = ">=1.3.0"
 typing-extensions = ">=3.7.4.3"
 
 [[package]]
+name = "types-aiofiles"
+version = "24.1.0.20250809"
+description = "Typing stubs for aiofiles"
+optional = false
+python-versions = ">=3.9"
+groups = ["dev"]
+files = [
+    {file = "types_aiofiles-24.1.0.20250809-py3-none-any.whl", hash = "sha256:657c83f876047ffc242b34bfcd9167f201d1b02e914ee854f16e589aa95c0d45"},
+    {file = "types_aiofiles-24.1.0.20250809.tar.gz", hash = "sha256:4dc9734330b1324d9251f92edfc94fd6827fbb829c593313f034a77ac33ae327"},
+]
+
+[[package]]
 name = "types-python-dateutil"
 version = "2.9.0.20250708"
 description = "Typing stubs for python-dateutil"
@@ -2606,4 +2618,4 @@ dev = ["build", "linkify-it-py", "mdformat", "mdformat-gfm", "mdformat-tables", 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "0004dbea8c86e2ce3cc3ff03593c41e095f506a3d7fc61a9a8cd1c2fd7202b3e"
+content-hash = "b3c873cff59202e99e1329be182f7479da61753da1659abca6adeebea15c5d6c"
