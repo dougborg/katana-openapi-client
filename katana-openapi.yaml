@@ -2093,6 +2093,7 @@ components:
         uom:
           type: string
           maxLength: 7
+          description: Unit of measure for inventory tracking (e.g., kg, lb, pcs)
         category_name:
           type: string
         default_supplier_id:
@@ -2202,6 +2203,7 @@ components:
         uom:
           type: string
           maxLength: 7
+          description: Unit of measure for inventory tracking (e.g., kg, lb, pcs)
         category_name:
           type: string
         default_supplier_id:
@@ -2486,6 +2488,7 @@ components:
         entity_type:
           type: string
           enum: [regular, outsourced]
+          description: Type of purchase order - regular for materials or outsourced for subcontracted work
         supplier_id:
           type: integer
           maximum: 2147483647
@@ -2526,6 +2529,7 @@ components:
           description: Quantity of items to order for this purchase order line
         price_per_unit:
           type: number
+          description: Unit price for each item in this purchase order line
         purchase_uom_conversion_rate:
           type: number
         purchase_uom:
@@ -2928,10 +2932,13 @@ components:
           description: Business name of the supplier company or individual
         currency:
           type: string
+          description: Default currency code for transactions with this supplier (e.g., USD, EUR)
         email:
           type: string
+          description: Primary email address for supplier communication and order confirmations
         phone:
           type: string
+          description: Primary phone number for supplier contact and communication
         comment:
           type: string
         addresses:
@@ -3001,8 +3008,10 @@ components:
           description: Business name of the supplier company or individual
         email:
           type: string
+          description: Primary email address for supplier communication and order confirmations
         phone:
           type: string
+          description: Primary phone number for supplier contact and communication
         currency:
           type: string
           description: The supplier's currency (ISO 4217).
@@ -3130,11 +3139,13 @@ components:
           description: Stock keeping unit code for unique identification of this product variant
         sales_price:
           type: number
+          description: Default selling price per unit for this product variant
           minimum: 0
           maximum: 100000000000
         purchase_price:
           type: number
           minimum: 0
+          description: Default purchase cost per unit for this product variant
           maximum: 100000000000
         product_id:
           type: [integer, "null"]
@@ -3292,11 +3303,13 @@ components:
           description: Stock keeping unit code for unique identification of this product variant
         sales_price:
           type: number
+          description: Default selling price per unit for this product variant
           minimum: 0
           maximum: 100000000000
         purchase_price:
           type: number
           minimum: 0
+          description: Default purchase cost per unit for this product variant
           maximum: 100000000000
         product_id:
           type: [integer, "null"]
