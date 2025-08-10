@@ -81,7 +81,11 @@ def sync_detailed(
      Create BOM rows for a product.
 
     Args:
-        body (BatchCreateBomRowsRequest):
+        body (BatchCreateBomRowsRequest): Request payload for creating multiple BOM rows in a
+            single operation Example: {'bom_rows': [{'product_item_id': 3001, 'product_variant_id':
+            2001, 'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes': 'Primary component'},
+            {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2003,
+            'quantity': 1.0, 'notes': 'Secondary component'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -113,7 +117,11 @@ def sync(
      Create BOM rows for a product.
 
     Args:
-        body (BatchCreateBomRowsRequest):
+        body (BatchCreateBomRowsRequest): Request payload for creating multiple BOM rows in a
+            single operation Example: {'bom_rows': [{'product_item_id': 3001, 'product_variant_id':
+            2001, 'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes': 'Primary component'},
+            {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2003,
+            'quantity': 1.0, 'notes': 'Secondary component'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -140,7 +148,11 @@ async def asyncio_detailed(
      Create BOM rows for a product.
 
     Args:
-        body (BatchCreateBomRowsRequest):
+        body (BatchCreateBomRowsRequest): Request payload for creating multiple BOM rows in a
+            single operation Example: {'bom_rows': [{'product_item_id': 3001, 'product_variant_id':
+            2001, 'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes': 'Primary component'},
+            {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2003,
+            'quantity': 1.0, 'notes': 'Secondary component'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -170,7 +182,11 @@ async def asyncio(
      Create BOM rows for a product.
 
     Args:
-        body (BatchCreateBomRowsRequest):
+        body (BatchCreateBomRowsRequest): Request payload for creating multiple BOM rows in a
+            single operation Example: {'bom_rows': [{'product_item_id': 3001, 'product_variant_id':
+            2001, 'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes': 'Primary component'},
+            {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2003,
+            'quantity': 1.0, 'notes': 'Secondary component'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

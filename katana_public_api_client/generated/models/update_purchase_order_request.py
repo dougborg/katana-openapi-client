@@ -13,6 +13,8 @@ T = TypeVar("T", bound="UpdatePurchaseOrderRequest")
 
 @_attrs_define
 class UpdatePurchaseOrderRequest:
+    """Request payload for updating an existing purchase order's details, status, and line items"""
+
     order_no: Unset | str = UNSET
     supplier_id: Unset | int = UNSET
     currency: Unset | str = UNSET

@@ -15,6 +15,8 @@ T = TypeVar("T", bound="Customer")
 
 @_attrs_define
 class Customer:
+    """Customer entity representing individuals or companies that purchase products or services"""
+
     id: int
     name: str
     created_at: Unset | datetime.datetime = UNSET

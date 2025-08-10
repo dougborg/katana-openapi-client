@@ -20,6 +20,8 @@ T = TypeVar("T", bound="CreatePurchaseOrderRequest")
 
 @_attrs_define
 class CreatePurchaseOrderRequest:
+    """Request payload for creating a new purchase order to procure materials or products from suppliers"""
+
     order_no: str
     supplier_id: int
     location_id: int

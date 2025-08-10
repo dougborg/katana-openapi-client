@@ -16,6 +16,15 @@ T = TypeVar("T", bound="InventoryMovement")
 
 @_attrs_define
 class InventoryMovement:
+    """
+    Example:
+        {'id': 12345, 'variant_id': 3001, 'location_id': 1, 'resource_type': 'PurchaseOrderRow', 'resource_id': 5001,
+            'caused_by_order_no': 'PO-2024-001', 'caused_by_resource_id': 5001, 'movement_date': '2024-01-15T10:30:00.000Z',
+            'quantity_change': 100.0, 'balance_after': 500.0, 'value_per_unit': 25.5, 'value_in_stock_after': 12750.0,
+            'average_cost_after': 25.5, 'rank': 1, 'created_at': '2024-01-15T10:30:00.000Z', 'updated_at':
+            '2024-01-15T10:30:00.000Z'}
+    """
+
     id: int
     variant_id: int
     location_id: int

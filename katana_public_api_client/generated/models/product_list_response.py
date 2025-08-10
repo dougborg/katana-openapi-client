@@ -17,6 +17,17 @@ T = TypeVar("T", bound="ProductListResponse")
 
 @_attrs_define
 class ProductListResponse:
+    """Response containing a paginated list of products with their variants and configurations
+
+    Example:
+        {'data': [{'id': 101, 'name': 'Professional Kitchen Knife Set', 'uom': 'set', 'category_name': 'Kitchenware',
+            'is_sellable': True, 'is_producible': True, 'is_purchasable': False, 'type': 'product', 'variants': [{'id': 301,
+            'sku': 'KNF-PRO-8PC', 'name': '8-Piece Professional Set', 'sales_price': 299.99}]}, {'id': 102, 'name':
+            'Stainless Steel Mixing Bowls', 'uom': 'set', 'category_name': 'Kitchenware', 'is_sellable': True,
+            'is_producible': False, 'is_purchasable': True, 'type': 'product', 'variants': [{'id': 302, 'sku': 'BOWL-
+            SS-5PC', 'name': '5-Piece Mixing Bowl Set', 'sales_price': 79.99}]}]}
+    """
+
     data: Unset | list["Product"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

@@ -16,6 +16,8 @@ T = TypeVar("T", bound="UpdateMaterialRequest")
 
 @_attrs_define
 class UpdateMaterialRequest:
+    """Request payload for updating an existing raw material's properties and specifications"""
+
     name: Unset | str = UNSET
     uom: Unset | str = UNSET
     category_name: Unset | str = UNSET

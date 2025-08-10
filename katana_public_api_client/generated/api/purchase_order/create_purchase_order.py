@@ -81,7 +81,8 @@ def sync_detailed(
      Creates a new purchase order object.
 
     Args:
-        body (CreatePurchaseOrderRequest):
+        body (CreatePurchaseOrderRequest): Request payload for creating a new purchase order to
+            procure materials or products from suppliers
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -113,7 +114,8 @@ def sync(
      Creates a new purchase order object.
 
     Args:
-        body (CreatePurchaseOrderRequest):
+        body (CreatePurchaseOrderRequest): Request payload for creating a new purchase order to
+            procure materials or products from suppliers
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -140,7 +142,8 @@ async def asyncio_detailed(
      Creates a new purchase order object.
 
     Args:
-        body (CreatePurchaseOrderRequest):
+        body (CreatePurchaseOrderRequest): Request payload for creating a new purchase order to
+            procure materials or products from suppliers
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -170,7 +173,8 @@ async def asyncio(
      Creates a new purchase order object.
 
     Args:
-        body (CreatePurchaseOrderRequest):
+        body (CreatePurchaseOrderRequest): Request payload for creating a new purchase order to
+            procure materials or products from suppliers
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

@@ -13,6 +13,13 @@ T = TypeVar("T", bound="CreateBomRowRequest")
 
 @_attrs_define
 class CreateBomRowRequest:
+    """Request payload for creating a new BOM row
+
+    Example:
+        {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes':
+            'Handle with care - fragile component'}
+    """
+
     product_item_id: int
     product_variant_id: int
     ingredient_variant_id: int

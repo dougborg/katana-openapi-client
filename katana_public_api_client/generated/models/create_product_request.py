@@ -17,6 +17,8 @@ T = TypeVar("T", bound="CreateProductRequest")
 
 @_attrs_define
 class CreateProductRequest:
+    """Request payload for creating a new finished product with variants, configurations, and manufacturing specifications"""
+
     name: str
     variants: list["Variant"]
     uom: Unset | str = UNSET

@@ -30,6 +30,8 @@ T = TypeVar("T", bound="SalesOrder")
 
 @_attrs_define
 class SalesOrder:
+    """Sales order representing a customer's request to purchase products with delivery and payment terms"""
+
     id: int
     customer_id: int
     order_no: str

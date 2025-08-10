@@ -18,6 +18,13 @@ T = TypeVar("T", bound="Service")
 
 @_attrs_define
 class Service:
+    """External service that can be used as part of manufacturing operations or business processes
+
+    Example:
+        {'id': 'srv_abc123', 'type': 'services', 'attributes': {'name': 'CNC Machining Service', 'description':
+            'Precision CNC machining for metal components', 'active': True}}
+    """
+
     id: Unset | str = UNSET
     type_: Unset | ServiceType = UNSET
     attributes: Union[Unset, "ServiceAttributes"] = UNSET

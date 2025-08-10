@@ -17,6 +17,8 @@ T = TypeVar("T", bound="CreateMaterialRequest")
 
 @_attrs_define
 class CreateMaterialRequest:
+    """Request payload for creating a new raw material with variants and specifications"""
+
     name: str
     variants: list["Variant"]
     uom: Unset | str = UNSET

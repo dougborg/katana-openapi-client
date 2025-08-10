@@ -13,6 +13,12 @@ T = TypeVar("T", bound="UpdateBomRowRequest")
 
 @_attrs_define
 class UpdateBomRowRequest:
+    """Request payload for updating an existing BOM row. Only provided fields will be updated.
+
+    Example:
+        {'quantity': 3.0, 'notes': 'Updated quantity based on new specifications'}
+    """
+
     ingredient_variant_id: Unset | int = UNSET
     quantity: None | Unset | float = UNSET
     notes: None | Unset | str = UNSET

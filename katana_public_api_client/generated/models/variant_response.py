@@ -28,6 +28,19 @@ T = TypeVar("T", bound="VariantResponse")
 
 @_attrs_define
 class VariantResponse:
+    """Response containing a variant with its configuration attributes and related product or material details
+
+    Example:
+        {'id': 3001, 'sku': 'KNF-PRO-8PC-STL', 'sales_price': 299.99, 'purchase_price': 150.0, 'product_id': 101,
+            'material_id': None, 'type': 'product', 'internal_barcode': 'INT-KNF-001', 'registered_barcode': '789123456789',
+            'supplier_item_codes': ['SUP-KNF-8PC-001'], 'lead_time': 7, 'minimum_order_quantity': 1, 'config_attributes':
+            [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            'Steel'}], 'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '5 years'}],
+            'product_or_material': {'id': 101, 'name': 'Professional Kitchen Knife Set', 'uom': 'set', 'category_name':
+            'Kitchenware', 'type': 'product'}, 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at':
+            '2024-08-20T14:45:00.000Z', 'deleted_at': None}
+    """
+
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | str = UNSET

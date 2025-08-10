@@ -85,7 +85,16 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateProductRequest):
+        body (UpdateProductRequest): Request payload for updating an existing finished product's
+            properties, configurations, and manufacturing specifications Example: {'name':
+            'Professional Kitchen Knife Set', 'uom': 'set', 'category_name': 'Premium Kitchenware',
+            'is_sellable': True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly':
+            False, 'default_supplier_id': None, 'additional_info': 'High-carbon stainless steel with
+            ergonomic handles, dishwasher safe', 'batch_tracked': False, 'serial_tracked': True,
+            'operations_in_sequence': True, 'purchase_uom': 'set', 'purchase_uom_conversion_rate':
+            1.0, 'custom_field_collection_id': 5, 'configs': [{'name': 'Piece Count', 'values':
+            ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values': ['Wood',
+            'Steel', 'Composite']}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -121,7 +130,16 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateProductRequest):
+        body (UpdateProductRequest): Request payload for updating an existing finished product's
+            properties, configurations, and manufacturing specifications Example: {'name':
+            'Professional Kitchen Knife Set', 'uom': 'set', 'category_name': 'Premium Kitchenware',
+            'is_sellable': True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly':
+            False, 'default_supplier_id': None, 'additional_info': 'High-carbon stainless steel with
+            ergonomic handles, dishwasher safe', 'batch_tracked': False, 'serial_tracked': True,
+            'operations_in_sequence': True, 'purchase_uom': 'set', 'purchase_uom_conversion_rate':
+            1.0, 'custom_field_collection_id': 5, 'configs': [{'name': 'Piece Count', 'values':
+            ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values': ['Wood',
+            'Steel', 'Composite']}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -152,7 +170,16 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateProductRequest):
+        body (UpdateProductRequest): Request payload for updating an existing finished product's
+            properties, configurations, and manufacturing specifications Example: {'name':
+            'Professional Kitchen Knife Set', 'uom': 'set', 'category_name': 'Premium Kitchenware',
+            'is_sellable': True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly':
+            False, 'default_supplier_id': None, 'additional_info': 'High-carbon stainless steel with
+            ergonomic handles, dishwasher safe', 'batch_tracked': False, 'serial_tracked': True,
+            'operations_in_sequence': True, 'purchase_uom': 'set', 'purchase_uom_conversion_rate':
+            1.0, 'custom_field_collection_id': 5, 'configs': [{'name': 'Piece Count', 'values':
+            ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values': ['Wood',
+            'Steel', 'Composite']}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -186,7 +213,16 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateProductRequest):
+        body (UpdateProductRequest): Request payload for updating an existing finished product's
+            properties, configurations, and manufacturing specifications Example: {'name':
+            'Professional Kitchen Knife Set', 'uom': 'set', 'category_name': 'Premium Kitchenware',
+            'is_sellable': True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly':
+            False, 'default_supplier_id': None, 'additional_info': 'High-carbon stainless steel with
+            ergonomic handles, dishwasher safe', 'batch_tracked': False, 'serial_tracked': True,
+            'operations_in_sequence': True, 'purchase_uom': 'set', 'purchase_uom_conversion_rate':
+            1.0, 'custom_field_collection_id': 5, 'configs': [{'name': 'Piece Count', 'values':
+            ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values': ['Wood',
+            'Steel', 'Composite']}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
