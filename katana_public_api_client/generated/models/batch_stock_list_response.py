@@ -17,7 +17,8 @@ T = TypeVar("T", bound="BatchStockListResponse")
 
 @_attrs_define
 class BatchStockListResponse:
-    """
+    """List of batch stock records showing current inventory levels for tracked batches across all locations
+
     Example:
         {'data': [{'batch_id': 1109, 'batch_number': 'BAT-2024-001', 'batch_created_date': '2024-01-15T08:00:00.000Z',
             'expiration_date': '2025-10-23T10:37:05.085Z', 'location_id': 1, 'variant_id': 1001, 'quantity_in_stock':

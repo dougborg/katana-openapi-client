@@ -1126,9 +1126,11 @@ components:
 
     BatchStockListResponse:
       type: object
+      description: List of batch stock records showing current inventory levels for tracked batches across all locations
       properties:
         data:
           type: array
+          description: Array of batch stock records with current quantities
           items:
             $ref: "#/components/schemas/BatchStock"
       example:
@@ -1152,6 +1154,7 @@ components:
 
     BatchStockUpdate:
       type: object
+      description: Request payload for updating batch properties and tracking information
       additionalProperties: false
       properties:
         batch_number:
@@ -1176,6 +1179,7 @@ components:
         batch_barcode: "0317-V2"
 
     BatchResponse:
+      description: Complete batch record with system metadata for inventory tracking and traceability
       allOf:
         - $ref: "#/components/schemas/Batch"
         - $ref: "#/components/schemas/BaseEntity"
@@ -1209,6 +1213,7 @@ components:
         location_id: 1
 
     StorageBinResponse:
+      description: Complete storage bin record with location details and system metadata for warehouse organization
       allOf:
         - $ref: "#/components/schemas/StorageBin"
         - $ref: "#/components/schemas/BaseEntity"
@@ -1238,9 +1243,11 @@ components:
 
     StorageBinListResponse:
       type: object
+      description: List of storage bin records showing all warehouse storage locations and their organization structure
       properties:
         data:
           type: array
+          description: Array of storage bin records with location and identification details
           items:
             $ref: "#/components/schemas/StorageBinResponse"
       example:
@@ -1582,13 +1589,37 @@ components:
 
     InventoryListResponse:
       type: object
+      description: List of current inventory levels showing stock quantities for all variants across all locations
       properties:
         data:
           type: array
+          description: Array of inventory records with current stock levels and location details
           items:
             $ref: "#/components/schemas/Inventory"
       required:
         - data
+      example:
+        data:
+          - id: 1001
+            variant_id: 3001
+            location_id: 1
+            quantity_on_hand: 150.0
+            quantity_allocated: 25.0
+            quantity_available: 125.0
+            average_cost: 25.50
+            total_value: 3825.00
+            created_at: "2024-01-15T08:00:00.000Z"
+            updated_at: "2024-01-15T12:30:00.000Z"
+          - id: 1002
+            variant_id: 3002
+            location_id: 1
+            quantity_on_hand: 75.0
+            quantity_allocated: 10.0
+            quantity_available: 65.0
+            average_cost: 45.00
+            total_value: 3375.00
+            created_at: "2024-01-15T08:00:00.000Z"
+            updated_at: "2024-01-15T14:15:00.000Z"
 
     InventoryReorderPoint:
       type: object
@@ -1615,6 +1646,7 @@ components:
 
     InventorySafetyStockLevel:
       type: object
+      description: Safety stock level configuration to maintain minimum inventory buffers and prevent stockouts
       additionalProperties: false
       required:
         - location_id
@@ -1624,12 +1656,19 @@ components:
         location_id:
           type: integer
           maximum: 2147483647
+          description: ID of the location where the safety stock level applies
         variant_id:
           type: integer
           maximum: 2147483647
+          description: ID of the variant for which the safety stock level is set
         value:
           type: number
           maximum: 100000000000000000
+          description: Minimum quantity to maintain as safety stock buffer
+      example:
+        location_id: 1
+        variant_id: 3001
+        value: 25.0
 
     InventorySafetyStockLevelResponse:
       allOf:
@@ -2084,11 +2123,29 @@ components:
 
     SerialNumberListResponse:
       type: object
+      description: List of serial number records for tracking individual units and enabling full product traceability
       properties:
         data:
           type: array
+          description: Array of serial number records with unique identifiers and tracking information
           items:
             $ref: "#/components/schemas/SerialNumber"
+      example:
+        data:
+          - id: 5001
+            serial_number: "KNF001234567"
+            variant_id: 3001
+            location_id: 1
+            status: "IN_STOCK"
+            created_at: "2024-01-15T08:00:00.000Z"
+            updated_at: "2024-01-15T08:00:00.000Z"
+          - id: 5002
+            serial_number: "KNF001234568"
+            variant_id: 3001
+            location_id: 1
+            status: "SOLD"
+            created_at: "2024-01-15T08:30:00.000Z"
+            updated_at: "2024-01-16T14:20:00.000Z"
 
     ManufacturingOrderListResponse:
       type: object
@@ -2311,28 +2368,64 @@ components:
 
     NegativeStock:
       type: object
+      description: Record of a variant with negative inventory levels indicating oversold or under-received stock requiring immediate attention
       properties:
         variant_id:
           type: integer
+          description: ID of the variant with negative stock levels
         location_id:
           type: integer
+          description: ID of the location where the negative stock occurred
         latest_negative_stock_date:
           type: string
           format: date-time
+          description: Most recent date when the stock went negative
         name:
           type: string
+          description: Display name of the variant with negative stock
         sku:
           type: string
+          description: Stock keeping unit (SKU) of the variant
         category:
           type: string
+          description: Category classification of the variant
+        quantity_on_hand:
+          type: number
+          description: Current negative quantity showing the deficit amount
+        quantity_allocated:
+          type: number
+          description: Quantity allocated to orders despite negative stock
+      example:
+        variant_id: 3001
+        location_id: 1
+        latest_negative_stock_date: "2024-01-15T16:30:00.000Z"
+        name: "Professional Kitchen Knife Set - 8-Piece - Steel Handles"
+        sku: "KNF-PRO-8PC-STL"
+        category: "Kitchen Equipment"
+        quantity_on_hand: -15.0
+        quantity_allocated: 25.0
 
     NegativeStockListResponse:
       type: object
+      description: List of inventory records showing variants with negative stock levels that require immediate attention
       properties:
         data:
           type: array
+          description: Array of negative stock records with variant, location, and deficit information
           items:
             $ref: "#/components/schemas/NegativeStock"
+      example:
+        data:
+          - variant_id: 3001
+            location_id: 1
+            latest_negative_stock_date: "2024-01-15T16:30:00.000Z"
+            quantity_on_hand: -15.0
+            quantity_allocated: 25.0
+          - variant_id: 3003
+            location_id: 2
+            latest_negative_stock_date: "2024-01-16T09:45:00.000Z"
+            quantity_on_hand: -5.0
+            quantity_allocated: 10.0
 
     CreateProductRequest:
       description: Request payload for creating a new finished product with variants, configurations, and manufacturing specifications
@@ -3671,6 +3764,7 @@ components:
 
     VariantDefaultStorageBinLink:
       type: object
+      description: Link defining the default storage bin assignment for a specific variant to optimize warehouse picking and storage
       additionalProperties: false
       required:
         - bin_name
@@ -3679,38 +3773,77 @@ components:
         location_id:
           type: integer
           maximum: 2147483647
+          description: ID of the location where the storage bin is located
         variant_id:
           type: integer
           maximum: 2147483647
+          description: ID of the variant to link to the storage bin
         bin_name:
           type: string
           minLength: 0
           maxLength: 40
+          description: Name of the storage bin to set as default for this variant
+      example:
+        location_id: 1
+        variant_id: 3001
+        bin_name: "A-01-SHELF-1"
 
     VariantDefaultStorageBinLinkResponse:
+      description: Complete variant storage bin link record with system metadata for warehouse configuration management
       allOf:
         - type: object
           properties:
             id:
               type: integer
+              description: Unique identifier for the variant-storage bin link
             bin_name:
               type: string
+              description: Name of the storage bin linked to this variant
             variant_id:
               type: integer
+              description: ID of the variant linked to the storage bin
             storage_bin_id:
               type: integer
+              description: ID of the storage bin assigned as default for this variant
         - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 501
+        bin_name: "A-01-SHELF-1"
+        variant_id: 3001
+        storage_bin_id: 12345
+        created_at: "2024-01-15T08:00:00.000Z"
+        updated_at: "2024-01-15T08:00:00.000Z"
+        deleted_at: null
 
     VariantDefaultStorageBinLinkListResponse:
       type: object
+      description: List of variant storage bin assignments showing default storage locations for efficient warehouse operations
       properties:
         data:
           type: array
+          description: Array of variant-storage bin links with location assignments
           items:
             $ref: "#/components/schemas/VariantDefaultStorageBinLinkResponse"
+      example:
+        data:
+          - id: 501
+            bin_name: "A-01-SHELF-1"
+            variant_id: 3001
+            storage_bin_id: 12345
+            created_at: "2024-01-15T08:00:00.000Z"
+            updated_at: "2024-01-15T08:00:00.000Z"
+            deleted_at: null
+          - id: 502
+            bin_name: "A-02-SHELF-1"
+            variant_id: 3002
+            storage_bin_id: 12346
+            created_at: "2024-01-16T09:00:00.000Z"
+            updated_at: "2024-01-16T09:00:00.000Z"
+            deleted_at: null
 
     UnlinkVariantBinLocationRequest:
       type: object
+      description: Request to remove a variant's default storage bin assignment for a specific location
       additionalProperties: false
       required:
         - location_id
@@ -3719,16 +3852,27 @@ components:
         location_id:
           type: integer
           maximum: 2147483647
+          description: ID of the location where the variant-bin link should be removed
         variant_id:
           type: integer
           maximum: 2147483647
+          description: ID of the variant whose storage bin assignment should be removed
+      example:
+        location_id: 1
+        variant_id: 3001
 
     UnlinkVariantBinLocationListRequest:
       type: array
+      description: Batch request to remove variant storage bin assignments for multiple location-variant combinations
       minItems: 1
       maxItems: 150
       items:
         $ref: "#/components/schemas/UnlinkVariantBinLocationRequest"
+      example:
+        - location_id: 1
+          variant_id: 3001
+        - location_id: 1
+          variant_id: 3002
 
     WebhookEvent:
       type: string
@@ -4423,75 +4567,157 @@ components:
 
     # Stock management schemas
     StockAdjustment:
+      description: Manual inventory adjustment record for correcting stock discrepancies and maintaining accurate inventory levels
       allOf:
         - type: object
           properties:
             id:
               type: integer
+              description: Unique identifier for the stock adjustment
             reference_no:
               type: string
+              description: Human-readable reference number for tracking and audit purposes
             location_id:
               type: integer
+              description: ID of the location where the stock adjustment is performed
             status:
               type: string
+              description: Current status of the stock adjustment workflow
               enum:
                 - DRAFT
                 - COMPLETED
             adjustment_date:
               type: string
               format: date-time
+              description: Date and time when the adjustment was performed
             additional_info:
               type: [string, "null"]
+              description: Optional notes or comments about the adjustment reason
           required:
             - id
             - reference_no
             - location_id
         - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 2001
+        reference_no: "SA-2024-001"
+        location_id: 1
+        status: "COMPLETED"
+        adjustment_date: "2024-01-15T14:30:00.000Z"
+        additional_info: "Physical count discrepancy correction"
+        created_at: "2024-01-15T14:30:00.000Z"
+        updated_at: "2024-01-15T14:30:00.000Z"
+        deleted_at: null
 
     StockAdjustmentListResponse:
       type: object
+      description: List of stock adjustment records showing all manual inventory corrections and their current status
       properties:
         data:
           type: array
+          description: Array of stock adjustment records with details and status information
           items:
             $ref: "#/components/schemas/StockAdjustment"
+      example:
+        data:
+          - id: 2001
+            reference_no: "SA-2024-001"
+            location_id: 1
+            status: "COMPLETED"
+            adjustment_date: "2024-01-15T14:30:00.000Z"
+            additional_info: "Physical count discrepancy correction"
+            created_at: "2024-01-15T14:30:00.000Z"
+            updated_at: "2024-01-15T14:30:00.000Z"
+            deleted_at: null
+          - id: 2002
+            reference_no: "SA-2024-002"
+            location_id: 2
+            status: "DRAFT"
+            adjustment_date: "2024-01-16T10:00:00.000Z"
+            additional_info: "Damaged goods write-off"
+            created_at: "2024-01-16T10:00:00.000Z"
+            updated_at: "2024-01-16T10:00:00.000Z"
+            deleted_at: null
 
     StockTransfer:
+      description: Inventory transfer record for moving stock between different warehouse locations or facilities
       allOf:
         - type: object
           properties:
             id:
               type: integer
+              description: Unique identifier for the stock transfer
             reference_no:
               type: string
+              description: Human-readable reference number for tracking the transfer
             from_location_id:
               type: integer
+              description: ID of the source location where stock is being transferred from
             to_location_id:
               type: integer
+              description: ID of the destination location where stock is being transferred to
             status:
               type: string
+              description: Current status of the stock transfer workflow
               enum:
                 - DRAFT
                 - COMPLETED
             transfer_date:
               type: string
               format: date-time
+              description: Date and time when the transfer was executed
             additional_info:
               type: [string, "null"]
+              description: Optional notes or comments about the transfer purpose
           required:
             - id
             - reference_no
             - from_location_id
             - to_location_id
         - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 3001
+        reference_no: "ST-2024-001"
+        from_location_id: 1
+        to_location_id: 2
+        status: "COMPLETED"
+        transfer_date: "2024-01-15T16:00:00.000Z"
+        additional_info: "Rebalancing inventory between warehouses"
+        created_at: "2024-01-15T16:00:00.000Z"
+        updated_at: "2024-01-15T16:00:00.000Z"
+        deleted_at: null
 
     StockTransferListResponse:
       type: object
+      description: List of stock transfer records showing all inventory movements between locations and their transfer status
       properties:
         data:
           type: array
+          description: Array of stock transfer records with source, destination, and status details
           items:
             $ref: "#/components/schemas/StockTransfer"
+      example:
+        data:
+          - id: 3001
+            reference_no: "ST-2024-001"
+            from_location_id: 1
+            to_location_id: 2
+            status: "COMPLETED"
+            transfer_date: "2024-01-15T16:00:00.000Z"
+            additional_info: "Rebalancing inventory between warehouses"
+            created_at: "2024-01-15T16:00:00.000Z"
+            updated_at: "2024-01-15T16:00:00.000Z"
+            deleted_at: null
+          - id: 3002
+            reference_no: "ST-2024-002"
+            from_location_id: 2
+            to_location_id: 3
+            status: "DRAFT"
+            transfer_date: "2024-01-16T11:30:00.000Z"
+            additional_info: "Seasonal stock redistribution"
+            created_at: "2024-01-16T11:30:00.000Z"
+            updated_at: "2024-01-16T11:30:00.000Z"
+            deleted_at: null
 
     # Sales Order sub-resources
     SalesOrderFulfillment:
@@ -5244,27 +5470,89 @@ components:
 
     StocktakeListResponse:
       type: object
+      description: List of stocktake records showing all physical inventory count sessions and their completion status
       properties:
         data:
           type: array
+          description: Array of stocktake records with count session details and status information
           items:
             $ref: "#/components/schemas/Stocktake"
+      example:
+        data:
+          - id: 4001
+            reference_no: "STK-2024-001"
+            location_id: 1
+            status: "COMPLETED"
+            count_date: "2024-01-15T09:00:00.000Z"
+            notes: "Monthly physical inventory count"
+            created_at: "2024-01-15T09:00:00.000Z"
+            updated_at: "2024-01-15T17:30:00.000Z"
+          - id: 4002
+            reference_no: "STK-2024-002"
+            location_id: 2
+            status: "IN_PROGRESS"
+            count_date: "2024-01-16T10:00:00.000Z"
+            notes: "Spot check for high-value items"
+            created_at: "2024-01-16T10:00:00.000Z"
+            updated_at: "2024-01-16T12:00:00.000Z"
 
     StocktakeRowListResponse:
       type: object
+      description: List of individual stocktake row records showing counted quantities for each variant in a stocktake session
       properties:
         data:
           type: array
+          description: Array of stocktake row records with variant counts and variance details
           items:
             $ref: "#/components/schemas/StocktakeRow"
+      example:
+        data:
+          - id: 4101
+            stocktake_id: 4001
+            variant_id: 3001
+            expected_quantity: 150.0
+            counted_quantity: 147.0
+            variance: -3.0
+            notes: "Minor count difference noted"
+            created_at: "2024-01-15T09:30:00.000Z"
+            updated_at: "2024-01-15T09:30:00.000Z"
+          - id: 4102
+            stocktake_id: 4001
+            variant_id: 3002
+            expected_quantity: 75.0
+            counted_quantity: 75.0
+            variance: 0.0
+            notes: "Count matches expected"
+            created_at: "2024-01-15T10:15:00.000Z"
+            updated_at: "2024-01-15T10:15:00.000Z"
 
     SerialNumberStockListResponse:
       type: object
+      description: List of serial number stock records showing current inventory status for individually tracked units
       properties:
         data:
           type: array
+          description: Array of serial number stock records with location and status details
           items:
             $ref: "#/components/schemas/SerialNumberStock"
+      example:
+        data:
+          - id: 6001
+            serial_number: "KNF001234567"
+            variant_id: 3001
+            location_id: 1
+            quantity_on_hand: 1.0
+            status: "AVAILABLE"
+            created_at: "2024-01-15T08:00:00.000Z"
+            updated_at: "2024-01-15T08:00:00.000Z"
+          - id: 6002
+            serial_number: "KNF001234568"
+            variant_id: 3001
+            location_id: 1
+            quantity_on_hand: 1.0
+            status: "ALLOCATED"
+            created_at: "2024-01-15T08:30:00.000Z"
+            updated_at: "2024-01-16T10:15:00.000Z"
 
     SalesReturnListResponse:
       type: object
@@ -5292,11 +5580,27 @@ components:
 
     InventoryReorderPointListResponse:
       type: object
+      description: List of inventory reorder point configurations showing threshold levels for automated purchase order generation
       properties:
         data:
           type: array
+          description: Array of reorder point records with variant, location, and threshold information
           items:
             $ref: "#/components/schemas/InventoryReorderPoint"
+      example:
+        data:
+          - variant_id: 3001
+            location_id: 1
+            value: 50.0
+            created_at: "2024-01-15T08:00:00.000Z"
+            updated_at: "2024-01-15T08:00:00.000Z"
+            deleted_at: null
+          - variant_id: 3002
+            location_id: 1
+            value: 30.0
+            created_at: "2024-01-16T09:00:00.000Z"
+            updated_at: "2024-01-16T09:00:00.000Z"
+            deleted_at: null
 
     OutsourcedPurchaseOrderRecipeRowListResponse:
       type: object

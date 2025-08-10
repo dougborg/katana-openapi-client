@@ -17,6 +17,15 @@ T = TypeVar("T", bound="NegativeStockListResponse")
 
 @_attrs_define
 class NegativeStockListResponse:
+    """List of inventory records showing variants with negative stock levels that require immediate attention
+
+    Example:
+        {'data': [{'variant_id': 3001, 'location_id': 1, 'latest_negative_stock_date': '2024-01-15T16:30:00.000Z',
+            'quantity_on_hand': -15.0, 'quantity_allocated': 25.0}, {'variant_id': 3003, 'location_id': 2,
+            'latest_negative_stock_date': '2024-01-16T09:45:00.000Z', 'quantity_on_hand': -5.0, 'quantity_allocated':
+            10.0}]}
+    """
+
     data: Unset | list["NegativeStock"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

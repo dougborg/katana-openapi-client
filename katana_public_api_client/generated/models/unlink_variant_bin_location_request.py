@@ -8,6 +8,12 @@ T = TypeVar("T", bound="UnlinkVariantBinLocationRequest")
 
 @_attrs_define
 class UnlinkVariantBinLocationRequest:
+    """Request to remove a variant's default storage bin assignment for a specific location
+
+    Example:
+        {'location_id': 1, 'variant_id': 3001}
+    """
+
     location_id: int
     variant_id: int
 

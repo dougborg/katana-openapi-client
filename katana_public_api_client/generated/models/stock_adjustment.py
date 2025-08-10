@@ -16,6 +16,14 @@ T = TypeVar("T", bound="StockAdjustment")
 
 @_attrs_define
 class StockAdjustment:
+    """Manual inventory adjustment record for correcting stock discrepancies and maintaining accurate inventory levels
+
+    Example:
+        {'id': 2001, 'reference_no': 'SA-2024-001', 'location_id': 1, 'status': 'COMPLETED', 'adjustment_date':
+            '2024-01-15T14:30:00.000Z', 'additional_info': 'Physical count discrepancy correction', 'created_at':
+            '2024-01-15T14:30:00.000Z', 'updated_at': '2024-01-15T14:30:00.000Z', 'deleted_at': None}
+    """
+
     id: int
     reference_no: str
     location_id: int

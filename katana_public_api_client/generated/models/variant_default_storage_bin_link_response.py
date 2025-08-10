@@ -15,6 +15,13 @@ T = TypeVar("T", bound="VariantDefaultStorageBinLinkResponse")
 
 @_attrs_define
 class VariantDefaultStorageBinLinkResponse:
+    """Complete variant storage bin link record with system metadata for warehouse configuration management
+
+    Example:
+        {'id': 501, 'bin_name': 'A-01-SHELF-1', 'variant_id': 3001, 'storage_bin_id': 12345, 'created_at':
+            '2024-01-15T08:00:00.000Z', 'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}
+    """
+
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | str = UNSET

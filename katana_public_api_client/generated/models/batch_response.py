@@ -15,7 +15,8 @@ T = TypeVar("T", bound="BatchResponse")
 
 @_attrs_define
 class BatchResponse:
-    """
+    """Complete batch record with system metadata for inventory tracking and traceability
+
     Example:
         {'id': 1109, 'batch_number': 'BAT-2024-001', 'expiration_date': '2025-10-23T10:37:05.085Z',
             'batch_created_date': '2024-01-15T08:00:00.000Z', 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at':

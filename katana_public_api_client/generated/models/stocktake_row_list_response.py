@@ -17,6 +17,16 @@ T = TypeVar("T", bound="StocktakeRowListResponse")
 
 @_attrs_define
 class StocktakeRowListResponse:
+    """List of individual stocktake row records showing counted quantities for each variant in a stocktake session
+
+    Example:
+        {'data': [{'id': 4101, 'stocktake_id': 4001, 'variant_id': 3001, 'expected_quantity': 150.0, 'counted_quantity':
+            147.0, 'variance': -3.0, 'notes': 'Minor count difference noted', 'created_at': '2024-01-15T09:30:00.000Z',
+            'updated_at': '2024-01-15T09:30:00.000Z'}, {'id': 4102, 'stocktake_id': 4001, 'variant_id': 3002,
+            'expected_quantity': 75.0, 'counted_quantity': 75.0, 'variance': 0.0, 'notes': 'Count matches expected',
+            'created_at': '2024-01-15T10:15:00.000Z', 'updated_at': '2024-01-15T10:15:00.000Z'}]}
+    """
+
     data: Unset | list["StocktakeRow"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
