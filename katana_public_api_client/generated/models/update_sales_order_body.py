@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -13,13 +11,24 @@ T = TypeVar("T", bound="UpdateSalesOrderBody")
 
 @_attrs_define
 class UpdateSalesOrderBody:
-    order_no: Unset | str = UNSET
-    customer_id: Unset | int = UNSET
-    delivery_date: None | Unset | str = UNSET
-    additional_info: None | Unset | str = UNSET
-    customer_ref: None | Unset | str = UNSET
-    tracking_number: None | Unset | str = UNSET
-    tracking_number_url: None | Unset | str = UNSET
+    """
+    Attributes:
+        order_no (Union[Unset, str]):
+        customer_id (Union[Unset, int]):
+        delivery_date (Union[None, Unset, str]):
+        additional_info (Union[None, Unset, str]):
+        customer_ref (Union[None, Unset, str]):
+        tracking_number (Union[None, Unset, str]):
+        tracking_number_url (Union[None, Unset, str]):
+    """
+
+    order_no: Union[Unset, str] = UNSET
+    customer_id: Union[Unset, int] = UNSET
+    delivery_date: Union[None, Unset, str] = UNSET
+    additional_info: Union[None, Unset, str] = UNSET
+    customer_ref: Union[None, Unset, str] = UNSET
+    tracking_number: Union[None, Unset, str] = UNSET
+    tracking_number_url: Union[None, Unset, str] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -27,31 +36,31 @@ class UpdateSalesOrderBody:
 
         customer_id = self.customer_id
 
-        delivery_date: None | Unset | str
+        delivery_date: Union[None, Unset, str]
         if isinstance(self.delivery_date, Unset):
             delivery_date = UNSET
         else:
             delivery_date = self.delivery_date
 
-        additional_info: None | Unset | str
+        additional_info: Union[None, Unset, str]
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
         else:
             additional_info = self.additional_info
 
-        customer_ref: None | Unset | str
+        customer_ref: Union[None, Unset, str]
         if isinstance(self.customer_ref, Unset):
             customer_ref = UNSET
         else:
             customer_ref = self.customer_ref
 
-        tracking_number: None | Unset | str
+        tracking_number: Union[None, Unset, str]
         if isinstance(self.tracking_number, Unset):
             tracking_number = UNSET
         else:
             tracking_number = self.tracking_number
 
-        tracking_number_url: None | Unset | str
+        tracking_number_url: Union[None, Unset, str]
         if isinstance(self.tracking_number_url, Unset):
             tracking_number_url = UNSET
         else:
@@ -84,52 +93,50 @@ class UpdateSalesOrderBody:
 
         customer_id = d.pop("customer_id", UNSET)
 
-        def _parse_delivery_date(data: object) -> None | Unset | str:
+        def _parse_delivery_date(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         delivery_date = _parse_delivery_date(d.pop("delivery_date", UNSET))
 
-        def _parse_additional_info(data: object) -> None | Unset | str:
+        def _parse_additional_info(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
-        def _parse_customer_ref(data: object) -> None | Unset | str:
+        def _parse_customer_ref(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         customer_ref = _parse_customer_ref(d.pop("customer_ref", UNSET))
 
-        def _parse_tracking_number(data: object) -> None | Unset | str:
+        def _parse_tracking_number(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
-        def _parse_tracking_number_url(data: object) -> None | Unset | str:
+        def _parse_tracking_number_url(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
-        tracking_number_url = _parse_tracking_number_url(
-            d.pop("tracking_number_url", UNSET)
-        )
+        tracking_number_url = _parse_tracking_number_url(d.pop("tracking_number_url", UNSET))
 
         update_sales_order_body = cls(
             order_no=order_no,

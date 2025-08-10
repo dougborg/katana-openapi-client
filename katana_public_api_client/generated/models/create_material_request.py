@@ -1,14 +1,12 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.create_material_request_configs_item import (
-        CreateMaterialRequestConfigsItem,
-    )
+    from ..models.create_material_request_configs_item import CreateMaterialRequestConfigsItem
     from ..models.variant import Variant
 
 
@@ -17,19 +15,39 @@ T = TypeVar("T", bound="CreateMaterialRequest")
 
 @_attrs_define
 class CreateMaterialRequest:
-    """Request payload for creating a new raw material with variants and specifications"""
+    """Request payload for creating a new raw material with variants and specifications
+
+    Example:
+        {'name': 'Stainless Steel Sheet 304', 'uom': 'm²', 'category_name': 'Raw Materials', 'default_supplier_id':
+            1501, 'additional_info': 'Food-grade stainless steel, 1.5mm thickness', 'batch_tracked': True, 'is_sellable':
+            False, 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'name': 'Grade', 'values':
+            ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm', '3.0mm']}], 'variants': []}
+
+    Attributes:
+        name (str): Display name for the material used in inventory and manufacturing
+        variants (list['Variant']):
+        uom (Union[Unset, str]): Unit of measure for inventory tracking (e.g., kg, lb, pcs)
+        category_name (Union[Unset, str]):
+        default_supplier_id (Union[Unset, int]):
+        additional_info (Union[Unset, str]):
+        batch_tracked (Union[Unset, bool]):
+        is_sellable (Union[Unset, bool]):
+        purchase_uom (Union[Unset, str]):
+        purchase_uom_conversion_rate (Union[Unset, float]):
+        configs (Union[Unset, list['CreateMaterialRequestConfigsItem']]):
+    """
 
     name: str
     variants: list["Variant"]
-    uom: Unset | str = UNSET
-    category_name: Unset | str = UNSET
-    default_supplier_id: Unset | int = UNSET
-    additional_info: Unset | str = UNSET
-    batch_tracked: Unset | bool = UNSET
-    is_sellable: Unset | bool = UNSET
-    purchase_uom: Unset | str = UNSET
-    purchase_uom_conversion_rate: Unset | float = UNSET
-    configs: Unset | list["CreateMaterialRequestConfigsItem"] = UNSET
+    uom: Union[Unset, str] = UNSET
+    category_name: Union[Unset, str] = UNSET
+    default_supplier_id: Union[Unset, int] = UNSET
+    additional_info: Union[Unset, str] = UNSET
+    batch_tracked: Union[Unset, bool] = UNSET
+    is_sellable: Union[Unset, bool] = UNSET
+    purchase_uom: Union[Unset, str] = UNSET
+    purchase_uom_conversion_rate: Union[Unset, float] = UNSET
+    configs: Union[Unset, list["CreateMaterialRequestConfigsItem"]] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -55,7 +73,7 @@ class CreateMaterialRequest:
 
         purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
-        configs: Unset | list[dict[str, Any]] = UNSET
+        configs: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.configs, Unset):
             configs = []
             for configs_item_data in self.configs:
@@ -93,9 +111,7 @@ class CreateMaterialRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.create_material_request_configs_item import (
-            CreateMaterialRequestConfigsItem,
-        )
+        from ..models.create_material_request_configs_item import CreateMaterialRequestConfigsItem
         from ..models.variant import Variant
 
         d = dict(src_dict)

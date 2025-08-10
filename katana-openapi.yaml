@@ -1682,6 +1682,7 @@ components:
         updated_at: "2020-10-23T10:37:05.085Z"
 
     CreateManufacturingOrderRequest:
+      description: Request payload for creating a new manufacturing order to initiate production of products or components.
       type: object
       required:
         - variant_id
@@ -1690,20 +1691,34 @@ components:
       properties:
         variant_id:
           type: integer
+          description: ID of the product variant to manufacture
         planned_quantity:
           type: number
+          description: Quantity of the variant to produce
         location_id:
           type: integer
+          description: ID of the factory location where production will take place
         order_created_date:
           type: string
           format: date-time
+          description: Date and time when the manufacturing order should be created (defaults to current time)
         production_deadline_date:
           type: string
           format: date-time
+          description: Target deadline for completing production
         additional_info:
           type: string
+          description: Optional notes or additional information about the order
+      example:
+        variant_id: 2101
+        planned_quantity: 50
+        location_id: 1
+        order_created_date: "2024-01-15T08:00:00Z"
+        production_deadline_date: "2024-01-25T17:00:00Z"
+        additional_info: "Priority order for new product launch"
 
     ManufacturingOrder:
+      description: Represents a manufacturing order for producing products, tracking production status, costs, and timeline from creation to completion.
       allOf:
         - type: object
           properties:
@@ -1711,66 +1726,122 @@ components:
               type: integer
             status:
               type: string
+              description: Current production status of the manufacturing order
               enum: [NOT_STARTED, BLOCKED, IN_PROGRESS, DONE]
             order_no:
               type: string
+              description: Unique manufacturing order number for tracking and reference
             variant_id:
               type: integer
+              description: ID of the product variant being manufactured
             planned_quantity:
               type: number
+              description: Originally planned quantity to produce
             actual_quantity:
               type: [number, "null"]
+              description: Actual quantity produced, null if production not completed
             location_id:
               type: integer
+              description: ID of the factory location where production takes place
             order_created_date:
               type: string
               format: date-time
+              description: Date and time when the manufacturing order was created
             production_deadline_date:
               type: string
               format: date-time
+              description: Target deadline for completing production
             additional_info:
               type: string
+              description: Optional notes or additional information about the order
             is_linked_to_sales_order:
               type: boolean
+              description: Whether this manufacturing order is linked to a sales order
             ingredient_availability:
               type: string
+              description: Status of material ingredient availability for production
             total_cost:
               type: number
+              description: Total cost of the manufacturing order including all materials and operations
             total_actual_time:
               type: number
+              description: Total actual time spent on production operations
             total_planned_time:
               type: number
+              description: Total planned time for all production operations
             sales_order_id:
               type: integer
+              description: ID of the linked sales order, if applicable
             sales_order_row_id:
               type: integer
+              description: ID of the specific sales order row, if applicable
             sales_order_delivery_deadline:
               type: string
               format: date-time
+              description: Delivery deadline from the linked sales order
             material_cost:
               type: number
+              description: Total cost of materials used in production
             subassemblies_cost:
               type: number
+              description: Total cost of subassemblies used in production
             operations_cost:
               type: number
+              description: Total cost of production operations and labor
             serial_numbers:
               type: array
+              description: Serial numbers assigned to produced items
               items:
                 $ref: "#/components/schemas/SerialNumber"
         - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 3001
+        status: IN_PROGRESS
+        order_no: MO-2024-001
+        variant_id: 2101
+        planned_quantity: 50
+        actual_quantity: 35
+        location_id: 1
+        order_created_date: "2024-01-15T08:00:00Z"
+        production_deadline_date: "2024-01-25T17:00:00Z"
+        additional_info: "Priority order for new product launch"
+        is_linked_to_sales_order: true
+        ingredient_availability: "AVAILABLE"
+        total_cost: 12500.00
+        total_actual_time: 140.5
+        total_planned_time: 200.0
+        sales_order_id: 2001
+        sales_order_row_id: 2501
+        sales_order_delivery_deadline: "2024-01-30T12:00:00Z"
+        material_cost: 8750.00
+        subassemblies_cost: 2250.00
+        operations_cost: 1500.00
+        serial_numbers: []
+        created_at: "2024-01-15T08:00:00Z"
+        updated_at: "2024-01-20T14:30:00Z"
+        deleted_at: null
 
     UpdateManufacturingOrderRequest:
+      description: Request payload for updating an existing manufacturing order's properties and production parameters.
       type: object
       properties:
         planned_quantity:
           type: number
+          description: Updated quantity of the variant to produce
         additional_info:
           type: string
+          description: Updated notes or additional information about the order
         production_deadline_date:
           type: string
           format: date-time
+          description: Updated target deadline for completing production
+      example:
+        planned_quantity: 75
+        additional_info: "Increased quantity due to additional customer demand"
+        production_deadline_date: "2024-01-30T17:00:00Z"
 
     CreateManufacturingOrderProductionRequest:
+      description: Request payload for creating a production run within a manufacturing order, recording actual production activities and material consumption.
       type: object
       required:
         - manufacturing_order_id
@@ -1779,38 +1850,60 @@ components:
       properties:
         manufacturing_order_id:
           type: integer
+          description: ID of the manufacturing order this production run belongs to
         quantity:
           type: number
+          description: Quantity produced in this production run
         production_date:
           type: string
           format: date-time
+          description: Date and time when the production was completed
         ingredients:
           type: array
+          description: Ingredients consumed during this production run
           items:
             $ref: "#/components/schemas/ManufacturingOrderProductionIngredient"
         operations:
           type: array
+          description: Operations performed during this production run
           items:
             $ref: "#/components/schemas/ManufacturingOrderOperationRow"
+      example:
+        manufacturing_order_id: 3001
+        quantity: 25
+        production_date: "2024-01-20T14:30:00Z"
+        ingredients: []
+        operations: []
 
     UpdateManufacturingOrderProductionRequest:
+      description: Request payload for updating an existing production run within a manufacturing order, modifying production quantities and material usage.
       type: object
       properties:
         quantity:
           type: number
+          description: Updated quantity produced in this production run
         production_date:
           type: string
           format: date-time
+          description: Updated date and time when the production was completed
         ingredients:
           type: array
+          description: Updated ingredients consumed during this production run
           items:
             $ref: "#/components/schemas/UpdateManufacturingOrderProductionIngredientRequest"
         operations:
           type: array
+          description: Updated operations performed during this production run
           items:
             $ref: "#/components/schemas/UpdateManufacturingOrderOperationRowRequest"
+      example:
+        quantity: 30
+        production_date: "2024-01-21T16:00:00Z"
+        ingredients: []
+        operations: []
 
     ManufacturingOrderProduction:
+      description: Represents a completed production run within a manufacturing order, tracking actual quantities produced and resources consumed during manufacturing.
       allOf:
         - type: object
           properties:
@@ -1818,32 +1911,66 @@ components:
               type: integer
             manufacturing_order_id:
               type: integer
+              description: ID of the manufacturing order this production run belongs to
             quantity:
               type: number
+              description: Actual quantity produced in this production run
             production_date:
               type: string
               format: date-time
+              description: Date and time when the production was completed
             ingredients:
               type: array
+              description: Ingredients consumed during this production run
               items:
                 $ref: "#/components/schemas/ManufacturingOrderProductionIngredient"
             operations:
               type: array
+              description: Operations performed during this production run
               items:
                 $ref: "#/components/schemas/ManufacturingOrderOperationProduction"
             serial_numbers:
               type: array
+              description: Serial numbers assigned during this production run
               items:
                 $ref: "#/components/schemas/SerialNumber"
         - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 3501
+        manufacturing_order_id: 3001
+        quantity: 25
+        production_date: "2024-01-20T14:30:00Z"
+        ingredients: []
+        operations: []
+        serial_numbers: []
+        created_at: "2024-01-20T14:30:00Z"
+        updated_at: "2024-01-20T14:30:00Z"
+        deleted_at: null
 
     ManufacturingOrderProductionListResponse:
+      description: Response containing a list of production runs for manufacturing orders with pagination support for tracking production history.
       type: object
       properties:
         data:
           type: array
+          description: Array of production runs from manufacturing orders
           items:
             $ref: "#/components/schemas/ManufacturingOrderProduction"
+      example:
+        data: [
+          {
+            id: 3501,
+            manufacturing_order_id: 3001,
+            quantity: 25,
+            production_date: "2024-01-20T14:30:00Z",
+            ingredients: [],
+            operations: [],
+            serial_numbers: [],
+            created_at: "2024-01-20T14:30:00Z",
+            updated_at: "2024-01-20T14:30:00Z",
+            deleted_at: null
+          }
+        ]
 
     ManufacturingOrderProductionIngredient:
       allOf:
@@ -1883,6 +2010,7 @@ components:
 
     # Manufacturing Order Operation Row Schemas
     ManufacturingOrderOperationRow:
+      description: Represents an individual operation step within a manufacturing order, tracking production operations, operator assignments, time, and costs.
       allOf:
         - type: object
           properties:
@@ -1890,53 +2018,100 @@ components:
               type: integer
             status:
               type: string
+              description: Current status of the operation
               enum: [IN_PROGRESS, COMPLETED, PAUSED]
             type:
               type: string
+              description: Type classification of the operation
             rank:
               type: number
+              description: Order/sequence of this operation within the manufacturing process
             manufacturing_order_id:
               type: integer
+              description: ID of the manufacturing order this operation belongs to
             operation_id:
               type: integer
+              description: ID of the operation template or definition
             operation_name:
               type: string
+              description: Name of the operation being performed
             resource_id:
               type: integer
+              description: ID of the resource (machine/workstation) used for this operation
             resource_name:
               type: string
+              description: Name of the resource (machine/workstation) used
             assigned_operators:
               type: array
+              description: Operators assigned to perform this operation
               items:
                 $ref: "#/components/schemas/Operator"
             completed_by_operators:
               type: array
+              description: Operators who have completed work on this operation
               items:
                 $ref: "#/components/schemas/Operator"
             active_operator_id:
               type: number
+              description: ID of the currently active operator working on this operation
             planned_time_per_unit:
               type: number
+              description: Planned time per unit for this operation
             planned_time_parameter:
               type: number
+              description: Parameter for calculating planned time
             total_actual_time:
               type: number
+              description: Total actual time spent on this operation
             planned_cost_per_unit:
               type: number
+              description: Planned cost per unit for this operation
             total_actual_cost:
               type: number
+              description: Total actual cost incurred for this operation
             cost_per_hour:
               type: number
+              description: Hourly cost rate for this operation
             cost_parameter:
               type: number
+              description: Parameter for calculating operation costs
             group_boundary:
               type: number
+              description: Group boundary setting for operation grouping
             is_status_actionable:
               type: boolean
+              description: Whether the current status allows for operator actions
             completed_at:
               type: [string, "null"]
               format: date-time
+              description: Date and time when the operation was completed, null if not completed
         - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 3801
+        status: "IN_PROGRESS"
+        type: "Production"
+        rank: 1
+        manufacturing_order_id: 3001
+        operation_id: 401
+        operation_name: "Cut Steel Sheets"
+        resource_id: 501
+        resource_name: "Laser Cutting Machine"
+        assigned_operators: []
+        completed_by_operators: []
+        active_operator_id: 101
+        planned_time_per_unit: 15.0
+        planned_time_parameter: 1.0
+        total_actual_time: 12.5
+        planned_cost_per_unit: 45.0
+        total_actual_cost: 37.50
+        cost_per_hour: 180.0
+        cost_parameter: 1.0
+        group_boundary: 0
+        is_status_actionable: true
+        completed_at: null
+        created_at: "2024-01-15T08:00:00Z"
+        updated_at: "2024-01-20T14:30:00Z"
+        deleted_at: null
 
     CreateManufacturingOrderOperationRowRequest:
       type: object
@@ -2055,6 +2230,7 @@ components:
           type: number
 
     ManufacturingOrderRecipeRow:
+      description: Represents an ingredient or component required for a manufacturing order, tracking planned and actual quantities used in production.
       allOf:
         - type: object
           properties:
@@ -2062,39 +2238,94 @@ components:
               type: integer
             manufacturing_order_id:
               type: integer
+              description: ID of the manufacturing order this recipe row belongs to
             variant_id:
               type: integer
+              description: ID of the ingredient variant required for production
             notes:
               type: string
+              description: Additional notes about this ingredient or special handling instructions
             planned_quantity_per_unit:
               type: number
+              description: Planned quantity of this ingredient needed per unit produced
             total_actual_quantity:
               type: number
+              description: Total actual quantity of this ingredient consumed
             ingredient_availability:
               type: string
+              description: Current availability status of this ingredient
             ingredient_expected_date:
               type: string
               format: date-time
+              description: Expected date when ingredient will be available if currently unavailable
             batch_transactions:
               type: array
+              description: Batch tracking transactions for this ingredient consumption
               items:
                 type: object
                 properties:
                   batch_id:
                     type: integer
+                    description: ID of the batch being consumed
                   quantity:
                     type: number
+                    description: Quantity consumed from this batch
             cost:
               type: number
+              description: Total cost of this ingredient for the manufacturing order
         - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 4001
+        manufacturing_order_id: 3001
+        variant_id: 3201
+        notes: "Use only grade 304 material"
+        planned_quantity_per_unit: 2.5
+        total_actual_quantity: 125.0
+        ingredient_availability: "AVAILABLE"
+        ingredient_expected_date: null
+        batch_transactions: [
+          {
+            batch_id: 1201,
+            quantity: 125.0
+          }
+        ]
+        cost: 437.50
+        created_at: "2024-01-15T08:00:00Z"
+        updated_at: "2024-01-20T14:30:00Z"
+        deleted_at: null
 
     ManufacturingOrderRecipeRowListResponse:
+      description: Response containing a list of recipe rows (ingredients) for manufacturing orders with pagination support.
       type: object
       properties:
         data:
           type: array
+          description: Array of recipe rows showing ingredients required for manufacturing orders
           items:
             $ref: "#/components/schemas/ManufacturingOrderRecipeRow"
+      example:
+        data: [
+          {
+            id: 4001,
+            manufacturing_order_id: 3001,
+            variant_id: 3201,
+            notes: "Use only grade 304 material",
+            planned_quantity_per_unit: 2.5,
+            total_actual_quantity: 125.0,
+            ingredient_availability: "AVAILABLE",
+            ingredient_expected_date: null,
+            batch_transactions: [
+              {
+                batch_id: 1201,
+                quantity: 125.0
+              }
+            ],
+            cost: 437.50,
+            created_at: "2024-01-15T08:00:00Z",
+            updated_at: "2024-01-20T14:30:00Z",
+            deleted_at: null
+          }
+        ]
 
     # Serial Number Schema
     SerialNumber:
@@ -2148,14 +2379,47 @@ components:
             updated_at: "2024-01-16T14:20:00.000Z"
 
     ManufacturingOrderListResponse:
+      description: Response containing a list of manufacturing orders with pagination support for retrieving production data.
       type: object
       properties:
         data:
           type: array
+          description: Array of manufacturing orders
           items:
             $ref: "#/components/schemas/ManufacturingOrder"
+      example:
+        data: [
+          {
+            id: 3001,
+            status: "IN_PROGRESS",
+            order_no: "MO-2024-001",
+            variant_id: 2101,
+            planned_quantity: 50,
+            actual_quantity: 35,
+            location_id: 1,
+            order_created_date: "2024-01-15T08:00:00Z",
+            production_deadline_date: "2024-01-25T17:00:00Z",
+            additional_info: "Priority order for new product launch",
+            is_linked_to_sales_order: true,
+            ingredient_availability: "AVAILABLE",
+            total_cost: 12500.00,
+            total_actual_time: 140.5,
+            total_planned_time: 200.0,
+            sales_order_id: 2001,
+            sales_order_row_id: 2501,
+            sales_order_delivery_deadline: "2024-01-30T12:00:00Z",
+            material_cost: 8750.00,
+            subassemblies_cost: 2250.00,
+            operations_cost: 1500.00,
+            serial_numbers: [],
+            created_at: "2024-01-15T08:00:00Z",
+            updated_at: "2024-01-20T14:30:00Z",
+            deleted_at: null
+          }
+        ]
 
     UnlinkManufacturingOrderRequest:
+      description: Request to unlink a manufacturing order from its associated sales order row, removing the direct connection while preserving both orders.
       type: object
       additionalProperties: false
       required:
@@ -2163,6 +2427,9 @@ components:
       properties:
         sales_order_row_id:
           type: number
+          description: ID of the sales order row to unlink from the manufacturing order
+      example:
+        sales_order_row_id: 2501
 
     ManufacturingOrderProductionIngredientResponse:
       type: object
@@ -2248,64 +2515,168 @@ components:
           minItems: 1
           items:
             $ref: "#/components/schemas/Variant"
+      example:
+        name: "Stainless Steel Sheet 304"
+        uom: "m²"
+        category_name: "Raw Materials"
+        default_supplier_id: 1501
+        additional_info: "Food-grade stainless steel, 1.5mm thickness"
+        batch_tracked: true
+        is_sellable: false
+        purchase_uom: "sheet"
+        purchase_uom_conversion_rate: 2.0
+        configs: [
+          {
+            name: "Grade",
+            values: ["304", "316"]
+          },
+          {
+            name: "Thickness", 
+            values: ["1.5mm", "2.0mm", "3.0mm"]
+          }
+        ]
+        variants: []
 
     Material:
+      description: Represents raw materials and components used in manufacturing, including inventory tracking, supplier information, and batch management.
       allOf:
         - $ref: "#/components/schemas/BaseEntity"
         - type: object
           properties:
             name:
               type: string
+              description: Name of the material
             uom:
               type: string
+              description: Primary unit of measure for the material (e.g., kg, pcs, m)
             category_name:
               type: string
+              description: Category classification for organizing materials
             default_supplier_id:
               type: integer
+              description: ID of the default supplier for this material
             additional_info:
               type: string
+              description: Optional notes or additional information about the material
             batch_tracked:
               type: boolean
+              description: Whether this material requires batch tracking for traceability
             is_sellable:
               type: boolean
+              description: Whether this material can be sold directly as a finished product
             type:
               type: string
+              description: Type classification of the material
             purchase_uom:
               type: string
+              description: Unit of measure used when purchasing this material from suppliers
             purchase_uom_conversion_rate:
               type: number
+              description: Conversion rate between purchase UoM and primary UoM
             variants:
               type: array
+              description: Different variants or configurations of this material
               items:
                 $ref: "#/components/schemas/Variant"
             configs:
               type: array
+              description: Configuration options and attributes for the material
               items:
                 type: object
                 properties:
                   id:
                     type: integer
+                    description: Configuration option ID
                   name:
                     type: string
+                    description: Name of the configuration option
                   values:
                     type: array
+                    description: Available values for this configuration
                     items:
                       type: string
                   product_id:
                     type: integer
+                    description: Associated product ID for this configuration
             custom_field_collection_id:
               type: integer
+              description: ID of custom field collection for additional data
             supplier:
               $ref: "#/components/schemas/Supplier"
+              description: Default supplier information for this material
         - $ref: "#/components/schemas/ArchivableEntity"
+      example:
+        id: 3201
+        name: "Stainless Steel Sheet 304"
+        uom: "m²"
+        category_name: "Raw Materials"
+        default_supplier_id: 1501
+        additional_info: "Food-grade stainless steel, 1.5mm thickness"
+        batch_tracked: true
+        is_sellable: false
+        type: "Raw Material"
+        purchase_uom: "sheet"
+        purchase_uom_conversion_rate: 2.0
+        variants: []
+        configs: [
+          {
+            id: 101,
+            name: "Grade",
+            values: ["304", "316"],
+            product_id: 3201
+          },
+          {
+            id: 102,
+            name: "Thickness",
+            values: ["1.5mm", "2.0mm", "3.0mm"],
+            product_id: 3201
+          }
+        ]
+        custom_field_collection_id: 201
+        supplier: null
+        created_at: "2024-01-10T10:00:00Z"
+        updated_at: "2024-01-15T14:30:00Z"
+        archived_at: null
 
     MaterialListResponse:
+      description: Response containing a list of materials with pagination support for inventory and procurement management.
       type: object
       properties:
         data:
           type: array
+          description: Array of materials including raw materials and components
           items:
             $ref: "#/components/schemas/Material"
+      example:
+        data: [
+          {
+            id: 3201,
+            name: "Stainless Steel Sheet 304",
+            uom: "m²",
+            category_name: "Raw Materials",
+            default_supplier_id: 1501,
+            additional_info: "Food-grade stainless steel, 1.5mm thickness",
+            batch_tracked: true,
+            is_sellable: false,
+            type: "Raw Material",
+            purchase_uom: "sheet",
+            purchase_uom_conversion_rate: 2.0,
+            variants: [],
+            configs: [
+              {
+                id: 101,
+                name: "Grade",
+                values: ["304", "316"],
+                product_id: 3201
+              }
+            ],
+            custom_field_collection_id: 201,
+            supplier: null,
+            created_at: "2024-01-10T10:00:00Z",
+            updated_at: "2024-01-15T14:30:00Z",
+            archived_at: null
+          }
+        ]
 
     UpdateMaterialRequest:
       description: Request payload for updating an existing raw material's properties and specifications
@@ -2365,6 +2736,29 @@ components:
         custom_field_collection_id:
           type: [integer, "null"]
           maximum: 2147483647
+      example:
+        name: "Stainless Steel Sheet 304 - Updated"
+        uom: "m²"
+        category_name: "Premium Raw Materials"
+        default_supplier_id: 1502
+        additional_info: "Food-grade stainless steel, 1.5mm thickness - Updated specifications"
+        batch_tracked: true
+        is_sellable: false
+        is_archived: false
+        purchase_uom: "sheet"
+        purchase_uom_conversion_rate: 2.0
+        configs: [
+          {
+            id: 101,
+            name: "Grade",
+            values: ["304", "316", "430"]
+          },
+          {
+            name: "Finish",
+            values: ["Brushed", "Mirror", "Matte"]
+          }
+        ]
+        custom_field_collection_id: 201
 
     NegativeStock:
       type: object
@@ -4030,6 +4424,7 @@ components:
           format: uri
 
     MakeToOrderManufacturingOrderRequest:
+      description: Request to create a manufacturing order directly from a sales order row, linking production to customer demand for make-to-order manufacturing.
       type: object
       additionalProperties: false
       required:
@@ -4037,9 +4432,14 @@ components:
       properties:
         sales_order_row_id:
           type: number
+          description: ID of the sales order row to create a manufacturing order for
         create_subassemblies:
           type: boolean
           default: false
+          description: Whether to automatically create manufacturing orders for subassemblies as well
+      example:
+        sales_order_row_id: 2501
+        create_subassemblies: true
 
     ServiceAttributes:
       allOf:

@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 
@@ -10,8 +10,20 @@ T = TypeVar("T", bound="MakeToOrderManufacturingOrderRequest")
 
 @_attrs_define
 class MakeToOrderManufacturingOrderRequest:
+    """Request to create a manufacturing order directly from a sales order row, linking production to customer demand for
+    make-to-order manufacturing.
+
+        Example:
+            {'sales_order_row_id': 2501, 'create_subassemblies': True}
+
+        Attributes:
+            sales_order_row_id (float): ID of the sales order row to create a manufacturing order for
+            create_subassemblies (Union[Unset, bool]): Whether to automatically create manufacturing orders for
+                subassemblies as well Default: False.
+    """
+
     sales_order_row_id: float
-    create_subassemblies: Unset | bool = False
+    create_subassemblies: Union[Unset, bool] = False
 
     def to_dict(self) -> dict[str, Any]:
         sales_order_row_id = self.sales_order_row_id

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -32,8 +32,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | Material | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Material]]:
     if response.status_code == 200:
         response_200 = Material.from_dict(response.json())
 
@@ -61,8 +61,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | Material]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, Material]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -73,21 +73,25 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateMaterialRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | Material]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, Material]]:
     """Create a material
 
      Creates a material object.
 
     Args:
         body (CreateMaterialRequest): Request payload for creating a new raw material with
-            variants and specifications
+            variants and specifications Example: {'name': 'Stainless Steel Sheet 304', 'uom': 'm²',
+            'category_name': 'Raw Materials', 'default_supplier_id': 1501, 'additional_info': 'Food-
+            grade stainless steel, 1.5mm thickness', 'batch_tracked': True, 'is_sellable': False,
+            'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'name':
+            'Grade', 'values': ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm',
+            '3.0mm']}], 'variants': []}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, Material]]
@@ -106,21 +110,25 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateMaterialRequest,
-) -> DetailedErrorResponse | ErrorResponse | Material | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Material]]:
     """Create a material
 
      Creates a material object.
 
     Args:
         body (CreateMaterialRequest): Request payload for creating a new raw material with
-            variants and specifications
+            variants and specifications Example: {'name': 'Stainless Steel Sheet 304', 'uom': 'm²',
+            'category_name': 'Raw Materials', 'default_supplier_id': 1501, 'additional_info': 'Food-
+            grade stainless steel, 1.5mm thickness', 'batch_tracked': True, 'is_sellable': False,
+            'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'name':
+            'Grade', 'values': ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm',
+            '3.0mm']}], 'variants': []}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, Material]
@@ -134,21 +142,25 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateMaterialRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | Material]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, Material]]:
     """Create a material
 
      Creates a material object.
 
     Args:
         body (CreateMaterialRequest): Request payload for creating a new raw material with
-            variants and specifications
+            variants and specifications Example: {'name': 'Stainless Steel Sheet 304', 'uom': 'm²',
+            'category_name': 'Raw Materials', 'default_supplier_id': 1501, 'additional_info': 'Food-
+            grade stainless steel, 1.5mm thickness', 'batch_tracked': True, 'is_sellable': False,
+            'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'name':
+            'Grade', 'values': ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm',
+            '3.0mm']}], 'variants': []}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, Material]]
@@ -165,21 +177,25 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateMaterialRequest,
-) -> DetailedErrorResponse | ErrorResponse | Material | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Material]]:
     """Create a material
 
      Creates a material object.
 
     Args:
         body (CreateMaterialRequest): Request payload for creating a new raw material with
-            variants and specifications
+            variants and specifications Example: {'name': 'Stainless Steel Sheet 304', 'uom': 'm²',
+            'category_name': 'Raw Materials', 'default_supplier_id': 1501, 'additional_info': 'Food-
+            grade stainless steel, 1.5mm thickness', 'batch_tracked': True, 'is_sellable': False,
+            'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'name':
+            'Grade', 'values': ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm',
+            '3.0mm']}], 'variants': []}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, Material]

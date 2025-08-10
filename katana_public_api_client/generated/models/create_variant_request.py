@@ -1,17 +1,13 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
 from attrs import define as _attrs_define
 
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.create_variant_request_config_attributes_item import (
-        CreateVariantRequestConfigAttributesItem,
-    )
-    from ..models.create_variant_request_custom_fields_item import (
-        CreateVariantRequestCustomFieldsItem,
-    )
+    from ..models.create_variant_request_config_attributes_item import CreateVariantRequestConfigAttributesItem
+    from ..models.create_variant_request_custom_fields_item import CreateVariantRequestCustomFieldsItem
 
 
 T = TypeVar("T", bound="CreateVariantRequest")
@@ -28,20 +24,36 @@ class CreateVariantRequest:
             Count', 'config_value': '12-piece'}, {'config_name': 'Handle Material', 'config_value': 'Wood'}],
             'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '5 years'}, {'field_name': 'Care
             Instructions', 'field_value': 'Hand wash only'}]}
+
+    Attributes:
+        sku (str): Stock keeping unit code for unique identification of this product variant
+        supplier_item_codes (list[str]): Supplier-specific part numbers or SKUs for purchasing this variant
+        sales_price (Union[Unset, float]): Default selling price per unit for this product variant
+        purchase_price (Union[Unset, float]): Default purchase cost per unit for this product variant
+        product_id (Union[None, Unset, int]): ID of the parent product if this variant belongs to a finished good
+        material_id (Union[None, Unset, int]): ID of the parent material if this variant belongs to a raw material
+        internal_barcode (Union[Unset, str]): Internal barcode for warehouse scanning and tracking
+        registered_barcode (Union[Unset, str]): Official registered barcode (UPC, EAN, etc.) for retail use
+        lead_time (Union[None, Unset, int]): Days required to manufacture or procure this variant
+        minimum_order_quantity (Union[Unset, float]): Minimum quantity that must be ordered from suppliers
+        config_attributes (Union[Unset, list['CreateVariantRequestConfigAttributesItem']]): Configuration attribute
+            values that define this variant (color, size, etc.)
+        custom_fields (Union[Unset, list['CreateVariantRequestCustomFieldsItem']]): Custom field values specific to this
+            variant
     """
 
     sku: str
     supplier_item_codes: list[str]
-    sales_price: Unset | float = UNSET
-    purchase_price: Unset | float = UNSET
-    product_id: None | Unset | int = UNSET
-    material_id: None | Unset | int = UNSET
-    internal_barcode: Unset | str = UNSET
-    registered_barcode: Unset | str = UNSET
-    lead_time: None | Unset | int = UNSET
-    minimum_order_quantity: Unset | float = UNSET
-    config_attributes: Unset | list["CreateVariantRequestConfigAttributesItem"] = UNSET
-    custom_fields: Unset | list["CreateVariantRequestCustomFieldsItem"] = UNSET
+    sales_price: Union[Unset, float] = UNSET
+    purchase_price: Union[Unset, float] = UNSET
+    product_id: Union[None, Unset, int] = UNSET
+    material_id: Union[None, Unset, int] = UNSET
+    internal_barcode: Union[Unset, str] = UNSET
+    registered_barcode: Union[Unset, str] = UNSET
+    lead_time: Union[None, Unset, int] = UNSET
+    minimum_order_quantity: Union[Unset, float] = UNSET
+    config_attributes: Union[Unset, list["CreateVariantRequestConfigAttributesItem"]] = UNSET
+    custom_fields: Union[Unset, list["CreateVariantRequestCustomFieldsItem"]] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         sku = self.sku
@@ -52,13 +64,13 @@ class CreateVariantRequest:
 
         purchase_price = self.purchase_price
 
-        product_id: None | Unset | int
+        product_id: Union[None, Unset, int]
         if isinstance(self.product_id, Unset):
             product_id = UNSET
         else:
             product_id = self.product_id
 
-        material_id: None | Unset | int
+        material_id: Union[None, Unset, int]
         if isinstance(self.material_id, Unset):
             material_id = UNSET
         else:
@@ -68,7 +80,7 @@ class CreateVariantRequest:
 
         registered_barcode = self.registered_barcode
 
-        lead_time: None | Unset | int
+        lead_time: Union[None, Unset, int]
         if isinstance(self.lead_time, Unset):
             lead_time = UNSET
         else:
@@ -76,14 +88,14 @@ class CreateVariantRequest:
 
         minimum_order_quantity = self.minimum_order_quantity
 
-        config_attributes: Unset | list[dict[str, Any]] = UNSET
+        config_attributes: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.config_attributes, Unset):
             config_attributes = []
             for config_attributes_item_data in self.config_attributes:
                 config_attributes_item = config_attributes_item_data.to_dict()
                 config_attributes.append(config_attributes_item)
 
-        custom_fields: Unset | list[dict[str, Any]] = UNSET
+        custom_fields: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.custom_fields, Unset):
             custom_fields = []
             for custom_fields_item_data in self.custom_fields:
@@ -123,12 +135,8 @@ class CreateVariantRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.create_variant_request_config_attributes_item import (
-            CreateVariantRequestConfigAttributesItem,
-        )
-        from ..models.create_variant_request_custom_fields_item import (
-            CreateVariantRequestCustomFieldsItem,
-        )
+        from ..models.create_variant_request_config_attributes_item import CreateVariantRequestConfigAttributesItem
+        from ..models.create_variant_request_custom_fields_item import CreateVariantRequestCustomFieldsItem
 
         d = dict(src_dict)
         sku = d.pop("sku")
@@ -139,21 +147,21 @@ class CreateVariantRequest:
 
         purchase_price = d.pop("purchase_price", UNSET)
 
-        def _parse_product_id(data: object) -> None | Unset | int:
+        def _parse_product_id(data: object) -> Union[None, Unset, int]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(Union[None, Unset, int], data)
 
         product_id = _parse_product_id(d.pop("product_id", UNSET))
 
-        def _parse_material_id(data: object) -> None | Unset | int:
+        def _parse_material_id(data: object) -> Union[None, Unset, int]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(Union[None, Unset, int], data)
 
         material_id = _parse_material_id(d.pop("material_id", UNSET))
 
@@ -161,12 +169,12 @@ class CreateVariantRequest:
 
         registered_barcode = d.pop("registered_barcode", UNSET)
 
-        def _parse_lead_time(data: object) -> None | Unset | int:
+        def _parse_lead_time(data: object) -> Union[None, Unset, int]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(Union[None, Unset, int], data)
 
         lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
 
@@ -175,18 +183,14 @@ class CreateVariantRequest:
         config_attributes = []
         _config_attributes = d.pop("config_attributes", UNSET)
         for config_attributes_item_data in _config_attributes or []:
-            config_attributes_item = CreateVariantRequestConfigAttributesItem.from_dict(
-                config_attributes_item_data
-            )
+            config_attributes_item = CreateVariantRequestConfigAttributesItem.from_dict(config_attributes_item_data)
 
             config_attributes.append(config_attributes_item)
 
         custom_fields = []
         _custom_fields = d.pop("custom_fields", UNSET)
         for custom_fields_item_data in _custom_fields or []:
-            custom_fields_item = CreateVariantRequestCustomFieldsItem.from_dict(
-                custom_fields_item_data
-            )
+            custom_fields_item = CreateVariantRequestCustomFieldsItem.from_dict(custom_fields_item_data)
 
             custom_fields.append(custom_fields_item)
 

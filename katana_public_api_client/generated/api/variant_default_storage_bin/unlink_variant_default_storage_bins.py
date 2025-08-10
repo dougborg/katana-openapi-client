@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, cast
+from typing import Any, Optional, Union, cast
 
 import httpx
 
@@ -7,9 +7,7 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
-from ...models.unlink_variant_bin_location_request import (
-    UnlinkVariantBinLocationRequest,
-)
+from ...models.unlink_variant_bin_location_request import UnlinkVariantBinLocationRequest
 from ...types import Response
 
 
@@ -26,10 +24,10 @@ def _get_kwargs(
 
     _kwargs["json"] = []
     for componentsschemas_unlink_variant_bin_location_list_request_item_data in body:
-        componentsschemas_unlink_variant_bin_location_list_request_item = componentsschemas_unlink_variant_bin_location_list_request_item_data.to_dict()
-        _kwargs["json"].append(
-            componentsschemas_unlink_variant_bin_location_list_request_item
+        componentsschemas_unlink_variant_bin_location_list_request_item = (
+            componentsschemas_unlink_variant_bin_location_list_request_item_data.to_dict()
         )
+        _kwargs["json"].append(componentsschemas_unlink_variant_bin_location_list_request_item)
 
     headers["Content-Type"] = "application/json"
 
@@ -38,8 +36,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[Any, DetailedErrorResponse, ErrorResponse]]:
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
@@ -66,8 +64,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[Any, DetailedErrorResponse, ErrorResponse]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -78,9 +76,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: list["UnlinkVariantBinLocationRequest"],
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Union[Any, DetailedErrorResponse, ErrorResponse]]:
     """Unlink variant default storage bins
 
      Bulk operation for unlinking variants from the default storage bins available in a specific
@@ -95,7 +93,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
@@ -114,9 +111,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: list["UnlinkVariantBinLocationRequest"],
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+) -> Optional[Union[Any, DetailedErrorResponse, ErrorResponse]]:
     """Unlink variant default storage bins
 
      Bulk operation for unlinking variants from the default storage bins available in a specific
@@ -131,7 +128,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[Any, DetailedErrorResponse, ErrorResponse]
@@ -145,9 +141,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: list["UnlinkVariantBinLocationRequest"],
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Union[Any, DetailedErrorResponse, ErrorResponse]]:
     """Unlink variant default storage bins
 
      Bulk operation for unlinking variants from the default storage bins available in a specific
@@ -162,7 +158,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
@@ -179,9 +174,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: list["UnlinkVariantBinLocationRequest"],
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+) -> Optional[Union[Any, DetailedErrorResponse, ErrorResponse]]:
     """Unlink variant default storage bins
 
      Bulk operation for unlinking variants from the default storage bins available in a specific
@@ -196,7 +191,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[Any, DetailedErrorResponse, ErrorResponse]

@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..models.custom_fields_collection_custom_fields_item_field_type import (
     CustomFieldsCollectionCustomFieldsItemFieldType,
@@ -16,10 +14,18 @@ T = TypeVar("T", bound="CustomFieldsCollectionCustomFieldsItem")
 
 @_attrs_define
 class CustomFieldsCollectionCustomFieldsItem:
-    id: Unset | int = UNSET
-    name: Unset | str = UNSET
-    field_type: Unset | CustomFieldsCollectionCustomFieldsItemFieldType = UNSET
-    required: Unset | bool = UNSET
+    """
+    Attributes:
+        id (Union[Unset, int]):
+        name (Union[Unset, str]):
+        field_type (Union[Unset, CustomFieldsCollectionCustomFieldsItemFieldType]):
+        required (Union[Unset, bool]):
+    """
+
+    id: Union[Unset, int] = UNSET
+    name: Union[Unset, str] = UNSET
+    field_type: Union[Unset, CustomFieldsCollectionCustomFieldsItemFieldType] = UNSET
+    required: Union[Unset, bool] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -27,7 +33,7 @@ class CustomFieldsCollectionCustomFieldsItem:
 
         name = self.name
 
-        field_type: Unset | str = UNSET
+        field_type: Union[Unset, str] = UNSET
         if not isinstance(self.field_type, Unset):
             field_type = self.field_type.value
 
@@ -55,7 +61,7 @@ class CustomFieldsCollectionCustomFieldsItem:
         name = d.pop("name", UNSET)
 
         _field_type = d.pop("field_type", UNSET)
-        field_type: Unset | CustomFieldsCollectionCustomFieldsItemFieldType
+        field_type: Union[Unset, CustomFieldsCollectionCustomFieldsItemFieldType]
         if isinstance(_field_type, Unset):
             field_type = UNSET
         else:

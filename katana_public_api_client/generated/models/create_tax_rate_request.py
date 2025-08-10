@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 
@@ -10,8 +10,14 @@ T = TypeVar("T", bound="CreateTaxRateRequest")
 
 @_attrs_define
 class CreateTaxRateRequest:
+    """
+    Attributes:
+        rate (float):
+        name (Union[Unset, str]):
+    """
+
     rate: float
-    name: Unset | str = UNSET
+    name: Union[Unset, str] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         rate = self.rate

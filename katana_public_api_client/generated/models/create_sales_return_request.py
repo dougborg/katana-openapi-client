@@ -1,6 +1,6 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
@@ -16,14 +16,26 @@ T = TypeVar("T", bound="CreateSalesReturnRequest")
 
 @_attrs_define
 class CreateSalesReturnRequest:
+    """
+    Attributes:
+        customer_id (int): ID of the customer initiating the return
+        order_no (str): Return order reference number
+        return_location_id (int): ID of the location where items are being returned to
+        sales_return_rows (list['CreateSalesReturnRowRequest']): Array of items being returned
+        sales_order_id (Union[Unset, int]): ID of the original sales order being returned
+        currency (Union[Unset, str]): Currency code (e.g., USD, EUR)
+        order_created_date (Union[Unset, datetime.datetime]): Date when the original order was created
+        additional_info (Union[Unset, str]): Optional notes or comments about the return
+    """
+
     customer_id: int
     order_no: str
     return_location_id: int
     sales_return_rows: list["CreateSalesReturnRowRequest"]
-    sales_order_id: Unset | int = UNSET
-    currency: Unset | str = UNSET
-    order_created_date: Unset | datetime.datetime = UNSET
-    additional_info: Unset | str = UNSET
+    sales_order_id: Union[Unset, int] = UNSET
+    currency: Union[Unset, str] = UNSET
+    order_created_date: Union[Unset, datetime.datetime] = UNSET
+    additional_info: Union[Unset, str] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         customer_id = self.customer_id
@@ -41,7 +53,7 @@ class CreateSalesReturnRequest:
 
         currency = self.currency
 
-        order_created_date: Unset | str = UNSET
+        order_created_date: Union[Unset, str] = UNSET
         if not isinstance(self.order_created_date, Unset):
             order_created_date = self.order_created_date.isoformat()
 
@@ -82,9 +94,7 @@ class CreateSalesReturnRequest:
         sales_return_rows = []
         _sales_return_rows = d.pop("sales_return_rows")
         for sales_return_rows_item_data in _sales_return_rows:
-            sales_return_rows_item = CreateSalesReturnRowRequest.from_dict(
-                sales_return_rows_item_data
-            )
+            sales_return_rows_item = CreateSalesReturnRowRequest.from_dict(sales_return_rows_item_data)
 
             sales_return_rows.append(sales_return_rows_item)
 
@@ -93,7 +103,7 @@ class CreateSalesReturnRequest:
         currency = d.pop("currency", UNSET)
 
         _order_created_date = d.pop("order_created_date", UNSET)
-        order_created_date: Unset | datetime.datetime
+        order_created_date: Union[Unset, datetime.datetime]
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:

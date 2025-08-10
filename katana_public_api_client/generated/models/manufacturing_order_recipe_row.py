@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -21,33 +19,58 @@ T = TypeVar("T", bound="ManufacturingOrderRecipeRow")
 
 @_attrs_define
 class ManufacturingOrderRecipeRow:
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | str = UNSET
-    id: Unset | int = UNSET
-    manufacturing_order_id: Unset | int = UNSET
-    variant_id: Unset | int = UNSET
-    notes: Unset | str = UNSET
-    planned_quantity_per_unit: Unset | float = UNSET
-    total_actual_quantity: Unset | float = UNSET
-    ingredient_availability: Unset | str = UNSET
-    ingredient_expected_date: Unset | datetime.datetime = UNSET
-    batch_transactions: (
-        Unset | list["ManufacturingOrderRecipeRowBatchTransactionsItem"]
-    ) = UNSET
-    cost: Unset | float = UNSET
+    """Represents an ingredient or component required for a manufacturing order, tracking planned and actual quantities
+    used in production.
+
+        Example:
+            {'id': 4001, 'manufacturing_order_id': 3001, 'variant_id': 3201, 'notes': 'Use only grade 304 material',
+                'planned_quantity_per_unit': 2.5, 'total_actual_quantity': 125.0, 'ingredient_availability': 'AVAILABLE',
+                'ingredient_expected_date': None, 'batch_transactions': [{'batch_id': 1201, 'quantity': 125.0}], 'cost': 437.5,
+                'created_at': '2024-01-15T08:00:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}
+
+        Attributes:
+            created_at (Union[Unset, datetime.datetime]):
+            updated_at (Union[Unset, datetime.datetime]):
+            deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
+            id (Union[Unset, int]):
+            manufacturing_order_id (Union[Unset, int]): ID of the manufacturing order this recipe row belongs to
+            variant_id (Union[Unset, int]): ID of the ingredient variant required for production
+            notes (Union[Unset, str]): Additional notes about this ingredient or special handling instructions
+            planned_quantity_per_unit (Union[Unset, float]): Planned quantity of this ingredient needed per unit produced
+            total_actual_quantity (Union[Unset, float]): Total actual quantity of this ingredient consumed
+            ingredient_availability (Union[Unset, str]): Current availability status of this ingredient
+            ingredient_expected_date (Union[Unset, datetime.datetime]): Expected date when ingredient will be available if
+                currently unavailable
+            batch_transactions (Union[Unset, list['ManufacturingOrderRecipeRowBatchTransactionsItem']]): Batch tracking
+                transactions for this ingredient consumption
+            cost (Union[Unset, float]): Total cost of this ingredient for the manufacturing order
+    """
+
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
+    deleted_at: Union[None, Unset, str] = UNSET
+    id: Union[Unset, int] = UNSET
+    manufacturing_order_id: Union[Unset, int] = UNSET
+    variant_id: Union[Unset, int] = UNSET
+    notes: Union[Unset, str] = UNSET
+    planned_quantity_per_unit: Union[Unset, float] = UNSET
+    total_actual_quantity: Union[Unset, float] = UNSET
+    ingredient_availability: Union[Unset, str] = UNSET
+    ingredient_expected_date: Union[Unset, datetime.datetime] = UNSET
+    batch_transactions: Union[Unset, list["ManufacturingOrderRecipeRowBatchTransactionsItem"]] = UNSET
+    cost: Union[Unset, float] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | Unset | str
+        deleted_at: Union[None, Unset, str]
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         else:
@@ -67,11 +90,11 @@ class ManufacturingOrderRecipeRow:
 
         ingredient_availability = self.ingredient_availability
 
-        ingredient_expected_date: Unset | str = UNSET
+        ingredient_expected_date: Union[Unset, str] = UNSET
         if not isinstance(self.ingredient_expected_date, Unset):
             ingredient_expected_date = self.ingredient_expected_date.isoformat()
 
-        batch_transactions: Unset | list[dict[str, Any]] = UNSET
+        batch_transactions: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.batch_transactions, Unset):
             batch_transactions = []
             for batch_transactions_item_data in self.batch_transactions:
@@ -120,25 +143,25 @@ class ManufacturingOrderRecipeRow:
 
         d = dict(src_dict)
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | str:
+        def _parse_deleted_at(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -157,7 +180,7 @@ class ManufacturingOrderRecipeRow:
         ingredient_availability = d.pop("ingredient_availability", UNSET)
 
         _ingredient_expected_date = d.pop("ingredient_expected_date", UNSET)
-        ingredient_expected_date: Unset | datetime.datetime
+        ingredient_expected_date: Union[Unset, datetime.datetime]
         if isinstance(_ingredient_expected_date, Unset):
             ingredient_expected_date = UNSET
         else:
@@ -166,10 +189,8 @@ class ManufacturingOrderRecipeRow:
         batch_transactions = []
         _batch_transactions = d.pop("batch_transactions", UNSET)
         for batch_transactions_item_data in _batch_transactions or []:
-            batch_transactions_item = (
-                ManufacturingOrderRecipeRowBatchTransactionsItem.from_dict(
-                    batch_transactions_item_data
-                )
+            batch_transactions_item = ManufacturingOrderRecipeRowBatchTransactionsItem.from_dict(
+                batch_transactions_item_data
             )
 
             batch_transactions.append(batch_transactions_item)

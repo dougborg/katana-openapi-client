@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Union, cast
+from typing import Any, Optional, Union, cast
 
 import httpx
 
@@ -22,14 +22,14 @@ def _get_kwargs(
         "url": "/purchase_order_receive",
     }
 
-    _kwargs["json"] = None  # type: dict[str, Any] | list[dict[str, Any]]
+    _kwargs["json"]: Union[dict[str, Any], list[dict[str, Any]]]
     if isinstance(body, list):
         _kwargs["json"] = []
         for componentsschemas_purchase_order_receive_request_type_0_item_data in body:
-            componentsschemas_purchase_order_receive_request_type_0_item = componentsschemas_purchase_order_receive_request_type_0_item_data.to_dict()
-            _kwargs["json"].append(
-                componentsschemas_purchase_order_receive_request_type_0_item
+            componentsschemas_purchase_order_receive_request_type_0_item = (
+                componentsschemas_purchase_order_receive_request_type_0_item_data.to_dict()
             )
+            _kwargs["json"].append(componentsschemas_purchase_order_receive_request_type_0_item)
 
     else:
         _kwargs["json"] = body.to_dict()
@@ -41,8 +41,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[Any, DetailedErrorResponse, ErrorResponse]]:
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
@@ -69,8 +69,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[Any, DetailedErrorResponse, ErrorResponse]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -81,9 +81,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Union[Any, DetailedErrorResponse, ErrorResponse]]:
     """Receive a purchase order
 
      If you receive the items on the purchase order, you can mark the purchase order as received.
@@ -100,7 +100,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
@@ -119,9 +118,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+) -> Optional[Union[Any, DetailedErrorResponse, ErrorResponse]]:
     """Receive a purchase order
 
      If you receive the items on the purchase order, you can mark the purchase order as received.
@@ -138,7 +137,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[Any, DetailedErrorResponse, ErrorResponse]
@@ -152,9 +150,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Union[Any, DetailedErrorResponse, ErrorResponse]]:
     """Receive a purchase order
 
      If you receive the items on the purchase order, you can mark the purchase order as received.
@@ -171,7 +169,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
@@ -188,9 +185,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+) -> Optional[Union[Any, DetailedErrorResponse, ErrorResponse]]:
     """Receive a purchase order
 
      If you receive the items on the purchase order, you can mark the purchase order as received.
@@ -207,7 +204,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[Any, DetailedErrorResponse, ErrorResponse]

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -8,9 +8,7 @@ from ...client import AuthenticatedClient, Client
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.variant_default_storage_bin_link import VariantDefaultStorageBinLink
-from ...models.variant_default_storage_bin_link_list_response import (
-    VariantDefaultStorageBinLinkListResponse,
-)
+from ...models.variant_default_storage_bin_link_list_response import VariantDefaultStorageBinLinkListResponse
 from ...types import Response
 
 
@@ -34,17 +32,10 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    DetailedErrorResponse
-    | ErrorResponse
-    | VariantDefaultStorageBinLinkListResponse
-    | None
-):
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, VariantDefaultStorageBinLinkListResponse]]:
     if response.status_code == 200:
-        response_200 = VariantDefaultStorageBinLinkListResponse.from_dict(
-            response.json()
-        )
+        response_200 = VariantDefaultStorageBinLinkListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -70,10 +61,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    DetailedErrorResponse | ErrorResponse | VariantDefaultStorageBinLinkListResponse
-]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, VariantDefaultStorageBinLinkListResponse]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -84,11 +73,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: VariantDefaultStorageBinLink,
-) -> Response[
-    DetailedErrorResponse | ErrorResponse | VariantDefaultStorageBinLinkListResponse
-]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, VariantDefaultStorageBinLinkListResponse]]:
     """Link variant default storage bins
 
      Bulk operation for linking variants with the default storage bins.
@@ -106,7 +93,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, VariantDefaultStorageBinLinkListResponse]]
@@ -125,14 +111,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: VariantDefaultStorageBinLink,
-) -> (
-    DetailedErrorResponse
-    | ErrorResponse
-    | VariantDefaultStorageBinLinkListResponse
-    | None
-):
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, VariantDefaultStorageBinLinkListResponse]]:
     """Link variant default storage bins
 
      Bulk operation for linking variants with the default storage bins.
@@ -150,7 +131,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, VariantDefaultStorageBinLinkListResponse]
@@ -164,11 +144,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: VariantDefaultStorageBinLink,
-) -> Response[
-    DetailedErrorResponse | ErrorResponse | VariantDefaultStorageBinLinkListResponse
-]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, VariantDefaultStorageBinLinkListResponse]]:
     """Link variant default storage bins
 
      Bulk operation for linking variants with the default storage bins.
@@ -186,7 +164,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, VariantDefaultStorageBinLinkListResponse]]
@@ -203,14 +180,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: VariantDefaultStorageBinLink,
-) -> (
-    DetailedErrorResponse
-    | ErrorResponse
-    | VariantDefaultStorageBinLinkListResponse
-    | None
-):
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, VariantDefaultStorageBinLinkListResponse]]:
     """Link variant default storage bins
 
      Bulk operation for linking variants with the default storage bins.
@@ -228,7 +200,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, VariantDefaultStorageBinLinkListResponse]

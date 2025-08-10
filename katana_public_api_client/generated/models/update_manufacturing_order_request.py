@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -15,9 +13,21 @@ T = TypeVar("T", bound="UpdateManufacturingOrderRequest")
 
 @_attrs_define
 class UpdateManufacturingOrderRequest:
-    planned_quantity: Unset | float = UNSET
-    additional_info: Unset | str = UNSET
-    production_deadline_date: Unset | datetime.datetime = UNSET
+    """Request payload for updating an existing manufacturing order's properties and production parameters.
+
+    Example:
+        {'planned_quantity': 75, 'additional_info': 'Increased quantity due to additional customer demand',
+            'production_deadline_date': '2024-01-30T17:00:00Z'}
+
+    Attributes:
+        planned_quantity (Union[Unset, float]): Updated quantity of the variant to produce
+        additional_info (Union[Unset, str]): Updated notes or additional information about the order
+        production_deadline_date (Union[Unset, datetime.datetime]): Updated target deadline for completing production
+    """
+
+    planned_quantity: Union[Unset, float] = UNSET
+    additional_info: Union[Unset, str] = UNSET
+    production_deadline_date: Union[Unset, datetime.datetime] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -25,7 +35,7 @@ class UpdateManufacturingOrderRequest:
 
         additional_info = self.additional_info
 
-        production_deadline_date: Unset | str = UNSET
+        production_deadline_date: Union[Unset, str] = UNSET
         if not isinstance(self.production_deadline_date, Unset):
             production_deadline_date = self.production_deadline_date.isoformat()
 
@@ -49,7 +59,7 @@ class UpdateManufacturingOrderRequest:
         additional_info = d.pop("additional_info", UNSET)
 
         _production_deadline_date = d.pop("production_deadline_date", UNSET)
-        production_deadline_date: Unset | datetime.datetime
+        production_deadline_date: Union[Unset, datetime.datetime]
         if isinstance(_production_deadline_date, Unset):
             production_deadline_date = UNSET
         else:

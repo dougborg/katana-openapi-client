@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -20,27 +18,36 @@ class VariantDefaultStorageBinLinkResponse:
     Example:
         {'id': 501, 'bin_name': 'A-01-SHELF-1', 'variant_id': 3001, 'storage_bin_id': 12345, 'created_at':
             '2024-01-15T08:00:00.000Z', 'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}
+
+    Attributes:
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
+        deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
+        id (Union[Unset, int]): Unique identifier for the variant-storage bin link
+        bin_name (Union[Unset, str]): Name of the storage bin linked to this variant
+        variant_id (Union[Unset, int]): ID of the variant linked to the storage bin
+        storage_bin_id (Union[Unset, int]): ID of the storage bin assigned as default for this variant
     """
 
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | str = UNSET
-    id: Unset | int = UNSET
-    bin_name: Unset | str = UNSET
-    variant_id: Unset | int = UNSET
-    storage_bin_id: Unset | int = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
+    deleted_at: Union[None, Unset, str] = UNSET
+    id: Union[Unset, int] = UNSET
+    bin_name: Union[Unset, str] = UNSET
+    variant_id: Union[Unset, int] = UNSET
+    storage_bin_id: Union[Unset, int] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | Unset | str
+        deleted_at: Union[None, Unset, str]
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         else:
@@ -78,25 +85,25 @@ class VariantDefaultStorageBinLinkResponse:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | str:
+        def _parse_deleted_at(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

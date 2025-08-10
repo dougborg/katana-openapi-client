@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -23,13 +21,17 @@ class InventoryReorderPointListResponse:
         {'data': [{'variant_id': 3001, 'location_id': 1, 'value': 50.0, 'created_at': '2024-01-15T08:00:00.000Z',
             'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}, {'variant_id': 3002, 'location_id': 1, 'value':
             30.0, 'created_at': '2024-01-16T09:00:00.000Z', 'updated_at': '2024-01-16T09:00:00.000Z', 'deleted_at': None}]}
+
+    Attributes:
+        data (Union[Unset, list['InventoryReorderPoint']]): Array of reorder point records with variant, location, and
+            threshold information
     """
 
-    data: Unset | list["InventoryReorderPoint"] = UNSET
+    data: Union[Unset, list["InventoryReorderPoint"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:

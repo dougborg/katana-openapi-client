@@ -1,23 +1,21 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error_response import ErrorResponse
-from ...models.purchase_order_accounting_metadata_list_response import (
-    PurchaseOrderAccountingMetadataListResponse,
-)
+from ...models.purchase_order_accounting_metadata_list_response import PurchaseOrderAccountingMetadataListResponse
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    purchase_order_id: Unset | float = UNSET,
-    received_items_group_id: Unset | float = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
+    purchase_order_id: Union[Unset, float] = UNSET,
+    received_items_group_id: Union[Unset, float] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -41,12 +39,10 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | PurchaseOrderAccountingMetadataListResponse | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]]:
     if response.status_code == 200:
-        response_200 = PurchaseOrderAccountingMetadataListResponse.from_dict(
-            response.json()
-        )
+        response_200 = PurchaseOrderAccountingMetadataListResponse.from_dict(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -68,8 +64,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | PurchaseOrderAccountingMetadataListResponse]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -80,12 +76,12 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    purchase_order_id: Unset | float = UNSET,
-    received_items_group_id: Unset | float = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> Response[ErrorResponse | PurchaseOrderAccountingMetadataListResponse]:
+    client: Union[AuthenticatedClient, Client],
+    purchase_order_id: Union[Unset, float] = UNSET,
+    received_items_group_id: Union[Unset, float] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Response[Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]]:
     """List all purchase order accounting metadata
 
      Returns a list of purchase order accounting metadata entries.
@@ -96,11 +92,9 @@ def sync_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]]
@@ -122,12 +116,12 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    purchase_order_id: Unset | float = UNSET,
-    received_items_group_id: Unset | float = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> ErrorResponse | PurchaseOrderAccountingMetadataListResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    purchase_order_id: Union[Unset, float] = UNSET,
+    received_items_group_id: Union[Unset, float] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Optional[Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]]:
     """List all purchase order accounting metadata
 
      Returns a list of purchase order accounting metadata entries.
@@ -138,11 +132,9 @@ def sync(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]
@@ -159,12 +151,12 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    purchase_order_id: Unset | float = UNSET,
-    received_items_group_id: Unset | float = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> Response[ErrorResponse | PurchaseOrderAccountingMetadataListResponse]:
+    client: Union[AuthenticatedClient, Client],
+    purchase_order_id: Union[Unset, float] = UNSET,
+    received_items_group_id: Union[Unset, float] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Response[Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]]:
     """List all purchase order accounting metadata
 
      Returns a list of purchase order accounting metadata entries.
@@ -175,11 +167,9 @@ async def asyncio_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]]
@@ -199,12 +189,12 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    purchase_order_id: Unset | float = UNSET,
-    received_items_group_id: Unset | float = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> ErrorResponse | PurchaseOrderAccountingMetadataListResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    purchase_order_id: Union[Unset, float] = UNSET,
+    received_items_group_id: Union[Unset, float] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Optional[Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]]:
     """List all purchase order accounting metadata
 
      Returns a list of purchase order accounting metadata entries.
@@ -215,11 +205,9 @@ async def asyncio(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]

@@ -1,17 +1,13 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.variant_default_storage_bin_link_response import (
-        VariantDefaultStorageBinLinkResponse,
-    )
+    from ..models.variant_default_storage_bin_link_response import VariantDefaultStorageBinLinkResponse
 
 
 T = TypeVar("T", bound="VariantDefaultStorageBinLinkListResponse")
@@ -26,13 +22,17 @@ class VariantDefaultStorageBinLinkListResponse:
             '2024-01-15T08:00:00.000Z', 'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}, {'id': 502,
             'bin_name': 'A-02-SHELF-1', 'variant_id': 3002, 'storage_bin_id': 12346, 'created_at':
             '2024-01-16T09:00:00.000Z', 'updated_at': '2024-01-16T09:00:00.000Z', 'deleted_at': None}]}
+
+    Attributes:
+        data (Union[Unset, list['VariantDefaultStorageBinLinkResponse']]): Array of variant-storage bin links with
+            location assignments
     """
 
-    data: Unset | list["VariantDefaultStorageBinLinkResponse"] = UNSET
+    data: Union[Unset, list["VariantDefaultStorageBinLinkResponse"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:
@@ -49,9 +49,7 @@ class VariantDefaultStorageBinLinkListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.variant_default_storage_bin_link_response import (
-            VariantDefaultStorageBinLinkResponse,
-        )
+        from ..models.variant_default_storage_bin_link_response import VariantDefaultStorageBinLinkResponse
 
         d = dict(src_dict)
         data = []

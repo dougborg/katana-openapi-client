@@ -1,14 +1,12 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
 from attrs import define as _attrs_define
 
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.update_product_request_configs_item import (
-        UpdateProductRequestConfigsItem,
-    )
+    from ..models.update_product_request_configs_item import UpdateProductRequestConfigsItem
 
 
 T = TypeVar("T", bound="UpdateProductRequest")
@@ -27,24 +25,46 @@ class UpdateProductRequest:
                 'purchase_uom_conversion_rate': 1.0, 'custom_field_collection_id': 5, 'configs': [{'name': 'Piece Count',
                 'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values': ['Wood', 'Steel',
                 'Composite']}]}
+
+        Attributes:
+            name (Union[Unset, str]): Display name for the finished product used in sales and manufacturing
+            uom (Union[Unset, str]): Unit of measurement for the product (e.g., pcs, kg, m)
+            category_name (Union[Unset, str]): Product category for organizational grouping and reporting
+            is_sellable (Union[Unset, bool]): Whether this product can be sold to customers
+            is_producible (Union[Unset, bool]): Whether this product can be manufactured in-house
+            is_purchasable (Union[Unset, bool]): Whether this product can be purchased from suppliers
+            is_auto_assembly (Union[Unset, bool]): Whether the product should be automatically assembled when components are
+                available
+            default_supplier_id (Union[Unset, int]): Primary supplier ID for purchasing this product
+            additional_info (Union[Unset, str]): Additional notes or specifications for the product
+            batch_tracked (Union[Unset, bool]): Whether inventory movements are tracked by batch numbers
+            serial_tracked (Union[Unset, bool]): Whether inventory movements are tracked by individual serial numbers
+            operations_in_sequence (Union[Unset, bool]): Whether manufacturing operations must be completed in a specific
+                sequence
+            purchase_uom (Union[Unset, str]): Unit of measurement used when purchasing from suppliers
+            purchase_uom_conversion_rate (Union[Unset, float]): Conversion rate between base UOM and purchase UOM
+            configs (Union[Unset, list['UpdateProductRequestConfigsItem']]): Configuration attributes that define variant
+                combinations (size, color, etc.)
+            custom_field_collection_id (Union[None, Unset, int]): ID of the custom field collection associated with this
+                product
     """
 
-    name: Unset | str = UNSET
-    uom: Unset | str = UNSET
-    category_name: Unset | str = UNSET
-    is_sellable: Unset | bool = UNSET
-    is_producible: Unset | bool = UNSET
-    is_purchasable: Unset | bool = UNSET
-    is_auto_assembly: Unset | bool = UNSET
-    default_supplier_id: Unset | int = UNSET
-    additional_info: Unset | str = UNSET
-    batch_tracked: Unset | bool = UNSET
-    serial_tracked: Unset | bool = UNSET
-    operations_in_sequence: Unset | bool = UNSET
-    purchase_uom: Unset | str = UNSET
-    purchase_uom_conversion_rate: Unset | float = UNSET
-    configs: Unset | list["UpdateProductRequestConfigsItem"] = UNSET
-    custom_field_collection_id: None | Unset | int = UNSET
+    name: Union[Unset, str] = UNSET
+    uom: Union[Unset, str] = UNSET
+    category_name: Union[Unset, str] = UNSET
+    is_sellable: Union[Unset, bool] = UNSET
+    is_producible: Union[Unset, bool] = UNSET
+    is_purchasable: Union[Unset, bool] = UNSET
+    is_auto_assembly: Union[Unset, bool] = UNSET
+    default_supplier_id: Union[Unset, int] = UNSET
+    additional_info: Union[Unset, str] = UNSET
+    batch_tracked: Union[Unset, bool] = UNSET
+    serial_tracked: Union[Unset, bool] = UNSET
+    operations_in_sequence: Union[Unset, bool] = UNSET
+    purchase_uom: Union[Unset, str] = UNSET
+    purchase_uom_conversion_rate: Union[Unset, float] = UNSET
+    configs: Union[Unset, list["UpdateProductRequestConfigsItem"]] = UNSET
+    custom_field_collection_id: Union[None, Unset, int] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -75,14 +95,14 @@ class UpdateProductRequest:
 
         purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
-        configs: Unset | list[dict[str, Any]] = UNSET
+        configs: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.configs, Unset):
             configs = []
             for configs_item_data in self.configs:
                 configs_item = configs_item_data.to_dict()
                 configs.append(configs_item)
 
-        custom_field_collection_id: None | Unset | int
+        custom_field_collection_id: Union[None, Unset, int]
         if isinstance(self.custom_field_collection_id, Unset):
             custom_field_collection_id = UNSET
         else:
@@ -128,9 +148,7 @@ class UpdateProductRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.update_product_request_configs_item import (
-            UpdateProductRequestConfigsItem,
-        )
+        from ..models.update_product_request_configs_item import UpdateProductRequestConfigsItem
 
         d = dict(src_dict)
         name = d.pop("name", UNSET)
@@ -168,16 +186,14 @@ class UpdateProductRequest:
 
             configs.append(configs_item)
 
-        def _parse_custom_field_collection_id(data: object) -> None | Unset | int:
+        def _parse_custom_field_collection_id(data: object) -> Union[None, Unset, int]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(Union[None, Unset, int], data)
 
-        custom_field_collection_id = _parse_custom_field_collection_id(
-            d.pop("custom_field_collection_id", UNSET)
-        )
+        custom_field_collection_id = _parse_custom_field_collection_id(d.pop("custom_field_collection_id", UNSET))
 
         update_product_request = cls(
             name=name,

@@ -1,38 +1,36 @@
 import datetime
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error_response import ErrorResponse
-from ...models.get_all_manufacturing_orders_status import (
-    GetAllManufacturingOrdersStatus,
-)
+from ...models.get_all_manufacturing_orders_status import GetAllManufacturingOrdersStatus
 from ...models.manufacturing_order_list_response import ManufacturingOrderListResponse
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    status: Unset | GetAllManufacturingOrdersStatus = UNSET,
-    order_no: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    is_linked_to_sales_order: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    ids: Union[Unset, list[int]] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    status: Union[Unset, GetAllManufacturingOrdersStatus] = UNSET,
+    order_no: Union[Unset, str] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    is_linked_to_sales_order: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: Union[Unset, list[int]] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -40,7 +38,7 @@ def _get_kwargs(
 
     params["name"] = name
 
-    json_status: Unset | str = UNSET
+    json_status: Union[Unset, str] = UNSET
     if not isinstance(status, Unset):
         json_status = status.value
 
@@ -56,22 +54,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: Union[Unset, str] = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: Union[Unset, str] = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: Union[Unset, str] = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: Union[Unset, str] = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -90,8 +88,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | ManufacturingOrderListResponse | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[ErrorResponse, ManufacturingOrderListResponse]]:
     if response.status_code == 200:
         response_200 = ManufacturingOrderListResponse.from_dict(response.json())
 
@@ -115,8 +113,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | ManufacturingOrderListResponse]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[ErrorResponse, ManufacturingOrderListResponse]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -127,21 +125,21 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    status: Unset | GetAllManufacturingOrdersStatus = UNSET,
-    order_no: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    is_linked_to_sales_order: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    include_deleted: Unset | bool = UNSET,
-) -> Response[ErrorResponse | ManufacturingOrderListResponse]:
+    client: Union[AuthenticatedClient, Client],
+    ids: Union[Unset, list[int]] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    status: Union[Unset, GetAllManufacturingOrdersStatus] = UNSET,
+    order_no: Union[Unset, str] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    is_linked_to_sales_order: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+) -> Response[Union[ErrorResponse, ManufacturingOrderListResponse]]:
     """List all manufacturing orders
 
      Returns a list of manufacturing orders you've previously created.
@@ -166,7 +164,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, ManufacturingOrderListResponse]]
@@ -197,21 +194,21 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    status: Unset | GetAllManufacturingOrdersStatus = UNSET,
-    order_no: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    is_linked_to_sales_order: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    include_deleted: Unset | bool = UNSET,
-) -> ErrorResponse | ManufacturingOrderListResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    ids: Union[Unset, list[int]] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    status: Union[Unset, GetAllManufacturingOrdersStatus] = UNSET,
+    order_no: Union[Unset, str] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    is_linked_to_sales_order: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+) -> Optional[Union[ErrorResponse, ManufacturingOrderListResponse]]:
     """List all manufacturing orders
 
      Returns a list of manufacturing orders you've previously created.
@@ -236,7 +233,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, ManufacturingOrderListResponse]
@@ -262,21 +258,21 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    status: Unset | GetAllManufacturingOrdersStatus = UNSET,
-    order_no: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    is_linked_to_sales_order: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    include_deleted: Unset | bool = UNSET,
-) -> Response[ErrorResponse | ManufacturingOrderListResponse]:
+    client: Union[AuthenticatedClient, Client],
+    ids: Union[Unset, list[int]] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    status: Union[Unset, GetAllManufacturingOrdersStatus] = UNSET,
+    order_no: Union[Unset, str] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    is_linked_to_sales_order: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+) -> Response[Union[ErrorResponse, ManufacturingOrderListResponse]]:
     """List all manufacturing orders
 
      Returns a list of manufacturing orders you've previously created.
@@ -301,7 +297,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, ManufacturingOrderListResponse]]
@@ -330,21 +325,21 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    status: Unset | GetAllManufacturingOrdersStatus = UNSET,
-    order_no: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    is_linked_to_sales_order: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    include_deleted: Unset | bool = UNSET,
-) -> ErrorResponse | ManufacturingOrderListResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    ids: Union[Unset, list[int]] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    status: Union[Unset, GetAllManufacturingOrdersStatus] = UNSET,
+    order_no: Union[Unset, str] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    is_linked_to_sales_order: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+) -> Optional[Union[ErrorResponse, ManufacturingOrderListResponse]]:
     """List all manufacturing orders
 
      Returns a list of manufacturing orders you've previously created.
@@ -369,7 +364,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, ManufacturingOrderListResponse]

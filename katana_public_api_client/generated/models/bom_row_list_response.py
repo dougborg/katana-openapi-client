@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -25,13 +23,16 @@ class BomRowListResponse:
             'updated_at': '2023-10-16T09:15:00Z'}, {'id': 502, 'product_variant_id': 2001, 'product_item_id': 3001,
             'ingredient_variant_id': 2003, 'quantity': 1.0, 'notes': 'Standard component', 'created_at':
             '2023-10-15T14:31:00Z', 'updated_at': '2023-10-15T14:31:00Z'}]}
+
+    Attributes:
+        data (Union[Unset, list['BomRow']]): Array of BOM row objects
     """
 
-    data: Unset | list["BomRow"] = UNSET
+    data: Union[Unset, list["BomRow"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:

@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -17,23 +15,28 @@ class UpdateBomRowRequest:
 
     Example:
         {'quantity': 3.0, 'notes': 'Updated quantity based on new specifications'}
+
+    Attributes:
+        ingredient_variant_id (Union[Unset, int]): ID of the ingredient variant used in this BOM row
+        quantity (Union[None, Unset, float]): Required quantity of the ingredient variant
+        notes (Union[None, Unset, str]): Additional notes for this BOM row
     """
 
-    ingredient_variant_id: Unset | int = UNSET
-    quantity: None | Unset | float = UNSET
-    notes: None | Unset | str = UNSET
+    ingredient_variant_id: Union[Unset, int] = UNSET
+    quantity: Union[None, Unset, float] = UNSET
+    notes: Union[None, Unset, str] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         ingredient_variant_id = self.ingredient_variant_id
 
-        quantity: None | Unset | float
+        quantity: Union[None, Unset, float]
         if isinstance(self.quantity, Unset):
             quantity = UNSET
         else:
             quantity = self.quantity
 
-        notes: None | Unset | str
+        notes: Union[None, Unset, str]
         if isinstance(self.notes, Unset):
             notes = UNSET
         else:
@@ -56,21 +59,21 @@ class UpdateBomRowRequest:
         d = dict(src_dict)
         ingredient_variant_id = d.pop("ingredient_variant_id", UNSET)
 
-        def _parse_quantity(data: object) -> None | Unset | float:
+        def _parse_quantity(data: object) -> Union[None, Unset, float]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(Union[None, Unset, float], data)
 
         quantity = _parse_quantity(d.pop("quantity", UNSET))
 
-        def _parse_notes(data: object) -> None | Unset | str:
+        def _parse_notes(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 

@@ -1,10 +1,8 @@
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -18,13 +16,18 @@ T = TypeVar("T", bound="GetAllLocationsResponse200")
 
 @_attrs_define
 class GetAllLocationsResponse200:
-    data: Unset | list[Union["DeletableEntity", "LocationType0"]] = UNSET
+    """
+    Attributes:
+        data (Union[Unset, list[Union['DeletableEntity', 'LocationType0']]]):
+    """
+
+    data: Union[Unset, list[Union["DeletableEntity", "LocationType0"]]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.location_type_0 import LocationType0
 
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:
@@ -54,9 +57,7 @@ class GetAllLocationsResponse200:
         _data = d.pop("data", UNSET)
         for data_item_data in _data or []:
 
-            def _parse_data_item(
-                data: object,
-            ) -> Union["DeletableEntity", "LocationType0"]:
+            def _parse_data_item(data: object) -> Union["DeletableEntity", "LocationType0"]:
                 try:
                     if not isinstance(data, dict):
                         raise TypeError()

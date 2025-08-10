@@ -1,20 +1,16 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.variant import Variant
-    from ..models.variant_response_product_or_material_configs_item import (
-        VariantResponseProductOrMaterialConfigsItem,
-    )
+    from ..models.variant_response_product_or_material_configs_item import VariantResponseProductOrMaterialConfigsItem
 
 
 T = TypeVar("T", bound="VariantResponseProductOrMaterial")
@@ -22,24 +18,44 @@ T = TypeVar("T", bound="VariantResponseProductOrMaterial")
 
 @_attrs_define
 class VariantResponseProductOrMaterial:
-    """Details of the parent product or material this variant belongs to"""
+    """Details of the parent product or material this variant belongs to
 
-    id: Unset | int = UNSET
-    name: Unset | str = UNSET
-    uom: Unset | str = UNSET
-    category_name: Unset | str = UNSET
-    is_producible: Unset | bool = UNSET
-    default_supplier_id: Unset | int = UNSET
-    is_purchasable: Unset | bool = UNSET
-    type_: Unset | str = UNSET
-    purchase_uom: Unset | str = UNSET
-    purchase_uom_conversion_rate: Unset | float = UNSET
-    batch_tracked: Unset | bool = UNSET
-    configs: Unset | list["VariantResponseProductOrMaterialConfigsItem"] = UNSET
-    additional_info: Unset | str = UNSET
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    variants: Unset | list["Variant"] = UNSET
+    Attributes:
+        id (Union[Unset, int]): Unique identifier of the parent product or material
+        name (Union[Unset, str]): Name of the parent product or material
+        uom (Union[Unset, str]): Unit of measurement
+        category_name (Union[Unset, str]): Category classification
+        is_producible (Union[Unset, bool]): Whether the parent can be manufactured
+        default_supplier_id (Union[Unset, int]): Primary supplier ID
+        is_purchasable (Union[Unset, bool]): Whether the parent can be purchased
+        type_ (Union[Unset, str]): Type classification (product/material)
+        purchase_uom (Union[Unset, str]): Purchase unit of measurement
+        purchase_uom_conversion_rate (Union[Unset, float]): Conversion rate for purchase UOM
+        batch_tracked (Union[Unset, bool]): Whether batch tracking is enabled
+        configs (Union[Unset, list['VariantResponseProductOrMaterialConfigsItem']]): Configuration definitions for
+            variants
+        additional_info (Union[Unset, str]): Additional notes or specifications
+        created_at (Union[Unset, datetime.datetime]): Creation timestamp
+        updated_at (Union[Unset, datetime.datetime]): Last update timestamp
+        variants (Union[Unset, list['Variant']]): All variants of this product or material
+    """
+
+    id: Union[Unset, int] = UNSET
+    name: Union[Unset, str] = UNSET
+    uom: Union[Unset, str] = UNSET
+    category_name: Union[Unset, str] = UNSET
+    is_producible: Union[Unset, bool] = UNSET
+    default_supplier_id: Union[Unset, int] = UNSET
+    is_purchasable: Union[Unset, bool] = UNSET
+    type_: Union[Unset, str] = UNSET
+    purchase_uom: Union[Unset, str] = UNSET
+    purchase_uom_conversion_rate: Union[Unset, float] = UNSET
+    batch_tracked: Union[Unset, bool] = UNSET
+    configs: Union[Unset, list["VariantResponseProductOrMaterialConfigsItem"]] = UNSET
+    additional_info: Union[Unset, str] = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
+    variants: Union[Unset, list["Variant"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -65,7 +81,7 @@ class VariantResponseProductOrMaterial:
 
         batch_tracked = self.batch_tracked
 
-        configs: Unset | list[dict[str, Any]] = UNSET
+        configs: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.configs, Unset):
             configs = []
             for configs_item_data in self.configs:
@@ -74,15 +90,15 @@ class VariantResponseProductOrMaterial:
 
         additional_info = self.additional_info
 
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        variants: Unset | list[dict[str, Any]] = UNSET
+        variants: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.variants, Unset):
             variants = []
             for variants_item_data in self.variants:
@@ -160,23 +176,21 @@ class VariantResponseProductOrMaterial:
         configs = []
         _configs = d.pop("configs", UNSET)
         for configs_item_data in _configs or []:
-            configs_item = VariantResponseProductOrMaterialConfigsItem.from_dict(
-                configs_item_data
-            )
+            configs_item = VariantResponseProductOrMaterialConfigsItem.from_dict(configs_item_data)
 
             configs.append(configs_item)
 
         additional_info = d.pop("additional_info", UNSET)
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:

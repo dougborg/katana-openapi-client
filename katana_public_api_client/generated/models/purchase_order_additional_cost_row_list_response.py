@@ -1,17 +1,13 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.purchase_order_additional_cost_row import (
-        PurchaseOrderAdditionalCostRow,
-    )
+    from ..models.purchase_order_additional_cost_row import PurchaseOrderAdditionalCostRow
 
 
 T = TypeVar("T", bound="PurchaseOrderAdditionalCostRowListResponse")
@@ -19,11 +15,16 @@ T = TypeVar("T", bound="PurchaseOrderAdditionalCostRowListResponse")
 
 @_attrs_define
 class PurchaseOrderAdditionalCostRowListResponse:
-    data: Unset | list["PurchaseOrderAdditionalCostRow"] = UNSET
+    """
+    Attributes:
+        data (Union[Unset, list['PurchaseOrderAdditionalCostRow']]):
+    """
+
+    data: Union[Unset, list["PurchaseOrderAdditionalCostRow"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:
@@ -40,9 +41,7 @@ class PurchaseOrderAdditionalCostRowListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.purchase_order_additional_cost_row import (
-            PurchaseOrderAdditionalCostRow,
-        )
+        from ..models.purchase_order_additional_cost_row import PurchaseOrderAdditionalCostRow
 
         d = dict(src_dict)
         data = []

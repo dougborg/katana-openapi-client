@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -24,13 +22,17 @@ class SerialNumberListResponse:
             'IN_STOCK', 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at': '2024-01-15T08:00:00.000Z'}, {'id': 5002,
             'serial_number': 'KNF001234568', 'variant_id': 3001, 'location_id': 1, 'status': 'SOLD', 'created_at':
             '2024-01-15T08:30:00.000Z', 'updated_at': '2024-01-16T14:20:00.000Z'}]}
+
+    Attributes:
+        data (Union[Unset, list['SerialNumber']]): Array of serial number records with unique identifiers and tracking
+            information
     """
 
-    data: Unset | list["SerialNumber"] = UNSET
+    data: Union[Unset, list["SerialNumber"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -8,9 +8,7 @@ from ...client import AuthenticatedClient, Client
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.purchase_order_additional_cost_row import PurchaseOrderAdditionalCostRow
-from ...models.update_purchase_order_additional_cost_row_request import (
-    UpdatePurchaseOrderAdditionalCostRowRequest,
-)
+from ...models.update_purchase_order_additional_cost_row_request import UpdatePurchaseOrderAdditionalCostRowRequest
 from ...types import Response
 
 
@@ -35,8 +33,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderAdditionalCostRow | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]]:
     if response.status_code == 200:
         response_200 = PurchaseOrderAdditionalCostRow.from_dict(response.json())
 
@@ -64,8 +62,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderAdditionalCostRow]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -77,9 +75,9 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderAdditionalCostRow]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]]:
     """Update a purchase order additional cost row
 
      Updates the specified purchase order additional cost row by setting the values of the parameters
@@ -93,7 +91,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]]
@@ -114,9 +111,9 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
-) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderAdditionalCostRow | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]]:
     """Update a purchase order additional cost row
 
      Updates the specified purchase order additional cost row by setting the values of the parameters
@@ -130,7 +127,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]
@@ -146,9 +142,9 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderAdditionalCostRow]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]]:
     """Update a purchase order additional cost row
 
      Updates the specified purchase order additional cost row by setting the values of the parameters
@@ -162,7 +158,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]]
@@ -181,9 +176,9 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
-) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderAdditionalCostRow | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]]:
     """Update a purchase order additional cost row
 
      Updates the specified purchase order additional cost row by setting the values of the parameters
@@ -197,7 +192,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]

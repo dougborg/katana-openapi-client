@@ -1,22 +1,16 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
-from ..models.custom_fields_collection_resource_type import (
-    CustomFieldsCollectionResourceType,
-)
+from ..models.custom_fields_collection_resource_type import CustomFieldsCollectionResourceType
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.custom_fields_collection_custom_fields_item import (
-        CustomFieldsCollectionCustomFieldsItem,
-    )
+    from ..models.custom_fields_collection_custom_fields_item import CustomFieldsCollectionCustomFieldsItem
 
 
 T = TypeVar("T", bound="CustomFieldsCollection")
@@ -24,12 +18,22 @@ T = TypeVar("T", bound="CustomFieldsCollection")
 
 @_attrs_define
 class CustomFieldsCollection:
+    """
+    Attributes:
+        id (int):
+        name (str):
+        resource_type (CustomFieldsCollectionResourceType):
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
+        custom_fields (Union[Unset, list['CustomFieldsCollectionCustomFieldsItem']]):
+    """
+
     id: int
     name: str
     resource_type: CustomFieldsCollectionResourceType
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    custom_fields: Unset | list["CustomFieldsCollectionCustomFieldsItem"] = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
+    custom_fields: Union[Unset, list["CustomFieldsCollectionCustomFieldsItem"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,15 +43,15 @@ class CustomFieldsCollection:
 
         resource_type = self.resource_type.value
 
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        custom_fields: Unset | list[dict[str, Any]] = UNSET
+        custom_fields: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.custom_fields, Unset):
             custom_fields = []
             for custom_fields_item_data in self.custom_fields:
@@ -74,9 +78,7 @@ class CustomFieldsCollection:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.custom_fields_collection_custom_fields_item import (
-            CustomFieldsCollectionCustomFieldsItem,
-        )
+        from ..models.custom_fields_collection_custom_fields_item import CustomFieldsCollectionCustomFieldsItem
 
         d = dict(src_dict)
         id = d.pop("id")
@@ -86,14 +88,14 @@ class CustomFieldsCollection:
         resource_type = CustomFieldsCollectionResourceType(d.pop("resource_type"))
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
@@ -102,9 +104,7 @@ class CustomFieldsCollection:
         custom_fields = []
         _custom_fields = d.pop("custom_fields", UNSET)
         for custom_fields_item_data in _custom_fields or []:
-            custom_fields_item = CustomFieldsCollectionCustomFieldsItem.from_dict(
-                custom_fields_item_data
-            )
+            custom_fields_item = CustomFieldsCollectionCustomFieldsItem.from_dict(custom_fields_item_data)
 
             custom_fields.append(custom_fields_item)
 

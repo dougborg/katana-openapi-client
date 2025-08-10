@@ -1,13 +1,11 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.create_sales_order_shipping_fee_request import (
-    CreateSalesOrderShippingFeeRequest,
-)
+from ...models.create_sales_order_shipping_fee_request import CreateSalesOrderShippingFeeRequest
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.sales_order_shipping_fee import SalesOrderShippingFee
@@ -34,8 +32,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]]:
     if response.status_code == 201:
         response_201 = SalesOrderShippingFee.from_dict(response.json())
 
@@ -67,8 +65,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -79,9 +77,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesOrderShippingFeeRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]]:
     """Create a sales order shipping fee
 
      Creates a sales order shipping fee and adds it to a sales order.
@@ -92,7 +90,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]]
@@ -111,9 +108,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesOrderShippingFeeRequest,
-) -> DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]]:
     """Create a sales order shipping fee
 
      Creates a sales order shipping fee and adds it to a sales order.
@@ -124,7 +121,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]
@@ -138,9 +134,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesOrderShippingFeeRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]]:
     """Create a sales order shipping fee
 
      Creates a sales order shipping fee and adds it to a sales order.
@@ -151,7 +147,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]]
@@ -168,9 +163,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesOrderShippingFeeRequest,
-) -> DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]]:
     """Create a sales order shipping fee
 
      Creates a sales order shipping fee and adds it to a sales order.
@@ -181,7 +176,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]

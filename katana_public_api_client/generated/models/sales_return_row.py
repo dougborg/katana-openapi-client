@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -15,16 +13,30 @@ T = TypeVar("T", bound="SalesReturnRow")
 
 @_attrs_define
 class SalesReturnRow:
+    """
+    Attributes:
+        id (int):
+        sales_return_id (int):
+        variant_id (int):
+        quantity (float):
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
+        return_reason_id (Union[None, Unset, int]):
+        notes (Union[None, Unset, str]):
+        unit_price (Union[None, Unset, float]):
+        total_price (Union[None, Unset, float]):
+    """
+
     id: int
     sales_return_id: int
     variant_id: int
     quantity: float
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    return_reason_id: None | Unset | int = UNSET
-    notes: None | Unset | str = UNSET
-    unit_price: None | Unset | float = UNSET
-    total_price: None | Unset | float = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
+    return_reason_id: Union[None, Unset, int] = UNSET
+    notes: Union[None, Unset, str] = UNSET
+    unit_price: Union[None, Unset, float] = UNSET
+    total_price: Union[None, Unset, float] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,33 +48,33 @@ class SalesReturnRow:
 
         quantity = self.quantity
 
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        return_reason_id: None | Unset | int
+        return_reason_id: Union[None, Unset, int]
         if isinstance(self.return_reason_id, Unset):
             return_reason_id = UNSET
         else:
             return_reason_id = self.return_reason_id
 
-        notes: None | Unset | str
+        notes: Union[None, Unset, str]
         if isinstance(self.notes, Unset):
             notes = UNSET
         else:
             notes = self.notes
 
-        unit_price: None | Unset | float
+        unit_price: Union[None, Unset, float]
         if isinstance(self.unit_price, Unset):
             unit_price = UNSET
         else:
             unit_price = self.unit_price
 
-        total_price: None | Unset | float
+        total_price: Union[None, Unset, float]
         if isinstance(self.total_price, Unset):
             total_price = UNSET
         else:
@@ -105,52 +117,52 @@ class SalesReturnRow:
         quantity = d.pop("quantity")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_return_reason_id(data: object) -> None | Unset | int:
+        def _parse_return_reason_id(data: object) -> Union[None, Unset, int]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(Union[None, Unset, int], data)
 
         return_reason_id = _parse_return_reason_id(d.pop("return_reason_id", UNSET))
 
-        def _parse_notes(data: object) -> None | Unset | str:
+        def _parse_notes(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
-        def _parse_unit_price(data: object) -> None | Unset | float:
+        def _parse_unit_price(data: object) -> Union[None, Unset, float]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(Union[None, Unset, float], data)
 
         unit_price = _parse_unit_price(d.pop("unit_price", UNSET))
 
-        def _parse_total_price(data: object) -> None | Unset | float:
+        def _parse_total_price(data: object) -> Union[None, Unset, float]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(Union[None, Unset, float], data)
 
         total_price = _parse_total_price(d.pop("total_price", UNSET))
 

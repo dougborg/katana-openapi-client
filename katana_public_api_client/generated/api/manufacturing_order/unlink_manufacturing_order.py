@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -29,9 +29,7 @@ def _get_kwargs(
     return _kwargs
 
 
-def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | None:
+def _parse_response(*, client: Union[AuthenticatedClient, Client], response: httpx.Response) -> Optional[ErrorResponse]:
     if response.status_code == 204:
         response_204 = ErrorResponse.from_dict(response.json())
 
@@ -50,9 +48,7 @@ def _parse_response(
         return None
 
 
-def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse]:
+def _build_response(*, client: Union[AuthenticatedClient, Client], response: httpx.Response) -> Response[ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -63,7 +59,7 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UnlinkManufacturingOrderRequest,
 ) -> Response[ErrorResponse]:
     """Unlink a manufacturing order from sales order row
@@ -71,12 +67,13 @@ def sync_detailed(
      Unlinks the manufacturing order from a particular sales order row.
 
     Args:
-        body (UnlinkManufacturingOrderRequest):
+        body (UnlinkManufacturingOrderRequest): Request to unlink a manufacturing order from its
+            associated sales order row, removing the direct connection while preserving both orders.
+            Example: {'sales_order_row_id': 2501}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[ErrorResponse]
@@ -95,20 +92,21 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UnlinkManufacturingOrderRequest,
-) -> ErrorResponse | None:
+) -> Optional[ErrorResponse]:
     """Unlink a manufacturing order from sales order row
 
      Unlinks the manufacturing order from a particular sales order row.
 
     Args:
-        body (UnlinkManufacturingOrderRequest):
+        body (UnlinkManufacturingOrderRequest): Request to unlink a manufacturing order from its
+            associated sales order row, removing the direct connection while preserving both orders.
+            Example: {'sales_order_row_id': 2501}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         ErrorResponse
@@ -122,7 +120,7 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UnlinkManufacturingOrderRequest,
 ) -> Response[ErrorResponse]:
     """Unlink a manufacturing order from sales order row
@@ -130,12 +128,13 @@ async def asyncio_detailed(
      Unlinks the manufacturing order from a particular sales order row.
 
     Args:
-        body (UnlinkManufacturingOrderRequest):
+        body (UnlinkManufacturingOrderRequest): Request to unlink a manufacturing order from its
+            associated sales order row, removing the direct connection while preserving both orders.
+            Example: {'sales_order_row_id': 2501}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[ErrorResponse]
@@ -152,20 +151,21 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UnlinkManufacturingOrderRequest,
-) -> ErrorResponse | None:
+) -> Optional[ErrorResponse]:
     """Unlink a manufacturing order from sales order row
 
      Unlinks the manufacturing order from a particular sales order row.
 
     Args:
-        body (UnlinkManufacturingOrderRequest):
+        body (UnlinkManufacturingOrderRequest): Request to unlink a manufacturing order from its
+            associated sales order row, removing the direct connection while preserving both orders.
+            Example: {'sales_order_row_id': 2501}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         ErrorResponse

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -12,16 +12,16 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    batch_id: Unset | int = UNSET,
-    batch_number: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    batch_barcode: Unset | str = UNSET,
-    batch_created_at_min: Unset | str = UNSET,
-    batch_created_at_max: Unset | str = UNSET,
-    include_empty: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
+    batch_id: Union[Unset, int] = UNSET,
+    batch_number: Union[Unset, str] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    batch_barcode: Union[Unset, str] = UNSET,
+    batch_created_at_min: Union[Unset, str] = UNSET,
+    batch_created_at_max: Union[Unset, str] = UNSET,
+    include_empty: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -57,8 +57,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> BatchStockListResponse | ErrorResponse | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[BatchStockListResponse, ErrorResponse]]:
     if response.status_code == 200:
         response_200 = BatchStockListResponse.from_dict(response.json())
 
@@ -82,8 +82,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[BatchStockListResponse | ErrorResponse]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[BatchStockListResponse, ErrorResponse]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -94,18 +94,18 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    batch_id: Unset | int = UNSET,
-    batch_number: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    batch_barcode: Unset | str = UNSET,
-    batch_created_at_min: Unset | str = UNSET,
-    batch_created_at_max: Unset | str = UNSET,
-    include_empty: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> Response[BatchStockListResponse | ErrorResponse]:
+    client: Union[AuthenticatedClient, Client],
+    batch_id: Union[Unset, int] = UNSET,
+    batch_number: Union[Unset, str] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    batch_barcode: Union[Unset, str] = UNSET,
+    batch_created_at_min: Union[Unset, str] = UNSET,
+    batch_created_at_max: Union[Unset, str] = UNSET,
+    include_empty: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Response[Union[BatchStockListResponse, ErrorResponse]]:
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
@@ -123,11 +123,9 @@ def sync_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[BatchStockListResponse, ErrorResponse]]
@@ -155,18 +153,18 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    batch_id: Unset | int = UNSET,
-    batch_number: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    batch_barcode: Unset | str = UNSET,
-    batch_created_at_min: Unset | str = UNSET,
-    batch_created_at_max: Unset | str = UNSET,
-    include_empty: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> BatchStockListResponse | ErrorResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    batch_id: Union[Unset, int] = UNSET,
+    batch_number: Union[Unset, str] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    batch_barcode: Union[Unset, str] = UNSET,
+    batch_created_at_min: Union[Unset, str] = UNSET,
+    batch_created_at_max: Union[Unset, str] = UNSET,
+    include_empty: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Optional[Union[BatchStockListResponse, ErrorResponse]]:
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
@@ -184,11 +182,9 @@ def sync(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[BatchStockListResponse, ErrorResponse]
@@ -211,18 +207,18 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    batch_id: Unset | int = UNSET,
-    batch_number: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    batch_barcode: Unset | str = UNSET,
-    batch_created_at_min: Unset | str = UNSET,
-    batch_created_at_max: Unset | str = UNSET,
-    include_empty: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> Response[BatchStockListResponse | ErrorResponse]:
+    client: Union[AuthenticatedClient, Client],
+    batch_id: Union[Unset, int] = UNSET,
+    batch_number: Union[Unset, str] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    batch_barcode: Union[Unset, str] = UNSET,
+    batch_created_at_min: Union[Unset, str] = UNSET,
+    batch_created_at_max: Union[Unset, str] = UNSET,
+    include_empty: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Response[Union[BatchStockListResponse, ErrorResponse]]:
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
@@ -240,11 +236,9 @@ async def asyncio_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[BatchStockListResponse, ErrorResponse]]
@@ -270,18 +264,18 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    batch_id: Unset | int = UNSET,
-    batch_number: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    batch_barcode: Unset | str = UNSET,
-    batch_created_at_min: Unset | str = UNSET,
-    batch_created_at_max: Unset | str = UNSET,
-    include_empty: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> BatchStockListResponse | ErrorResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    batch_id: Union[Unset, int] = UNSET,
+    batch_number: Union[Unset, str] = UNSET,
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    batch_barcode: Union[Unset, str] = UNSET,
+    batch_created_at_min: Union[Unset, str] = UNSET,
+    batch_created_at_max: Union[Unset, str] = UNSET,
+    include_empty: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Optional[Union[BatchStockListResponse, ErrorResponse]]:
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
@@ -299,11 +293,9 @@ async def asyncio(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[BatchStockListResponse, ErrorResponse]

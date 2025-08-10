@@ -11,32 +11,16 @@ class WebhookEvent(str, Enum):
     MANUFACTURING_ORDER_DELETED = "manufacturing_order.deleted"
     MANUFACTURING_ORDER_DONE = "manufacturing_order.done"
     MANUFACTURING_ORDER_IN_PROGRESS = "manufacturing_order.in_progress"
-    MANUFACTURING_ORDER_OPERATION_ROW_BLOCKED = (
-        "manufacturing_order_operation_row.blocked"
-    )
-    MANUFACTURING_ORDER_OPERATION_ROW_COMPLETED = (
-        "manufacturing_order_operation_row.completed"
-    )
-    MANUFACTURING_ORDER_OPERATION_ROW_CREATED = (
-        "manufacturing_order_operation_row.created"
-    )
-    MANUFACTURING_ORDER_OPERATION_ROW_DELETED = (
-        "manufacturing_order_operation_row.deleted"
-    )
-    MANUFACTURING_ORDER_OPERATION_ROW_IN_PROGRESS = (
-        "manufacturing_order_operation_row.in_progress"
-    )
-    MANUFACTURING_ORDER_OPERATION_ROW_PAUSED = (
-        "manufacturing_order_operation_row.paused"
-    )
-    MANUFACTURING_ORDER_OPERATION_ROW_UPDATED = (
-        "manufacturing_order_operation_row.updated"
-    )
+    MANUFACTURING_ORDER_OPERATION_ROW_BLOCKED = "manufacturing_order_operation_row.blocked"
+    MANUFACTURING_ORDER_OPERATION_ROW_COMPLETED = "manufacturing_order_operation_row.completed"
+    MANUFACTURING_ORDER_OPERATION_ROW_CREATED = "manufacturing_order_operation_row.created"
+    MANUFACTURING_ORDER_OPERATION_ROW_DELETED = "manufacturing_order_operation_row.deleted"
+    MANUFACTURING_ORDER_OPERATION_ROW_IN_PROGRESS = "manufacturing_order_operation_row.in_progress"
+    MANUFACTURING_ORDER_OPERATION_ROW_PAUSED = "manufacturing_order_operation_row.paused"
+    MANUFACTURING_ORDER_OPERATION_ROW_UPDATED = "manufacturing_order_operation_row.updated"
     MANUFACTURING_ORDER_RECIPE_ROW_CREATED = "manufacturing_order_recipe_row.created"
     MANUFACTURING_ORDER_RECIPE_ROW_DELETED = "manufacturing_order_recipe_row.deleted"
-    MANUFACTURING_ORDER_RECIPE_ROW_INGREDIENTS_IN_STOCK = (
-        "manufacturing_order_recipe_row.ingredients_in_stock"
-    )
+    MANUFACTURING_ORDER_RECIPE_ROW_INGREDIENTS_IN_STOCK = "manufacturing_order_recipe_row.ingredients_in_stock"
     MANUFACTURING_ORDER_RECIPE_ROW_UPDATED = "manufacturing_order_recipe_row.updated"
     MANUFACTURING_ORDER_UPDATED = "manufacturing_order.updated"
     MATERIAL_CREATED = "material.created"
@@ -45,15 +29,9 @@ class WebhookEvent(str, Enum):
     OUTSOURCED_PURCHASE_ORDER_CREATED = "outsourced_purchase_order.created"
     OUTSOURCED_PURCHASE_ORDER_DELETED = "outsourced_purchase_order.deleted"
     OUTSOURCED_PURCHASE_ORDER_RECEIVED = "outsourced_purchase_order.received"
-    OUTSOURCED_PURCHASE_ORDER_RECIPE_ROW_CREATED = (
-        "outsourced_purchase_order_recipe_row.created"
-    )
-    OUTSOURCED_PURCHASE_ORDER_RECIPE_ROW_DELETED = (
-        "outsourced_purchase_order_recipe_row.deleted"
-    )
-    OUTSOURCED_PURCHASE_ORDER_RECIPE_ROW_UPDATED = (
-        "outsourced_purchase_order_recipe_row.updated"
-    )
+    OUTSOURCED_PURCHASE_ORDER_RECIPE_ROW_CREATED = "outsourced_purchase_order_recipe_row.created"
+    OUTSOURCED_PURCHASE_ORDER_RECIPE_ROW_DELETED = "outsourced_purchase_order_recipe_row.deleted"
+    OUTSOURCED_PURCHASE_ORDER_RECIPE_ROW_UPDATED = "outsourced_purchase_order_recipe_row.updated"
     OUTSOURCED_PURCHASE_ORDER_ROW_CREATED = "outsourced_purchase_order_row.created"
     OUTSOURCED_PURCHASE_ORDER_ROW_DELETED = "outsourced_purchase_order_row.deleted"
     OUTSOURCED_PURCHASE_ORDER_ROW_RECEIVED = "outsourced_purchase_order_row.received"

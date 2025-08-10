@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -12,10 +12,10 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    sales_return_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    sales_return_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -39,8 +39,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | SalesReturnRowListResponse | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[ErrorResponse, SalesReturnRowListResponse]]:
     if response.status_code == 200:
         response_200 = SalesReturnRowListResponse.from_dict(response.json())
 
@@ -64,8 +64,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | SalesReturnRowListResponse]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[ErrorResponse, SalesReturnRowListResponse]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -76,12 +76,12 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    sales_return_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-) -> Response[ErrorResponse | SalesReturnRowListResponse]:
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    sales_return_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+) -> Response[Union[ErrorResponse, SalesReturnRowListResponse]]:
     """List all sales return rows
 
      Returns a list of sales return rows you've previously created. The sales return rows are returned in
@@ -96,7 +96,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, SalesReturnRowListResponse]]
@@ -118,12 +117,12 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    sales_return_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-) -> ErrorResponse | SalesReturnRowListResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    sales_return_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+) -> Optional[Union[ErrorResponse, SalesReturnRowListResponse]]:
     """List all sales return rows
 
      Returns a list of sales return rows you've previously created. The sales return rows are returned in
@@ -138,7 +137,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, SalesReturnRowListResponse]
@@ -155,12 +153,12 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    sales_return_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-) -> Response[ErrorResponse | SalesReturnRowListResponse]:
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    sales_return_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+) -> Response[Union[ErrorResponse, SalesReturnRowListResponse]]:
     """List all sales return rows
 
      Returns a list of sales return rows you've previously created. The sales return rows are returned in
@@ -175,7 +173,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, SalesReturnRowListResponse]]
@@ -195,12 +192,12 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    sales_return_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-) -> ErrorResponse | SalesReturnRowListResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    sales_return_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+) -> Optional[Union[ErrorResponse, SalesReturnRowListResponse]]:
     """List all sales return rows
 
      Returns a list of sales return rows you've previously created. The sales return rows are returned in
@@ -215,7 +212,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, SalesReturnRowListResponse]

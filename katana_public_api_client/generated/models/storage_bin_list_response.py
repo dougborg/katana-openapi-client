@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -24,13 +22,17 @@ class StorageBinListResponse:
             'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}, {'id': 12346, 'bin_name': 'A-02-SHELF-1',
             'location_id': 1, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z',
             'deleted_at': None}]}
+
+    Attributes:
+        data (Union[Unset, list['StorageBinResponse']]): Array of storage bin records with location and identification
+            details
     """
 
-    data: Unset | list["StorageBinResponse"] = UNSET
+    data: Union[Unset, list["StorageBinResponse"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:

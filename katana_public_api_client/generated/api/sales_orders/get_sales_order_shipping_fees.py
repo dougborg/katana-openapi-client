@@ -1,23 +1,21 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error_response import ErrorResponse
-from ...models.sales_order_shipping_fee_list_response import (
-    SalesOrderShippingFeeListResponse,
-)
+from ...models.sales_order_shipping_fee_list_response import SalesOrderShippingFeeListResponse
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
-    sales_order_id: Unset | int = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    ids: Union[Unset, list[int]] = UNSET,
+    sales_order_id: Union[Unset, int] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -25,7 +23,7 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: Union[Unset, list[int]] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -45,8 +43,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | SalesOrderShippingFeeListResponse | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]:
     if response.status_code == 200:
         response_200 = SalesOrderShippingFeeListResponse.from_dict(response.json())
 
@@ -70,8 +68,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | SalesOrderShippingFeeListResponse]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -82,12 +80,12 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
-    sales_order_id: Unset | int = UNSET,
-) -> Response[ErrorResponse | SalesOrderShippingFeeListResponse]:
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    ids: Union[Unset, list[int]] = UNSET,
+    sales_order_id: Union[Unset, int] = UNSET,
+) -> Response[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]:
     """List sales order shipping fees
 
      Retrieves shipping fees for sales orders.
@@ -101,7 +99,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]
@@ -123,12 +120,12 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
-    sales_order_id: Unset | int = UNSET,
-) -> ErrorResponse | SalesOrderShippingFeeListResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    ids: Union[Unset, list[int]] = UNSET,
+    sales_order_id: Union[Unset, int] = UNSET,
+) -> Optional[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]:
     """List sales order shipping fees
 
      Retrieves shipping fees for sales orders.
@@ -142,7 +139,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, SalesOrderShippingFeeListResponse]
@@ -159,12 +155,12 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
-    sales_order_id: Unset | int = UNSET,
-) -> Response[ErrorResponse | SalesOrderShippingFeeListResponse]:
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    ids: Union[Unset, list[int]] = UNSET,
+    sales_order_id: Union[Unset, int] = UNSET,
+) -> Response[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]:
     """List sales order shipping fees
 
      Retrieves shipping fees for sales orders.
@@ -178,7 +174,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]
@@ -198,12 +193,12 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
-    sales_order_id: Unset | int = UNSET,
-) -> ErrorResponse | SalesOrderShippingFeeListResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    ids: Union[Unset, list[int]] = UNSET,
+    sales_order_id: Union[Unset, int] = UNSET,
+) -> Optional[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]:
     """List sales order shipping fees
 
      Retrieves shipping fees for sales orders.
@@ -217,7 +212,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, SalesOrderShippingFeeListResponse]

@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..models.inventory_movement_resource_type import InventoryMovementResourceType
@@ -23,6 +21,24 @@ class InventoryMovement:
             'quantity_change': 100.0, 'balance_after': 500.0, 'value_per_unit': 25.5, 'value_in_stock_after': 12750.0,
             'average_cost_after': 25.5, 'rank': 1, 'created_at': '2024-01-15T10:30:00.000Z', 'updated_at':
             '2024-01-15T10:30:00.000Z'}
+
+    Attributes:
+        id (int): Unique identifier for the inventory movement.
+        variant_id (int): Identifier of the product variant associated with the movement.
+        location_id (int): Identifier of the location where the movement occurred.
+        resource_type (InventoryMovementResourceType): The type of resource that caused the movement.
+        movement_date (datetime.datetime): Date and time when the inventory movement occurred.
+        quantity_change (float): The change in quantity as a result of the movement.
+        balance_after (float): The quantity balance after the movement.
+        value_per_unit (float): The value per unit for the movement.
+        value_in_stock_after (float): The total value in stock after the movement.
+        average_cost_after (float): The average cost per unit after the movement.
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
+        resource_id (Union[Unset, int]): Identifier of the resource that initiated the movement.
+        caused_by_order_no (Union[Unset, str]): Order number that triggered the movement.
+        caused_by_resource_id (Union[Unset, int]): Identifier for the resource that caused the movement.
+        rank (Union[Unset, int]): A rank or order index for the movement.
     """
 
     id: int
@@ -35,12 +51,12 @@ class InventoryMovement:
     value_per_unit: float
     value_in_stock_after: float
     average_cost_after: float
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    resource_id: Unset | int = UNSET
-    caused_by_order_no: Unset | str = UNSET
-    caused_by_resource_id: Unset | int = UNSET
-    rank: Unset | int = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
+    resource_id: Union[Unset, int] = UNSET
+    caused_by_order_no: Union[Unset, str] = UNSET
+    caused_by_resource_id: Union[Unset, int] = UNSET
+    rank: Union[Unset, int] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -64,11 +80,11 @@ class InventoryMovement:
 
         average_cost_after = self.average_cost_after
 
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
@@ -135,14 +151,14 @@ class InventoryMovement:
         average_cost_after = d.pop("average_cost_after")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:

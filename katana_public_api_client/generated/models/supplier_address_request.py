@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 
@@ -10,13 +10,24 @@ T = TypeVar("T", bound="SupplierAddressRequest")
 
 @_attrs_define
 class SupplierAddressRequest:
+    """
+    Attributes:
+        line_1 (str):
+        supplier_id (Union[Unset, int]):
+        line_2 (Union[Unset, str]):
+        city (Union[Unset, str]):
+        state (Union[Unset, str]):
+        zip_ (Union[Unset, str]):
+        country (Union[Unset, str]):
+    """
+
     line_1: str
-    supplier_id: Unset | int = UNSET
-    line_2: Unset | str = UNSET
-    city: Unset | str = UNSET
-    state: Unset | str = UNSET
-    zip_: Unset | str = UNSET
-    country: Unset | str = UNSET
+    supplier_id: Union[Unset, int] = UNSET
+    line_2: Union[Unset, str] = UNSET
+    city: Union[Unset, str] = UNSET
+    state: Union[Unset, str] = UNSET
+    zip_: Union[Unset, str] = UNSET
+    country: Union[Unset, str] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         line_1 = self.line_1

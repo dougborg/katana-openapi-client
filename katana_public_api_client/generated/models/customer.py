@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -15,25 +13,45 @@ T = TypeVar("T", bound="Customer")
 
 @_attrs_define
 class Customer:
-    """Customer entity representing individuals or companies that purchase products or services"""
+    """Customer entity representing individuals or companies that purchase products or services
+
+    Attributes:
+        id (int): Unique identifier
+        name (str):
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
+        deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
+        first_name (Union[None, Unset, str]):
+        last_name (Union[None, Unset, str]):
+        company (Union[None, Unset, str]):
+        email (Union[None, Unset, str]):
+        phone (Union[None, Unset, str]):
+        comment (Union[None, Unset, str]):
+        currency (Union[Unset, str]):
+        reference_id (Union[None, Unset, str]):
+        category (Union[None, Unset, str]):
+        discount_rate (Union[None, Unset, float]):
+        default_billing_id (Union[None, Unset, int]):
+        default_shipping_id (Union[None, Unset, int]):
+    """
 
     id: int
     name: str
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | str = UNSET
-    first_name: None | Unset | str = UNSET
-    last_name: None | Unset | str = UNSET
-    company: None | Unset | str = UNSET
-    email: None | Unset | str = UNSET
-    phone: None | Unset | str = UNSET
-    comment: None | Unset | str = UNSET
-    currency: Unset | str = UNSET
-    reference_id: None | Unset | str = UNSET
-    category: None | Unset | str = UNSET
-    discount_rate: None | Unset | float = UNSET
-    default_billing_id: None | Unset | int = UNSET
-    default_shipping_id: None | Unset | int = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
+    deleted_at: Union[None, Unset, str] = UNSET
+    first_name: Union[None, Unset, str] = UNSET
+    last_name: Union[None, Unset, str] = UNSET
+    company: Union[None, Unset, str] = UNSET
+    email: Union[None, Unset, str] = UNSET
+    phone: Union[None, Unset, str] = UNSET
+    comment: Union[None, Unset, str] = UNSET
+    currency: Union[Unset, str] = UNSET
+    reference_id: Union[None, Unset, str] = UNSET
+    category: Union[None, Unset, str] = UNSET
+    discount_rate: Union[None, Unset, float] = UNSET
+    default_billing_id: Union[None, Unset, int] = UNSET
+    default_shipping_id: Union[None, Unset, int] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -41,51 +59,51 @@ class Customer:
 
         name = self.name
 
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | Unset | str
+        deleted_at: Union[None, Unset, str]
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         else:
             deleted_at = self.deleted_at
 
-        first_name: None | Unset | str
+        first_name: Union[None, Unset, str]
         if isinstance(self.first_name, Unset):
             first_name = UNSET
         else:
             first_name = self.first_name
 
-        last_name: None | Unset | str
+        last_name: Union[None, Unset, str]
         if isinstance(self.last_name, Unset):
             last_name = UNSET
         else:
             last_name = self.last_name
 
-        company: None | Unset | str
+        company: Union[None, Unset, str]
         if isinstance(self.company, Unset):
             company = UNSET
         else:
             company = self.company
 
-        email: None | Unset | str
+        email: Union[None, Unset, str]
         if isinstance(self.email, Unset):
             email = UNSET
         else:
             email = self.email
 
-        phone: None | Unset | str
+        phone: Union[None, Unset, str]
         if isinstance(self.phone, Unset):
             phone = UNSET
         else:
             phone = self.phone
 
-        comment: None | Unset | str
+        comment: Union[None, Unset, str]
         if isinstance(self.comment, Unset):
             comment = UNSET
         else:
@@ -93,31 +111,31 @@ class Customer:
 
         currency = self.currency
 
-        reference_id: None | Unset | str
+        reference_id: Union[None, Unset, str]
         if isinstance(self.reference_id, Unset):
             reference_id = UNSET
         else:
             reference_id = self.reference_id
 
-        category: None | Unset | str
+        category: Union[None, Unset, str]
         if isinstance(self.category, Unset):
             category = UNSET
         else:
             category = self.category
 
-        discount_rate: None | Unset | float
+        discount_rate: Union[None, Unset, float]
         if isinstance(self.discount_rate, Unset):
             discount_rate = UNSET
         else:
             discount_rate = self.discount_rate
 
-        default_billing_id: None | Unset | int
+        default_billing_id: Union[None, Unset, int]
         if isinstance(self.default_billing_id, Unset):
             default_billing_id = UNSET
         else:
             default_billing_id = self.default_billing_id
 
-        default_shipping_id: None | Unset | int
+        default_shipping_id: Union[None, Unset, int]
         if isinstance(self.default_shipping_id, Unset):
             default_shipping_id = UNSET
         else:
@@ -172,132 +190,128 @@ class Customer:
         name = d.pop("name")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | str:
+        def _parse_deleted_at(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        def _parse_first_name(data: object) -> None | Unset | str:
+        def _parse_first_name(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         first_name = _parse_first_name(d.pop("first_name", UNSET))
 
-        def _parse_last_name(data: object) -> None | Unset | str:
+        def _parse_last_name(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         last_name = _parse_last_name(d.pop("last_name", UNSET))
 
-        def _parse_company(data: object) -> None | Unset | str:
+        def _parse_company(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         company = _parse_company(d.pop("company", UNSET))
 
-        def _parse_email(data: object) -> None | Unset | str:
+        def _parse_email(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         email = _parse_email(d.pop("email", UNSET))
 
-        def _parse_phone(data: object) -> None | Unset | str:
+        def _parse_phone(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         phone = _parse_phone(d.pop("phone", UNSET))
 
-        def _parse_comment(data: object) -> None | Unset | str:
+        def _parse_comment(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         comment = _parse_comment(d.pop("comment", UNSET))
 
         currency = d.pop("currency", UNSET)
 
-        def _parse_reference_id(data: object) -> None | Unset | str:
+        def _parse_reference_id(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         reference_id = _parse_reference_id(d.pop("reference_id", UNSET))
 
-        def _parse_category(data: object) -> None | Unset | str:
+        def _parse_category(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         category = _parse_category(d.pop("category", UNSET))
 
-        def _parse_discount_rate(data: object) -> None | Unset | float:
+        def _parse_discount_rate(data: object) -> Union[None, Unset, float]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(Union[None, Unset, float], data)
 
         discount_rate = _parse_discount_rate(d.pop("discount_rate", UNSET))
 
-        def _parse_default_billing_id(data: object) -> None | Unset | int:
+        def _parse_default_billing_id(data: object) -> Union[None, Unset, int]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(Union[None, Unset, int], data)
 
-        default_billing_id = _parse_default_billing_id(
-            d.pop("default_billing_id", UNSET)
-        )
+        default_billing_id = _parse_default_billing_id(d.pop("default_billing_id", UNSET))
 
-        def _parse_default_shipping_id(data: object) -> None | Unset | int:
+        def _parse_default_shipping_id(data: object) -> Union[None, Unset, int]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(Union[None, Unset, int], data)
 
-        default_shipping_id = _parse_default_shipping_id(
-            d.pop("default_shipping_id", UNSET)
-        )
+        default_shipping_id = _parse_default_shipping_id(d.pop("default_shipping_id", UNSET))
 
         customer = cls(
             id=id,

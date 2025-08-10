@@ -1,6 +1,6 @@
 import datetime
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -13,25 +13,25 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    legal_name: Unset | str = UNSET,
-    address_id: Unset | int = UNSET,
-    sales_allowed: Unset | bool = UNSET,
-    manufacturing_allowed: Unset | bool = UNSET,
-    purchases_allowed: Unset | bool = UNSET,
-    rank: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: Union[Unset, list[int]] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    legal_name: Union[Unset, str] = UNSET,
+    address_id: Union[Unset, int] = UNSET,
+    sales_allowed: Union[Unset, bool] = UNSET,
+    manufacturing_allowed: Union[Unset, bool] = UNSET,
+    purchases_allowed: Union[Unset, bool] = UNSET,
+    rank: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: Union[Unset, list[int]] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -57,22 +57,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: Union[Unset, str] = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: Union[Unset, str] = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: Union[Unset, str] = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: Union[Unset, str] = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -89,8 +89,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | GetAllLocationsResponse200 | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[ErrorResponse, GetAllLocationsResponse200]]:
     if response.status_code == 200:
         response_200 = GetAllLocationsResponse200.from_dict(response.json())
 
@@ -114,8 +114,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | GetAllLocationsResponse200]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[ErrorResponse, GetAllLocationsResponse200]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -126,23 +126,23 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    legal_name: Unset | str = UNSET,
-    address_id: Unset | int = UNSET,
-    sales_allowed: Unset | bool = UNSET,
-    manufacturing_allowed: Unset | bool = UNSET,
-    purchases_allowed: Unset | bool = UNSET,
-    rank: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[ErrorResponse | GetAllLocationsResponse200]:
+    client: Union[AuthenticatedClient, Client],
+    ids: Union[Unset, list[int]] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    legal_name: Union[Unset, str] = UNSET,
+    address_id: Union[Unset, int] = UNSET,
+    sales_allowed: Union[Unset, bool] = UNSET,
+    manufacturing_allowed: Union[Unset, bool] = UNSET,
+    purchases_allowed: Union[Unset, bool] = UNSET,
+    rank: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+) -> Response[Union[ErrorResponse, GetAllLocationsResponse200]]:
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
@@ -168,7 +168,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, GetAllLocationsResponse200]]
@@ -201,23 +200,23 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    legal_name: Unset | str = UNSET,
-    address_id: Unset | int = UNSET,
-    sales_allowed: Unset | bool = UNSET,
-    manufacturing_allowed: Unset | bool = UNSET,
-    purchases_allowed: Unset | bool = UNSET,
-    rank: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-) -> ErrorResponse | GetAllLocationsResponse200 | None:
+    client: Union[AuthenticatedClient, Client],
+    ids: Union[Unset, list[int]] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    legal_name: Union[Unset, str] = UNSET,
+    address_id: Union[Unset, int] = UNSET,
+    sales_allowed: Union[Unset, bool] = UNSET,
+    manufacturing_allowed: Union[Unset, bool] = UNSET,
+    purchases_allowed: Union[Unset, bool] = UNSET,
+    rank: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+) -> Optional[Union[ErrorResponse, GetAllLocationsResponse200]]:
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
@@ -243,7 +242,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, GetAllLocationsResponse200]
@@ -271,23 +269,23 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    legal_name: Unset | str = UNSET,
-    address_id: Unset | int = UNSET,
-    sales_allowed: Unset | bool = UNSET,
-    manufacturing_allowed: Unset | bool = UNSET,
-    purchases_allowed: Unset | bool = UNSET,
-    rank: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-) -> Response[ErrorResponse | GetAllLocationsResponse200]:
+    client: Union[AuthenticatedClient, Client],
+    ids: Union[Unset, list[int]] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    legal_name: Union[Unset, str] = UNSET,
+    address_id: Union[Unset, int] = UNSET,
+    sales_allowed: Union[Unset, bool] = UNSET,
+    manufacturing_allowed: Union[Unset, bool] = UNSET,
+    purchases_allowed: Union[Unset, bool] = UNSET,
+    rank: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+) -> Response[Union[ErrorResponse, GetAllLocationsResponse200]]:
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
@@ -313,7 +311,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, GetAllLocationsResponse200]]
@@ -344,23 +341,23 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    legal_name: Unset | str = UNSET,
-    address_id: Unset | int = UNSET,
-    sales_allowed: Unset | bool = UNSET,
-    manufacturing_allowed: Unset | bool = UNSET,
-    purchases_allowed: Unset | bool = UNSET,
-    rank: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-) -> ErrorResponse | GetAllLocationsResponse200 | None:
+    client: Union[AuthenticatedClient, Client],
+    ids: Union[Unset, list[int]] = UNSET,
+    name: Union[Unset, str] = UNSET,
+    legal_name: Union[Unset, str] = UNSET,
+    address_id: Union[Unset, int] = UNSET,
+    sales_allowed: Union[Unset, bool] = UNSET,
+    manufacturing_allowed: Union[Unset, bool] = UNSET,
+    purchases_allowed: Union[Unset, bool] = UNSET,
+    rank: Union[Unset, int] = UNSET,
+    include_deleted: Union[Unset, bool] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    created_at_min: Union[Unset, datetime.datetime] = UNSET,
+    created_at_max: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
+    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+) -> Optional[Union[ErrorResponse, GetAllLocationsResponse200]]:
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
@@ -386,7 +383,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, GetAllLocationsResponse200]

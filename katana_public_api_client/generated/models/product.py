@@ -2,10 +2,8 @@ import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -34,45 +32,73 @@ class Product:
                 'sku': 'KNF-PRO-8PC', 'name': '8-Piece Professional Set', 'sales_price': 299.99, 'purchase_price': 150.0}],
                 'configs': [{'id': 1, 'name': 'Piece Count', 'values': ['6-piece', '8-piece', '12-piece'], 'product_id': 101},
                 {'id': 2, 'name': 'Handle Material', 'values': ['Wood', 'Steel', 'Composite'], 'product_id': 101}]}
+
+        Attributes:
+            id (int): Unique identifier
+            created_at (Union[Unset, datetime.datetime]):
+            updated_at (Union[Unset, datetime.datetime]):
+            archived_at (Union[None, Unset, str]): Nullable archive timestamp
+            name (Union[Unset, str]): Display name for the product used in sales and manufacturing contexts
+            uom (Union[Unset, str]): Unit of measurement for the product (e.g., pcs, kg, m)
+            category_name (Union[Unset, str]): Product category for organizational grouping and reporting
+            is_sellable (Union[Unset, bool]): Whether this product can be sold to customers
+            is_producible (Union[Unset, bool]): Whether this product can be manufactured in-house
+            is_purchasable (Union[Unset, bool]): Whether this product can be purchased from suppliers
+            is_auto_assembly (Union[Unset, bool]): Whether the product should be automatically assembled when components are
+                available
+            default_supplier_id (Union[Unset, int]): Primary supplier ID for purchasing this product
+            additional_info (Union[Unset, str]): Additional notes or specifications for the product
+            batch_tracked (Union[Unset, bool]): Whether inventory movements are tracked by batch numbers
+            serial_tracked (Union[Unset, bool]): Whether inventory movements are tracked by individual serial numbers
+            operations_in_sequence (Union[Unset, bool]): Whether manufacturing operations must be completed in a specific
+                sequence
+            type_ (Union[Unset, str]): Product classification type (product, material, etc.)
+            purchase_uom (Union[Unset, str]): Unit of measurement used when purchasing from suppliers
+            purchase_uom_conversion_rate (Union[Unset, float]): Conversion rate between base UOM and purchase UOM
+            variants (Union[Unset, list['Variant']]): Product variants with different SKUs, pricing, and configurations
+            configs (Union[Unset, list['ProductConfigsItem']]): Configuration attributes that define variant combinations
+                (size, color, etc.)
+            custom_field_collection_id (Union[Unset, int]): ID of the custom field collection associated with this product
+            supplier (Union[Unset, Supplier]):
     """
 
     id: int
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    archived_at: None | Unset | str = UNSET
-    name: Unset | str = UNSET
-    uom: Unset | str = UNSET
-    category_name: Unset | str = UNSET
-    is_sellable: Unset | bool = UNSET
-    is_producible: Unset | bool = UNSET
-    is_purchasable: Unset | bool = UNSET
-    is_auto_assembly: Unset | bool = UNSET
-    default_supplier_id: Unset | int = UNSET
-    additional_info: Unset | str = UNSET
-    batch_tracked: Unset | bool = UNSET
-    serial_tracked: Unset | bool = UNSET
-    operations_in_sequence: Unset | bool = UNSET
-    type_: Unset | str = UNSET
-    purchase_uom: Unset | str = UNSET
-    purchase_uom_conversion_rate: Unset | float = UNSET
-    variants: Unset | list["Variant"] = UNSET
-    configs: Unset | list["ProductConfigsItem"] = UNSET
-    custom_field_collection_id: Unset | int = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: Union[Unset, datetime.datetime] = UNSET
+    archived_at: Union[None, Unset, str] = UNSET
+    name: Union[Unset, str] = UNSET
+    uom: Union[Unset, str] = UNSET
+    category_name: Union[Unset, str] = UNSET
+    is_sellable: Union[Unset, bool] = UNSET
+    is_producible: Union[Unset, bool] = UNSET
+    is_purchasable: Union[Unset, bool] = UNSET
+    is_auto_assembly: Union[Unset, bool] = UNSET
+    default_supplier_id: Union[Unset, int] = UNSET
+    additional_info: Union[Unset, str] = UNSET
+    batch_tracked: Union[Unset, bool] = UNSET
+    serial_tracked: Union[Unset, bool] = UNSET
+    operations_in_sequence: Union[Unset, bool] = UNSET
+    type_: Union[Unset, str] = UNSET
+    purchase_uom: Union[Unset, str] = UNSET
+    purchase_uom_conversion_rate: Union[Unset, float] = UNSET
+    variants: Union[Unset, list["Variant"]] = UNSET
+    configs: Union[Unset, list["ProductConfigsItem"]] = UNSET
+    custom_field_collection_id: Union[Unset, int] = UNSET
     supplier: Union[Unset, "Supplier"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: Union[Unset, str] = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        archived_at: None | Unset | str
+        archived_at: Union[None, Unset, str]
         if isinstance(self.archived_at, Unset):
             archived_at = UNSET
         else:
@@ -108,14 +134,14 @@ class Product:
 
         purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
-        variants: Unset | list[dict[str, Any]] = UNSET
+        variants: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.variants, Unset):
             variants = []
             for variants_item_data in self.variants:
                 variants_item = variants_item_data.to_dict()
                 variants.append(variants_item)
 
-        configs: Unset | list[dict[str, Any]] = UNSET
+        configs: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.configs, Unset):
             configs = []
             for configs_item_data in self.configs:
@@ -124,7 +150,7 @@ class Product:
 
         custom_field_collection_id = self.custom_field_collection_id
 
-        supplier: Unset | dict[str, Any] = UNSET
+        supplier: Union[Unset, dict[str, Any]] = UNSET
         if not isinstance(self.supplier, Unset):
             supplier = self.supplier.to_dict()
 
@@ -192,25 +218,25 @@ class Product:
         id = d.pop("id")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: Union[Unset, datetime.datetime]
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_archived_at(data: object) -> None | Unset | str:
+        def _parse_archived_at(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
@@ -261,7 +287,7 @@ class Product:
         custom_field_collection_id = d.pop("custom_field_collection_id", UNSET)
 
         _supplier = d.pop("supplier", UNSET)
-        supplier: Unset | Supplier
+        supplier: Union[Unset, Supplier]
         if isinstance(_supplier, Unset):
             supplier = UNSET
         else:

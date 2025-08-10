@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -13,10 +11,18 @@ T = TypeVar("T", bound="MaterialConfigsItem")
 
 @_attrs_define
 class MaterialConfigsItem:
-    id: Unset | int = UNSET
-    name: Unset | str = UNSET
-    values: Unset | list[str] = UNSET
-    product_id: Unset | int = UNSET
+    """
+    Attributes:
+        id (Union[Unset, int]): Configuration option ID
+        name (Union[Unset, str]): Name of the configuration option
+        values (Union[Unset, list[str]]): Available values for this configuration
+        product_id (Union[Unset, int]): Associated product ID for this configuration
+    """
+
+    id: Union[Unset, int] = UNSET
+    name: Union[Unset, str] = UNSET
+    values: Union[Unset, list[str]] = UNSET
+    product_id: Union[Unset, int] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -24,7 +30,7 @@ class MaterialConfigsItem:
 
         name = self.name
 
-        values: Unset | list[str] = UNSET
+        values: Union[Unset, list[str]] = UNSET
         if not isinstance(self.values, Unset):
             values = self.values
 

@@ -1,10 +1,8 @@
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 if TYPE_CHECKING:
     from ..models.inventory_movement import InventoryMovement
@@ -15,7 +13,11 @@ T = TypeVar("T", bound="InventoryMovementListResponse")
 
 @_attrs_define
 class InventoryMovementListResponse:
-    """A list of inventory movement records."""
+    """A list of inventory movement records.
+
+    Attributes:
+        data (list['InventoryMovement']):
+    """
 
     data: list["InventoryMovement"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

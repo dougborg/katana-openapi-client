@@ -8,6 +8,16 @@ T = TypeVar("T", bound="UnlinkManufacturingOrderRequest")
 
 @_attrs_define
 class UnlinkManufacturingOrderRequest:
+    """Request to unlink a manufacturing order from its associated sales order row, removing the direct connection while
+    preserving both orders.
+
+        Example:
+            {'sales_order_row_id': 2501}
+
+        Attributes:
+            sales_order_row_id (float): ID of the sales order row to unlink from the manufacturing order
+    """
+
     sales_order_row_id: float
 
     def to_dict(self) -> dict[str, Any]:

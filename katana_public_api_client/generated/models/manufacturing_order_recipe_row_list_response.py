@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -17,11 +15,24 @@ T = TypeVar("T", bound="ManufacturingOrderRecipeRowListResponse")
 
 @_attrs_define
 class ManufacturingOrderRecipeRowListResponse:
-    data: Unset | list["ManufacturingOrderRecipeRow"] = UNSET
+    """Response containing a list of recipe rows (ingredients) for manufacturing orders with pagination support.
+
+    Example:
+        {'data': [{'id': 4001, 'manufacturing_order_id': 3001, 'variant_id': 3201, 'notes': 'Use only grade 304
+            material', 'planned_quantity_per_unit': 2.5, 'total_actual_quantity': 125.0, 'ingredient_availability':
+            'AVAILABLE', 'ingredient_expected_date': None, 'batch_transactions': [{'batch_id': 1201, 'quantity': 125.0}],
+            'cost': 437.5, 'created_at': '2024-01-15T08:00:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}]}
+
+    Attributes:
+        data (Union[Unset, list['ManufacturingOrderRecipeRow']]): Array of recipe rows showing ingredients required for
+            manufacturing orders
+    """
+
+    data: Union[Unset, list["ManufacturingOrderRecipeRow"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:

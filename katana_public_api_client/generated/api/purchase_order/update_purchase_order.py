@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -33,8 +33,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | PurchaseOrder | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]:
     if response.status_code == 200:
         response_200 = PurchaseOrder.from_dict(response.json())
 
@@ -62,8 +62,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrder]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -75,9 +75,9 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdatePurchaseOrderRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrder]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]:
     """Update a purchase order
 
      Updates the specified purchase order by setting the values of the parameters passed.
@@ -91,7 +91,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]
@@ -112,9 +111,9 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdatePurchaseOrderRequest,
-) -> DetailedErrorResponse | ErrorResponse | PurchaseOrder | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]:
     """Update a purchase order
 
      Updates the specified purchase order by setting the values of the parameters passed.
@@ -128,7 +127,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]
@@ -144,9 +142,9 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdatePurchaseOrderRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrder]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]:
     """Update a purchase order
 
      Updates the specified purchase order by setting the values of the parameters passed.
@@ -160,7 +158,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]
@@ -179,9 +176,9 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdatePurchaseOrderRequest,
-) -> DetailedErrorResponse | ErrorResponse | PurchaseOrder | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]:
     """Update a purchase order
 
      Updates the specified purchase order by setting the values of the parameters passed.
@@ -195,7 +192,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]

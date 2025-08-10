@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -31,8 +31,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | ManufacturingOrder | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[ErrorResponse, ManufacturingOrder]]:
     if response.status_code == 200:
         response_200 = ManufacturingOrder.from_dict(response.json())
 
@@ -56,8 +56,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | ManufacturingOrder]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[ErrorResponse, ManufacturingOrder]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -68,21 +68,24 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateManufacturingOrderRequest,
-) -> Response[ErrorResponse | ManufacturingOrder]:
+) -> Response[Union[ErrorResponse, ManufacturingOrder]]:
     """Create a manufacturing order
 
      Creates a new manufacturing order object. Manufacturing order recipe and
       operation rows are created automatically based on the product recipe and operations.
 
     Args:
-        body (CreateManufacturingOrderRequest):
+        body (CreateManufacturingOrderRequest): Request payload for creating a new manufacturing
+            order to initiate production of products or components. Example: {'variant_id': 2101,
+            'planned_quantity': 50, 'location_id': 1, 'order_created_date': '2024-01-15T08:00:00Z',
+            'production_deadline_date': '2024-01-25T17:00:00Z', 'additional_info': 'Priority order for
+            new product launch'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, ManufacturingOrder]]
@@ -101,21 +104,24 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateManufacturingOrderRequest,
-) -> ErrorResponse | ManufacturingOrder | None:
+) -> Optional[Union[ErrorResponse, ManufacturingOrder]]:
     """Create a manufacturing order
 
      Creates a new manufacturing order object. Manufacturing order recipe and
       operation rows are created automatically based on the product recipe and operations.
 
     Args:
-        body (CreateManufacturingOrderRequest):
+        body (CreateManufacturingOrderRequest): Request payload for creating a new manufacturing
+            order to initiate production of products or components. Example: {'variant_id': 2101,
+            'planned_quantity': 50, 'location_id': 1, 'order_created_date': '2024-01-15T08:00:00Z',
+            'production_deadline_date': '2024-01-25T17:00:00Z', 'additional_info': 'Priority order for
+            new product launch'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, ManufacturingOrder]
@@ -129,21 +135,24 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateManufacturingOrderRequest,
-) -> Response[ErrorResponse | ManufacturingOrder]:
+) -> Response[Union[ErrorResponse, ManufacturingOrder]]:
     """Create a manufacturing order
 
      Creates a new manufacturing order object. Manufacturing order recipe and
       operation rows are created automatically based on the product recipe and operations.
 
     Args:
-        body (CreateManufacturingOrderRequest):
+        body (CreateManufacturingOrderRequest): Request payload for creating a new manufacturing
+            order to initiate production of products or components. Example: {'variant_id': 2101,
+            'planned_quantity': 50, 'location_id': 1, 'order_created_date': '2024-01-15T08:00:00Z',
+            'production_deadline_date': '2024-01-25T17:00:00Z', 'additional_info': 'Priority order for
+            new product launch'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, ManufacturingOrder]]
@@ -160,21 +169,24 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateManufacturingOrderRequest,
-) -> ErrorResponse | ManufacturingOrder | None:
+) -> Optional[Union[ErrorResponse, ManufacturingOrder]]:
     """Create a manufacturing order
 
      Creates a new manufacturing order object. Manufacturing order recipe and
       operation rows are created automatically based on the product recipe and operations.
 
     Args:
-        body (CreateManufacturingOrderRequest):
+        body (CreateManufacturingOrderRequest): Request payload for creating a new manufacturing
+            order to initiate production of products or components. Example: {'variant_id': 2101,
+            'planned_quantity': 50, 'location_id': 1, 'order_created_date': '2024-01-15T08:00:00Z',
+            'production_deadline_date': '2024-01-25T17:00:00Z', 'additional_info': 'Priority order for
+            new product launch'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, ManufacturingOrder]

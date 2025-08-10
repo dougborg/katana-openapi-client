@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -33,8 +33,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | StorageBinResponse | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]]:
     if response.status_code == 200:
         response_200 = StorageBinResponse.from_dict(response.json())
 
@@ -66,8 +66,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | StorageBinResponse]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -79,9 +79,9 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: StorageBinUpdate,
-) -> Response[DetailedErrorResponse | ErrorResponse | StorageBinResponse]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]]:
     """Update a storage bin
 
      Updates the specified storage bin by setting the values of the parameters passed. Any parameters not
@@ -92,11 +92,9 @@ def sync_detailed(
         body (StorageBinUpdate): Storage bin fields for update operations (all optional for PATCH)
             Example: {'bin_name': 'A-01-SHELF-2', 'location_id': 2}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]]
@@ -117,9 +115,9 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: StorageBinUpdate,
-) -> DetailedErrorResponse | ErrorResponse | StorageBinResponse | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]]:
     """Update a storage bin
 
      Updates the specified storage bin by setting the values of the parameters passed. Any parameters not
@@ -130,11 +128,9 @@ def sync(
         body (StorageBinUpdate): Storage bin fields for update operations (all optional for PATCH)
             Example: {'bin_name': 'A-01-SHELF-2', 'location_id': 2}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]
@@ -150,9 +146,9 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: StorageBinUpdate,
-) -> Response[DetailedErrorResponse | ErrorResponse | StorageBinResponse]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]]:
     """Update a storage bin
 
      Updates the specified storage bin by setting the values of the parameters passed. Any parameters not
@@ -163,11 +159,9 @@ async def asyncio_detailed(
         body (StorageBinUpdate): Storage bin fields for update operations (all optional for PATCH)
             Example: {'bin_name': 'A-01-SHELF-2', 'location_id': 2}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]]
@@ -186,9 +180,9 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: StorageBinUpdate,
-) -> DetailedErrorResponse | ErrorResponse | StorageBinResponse | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]]:
     """Update a storage bin
 
      Updates the specified storage bin by setting the values of the parameters passed. Any parameters not
@@ -199,11 +193,9 @@ async def asyncio(
         body (StorageBinUpdate): Storage bin fields for update operations (all optional for PATCH)
             Example: {'bin_name': 'A-01-SHELF-2', 'location_id': 2}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, StorageBinResponse]

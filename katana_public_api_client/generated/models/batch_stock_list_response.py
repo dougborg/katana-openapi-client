@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -25,13 +23,16 @@ class BatchStockListResponse:
             '25.00000', 'batch_barcode': '0317'}, {'batch_id': 1110, 'batch_number': 'BAT-2024-002', 'batch_created_date':
             '2024-01-16T09:30:00.000Z', 'expiration_date': '2025-11-15T10:37:05.085Z', 'location_id': 1, 'variant_id': 1002,
             'quantity_in_stock': '50.00000', 'batch_barcode': '0318'}]}
+
+    Attributes:
+        data (Union[Unset, list['BatchStock']]): Array of batch stock records with current quantities
     """
 
-    data: Unset | list["BatchStock"] = UNSET
+    data: Union[Unset, list["BatchStock"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, cast
+from typing import Any, Optional, Union, cast
 
 import httpx
 
@@ -22,8 +22,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Any | ErrorResponse | Service | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[Any, ErrorResponse, Service]]:
     if response.status_code == 200:
         response_200 = Service.from_dict(response.json())
 
@@ -50,8 +50,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Any | ErrorResponse | Service]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[Any, ErrorResponse, Service]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -63,8 +63,8 @@ def _build_response(
 def sync_detailed(
     service_id: str,
     *,
-    client: AuthenticatedClient | Client,
-) -> Response[Any | ErrorResponse | Service]:
+    client: Union[AuthenticatedClient, Client],
+) -> Response[Union[Any, ErrorResponse, Service]]:
     """Get Service
 
      Retrieve a single Service by its ID. (See: [Get
@@ -76,7 +76,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Any, ErrorResponse, Service]]
@@ -96,8 +95,8 @@ def sync_detailed(
 def sync(
     service_id: str,
     *,
-    client: AuthenticatedClient | Client,
-) -> Any | ErrorResponse | Service | None:
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[Union[Any, ErrorResponse, Service]]:
     """Get Service
 
      Retrieve a single Service by its ID. (See: [Get
@@ -109,7 +108,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[Any, ErrorResponse, Service]
@@ -124,8 +122,8 @@ def sync(
 async def asyncio_detailed(
     service_id: str,
     *,
-    client: AuthenticatedClient | Client,
-) -> Response[Any | ErrorResponse | Service]:
+    client: Union[AuthenticatedClient, Client],
+) -> Response[Union[Any, ErrorResponse, Service]]:
     """Get Service
 
      Retrieve a single Service by its ID. (See: [Get
@@ -137,7 +135,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Any, ErrorResponse, Service]]
@@ -155,8 +152,8 @@ async def asyncio_detailed(
 async def asyncio(
     service_id: str,
     *,
-    client: AuthenticatedClient | Client,
-) -> Any | ErrorResponse | Service | None:
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[Union[Any, ErrorResponse, Service]]:
     """Get Service
 
      Retrieve a single Service by its ID. (See: [Get
@@ -168,7 +165,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[Any, ErrorResponse, Service]

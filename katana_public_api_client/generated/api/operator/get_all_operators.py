@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -12,10 +12,10 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    working_area: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
+    working_area: Union[Unset, str] = UNSET,
+    resource_id: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -39,8 +39,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | OperatorListResponse | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[ErrorResponse, OperatorListResponse]]:
     if response.status_code == 200:
         response_200 = OperatorListResponse.from_dict(response.json())
 
@@ -64,8 +64,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | OperatorListResponse]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[ErrorResponse, OperatorListResponse]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -76,12 +76,12 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    working_area: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> Response[ErrorResponse | OperatorListResponse]:
+    client: Union[AuthenticatedClient, Client],
+    working_area: Union[Unset, str] = UNSET,
+    resource_id: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Response[Union[ErrorResponse, OperatorListResponse]]:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
@@ -92,11 +92,9 @@ def sync_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, OperatorListResponse]]
@@ -118,12 +116,12 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    working_area: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> ErrorResponse | OperatorListResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    working_area: Union[Unset, str] = UNSET,
+    resource_id: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Optional[Union[ErrorResponse, OperatorListResponse]]:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
@@ -134,11 +132,9 @@ def sync(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, OperatorListResponse]
@@ -155,12 +151,12 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    working_area: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> Response[ErrorResponse | OperatorListResponse]:
+    client: Union[AuthenticatedClient, Client],
+    working_area: Union[Unset, str] = UNSET,
+    resource_id: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Response[Union[ErrorResponse, OperatorListResponse]]:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
@@ -171,11 +167,9 @@ async def asyncio_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, OperatorListResponse]]
@@ -195,12 +189,12 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    working_area: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> ErrorResponse | OperatorListResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    working_area: Union[Unset, str] = UNSET,
+    resource_id: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Optional[Union[ErrorResponse, OperatorListResponse]]:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
@@ -211,11 +205,9 @@ async def asyncio(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, OperatorListResponse]

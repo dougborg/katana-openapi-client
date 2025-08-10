@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -23,13 +23,11 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[ErrorResponse, Union["DeletableEntity", "LocationType0"]]]:
     if response.status_code == 200:
 
-        def _parse_response_200(
-            data: object,
-        ) -> Union["DeletableEntity", "LocationType0"]:
+        def _parse_response_200(data: object) -> Union["DeletableEntity", "LocationType0"]:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
@@ -70,8 +68,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[ErrorResponse, Union["DeletableEntity", "LocationType0"]]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -83,8 +81,8 @@ def _build_response(
 def sync_detailed(
     id: float,
     *,
-    client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
+    client: Union[AuthenticatedClient, Client],
+) -> Response[Union[ErrorResponse, Union["DeletableEntity", "LocationType0"]]]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -95,7 +93,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]]
@@ -115,8 +112,8 @@ def sync_detailed(
 def sync(
     id: float,
     *,
-    client: AuthenticatedClient | Client,
-) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[Union[ErrorResponse, Union["DeletableEntity", "LocationType0"]]]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -127,7 +124,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]
@@ -142,8 +138,8 @@ def sync(
 async def asyncio_detailed(
     id: float,
     *,
-    client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
+    client: Union[AuthenticatedClient, Client],
+) -> Response[Union[ErrorResponse, Union["DeletableEntity", "LocationType0"]]]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -154,7 +150,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]]
@@ -172,8 +167,8 @@ async def asyncio_detailed(
 async def asyncio(
     id: float,
     *,
-    client: AuthenticatedClient | Client,
-) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
+    client: Union[AuthenticatedClient, Client],
+) -> Optional[Union[ErrorResponse, Union["DeletableEntity", "LocationType0"]]]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -184,7 +179,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -13,13 +13,13 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    include_archived: Unset | bool = UNSET,
-    ids: Unset | list[int] = UNSET,
-    extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    include_archived: Union[Unset, bool] = UNSET,
+    ids: Union[Unset, list[int]] = UNSET,
+    extend: Union[Unset, list[GetAllInventoryPointExtendItem]] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -29,13 +29,13 @@ def _get_kwargs(
 
     params["include_archived"] = include_archived
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: Union[Unset, list[int]] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
     params["ids"] = json_ids
 
-    json_extend: Unset | list[str] = UNSET
+    json_extend: Union[Unset, list[str]] = UNSET
     if not isinstance(extend, Unset):
         json_extend = []
         for extend_item_data in extend:
@@ -60,8 +60,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | InventoryListResponse | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[ErrorResponse, InventoryListResponse]]:
     if response.status_code == 200:
         response_200 = InventoryListResponse.from_dict(response.json())
 
@@ -85,8 +85,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | InventoryListResponse]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[ErrorResponse, InventoryListResponse]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -97,15 +97,15 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    include_archived: Unset | bool = UNSET,
-    ids: Unset | list[int] = UNSET,
-    extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> Response[ErrorResponse | InventoryListResponse]:
+    client: Union[AuthenticatedClient, Client],
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    include_archived: Union[Unset, bool] = UNSET,
+    ids: Union[Unset, list[int]] = UNSET,
+    extend: Union[Unset, list[GetAllInventoryPointExtendItem]] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Response[Union[ErrorResponse, InventoryListResponse]]:
     """List current inventory
 
      Returns a list for current inventory. The inventory is returned in sorted order, with the oldest
@@ -120,11 +120,9 @@ def sync_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, InventoryListResponse]]
@@ -149,15 +147,15 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    include_archived: Unset | bool = UNSET,
-    ids: Unset | list[int] = UNSET,
-    extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> ErrorResponse | InventoryListResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    include_archived: Union[Unset, bool] = UNSET,
+    ids: Union[Unset, list[int]] = UNSET,
+    extend: Union[Unset, list[GetAllInventoryPointExtendItem]] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Optional[Union[ErrorResponse, InventoryListResponse]]:
     """List current inventory
 
      Returns a list for current inventory. The inventory is returned in sorted order, with the oldest
@@ -172,11 +170,9 @@ def sync(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, InventoryListResponse]
@@ -196,15 +192,15 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    include_archived: Unset | bool = UNSET,
-    ids: Unset | list[int] = UNSET,
-    extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> Response[ErrorResponse | InventoryListResponse]:
+    client: Union[AuthenticatedClient, Client],
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    include_archived: Union[Unset, bool] = UNSET,
+    ids: Union[Unset, list[int]] = UNSET,
+    extend: Union[Unset, list[GetAllInventoryPointExtendItem]] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Response[Union[ErrorResponse, InventoryListResponse]]:
     """List current inventory
 
      Returns a list for current inventory. The inventory is returned in sorted order, with the oldest
@@ -219,11 +215,9 @@ async def asyncio_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, InventoryListResponse]]
@@ -246,15 +240,15 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    include_archived: Unset | bool = UNSET,
-    ids: Unset | list[int] = UNSET,
-    extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-) -> ErrorResponse | InventoryListResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    location_id: Union[Unset, int] = UNSET,
+    variant_id: Union[Unset, int] = UNSET,
+    include_archived: Union[Unset, bool] = UNSET,
+    ids: Union[Unset, list[int]] = UNSET,
+    extend: Union[Unset, list[GetAllInventoryPointExtendItem]] = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+) -> Optional[Union[ErrorResponse, InventoryListResponse]]:
     """List current inventory
 
      Returns a list for current inventory. The inventory is returned in sorted order, with the oldest
@@ -269,11 +263,9 @@ async def asyncio(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, InventoryListResponse]

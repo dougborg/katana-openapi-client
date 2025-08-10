@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -13,9 +11,16 @@ T = TypeVar("T", bound="ProductOperationRerankRequest")
 
 @_attrs_define
 class ProductOperationRerankRequest:
+    """
+    Attributes:
+        rank_product_operation_id (int):
+        preceeding_product_operation_id (Union[Unset, int]):
+        should_group (Union[Unset, bool]):
+    """
+
     rank_product_operation_id: int
-    preceeding_product_operation_id: Unset | int = UNSET
-    should_group: Unset | bool = UNSET
+    preceeding_product_operation_id: Union[Unset, int] = UNSET
+    should_group: Union[Unset, bool] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -33,9 +38,7 @@ class ProductOperationRerankRequest:
             }
         )
         if preceeding_product_operation_id is not UNSET:
-            field_dict["preceeding_product_operation_id"] = (
-                preceeding_product_operation_id
-            )
+            field_dict["preceeding_product_operation_id"] = preceeding_product_operation_id
         if should_group is not UNSET:
             field_dict["should_group"] = should_group
 
@@ -46,9 +49,7 @@ class ProductOperationRerankRequest:
         d = dict(src_dict)
         rank_product_operation_id = d.pop("rank_product_operation_id")
 
-        preceeding_product_operation_id = d.pop(
-            "preceeding_product_operation_id", UNSET
-        )
+        preceeding_product_operation_id = d.pop("preceeding_product_operation_id", UNSET)
 
         should_group = d.pop("should_group", UNSET)
 

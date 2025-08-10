@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -15,15 +13,28 @@ T = TypeVar("T", bound="ManufacturingOrderProductionIngredientResponse")
 
 @_attrs_define
 class ManufacturingOrderProductionIngredientResponse:
-    id: Unset | int = UNSET
-    location_id: Unset | int = UNSET
-    variant_id: Unset | int = UNSET
-    manufacturing_order_id: Unset | int = UNSET
-    manufacturing_order_recipe_row_id: Unset | int = UNSET
-    production_id: Unset | int = UNSET
-    quantity: Unset | float = UNSET
-    production_date: Unset | datetime.datetime = UNSET
-    cost: Unset | float = UNSET
+    """
+    Attributes:
+        id (Union[Unset, int]):
+        location_id (Union[Unset, int]):
+        variant_id (Union[Unset, int]):
+        manufacturing_order_id (Union[Unset, int]):
+        manufacturing_order_recipe_row_id (Union[Unset, int]):
+        production_id (Union[Unset, int]):
+        quantity (Union[Unset, float]):
+        production_date (Union[Unset, datetime.datetime]):
+        cost (Union[Unset, float]):
+    """
+
+    id: Union[Unset, int] = UNSET
+    location_id: Union[Unset, int] = UNSET
+    variant_id: Union[Unset, int] = UNSET
+    manufacturing_order_id: Union[Unset, int] = UNSET
+    manufacturing_order_recipe_row_id: Union[Unset, int] = UNSET
+    production_id: Union[Unset, int] = UNSET
+    quantity: Union[Unset, float] = UNSET
+    production_date: Union[Unset, datetime.datetime] = UNSET
+    cost: Union[Unset, float] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -41,7 +52,7 @@ class ManufacturingOrderProductionIngredientResponse:
 
         quantity = self.quantity
 
-        production_date: Unset | str = UNSET
+        production_date: Union[Unset, str] = UNSET
         if not isinstance(self.production_date, Unset):
             production_date = self.production_date.isoformat()
 
@@ -59,9 +70,7 @@ class ManufacturingOrderProductionIngredientResponse:
         if manufacturing_order_id is not UNSET:
             field_dict["manufacturing_order_id"] = manufacturing_order_id
         if manufacturing_order_recipe_row_id is not UNSET:
-            field_dict["manufacturing_order_recipe_row_id"] = (
-                manufacturing_order_recipe_row_id
-            )
+            field_dict["manufacturing_order_recipe_row_id"] = manufacturing_order_recipe_row_id
         if production_id is not UNSET:
             field_dict["production_id"] = production_id
         if quantity is not UNSET:
@@ -84,16 +93,14 @@ class ManufacturingOrderProductionIngredientResponse:
 
         manufacturing_order_id = d.pop("manufacturing_order_id", UNSET)
 
-        manufacturing_order_recipe_row_id = d.pop(
-            "manufacturing_order_recipe_row_id", UNSET
-        )
+        manufacturing_order_recipe_row_id = d.pop("manufacturing_order_recipe_row_id", UNSET)
 
         production_id = d.pop("production_id", UNSET)
 
         quantity = d.pop("quantity", UNSET)
 
         _production_date = d.pop("production_date", UNSET)
-        production_date: Unset | datetime.datetime
+        production_date: Union[Unset, datetime.datetime]
         if isinstance(_production_date, Unset):
             production_date = UNSET
         else:

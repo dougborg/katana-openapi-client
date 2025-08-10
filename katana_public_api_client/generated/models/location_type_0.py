@@ -1,10 +1,8 @@
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -17,15 +15,28 @@ T = TypeVar("T", bound="LocationType0")
 
 @_attrs_define
 class LocationType0:
+    """
+    Attributes:
+        id (int):
+        name (str):
+        legal_name (Union[Unset, str]):
+        address_id (Union[Unset, int]):
+        address (Union[Unset, LocationAddress]):
+        is_primary (Union[Unset, bool]):
+        sales_allowed (Union[Unset, bool]):
+        purchase_allowed (Union[Unset, bool]):
+        manufacturing_allowed (Union[Unset, bool]):
+    """
+
     id: int
     name: str
-    legal_name: Unset | str = UNSET
-    address_id: Unset | int = UNSET
+    legal_name: Union[Unset, str] = UNSET
+    address_id: Union[Unset, int] = UNSET
     address: Union[Unset, "LocationAddress"] = UNSET
-    is_primary: Unset | bool = UNSET
-    sales_allowed: Unset | bool = UNSET
-    purchase_allowed: Unset | bool = UNSET
-    manufacturing_allowed: Unset | bool = UNSET
+    is_primary: Union[Unset, bool] = UNSET
+    sales_allowed: Union[Unset, bool] = UNSET
+    purchase_allowed: Union[Unset, bool] = UNSET
+    manufacturing_allowed: Union[Unset, bool] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -37,7 +48,7 @@ class LocationType0:
 
         address_id = self.address_id
 
-        address: Unset | dict[str, Any] = UNSET
+        address: Union[Unset, dict[str, Any]] = UNSET
         if not isinstance(self.address, Unset):
             address = self.address.to_dict()
 
@@ -88,7 +99,7 @@ class LocationType0:
         address_id = d.pop("address_id", UNSET)
 
         _address = d.pop("address", UNSET)
-        address: Unset | LocationAddress
+        address: Union[Unset, LocationAddress]
         if isinstance(_address, Unset):
             address = UNSET
         else:

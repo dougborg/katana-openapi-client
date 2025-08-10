@@ -1,10 +1,8 @@
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 if TYPE_CHECKING:
     from ..models.create_bom_row_request import CreateBomRowRequest
@@ -21,6 +19,9 @@ class BatchCreateBomRowsRequest:
         {'bom_rows': [{'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2002, 'quantity':
             2.5, 'notes': 'Primary component'}, {'product_item_id': 3001, 'product_variant_id': 2001,
             'ingredient_variant_id': 2003, 'quantity': 1.0, 'notes': 'Secondary component'}]}
+
+    Attributes:
+        bom_rows (list['CreateBomRowRequest']): Array of BOM rows to create
     """
 
     bom_rows: list["CreateBomRowRequest"]

@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -22,16 +20,26 @@ class NegativeStock:
             {'variant_id': 3001, 'location_id': 1, 'latest_negative_stock_date': '2024-01-15T16:30:00.000Z', 'name':
                 'Professional Kitchen Knife Set - 8-Piece - Steel Handles', 'sku': 'KNF-PRO-8PC-STL', 'category': 'Kitchen
                 Equipment', 'quantity_on_hand': -15.0, 'quantity_allocated': 25.0}
+
+        Attributes:
+            variant_id (Union[Unset, int]): ID of the variant with negative stock levels
+            location_id (Union[Unset, int]): ID of the location where the negative stock occurred
+            latest_negative_stock_date (Union[Unset, datetime.datetime]): Most recent date when the stock went negative
+            name (Union[Unset, str]): Display name of the variant with negative stock
+            sku (Union[Unset, str]): Stock keeping unit (SKU) of the variant
+            category (Union[Unset, str]): Category classification of the variant
+            quantity_on_hand (Union[Unset, float]): Current negative quantity showing the deficit amount
+            quantity_allocated (Union[Unset, float]): Quantity allocated to orders despite negative stock
     """
 
-    variant_id: Unset | int = UNSET
-    location_id: Unset | int = UNSET
-    latest_negative_stock_date: Unset | datetime.datetime = UNSET
-    name: Unset | str = UNSET
-    sku: Unset | str = UNSET
-    category: Unset | str = UNSET
-    quantity_on_hand: Unset | float = UNSET
-    quantity_allocated: Unset | float = UNSET
+    variant_id: Union[Unset, int] = UNSET
+    location_id: Union[Unset, int] = UNSET
+    latest_negative_stock_date: Union[Unset, datetime.datetime] = UNSET
+    name: Union[Unset, str] = UNSET
+    sku: Union[Unset, str] = UNSET
+    category: Union[Unset, str] = UNSET
+    quantity_on_hand: Union[Unset, float] = UNSET
+    quantity_allocated: Union[Unset, float] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,7 +47,7 @@ class NegativeStock:
 
         location_id = self.location_id
 
-        latest_negative_stock_date: Unset | str = UNSET
+        latest_negative_stock_date: Union[Unset, str] = UNSET
         if not isinstance(self.latest_negative_stock_date, Unset):
             latest_negative_stock_date = self.latest_negative_stock_date.isoformat()
 
@@ -83,7 +91,7 @@ class NegativeStock:
         location_id = d.pop("location_id", UNSET)
 
         _latest_negative_stock_date = d.pop("latest_negative_stock_date", UNSET)
-        latest_negative_stock_date: Unset | datetime.datetime
+        latest_negative_stock_date: Union[Unset, datetime.datetime]
         if isinstance(_latest_negative_stock_date, Unset):
             latest_negative_stock_date = UNSET
         else:

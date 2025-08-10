@@ -2,21 +2,27 @@ import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
-from ..models.sales_order_accounting_metadata_integration_type import (
-    SalesOrderAccountingMetadataIntegrationType,
-)
+from ..models.sales_order_accounting_metadata_integration_type import SalesOrderAccountingMetadataIntegrationType
 
 T = TypeVar("T", bound="SalesOrderAccountingMetadata")
 
 
 @_attrs_define
 class SalesOrderAccountingMetadata:
+    """
+    Attributes:
+        id (int):
+        sales_order_id (int):
+        fulfillment_id (int):
+        invoice_id (str):
+        integration_type (SalesOrderAccountingMetadataIntegrationType):
+        created_at (datetime.datetime):
+    """
+
     id: int
     sales_order_id: int
     fulfillment_id: int
@@ -64,9 +70,7 @@ class SalesOrderAccountingMetadata:
 
         invoice_id = d.pop("invoice_id")
 
-        integration_type = SalesOrderAccountingMetadataIntegrationType(
-            d.pop("integration_type")
-        )
+        integration_type = SalesOrderAccountingMetadataIntegrationType(d.pop("integration_type"))
 
         created_at = isoparse(d.pop("created_at"))
 

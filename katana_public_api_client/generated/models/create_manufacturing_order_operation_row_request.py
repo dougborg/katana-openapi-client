@@ -1,16 +1,21 @@
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 T = TypeVar("T", bound="CreateManufacturingOrderOperationRowRequest")
 
 
 @_attrs_define
 class CreateManufacturingOrderOperationRowRequest:
+    """
+    Attributes:
+        manufacturing_order_id (int):
+        operation_id (int):
+        time (float):
+    """
+
     manufacturing_order_id: int
     operation_id: int
     time: float

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -14,11 +14,11 @@ from ...types import UNSET, Response, Unset
 def _get_kwargs(
     id: int,
     *,
-    extend: Unset | list[GetProductExtendItem] = UNSET,
+    extend: Union[Unset, list[GetProductExtendItem]] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_extend: Unset | list[str] = UNSET
+    json_extend: Union[Unset, list[str]] = UNSET
     if not isinstance(extend, Unset):
         json_extend = []
         for extend_item_data in extend:
@@ -39,8 +39,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | Product | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[ErrorResponse, Product]]:
     if response.status_code == 200:
         response_200 = Product.from_dict(response.json())
 
@@ -64,8 +64,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | Product]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[ErrorResponse, Product]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -77,9 +77,9 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
-    extend: Unset | list[GetProductExtendItem] = UNSET,
-) -> Response[ErrorResponse | Product]:
+    client: Union[AuthenticatedClient, Client],
+    extend: Union[Unset, list[GetProductExtendItem]] = UNSET,
+) -> Response[Union[ErrorResponse, Product]]:
     """Retrieve a product
 
      Retrieves the details of an existing product based on ID.
@@ -91,7 +91,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, Product]]
@@ -112,9 +111,9 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
-    extend: Unset | list[GetProductExtendItem] = UNSET,
-) -> ErrorResponse | Product | None:
+    client: Union[AuthenticatedClient, Client],
+    extend: Union[Unset, list[GetProductExtendItem]] = UNSET,
+) -> Optional[Union[ErrorResponse, Product]]:
     """Retrieve a product
 
      Retrieves the details of an existing product based on ID.
@@ -126,7 +125,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, Product]
@@ -142,9 +140,9 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
-    extend: Unset | list[GetProductExtendItem] = UNSET,
-) -> Response[ErrorResponse | Product]:
+    client: Union[AuthenticatedClient, Client],
+    extend: Union[Unset, list[GetProductExtendItem]] = UNSET,
+) -> Response[Union[ErrorResponse, Product]]:
     """Retrieve a product
 
      Retrieves the details of an existing product based on ID.
@@ -156,7 +154,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, Product]]
@@ -175,9 +172,9 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
-    extend: Unset | list[GetProductExtendItem] = UNSET,
-) -> ErrorResponse | Product | None:
+    client: Union[AuthenticatedClient, Client],
+    extend: Union[Unset, list[GetProductExtendItem]] = UNSET,
+) -> Optional[Union[ErrorResponse, Product]]:
     """Retrieve a product
 
      Retrieves the details of an existing product based on ID.
@@ -189,7 +186,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, Product]

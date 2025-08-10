@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, Union, cast
 
 from attrs import define as _attrs_define
 
@@ -10,9 +10,16 @@ T = TypeVar("T", bound="UpdateMaterialRequestConfigsItem")
 
 @_attrs_define
 class UpdateMaterialRequestConfigsItem:
+    """
+    Attributes:
+        name (str):
+        values (list[str]):
+        id (Union[Unset, int]): If config ID is used to map the config, then name is ignored.
+    """
+
     name: str
     values: list[str]
-    id: Unset | int = UNSET
+    id: Union[Unset, int] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name

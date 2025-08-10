@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -32,8 +32,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | SalesReturn | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, SalesReturn]]:
     if response.status_code == 201:
         response_201 = SalesReturn.from_dict(response.json())
 
@@ -65,8 +65,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | SalesReturn]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, SalesReturn]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -77,9 +77,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesReturnRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | SalesReturn]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, SalesReturn]]:
     """Create a sales return
 
      Creates a new sales return object.
@@ -90,7 +90,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, SalesReturn]]
@@ -109,9 +108,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesReturnRequest,
-) -> DetailedErrorResponse | ErrorResponse | SalesReturn | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, SalesReturn]]:
     """Create a sales return
 
      Creates a new sales return object.
@@ -122,7 +121,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, SalesReturn]
@@ -136,9 +134,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesReturnRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | SalesReturn]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, SalesReturn]]:
     """Create a sales return
 
      Creates a new sales return object.
@@ -149,7 +147,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, SalesReturn]]
@@ -166,9 +163,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesReturnRequest,
-) -> DetailedErrorResponse | ErrorResponse | SalesReturn | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, SalesReturn]]:
     """Create a sales return
 
      Creates a new sales return object.
@@ -179,7 +176,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, SalesReturn]

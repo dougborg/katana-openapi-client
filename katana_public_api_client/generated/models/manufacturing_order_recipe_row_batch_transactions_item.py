@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -13,8 +11,14 @@ T = TypeVar("T", bound="ManufacturingOrderRecipeRowBatchTransactionsItem")
 
 @_attrs_define
 class ManufacturingOrderRecipeRowBatchTransactionsItem:
-    batch_id: Unset | int = UNSET
-    quantity: Unset | float = UNSET
+    """
+    Attributes:
+        batch_id (Union[Unset, int]): ID of the batch being consumed
+        quantity (Union[Unset, float]): Quantity consumed from this batch
+    """
+
+    batch_id: Union[Unset, int] = UNSET
+    quantity: Union[Unset, float] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

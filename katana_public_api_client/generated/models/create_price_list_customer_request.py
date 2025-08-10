@@ -8,6 +8,12 @@ T = TypeVar("T", bound="CreatePriceListCustomerRequest")
 
 @_attrs_define
 class CreatePriceListCustomerRequest:
+    """
+    Attributes:
+        price_list_id (int): ID of the price list
+        customer_id (int): ID of the customer to assign to price list
+    """
+
     price_list_id: int
     customer_id: int
 

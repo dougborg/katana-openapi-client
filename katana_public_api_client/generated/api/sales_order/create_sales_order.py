@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -31,8 +31,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | SalesOrder | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[ErrorResponse, SalesOrder]]:
     if response.status_code == 200:
         response_200 = SalesOrder.from_dict(response.json())
 
@@ -56,8 +56,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | SalesOrder]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[ErrorResponse, SalesOrder]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -68,9 +68,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesOrderRequest,
-) -> Response[ErrorResponse | SalesOrder]:
+) -> Response[Union[ErrorResponse, SalesOrder]]:
     """Create a sales order
 
      Creates a new sales order object.
@@ -81,7 +81,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, SalesOrder]]
@@ -100,9 +99,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesOrderRequest,
-) -> ErrorResponse | SalesOrder | None:
+) -> Optional[Union[ErrorResponse, SalesOrder]]:
     """Create a sales order
 
      Creates a new sales order object.
@@ -113,7 +112,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, SalesOrder]
@@ -127,9 +125,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesOrderRequest,
-) -> Response[ErrorResponse | SalesOrder]:
+) -> Response[Union[ErrorResponse, SalesOrder]]:
     """Create a sales order
 
      Creates a new sales order object.
@@ -140,7 +138,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, SalesOrder]]
@@ -157,9 +154,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: CreateSalesOrderRequest,
-) -> ErrorResponse | SalesOrder | None:
+) -> Optional[Union[ErrorResponse, SalesOrder]]:
     """Create a sales order
 
      Creates a new sales order object.
@@ -170,7 +167,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, SalesOrder]

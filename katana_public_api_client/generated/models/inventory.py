@@ -1,10 +1,8 @@
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -19,6 +17,38 @@ T = TypeVar("T", bound="Inventory")
 
 @_attrs_define
 class Inventory:
+    """
+    Attributes:
+        variant_id (int):
+        location_id (int):
+        reorder_point (str):
+        average_cost (str):
+        value_in_stock (str):
+        quantity_in_stock (str):
+        quantity_committed (str):
+        quantity_expected (str):
+        quantity_missing_or_excess (str):
+        quantity_potential (str):
+        variant (Union[Unset, Variant]): Specific SKU of a product or material with unique pricing, configuration, and
+            inventory tracking Example: {'id': 3001, 'sku': 'KNF-PRO-8PC-STL', 'sales_price': 299.99, 'product_id': 101,
+            'material_id': None, 'purchase_price': 150.0, 'product_or_material_name': 'Professional Kitchen Knife Set -
+            8-Piece - Steel Handles', 'type': 'product', 'internal_barcode': 'INT-KNF-001', 'registered_barcode':
+            '789123456789', 'supplier_item_codes': ['SUP-KNF-8PC-001'], 'lead_time': 7, 'minimum_order_quantity': 1,
+            'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '5 years'}], 'config_attributes':
+            [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            'Steel'}], 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at': '2024-08-20T14:45:00.000Z', 'deleted_at':
+            None}.
+        location (Union['DeletableEntity', 'LocationType0', Unset]): Manufacturing location or warehouse facility where
+            inventory is managed and operations are performed Example: {'data': [{'id': 1, 'name': 'Main location',
+            'legal_name': 'Amazon', 'address_id': 1, 'address': {'id': 1, 'city': 'New York', 'country': 'United States',
+            'line_1': '10 East 20th Example St', 'line_2': '', 'state': 'New York', 'zip': '10000'}, 'is_primary': True,
+            'sales_allowed': True, 'purchase_allowed': True, 'manufacturing_allowed': True, 'created_at':
+            '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}, {'id': 2, 'name':
+            'Secondary location', 'legal_name': 'Amazon', 'address_id': None, 'address': None, 'is_primary': False,
+            'sales_allowed': False, 'purchase_allowed': True, 'manufacturing_allowed': False, 'created_at':
+            '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}]}.
+    """
+
     variant_id: int
     location_id: int
     reorder_point: str
@@ -56,11 +86,11 @@ class Inventory:
 
         quantity_potential = self.quantity_potential
 
-        variant: Unset | dict[str, Any] = UNSET
+        variant: Union[Unset, dict[str, Any]] = UNSET
         if not isinstance(self.variant, Unset):
             variant = self.variant.to_dict()
 
-        location: Unset | dict[str, Any]
+        location: Union[Unset, dict[str, Any]]
         if isinstance(self.location, Unset):
             location = UNSET
         elif isinstance(self.location, LocationType0):
@@ -119,15 +149,13 @@ class Inventory:
         quantity_potential = d.pop("quantity_potential")
 
         _variant = d.pop("variant", UNSET)
-        variant: Unset | Variant
+        variant: Union[Unset, Variant]
         if isinstance(_variant, Unset):
             variant = UNSET
         else:
             variant = Variant.from_dict(_variant)
 
-        def _parse_location(
-            data: object,
-        ) -> Union["DeletableEntity", "LocationType0", Unset]:
+        def _parse_location(data: object) -> Union["DeletableEntity", "LocationType0", Unset]:
             if isinstance(data, Unset):
                 return data
             try:

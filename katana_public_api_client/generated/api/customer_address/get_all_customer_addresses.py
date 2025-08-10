@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -7,18 +7,16 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.customer_address_list_response import CustomerAddressListResponse
 from ...models.error_response import ErrorResponse
-from ...models.get_all_customer_addresses_entity_type import (
-    GetAllCustomerAddressesEntityType,
-)
+from ...models.get_all_customer_addresses_entity_type import GetAllCustomerAddressesEntityType
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    customer_id: Unset | int = UNSET,
-    entity_type: Unset | GetAllCustomerAddressesEntityType = UNSET,
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    customer_id: Union[Unset, int] = UNSET,
+    entity_type: Union[Unset, GetAllCustomerAddressesEntityType] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -28,7 +26,7 @@ def _get_kwargs(
 
     params["customer_id"] = customer_id
 
-    json_entity_type: Unset | str = UNSET
+    json_entity_type: Union[Unset, str] = UNSET
     if not isinstance(entity_type, Unset):
         json_entity_type = entity_type.value
 
@@ -46,8 +44,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> CustomerAddressListResponse | ErrorResponse | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[CustomerAddressListResponse, ErrorResponse]]:
     if response.status_code == 200:
         response_200 = CustomerAddressListResponse.from_dict(response.json())
 
@@ -71,8 +69,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[CustomerAddressListResponse | ErrorResponse]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[CustomerAddressListResponse, ErrorResponse]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -83,12 +81,12 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    customer_id: Unset | int = UNSET,
-    entity_type: Unset | GetAllCustomerAddressesEntityType = UNSET,
-) -> Response[CustomerAddressListResponse | ErrorResponse]:
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    customer_id: Union[Unset, int] = UNSET,
+    entity_type: Union[Unset, GetAllCustomerAddressesEntityType] = UNSET,
+) -> Response[Union[CustomerAddressListResponse, ErrorResponse]]:
     """List customer addresses
 
      Returns a list of customer addresses.
@@ -102,7 +100,6 @@ def sync_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[CustomerAddressListResponse, ErrorResponse]]
@@ -124,12 +121,12 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    customer_id: Unset | int = UNSET,
-    entity_type: Unset | GetAllCustomerAddressesEntityType = UNSET,
-) -> CustomerAddressListResponse | ErrorResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    customer_id: Union[Unset, int] = UNSET,
+    entity_type: Union[Unset, GetAllCustomerAddressesEntityType] = UNSET,
+) -> Optional[Union[CustomerAddressListResponse, ErrorResponse]]:
     """List customer addresses
 
      Returns a list of customer addresses.
@@ -143,7 +140,6 @@ def sync(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[CustomerAddressListResponse, ErrorResponse]
@@ -160,12 +156,12 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    customer_id: Unset | int = UNSET,
-    entity_type: Unset | GetAllCustomerAddressesEntityType = UNSET,
-) -> Response[CustomerAddressListResponse | ErrorResponse]:
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    customer_id: Union[Unset, int] = UNSET,
+    entity_type: Union[Unset, GetAllCustomerAddressesEntityType] = UNSET,
+) -> Response[Union[CustomerAddressListResponse, ErrorResponse]]:
     """List customer addresses
 
      Returns a list of customer addresses.
@@ -179,7 +175,6 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[CustomerAddressListResponse, ErrorResponse]]
@@ -199,12 +194,12 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = 1,
-    customer_id: Unset | int = UNSET,
-    entity_type: Unset | GetAllCustomerAddressesEntityType = UNSET,
-) -> CustomerAddressListResponse | ErrorResponse | None:
+    client: Union[AuthenticatedClient, Client],
+    limit: Union[Unset, int] = 50,
+    page: Union[Unset, int] = 1,
+    customer_id: Union[Unset, int] = UNSET,
+    entity_type: Union[Unset, GetAllCustomerAddressesEntityType] = UNSET,
+) -> Optional[Union[CustomerAddressListResponse, ErrorResponse]]:
     """List customer addresses
 
      Returns a list of customer addresses.
@@ -218,7 +213,6 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[CustomerAddressListResponse, ErrorResponse]

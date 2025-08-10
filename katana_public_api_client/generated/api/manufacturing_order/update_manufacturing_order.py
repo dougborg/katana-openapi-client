@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -33,8 +33,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | ManufacturingOrder | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrder]]:
     if response.status_code == 200:
         response_200 = ManufacturingOrder.from_dict(response.json())
 
@@ -66,8 +66,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | ManufacturingOrder]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrder]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -79,9 +79,9 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateManufacturingOrderRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | ManufacturingOrder]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrder]]:
     """Update a manufacturing order
 
      Updates the specified manufacturing order by setting the values of the parameters passed.
@@ -89,12 +89,14 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRequest):
+        body (UpdateManufacturingOrderRequest): Request payload for updating an existing
+            manufacturing order's properties and production parameters. Example: {'planned_quantity':
+            75, 'additional_info': 'Increased quantity due to additional customer demand',
+            'production_deadline_date': '2024-01-30T17:00:00Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrder]]
@@ -115,9 +117,9 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateManufacturingOrderRequest,
-) -> DetailedErrorResponse | ErrorResponse | ManufacturingOrder | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrder]]:
     """Update a manufacturing order
 
      Updates the specified manufacturing order by setting the values of the parameters passed.
@@ -125,12 +127,14 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRequest):
+        body (UpdateManufacturingOrderRequest): Request payload for updating an existing
+            manufacturing order's properties and production parameters. Example: {'planned_quantity':
+            75, 'additional_info': 'Increased quantity due to additional customer demand',
+            'production_deadline_date': '2024-01-30T17:00:00Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrder]
@@ -146,9 +150,9 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateManufacturingOrderRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | ManufacturingOrder]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrder]]:
     """Update a manufacturing order
 
      Updates the specified manufacturing order by setting the values of the parameters passed.
@@ -156,12 +160,14 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRequest):
+        body (UpdateManufacturingOrderRequest): Request payload for updating an existing
+            manufacturing order's properties and production parameters. Example: {'planned_quantity':
+            75, 'additional_info': 'Increased quantity due to additional customer demand',
+            'production_deadline_date': '2024-01-30T17:00:00Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrder]]
@@ -180,9 +186,9 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateManufacturingOrderRequest,
-) -> DetailedErrorResponse | ErrorResponse | ManufacturingOrder | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrder]]:
     """Update a manufacturing order
 
      Updates the specified manufacturing order by setting the values of the parameters passed.
@@ -190,12 +196,14 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRequest):
+        body (UpdateManufacturingOrderRequest): Request payload for updating an existing
+            manufacturing order's properties and production parameters. Example: {'planned_quantity':
+            75, 'additional_info': 'Increased quantity due to additional customer demand',
+            'production_deadline_date': '2024-01-30T17:00:00Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrder]

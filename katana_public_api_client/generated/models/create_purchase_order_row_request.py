@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 
@@ -10,15 +10,28 @@ T = TypeVar("T", bound="CreatePurchaseOrderRowRequest")
 
 @_attrs_define
 class CreatePurchaseOrderRowRequest:
+    """
+    Attributes:
+        purchase_order_id (int):
+        quantity (float):
+        variant_id (int):
+        price_per_unit (float):
+        tax_rate_id (Union[Unset, int]):
+        group_id (Union[Unset, int]):
+        purchase_uom_conversion_rate (Union[Unset, float]):
+        purchase_uom (Union[Unset, str]):
+        arrival_date (Union[Unset, str]): Optional arrival date in ISO 8601 format.
+    """
+
     purchase_order_id: int
     quantity: float
     variant_id: int
     price_per_unit: float
-    tax_rate_id: Unset | int = UNSET
-    group_id: Unset | int = UNSET
-    purchase_uom_conversion_rate: Unset | float = UNSET
-    purchase_uom: Unset | str = UNSET
-    arrival_date: Unset | str = UNSET
+    tax_rate_id: Union[Unset, int] = UNSET
+    group_id: Union[Unset, int] = UNSET
+    purchase_uom_conversion_rate: Union[Unset, float] = UNSET
+    purchase_uom: Union[Unset, str] = UNSET
+    arrival_date: Union[Unset, str] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         purchase_order_id = self.purchase_order_id

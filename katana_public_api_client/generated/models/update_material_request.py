@@ -1,14 +1,12 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
 from attrs import define as _attrs_define
 
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.update_material_request_configs_item import (
-        UpdateMaterialRequestConfigsItem,
-    )
+    from ..models.update_material_request_configs_item import UpdateMaterialRequestConfigsItem
 
 
 T = TypeVar("T", bound="UpdateMaterialRequest")
@@ -16,20 +14,44 @@ T = TypeVar("T", bound="UpdateMaterialRequest")
 
 @_attrs_define
 class UpdateMaterialRequest:
-    """Request payload for updating an existing raw material's properties and specifications"""
+    """Request payload for updating an existing raw material's properties and specifications
 
-    name: Unset | str = UNSET
-    uom: Unset | str = UNSET
-    category_name: Unset | str = UNSET
-    default_supplier_id: Unset | int = UNSET
-    additional_info: Unset | str = UNSET
-    batch_tracked: Unset | bool = UNSET
-    is_sellable: Unset | bool = UNSET
-    is_archived: Unset | bool = UNSET
-    purchase_uom: Unset | str = UNSET
-    purchase_uom_conversion_rate: Unset | float = UNSET
-    configs: Unset | list["UpdateMaterialRequestConfigsItem"] = UNSET
-    custom_field_collection_id: None | Unset | int = UNSET
+    Example:
+        {'name': 'Stainless Steel Sheet 304 - Updated', 'uom': 'm²', 'category_name': 'Premium Raw Materials',
+            'default_supplier_id': 1502, 'additional_info': 'Food-grade stainless steel, 1.5mm thickness - Updated
+            specifications', 'batch_tracked': True, 'is_sellable': False, 'is_archived': False, 'purchase_uom': 'sheet',
+            'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'name': 'Grade', 'values': ['304', '316', '430']},
+            {'name': 'Finish', 'values': ['Brushed', 'Mirror', 'Matte']}], 'custom_field_collection_id': 201}
+
+    Attributes:
+        name (Union[Unset, str]): Display name for the material used in inventory and manufacturing
+        uom (Union[Unset, str]): Unit of measure for inventory tracking (e.g., kg, lb, pcs)
+        category_name (Union[Unset, str]):
+        default_supplier_id (Union[Unset, int]):
+        additional_info (Union[Unset, str]):
+        batch_tracked (Union[Unset, bool]):
+        is_sellable (Union[Unset, bool]):
+        is_archived (Union[Unset, bool]):
+        purchase_uom (Union[Unset, str]): If used, then purchase_uom_conversion_rate must have a value as well.
+        purchase_uom_conversion_rate (Union[Unset, float]): If used, then purchase_uom must have a value as well.
+        configs (Union[Unset, list['UpdateMaterialRequestConfigsItem']]): When updating configs, all configs and values
+            must be provided. Existing ones are matched,
+                    new ones are created, and configs not provided in the update are deleted.
+        custom_field_collection_id (Union[None, Unset, int]):
+    """
+
+    name: Union[Unset, str] = UNSET
+    uom: Union[Unset, str] = UNSET
+    category_name: Union[Unset, str] = UNSET
+    default_supplier_id: Union[Unset, int] = UNSET
+    additional_info: Union[Unset, str] = UNSET
+    batch_tracked: Union[Unset, bool] = UNSET
+    is_sellable: Union[Unset, bool] = UNSET
+    is_archived: Union[Unset, bool] = UNSET
+    purchase_uom: Union[Unset, str] = UNSET
+    purchase_uom_conversion_rate: Union[Unset, float] = UNSET
+    configs: Union[Unset, list["UpdateMaterialRequestConfigsItem"]] = UNSET
+    custom_field_collection_id: Union[None, Unset, int] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -52,14 +74,14 @@ class UpdateMaterialRequest:
 
         purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
-        configs: Unset | list[dict[str, Any]] = UNSET
+        configs: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.configs, Unset):
             configs = []
             for configs_item_data in self.configs:
                 configs_item = configs_item_data.to_dict()
                 configs.append(configs_item)
 
-        custom_field_collection_id: None | Unset | int
+        custom_field_collection_id: Union[None, Unset, int]
         if isinstance(self.custom_field_collection_id, Unset):
             custom_field_collection_id = UNSET
         else:
@@ -97,9 +119,7 @@ class UpdateMaterialRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.update_material_request_configs_item import (
-            UpdateMaterialRequestConfigsItem,
-        )
+        from ..models.update_material_request_configs_item import UpdateMaterialRequestConfigsItem
 
         d = dict(src_dict)
         name = d.pop("name", UNSET)
@@ -129,16 +149,14 @@ class UpdateMaterialRequest:
 
             configs.append(configs_item)
 
-        def _parse_custom_field_collection_id(data: object) -> None | Unset | int:
+        def _parse_custom_field_collection_id(data: object) -> Union[None, Unset, int]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(Union[None, Unset, int], data)
 
-        custom_field_collection_id = _parse_custom_field_collection_id(
-            d.pop("custom_field_collection_id", UNSET)
-        )
+        custom_field_collection_id = _parse_custom_field_collection_id(d.pop("custom_field_collection_id", UNSET))
 
         update_material_request = cls(
             name=name,

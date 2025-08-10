@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -33,8 +33,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | Material | None:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Material]]:
     if response.status_code == 200:
         response_200 = Material.from_dict(response.json())
 
@@ -62,8 +62,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | Material]:
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, Material]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -75,9 +75,9 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateMaterialRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | Material]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, Material]]:
     """Update a material
 
      Updates the specified material by setting the values of the parameters passed.
@@ -86,12 +86,17 @@ def sync_detailed(
     Args:
         id (int):
         body (UpdateMaterialRequest): Request payload for updating an existing raw material's
-            properties and specifications
+            properties and specifications Example: {'name': 'Stainless Steel Sheet 304 - Updated',
+            'uom': 'm²', 'category_name': 'Premium Raw Materials', 'default_supplier_id': 1502,
+            'additional_info': 'Food-grade stainless steel, 1.5mm thickness - Updated specifications',
+            'batch_tracked': True, 'is_sellable': False, 'is_archived': False, 'purchase_uom':
+            'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'name': 'Grade',
+            'values': ['304', '316', '430']}, {'name': 'Finish', 'values': ['Brushed', 'Mirror',
+            'Matte']}], 'custom_field_collection_id': 201}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, Material]]
@@ -112,9 +117,9 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateMaterialRequest,
-) -> DetailedErrorResponse | ErrorResponse | Material | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Material]]:
     """Update a material
 
      Updates the specified material by setting the values of the parameters passed.
@@ -123,12 +128,17 @@ def sync(
     Args:
         id (int):
         body (UpdateMaterialRequest): Request payload for updating an existing raw material's
-            properties and specifications
+            properties and specifications Example: {'name': 'Stainless Steel Sheet 304 - Updated',
+            'uom': 'm²', 'category_name': 'Premium Raw Materials', 'default_supplier_id': 1502,
+            'additional_info': 'Food-grade stainless steel, 1.5mm thickness - Updated specifications',
+            'batch_tracked': True, 'is_sellable': False, 'is_archived': False, 'purchase_uom':
+            'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'name': 'Grade',
+            'values': ['304', '316', '430']}, {'name': 'Finish', 'values': ['Brushed', 'Mirror',
+            'Matte']}], 'custom_field_collection_id': 201}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, Material]
@@ -144,9 +154,9 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateMaterialRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | Material]:
+) -> Response[Union[DetailedErrorResponse, ErrorResponse, Material]]:
     """Update a material
 
      Updates the specified material by setting the values of the parameters passed.
@@ -155,12 +165,17 @@ async def asyncio_detailed(
     Args:
         id (int):
         body (UpdateMaterialRequest): Request payload for updating an existing raw material's
-            properties and specifications
+            properties and specifications Example: {'name': 'Stainless Steel Sheet 304 - Updated',
+            'uom': 'm²', 'category_name': 'Premium Raw Materials', 'default_supplier_id': 1502,
+            'additional_info': 'Food-grade stainless steel, 1.5mm thickness - Updated specifications',
+            'batch_tracked': True, 'is_sellable': False, 'is_archived': False, 'purchase_uom':
+            'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'name': 'Grade',
+            'values': ['304', '316', '430']}, {'name': 'Finish', 'values': ['Brushed', 'Mirror',
+            'Matte']}], 'custom_field_collection_id': 201}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, Material]]
@@ -179,9 +194,9 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: AuthenticatedClient | Client,
+    client: Union[AuthenticatedClient, Client],
     body: UpdateMaterialRequest,
-) -> DetailedErrorResponse | ErrorResponse | Material | None:
+) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Material]]:
     """Update a material
 
      Updates the specified material by setting the values of the parameters passed.
@@ -190,12 +205,17 @@ async def asyncio(
     Args:
         id (int):
         body (UpdateMaterialRequest): Request payload for updating an existing raw material's
-            properties and specifications
+            properties and specifications Example: {'name': 'Stainless Steel Sheet 304 - Updated',
+            'uom': 'm²', 'category_name': 'Premium Raw Materials', 'default_supplier_id': 1502,
+            'additional_info': 'Food-grade stainless steel, 1.5mm thickness - Updated specifications',
+            'batch_tracked': True, 'is_sellable': False, 'is_archived': False, 'purchase_uom':
+            'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'name': 'Grade',
+            'values': ['304', '316', '430']}, {'name': 'Finish', 'values': ['Brushed', 'Mirror',
+            'Matte']}], 'custom_field_collection_id': 201}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, Material]

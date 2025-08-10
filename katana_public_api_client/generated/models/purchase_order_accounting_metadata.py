@@ -1,11 +1,9 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -15,13 +13,24 @@ T = TypeVar("T", bound="PurchaseOrderAccountingMetadata")
 
 @_attrs_define
 class PurchaseOrderAccountingMetadata:
-    id: Unset | int = UNSET
-    purchase_order_id: Unset | int = UNSET
-    purchaseOrderId: Unset | int = UNSET
-    por_received_group_id: Unset | int = UNSET
-    integration_type: Unset | str = UNSET
-    bill_id: Unset | str = UNSET
-    created_at: Unset | datetime.datetime = UNSET
+    """
+    Attributes:
+        id (Union[Unset, int]):
+        purchase_order_id (Union[Unset, int]):
+        purchaseOrderId (Union[Unset, int]):
+        por_received_group_id (Union[Unset, int]):
+        integration_type (Union[Unset, str]):
+        bill_id (Union[Unset, str]):
+        created_at (Union[Unset, datetime.datetime]):
+    """
+
+    id: Union[Unset, int] = UNSET
+    purchase_order_id: Union[Unset, int] = UNSET
+    purchaseOrderId: Union[Unset, int] = UNSET
+    por_received_group_id: Union[Unset, int] = UNSET
+    integration_type: Union[Unset, str] = UNSET
+    bill_id: Union[Unset, str] = UNSET
+    created_at: Union[Unset, datetime.datetime] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -37,7 +46,7 @@ class PurchaseOrderAccountingMetadata:
 
         bill_id = self.bill_id
 
-        created_at: Unset | str = UNSET
+        created_at: Union[Unset, str] = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
@@ -77,7 +86,7 @@ class PurchaseOrderAccountingMetadata:
         bill_id = d.pop("billId", UNSET)
 
         _created_at = d.pop("createdAt", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: Union[Unset, datetime.datetime]
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:

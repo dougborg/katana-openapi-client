@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -25,13 +23,16 @@ class VariantListResponse:
             'Steel'}]}, {'id': 3002, 'sku': 'KNF-PRO-12PC-WD', 'sales_price': 399.99, 'type': 'product',
             'config_attributes': [{'config_name': 'Piece Count', 'config_value': '12-piece'}, {'config_name': 'Handle
             Material', 'config_value': 'Wood'}]}]}
+
+    Attributes:
+        data (Union[Unset, list['VariantResponse']]): Array of variant objects returned by the API
     """
 
-    data: Unset | list["VariantResponse"] = UNSET
+    data: Union[Unset, list["VariantResponse"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:

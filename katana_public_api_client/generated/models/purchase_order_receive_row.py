@@ -1,14 +1,12 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.purchase_order_receive_row_batch_transactions_item import (
-        PurchaseOrderReceiveRowBatchTransactionsItem,
-    )
+    from ..models.purchase_order_receive_row_batch_transactions_item import PurchaseOrderReceiveRowBatchTransactionsItem
 
 
 T = TypeVar("T", bound="PurchaseOrderReceiveRow")
@@ -16,12 +14,18 @@ T = TypeVar("T", bound="PurchaseOrderReceiveRow")
 
 @_attrs_define
 class PurchaseOrderReceiveRow:
+    """
+    Attributes:
+        purchase_order_row_id (int):
+        quantity (float):
+        received_date (Union[Unset, str]): Optional received date in ISO 8601 format.
+        batch_transactions (Union[Unset, list['PurchaseOrderReceiveRowBatchTransactionsItem']]):
+    """
+
     purchase_order_row_id: int
     quantity: float
-    received_date: Unset | str = UNSET
-    batch_transactions: Unset | list["PurchaseOrderReceiveRowBatchTransactionsItem"] = (
-        UNSET
-    )
+    received_date: Union[Unset, str] = UNSET
+    batch_transactions: Union[Unset, list["PurchaseOrderReceiveRowBatchTransactionsItem"]] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         purchase_order_row_id = self.purchase_order_row_id
@@ -30,7 +34,7 @@ class PurchaseOrderReceiveRow:
 
         received_date = self.received_date
 
-        batch_transactions: Unset | list[dict[str, Any]] = UNSET
+        batch_transactions: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.batch_transactions, Unset):
             batch_transactions = []
             for batch_transactions_item_data in self.batch_transactions:
@@ -68,10 +72,8 @@ class PurchaseOrderReceiveRow:
         batch_transactions = []
         _batch_transactions = d.pop("batch_transactions", UNSET)
         for batch_transactions_item_data in _batch_transactions or []:
-            batch_transactions_item = (
-                PurchaseOrderReceiveRowBatchTransactionsItem.from_dict(
-                    batch_transactions_item_data
-                )
+            batch_transactions_item = PurchaseOrderReceiveRowBatchTransactionsItem.from_dict(
+                batch_transactions_item_data
             )
 
             batch_transactions.append(batch_transactions_item)

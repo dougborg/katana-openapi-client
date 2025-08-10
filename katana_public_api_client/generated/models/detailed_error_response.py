@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -17,11 +15,20 @@ T = TypeVar("T", bound="DetailedErrorResponse")
 
 @_attrs_define
 class DetailedErrorResponse:
-    status_code: Unset | float = UNSET
-    name: Unset | str = UNSET
-    message: Unset | str = UNSET
-    code: None | Unset | str = UNSET
-    details: Unset | list["ValidationErrorDetail"] = UNSET
+    """
+    Attributes:
+        status_code (Union[Unset, float]): HTTP status code
+        name (Union[Unset, str]): Error name/type
+        message (Union[Unset, str]): Human-readable error message
+        code (Union[None, Unset, str]): Application-specific error code
+        details (Union[Unset, list['ValidationErrorDetail']]): Detailed validation error information
+    """
+
+    status_code: Union[Unset, float] = UNSET
+    name: Union[Unset, str] = UNSET
+    message: Union[Unset, str] = UNSET
+    code: Union[None, Unset, str] = UNSET
+    details: Union[Unset, list["ValidationErrorDetail"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -31,13 +38,13 @@ class DetailedErrorResponse:
 
         message = self.message
 
-        code: None | Unset | str
+        code: Union[None, Unset, str]
         if isinstance(self.code, Unset):
             code = UNSET
         else:
             code = self.code
 
-        details: Unset | list[dict[str, Any]] = UNSET
+        details: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.details, Unset):
             details = []
             for details_item_data in self.details:
@@ -71,12 +78,12 @@ class DetailedErrorResponse:
 
         message = d.pop("message", UNSET)
 
-        def _parse_code(data: object) -> None | Unset | str:
+        def _parse_code(data: object) -> Union[None, Unset, str]:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(Union[None, Unset, str], data)
 
         code = _parse_code(d.pop("code", UNSET))
 

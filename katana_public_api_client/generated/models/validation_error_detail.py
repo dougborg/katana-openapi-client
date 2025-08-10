@@ -1,10 +1,8 @@
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -17,11 +15,18 @@ T = TypeVar("T", bound="ValidationErrorDetail")
 
 @_attrs_define
 class ValidationErrorDetail:
-    """Individual validation error detail"""
+    """Individual validation error detail
+
+    Attributes:
+        path (str): JSON path to the field with the error
+        code (str): Validation error code
+        message (Union[Unset, str]): Human-readable validation error message
+        info (Union[Unset, ValidationErrorDetailInfo]): Additional validation context
+    """
 
     path: str
     code: str
-    message: Unset | str = UNSET
+    message: Union[Unset, str] = UNSET
     info: Union[Unset, "ValidationErrorDetailInfo"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -32,7 +37,7 @@ class ValidationErrorDetail:
 
         message = self.message
 
-        info: Unset | dict[str, Any] = UNSET
+        info: Union[Unset, dict[str, Any]] = UNSET
         if not isinstance(self.info, Unset):
             info = self.info.to_dict()
 
@@ -63,7 +68,7 @@ class ValidationErrorDetail:
         message = d.pop("message", UNSET)
 
         _info = d.pop("info", UNSET)
-        info: Unset | ValidationErrorDetailInfo
+        info: Union[Unset, ValidationErrorDetailInfo]
         if isinstance(_info, Unset):
             info = UNSET
         else:

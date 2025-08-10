@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -17,11 +15,23 @@ T = TypeVar("T", bound="ManufacturingOrderProductionListResponse")
 
 @_attrs_define
 class ManufacturingOrderProductionListResponse:
-    data: Unset | list["ManufacturingOrderProduction"] = UNSET
+    """Response containing a list of production runs for manufacturing orders with pagination support for tracking
+    production history.
+
+        Example:
+            {'data': [{'id': 3501, 'manufacturing_order_id': 3001, 'quantity': 25, 'production_date':
+                '2024-01-20T14:30:00Z', 'ingredients': [], 'operations': [], 'serial_numbers': [], 'created_at':
+                '2024-01-20T14:30:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}]}
+
+        Attributes:
+            data (Union[Unset, list['ManufacturingOrderProduction']]): Array of production runs from manufacturing orders
+    """
+
+    data: Union[Unset, list["ManufacturingOrderProduction"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:

@@ -1,10 +1,8 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
-from attrs import (
-    define as _attrs_define,
-    field as _attrs_field,
-)
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
@@ -17,11 +15,16 @@ T = TypeVar("T", bound="SalesOrderAccountingMetadataListResponse")
 
 @_attrs_define
 class SalesOrderAccountingMetadataListResponse:
-    data: Unset | list["SalesOrderAccountingMetadata"] = UNSET
+    """
+    Attributes:
+        data (Union[Unset, list['SalesOrderAccountingMetadata']]):
+    """
+
+    data: Union[Unset, list["SalesOrderAccountingMetadata"]] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: Union[Unset, list[dict[str, Any]]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:
@@ -38,9 +41,7 @@ class SalesOrderAccountingMetadataListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.sales_order_accounting_metadata import (
-            SalesOrderAccountingMetadata,
-        )
+        from ..models.sales_order_accounting_metadata import SalesOrderAccountingMetadata
 
         d = dict(src_dict)
         data = []
