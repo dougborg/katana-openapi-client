@@ -4855,21 +4855,86 @@ components:
             - location_id
             - status
         - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 2001
+        customer_id: 1501
+        order_no: "SO-2024-001"
+        source: "Shopify"
+        order_created_date: "2024-01-15T10:00:00Z"
+        delivery_date: "2024-01-22T14:00:00Z"
+        picked_date: null
+        location_id: 1
+        status: "PACKED"
+        currency: "USD"
+        conversion_rate: 1.0
+        conversion_date: "2024-01-15T10:00:00Z"
+        invoicing_status: "INVOICED"
+        total: 1250.00
+        total_in_base_currency: 1250.00
+        additional_info: "Customer requested expedited delivery"
+        customer_ref: "CUST-REF-2024-001"
+        sales_order_rows:
+          - id: 2501
+            quantity: 2
+            variant_id: 2101
+            tax_rate_id: 301
+            location_id: 1
+            product_availability: "IN_STOCK"
+            product_expected_date: null
+            price_per_unit: 599.99
+            price_per_unit_in_base_currency: 599.99
+            total: 1199.98
+            total_in_base_currency: 1199.98
+            cogs_value: 400.00
+            created_at: "2024-01-15T10:00:00Z"
+            updated_at: "2024-01-15T10:00:00Z"
+        ecommerce_order_type: "standard"
+        ecommerce_store_name: "Kitchen Pro Store"
+        ecommerce_order_id: "SHOP-5678-2024"
+        product_availability: "IN_STOCK"
+        product_expected_date: null
+        ingredient_availability: "IN_STOCK"
+        ingredient_expected_date: null
+        production_status: "NOT_APPLICABLE"
+        tracking_number: "UPS1234567890"
+        tracking_number_url: "https://www.ups.com/track?track=UPS1234567890"
+        billing_address_id: 1201
+        shipping_address_id: 1202
+        addresses:
+          - id: 1201
+            sales_order_id: 2001
+            entity_type: "billing"
+            first_name: "Sarah"
+            last_name: "Johnson"
+            company: "Johnson's Restaurant"
+            address_line_1: "123 Main Street"
+            city: "Portland"
+            state: "OR"
+            zip: "97201"
+            country: "US"
+        created_at: "2024-01-15T10:00:00Z"
+        updated_at: "2024-01-20T16:30:00Z"
 
     SalesOrderRow:
+      description: Individual line item within a sales order representing a specific product variant, quantity, pricing, and delivery details
       allOf:
         - type: object
           properties:
             id:
               type: integer
+              description: Unique identifier for the sales order row
             quantity:
               type: number
+              description: Ordered quantity of the product variant
             variant_id:
               type: integer
+              description: ID of the product variant being ordered
             tax_rate_id:
               type: [integer, "null"]
+              description: ID of the tax rate applied to this line item
             location_id:
               type: [integer, "null"]
+              description: Location where the product should be picked from
             product_availability:
               anyOf:
                 - type: string
@@ -4880,174 +4945,352 @@ components:
                     - NOT_AVAILABLE
                     - NOT_APPLICABLE
                 - type: "null"
+              description: Current availability status of the product for this order row
             product_expected_date:
               type: [string, "null"]
               format: date-time
+              description: Expected date when the product will be available if not currently in stock
             price_per_unit:
               type: number
+              description: Selling price per unit in the order currency
             price_per_unit_in_base_currency:
               type: number
+              description: Selling price per unit converted to the base company currency
             total:
               type: number
+              description: Total line amount (quantity × price_per_unit) in order currency
             total_in_base_currency:
               type: number
+              description: Total line amount converted to the base company currency
             cogs_value:
               type: [number, "null"]
+              description: Cost of goods sold value for this line item
             attributes:
               type: array
+              description: Custom attributes associated with this sales order row
               items:
                 type: object
                 properties:
                   key:
                     type: string
+                    description: Attribute name/key
                   value:
                     type: string
+                    description: Attribute value
             batch_transactions:
               type: array
+              description: Batch allocations for this order row when using batch tracking
               items:
                 type: object
                 properties:
                   batch_id:
                     type: integer
+                    description: ID of the batch being allocated
                   quantity:
                     type: number
+                    description: Quantity allocated from this batch
             serial_numbers:
               type: array
+              description: Serial numbers allocated to this order row for serialized products
               items:
                 type: integer
             linked_manufacturing_order_id:
               type: [integer, "null"]
+              description: ID of the manufacturing order linked to this sales order row for make-to-order items
             conversion_rate:
               type: [number, "null"]
+              description: Currency conversion rate used for this row
             conversion_date:
               type: [string, "null"]
               format: date-time
+              description: Date when the currency conversion rate was applied
           required:
             - id
             - quantity
             - variant_id
         - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 2501
+        quantity: 2
+        variant_id: 2101
+        tax_rate_id: 301
+        location_id: 1
+        product_availability: "IN_STOCK"
+        product_expected_date: null
+        price_per_unit: 599.99
+        price_per_unit_in_base_currency: 599.99
+        total: 1199.98
+        total_in_base_currency: 1199.98
+        cogs_value: 400.00
+        attributes:
+          - key: "engrave_text"
+            value: "Johnson's Kitchen"
+          - key: "gift_wrap"
+            value: "true"
+        batch_transactions:
+          - batch_id: 1801
+            quantity: 2.0
+        serial_numbers: [10001, 10002]
+        linked_manufacturing_order_id: null
+        conversion_rate: 1.0
+        conversion_date: "2024-01-15T10:00:00Z"
+        created_at: "2024-01-15T10:00:00Z"
+        updated_at: "2024-01-15T10:00:00Z"
 
     SalesOrderAddress:
+      description: Billing or shipping address associated with a sales order, containing complete contact and location information
       allOf:
         - type: object
           properties:
             id:
               type: integer
+              description: Unique identifier for the address record
             sales_order_id:
               type: integer
+              description: ID of the sales order this address belongs to
             entity_type:
               type: string
               enum:
                 - billing
                 - shipping
+              description: Type of address - billing for invoicing or shipping for delivery
             first_name:
               type: [string, "null"]
+              description: First name of the contact person
             last_name:
               type: [string, "null"]
+              description: Last name of the contact person
             company:
               type: [string, "null"]
+              description: Company name for business deliveries
             phone:
               type: [string, "null"]
+              description: Contact phone number for delivery coordination
             line_1:
               type: [string, "null"]
+              description: Primary address line (street address)
             line_2:
               type: [string, "null"]
+              description: Secondary address line (apartment, suite, etc.)
             city:
               type: [string, "null"]
+              description: City name
             state:
               type: [string, "null"]
+              description: State or province
             zip:
               type: [string, "null"]
+              description: Postal or ZIP code
             country:
               type: [string, "null"]
+              description: Country code (e.g., US, CA, GB)
           required:
             - id
             - sales_order_id
             - entity_type
         - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 1201
+        sales_order_id: 2001
+        entity_type: "shipping"
+        first_name: "Sarah"
+        last_name: "Johnson"
+        company: "Johnson's Restaurant"
+        phone: "+1-503-555-0123"
+        line_1: "123 Main Street"
+        line_2: "Suite 4B"
+        city: "Portland"
+        state: "OR"
+        zip: "97201"
+        country: "US"
+        created_at: "2024-01-15T10:00:00Z"
+        updated_at: "2024-01-15T10:00:00Z"
 
     SalesOrderListResponse:
+      description: Response containing a list of sales orders with pagination support for retrieving customer order data
       type: object
       properties:
         data:
           type: array
+          description: Array of sales orders with complete order details and status information
           items:
             $ref: "#/components/schemas/SalesOrder"
+      example:
+        data:
+          - id: 2001
+            customer_id: 1501
+            order_no: "SO-2024-001"
+            source: "Shopify"
+            order_created_date: "2024-01-15T10:00:00Z"
+            delivery_date: "2024-01-22T14:00:00Z"
+            picked_date: null
+            location_id: 1
+            status: "PACKED"
+            currency: "USD"
+            conversion_rate: 1.0
+            conversion_date: "2024-01-15T10:00:00Z"
+            invoicing_status: "INVOICED"
+            total: 1250.00
+            total_in_base_currency: 1250.00
+            additional_info: "Customer requested expedited delivery"
+            customer_ref: "CUST-REF-2024-001"
+            ecommerce_order_type: "standard"
+            ecommerce_store_name: "Kitchen Pro Store"
+            ecommerce_order_id: "SHOP-5678-2024"
+            product_availability: "IN_STOCK"
+            ingredient_availability: "IN_STOCK"
+            production_status: "NOT_APPLICABLE"
+            tracking_number: "UPS1234567890"
+            billing_address_id: 1201
+            shipping_address_id: 1202
+            created_at: "2024-01-15T10:00:00Z"
+            updated_at: "2024-01-20T16:30:00Z"
 
     CreateSalesOrderRequest:
+      description: Request payload for creating a new sales order with customer information, order lines, and delivery details
       type: object
       properties:
         order_no:
           type: string
+          description: Unique order number for tracking and reference
         customer_id:
           type: integer
+          description: ID of the customer placing the order
         sales_order_rows:
           type: array
+          description: List of products and quantities being ordered
           items:
             type: object
             properties:
               quantity:
                 type: number
+                description: Quantity of the product variant being ordered
               variant_id:
                 type: integer
+                description: ID of the product variant being ordered
               tax_rate_id:
                 type: [integer, "null"]
+                description: Tax rate to apply to this line item
               location_id:
                 type: [integer, "null"]
+                description: Location to pick the product from
               price_per_unit:
                 type: [number, "null"]
+                description: Override price per unit (uses default if not specified)
               total_discount:
                 type: [number, "null"]
+                description: Discount amount to apply to this line
               attributes:
                 type: array
+                description: Custom attributes for the order line
                 items:
                   type: object
                   properties:
                     key:
                       type: string
+                      description: Attribute name
                     value:
                       type: string
+                      description: Attribute value
             required:
               - quantity
               - variant_id
         tracking_number:
           type: [string, "null"]
+          description: Shipping tracking number if already known
         tracking_number_url:
           type: [string, "null"]
+          description: URL for tracking shipment status
         addresses:
           type: array
+          description: Billing and shipping addresses for the order
           items:
             $ref: "#/components/schemas/SalesOrderAddress"
             required:
               - entity_type
         order_created_date:
           type: [string, "null"]
+          description: Date when the order was originally created (defaults to current time)
         delivery_date:
           type: [string, "null"]
+          description: Requested delivery date
         currency:
           type: [string, "null"]
+          description: Currency code for the order (defaults to company base currency)
         location_id:
           type: integer
+          description: Primary fulfillment location for the order
         status:
           type: string
           enum:
             - NOT_SHIPPED
             - PENDING
+          description: Initial status of the order
         additional_info:
           type: [string, "null"]
+          description: Additional notes or instructions for the order
         customer_ref:
           type: [string, "null"]
+          description: Customer's internal reference number
         ecommerce_order_type:
           type: [string, "null"]
+          description: Type of ecommerce order if applicable
         ecommerce_store_name:
           type: [string, "null"]
+          description: Name of the ecommerce store if order originated from online
         ecommerce_order_id:
           type: [string, "null"]
+          description: Original order ID from the ecommerce platform
       required:
         - order_no
         - customer_id
         - sales_order_rows
+      example:
+        order_no: "SO-2024-002"
+        customer_id: 1501
+        sales_order_rows:
+          - quantity: 3
+            variant_id: 2101
+            tax_rate_id: 301
+            location_id: 1
+            price_per_unit: 599.99
+            total_discount: 50.00
+            attributes:
+              - key: "engrave_text"
+                value: "Professional Kitchen"
+              - key: "rush_order"
+                value: "true"
+        tracking_number: null
+        tracking_number_url: null
+        addresses:
+          - entity_type: "billing"
+            first_name: "David"
+            last_name: "Wilson"
+            company: "Wilson's Catering"
+            line_1: "456 Commerce Ave"
+            city: "Seattle"
+            state: "WA"
+            zip: "98101"
+            country: "US"
+          - entity_type: "shipping"
+            first_name: "David"
+            last_name: "Wilson"
+            company: "Wilson's Catering"
+            line_1: "789 Industrial Blvd"
+            city: "Seattle"
+            state: "WA"
+            zip: "98102"
+            country: "US"
+        order_created_date: "2024-01-16T09:00:00Z"
+        delivery_date: "2024-01-23T15:00:00Z"
+        currency: "USD"
+        location_id: 1
+        status: "PENDING"
+        additional_info: "Customer prefers morning delivery"
+        customer_ref: "WC-ORDER-2024-003"
+        ecommerce_order_type: "wholesale"
+        ecommerce_store_name: "B2B Portal"
+        ecommerce_order_id: "B2B-7891-2024"
 
     # Stock management schemas
     StockAdjustment:
@@ -5205,38 +5448,64 @@ components:
 
     # Sales Order sub-resources
     SalesOrderFulfillment:
+      description: Shipping and delivery record for a sales order, tracking the physical fulfillment process from shipment to delivery
       allOf:
         - type: object
           properties:
             id:
               type: integer
+              description: Unique identifier for the fulfillment record
             sales_order_id:
               type: integer
+              description: ID of the sales order being fulfilled
             tracking_number:
               type: [string, "null"]
+              description: Carrier tracking number for shipment monitoring
             tracking_number_url:
               type: [string, "null"]
+              description: URL for online tracking of the shipment
             shipped_date:
               type: [string, "null"]
               format: date-time
+              description: Date and time when the order was shipped
             estimated_delivery_date:
               type: [string, "null"]
               format: date-time
+              description: Carrier's estimated delivery date and time
             actual_delivery_date:
               type: [string, "null"]
               format: date-time
+              description: Actual date and time of delivery confirmation
             shipping_cost:
               type: [number, "null"]
+              description: Total shipping cost charged to the customer
             shipping_method:
               type: [string, "null"]
+              description: Shipping service used (e.g., Ground, Express, Overnight)
             carrier:
               type: [string, "null"]
+              description: Shipping carrier name (e.g., UPS, FedEx, DHL)
             notes:
               type: [string, "null"]
+              description: Additional notes about the shipment or delivery
           required:
             - id
             - sales_order_id
         - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 2701
+        sales_order_id: 2001
+        tracking_number: "UPS1234567890"
+        tracking_number_url: "https://www.ups.com/track?track=UPS1234567890"
+        shipped_date: "2024-01-20T16:30:00Z"
+        estimated_delivery_date: "2024-01-22T14:00:00Z"
+        actual_delivery_date: null
+        shipping_cost: 25.99
+        shipping_method: "UPS Ground"
+        carrier: "UPS"
+        notes: "Signature required for delivery"
+        created_at: "2024-01-20T16:30:00Z"
+        updated_at: "2024-01-20T16:30:00Z"
 
     # Price Lists
     PriceList:
@@ -5861,28 +6130,92 @@ components:
 
     # Missing list response schemas
     SalesOrderRowListResponse:
+      description: Response containing a list of sales order rows with pagination support for retrieving order line items
       type: object
       properties:
         data:
           type: array
+          description: Array of sales order row line items with pricing and product details
           items:
             $ref: "#/components/schemas/SalesOrderRow"
+      example:
+        data:
+          - id: 2501
+            quantity: 2
+            variant_id: 2101
+            tax_rate_id: 301
+            location_id: 1
+            product_availability: "IN_STOCK"
+            product_expected_date: null
+            price_per_unit: 599.99
+            price_per_unit_in_base_currency: 599.99
+            total: 1199.98
+            total_in_base_currency: 1199.98
+            cogs_value: 400.00
+            attributes:
+              - key: "engrave_text"
+                value: "Johnson's Kitchen"
+            batch_transactions:
+              - batch_id: 1801
+                quantity: 2.0
+            serial_numbers: [10001, 10002]
+            linked_manufacturing_order_id: null
+            conversion_rate: 1.0
+            conversion_date: "2024-01-15T10:00:00Z"
+            created_at: "2024-01-15T10:00:00Z"
+            updated_at: "2024-01-15T10:00:00Z"
 
     SalesOrderAddressListResponse:
+      description: Response containing a list of billing and shipping addresses associated with sales orders
       type: object
       properties:
         data:
           type: array
+          description: Array of sales order addresses with complete contact and location information
           items:
             $ref: "#/components/schemas/SalesOrderAddress"
+      example:
+        data:
+          - id: 1201
+            sales_order_id: 2001
+            entity_type: "billing"
+            first_name: "Sarah"
+            last_name: "Johnson"
+            company: "Johnson's Restaurant"
+            phone: "+1-503-555-0123"
+            line_1: "123 Main Street"
+            line_2: "Suite 4B"
+            city: "Portland"
+            state: "OR"
+            zip: "97201"
+            country: "US"
+            created_at: "2024-01-15T10:00:00Z"
+            updated_at: "2024-01-15T10:00:00Z"
 
     SalesOrderFulfillmentListResponse:
+      description: Response containing a list of fulfillment records showing shipping and delivery status for sales orders
       type: object
       properties:
         data:
           type: array
+          description: Array of fulfillment records with tracking and delivery information
           items:
             $ref: "#/components/schemas/SalesOrderFulfillment"
+      example:
+        data:
+          - id: 2701
+            sales_order_id: 2001
+            tracking_number: "UPS1234567890"
+            tracking_number_url: "https://www.ups.com/track?track=UPS1234567890"
+            shipped_date: "2024-01-20T16:30:00Z"
+            estimated_delivery_date: "2024-01-22T14:00:00Z"
+            actual_delivery_date: null
+            shipping_cost: 25.99
+            shipping_method: "UPS Ground"
+            carrier: "UPS"
+            notes: "Signature required for delivery"
+            created_at: "2024-01-20T16:30:00Z"
+            updated_at: "2024-01-20T16:30:00Z"
 
     CustomerAddressListResponse:
       type: object
@@ -6159,24 +6492,39 @@ components:
           type: boolean
 
     SalesOrderAccountingMetadataListResponse:
+      description: Response containing a list of accounting metadata records linking sales orders to external accounting systems
       type: object
       properties:
         data:
           type: array
+          description: Array of accounting metadata records with integration and invoice information
           items:
             $ref: "#/components/schemas/SalesOrderAccountingMetadata"
+      example:
+        data:
+          - id: 2901
+            sales_order_id: 2001
+            fulfillment_id: 2701
+            invoice_id: "INV-2024-001"
+            integration_type: "xero"
+            created_at: "2024-01-20T17:00:00Z"
 
     SalesOrderAccountingMetadata:
+      description: Accounting integration metadata linking sales orders to external accounting systems and invoice records
       type: object
       properties:
         id:
           type: integer
+          description: Unique identifier for the accounting metadata record
         sales_order_id:
           type: integer
+          description: ID of the sales order linked to accounting system
         fulfillment_id:
           type: integer
+          description: ID of the fulfillment record associated with this accounting entry
         invoice_id:
           type: string
+          description: Invoice identifier in the external accounting system
         integration_type:
           type: string
           enum:
@@ -6184,9 +6532,11 @@ components:
             - quickBooks
             - sage
             - custom
+          description: Type of accounting system integration used
         created_at:
           type: string
           format: date-time
+          description: Date and time when the accounting metadata was created
       required:
         - id
         - sales_order_id
@@ -6194,34 +6544,63 @@ components:
         - integration_type
         - created_at
         - fulfillment_id
+      example:
+        id: 2901
+        sales_order_id: 2001
+        fulfillment_id: 2701
+        invoice_id: "INV-2024-001"
+        integration_type: "xero"
+        created_at: "2024-01-20T17:00:00Z"
 
     SalesOrderShippingFeeListResponse:
+      description: Response containing a list of shipping fees associated with sales orders
       type: object
       properties:
         data:
           type: array
+          description: Array of shipping fee records with costs and tax information
           items:
             $ref: "#/components/schemas/SalesOrderShippingFee"
+      example:
+        data:
+          - id: 2801
+            sales_order_id: 2001
+            amount: 25.99
+            tax_rate_id: 301
+            description: "UPS Ground Shipping"
 
     SalesOrderShippingFee:
+      description: Shipping fee record associated with a sales order, tracking shipping costs and applicable taxes
       type: object
       properties:
         id:
           type: integer
+          description: Unique identifier for the shipping fee record
         sales_order_id:
           type: integer
+          description: ID of the sales order this shipping fee applies to
         amount:
           type: number
+          description: Shipping fee amount in the order currency
         tax_rate_id:
           type: integer
+          description: ID of the tax rate applied to the shipping fee
         description:
           type: [string, "null"]
+          description: Description of the shipping service or fee type
       required:
         - id
         - sales_order_id
         - amount
+      example:
+        id: 2801
+        sales_order_id: 2001
+        amount: 25.99
+        tax_rate_id: 301
+        description: "UPS Ground Shipping"
 
     CreateSalesOrderShippingFeeRequest:
+      description: Request payload for adding a shipping fee to an existing sales order
       type: object
       additionalProperties: false
       required:
@@ -6233,13 +6612,18 @@ components:
           description: ID of the sales order to add shipping fee to
         amount:
           type: number
-          description: Shipping fee amount
+          description: Shipping fee amount in the order currency
         description:
           type: string
-          description: Description of the shipping fee
+          description: Description of the shipping service or fee type
         tax_rate_id:
           type: integer
           description: ID of the tax rate to apply to the shipping fee
+      example:
+        sales_order_id: 2001
+        amount: 25.99
+        description: "Express Shipping - Next Day Delivery"
+        tax_rate_id: 301
 
 paths:
   /additional_costs:
