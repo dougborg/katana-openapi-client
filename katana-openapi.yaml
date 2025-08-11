@@ -1816,7 +1816,10 @@ components:
         material_cost: 8750.00
         subassemblies_cost: 2250.00
         operations_cost: 1500.00
-        serial_numbers: []
+        serial_numbers:
+          - "PKS-001-240115"
+          - "PKS-002-240115"
+          - "PKS-003-240115"
         created_at: "2024-01-15T08:00:00Z"
         updated_at: "2024-01-20T14:30:00Z"
         deleted_at: null
@@ -1872,8 +1875,21 @@ components:
         manufacturing_order_id: 3001
         quantity: 25
         production_date: "2024-01-20T14:30:00Z"
-        ingredients: []
-        operations: []
+        ingredients:
+          - id: 4001
+            location_id: 1
+            variant_id: 3101
+            manufacturing_order_id: 3001
+            manufacturing_order_recipe_row_id: 3201
+            production_id: 3501
+            quantity: 50.0
+            production_date: "2024-01-20T14:30:00Z"
+            cost: 125.00
+        operations:
+          - id: 3801
+            manufacturing_order_id: 3001
+            operation_id: 401
+            time: 15.0
 
     UpdateManufacturingOrderProductionRequest:
       description: Request payload for updating an existing production run within a manufacturing order, modifying production quantities and material usage.
@@ -1899,8 +1915,21 @@ components:
       example:
         quantity: 30
         production_date: "2024-01-21T16:00:00Z"
-        ingredients: []
-        operations: []
+        ingredients:
+          - id: 4002
+            location_id: 1
+            variant_id: 3102
+            manufacturing_order_id: 3001
+            manufacturing_order_recipe_row_id: 3202
+            production_id: 3502
+            quantity: 60.0
+            production_date: "2024-01-21T16:00:00Z"
+            cost: 150.00
+        operations:
+          - id: 3802
+            manufacturing_order_id: 3001
+            operation_id: 402
+            time: 18.0
 
     ManufacturingOrderProduction:
       description: Represents a completed production run within a manufacturing order, tracking actual quantities produced and resources consumed during manufacturing.
@@ -1940,9 +1969,32 @@ components:
         manufacturing_order_id: 3001
         quantity: 25
         production_date: "2024-01-20T14:30:00Z"
-        ingredients: []
-        operations: []
-        serial_numbers: []
+        ingredients:
+          - id: 4001
+            location_id: 1
+            variant_id: 3101
+            manufacturing_order_id: 3001
+            manufacturing_order_recipe_row_id: 3201
+            production_id: 3501
+            quantity: 50.0
+            production_date: "2024-01-20T14:30:00Z"
+            cost: 125.00
+            created_at: "2024-01-20T14:30:00Z"
+            updated_at: "2024-01-20T14:30:00Z"
+            deleted_at: null
+        operations:
+          - id: 3801
+            manufacturing_order_id: 3001
+            operation_id: 401
+            operation_name: "Cut Steel Sheets"
+            time: 15.0
+            cost: 45.0
+            created_at: "2024-01-20T14:30:00Z"
+            updated_at: "2024-01-20T14:30:00Z"
+            deleted_at: null
+        serial_numbers:
+          - "PKS-001-240120"
+          - "PKS-002-240120"
         created_at: "2024-01-20T14:30:00Z"
         updated_at: "2024-01-20T14:30:00Z"
         deleted_at: null
@@ -1963,9 +2015,36 @@ components:
             manufacturing_order_id: 3001,
             quantity: 25,
             production_date: "2024-01-20T14:30:00Z",
-            ingredients: [],
-            operations: [],
-            serial_numbers: [],
+            ingredients: [
+              {
+                id: 4001,
+                location_id: 1,
+                variant_id: 3101,
+                manufacturing_order_id: 3001,
+                manufacturing_order_recipe_row_id: 3201,
+                production_id: 3501,
+                quantity: 50.0,
+                production_date: "2024-01-20T14:30:00Z",
+                cost: 125.00,
+                created_at: "2024-01-20T14:30:00Z",
+                updated_at: "2024-01-20T14:30:00Z",
+                deleted_at: null
+              }
+            ],
+            operations: [
+              {
+                id: 3801,
+                manufacturing_order_id: 3001,
+                operation_id: 401,
+                operation_name: "Cut Steel Sheets",
+                time: 15.0,
+                cost: 45.0,
+                created_at: "2024-01-20T14:30:00Z",
+                updated_at: "2024-01-20T14:30:00Z",
+                deleted_at: null
+              }
+            ],
+            serial_numbers: ["PKS-001-240120", "PKS-002-240120"],
             created_at: "2024-01-20T14:30:00Z",
             updated_at: "2024-01-20T14:30:00Z",
             deleted_at: null
@@ -2096,7 +2175,12 @@ components:
         operation_name: "Cut Steel Sheets"
         resource_id: 501
         resource_name: "Laser Cutting Machine"
-        assigned_operators: []
+        assigned_operators:
+          - id: 101
+            operator_id: 101
+            name: "John Smith"
+            working_area: "Production Floor A"
+            resource_id: 501
         completed_by_operators: []
         active_operator_id: 101
         planned_time_per_unit: 15.0
@@ -2411,7 +2495,7 @@ components:
             material_cost: 8750.00,
             subassemblies_cost: 2250.00,
             operations_cost: 1500.00,
-            serial_numbers: [],
+            serial_numbers: ["PKS-001-240115", "PKS-002-240115", "PKS-003-240115"],
             created_at: "2024-01-15T08:00:00Z",
             updated_at: "2024-01-20T14:30:00Z",
             deleted_at: null
