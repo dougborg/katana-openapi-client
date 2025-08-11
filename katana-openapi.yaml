@@ -1463,22 +1463,30 @@ components:
         deleted_at: null
 
     LocationAddress:
+      description: Physical address information for manufacturing locations and warehouse facilities
       type: object
       properties:
         id:
           type: integer
+          description: Unique identifier for the location address
         city:
           type: string
+          description: City or locality name where the location is situated
         country:
           type: string
+          description: Country name or country code for the location
         line_1:
           type: string
+          description: Primary address line (street address, building number)
         line_2:
           type: string
+          description: Secondary address line (apartment, suite, floor, building)
         state:
           type: string
+          description: State, province, or region designation
         zip:
           type: string
+          description: Postal code or ZIP code for the location
       required:
         - id
         - city
@@ -1486,6 +1494,14 @@ components:
         - line_1
         - state
         - zip
+      example:
+        id: 5001
+        city: "Austin"
+        country: "USA"
+        line_1: "1500 Industrial Blvd"
+        line_2: "Building A"
+        state: "TX"
+        zip: "78745"
 
     Location:
       description: Manufacturing location or warehouse facility where inventory is managed and operations are performed
@@ -5196,110 +5212,235 @@ components:
           properties:
             name:
               type: string
+              description: Customer display name, either individual name or company name
             first_name:
               type: [string, "null"]
+              description: Customer's first name for individual contacts
             last_name:
               type: [string, "null"]
+              description: Customer's last name for individual contacts
             company:
               type: [string, "null"]
+              description: Company name for business customers
             email:
               type: [string, "null"]
+              description: Primary email address for communication and order notifications
             phone:
               type: [string, "null"]
+              description: Primary phone number for customer contact
             comment:
               type: [string, "null"]
+              description: Internal notes and comments about the customer
             currency:
               type: string
+              description: Default currency code for all transactions with this customer
             reference_id:
               type: [string, "null"]
+              description: External reference ID for integration with other systems
             category:
               type: [string, "null"]
+              description: Customer category for segmentation and reporting
             discount_rate:
               type: [number, "null"]
+              description: Default discount percentage applied to all orders (0-100)
             default_billing_id:
               type: [integer, "null"]
+              description: ID of the default billing address for this customer
             default_shipping_id:
               type: [integer, "null"]
+              description: ID of the default shipping address for this customer
           required:
             - name
         - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 2001
+        name: "Kitchen Pro Restaurants"
+        first_name: "Sarah"
+        last_name: "Johnson"
+        company: "Kitchen Pro Restaurants Ltd"
+        email: "orders@kitchenpro.com"
+        phone: "+1-555-0123"
+        comment: "Preferred customer - high volume orders"
+        currency: "USD"
+        reference_id: "KPR-2024-001"
+        category: "Restaurant Chain"
+        discount_rate: 5.0
+        default_billing_id: 3001
+        default_shipping_id: 3002
+        created_at: "2024-01-10T09:00:00Z"
+        updated_at: "2024-01-15T14:30:00Z"
+        deleted_at: null
 
     CustomerAddress:
+      description: Customer address for billing and shipping purposes with complete contact information
       allOf:
         - type: object
           properties:
             id:
               type: integer
+              description: Unique identifier for the customer address
             customer_id:
               type: integer
+              description: ID of the customer this address belongs to
             entity_type:
               type: string
               enum:
                 - billing
                 - shipping
+              description: Address type - billing for invoicing, shipping for delivery
             default:
               type: boolean
+              description: Whether this is the default address for the specified entity type
             first_name:
               type: [string, "null"]
+              description: First name for the contact person at this address
             last_name:
               type: [string, "null"]
+              description: Last name for the contact person at this address
             company:
               type: [string, "null"]
+              description: Company name for business addresses
             phone:
               type: [string, "null"]
+              description: Phone number for this address location
             line_1:
               type: [string, "null"]
+              description: Primary address line (street address, building number)
             line_2:
               type: [string, "null"]
+              description: Secondary address line (apartment, suite, floor)
             city:
               type: [string, "null"]
+              description: City or locality name
             state:
               type: [string, "null"]
+              description: State, province, or region
             zip:
               type: [string, "null"]
+              description: Postal code or ZIP code
             country:
               type: [string, "null"]
+              description: Country name or country code
           required:
             - id
             - customer_id
             - entity_type
         - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 3001
+        customer_id: 2001
+        entity_type: "billing"
+        default: true
+        first_name: "Sarah"
+        last_name: "Johnson"
+        company: "Kitchen Pro Restaurants Ltd"
+        phone: "+1-555-0123"
+        line_1: "123 Restaurant Row"
+        line_2: "Suite 200"
+        city: "Chicago"
+        state: "IL"
+        zip: "60601"
+        country: "USA"
+        created_at: "2024-01-10T09:15:00Z"
+        updated_at: "2024-01-10T09:15:00Z"
 
     CustomerListResponse:
+      description: Response containing a list of customers with pagination metadata
       type: object
       properties:
         data:
           type: array
           items:
             $ref: "#/components/schemas/Customer"
+          description: Array of customer entities
+      example:
+        data:
+          - id: 2001
+            name: "Kitchen Pro Restaurants"
+            first_name: "Sarah"
+            last_name: "Johnson"
+            company: "Kitchen Pro Restaurants Ltd"
+            email: "orders@kitchenpro.com"
+            phone: "+1-555-0123"
+            comment: "Preferred customer - high volume orders"
+            currency: "USD"
+            reference_id: "KPR-2024-001"
+            category: "Restaurant Chain"
+            discount_rate: 5.0
+            default_billing_id: 3001
+            default_shipping_id: 3002
+            created_at: "2024-01-10T09:00:00Z"
+            updated_at: "2024-01-15T14:30:00Z"
+            deleted_at: null
+          - id: 2002
+            name: "Baker's Choice Bakery"
+            first_name: "Michael"
+            last_name: "Chen"
+            company: "Baker's Choice Bakery"
+            email: "mike@bakerschoice.com"
+            phone: "+1-555-0124"
+            comment: "Weekly wholesale orders"
+            currency: "USD"
+            reference_id: "BC-2024-002"
+            category: "Bakery"
+            discount_rate: 3.0
+            default_billing_id: 3003
+            default_shipping_id: 3004
+            created_at: "2024-01-12T10:30:00Z"
+            updated_at: "2024-01-18T16:45:00Z"
+            deleted_at: null
 
     CreateCustomerRequest:
+      description: Request payload for creating a new customer with contact and business information
       type: object
       properties:
         name:
           type: string
+          description: Customer display name, either individual name or company name
         first_name:
           type: [string, "null"]
+          description: Customer's first name for individual contacts
         last_name:
           type: [string, "null"]
+          description: Customer's last name for individual contacts
         company:
           type: [string, "null"]
+          description: Company name for business customers
         email:
           type: [string, "null"]
+          description: Primary email address for communication and order notifications
         phone:
           type: [string, "null"]
+          description: Primary phone number for customer contact
         comment:
           type: [string, "null"]
+          description: Internal notes and comments about the customer
         currency:
           type: [string, "null"]
+          description: Default currency code for all transactions with this customer
         reference_id:
           type: [string, "null"]
+          description: External reference ID for integration with other systems
         category:
           type: [string, "null"]
+          description: Customer category for segmentation and reporting
         discount_rate:
           type: [number, "null"]
+          description: Default discount percentage applied to all orders (0-100)
       required:
         - name
+      example:
+        name: "Gourmet Bistro Group"
+        first_name: "Elena"
+        last_name: "Rodriguez"
+        company: "Gourmet Bistro Group Inc"
+        email: "procurement@gourmetbistro.com"
+        phone: "+1-555-0125"
+        comment: "Premium restaurant chain - priority orders"
+        currency: "USD"
+        reference_id: "GBG-2024-003"
+        category: "Fine Dining"
+        discount_rate: 7.5
 
     # Sales Order schemas
     SalesOrder:
@@ -6146,6 +6287,7 @@ components:
           description: Currency code (e.g., USD, EUR)
 
     CreatePriceListCustomerRequest:
+      description: Request payload for assigning a customer to a price list for custom pricing
       type: object
       additionalProperties: false
       required:
@@ -6158,6 +6300,9 @@ components:
         customer_id:
           type: integer
           description: ID of the customer to assign to price list
+      example:
+        price_list_id: 1002
+        customer_id: 2002
 
     PriceListRow:
       allOf:
@@ -6181,20 +6326,30 @@ components:
         - $ref: "#/components/schemas/UpdatableEntity"
 
     PriceListCustomer:
+      description: Association between a customer and a price list for custom pricing management
       allOf:
         - type: object
           properties:
             id:
               type: integer
+              description: Unique identifier for the price list customer assignment
             price_list_id:
               type: integer
+              description: ID of the price list being assigned to the customer
             customer_id:
               type: integer
+              description: ID of the customer receiving the custom pricing
           required:
             - id
             - price_list_id
             - customer_id
         - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 4001
+        price_list_id: 1001
+        customer_id: 2001
+        created_at: "2024-01-15T10:00:00Z"
+        updated_at: "2024-01-15T10:00:00Z"
 
     # BOM (Bill of Materials) rows
     BomRow:
@@ -6780,48 +6935,112 @@ components:
             updated_at: "2024-01-20T16:30:00Z"
 
     CustomerAddressListResponse:
+      description: Response containing a list of customer addresses with complete contact information
       type: object
       properties:
         data:
           type: array
           items:
             $ref: "#/components/schemas/CustomerAddress"
+          description: Array of customer address entities
+      example:
+        data:
+          - id: 3001
+            customer_id: 2001
+            entity_type: "billing"
+            default: true
+            first_name: "Sarah"
+            last_name: "Johnson"
+            company: "Kitchen Pro Restaurants Ltd"
+            phone: "+1-555-0123"
+            line_1: "123 Restaurant Row"
+            line_2: "Suite 200"
+            city: "Chicago"
+            state: "IL"
+            zip: "60601"
+            country: "USA"
+            created_at: "2024-01-10T09:15:00Z"
+            updated_at: "2024-01-10T09:15:00Z"
+          - id: 3002
+            customer_id: 2001
+            entity_type: "shipping"
+            default: true
+            first_name: "David"
+            last_name: "Kim"
+            company: "Kitchen Pro Restaurants Ltd"
+            phone: "+1-555-0126"
+            line_1: "456 Delivery Avenue"
+            line_2: "Loading Dock B"
+            city: "Chicago"
+            state: "IL"
+            zip: "60602"
+            country: "USA"
+            created_at: "2024-01-10T09:20:00Z"
+            updated_at: "2024-01-10T09:20:00Z"
 
     CreateCustomerAddressRequest:
+      description: Request payload for creating a new customer address with complete contact and location information
       type: object
       properties:
         customer_id:
           type: integer
+          description: ID of the customer this address belongs to
         entity_type:
           type: string
           enum:
             - billing
             - shipping
+          description: Address type - billing for invoicing, shipping for delivery
         first_name:
           type: [string, "null"]
+          description: First name for the contact person at this address
         last_name:
           type: [string, "null"]
+          description: Last name for the contact person at this address
         company:
           type: [string, "null"]
+          description: Company name for business addresses
         phone:
           type: [string, "null"]
+          description: Phone number for this address location
         line_1:
           type: [string, "null"]
+          description: Primary address line (street address, building number)
         line_2:
           type: [string, "null"]
+          description: Secondary address line (apartment, suite, floor)
         city:
           type: [string, "null"]
+          description: City or locality name
         state:
           type: [string, "null"]
+          description: State, province, or region
         zip:
           type: [string, "null"]
+          description: Postal code or ZIP code
         country:
           type: [string, "null"]
+          description: Country name or country code
         is_default:
           type: boolean
+          description: Whether this should be set as the default address for the specified entity type
       required:
         - customer_id
         - entity_type
+      example:
+        customer_id: 2003
+        entity_type: "shipping"
+        first_name: "Maria"
+        last_name: "Garcia"
+        company: "Cafe Central"
+        phone: "+1-555-0127"
+        line_1: "789 Main Street"
+        line_2: "Unit 5"
+        city: "San Francisco"
+        state: "CA"
+        zip: "94102"
+        country: "USA"
+        is_default: true
 
     PriceListListResponse:
       type: object
@@ -6840,12 +7059,26 @@ components:
             $ref: "#/components/schemas/PriceListRow"
 
     PriceListCustomerListResponse:
+      description: Response containing a list of price list customer assignments
       type: object
       properties:
         data:
           type: array
           items:
             $ref: "#/components/schemas/PriceListCustomer"
+          description: Array of price list customer assignment entities
+      example:
+        data:
+          - id: 4001
+            price_list_id: 1001
+            customer_id: 2001
+            created_at: "2024-01-15T10:00:00Z"
+            updated_at: "2024-01-15T10:00:00Z"
+          - id: 4002
+            price_list_id: 1002
+            customer_id: 2002
+            created_at: "2024-01-16T11:30:00Z"
+            updated_at: "2024-01-16T11:30:00Z"
 
     StocktakeListResponse:
       type: object
