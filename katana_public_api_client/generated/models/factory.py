@@ -13,15 +13,22 @@ T = TypeVar("T", bound="Factory")
 
 @_attrs_define
 class Factory:
-    """
+    """Manufacturing facility or warehouse location with operational settings and regional configuration
+
+    Example:
+        {'id': 1, 'name': 'Seattle Production Facility', 'address': '1234 Industrial Way, Seattle, WA 98101',
+            'currency': 'USD', 'timezone': 'America/Los_Angeles', 'created_at': '2024-01-15T08:00:00Z', 'updated_at':
+            '2024-01-15T08:00:00Z'}
+
     Attributes:
-        id (int):
-        name (str):
-        currency (str):
+        id (int): Unique identifier for the manufacturing facility
+        name (str): Display name of the manufacturing facility
+        currency (str): Default currency code (ISO 4217) used for financial transactions at this facility
         created_at (Union[Unset, datetime.datetime]):
         updated_at (Union[Unset, datetime.datetime]):
-        address (Union[None, Unset, str]):
-        timezone (Union[Unset, str]):
+        address (Union[None, Unset, str]): Physical address of the manufacturing facility for shipping and logistics
+        timezone (Union[Unset, str]): Timezone identifier for the facility location used for scheduling and time
+            tracking
     """
 
     id: int

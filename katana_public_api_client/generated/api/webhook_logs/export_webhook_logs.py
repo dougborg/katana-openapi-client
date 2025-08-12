@@ -83,7 +83,10 @@ def sync_detailed(
           The response contains an URL to the CSV file.
 
     Args:
-        body (WebhookLogsExportRequest):
+        body (WebhookLogsExportRequest): Request parameters for exporting webhook delivery logs
+            for analysis and debugging Example: {'webhook_id': 1, 'start_date':
+            '2024-01-10T00:00:00Z', 'end_date': '2024-01-15T23:59:59Z', 'status_filter': ['failure',
+            'retry'], 'format': 'csv'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -116,7 +119,10 @@ def sync(
           The response contains an URL to the CSV file.
 
     Args:
-        body (WebhookLogsExportRequest):
+        body (WebhookLogsExportRequest): Request parameters for exporting webhook delivery logs
+            for analysis and debugging Example: {'webhook_id': 1, 'start_date':
+            '2024-01-10T00:00:00Z', 'end_date': '2024-01-15T23:59:59Z', 'status_filter': ['failure',
+            'retry'], 'format': 'csv'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -144,7 +150,10 @@ async def asyncio_detailed(
           The response contains an URL to the CSV file.
 
     Args:
-        body (WebhookLogsExportRequest):
+        body (WebhookLogsExportRequest): Request parameters for exporting webhook delivery logs
+            for analysis and debugging Example: {'webhook_id': 1, 'start_date':
+            '2024-01-10T00:00:00Z', 'end_date': '2024-01-15T23:59:59Z', 'status_filter': ['failure',
+            'retry'], 'format': 'csv'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -175,7 +184,10 @@ async def asyncio(
           The response contains an URL to the CSV file.
 
     Args:
-        body (WebhookLogsExportRequest):
+        body (WebhookLogsExportRequest): Request parameters for exporting webhook delivery logs
+            for analysis and debugging Example: {'webhook_id': 1, 'start_date':
+            '2024-01-10T00:00:00Z', 'end_date': '2024-01-15T23:59:59Z', 'status_filter': ['failure',
+            'retry'], 'format': 'csv'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

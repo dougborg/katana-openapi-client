@@ -5054,6 +5054,7 @@ components:
 
     CreateWebhookRequest:
       type: object
+      description: Request payload for creating a new webhook subscription to receive real-time event notifications
       additionalProperties: false
       required:
         - url
@@ -5062,16 +5063,28 @@ components:
         url:
           type: string
           pattern: "^https://.*$"
+          description: HTTPS endpoint URL where webhook events will be sent (must use HTTPS for security)
         subscribed_events:
           type: array
           minItems: 1
+          description: List of event types to subscribe to (at least one event type required)
           items:
             $ref: "#/components/schemas/WebhookEvent"
         description:
           type: string
+          description: Optional human-readable description of this webhook's purpose for management and documentation
+      example:
+        url: "https://api.customer.com/webhooks/katana"
+        subscribed_events:
+          - "sales_order.created"
+          - "sales_order.updated"
+          - "inventory.stock_adjustment"
+          - "manufacturing_order.completed"
+        description: "ERP integration webhook for inventory and order sync"
 
     UpdateWebhookRequest:
       type: object
+      description: Request payload for updating an existing webhook subscription configuration
       additionalProperties: false
       required:
         - url
@@ -5080,15 +5093,30 @@ components:
         url:
           type: string
           pattern: "^https://.*$"
+          description: HTTPS endpoint URL where webhook events will be sent (must use HTTPS for security)
         enabled:
           type: boolean
+          description: Whether this webhook subscription should be active and receive events
         subscribed_events:
           type: array
           minItems: 1
+          description: List of event types to subscribe to (at least one event type required)
           items:
             $ref: "#/components/schemas/WebhookEvent"
         description:
           type: string
+          description: Optional human-readable description of this webhook's purpose for management and documentation
+      example:
+        url: "https://api.customer.com/webhooks/katana-v2"
+        enabled: true
+        subscribed_events:
+          - "sales_order.created"
+          - "sales_order.updated"
+          - "sales_order.fulfilled"
+          - "inventory.stock_adjustment"
+          - "manufacturing_order.completed"
+          - "purchase_order.received"
+        description: "Updated ERP integration webhook with expanded event coverage"
 
     Webhook:
       allOf:
@@ -5096,53 +5124,117 @@ components:
           properties:
             id:
               type: integer
+              description: Unique identifier for the webhook subscription
             url:
               type: string
+              description: HTTPS endpoint URL where webhook events will be sent
             token:
               type: string
+              description: Authentication token included in webhook request headers for security verification
             enabled:
               type: boolean
+              description: Whether this webhook subscription is active and will receive events
             description:
               type: [string, "null"]
+              description: Optional human-readable description of this webhook's purpose
             subscribed_events:
               type: array
+              description: List of event types that will trigger this webhook
               items:
                 type: string
         - $ref: "#/components/schemas/UpdatableEntity"
+      description: Webhook subscription configuration for real-time event notifications to external systems
+      example:
+        id: 1
+        url: "https://api.customer.com/webhooks/katana"
+        token: "whk_live_abc123def456"
+        enabled: true
+        description: "ERP integration webhook for inventory sync"
+        subscribed_events:
+          - "sales_order.created"
+          - "sales_order.updated"
+          - "inventory.stock_adjustment"
+          - "manufacturing_order.completed"
+        created_at: "2024-01-10T09:00:00Z"
+        updated_at: "2024-01-15T11:30:00Z"
 
     WebhookListResponse:
       type: object
+      description: List of webhook subscriptions configured for event notifications
       properties:
         data:
           type: array
+          description: Array of webhook configurations with their subscription details and status
           items:
             $ref: "#/components/schemas/Webhook"
+      example:
+        data:
+          - id: 1
+            url: "https://api.customer.com/webhooks/katana"
+            token: "whk_live_abc123def456"
+            enabled: true
+            description: "ERP integration webhook for inventory sync"
+            subscribed_events:
+              - "sales_order.created"
+              - "sales_order.updated"
+              - "inventory.stock_adjustment"
+            created_at: "2024-01-10T09:00:00Z"
+            updated_at: "2024-01-15T11:30:00Z"
+          - id: 2
+            url: "https://reporting.company.com/katana-events"
+            token: "whk_live_xyz789"
+            enabled: false
+            description: "Business intelligence reporting"
+            subscribed_events:
+              - "manufacturing_order.completed"
+              - "purchase_order.received"
+            created_at: "2024-01-12T14:00:00Z"
+            updated_at: "2024-01-14T16:45:00Z"
 
     WebhookLogsExportRequest:
       type: object
+      description: Request parameters for exporting webhook delivery logs for analysis and debugging
       additionalProperties: false
       properties:
         webhook_id:
           type: integer
-        event:
-          $ref: "#/components/schemas/WebhookEvent"
-        status_code:
-          type: integer
-        delivered:
-          type: boolean
-        created_at_min:
+          description: Filter logs to specific webhook subscription (optional - if not provided, exports all webhook logs)
+        start_date:
           type: string
           format: date-time
-        created_at_max:
+          description: Start date for log export range (ISO 8601 format)
+        end_date:
           type: string
           format: date-time
+          description: End date for log export range (ISO 8601 format)
+        status_filter:
+          type: array
+          description: Filter logs by delivery status (success, failure, retry)
+          items:
+            type: string
+            enum: ["success", "failure", "retry"]
+        format:
+          type: string
+          enum: ["csv", "json"]
+          default: "csv"
+          description: Export file format preference
+      example:
+        webhook_id: 1
+        start_date: "2024-01-10T00:00:00Z"
+        end_date: "2024-01-15T23:59:59Z"
+        status_filter: ["failure", "retry"]
+        format: "csv"
 
     WebhookLogsExport:
       type: object
+      description: Webhook log export result containing downloadable data for debugging and monitoring webhook delivery
       properties:
         url:
           type: string
           format: uri
+          description: Pre-signed download URL for the webhook logs export file (CSV or JSON format)
+      example:
+        url: "https://katana-exports.s3.amazonaws.com/webhook-logs-2024-01-15.csv?expires=1705392000"
 
     MakeToOrderManufacturingOrderRequest:
       description: Request to create a manufacturing order directly from a sales order row, linking production to customer demand for make-to-order manufacturing.
@@ -6619,19 +6711,33 @@ components:
           properties:
             id:
               type: integer
+              description: Unique identifier for the manufacturing facility
             name:
               type: string
+              description: Display name of the manufacturing facility
             address:
               type: [string, "null"]
+              description: Physical address of the manufacturing facility for shipping and logistics
             currency:
               type: string
+              description: Default currency code (ISO 4217) used for financial transactions at this facility
             timezone:
               type: string
+              description: Timezone identifier for the facility location used for scheduling and time tracking
           required:
             - id
             - name
             - currency
         - $ref: "#/components/schemas/UpdatableEntity"
+      description: Manufacturing facility or warehouse location with operational settings and regional configuration
+      example:
+        id: 1
+        name: "Seattle Production Facility"
+        address: "1234 Industrial Way, Seattle, WA 98101"
+        currency: "USD"
+        timezone: "America/Los_Angeles"
+        created_at: "2024-01-15T08:00:00Z"
+        updated_at: "2024-01-15T08:00:00Z"
 
     Operator:
       allOf:
@@ -6667,10 +6773,13 @@ components:
           properties:
             id:
               type: integer
+              description: Unique identifier for the custom fields collection
             name:
               type: string
+              description: Display name of the custom fields collection for management and organization
             resource_type:
               type: string
+              description: The type of business object this custom fields collection applies to
               enum:
                 - product
                 - material
@@ -6681,35 +6790,79 @@ components:
                 - stocktake
             custom_fields:
               type: array
+              description: Array of custom field definitions with their types, validation rules, and configuration
               items:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                  name:
-                    type: string
-                  field_type:
-                    type: string
-                    enum:
-                      - text
-                      - number
-                      - date
-                      - boolean
-                  required:
-                    type: boolean
+                $ref: "#/components/schemas/CustomField"
           required:
             - id
             - name
             - resource_type
         - $ref: "#/components/schemas/UpdatableEntity"
+      description: Collection of custom field definitions that can be applied to specific business objects for extended data capture
+      example:
+        id: 5
+        name: "Product Quality Specifications"
+        resource_type: "product"
+        custom_fields:
+          - id: 10
+            name: "quality_grade"
+            field_type: "select"
+            label: "Quality Grade"
+            required: true
+            options: ["A", "B", "C"]
+          - id: 11
+            name: "certification_date"
+            field_type: "date"
+            label: "Certification Date"
+            required: false
+        created_at: "2024-01-08T10:00:00Z"
+        updated_at: "2024-01-12T15:30:00Z"
 
     CustomFieldsCollectionListResponse:
       type: object
+      description: List of custom field collections configured for extending business object data capture
       properties:
         data:
           type: array
+          description: Array of custom field collections with their field definitions and configuration
           items:
             $ref: "#/components/schemas/CustomFieldsCollection"
+      example:
+        data:
+          - id: 5
+            name: "Product Quality Specifications"
+            resource_type: "product"
+            custom_fields:
+              - id: 10
+                name: "quality_grade"
+                field_type: "select"
+                label: "Quality Grade"
+                required: true
+                options: ["A", "B", "C"]
+              - id: 11
+                name: "certification_date"
+                field_type: "date"
+                label: "Certification Date"
+                required: false
+            created_at: "2024-01-08T10:00:00Z"
+            updated_at: "2024-01-12T15:30:00Z"
+          - id: 6
+            name: "Customer Account Details"
+            resource_type: "customer"
+            custom_fields:
+              - id: 12
+                name: "credit_limit"
+                field_type: "number"
+                label: "Credit Limit"
+                required: true
+              - id: 13
+                name: "payment_terms"
+                field_type: "select"
+                label: "Payment Terms"
+                required: true
+                options: ["Net 30", "Net 60", "COD"]
+            created_at: "2024-01-10T11:00:00Z"
+            updated_at: "2024-01-14T09:15:00Z"
 
     # Stocktakes
     Stocktake:
@@ -6931,25 +7084,43 @@ components:
           properties:
             id:
               type: integer
+              description: Unique identifier for the user account
             first_name:
               type: string
+              description: User's first name for display and communication
             last_name:
               type: string
+              description: User's last name for display and communication
             email:
               type: string
+              description: Email address used for login and system notifications
             role:
               type: string
+              description: User's role determining system permissions and access levels
             status:
               type: string
+              description: Current account status (active, inactive, suspended)
             last_login_at:
               type: [string, "null"]
               format: date-time
+              description: Timestamp of the user's most recent system login
           required:
             - id
             - first_name
             - last_name
             - email
             - role
+      description: System user account with authentication credentials and role-based permissions
+      example:
+        id: 42
+        first_name: "Sarah"
+        last_name: "Johnson"
+        email: "sarah.johnson@company.com"
+        role: "production_manager"
+        status: "active"
+        last_login_at: "2024-01-15T14:30:00Z"
+        created_at: "2024-01-10T09:00:00Z"
+        updated_at: "2024-01-15T14:30:00Z"
 
     # Missing list response schemas
     SalesOrderRowListResponse:
@@ -7332,11 +7503,33 @@ components:
 
     UserListResponse:
       type: object
+      description: List of system users with their account information and role assignments
       properties:
         data:
           type: array
+          description: Array of user accounts with authentication and permission details
           items:
             $ref: "#/components/schemas/User"
+      example:
+        data:
+          - id: 42
+            first_name: "Sarah"
+            last_name: "Johnson"
+            email: "sarah.johnson@company.com"
+            role: "production_manager"
+            status: "active"
+            last_login_at: "2024-01-15T14:30:00Z"
+            created_at: "2024-01-10T09:00:00Z"
+            updated_at: "2024-01-15T14:30:00Z"
+          - id: 43
+            first_name: "Mike"
+            last_name: "Chen"
+            email: "mike.chen@company.com"
+            role: "inventory_coordinator"
+            status: "active"
+            last_login_at: "2024-01-15T10:15:00Z"
+            created_at: "2024-01-08T11:00:00Z"
+            updated_at: "2024-01-15T10:15:00Z"
 
     InventoryReorderPointListResponse:
       type: object

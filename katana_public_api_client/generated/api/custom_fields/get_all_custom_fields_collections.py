@@ -5,7 +5,6 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.custom_fields_collection_list_response import CustomFieldsCollectionListResponse
 from ...models.error_response import ErrorResponse
 from ...types import UNSET, Response, Unset
 
@@ -32,13 +31,7 @@ def _get_kwargs(
     return _kwargs
 
 
-def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[CustomFieldsCollectionListResponse, ErrorResponse]]:
-    if response.status_code == 200:
-        response_200 = CustomFieldsCollectionListResponse.from_dict(response.json())
-
-        return response_200
+def _parse_response(*, client: Union[AuthenticatedClient, Client], response: httpx.Response) -> Optional[ErrorResponse]:
     if response.status_code == 401:
         response_401 = ErrorResponse.from_dict(response.json())
 
@@ -57,9 +50,7 @@ def _parse_response(
         return None
 
 
-def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[CustomFieldsCollectionListResponse, ErrorResponse]]:
+def _build_response(*, client: Union[AuthenticatedClient, Client], response: httpx.Response) -> Response[ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -73,7 +64,7 @@ def sync_detailed(
     client: Union[AuthenticatedClient, Client],
     limit: Union[Unset, int] = 50,
     page: Union[Unset, int] = 1,
-) -> Response[Union[CustomFieldsCollectionListResponse, ErrorResponse]]:
+) -> Response[ErrorResponse]:
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -87,7 +78,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[CustomFieldsCollectionListResponse, ErrorResponse]]
+        Response[ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -107,7 +98,7 @@ def sync(
     client: Union[AuthenticatedClient, Client],
     limit: Union[Unset, int] = 50,
     page: Union[Unset, int] = 1,
-) -> Optional[Union[CustomFieldsCollectionListResponse, ErrorResponse]]:
+) -> Optional[ErrorResponse]:
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -121,7 +112,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[CustomFieldsCollectionListResponse, ErrorResponse]
+        ErrorResponse
     """
 
     return sync_detailed(
@@ -136,7 +127,7 @@ async def asyncio_detailed(
     client: Union[AuthenticatedClient, Client],
     limit: Union[Unset, int] = 50,
     page: Union[Unset, int] = 1,
-) -> Response[Union[CustomFieldsCollectionListResponse, ErrorResponse]]:
+) -> Response[ErrorResponse]:
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -150,7 +141,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[CustomFieldsCollectionListResponse, ErrorResponse]]
+        Response[ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -168,7 +159,7 @@ async def asyncio(
     client: Union[AuthenticatedClient, Client],
     limit: Union[Unset, int] = 50,
     page: Union[Unset, int] = 1,
-) -> Optional[Union[CustomFieldsCollectionListResponse, ErrorResponse]]:
+) -> Optional[ErrorResponse]:
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -182,7 +173,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[CustomFieldsCollectionListResponse, ErrorResponse]
+        ErrorResponse
     """
 
     return (

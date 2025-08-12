@@ -13,16 +13,23 @@ T = TypeVar("T", bound="Webhook")
 
 @_attrs_define
 class Webhook:
-    """
+    """Webhook subscription configuration for real-time event notifications to external systems
+
+    Example:
+        {'id': 1, 'url': 'https://api.customer.com/webhooks/katana', 'token': 'whk_live_abc123def456', 'enabled': True,
+            'description': 'ERP integration webhook for inventory sync', 'subscribed_events': ['sales_order.created',
+            'sales_order.updated', 'inventory.stock_adjustment', 'manufacturing_order.completed'], 'created_at':
+            '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T11:30:00Z'}
+
     Attributes:
         created_at (Union[Unset, datetime.datetime]):
         updated_at (Union[Unset, datetime.datetime]):
-        id (Union[Unset, int]):
-        url (Union[Unset, str]):
-        token (Union[Unset, str]):
-        enabled (Union[Unset, bool]):
-        description (Union[None, Unset, str]):
-        subscribed_events (Union[Unset, list[str]]):
+        id (Union[Unset, int]): Unique identifier for the webhook subscription
+        url (Union[Unset, str]): HTTPS endpoint URL where webhook events will be sent
+        token (Union[Unset, str]): Authentication token included in webhook request headers for security verification
+        enabled (Union[Unset, bool]): Whether this webhook subscription is active and will receive events
+        description (Union[None, Unset, str]): Optional human-readable description of this webhook's purpose
+        subscribed_events (Union[Unset, list[str]]): List of event types that will trigger this webhook
     """
 
     created_at: Union[Unset, datetime.datetime] = UNSET

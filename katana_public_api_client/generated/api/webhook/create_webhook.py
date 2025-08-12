@@ -81,7 +81,11 @@ def sync_detailed(
      Creates a new webhook object.
 
     Args:
-        body (CreateWebhookRequest):
+        body (CreateWebhookRequest): Request payload for creating a new webhook subscription to
+            receive real-time event notifications Example: {'url':
+            'https://api.customer.com/webhooks/katana', 'subscribed_events': ['sales_order.created',
+            'sales_order.updated', 'inventory.stock_adjustment', 'manufacturing_order.completed'],
+            'description': 'ERP integration webhook for inventory and order sync'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -112,7 +116,11 @@ def sync(
      Creates a new webhook object.
 
     Args:
-        body (CreateWebhookRequest):
+        body (CreateWebhookRequest): Request payload for creating a new webhook subscription to
+            receive real-time event notifications Example: {'url':
+            'https://api.customer.com/webhooks/katana', 'subscribed_events': ['sales_order.created',
+            'sales_order.updated', 'inventory.stock_adjustment', 'manufacturing_order.completed'],
+            'description': 'ERP integration webhook for inventory and order sync'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -138,7 +146,11 @@ async def asyncio_detailed(
      Creates a new webhook object.
 
     Args:
-        body (CreateWebhookRequest):
+        body (CreateWebhookRequest): Request payload for creating a new webhook subscription to
+            receive real-time event notifications Example: {'url':
+            'https://api.customer.com/webhooks/katana', 'subscribed_events': ['sales_order.created',
+            'sales_order.updated', 'inventory.stock_adjustment', 'manufacturing_order.completed'],
+            'description': 'ERP integration webhook for inventory and order sync'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -167,7 +179,11 @@ async def asyncio(
      Creates a new webhook object.
 
     Args:
-        body (CreateWebhookRequest):
+        body (CreateWebhookRequest): Request payload for creating a new webhook subscription to
+            receive real-time event notifications Example: {'url':
+            'https://api.customer.com/webhooks/katana', 'subscribed_events': ['sales_order.created',
+            'sales_order.updated', 'inventory.stock_adjustment', 'manufacturing_order.completed'],
+            'description': 'ERP integration webhook for inventory and order sync'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

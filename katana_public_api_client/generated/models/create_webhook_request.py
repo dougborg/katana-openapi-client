@@ -11,11 +11,18 @@ T = TypeVar("T", bound="CreateWebhookRequest")
 
 @_attrs_define
 class CreateWebhookRequest:
-    """
+    """Request payload for creating a new webhook subscription to receive real-time event notifications
+
+    Example:
+        {'url': 'https://api.customer.com/webhooks/katana', 'subscribed_events': ['sales_order.created',
+            'sales_order.updated', 'inventory.stock_adjustment', 'manufacturing_order.completed'], 'description': 'ERP
+            integration webhook for inventory and order sync'}
+
     Attributes:
-        url (str):
-        subscribed_events (list[WebhookEvent]):
-        description (Union[Unset, str]):
+        url (str): HTTPS endpoint URL where webhook events will be sent (must use HTTPS for security)
+        subscribed_events (list[WebhookEvent]): List of event types to subscribe to (at least one event type required)
+        description (Union[Unset, str]): Optional human-readable description of this webhook's purpose for management
+            and documentation
     """
 
     url: str

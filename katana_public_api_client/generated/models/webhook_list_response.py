@@ -15,9 +15,19 @@ T = TypeVar("T", bound="WebhookListResponse")
 
 @_attrs_define
 class WebhookListResponse:
-    """
+    """List of webhook subscriptions configured for event notifications
+
+    Example:
+        {'data': [{'id': 1, 'url': 'https://api.customer.com/webhooks/katana', 'token': 'whk_live_abc123def456',
+            'enabled': True, 'description': 'ERP integration webhook for inventory sync', 'subscribed_events':
+            ['sales_order.created', 'sales_order.updated', 'inventory.stock_adjustment'], 'created_at':
+            '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T11:30:00Z'}, {'id': 2, 'url':
+            'https://reporting.company.com/katana-events', 'token': 'whk_live_xyz789', 'enabled': False, 'description':
+            'Business intelligence reporting', 'subscribed_events': ['manufacturing_order.completed',
+            'purchase_order.received'], 'created_at': '2024-01-12T14:00:00Z', 'updated_at': '2024-01-14T16:45:00Z'}]}
+
     Attributes:
-        data (Union[Unset, list['Webhook']]):
+        data (Union[Unset, list['Webhook']]): Array of webhook configurations with their subscription details and status
     """
 
     data: Union[Unset, list["Webhook"]] = UNSET
