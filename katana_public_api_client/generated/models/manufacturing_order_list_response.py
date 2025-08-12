@@ -24,8 +24,8 @@ class ManufacturingOrderListResponse:
             'is_linked_to_sales_order': True, 'ingredient_availability': 'AVAILABLE', 'total_cost': 12500.0,
             'total_actual_time': 140.5, 'total_planned_time': 200.0, 'sales_order_id': 2001, 'sales_order_row_id': 2501,
             'sales_order_delivery_deadline': '2024-01-30T12:00:00Z', 'material_cost': 8750.0, 'subassemblies_cost': 2250.0,
-            'operations_cost': 1500.0, 'serial_numbers': [], 'created_at': '2024-01-15T08:00:00Z', 'updated_at':
-            '2024-01-20T14:30:00Z', 'deleted_at': None}]}
+            'operations_cost': 1500.0, 'serial_numbers': ['PKS-001-240115', 'PKS-002-240115', 'PKS-003-240115'],
+            'created_at': '2024-01-15T08:00:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}]}
 
     Attributes:
         data (Union[Unset, list['ManufacturingOrder']]): Array of manufacturing orders

@@ -15,9 +15,20 @@ T = TypeVar("T", bound="CustomerAddressListResponse")
 
 @_attrs_define
 class CustomerAddressListResponse:
-    """
+    """Response containing a list of customer addresses with complete contact information
+
+    Example:
+        {'data': [{'id': 3001, 'customer_id': 2001, 'entity_type': 'billing', 'default': True, 'first_name': 'Sarah',
+            'last_name': 'Johnson', 'company': 'Kitchen Pro Restaurants Ltd', 'phone': '+1-555-0123', 'line_1': '123
+            Restaurant Row', 'line_2': 'Suite 200', 'city': 'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'USA',
+            'created_at': '2024-01-10T09:15:00Z', 'updated_at': '2024-01-10T09:15:00Z'}, {'id': 3002, 'customer_id': 2001,
+            'entity_type': 'shipping', 'default': True, 'first_name': 'David', 'last_name': 'Kim', 'company': 'Kitchen Pro
+            Restaurants Ltd', 'phone': '+1-555-0126', 'line_1': '456 Delivery Avenue', 'line_2': 'Loading Dock B', 'city':
+            'Chicago', 'state': 'IL', 'zip': '60602', 'country': 'USA', 'created_at': '2024-01-10T09:20:00Z', 'updated_at':
+            '2024-01-10T09:20:00Z'}]}
+
     Attributes:
-        data (Union[Unset, list['CustomerAddress']]):
+        data (Union[Unset, list['CustomerAddress']]): Array of customer address entities
     """
 
     data: Union[Unset, list["CustomerAddress"]] = UNSET

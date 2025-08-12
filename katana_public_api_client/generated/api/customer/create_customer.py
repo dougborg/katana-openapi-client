@@ -76,7 +76,12 @@ def sync_detailed(
      Creates a new customer.
 
     Args:
-        body (CreateCustomerRequest):
+        body (CreateCustomerRequest): Request payload for creating a new customer with contact and
+            business information Example: {'name': 'Gourmet Bistro Group', 'first_name': 'Elena',
+            'last_name': 'Rodriguez', 'company': 'Gourmet Bistro Group Inc', 'email':
+            'procurement@gourmetbistro.com', 'phone': '+1-555-0125', 'comment': 'Premium restaurant
+            chain - priority orders', 'currency': 'USD', 'reference_id': 'GBG-2024-003', 'category':
+            'Fine Dining', 'discount_rate': 7.5}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -107,7 +112,12 @@ def sync(
      Creates a new customer.
 
     Args:
-        body (CreateCustomerRequest):
+        body (CreateCustomerRequest): Request payload for creating a new customer with contact and
+            business information Example: {'name': 'Gourmet Bistro Group', 'first_name': 'Elena',
+            'last_name': 'Rodriguez', 'company': 'Gourmet Bistro Group Inc', 'email':
+            'procurement@gourmetbistro.com', 'phone': '+1-555-0125', 'comment': 'Premium restaurant
+            chain - priority orders', 'currency': 'USD', 'reference_id': 'GBG-2024-003', 'category':
+            'Fine Dining', 'discount_rate': 7.5}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -133,7 +143,12 @@ async def asyncio_detailed(
      Creates a new customer.
 
     Args:
-        body (CreateCustomerRequest):
+        body (CreateCustomerRequest): Request payload for creating a new customer with contact and
+            business information Example: {'name': 'Gourmet Bistro Group', 'first_name': 'Elena',
+            'last_name': 'Rodriguez', 'company': 'Gourmet Bistro Group Inc', 'email':
+            'procurement@gourmetbistro.com', 'phone': '+1-555-0125', 'comment': 'Premium restaurant
+            chain - priority orders', 'currency': 'USD', 'reference_id': 'GBG-2024-003', 'category':
+            'Fine Dining', 'discount_rate': 7.5}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -162,7 +177,12 @@ async def asyncio(
      Creates a new customer.
 
     Args:
-        body (CreateCustomerRequest):
+        body (CreateCustomerRequest): Request payload for creating a new customer with contact and
+            business information Example: {'name': 'Gourmet Bistro Group', 'first_name': 'Elena',
+            'last_name': 'Rodriguez', 'company': 'Gourmet Bistro Group Inc', 'email':
+            'procurement@gourmetbistro.com', 'phone': '+1-555-0125', 'comment': 'Premium restaurant
+            chain - priority orders', 'currency': 'USD', 'reference_id': 'GBG-2024-003', 'category':
+            'Fine Dining', 'discount_rate': 7.5}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

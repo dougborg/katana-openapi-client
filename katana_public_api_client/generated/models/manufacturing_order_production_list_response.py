@@ -20,8 +20,14 @@ class ManufacturingOrderProductionListResponse:
 
         Example:
             {'data': [{'id': 3501, 'manufacturing_order_id': 3001, 'quantity': 25, 'production_date':
-                '2024-01-20T14:30:00Z', 'ingredients': [], 'operations': [], 'serial_numbers': [], 'created_at':
-                '2024-01-20T14:30:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}]}
+                '2024-01-20T14:30:00Z', 'ingredients': [{'id': 4001, 'location_id': 1, 'variant_id': 3101,
+                'manufacturing_order_id': 3001, 'manufacturing_order_recipe_row_id': 3201, 'production_id': 3501, 'quantity':
+                50.0, 'production_date': '2024-01-20T14:30:00Z', 'cost': 125.0, 'created_at': '2024-01-20T14:30:00Z',
+                'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}], 'operations': [{'id': 3801,
+                'manufacturing_order_id': 3001, 'operation_id': 401, 'operation_name': 'Cut Steel Sheets', 'time': 15.0, 'cost':
+                45.0, 'created_at': '2024-01-20T14:30:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}],
+                'serial_numbers': ['PKS-001-240120', 'PKS-002-240120'], 'created_at': '2024-01-20T14:30:00Z', 'updated_at':
+                '2024-01-20T14:30:00Z', 'deleted_at': None}]}
 
         Attributes:
             data (Union[Unset, list['ManufacturingOrderProduction']]): Array of production runs from manufacturing orders

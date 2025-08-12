@@ -15,9 +15,19 @@ T = TypeVar("T", bound="SupplierListResponse")
 
 @_attrs_define
 class SupplierListResponse:
-    """
+    """Response containing a list of suppliers with pagination support for supplier management
+
+    Example:
+        {'data': [{'id': 4001, 'name': 'Premium Kitchen Supplies Ltd', 'email': 'orders@premiumkitchen.com', 'phone':
+            '+1-555-0134', 'currency': 'USD', 'comment': 'Primary supplier for kitchen equipment and utensils',
+            'default_address_id': 4001, 'created_at': '2023-06-15T08:30:00Z', 'updated_at': '2024-01-15T14:20:00Z',
+            'deleted_at': None}, {'id': 4002, 'name': 'Industrial Food Systems', 'email': 'procurement@indufood.com',
+            'phone': '+1-555-0276', 'currency': 'USD', 'comment': 'Specialized in commercial kitchen appliances',
+            'default_address_id': 4002, 'created_at': '2023-08-22T10:15:00Z', 'updated_at': '2023-12-10T16:30:00Z',
+            'deleted_at': None}]}
+
     Attributes:
-        data (Union[Unset, list['Supplier']]):
+        data (Union[Unset, list['Supplier']]): Array of supplier objects
     """
 
     data: Union[Unset, list["Supplier"]] = UNSET

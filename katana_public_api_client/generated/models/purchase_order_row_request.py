@@ -10,16 +10,26 @@ T = TypeVar("T", bound="PurchaseOrderRowRequest")
 
 @_attrs_define
 class PurchaseOrderRowRequest:
-    """
+    """Request payload for creating a line item within a purchase order
+
+    Example:
+        {'quantity': 250, 'price_per_unit': 2.85, 'variant_id': 501, 'tax_rate_id': 1, 'purchase_uom': 'kg',
+            'purchase_uom_conversion_rate': 1.0}
+
     Attributes:
         quantity (float): Quantity of items to order for this purchase order line
         price_per_unit (float): Unit price for each item in this purchase order line
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        purchase_uom (Union[Unset, str]):
+        variant_id (int): Unique identifier of the product variant being ordered
+        tax_rate_id (Union[Unset, int]): Tax rate identifier to apply to this line item
+        purchase_uom_conversion_rate (Union[Unset, float]): Conversion rate between purchase unit of measure and base
+            unit
+        purchase_uom (Union[Unset, str]): Unit of measure for purchasing this item (e.g., kg, pieces, liters)
     """
 
     quantity: float
     price_per_unit: float
+    variant_id: int
+    tax_rate_id: Union[Unset, int] = UNSET
     purchase_uom_conversion_rate: Union[Unset, float] = UNSET
     purchase_uom: Union[Unset, str] = UNSET
 
@@ -27,6 +37,10 @@ class PurchaseOrderRowRequest:
         quantity = self.quantity
 
         price_per_unit = self.price_per_unit
+
+        variant_id = self.variant_id
+
+        tax_rate_id = self.tax_rate_id
 
         purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
@@ -38,8 +52,11 @@ class PurchaseOrderRowRequest:
             {
                 "quantity": quantity,
                 "price_per_unit": price_per_unit,
+                "variant_id": variant_id,
             }
         )
+        if tax_rate_id is not UNSET:
+            field_dict["tax_rate_id"] = tax_rate_id
         if purchase_uom_conversion_rate is not UNSET:
             field_dict["purchase_uom_conversion_rate"] = purchase_uom_conversion_rate
         if purchase_uom is not UNSET:
@@ -54,6 +71,10 @@ class PurchaseOrderRowRequest:
 
         price_per_unit = d.pop("price_per_unit")
 
+        variant_id = d.pop("variant_id")
+
+        tax_rate_id = d.pop("tax_rate_id", UNSET)
+
         purchase_uom_conversion_rate = d.pop("purchase_uom_conversion_rate", UNSET)
 
         purchase_uom = d.pop("purchase_uom", UNSET)
@@ -61,6 +82,8 @@ class PurchaseOrderRowRequest:
         purchase_order_row_request = cls(
             quantity=quantity,
             price_per_unit=price_per_unit,
+            variant_id=variant_id,
+            tax_rate_id=tax_rate_id,
             purchase_uom_conversion_rate=purchase_uom_conversion_rate,
             purchase_uom=purchase_uom,
         )

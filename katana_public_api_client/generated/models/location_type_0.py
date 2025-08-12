@@ -21,7 +21,9 @@ class LocationType0:
         name (str):
         legal_name (Union[Unset, str]):
         address_id (Union[Unset, int]):
-        address (Union[Unset, LocationAddress]):
+        address (Union[Unset, LocationAddress]): Physical address information for manufacturing locations and warehouse
+            facilities Example: {'id': 5001, 'city': 'Austin', 'country': 'USA', 'line_1': '1500 Industrial Blvd', 'line_2':
+            'Building A', 'state': 'TX', 'zip': '78745'}.
         is_primary (Union[Unset, bool]):
         sales_allowed (Union[Unset, bool]):
         purchase_allowed (Union[Unset, bool]):

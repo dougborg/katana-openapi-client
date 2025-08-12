@@ -13,23 +13,32 @@ T = TypeVar("T", bound="PurchaseOrderAdditionalCostRow")
 
 @_attrs_define
 class PurchaseOrderAdditionalCostRow:
-    """
+    """Additional cost line item within a purchase order, representing charges like shipping, duties, or handling fees
+
+    Example:
+        {'id': 201, 'additional_cost_id': 1, 'group_id': 1, 'name': 'International Shipping', 'distribution_method':
+            'BY_VALUE', 'tax_rate_id': 1, 'tax_rate': 8.5, 'price': 125.0, 'price_in_base': 125.0, 'currency': 'USD',
+            'currency_conversion_rate': 1.0, 'currency_conversion_rate_fix_date': '2024-01-28T09:15:00Z', 'created_at':
+            '2024-01-28T09:15:00Z', 'updated_at': '2024-01-28T09:15:00Z', 'deleted_at': None}
+
     Attributes:
         created_at (Union[Unset, datetime.datetime]):
         updated_at (Union[Unset, datetime.datetime]):
         deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
-        id (Union[Unset, int]):
-        additional_cost_id (Union[Unset, int]):
-        group_id (Union[Unset, int]):
-        name (Union[Unset, str]):
-        distribution_method (Union[Unset, str]):
-        tax_rate_id (Union[Unset, int]):
-        tax_rate (Union[Unset, float]):
-        price (Union[Unset, float]):
-        price_in_base (Union[Unset, float]):
-        currency (Union[Unset, str]):
-        currency_conversion_rate (Union[Unset, float]):
-        currency_conversion_rate_fix_date (Union[Unset, datetime.datetime]):
+        id (Union[Unset, int]): Unique identifier for this additional cost line item
+        additional_cost_id (Union[Unset, int]): Unique identifier of the additional cost type (e.g., shipping, duty,
+            handling)
+        group_id (Union[Unset, int]): Group identifier for organizing related additional costs
+        name (Union[Unset, str]): Name or description of the additional cost
+        distribution_method (Union[Unset, str]): Method used for distributing this cost across purchase order items
+        tax_rate_id (Union[Unset, int]): Tax rate identifier applied to this additional cost
+        tax_rate (Union[Unset, float]): Tax rate percentage applied to this additional cost
+        price (Union[Unset, float]): Amount of the additional cost in the purchase order currency
+        price_in_base (Union[Unset, float]): Amount of the additional cost converted to base currency
+        currency (Union[Unset, str]): Currency used for this additional cost
+        currency_conversion_rate (Union[Unset, float]): Exchange rate used for currency conversion
+        currency_conversion_rate_fix_date (Union[Unset, datetime.datetime]): Date when the currency conversion rate was
+            fixed
     """
 
     created_at: Union[Unset, datetime.datetime] = UNSET

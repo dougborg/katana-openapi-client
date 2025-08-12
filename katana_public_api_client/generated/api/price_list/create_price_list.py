@@ -85,7 +85,10 @@ def sync_detailed(
      Creates a new price list.
 
     Args:
-        body (CreatePriceListRequest):
+        body (CreatePriceListRequest): Request payload for creating a new price list with market-
+            specific pricing configurations and time-based validity Example: {'name': 'Premium
+            Customer Pricing', 'currency': 'USD', 'is_default': False, 'markup_percentage': 25.0,
+            'start_date': '2024-01-01T00:00:00Z', 'end_date': '2024-12-31T23:59:59Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -116,7 +119,10 @@ def sync(
      Creates a new price list.
 
     Args:
-        body (CreatePriceListRequest):
+        body (CreatePriceListRequest): Request payload for creating a new price list with market-
+            specific pricing configurations and time-based validity Example: {'name': 'Premium
+            Customer Pricing', 'currency': 'USD', 'is_default': False, 'markup_percentage': 25.0,
+            'start_date': '2024-01-01T00:00:00Z', 'end_date': '2024-12-31T23:59:59Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -142,7 +148,10 @@ async def asyncio_detailed(
      Creates a new price list.
 
     Args:
-        body (CreatePriceListRequest):
+        body (CreatePriceListRequest): Request payload for creating a new price list with market-
+            specific pricing configurations and time-based validity Example: {'name': 'Premium
+            Customer Pricing', 'currency': 'USD', 'is_default': False, 'markup_percentage': 25.0,
+            'start_date': '2024-01-01T00:00:00Z', 'end_date': '2024-12-31T23:59:59Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -171,7 +180,10 @@ async def asyncio(
      Creates a new price list.
 
     Args:
-        body (CreatePriceListRequest):
+        body (CreatePriceListRequest): Request payload for creating a new price list with market-
+            specific pricing configurations and time-based validity Example: {'name': 'Premium
+            Customer Pricing', 'currency': 'USD', 'is_default': False, 'markup_percentage': 25.0,
+            'start_date': '2024-01-01T00:00:00Z', 'end_date': '2024-12-31T23:59:59Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

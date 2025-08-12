@@ -13,14 +13,19 @@ T = TypeVar("T", bound="SalesOrderAccountingMetadata")
 
 @_attrs_define
 class SalesOrderAccountingMetadata:
-    """
+    """Accounting integration metadata linking sales orders to external accounting systems and invoice records
+
+    Example:
+        {'id': 2901, 'sales_order_id': 2001, 'fulfillment_id': 2701, 'invoice_id': 'INV-2024-001', 'integration_type':
+            'xero', 'created_at': '2024-01-20T17:00:00Z'}
+
     Attributes:
-        id (int):
-        sales_order_id (int):
-        fulfillment_id (int):
-        invoice_id (str):
-        integration_type (SalesOrderAccountingMetadataIntegrationType):
-        created_at (datetime.datetime):
+        id (int): Unique identifier for the accounting metadata record
+        sales_order_id (int): ID of the sales order linked to accounting system
+        fulfillment_id (int): ID of the fulfillment record associated with this accounting entry
+        invoice_id (str): Invoice identifier in the external accounting system
+        integration_type (SalesOrderAccountingMetadataIntegrationType): Type of accounting system integration used
+        created_at (datetime.datetime): Date and time when the accounting metadata was created
     """
 
     id: int

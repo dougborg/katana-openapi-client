@@ -10,11 +10,16 @@ T = TypeVar("T", bound="CreateSalesOrderShippingFeeRequest")
 
 @_attrs_define
 class CreateSalesOrderShippingFeeRequest:
-    """
+    """Request payload for adding a shipping fee to an existing sales order
+
+    Example:
+        {'sales_order_id': 2001, 'amount': 25.99, 'description': 'Express Shipping - Next Day Delivery', 'tax_rate_id':
+            301}
+
     Attributes:
         sales_order_id (int): ID of the sales order to add shipping fee to
-        amount (float): Shipping fee amount
-        description (Union[Unset, str]): Description of the shipping fee
+        amount (float): Shipping fee amount in the order currency
+        description (Union[Unset, str]): Description of the shipping service or fee type
         tax_rate_id (Union[Unset, int]): ID of the tax rate to apply to the shipping fee
     """
 

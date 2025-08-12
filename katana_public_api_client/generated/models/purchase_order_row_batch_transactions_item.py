@@ -13,8 +13,8 @@ T = TypeVar("T", bound="PurchaseOrderRowBatchTransactionsItem")
 class PurchaseOrderRowBatchTransactionsItem:
     """
     Attributes:
-        quantity (Union[Unset, float]):
-        batch_id (Union[Unset, int]):
+        quantity (Union[Unset, float]): Quantity associated with the batch transaction
+        batch_id (Union[Unset, int]): Unique identifier of the batch for tracking
     """
 
     quantity: Union[Unset, float] = UNSET

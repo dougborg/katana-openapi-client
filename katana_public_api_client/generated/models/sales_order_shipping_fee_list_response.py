@@ -15,9 +15,14 @@ T = TypeVar("T", bound="SalesOrderShippingFeeListResponse")
 
 @_attrs_define
 class SalesOrderShippingFeeListResponse:
-    """
+    """Response containing a list of shipping fees associated with sales orders
+
+    Example:
+        {'data': [{'id': 2801, 'sales_order_id': 2001, 'amount': 25.99, 'tax_rate_id': 301, 'description': 'UPS Ground
+            Shipping'}]}
+
     Attributes:
-        data (Union[Unset, list['SalesOrderShippingFee']]):
+        data (Union[Unset, list['SalesOrderShippingFee']]): Array of shipping fee records with costs and tax information
     """
 
     data: Union[Unset, list["SalesOrderShippingFee"]] = UNSET

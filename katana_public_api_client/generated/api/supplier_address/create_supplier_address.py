@@ -82,7 +82,9 @@ def sync_detailed(
       the default. (A Supplier can have only one address for now)
 
     Args:
-        body (CreateSupplierAddressRequest):
+        body (CreateSupplierAddressRequest): Request payload for creating a new address for an
+            existing supplier Example: {'supplier_id': 4001, 'line_1': '856 Distribution Center Dr',
+            'line_2': None, 'city': 'Milwaukee', 'state': 'WI', 'zip': '53218', 'country': 'US'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -114,7 +116,9 @@ def sync(
       the default. (A Supplier can have only one address for now)
 
     Args:
-        body (CreateSupplierAddressRequest):
+        body (CreateSupplierAddressRequest): Request payload for creating a new address for an
+            existing supplier Example: {'supplier_id': 4001, 'line_1': '856 Distribution Center Dr',
+            'line_2': None, 'city': 'Milwaukee', 'state': 'WI', 'zip': '53218', 'country': 'US'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -141,7 +145,9 @@ async def asyncio_detailed(
       the default. (A Supplier can have only one address for now)
 
     Args:
-        body (CreateSupplierAddressRequest):
+        body (CreateSupplierAddressRequest): Request payload for creating a new address for an
+            existing supplier Example: {'supplier_id': 4001, 'line_1': '856 Distribution Center Dr',
+            'line_2': None, 'city': 'Milwaukee', 'state': 'WI', 'zip': '53218', 'country': 'US'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -171,7 +177,9 @@ async def asyncio(
       the default. (A Supplier can have only one address for now)
 
     Args:
-        body (CreateSupplierAddressRequest):
+        body (CreateSupplierAddressRequest): Request payload for creating a new address for an
+            existing supplier Example: {'supplier_id': 4001, 'line_1': '856 Distribution Center Dr',
+            'line_2': None, 'city': 'Milwaukee', 'state': 'WI', 'zip': '53218', 'country': 'US'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

@@ -13,18 +13,27 @@ T = TypeVar("T", bound="PriceList")
 
 @_attrs_define
 class PriceList:
-    """
-    Attributes:
-        id (int):
-        name (str):
-        currency (str):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
-        is_default (Union[Unset, bool]):
-        markup_percentage (Union[None, Unset, float]):
-        start_date (Union[None, Unset, datetime.datetime]):
-        end_date (Union[None, Unset, datetime.datetime]):
+    """Customer-specific pricing configuration with markup rules and time-based validity for flexible pricing management
+    across different market segments
+
+        Example:
+            {'id': 1001, 'name': 'Premium Customer Pricing', 'currency': 'USD', 'is_default': False, 'markup_percentage':
+                25.0, 'start_date': '2024-01-01T00:00:00Z', 'end_date': '2024-12-31T23:59:59Z', 'created_at':
+                '2024-01-01T10:00:00Z', 'updated_at': '2024-01-15T14:30:00Z', 'deleted_at': None}
+
+        Attributes:
+            id (int): Unique identifier for the price list
+            name (str): Descriptive name for the price list (e.g., "Premium Customer Pricing", "Wholesale Rates")
+            currency (str): ISO 4217 currency code for all prices in this list (e.g., USD, EUR, GBP)
+            created_at (Union[Unset, datetime.datetime]):
+            updated_at (Union[Unset, datetime.datetime]):
+            deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
+            is_default (Union[Unset, bool]): Whether this price list is the default fallback for customers without specific
+                price lists
+            markup_percentage (Union[None, Unset, float]): Percentage markup applied to base costs to calculate pricing in
+                this list
+            start_date (Union[None, Unset, datetime.datetime]): Date and time when this price list becomes active
+            end_date (Union[None, Unset, datetime.datetime]): Date and time when this price list expires
     """
 
     id: int

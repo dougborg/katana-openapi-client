@@ -17,24 +17,40 @@ T = TypeVar("T", bound="CreateSalesOrderRequest")
 
 @_attrs_define
 class CreateSalesOrderRequest:
-    """
+    """Request payload for creating a new sales order with customer information, order lines, and delivery details
+
+    Example:
+        {'order_no': 'SO-2024-002', 'customer_id': 1501, 'sales_order_rows': [{'quantity': 3, 'variant_id': 2101,
+            'tax_rate_id': 301, 'location_id': 1, 'price_per_unit': 599.99, 'total_discount': 50.0, 'attributes': [{'key':
+            'engrave_text', 'value': 'Professional Kitchen'}, {'key': 'rush_order', 'value': 'true'}]}], 'tracking_number':
+            None, 'tracking_number_url': None, 'addresses': [{'entity_type': 'billing', 'first_name': 'David', 'last_name':
+            'Wilson', 'company': "Wilson's Catering", 'line_1': '456 Commerce Ave', 'city': 'Seattle', 'state': 'WA', 'zip':
+            '98101', 'country': 'US'}, {'entity_type': 'shipping', 'first_name': 'David', 'last_name': 'Wilson', 'company':
+            "Wilson's Catering", 'line_1': '789 Industrial Blvd', 'city': 'Seattle', 'state': 'WA', 'zip': '98102',
+            'country': 'US'}], 'order_created_date': '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z',
+            'currency': 'USD', 'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
+            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale', 'ecommerce_store_name':
+            'B2B Portal', 'ecommerce_order_id': 'B2B-7891-2024'}
+
     Attributes:
-        order_no (str):
-        customer_id (int):
-        sales_order_rows (list['CreateSalesOrderRequestSalesOrderRowsItem']):
-        tracking_number (Union[None, Unset, str]):
-        tracking_number_url (Union[None, Unset, str]):
-        addresses (Union[Unset, list['SalesOrderAddress']]):
-        order_created_date (Union[None, Unset, str]):
-        delivery_date (Union[None, Unset, str]):
-        currency (Union[None, Unset, str]):
-        location_id (Union[Unset, int]):
-        status (Union[Unset, CreateSalesOrderRequestStatus]):
-        additional_info (Union[None, Unset, str]):
-        customer_ref (Union[None, Unset, str]):
-        ecommerce_order_type (Union[None, Unset, str]):
-        ecommerce_store_name (Union[None, Unset, str]):
-        ecommerce_order_id (Union[None, Unset, str]):
+        order_no (str): Unique order number for tracking and reference
+        customer_id (int): ID of the customer placing the order
+        sales_order_rows (list['CreateSalesOrderRequestSalesOrderRowsItem']): List of products and quantities being
+            ordered
+        tracking_number (Union[None, Unset, str]): Shipping tracking number if already known
+        tracking_number_url (Union[None, Unset, str]): URL for tracking shipment status
+        addresses (Union[Unset, list['SalesOrderAddress']]): Billing and shipping addresses for the order
+        order_created_date (Union[None, Unset, str]): Date when the order was originally created (defaults to current
+            time)
+        delivery_date (Union[None, Unset, str]): Requested delivery date
+        currency (Union[None, Unset, str]): Currency code for the order (defaults to company base currency)
+        location_id (Union[Unset, int]): Primary fulfillment location for the order
+        status (Union[Unset, CreateSalesOrderRequestStatus]): Initial status of the order
+        additional_info (Union[None, Unset, str]): Additional notes or instructions for the order
+        customer_ref (Union[None, Unset, str]): Customer's internal reference number
+        ecommerce_order_type (Union[None, Unset, str]): Type of ecommerce order if applicable
+        ecommerce_store_name (Union[None, Unset, str]): Name of the ecommerce store if order originated from online
+        ecommerce_order_id (Union[None, Unset, str]): Original order ID from the ecommerce platform
     """
 
     order_no: str

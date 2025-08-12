@@ -13,21 +13,29 @@ T = TypeVar("T", bound="SalesOrderFulfillment")
 
 @_attrs_define
 class SalesOrderFulfillment:
-    """
+    """Shipping and delivery record for a sales order, tracking the physical fulfillment process from shipment to delivery
+
+    Example:
+        {'id': 2701, 'sales_order_id': 2001, 'tracking_number': 'UPS1234567890', 'tracking_number_url':
+            'https://www.ups.com/track?track=UPS1234567890', 'shipped_date': '2024-01-20T16:30:00Z',
+            'estimated_delivery_date': '2024-01-22T14:00:00Z', 'actual_delivery_date': None, 'shipping_cost': 25.99,
+            'shipping_method': 'UPS Ground', 'carrier': 'UPS', 'notes': 'Signature required for delivery', 'created_at':
+            '2024-01-20T16:30:00Z', 'updated_at': '2024-01-20T16:30:00Z'}
+
     Attributes:
-        id (int):
-        sales_order_id (int):
+        id (int): Unique identifier for the fulfillment record
+        sales_order_id (int): ID of the sales order being fulfilled
         created_at (Union[Unset, datetime.datetime]):
         updated_at (Union[Unset, datetime.datetime]):
-        tracking_number (Union[None, Unset, str]):
-        tracking_number_url (Union[None, Unset, str]):
-        shipped_date (Union[None, Unset, datetime.datetime]):
-        estimated_delivery_date (Union[None, Unset, datetime.datetime]):
-        actual_delivery_date (Union[None, Unset, datetime.datetime]):
-        shipping_cost (Union[None, Unset, float]):
-        shipping_method (Union[None, Unset, str]):
-        carrier (Union[None, Unset, str]):
-        notes (Union[None, Unset, str]):
+        tracking_number (Union[None, Unset, str]): Carrier tracking number for shipment monitoring
+        tracking_number_url (Union[None, Unset, str]): URL for online tracking of the shipment
+        shipped_date (Union[None, Unset, datetime.datetime]): Date and time when the order was shipped
+        estimated_delivery_date (Union[None, Unset, datetime.datetime]): Carrier's estimated delivery date and time
+        actual_delivery_date (Union[None, Unset, datetime.datetime]): Actual date and time of delivery confirmation
+        shipping_cost (Union[None, Unset, float]): Total shipping cost charged to the customer
+        shipping_method (Union[None, Unset, str]): Shipping service used (e.g., Ground, Express, Overnight)
+        carrier (Union[None, Unset, str]): Shipping carrier name (e.g., UPS, FedEx, DHL)
+        notes (Union[None, Unset, str]): Additional notes about the shipment or delivery
     """
 
     id: int

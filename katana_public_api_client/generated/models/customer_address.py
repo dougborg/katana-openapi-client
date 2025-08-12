@@ -14,24 +14,31 @@ T = TypeVar("T", bound="CustomerAddress")
 
 @_attrs_define
 class CustomerAddress:
-    """
+    """Customer address for billing and shipping purposes with complete contact information
+
+    Example:
+        {'id': 3001, 'customer_id': 2001, 'entity_type': 'billing', 'default': True, 'first_name': 'Sarah', 'last_name':
+            'Johnson', 'company': 'Kitchen Pro Restaurants Ltd', 'phone': '+1-555-0123', 'line_1': '123 Restaurant Row',
+            'line_2': 'Suite 200', 'city': 'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'USA', 'created_at':
+            '2024-01-10T09:15:00Z', 'updated_at': '2024-01-10T09:15:00Z'}
+
     Attributes:
-        id (int):
-        customer_id (int):
-        entity_type (CustomerAddressEntityType):
+        id (int): Unique identifier for the customer address
+        customer_id (int): ID of the customer this address belongs to
+        entity_type (CustomerAddressEntityType): Address type - billing for invoicing, shipping for delivery
         created_at (Union[Unset, datetime.datetime]):
         updated_at (Union[Unset, datetime.datetime]):
-        default (Union[Unset, bool]):
-        first_name (Union[None, Unset, str]):
-        last_name (Union[None, Unset, str]):
-        company (Union[None, Unset, str]):
-        phone (Union[None, Unset, str]):
-        line_1 (Union[None, Unset, str]):
-        line_2 (Union[None, Unset, str]):
-        city (Union[None, Unset, str]):
-        state (Union[None, Unset, str]):
-        zip_ (Union[None, Unset, str]):
-        country (Union[None, Unset, str]):
+        default (Union[Unset, bool]): Whether this is the default address for the specified entity type
+        first_name (Union[None, Unset, str]): First name for the contact person at this address
+        last_name (Union[None, Unset, str]): Last name for the contact person at this address
+        company (Union[None, Unset, str]): Company name for business addresses
+        phone (Union[None, Unset, str]): Phone number for this address location
+        line_1 (Union[None, Unset, str]): Primary address line (street address, building number)
+        line_2 (Union[None, Unset, str]): Secondary address line (apartment, suite, floor)
+        city (Union[None, Unset, str]): City or locality name
+        state (Union[None, Unset, str]): State, province, or region
+        zip_ (Union[None, Unset, str]): Postal code or ZIP code
+        country (Union[None, Unset, str]): Country name or country code
     """
 
     id: int

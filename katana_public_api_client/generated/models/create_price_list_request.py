@@ -12,14 +12,21 @@ T = TypeVar("T", bound="CreatePriceListRequest")
 
 @_attrs_define
 class CreatePriceListRequest:
-    """
+    """Request payload for creating a new price list with market-specific pricing configurations and time-based validity
+
+    Example:
+        {'name': 'Premium Customer Pricing', 'currency': 'USD', 'is_default': False, 'markup_percentage': 25.0,
+            'start_date': '2024-01-01T00:00:00Z', 'end_date': '2024-12-31T23:59:59Z'}
+
     Attributes:
-        name (str): Name of the price list
-        currency (str): Currency code (e.g., USD, EUR)
-        is_default (Union[Unset, bool]): Whether this is the default price list
-        markup_percentage (Union[Unset, float]): Markup percentage for the price list
-        start_date (Union[Unset, datetime.datetime]): When the price list becomes active
-        end_date (Union[Unset, datetime.datetime]): When the price list expires
+        name (str): Descriptive name for the price list (e.g., "Premium Customer Pricing", "Wholesale Rates")
+        currency (str): ISO 4217 currency code for all prices in this list (e.g., USD, EUR, GBP)
+        is_default (Union[Unset, bool]): Whether this price list should be the default fallback for customers without
+            specific price lists
+        markup_percentage (Union[Unset, float]): Percentage markup applied to base costs to calculate pricing in this
+            list
+        start_date (Union[Unset, datetime.datetime]): Date and time when this price list becomes active
+        end_date (Union[Unset, datetime.datetime]): Date and time when this price list expires
     """
 
     name: str

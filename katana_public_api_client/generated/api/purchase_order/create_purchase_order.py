@@ -82,7 +82,14 @@ def sync_detailed(
 
     Args:
         body (CreatePurchaseOrderRequest): Request payload for creating a new purchase order to
-            procure materials or products from suppliers
+            procure materials or products from suppliers Example: {'order_no': 'PO-2024-0156',
+            'entity_type': 'regular', 'supplier_id': 4001, 'currency': 'USD', 'status':
+            'NOT_RECEIVED', 'expected_arrival_date': '2024-02-15', 'order_created_date': '2024-01-28',
+            'location_id': 1, 'additional_info': "Rush order - needed for Valentine's Day production
+            run", 'purchase_order_rows': [{'quantity': 250, 'price_per_unit': 2.85, 'variant_id': 501,
+            'tax_rate_id': 1, 'purchase_uom': 'kg', 'purchase_uom_conversion_rate': 1.0}, {'quantity':
+            100, 'price_per_unit': 12.5, 'variant_id': 502, 'tax_rate_id': 1, 'purchase_uom':
+            'pieces', 'purchase_uom_conversion_rate': 1.0}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -114,7 +121,14 @@ def sync(
 
     Args:
         body (CreatePurchaseOrderRequest): Request payload for creating a new purchase order to
-            procure materials or products from suppliers
+            procure materials or products from suppliers Example: {'order_no': 'PO-2024-0156',
+            'entity_type': 'regular', 'supplier_id': 4001, 'currency': 'USD', 'status':
+            'NOT_RECEIVED', 'expected_arrival_date': '2024-02-15', 'order_created_date': '2024-01-28',
+            'location_id': 1, 'additional_info': "Rush order - needed for Valentine's Day production
+            run", 'purchase_order_rows': [{'quantity': 250, 'price_per_unit': 2.85, 'variant_id': 501,
+            'tax_rate_id': 1, 'purchase_uom': 'kg', 'purchase_uom_conversion_rate': 1.0}, {'quantity':
+            100, 'price_per_unit': 12.5, 'variant_id': 502, 'tax_rate_id': 1, 'purchase_uom':
+            'pieces', 'purchase_uom_conversion_rate': 1.0}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -141,7 +155,14 @@ async def asyncio_detailed(
 
     Args:
         body (CreatePurchaseOrderRequest): Request payload for creating a new purchase order to
-            procure materials or products from suppliers
+            procure materials or products from suppliers Example: {'order_no': 'PO-2024-0156',
+            'entity_type': 'regular', 'supplier_id': 4001, 'currency': 'USD', 'status':
+            'NOT_RECEIVED', 'expected_arrival_date': '2024-02-15', 'order_created_date': '2024-01-28',
+            'location_id': 1, 'additional_info': "Rush order - needed for Valentine's Day production
+            run", 'purchase_order_rows': [{'quantity': 250, 'price_per_unit': 2.85, 'variant_id': 501,
+            'tax_rate_id': 1, 'purchase_uom': 'kg', 'purchase_uom_conversion_rate': 1.0}, {'quantity':
+            100, 'price_per_unit': 12.5, 'variant_id': 502, 'tax_rate_id': 1, 'purchase_uom':
+            'pieces', 'purchase_uom_conversion_rate': 1.0}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -171,7 +192,14 @@ async def asyncio(
 
     Args:
         body (CreatePurchaseOrderRequest): Request payload for creating a new purchase order to
-            procure materials or products from suppliers
+            procure materials or products from suppliers Example: {'order_no': 'PO-2024-0156',
+            'entity_type': 'regular', 'supplier_id': 4001, 'currency': 'USD', 'status':
+            'NOT_RECEIVED', 'expected_arrival_date': '2024-02-15', 'order_created_date': '2024-01-28',
+            'location_id': 1, 'additional_info': "Rush order - needed for Valentine's Day production
+            run", 'purchase_order_rows': [{'quantity': 250, 'price_per_unit': 2.85, 'variant_id': 501,
+            'tax_rate_id': 1, 'purchase_uom': 'kg', 'purchase_uom_conversion_rate': 1.0}, {'quantity':
+            100, 'price_per_unit': 12.5, 'variant_id': 502, 'tax_rate_id': 1, 'purchase_uom':
+            'pieces', 'purchase_uom_conversion_rate': 1.0}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

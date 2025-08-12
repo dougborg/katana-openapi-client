@@ -13,16 +13,22 @@ T = TypeVar("T", bound="TaxRate")
 
 @_attrs_define
 class TaxRate:
-    """
-    Attributes:
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        id (Union[Unset, int]):
-        name (Union[Unset, str]):
-        rate (Union[Unset, float]):
-        is_default_sales (Union[Unset, bool]):
-        is_default_purchases (Union[Unset, bool]):
-        display_name (Union[Unset, str]):
+    """Tax rate configuration for applying taxes to sales and purchase transactions based on jurisdiction and business
+    requirements
+
+        Example:
+            {'id': 301, 'name': 'VAT 20%', 'rate': 20.0, 'is_default_sales': True, 'is_default_purchases': False,
+                'display_name': 'VAT (20.0%)', 'created_at': '2024-01-15T09:30:00Z', 'updated_at': '2024-01-15T09:30:00Z'}
+
+        Attributes:
+            created_at (Union[Unset, datetime.datetime]):
+            updated_at (Union[Unset, datetime.datetime]):
+            id (Union[Unset, int]): Unique identifier for the tax rate
+            name (Union[Unset, str]): Descriptive name for the tax rate (e.g., "VAT 20%", "Sales Tax", "GST")
+            rate (Union[Unset, float]): Tax rate as a percentage (e.g., 20.5 for 20.5% tax)
+            is_default_sales (Union[Unset, bool]): Whether this tax rate is the default for sales transactions
+            is_default_purchases (Union[Unset, bool]): Whether this tax rate is the default for purchase transactions
+            display_name (Union[Unset, str]): Formatted display name for user interface presentation
     """
 
     created_at: Union[Unset, datetime.datetime] = UNSET

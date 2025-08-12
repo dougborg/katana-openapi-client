@@ -14,23 +14,30 @@ T = TypeVar("T", bound="SalesOrderAddress")
 
 @_attrs_define
 class SalesOrderAddress:
-    """
+    """Billing or shipping address associated with a sales order, containing complete contact and location information
+
+    Example:
+        {'id': 1201, 'sales_order_id': 2001, 'entity_type': 'shipping', 'first_name': 'Sarah', 'last_name': 'Johnson',
+            'company': "Johnson's Restaurant", 'phone': '+1-503-555-0123', 'line_1': '123 Main Street', 'line_2': 'Suite
+            4B', 'city': 'Portland', 'state': 'OR', 'zip': '97201', 'country': 'US', 'created_at': '2024-01-15T10:00:00Z',
+            'updated_at': '2024-01-15T10:00:00Z'}
+
     Attributes:
-        id (int):
-        sales_order_id (int):
-        entity_type (SalesOrderAddressEntityType):
+        id (int): Unique identifier for the address record
+        sales_order_id (int): ID of the sales order this address belongs to
+        entity_type (SalesOrderAddressEntityType): Type of address - billing for invoicing or shipping for delivery
         created_at (Union[Unset, datetime.datetime]):
         updated_at (Union[Unset, datetime.datetime]):
-        first_name (Union[None, Unset, str]):
-        last_name (Union[None, Unset, str]):
-        company (Union[None, Unset, str]):
-        phone (Union[None, Unset, str]):
-        line_1 (Union[None, Unset, str]):
-        line_2 (Union[None, Unset, str]):
-        city (Union[None, Unset, str]):
-        state (Union[None, Unset, str]):
-        zip_ (Union[None, Unset, str]):
-        country (Union[None, Unset, str]):
+        first_name (Union[None, Unset, str]): First name of the contact person
+        last_name (Union[None, Unset, str]): Last name of the contact person
+        company (Union[None, Unset, str]): Company name for business deliveries
+        phone (Union[None, Unset, str]): Contact phone number for delivery coordination
+        line_1 (Union[None, Unset, str]): Primary address line (street address)
+        line_2 (Union[None, Unset, str]): Secondary address line (apartment, suite, etc.)
+        city (Union[None, Unset, str]): City name
+        state (Union[None, Unset, str]): State or province
+        zip_ (Union[None, Unset, str]): Postal or ZIP code
+        country (Union[None, Unset, str]): Country code (e.g., US, CA, GB)
     """
 
     id: int

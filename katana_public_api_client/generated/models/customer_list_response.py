@@ -15,9 +15,22 @@ T = TypeVar("T", bound="CustomerListResponse")
 
 @_attrs_define
 class CustomerListResponse:
-    """
+    """Response containing a list of customers with pagination metadata
+
+    Example:
+        {'data': [{'id': 2001, 'name': 'Kitchen Pro Restaurants', 'first_name': 'Sarah', 'last_name': 'Johnson',
+            'company': 'Kitchen Pro Restaurants Ltd', 'email': 'orders@kitchenpro.com', 'phone': '+1-555-0123', 'comment':
+            'Preferred customer - high volume orders', 'currency': 'USD', 'reference_id': 'KPR-2024-001', 'category':
+            'Restaurant Chain', 'discount_rate': 5.0, 'default_billing_id': 3001, 'default_shipping_id': 3002, 'created_at':
+            '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T14:30:00Z', 'deleted_at': None}, {'id': 2002, 'name': "Baker's
+            Choice Bakery", 'first_name': 'Michael', 'last_name': 'Chen', 'company': "Baker's Choice Bakery", 'email':
+            'mike@bakerschoice.com', 'phone': '+1-555-0124', 'comment': 'Weekly wholesale orders', 'currency': 'USD',
+            'reference_id': 'BC-2024-002', 'category': 'Bakery', 'discount_rate': 3.0, 'default_billing_id': 3003,
+            'default_shipping_id': 3004, 'created_at': '2024-01-12T10:30:00Z', 'updated_at': '2024-01-18T16:45:00Z',
+            'deleted_at': None}]}
+
     Attributes:
-        data (Union[Unset, list['Customer']]):
+        data (Union[Unset, list['Customer']]): Array of customer entities
     """
 
     data: Union[Unset, list["Customer"]] = UNSET

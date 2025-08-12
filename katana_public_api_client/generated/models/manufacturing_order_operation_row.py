@@ -24,7 +24,8 @@ class ManufacturingOrderOperationRow:
         Example:
             {'id': 3801, 'status': 'IN_PROGRESS', 'type': 'Production', 'rank': 1, 'manufacturing_order_id': 3001,
                 'operation_id': 401, 'operation_name': 'Cut Steel Sheets', 'resource_id': 501, 'resource_name': 'Laser Cutting
-                Machine', 'assigned_operators': [], 'completed_by_operators': [], 'active_operator_id': 101,
+                Machine', 'assigned_operators': [{'id': 101, 'operator_id': 101, 'name': 'John Smith', 'working_area':
+                'Production Floor A', 'resource_id': 501}], 'completed_by_operators': [], 'active_operator_id': 101,
                 'planned_time_per_unit': 15.0, 'planned_time_parameter': 1.0, 'total_actual_time': 12.5,
                 'planned_cost_per_unit': 45.0, 'total_actual_cost': 37.5, 'cost_per_hour': 180.0, 'cost_parameter': 1.0,
                 'group_boundary': 0, 'is_status_actionable': True, 'completed_at': None, 'created_at': '2024-01-15T08:00:00Z',

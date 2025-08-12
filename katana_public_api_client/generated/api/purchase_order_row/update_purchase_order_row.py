@@ -85,7 +85,10 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdatePurchaseOrderRowRequest):
+        body (UpdatePurchaseOrderRowRequest): Request payload for updating an existing purchase
+            order line item's details and status Example: {'quantity': 275, 'price_per_unit': 2.95,
+            'purchase_uom': 'kg', 'received_date': '2024-02-15T14:30:00Z', 'arrival_date':
+            '2024-02-15T10:00:00Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -120,7 +123,10 @@ def sync(
 
     Args:
         id (int):
-        body (UpdatePurchaseOrderRowRequest):
+        body (UpdatePurchaseOrderRowRequest): Request payload for updating an existing purchase
+            order line item's details and status Example: {'quantity': 275, 'price_per_unit': 2.95,
+            'purchase_uom': 'kg', 'received_date': '2024-02-15T14:30:00Z', 'arrival_date':
+            '2024-02-15T10:00:00Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -150,7 +156,10 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdatePurchaseOrderRowRequest):
+        body (UpdatePurchaseOrderRowRequest): Request payload for updating an existing purchase
+            order line item's details and status Example: {'quantity': 275, 'price_per_unit': 2.95,
+            'purchase_uom': 'kg', 'received_date': '2024-02-15T14:30:00Z', 'arrival_date':
+            '2024-02-15T10:00:00Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -183,7 +192,10 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdatePurchaseOrderRowRequest):
+        body (UpdatePurchaseOrderRowRequest): Request payload for updating an existing purchase
+            order line item's details and status Example: {'quantity': 275, 'price_per_unit': 2.95,
+            'purchase_uom': 'kg', 'received_date': '2024-02-15T14:30:00Z', 'arrival_date':
+            '2024-02-15T10:00:00Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

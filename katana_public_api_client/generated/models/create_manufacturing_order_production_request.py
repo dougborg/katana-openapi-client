@@ -22,8 +22,11 @@ class CreateManufacturingOrderProductionRequest:
     and material consumption.
 
         Example:
-            {'manufacturing_order_id': 3001, 'quantity': 25, 'production_date': '2024-01-20T14:30:00Z', 'ingredients': [],
-                'operations': []}
+            {'manufacturing_order_id': 3001, 'quantity': 25, 'production_date': '2024-01-20T14:30:00Z', 'ingredients':
+                [{'id': 4001, 'location_id': 1, 'variant_id': 3101, 'manufacturing_order_id': 3001,
+                'manufacturing_order_recipe_row_id': 3201, 'production_id': 3501, 'quantity': 50.0, 'production_date':
+                '2024-01-20T14:30:00Z', 'cost': 125.0}], 'operations': [{'id': 3801, 'manufacturing_order_id': 3001,
+                'operation_id': 401, 'time': 15.0}]}
 
         Attributes:
             manufacturing_order_id (int): ID of the manufacturing order this production run belongs to

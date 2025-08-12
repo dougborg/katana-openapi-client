@@ -59,7 +59,14 @@ class Product:
             configs (Union[Unset, list['ProductConfigsItem']]): Configuration attributes that define variant combinations
                 (size, color, etc.)
             custom_field_collection_id (Union[Unset, int]): ID of the custom field collection associated with this product
-            supplier (Union[Unset, Supplier]):
+            supplier (Union[Unset, Supplier]): Supplier company or individual providing materials, products, or services for
+                procurement operations Example: {'id': 4001, 'name': 'Premium Kitchen Supplies Ltd', 'email':
+                'orders@premiumkitchen.com', 'phone': '+1-555-0134', 'currency': 'USD', 'comment': 'Primary supplier for kitchen
+                equipment and utensils. Reliable delivery times.', 'default_address_id': 4001, 'created_at':
+                '2023-06-15T08:30:00Z', 'updated_at': '2024-01-15T14:20:00Z', 'deleted_at': None, 'addresses': [{'id': 4001,
+                'company': 'Premium Kitchen Supplies Ltd', 'street': '1250 Industrial Blvd', 'street2': 'Suite 200', 'city':
+                'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'US', 'created_at': '2023-06-15T08:30:00Z', 'updated_at':
+                '2023-06-15T08:30:00Z', 'deleted_at': None}]}.
     """
 
     id: int

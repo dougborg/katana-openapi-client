@@ -24,7 +24,10 @@ class UpdateManufacturingOrderProductionRequest:
     quantities and material usage.
 
         Example:
-            {'quantity': 30, 'production_date': '2024-01-21T16:00:00Z', 'ingredients': [], 'operations': []}
+            {'quantity': 30, 'production_date': '2024-01-21T16:00:00Z', 'ingredients': [{'id': 4002, 'location_id': 1,
+                'variant_id': 3102, 'manufacturing_order_id': 3001, 'manufacturing_order_recipe_row_id': 3202, 'production_id':
+                3502, 'quantity': 60.0, 'production_date': '2024-01-21T16:00:00Z', 'cost': 150.0}], 'operations': [{'id': 3802,
+                'manufacturing_order_id': 3001, 'operation_id': 402, 'time': 18.0}]}
 
         Attributes:
             quantity (Union[Unset, float]): Updated quantity produced in this production run

@@ -4036,51 +4036,68 @@ components:
         arrival_date: "2024-02-15T10:00:00Z"
 
     PurchaseOrderAccountingMetadata:
+      description: Accounting integration metadata linking purchase orders to external accounting systems for bill processing and financial record synchronization
       type: object
       properties:
         id:
           type: integer
+          description: Unique identifier for the accounting metadata record
         purchase_order_id:
           type: integer
+          description: ID of the purchase order linked to the accounting system
         purchaseOrderId:
           type: integer
+          description: Alternative purchase order ID field for accounting system compatibility
         porReceivedGroupId:
           type: integer
+          description: ID of the received items group for accounting cost allocation
         integrationType:
           type: string
+          description: Type of accounting system integration (e.g., quickbooks, xero, sage)
         billId:
           type: string
+          description: Bill identifier in the external accounting system
         createdAt:
           type: string
           format: date-time
+          description: Date and time when the accounting metadata was created
+      required:
+        - id
+        - purchase_order_id
+      example:
+        id: 156
+        purchase_order_id: 8001
+        purchaseOrderId: 8001
+        porReceivedGroupId: 2001
+        integrationType: "quickbooks"
+        billId: "BILL-2024-001"
+        createdAt: "2024-01-15T11:30:00Z"
 
     PurchaseOrderAccountingMetadataListResponse:
-      description: Response containing a list of purchase order accounting metadata with pagination support for financial integrations
+      description: Response containing a paginated list of purchase order accounting metadata for financial system integration and bill processing
       type: object
       properties:
         data:
           type: array
           items:
             $ref: "#/components/schemas/PurchaseOrderAccountingMetadata"
-          description: Array of purchase order accounting metadata objects
+          description: Array of purchase order accounting metadata objects linking to external financial systems
       example:
         data:
           - id: 156
-            purchase_order_id: 156
-            external_id: "PO-2024-0156"
-            external_system: "QuickBooks"
-            sync_status: "SYNCED"
-            last_sync_date: "2024-01-28T10:30:00Z"
-            created_at: "2024-01-28T09:15:00Z"
-            updated_at: "2024-01-28T10:30:00Z"
+            purchase_order_id: 8001
+            purchaseOrderId: 8001
+            porReceivedGroupId: 2001
+            integrationType: "quickbooks"
+            billId: "BILL-2024-001"
+            createdAt: "2024-01-15T11:30:00Z"
           - id: 157
-            purchase_order_id: 157
-            external_id: "PO-2024-0157"
-            external_system: "Xero"
-            sync_status: "PENDING"
-            last_sync_date: null
-            created_at: "2024-01-25T14:30:00Z"
-            updated_at: "2024-01-25T14:30:00Z"
+            purchase_order_id: 8002
+            purchaseOrderId: 8002
+            porReceivedGroupId: 2002
+            integrationType: "xero"
+            billId: "BILL-2024-002"
+            createdAt: "2024-01-15T12:00:00Z"
 
     CreateSupplierRequest:
       description: Request payload for creating a new supplier with contact information and addresses
@@ -4421,6 +4438,7 @@ components:
         country: "US"
 
     CreateTaxRateRequest:
+      description: Request payload for creating a new tax rate to be applied to sales and purchase orders for financial compliance
       type: object
       additionalProperties: false
       required:
@@ -4428,37 +4446,78 @@ components:
       properties:
         name:
           type: string
+          description: Descriptive name for the tax rate (e.g., "VAT 20%", "Sales Tax", "GST")
         rate:
           type: number
           minimum: 0
           maximum: 999.999
           multipleOf: 0.001
+          description: Tax rate as a percentage (e.g., 20.5 for 20.5%)
+      example:
+        name: "VAT 20%"
+        rate: 20.000
 
     TaxRate:
+      description: Tax rate configuration for applying taxes to sales and purchase transactions based on jurisdiction and business requirements
       allOf:
         - type: object
           properties:
             id:
               type: integer
+              description: Unique identifier for the tax rate
             name:
               type: string
+              description: Descriptive name for the tax rate (e.g., "VAT 20%", "Sales Tax", "GST")
             rate:
               type: number
+              description: Tax rate as a percentage (e.g., 20.5 for 20.5% tax)
             is_default_sales:
               type: boolean
+              description: Whether this tax rate is the default for sales transactions
             is_default_purchases:
               type: boolean
+              description: Whether this tax rate is the default for purchase transactions
             display_name:
               type: string
+              description: Formatted display name for user interface presentation
         - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 301
+        name: "VAT 20%"
+        rate: 20.000
+        is_default_sales: true
+        is_default_purchases: false
+        display_name: "VAT (20.0%)"
+        created_at: "2024-01-15T09:30:00Z"
+        updated_at: "2024-01-15T09:30:00Z"
 
     TaxRateListResponse:
+      description: Response containing a paginated list of tax rates configured for the organization's sales and purchase tax compliance
       type: object
       properties:
         data:
           type: array
           items:
             $ref: "#/components/schemas/TaxRate"
+          description: Array of tax rate objects
+      example:
+        data:
+          - id: 301
+            name: "VAT 20%"
+            rate: 20.000
+            is_default_sales: true
+            is_default_purchases: false
+            display_name: "VAT (20.0%)"
+            created_at: "2024-01-15T09:30:00Z"
+            updated_at: "2024-01-15T09:30:00Z"
+          - id: 302
+            name: "VAT 5%"
+            rate: 5.000
+            is_default_sales: false
+            is_default_purchases: true
+            display_name: "VAT (5.0%)"
+            created_at: "2024-01-15T09:35:00Z"
+            updated_at: "2024-01-15T09:35:00Z"
 
     CreateVariantRequest:
       description: Request payload for creating a new product or material variant with specific SKU and configuration attributes
@@ -6212,32 +6271,52 @@ components:
 
     # Price Lists
     PriceList:
+      description: Customer-specific pricing configuration with markup rules and time-based validity for flexible pricing management across different market segments
       allOf:
         - type: object
           properties:
             id:
               type: integer
+              description: Unique identifier for the price list
             name:
               type: string
+              description: Descriptive name for the price list (e.g., "Premium Customer Pricing", "Wholesale Rates")
             currency:
               type: string
+              description: "ISO 4217 currency code for all prices in this list (e.g., USD, EUR, GBP)"
             is_default:
               type: boolean
+              description: Whether this price list is the default fallback for customers without specific price lists
             markup_percentage:
               type: [number, "null"]
+              description: Percentage markup applied to base costs to calculate pricing in this list
             start_date:
               type: [string, "null"]
               format: date-time
+              description: Date and time when this price list becomes active
             end_date:
               type: [string, "null"]
               format: date-time
+              description: Date and time when this price list expires
           required:
             - id
             - name
             - currency
         - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 1001
+        name: "Premium Customer Pricing"
+        currency: "USD"
+        is_default: false
+        markup_percentage: 25.0
+        start_date: "2024-01-01T00:00:00Z"
+        end_date: "2024-12-31T23:59:59Z"
+        created_at: "2024-01-01T10:00:00Z"
+        updated_at: "2024-01-15T14:30:00Z"
+        deleted_at: null
 
     CreatePriceListRequest:
+      description: Request payload for creating a new price list with market-specific pricing configurations and time-based validity
       type: object
       additionalProperties: false
       required:
@@ -6246,26 +6325,34 @@ components:
       properties:
         name:
           type: string
-          description: Name of the price list
+          description: Descriptive name for the price list (e.g., "Premium Customer Pricing", "Wholesale Rates")
         currency:
           type: string
-          description: Currency code (e.g., USD, EUR)
+          description: "ISO 4217 currency code for all prices in this list (e.g., USD, EUR, GBP)"
         is_default:
           type: boolean
-          description: Whether this is the default price list
+          description: Whether this price list should be the default fallback for customers without specific price lists
         markup_percentage:
           type: number
-          description: Markup percentage for the price list
+          description: Percentage markup applied to base costs to calculate pricing in this list
         start_date:
           type: string
           format: date-time
-          description: When the price list becomes active
+          description: Date and time when this price list becomes active
         end_date:
           type: string
           format: date-time
-          description: When the price list expires
+          description: Date and time when this price list expires
+      example:
+        name: "Premium Customer Pricing"
+        currency: "USD"
+        is_default: false
+        markup_percentage: 25.0
+        start_date: "2024-01-01T00:00:00Z"
+        end_date: "2024-12-31T23:59:59Z"
 
     CreatePriceListRowRequest:
+      description: Request payload for adding a product variant with specific pricing to a price list for customer-specific pricing management
       type: object
       additionalProperties: false
       required:
@@ -6275,16 +6362,21 @@ components:
       properties:
         price_list_id:
           type: integer
-          description: ID of the price list
+          description: ID of the price list to add the variant pricing to
         variant_id:
           type: integer
-          description: ID of the variant to set price for
+          description: ID of the product variant to set custom pricing for
         price:
           type: number
-          description: Price for the variant
+          description: Custom price for this variant in the price list's currency
         currency:
           type: string
-          description: Currency code (e.g., USD, EUR)
+          description: "ISO 4217 currency code (must match the price list's currency)"
+      example:
+        price_list_id: 1001
+        variant_id: 201
+        price: 249.99
+        currency: "USD"
 
     CreatePriceListCustomerRequest:
       description: Request payload for assigning a customer to a price list for custom pricing
@@ -6305,25 +6397,39 @@ components:
         customer_id: 2002
 
     PriceListRow:
+      description: Individual product variant pricing entry within a price list for customer-specific or market-specific pricing management
       allOf:
         - type: object
           properties:
             id:
               type: integer
+              description: Unique identifier for the price list row entry
             price_list_id:
               type: integer
+              description: ID of the price list this pricing entry belongs to
             variant_id:
               type: integer
+              description: ID of the product variant this pricing applies to
             price:
               type: number
+              description: Custom price for this variant in the price list's currency
             currency:
               type: string
+              description: "ISO 4217 currency code for this pricing entry"
           required:
             - id
             - price_list_id
             - variant_id
             - price
         - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 5001
+        price_list_id: 1001
+        variant_id: 201
+        price: 249.99
+        currency: "USD"
+        created_at: "2024-01-15T10:00:00Z"
+        updated_at: "2024-01-15T10:00:00Z"
 
     PriceListCustomer:
       description: Association between a customer and a price list for custom pricing management
@@ -7043,20 +7149,62 @@ components:
         is_default: true
 
     PriceListListResponse:
+      description: Response containing a paginated list of price lists configured for customer-specific and market-specific pricing management
       type: object
       properties:
         data:
           type: array
           items:
             $ref: "#/components/schemas/PriceList"
+          description: Array of price list objects
+      example:
+        data:
+          - id: 1001
+            name: "Premium Customer Pricing"
+            currency: "USD"
+            is_default: false
+            markup_percentage: 25.0
+            start_date: "2024-01-01T00:00:00Z"
+            end_date: "2024-12-31T23:59:59Z"
+            created_at: "2024-01-01T10:00:00Z"
+            updated_at: "2024-01-15T14:30:00Z"
+            deleted_at: null
+          - id: 1002
+            name: "Wholesale Rates"
+            currency: "USD"
+            is_default: true
+            markup_percentage: 15.0
+            start_date: null
+            end_date: null
+            created_at: "2024-01-01T10:05:00Z"
+            updated_at: "2024-01-01T10:05:00Z"
+            deleted_at: null
 
     PriceListRowListResponse:
+      description: Response containing a paginated list of price list rows showing variant-specific pricing within price lists
       type: object
       properties:
         data:
           type: array
           items:
             $ref: "#/components/schemas/PriceListRow"
+          description: Array of price list row objects containing variant pricing
+      example:
+        data:
+          - id: 5001
+            price_list_id: 1001
+            variant_id: 201
+            price: 249.99
+            currency: "USD"
+            created_at: "2024-01-15T10:00:00Z"
+            updated_at: "2024-01-15T10:00:00Z"
+          - id: 5002
+            price_list_id: 1001
+            variant_id: 202
+            price: 69.99
+            currency: "USD"
+            created_at: "2024-01-15T10:05:00Z"
+            updated_at: "2024-01-15T10:05:00Z"
 
     PriceListCustomerListResponse:
       description: Response containing a list of price list customer assignments

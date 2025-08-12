@@ -10,7 +10,12 @@ T = TypeVar("T", bound="UpdatePurchaseOrderRowRequest")
 
 @_attrs_define
 class UpdatePurchaseOrderRowRequest:
-    """
+    """Request payload for updating an existing purchase order line item's details and status
+
+    Example:
+        {'quantity': 275, 'price_per_unit': 2.95, 'purchase_uom': 'kg', 'received_date': '2024-02-15T14:30:00Z',
+            'arrival_date': '2024-02-15T10:00:00Z'}
+
     Attributes:
         quantity (Union[Unset, float]): Updatable only when received_date is null
         variant_id (Union[Unset, int]): Updatable only when received_date is null

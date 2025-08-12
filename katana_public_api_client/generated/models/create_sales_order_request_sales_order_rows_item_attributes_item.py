@@ -13,8 +13,8 @@ T = TypeVar("T", bound="CreateSalesOrderRequestSalesOrderRowsItemAttributesItem"
 class CreateSalesOrderRequestSalesOrderRowsItemAttributesItem:
     """
     Attributes:
-        key (Union[Unset, str]):
-        value (Union[Unset, str]):
+        key (Union[Unset, str]): Attribute name
+        value (Union[Unset, str]): Attribute value
     """
 
     key: Union[Unset, str] = UNSET

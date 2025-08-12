@@ -24,6 +24,25 @@ T = TypeVar("T", bound="SalesOrder")
 class SalesOrder:
     """Sales order representing a customer's request to purchase products with delivery and payment terms
 
+    Example:
+        {'id': 2001, 'customer_id': 1501, 'order_no': 'SO-2024-001', 'source': 'Shopify', 'order_created_date':
+            '2024-01-15T10:00:00Z', 'delivery_date': '2024-01-22T14:00:00Z', 'picked_date': None, 'location_id': 1,
+            'status': 'PACKED', 'currency': 'USD', 'conversion_rate': 1.0, 'conversion_date': '2024-01-15T10:00:00Z',
+            'invoicing_status': 'INVOICED', 'total': 1250.0, 'total_in_base_currency': 1250.0, 'additional_info': 'Customer
+            requested expedited delivery', 'customer_ref': 'CUST-REF-2024-001', 'sales_order_rows': [{'id': 2501,
+            'quantity': 2, 'variant_id': 2101, 'tax_rate_id': 301, 'location_id': 1, 'product_availability': 'IN_STOCK',
+            'product_expected_date': None, 'price_per_unit': 599.99, 'price_per_unit_in_base_currency': 599.99, 'total':
+            1199.98, 'total_in_base_currency': 1199.98, 'cogs_value': 400.0, 'created_at': '2024-01-15T10:00:00Z',
+            'updated_at': '2024-01-15T10:00:00Z'}], 'ecommerce_order_type': 'standard', 'ecommerce_store_name': 'Kitchen Pro
+            Store', 'ecommerce_order_id': 'SHOP-5678-2024', 'product_availability': 'IN_STOCK', 'product_expected_date':
+            None, 'ingredient_availability': 'IN_STOCK', 'ingredient_expected_date': None, 'production_status':
+            'NOT_APPLICABLE', 'tracking_number': 'UPS1234567890', 'tracking_number_url':
+            'https://www.ups.com/track?track=UPS1234567890', 'billing_address_id': 1201, 'shipping_address_id': 1202,
+            'addresses': [{'id': 1201, 'sales_order_id': 2001, 'entity_type': 'billing', 'first_name': 'Sarah', 'last_name':
+            'Johnson', 'company': "Johnson's Restaurant", 'address_line_1': '123 Main Street', 'city': 'Portland', 'state':
+            'OR', 'zip': '97201', 'country': 'US'}], 'created_at': '2024-01-15T10:00:00Z', 'updated_at':
+            '2024-01-20T16:30:00Z'}
+
     Attributes:
         id (int): Unique identifier
         customer_id (int):

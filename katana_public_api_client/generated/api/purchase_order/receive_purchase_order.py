@@ -95,7 +95,10 @@ def sync_detailed(
         Reverting the receive must also be done through that endpoint.
 
     Args:
-        body (Union['PurchaseOrderReceiveRow', list['PurchaseOrderReceiveRow']]):
+        body (Union['PurchaseOrderReceiveRow', list['PurchaseOrderReceiveRow']]): Request payload
+            for recording the receipt of purchase order items at the facility Example:
+            [{'purchase_order_row_id': 501, 'quantity': 150, 'received_date': '2024-02-15T10:00:00Z'},
+            {'purchase_order_row_id': 502, 'quantity': 75, 'received_date': '2024-02-15T10:00:00Z'}].
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -132,7 +135,10 @@ def sync(
         Reverting the receive must also be done through that endpoint.
 
     Args:
-        body (Union['PurchaseOrderReceiveRow', list['PurchaseOrderReceiveRow']]):
+        body (Union['PurchaseOrderReceiveRow', list['PurchaseOrderReceiveRow']]): Request payload
+            for recording the receipt of purchase order items at the facility Example:
+            [{'purchase_order_row_id': 501, 'quantity': 150, 'received_date': '2024-02-15T10:00:00Z'},
+            {'purchase_order_row_id': 502, 'quantity': 75, 'received_date': '2024-02-15T10:00:00Z'}].
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -164,7 +170,10 @@ async def asyncio_detailed(
         Reverting the receive must also be done through that endpoint.
 
     Args:
-        body (Union['PurchaseOrderReceiveRow', list['PurchaseOrderReceiveRow']]):
+        body (Union['PurchaseOrderReceiveRow', list['PurchaseOrderReceiveRow']]): Request payload
+            for recording the receipt of purchase order items at the facility Example:
+            [{'purchase_order_row_id': 501, 'quantity': 150, 'received_date': '2024-02-15T10:00:00Z'},
+            {'purchase_order_row_id': 502, 'quantity': 75, 'received_date': '2024-02-15T10:00:00Z'}].
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -199,7 +208,10 @@ async def asyncio(
         Reverting the receive must also be done through that endpoint.
 
     Args:
-        body (Union['PurchaseOrderReceiveRow', list['PurchaseOrderReceiveRow']]):
+        body (Union['PurchaseOrderReceiveRow', list['PurchaseOrderReceiveRow']]): Request payload
+            for recording the receipt of purchase order items at the facility Example:
+            [{'purchase_order_row_id': 501, 'quantity': 150, 'received_date': '2024-02-15T10:00:00Z'},
+            {'purchase_order_row_id': 502, 'quantity': 75, 'received_date': '2024-02-15T10:00:00Z'}].
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

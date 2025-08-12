@@ -15,9 +15,15 @@ T = TypeVar("T", bound="PriceListCustomerListResponse")
 
 @_attrs_define
 class PriceListCustomerListResponse:
-    """
+    """Response containing a list of price list customer assignments
+
+    Example:
+        {'data': [{'id': 4001, 'price_list_id': 1001, 'customer_id': 2001, 'created_at': '2024-01-15T10:00:00Z',
+            'updated_at': '2024-01-15T10:00:00Z'}, {'id': 4002, 'price_list_id': 1002, 'customer_id': 2002, 'created_at':
+            '2024-01-16T11:30:00Z', 'updated_at': '2024-01-16T11:30:00Z'}]}
+
     Attributes:
-        data (Union[Unset, list['PriceListCustomer']]):
+        data (Union[Unset, list['PriceListCustomer']]): Array of price list customer assignment entities
     """
 
     data: Union[Unset, list["PriceListCustomer"]] = UNSET

@@ -13,15 +13,21 @@ T = TypeVar("T", bound="PriceListRow")
 
 @_attrs_define
 class PriceListRow:
-    """
-    Attributes:
-        id (int):
-        price_list_id (int):
-        variant_id (int):
-        price (float):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        currency (Union[Unset, str]):
+    """Individual product variant pricing entry within a price list for customer-specific or market-specific pricing
+    management
+
+        Example:
+            {'id': 5001, 'price_list_id': 1001, 'variant_id': 201, 'price': 249.99, 'currency': 'USD', 'created_at':
+                '2024-01-15T10:00:00Z', 'updated_at': '2024-01-15T10:00:00Z'}
+
+        Attributes:
+            id (int): Unique identifier for the price list row entry
+            price_list_id (int): ID of the price list this pricing entry belongs to
+            variant_id (int): ID of the product variant this pricing applies to
+            price (float): Custom price for this variant in the price list's currency
+            created_at (Union[Unset, datetime.datetime]):
+            updated_at (Union[Unset, datetime.datetime]):
+            currency (Union[Unset, str]): ISO 4217 currency code for this pricing entry
     """
 
     id: int

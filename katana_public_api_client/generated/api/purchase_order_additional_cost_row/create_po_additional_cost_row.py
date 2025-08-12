@@ -81,7 +81,10 @@ def sync_detailed(
      Add a purchase order additional cost row to an existing group.
 
     Args:
-        body (CreatePurchaseOrderAdditionalCostRowRequest):
+        body (CreatePurchaseOrderAdditionalCostRowRequest): Request payload for adding additional
+            costs (shipping, duties, handling fees) to a purchase order Example:
+            {'additional_cost_id': 1, 'group_id': 1, 'tax_rate_id': 1, 'price': 125.0,
+            'distribution_method': 'BY_VALUE'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -112,7 +115,10 @@ def sync(
      Add a purchase order additional cost row to an existing group.
 
     Args:
-        body (CreatePurchaseOrderAdditionalCostRowRequest):
+        body (CreatePurchaseOrderAdditionalCostRowRequest): Request payload for adding additional
+            costs (shipping, duties, handling fees) to a purchase order Example:
+            {'additional_cost_id': 1, 'group_id': 1, 'tax_rate_id': 1, 'price': 125.0,
+            'distribution_method': 'BY_VALUE'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -138,7 +144,10 @@ async def asyncio_detailed(
      Add a purchase order additional cost row to an existing group.
 
     Args:
-        body (CreatePurchaseOrderAdditionalCostRowRequest):
+        body (CreatePurchaseOrderAdditionalCostRowRequest): Request payload for adding additional
+            costs (shipping, duties, handling fees) to a purchase order Example:
+            {'additional_cost_id': 1, 'group_id': 1, 'tax_rate_id': 1, 'price': 125.0,
+            'distribution_method': 'BY_VALUE'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -167,7 +176,10 @@ async def asyncio(
      Add a purchase order additional cost row to an existing group.
 
     Args:
-        body (CreatePurchaseOrderAdditionalCostRowRequest):
+        body (CreatePurchaseOrderAdditionalCostRowRequest): Request payload for adding additional
+            costs (shipping, duties, handling fees) to a purchase order Example:
+            {'additional_cost_id': 1, 'group_id': 1, 'tax_rate_id': 1, 'price': 125.0,
+            'distribution_method': 'BY_VALUE'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

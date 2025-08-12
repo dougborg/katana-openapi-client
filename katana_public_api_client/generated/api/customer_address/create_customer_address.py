@@ -81,7 +81,11 @@ def sync_detailed(
      Creates a new customer address.
 
     Args:
-        body (CreateCustomerAddressRequest):
+        body (CreateCustomerAddressRequest): Request payload for creating a new customer address
+            with complete contact and location information Example: {'customer_id': 2003,
+            'entity_type': 'shipping', 'first_name': 'Maria', 'last_name': 'Garcia', 'company': 'Cafe
+            Central', 'phone': '+1-555-0127', 'line_1': '789 Main Street', 'line_2': 'Unit 5', 'city':
+            'San Francisco', 'state': 'CA', 'zip': '94102', 'country': 'USA', 'is_default': True}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -112,7 +116,11 @@ def sync(
      Creates a new customer address.
 
     Args:
-        body (CreateCustomerAddressRequest):
+        body (CreateCustomerAddressRequest): Request payload for creating a new customer address
+            with complete contact and location information Example: {'customer_id': 2003,
+            'entity_type': 'shipping', 'first_name': 'Maria', 'last_name': 'Garcia', 'company': 'Cafe
+            Central', 'phone': '+1-555-0127', 'line_1': '789 Main Street', 'line_2': 'Unit 5', 'city':
+            'San Francisco', 'state': 'CA', 'zip': '94102', 'country': 'USA', 'is_default': True}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -138,7 +146,11 @@ async def asyncio_detailed(
      Creates a new customer address.
 
     Args:
-        body (CreateCustomerAddressRequest):
+        body (CreateCustomerAddressRequest): Request payload for creating a new customer address
+            with complete contact and location information Example: {'customer_id': 2003,
+            'entity_type': 'shipping', 'first_name': 'Maria', 'last_name': 'Garcia', 'company': 'Cafe
+            Central', 'phone': '+1-555-0127', 'line_1': '789 Main Street', 'line_2': 'Unit 5', 'city':
+            'San Francisco', 'state': 'CA', 'zip': '94102', 'country': 'USA', 'is_default': True}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -167,7 +179,11 @@ async def asyncio(
      Creates a new customer address.
 
     Args:
-        body (CreateCustomerAddressRequest):
+        body (CreateCustomerAddressRequest): Request payload for creating a new customer address
+            with complete contact and location information Example: {'customer_id': 2003,
+            'entity_type': 'shipping', 'first_name': 'Maria', 'last_name': 'Garcia', 'company': 'Cafe
+            Central', 'phone': '+1-555-0127', 'line_1': '789 Main Street', 'line_2': 'Unit 5', 'city':
+            'San Francisco', 'state': 'CA', 'zip': '94102', 'country': 'USA', 'is_default': True}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

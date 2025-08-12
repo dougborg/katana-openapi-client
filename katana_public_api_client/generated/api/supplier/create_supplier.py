@@ -81,7 +81,12 @@ def sync_detailed(
      Creates a new supplier object.
 
     Args:
-        body (CreateSupplierRequest):
+        body (CreateSupplierRequest): Request payload for creating a new supplier with contact
+            information and addresses Example: {'name': 'Premium Kitchen Supplies Ltd', 'currency':
+            'USD', 'email': 'orders@premiumkitchen.com', 'phone': '+1-555-0134', 'comment': 'Primary
+            supplier for kitchen equipment and utensils', 'addresses': [{'line_1': '1250 Industrial
+            Blvd', 'line_2': 'Suite 200', 'city': 'Chicago', 'state': 'IL', 'zip': '60601', 'country':
+            'US'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -112,7 +117,12 @@ def sync(
      Creates a new supplier object.
 
     Args:
-        body (CreateSupplierRequest):
+        body (CreateSupplierRequest): Request payload for creating a new supplier with contact
+            information and addresses Example: {'name': 'Premium Kitchen Supplies Ltd', 'currency':
+            'USD', 'email': 'orders@premiumkitchen.com', 'phone': '+1-555-0134', 'comment': 'Primary
+            supplier for kitchen equipment and utensils', 'addresses': [{'line_1': '1250 Industrial
+            Blvd', 'line_2': 'Suite 200', 'city': 'Chicago', 'state': 'IL', 'zip': '60601', 'country':
+            'US'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -138,7 +148,12 @@ async def asyncio_detailed(
      Creates a new supplier object.
 
     Args:
-        body (CreateSupplierRequest):
+        body (CreateSupplierRequest): Request payload for creating a new supplier with contact
+            information and addresses Example: {'name': 'Premium Kitchen Supplies Ltd', 'currency':
+            'USD', 'email': 'orders@premiumkitchen.com', 'phone': '+1-555-0134', 'comment': 'Primary
+            supplier for kitchen equipment and utensils', 'addresses': [{'line_1': '1250 Industrial
+            Blvd', 'line_2': 'Suite 200', 'city': 'Chicago', 'state': 'IL', 'zip': '60601', 'country':
+            'US'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -167,7 +182,12 @@ async def asyncio(
      Creates a new supplier object.
 
     Args:
-        body (CreateSupplierRequest):
+        body (CreateSupplierRequest): Request payload for creating a new supplier with contact
+            information and addresses Example: {'name': 'Premium Kitchen Supplies Ltd', 'currency':
+            'USD', 'email': 'orders@premiumkitchen.com', 'phone': '+1-555-0134', 'comment': 'Primary
+            supplier for kitchen equipment and utensils', 'addresses': [{'line_1': '1250 Industrial
+            Blvd', 'line_2': 'Suite 200', 'city': 'Chicago', 'state': 'IL', 'zip': '60601', 'country':
+            'US'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
