@@ -15,21 +15,12 @@ T = TypeVar("T", bound="BomRow")
 
 @_attrs_define
 class BomRow:
-    """
+    """Bill of Materials row defining ingredient requirements for product manufacturing
+
     Example:
         {'id': 501, 'product_variant_id': 2001, 'product_item_id': 3001, 'ingredient_variant_id': 2002, 'quantity': 2.5,
             'notes': 'Handle with care - fragile component', 'created_at': '2023-10-15T14:30:00Z', 'updated_at':
             '2023-10-16T09:15:00Z'}
-
-    Attributes:
-        id (int): Unique identifier
-        product_variant_id (int): ID of the product variant this BOM row belongs to
-        product_item_id (int): ID of the product item this BOM row belongs to
-        ingredient_variant_id (int): ID of the ingredient variant used in this BOM row
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        quantity (Union[None, Unset, float]): Required quantity of the ingredient variant
-        notes (Union[None, Unset, str]): Additional notes for this BOM row
     """
 
     id: int

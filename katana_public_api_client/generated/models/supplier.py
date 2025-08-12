@@ -29,19 +29,6 @@ class Supplier:
             Ltd', 'street': '1250 Industrial Blvd', 'street2': 'Suite 200', 'city': 'Chicago', 'state': 'IL', 'zip':
             '60601', 'country': 'US', 'created_at': '2023-06-15T08:30:00Z', 'updated_at': '2023-06-15T08:30:00Z',
             'deleted_at': None}]}
-
-    Attributes:
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
-        id (Union[Unset, int]): Unique identifier for the supplier
-        name (Union[Unset, str]): Business name of the supplier company or individual
-        email (Union[Unset, str]): Primary email address for supplier communication and order confirmations
-        phone (Union[Unset, str]): Primary phone number for supplier contact and communication
-        currency (Union[Unset, str]): Default currency used for transactions with this supplier (ISO 4217 format)
-        comment (Union[Unset, str]): Optional notes or comments about the supplier relationship
-        default_address_id (Union[Unset, int]): Unique identifier of the default address for this supplier
-        addresses (Union[Unset, list['SupplierAddress']]): List of addresses associated with this supplier
     """
 
     created_at: Unset | datetime.datetime = UNSET

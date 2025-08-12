@@ -8,12 +8,6 @@ T = TypeVar("T", bound="CreateVariantRequestCustomFieldsItem")
 
 @_attrs_define
 class CreateVariantRequestCustomFieldsItem:
-    """
-    Attributes:
-        field_name (str): Name of the custom field
-        field_value (str): Value stored in the custom field
-    """
-
     field_name: str
     field_value: str
 

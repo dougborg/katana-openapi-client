@@ -93,9 +93,11 @@ def sync_detailed(
             [{'field_name': 'Warranty Period', 'field_value': '5 years'}, {'field_name': 'Care
             Instructions', 'field_value': 'Hand wash only'}]}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, Variant]]
@@ -134,9 +136,11 @@ def sync(
             [{'field_name': 'Warranty Period', 'field_value': '5 years'}, {'field_name': 'Care
             Instructions', 'field_value': 'Hand wash only'}]}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, Variant]
@@ -170,9 +174,11 @@ async def asyncio_detailed(
             [{'field_name': 'Warranty Period', 'field_value': '5 years'}, {'field_name': 'Care
             Instructions', 'field_value': 'Hand wash only'}]}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, Variant]]
@@ -209,9 +215,11 @@ async def asyncio(
             [{'field_name': 'Warranty Period', 'field_value': '5 years'}, {'field_name': 'Care
             Instructions', 'field_value': 'Hand wash only'}]}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, Variant]

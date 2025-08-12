@@ -17,9 +17,11 @@ T = TypeVar("T", bound="OperatorListResponse")
 
 @_attrs_define
 class OperatorListResponse:
-    """
-    Attributes:
-        data (Union[Unset, list['Operator']]):
+    """Response containing a list of operators available for manufacturing order operations and production tracking
+
+    Example:
+        {'data': [{'id': 101, 'operator_id': 101, 'name': 'John Smith', 'working_area': 'Assembly Line 1'}, {'id': 102,
+            'operator_id': 102, 'name': 'Maria Garcia', 'working_area': 'Quality Control'}]}
     """
 
     data: Unset | list["Operator"] = UNSET

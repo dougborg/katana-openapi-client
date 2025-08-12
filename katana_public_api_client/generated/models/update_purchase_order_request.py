@@ -18,19 +18,6 @@ class UpdatePurchaseOrderRequest:
     Example:
         {'order_no': 'PO-2024-0156-REVISED', 'expected_arrival_date': '2024-02-20', 'status': 'PARTIALLY_RECEIVED',
             'additional_info': 'Delivery delayed due to weather - updated schedule'}
-
-    Attributes:
-        order_no (Union[Unset, str]): Updatable only when status is in NOT_RECEIVED or PARTIALLY_RECEIVED
-        supplier_id (Union[Unset, int]): Updatable only when status is in NOT_RECEIVED
-        currency (Union[Unset, str]): Updatable only when status is in NOT_RECEIVED
-        tracking_location_id (Union[Unset, int]): Updatable only when status is in NOT_RECEIVED and entity_type is
-            outsourced
-        status (Union[Unset, UpdatePurchaseOrderRequestStatus]):
-        expected_arrival_date (Union[Unset, str]): Updatable only when status is in NOT_RECEIVED or PARTIALLY_RECEIVED.
-            Update will override arrival_date on purchase order rows
-        order_created_date (Union[Unset, str]):
-        location_id (Union[Unset, int]): Updatable only when status is in NOT_RECEIVED
-        additional_info (Union[Unset, str]): Optional notes or special instructions for the supplier
     """
 
     order_no: Unset | str = UNSET

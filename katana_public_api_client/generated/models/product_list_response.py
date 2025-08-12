@@ -26,9 +26,6 @@ class ProductListResponse:
             'Stainless Steel Mixing Bowls', 'uom': 'set', 'category_name': 'Kitchenware', 'is_sellable': True,
             'is_producible': False, 'is_purchasable': True, 'type': 'product', 'variants': [{'id': 302, 'sku': 'BOWL-
             SS-5PC', 'name': '5-Piece Mixing Bowl Set', 'sales_price': 79.99}]}]}
-
-    Attributes:
-        data (Union[Unset, list['Product']]): Array of product objects returned by the API
     """
 
     data: Unset | list["Product"] = UNSET

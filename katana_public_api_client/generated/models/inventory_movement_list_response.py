@@ -15,10 +15,12 @@ T = TypeVar("T", bound="InventoryMovementListResponse")
 
 @_attrs_define
 class InventoryMovementListResponse:
-    """A list of inventory movement records.
+    """A list of inventory movement records tracking stock changes, transfers, and adjustments across locations.
 
-    Attributes:
-        data (list['InventoryMovement']):
+    Example:
+        {'data': [{'id': 5001, 'variant_id': 2002, 'location_id': 1, 'movement_type': 'TRANSFER_IN', 'quantity': 10.0,
+            'cost_per_unit': 12.5, 'total_cost': 125.0, 'reference_id': 1001, 'movement_date': '2023-10-15T14:30:00Z',
+            'notes': 'Received from supplier shipment'}]}
     """
 
     data: list["InventoryMovement"]

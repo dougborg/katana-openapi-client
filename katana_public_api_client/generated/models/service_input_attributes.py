@@ -17,12 +17,6 @@ class ServiceInputAttributes:
     Example:
         {'name': 'Screen Printing', 'description': 'High quality screen printing service.', 'price': 150.0, 'currency':
             'USD'}
-
-    Attributes:
-        name (str): Name of the Service.
-        price (float): Price of the Service.
-        currency (str): Currency code for the price.
-        description (Union[Unset, str]): A brief description of the Service.
     """
 
     name: str

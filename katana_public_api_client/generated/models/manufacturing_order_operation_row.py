@@ -34,34 +34,6 @@ class ManufacturingOrderOperationRow:
                 'planned_cost_per_unit': 45.0, 'total_actual_cost': 37.5, 'cost_per_hour': 180.0, 'cost_parameter': 1.0,
                 'group_boundary': 0, 'is_status_actionable': True, 'completed_at': None, 'created_at': '2024-01-15T08:00:00Z',
                 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}
-
-        Attributes:
-            created_at (Union[Unset, datetime.datetime]):
-            updated_at (Union[Unset, datetime.datetime]):
-            deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
-            id (Union[Unset, int]):
-            status (Union[Unset, ManufacturingOrderOperationRowStatus]): Current status of the operation
-            type_ (Union[Unset, str]): Type classification of the operation
-            rank (Union[Unset, float]): Order/sequence of this operation within the manufacturing process
-            manufacturing_order_id (Union[Unset, int]): ID of the manufacturing order this operation belongs to
-            operation_id (Union[Unset, int]): ID of the operation template or definition
-            operation_name (Union[Unset, str]): Name of the operation being performed
-            resource_id (Union[Unset, int]): ID of the resource (machine/workstation) used for this operation
-            resource_name (Union[Unset, str]): Name of the resource (machine/workstation) used
-            assigned_operators (Union[Unset, list['Operator']]): Operators assigned to perform this operation
-            completed_by_operators (Union[Unset, list['Operator']]): Operators who have completed work on this operation
-            active_operator_id (Union[Unset, float]): ID of the currently active operator working on this operation
-            planned_time_per_unit (Union[Unset, float]): Planned time per unit for this operation
-            planned_time_parameter (Union[Unset, float]): Parameter for calculating planned time
-            total_actual_time (Union[Unset, float]): Total actual time spent on this operation
-            planned_cost_per_unit (Union[Unset, float]): Planned cost per unit for this operation
-            total_actual_cost (Union[Unset, float]): Total actual cost incurred for this operation
-            cost_per_hour (Union[Unset, float]): Hourly cost rate for this operation
-            cost_parameter (Union[Unset, float]): Parameter for calculating operation costs
-            group_boundary (Union[Unset, float]): Group boundary setting for operation grouping
-            is_status_actionable (Union[Unset, bool]): Whether the current status allows for operator actions
-            completed_at (Union[None, Unset, datetime.datetime]): Date and time when the operation was completed, null if
-                not completed
     """
 
     created_at: Unset | datetime.datetime = UNSET

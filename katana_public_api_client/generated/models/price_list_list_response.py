@@ -27,9 +27,6 @@ class PriceListListResponse:
                 'name': 'Wholesale Rates', 'currency': 'USD', 'is_default': True, 'markup_percentage': 15.0, 'start_date': None,
                 'end_date': None, 'created_at': '2024-01-01T10:05:00Z', 'updated_at': '2024-01-01T10:05:00Z', 'deleted_at':
                 None}]}
-
-        Attributes:
-            data (Union[Unset, list['PriceList']]): Array of price list objects
     """
 
     data: Unset | list["PriceList"] = UNSET

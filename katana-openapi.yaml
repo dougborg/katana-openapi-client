@@ -1052,6 +1052,7 @@ components:
       properties:
         data:
           type: array
+          description: Array of additional cost types that can be applied to orders
           items:
             $ref: "#/components/schemas/AdditionalCost"
       example:
@@ -2699,24 +2700,32 @@ components:
           description: Unit of measure for inventory tracking (e.g., kg, lb, pcs)
         category_name:
           type: string
+          description: Material category for organization and classification
         default_supplier_id:
           type: integer
           maximum: 2147483647
+          description: Primary supplier for purchasing this material
         additional_info:
           type: string
+          description: Additional specifications or notes about the material
         batch_tracked:
           type: boolean
+          description: Whether this material uses batch tracking for quality control
         is_sellable:
           type: boolean
+          description: Whether this material can be sold directly to customers
         purchase_uom:
           type: string
           maxLength: 7
+          description: Unit of measure used when purchasing from suppliers
         purchase_uom_conversion_rate:
           type: number
           maximum: 1000000000000
+          description: Conversion rate from purchase UOM to base UOM
         configs:
           type: array
           minItems: 1
+          description: Material configuration options for creating variants
           items:
             type: object
             additionalProperties: false
@@ -2726,13 +2735,16 @@ components:
             properties:
               name:
                 type: string
+                description: Configuration attribute name (e.g., Grade, Thickness)
               values:
                 type: array
+                description: Available values for this configuration attribute
                 items:
                   type: string
         variants:
           type: array
           minItems: 1
+          description: Material variants with specific configurations and properties
           items:
             $ref: "#/components/schemas/Variant"
       example:
@@ -2751,7 +2763,7 @@ components:
             values: ["304", "316"]
           },
           {
-            name: "Thickness", 
+            name: "Thickness",
             values: ["1.5mm", "2.0mm", "3.0mm"]
           }
         ]
@@ -2912,17 +2924,23 @@ components:
           description: Unit of measure for inventory tracking (e.g., kg, lb, pcs)
         category_name:
           type: string
+          description: Material category for organization and classification
         default_supplier_id:
           type: integer
           maximum: 2147483647
+          description: Primary supplier for purchasing this material
         additional_info:
           type: string
+          description: Additional specifications or notes about the material
         batch_tracked:
           type: boolean
+          description: Whether this material uses batch tracking for quality control
         is_sellable:
           type: boolean
+          description: Whether this material can be sold directly to customers
         is_archived:
           type: boolean
+          description: Whether this material is archived and hidden from active use
         purchase_uom:
           type: string
           maxLength: 7
@@ -2956,6 +2974,7 @@ components:
         custom_field_collection_id:
           type: [integer, "null"]
           maximum: 2147483647
+          description: Reference to custom field collection for additional material data
       example:
         name: "Stainless Steel Sheet 304 - Updated"
         uom: "m²"
@@ -3055,43 +3074,59 @@ components:
         uom:
           type: string
           maxLength: 7
+          description: Base unit of measure for the product (e.g., pcs, kg, m)
         category_name:
           type: string
+          description: Product category for organization and reporting purposes
         is_sellable:
           type: boolean
+          description: Whether this product can be included in sales orders
         is_producible:
           type: boolean
+          description: Whether this product can be manufactured using recipes
         is_purchasable:
           type: boolean
+          description: Whether this product can be purchased from suppliers
         is_auto_assembly:
           type: boolean
+          description: Whether assembly operations are automatically performed when stock is available
         default_supplier_id:
           type: integer
           maximum: 2147483647
+          description: Primary supplier for purchasing this product
         additional_info:
           type: string
+          description: Additional notes or specifications for the product
         batch_tracked:
           type: boolean
+          description: Whether this product uses batch tracking for inventory management
         serial_tracked:
           type: boolean
+          description: Whether this product uses serial number tracking for individual units
         operations_in_sequence:
           type: boolean
+          description: Whether manufacturing operations must be completed in sequence
         purchase_uom:
           type: string
           maxLength: 7
+          description: Unit of measure used when purchasing from suppliers
         purchase_uom_conversion_rate:
           type: number
           maximum: 1000000000000
+          description: Conversion rate from purchase UOM to base UOM
         lead_time:
           type: [integer, "null"]
           maximum: 999
+          description: Expected lead time in days for procurement or production
         minimum_order_quantity:
           type: number
           maximum: 999999999
           minimum: 0
+          description: Minimum quantity that must be ordered from suppliers
         configs:
           type: array
           minItems: 1
+          description: Product configuration options for creating variants
           items:
             type: object
             additionalProperties: false
@@ -3101,16 +3136,20 @@ components:
             properties:
               name:
                 type: string
+                description: Configuration attribute name (e.g., Color, Size)
               values:
                 type: array
+                description: Available values for this configuration attribute
                 items:
                   type: string
         custom_field_collection_id:
           type: [integer, "null"]
           maximum: 2147483647
+          description: Reference to custom field collection for additional product data
         variants:
           type: array
           minItems: 1
+          description: Product variants with specific configurations and properties
           items:
             $ref: "#/components/schemas/Variant"
       example:
@@ -3841,6 +3880,7 @@ components:
           description: Updatable only when status is in NOT_RECEIVED and entity_type is outsourced
         status:
           type: string
+          description: Current status indicating progress of order fulfillment
           enum:
             - NOT_RECEIVED
             - RECEIVED
@@ -3850,6 +3890,7 @@ components:
           description: Updatable only when status is in NOT_RECEIVED or PARTIALLY_RECEIVED. Update will override arrival_date on purchase order rows
         order_created_date:
           type: string
+          description: Date when the purchase order was originally created
         location_id:
           type: integer
           maximum: 2147483647
@@ -4956,45 +4997,58 @@ components:
         product_id:
           type: [integer, "null"]
           maximum: 2147483647
+          description: Reference to the parent product when this is a product variant
         material_id:
           type: [integer, "null"]
           maximum: 2147483647
+          description: Reference to the parent material when this is a material variant
         supplier_item_codes:
           type: array
+          description: Supplier-specific codes for ordering this variant
           items:
             type: string
         internal_barcode:
           type: string
           minLength: 3
           maxLength: 40
+          description: Internal barcode for warehouse operations and tracking
         registered_barcode:
           type: string
           maxLength: 120
+          description: External barcode registered for retail scanning (UPC, EAN)
         lead_time:
           type: [integer, "null"]
           maximum: 999
+          description: Expected lead time in days for procurement or production
         minimum_order_quantity:
           type: number
           minimum: 0
           maximum: 999999999
+          description: Minimum quantity that must be ordered from suppliers
         config_attributes:
           type: array
+          description: Configuration attribute values that define this variant
           items:
             type: object
             properties:
               config_name:
                 type: string
+                description: Name of the configuration attribute
               config_value:
                 type: string
+                description: Value of the configuration attribute for this variant
         custom_fields:
           type: array
+          description: Additional custom field values associated with this variant
           items:
             type: object
             properties:
               field_name:
                 type: string
+                description: Name of the custom field
               field_value:
                 type: string
+                description: Value of the custom field for this variant
       example:
         sku: "KNF-PRO-8PC-UPD"
         sales_price: 319.99
@@ -5792,23 +5846,31 @@ components:
           properties:
             customer_id:
               type: integer
+              description: Unique identifier of the customer placing the order
             order_no:
               type: string
+              description: Unique order number for tracking and reference purposes
             source:
               type: [string, "null"]
+              description: Source system or channel where the order originated (e.g., Shopify, manual entry)
             order_created_date:
               type: string
               format: date-time
+              description: Date and time when the sales order was created in the system
             delivery_date:
               type: [string, "null"]
               format: date-time
+              description: Requested or promised delivery date for the order
             picked_date:
               type: [string, "null"]
               format: date-time
+              description: Date when items were picked from inventory for shipment
             location_id:
               type: integer
+              description: Unique identifier of the fulfillment location for this order
             status:
               type: string
+              description: Current fulfillment status of the sales order
               enum:
                 - NOT_SHIPPED
                 - PARTIALLY_PACKED
@@ -5818,31 +5880,43 @@ components:
                 - PENDING
             currency:
               type: string
+              description: Currency code for the order pricing (ISO 4217 format)
             conversion_rate:
               type: [number, "null"]
+              description: Exchange rate used to convert order currency to base company currency
             conversion_date:
               type: [string, "null"]
               format: date-time
+              description: Date when the currency conversion rate was applied
             invoicing_status:
               type: [string, "null"]
+              description: Current invoicing status indicating billing progress
             total:
               type: number
+              description: Total order amount in the order currency
             total_in_base_currency:
               type: number
+              description: Total order amount converted to the company's base currency
             additional_info:
               type: [string, "null"]
+              description: Additional notes or instructions for the sales order
             customer_ref:
               type: [string, "null"]
+              description: Customer's reference number or purchase order number
             sales_order_rows:
               type: array
+              description: Line items included in the sales order with product details and quantities
               items:
                 $ref: "#/components/schemas/SalesOrderRow"
             ecommerce_order_type:
               type: [string, "null"]
+              description: Type of ecommerce order when imported from external platforms
             ecommerce_store_name:
               type: [string, "null"]
+              description: Name of the ecommerce store when order originated from external platforms
             ecommerce_order_id:
               type: [string, "null"]
+              description: Original order ID from the external ecommerce platform
             product_availability:
               anyOf:
                 - type: string
@@ -5856,6 +5930,7 @@ components:
             product_expected_date:
               type: [string, "null"]
               format: date-time
+              description: Expected date when products will be available for fulfillment
             ingredient_availability:
               anyOf:
                 - type: string
@@ -5870,6 +5945,7 @@ components:
             ingredient_expected_date:
               type: [string, "null"]
               format: date-time
+              description: Expected date when ingredients will be available for production
             production_status:
               anyOf:
                 - type: string
@@ -5881,16 +5957,22 @@ components:
                     - BLOCKED
                     - DONE
                 - type: "null"
+              description: Current status of production for items in this order
             tracking_number:
               type: [string, "null"]
+              description: Shipping carrier tracking number for package tracking
             tracking_number_url:
               type: [string, "null"]
+              description: URL link to track the shipment on carrier website
             billing_address_id:
               type: [integer, "null"]
+              description: Reference to the customer address used for billing
             shipping_address_id:
               type: [integer, "null"]
+              description: Reference to the customer address used for shipping
             addresses:
               type: array
+              description: Complete address information for billing and shipping
               items:
                 $ref: "#/components/schemas/SalesOrderAddress"
           required:
@@ -7195,34 +7277,46 @@ components:
           properties:
             id:
               type: integer
+              description: Unique identifier for the sales return record
             customer_id:
               type: integer
+              description: Unique identifier of the customer making the return
             sales_order_id:
               type: [integer, "null"]
+              description: Reference to the original sales order being returned (if applicable)
             order_no:
               type: string
+              description: Unique return order number for tracking and reference
             return_location_id:
               type: integer
+              description: Location where returned items will be received and processed
             status:
               type: string
+              description: Current processing status of the sales return
               enum:
                 - DRAFT
                 - RETURNED
                 - CANCELLED
             currency:
               type: string
+              description: Currency code for refund amounts (ISO 4217 format)
             return_date:
               type: [string, "null"]
               format: date-time
+              description: Date when the return was processed and items received
             order_created_date:
               type: string
               format: date-time
+              description: Date and time when the return request was created
             additional_info:
               type: [string, "null"]
+              description: Additional notes or comments about the return
             refund_status:
               type: [string, "null"]
+              description: Current status of the refund processing
             sales_return_rows:
               type: array
+              description: Line items being returned with quantities and reasons
               items:
                 $ref: "#/components/schemas/SalesReturnRow"
           required:

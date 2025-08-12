@@ -5,6 +5,9 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.custom_fields_collection_list_response import (
+    CustomFieldsCollectionListResponse,
+)
 from ...models.error_response import ErrorResponse
 from ...types import UNSET, Response, Unset
 
@@ -33,7 +36,11 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | None:
+) -> CustomFieldsCollectionListResponse | ErrorResponse | None:
+    if response.status_code == 200:
+        response_200 = CustomFieldsCollectionListResponse.from_dict(response.json())
+
+        return response_200
     if response.status_code == 401:
         response_401 = ErrorResponse.from_dict(response.json())
 
@@ -54,7 +61,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse]:
+) -> Response[CustomFieldsCollectionListResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -68,7 +75,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[ErrorResponse]:
+) -> Response[CustomFieldsCollectionListResponse | ErrorResponse]:
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -77,12 +84,14 @@ def sync_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+
     Returns:
-        Response[ErrorResponse]
+        Response[Union[CustomFieldsCollectionListResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -102,7 +111,7 @@ def sync(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> ErrorResponse | None:
+) -> CustomFieldsCollectionListResponse | ErrorResponse | None:
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -111,12 +120,14 @@ def sync(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+
     Returns:
-        ErrorResponse
+        Union[CustomFieldsCollectionListResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -131,7 +142,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[ErrorResponse]:
+) -> Response[CustomFieldsCollectionListResponse | ErrorResponse]:
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -140,12 +151,14 @@ async def asyncio_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+
     Returns:
-        Response[ErrorResponse]
+        Response[Union[CustomFieldsCollectionListResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -163,7 +176,7 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> ErrorResponse | None:
+) -> CustomFieldsCollectionListResponse | ErrorResponse | None:
     """List all custom fields collections
 
      Retrieves a list of custom fields collections.
@@ -172,12 +185,14 @@ async def asyncio(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+
     Returns:
-        ErrorResponse
+        Union[CustomFieldsCollectionListResponse, ErrorResponse]
     """
 
     return (

@@ -32,33 +32,6 @@ class Material:
                 {'id': 102, 'name': 'Thickness', 'values': ['1.5mm', '2.0mm', '3.0mm'], 'product_id': 3201}],
                 'custom_field_collection_id': 201, 'supplier': None, 'created_at': '2024-01-10T10:00:00Z', 'updated_at':
                 '2024-01-15T14:30:00Z', 'archived_at': None}
-
-        Attributes:
-            id (int): Unique identifier
-            created_at (Union[Unset, datetime.datetime]):
-            updated_at (Union[Unset, datetime.datetime]):
-            archived_at (Union[None, Unset, str]): Nullable archive timestamp
-            name (Union[Unset, str]): Name of the material
-            uom (Union[Unset, str]): Primary unit of measure for the material (e.g., kg, pcs, m)
-            category_name (Union[Unset, str]): Category classification for organizing materials
-            default_supplier_id (Union[Unset, int]): ID of the default supplier for this material
-            additional_info (Union[Unset, str]): Optional notes or additional information about the material
-            batch_tracked (Union[Unset, bool]): Whether this material requires batch tracking for traceability
-            is_sellable (Union[Unset, bool]): Whether this material can be sold directly as a finished product
-            type_ (Union[Unset, str]): Type classification of the material
-            purchase_uom (Union[Unset, str]): Unit of measure used when purchasing this material from suppliers
-            purchase_uom_conversion_rate (Union[Unset, float]): Conversion rate between purchase UoM and primary UoM
-            variants (Union[Unset, list['Variant']]): Different variants or configurations of this material
-            configs (Union[Unset, list['MaterialConfigsItem']]): Configuration options and attributes for the material
-            custom_field_collection_id (Union[Unset, int]): ID of custom field collection for additional data
-            supplier (Union[Unset, Supplier]): Supplier company or individual providing materials, products, or services for
-                procurement operations Example: {'id': 4001, 'name': 'Premium Kitchen Supplies Ltd', 'email':
-                'orders@premiumkitchen.com', 'phone': '+1-555-0134', 'currency': 'USD', 'comment': 'Primary supplier for kitchen
-                equipment and utensils. Reliable delivery times.', 'default_address_id': 4001, 'created_at':
-                '2023-06-15T08:30:00Z', 'updated_at': '2024-01-15T14:20:00Z', 'deleted_at': None, 'addresses': [{'id': 4001,
-                'company': 'Premium Kitchen Supplies Ltd', 'street': '1250 Industrial Blvd', 'street2': 'Suite 200', 'city':
-                'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'US', 'created_at': '2023-06-15T08:30:00Z', 'updated_at':
-                '2023-06-15T08:30:00Z', 'deleted_at': None}]}.
     """
 
     id: int

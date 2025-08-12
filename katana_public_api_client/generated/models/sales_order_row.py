@@ -52,7 +52,7 @@ class SalesOrderRow:
             price_per_unit (Union[Unset, float]): Selling price per unit in the order currency
             price_per_unit_in_base_currency (Union[Unset, float]): Selling price per unit converted to the base company
                 currency
-            total (Union[Unset, float]): Total line amount (quantity × price_per_unit) in order currency
+            total (Union[Unset, float]): Total line amount (quantity x price_per_unit) in order currency  # noqa: RUF002
             total_in_base_currency (Union[Unset, float]): Total line amount converted to the base company currency
             cogs_value (Union[None, Unset, float]): Cost of goods sold value for this line item
             attributes (Union[Unset, list['SalesOrderRowAttributesItem']]): Custom attributes associated with this sales
@@ -362,7 +362,9 @@ class SalesOrderRow:
 
         serial_numbers = cast(list[int], d.pop("serial_numbers", UNSET))
 
-        def _parse_linked_manufacturing_order_id(data: object) -> None | Unset | int:
+        def _parse_linked_manufacturing_order_id(
+            data: object,
+        ) -> None | Unset | int:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -382,7 +384,9 @@ class SalesOrderRow:
 
         conversion_rate = _parse_conversion_rate(d.pop("conversion_rate", UNSET))
 
-        def _parse_conversion_date(data: object) -> None | Unset | datetime.datetime:
+        def _parse_conversion_date(
+            data: object,
+        ) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):

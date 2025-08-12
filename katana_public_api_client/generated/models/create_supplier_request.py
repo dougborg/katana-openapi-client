@@ -20,14 +20,6 @@ class CreateSupplierRequest:
         {'name': 'Premium Kitchen Supplies Ltd', 'currency': 'USD', 'email': 'orders@premiumkitchen.com', 'phone':
             '+1-555-0134', 'comment': 'Primary supplier for kitchen equipment and utensils', 'addresses': [{'line_1': '1250
             Industrial Blvd', 'line_2': 'Suite 200', 'city': 'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'US'}]}
-
-    Attributes:
-        name (str): Business name of the supplier company or individual
-        currency (Union[Unset, str]): Default currency code for transactions with this supplier (e.g., USD, EUR)
-        email (Union[Unset, str]): Primary email address for supplier communication and order confirmations
-        phone (Union[Unset, str]): Primary phone number for supplier contact and communication
-        comment (Union[Unset, str]): Optional notes or comments about the supplier relationship
-        addresses (Union[Unset, list['SupplierAddressRequest']]): List of addresses to associate with this supplier
     """
 
     name: str

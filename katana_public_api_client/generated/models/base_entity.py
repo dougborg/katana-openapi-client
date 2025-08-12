@@ -15,9 +15,6 @@ class BaseEntity:
 
     Example:
         {'id': 12345}
-
-    Attributes:
-        id (int): Unique identifier
     """
 
     id: int

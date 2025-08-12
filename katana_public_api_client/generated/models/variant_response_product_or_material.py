@@ -22,27 +22,7 @@ T = TypeVar("T", bound="VariantResponseProductOrMaterial")
 
 @_attrs_define
 class VariantResponseProductOrMaterial:
-    """Details of the parent product or material this variant belongs to
-
-    Attributes:
-        id (Union[Unset, int]): Unique identifier of the parent product or material
-        name (Union[Unset, str]): Name of the parent product or material
-        uom (Union[Unset, str]): Unit of measurement
-        category_name (Union[Unset, str]): Category classification
-        is_producible (Union[Unset, bool]): Whether the parent can be manufactured
-        default_supplier_id (Union[Unset, int]): Primary supplier ID
-        is_purchasable (Union[Unset, bool]): Whether the parent can be purchased
-        type_ (Union[Unset, str]): Type classification (product/material)
-        purchase_uom (Union[Unset, str]): Purchase unit of measurement
-        purchase_uom_conversion_rate (Union[Unset, float]): Conversion rate for purchase UOM
-        batch_tracked (Union[Unset, bool]): Whether batch tracking is enabled
-        configs (Union[Unset, list['VariantResponseProductOrMaterialConfigsItem']]): Configuration definitions for
-            variants
-        additional_info (Union[Unset, str]): Additional notes or specifications
-        created_at (Union[Unset, datetime.datetime]): Creation timestamp
-        updated_at (Union[Unset, datetime.datetime]): Last update timestamp
-        variants (Union[Unset, list['Variant']]): All variants of this product or material
-    """
+    """Details of the parent product or material this variant belongs to"""
 
     id: Unset | int = UNSET
     name: Unset | str = UNSET

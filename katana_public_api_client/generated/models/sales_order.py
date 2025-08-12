@@ -53,38 +53,46 @@ class SalesOrder:
 
     Attributes:
         id (int): Unique identifier
-        customer_id (int):
-        order_no (str):
-        location_id (int):
-        status (SalesOrderStatus):
+        customer_id (int): Unique identifier of the customer placing the order
+        order_no (str): Unique order number for tracking and reference purposes
+        location_id (int): Unique identifier of the fulfillment location for this order
+        status (SalesOrderStatus): Current fulfillment status of the sales order
         created_at (Union[Unset, datetime.datetime]):
         updated_at (Union[Unset, datetime.datetime]):
-        source (Union[None, Unset, str]):
-        order_created_date (Union[Unset, datetime.datetime]):
-        delivery_date (Union[None, Unset, datetime.datetime]):
-        picked_date (Union[None, Unset, datetime.datetime]):
-        currency (Union[Unset, str]):
-        conversion_rate (Union[None, Unset, float]):
-        conversion_date (Union[None, Unset, datetime.datetime]):
-        invoicing_status (Union[None, Unset, str]):
-        total (Union[Unset, float]):
-        total_in_base_currency (Union[Unset, float]):
-        additional_info (Union[None, Unset, str]):
-        customer_ref (Union[None, Unset, str]):
-        sales_order_rows (Union[Unset, list['SalesOrderRow']]):
-        ecommerce_order_type (Union[None, Unset, str]):
-        ecommerce_store_name (Union[None, Unset, str]):
-        ecommerce_order_id (Union[None, Unset, str]):
+        source (Union[None, Unset, str]): Source system or channel where the order originated (e.g., Shopify, manual
+            entry)
+        order_created_date (Union[Unset, datetime.datetime]): Date and time when the sales order was created in the
+            system
+        delivery_date (Union[None, Unset, datetime.datetime]): Requested or promised delivery date for the order
+        picked_date (Union[None, Unset, datetime.datetime]): Date when items were picked from inventory for shipment
+        currency (Union[Unset, str]): Currency code for the order pricing (ISO 4217 format)
+        conversion_rate (Union[None, Unset, float]): Exchange rate used to convert order currency to base company
+            currency
+        conversion_date (Union[None, Unset, datetime.datetime]): Date when the currency conversion rate was applied
+        invoicing_status (Union[None, Unset, str]): Current invoicing status indicating billing progress
+        total (Union[Unset, float]): Total order amount in the order currency
+        total_in_base_currency (Union[Unset, float]): Total order amount converted to the company's base currency
+        additional_info (Union[None, Unset, str]): Additional notes or instructions for the sales order
+        customer_ref (Union[None, Unset, str]): Customer's reference number or purchase order number
+        sales_order_rows (Union[Unset, list['SalesOrderRow']]): Line items included in the sales order with product
+            details and quantities
+        ecommerce_order_type (Union[None, Unset, str]): Type of ecommerce order when imported from external platforms
+        ecommerce_store_name (Union[None, Unset, str]): Name of the ecommerce store when order originated from external
+            platforms
+        ecommerce_order_id (Union[None, Unset, str]): Original order ID from the external ecommerce platform
         product_availability (Union[None, SalesOrderProductAvailabilityType0, Unset]):
-        product_expected_date (Union[None, Unset, datetime.datetime]):
+        product_expected_date (Union[None, Unset, datetime.datetime]): Expected date when products will be available for
+            fulfillment
         ingredient_availability (Union[None, SalesOrderIngredientAvailabilityType0, Unset]):
-        ingredient_expected_date (Union[None, Unset, datetime.datetime]):
-        production_status (Union[None, SalesOrderProductionStatusType0, Unset]):
-        tracking_number (Union[None, Unset, str]):
-        tracking_number_url (Union[None, Unset, str]):
-        billing_address_id (Union[None, Unset, int]):
-        shipping_address_id (Union[None, Unset, int]):
-        addresses (Union[Unset, list['SalesOrderAddress']]):
+        ingredient_expected_date (Union[None, Unset, datetime.datetime]): Expected date when ingredients will be
+            available for production
+        production_status (Union[None, SalesOrderProductionStatusType0, Unset]): Current status of production for items
+            in this order
+        tracking_number (Union[None, Unset, str]): Shipping carrier tracking number for package tracking
+        tracking_number_url (Union[None, Unset, str]): URL link to track the shipment on carrier website
+        billing_address_id (Union[None, Unset, int]): Reference to the customer address used for billing
+        shipping_address_id (Union[None, Unset, int]): Reference to the customer address used for shipping
+        addresses (Union[Unset, list['SalesOrderAddress']]): Complete address information for billing and shipping
     """
 
     id: int
@@ -466,7 +474,9 @@ class SalesOrder:
 
         conversion_rate = _parse_conversion_rate(d.pop("conversion_rate", UNSET))
 
-        def _parse_conversion_date(data: object) -> None | Unset | datetime.datetime:
+        def _parse_conversion_date(
+            data: object,
+        ) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):

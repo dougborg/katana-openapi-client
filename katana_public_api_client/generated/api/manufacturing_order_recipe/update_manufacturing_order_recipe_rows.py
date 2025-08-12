@@ -83,11 +83,17 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRecipeRowRequest):
+        body (UpdateManufacturingOrderRecipeRowRequest): Request payload for updating a
+            manufacturing order recipe row with actual consumption data and revised requirements
+            Example: {'notes': 'Used organic ingredients as requested by customer',
+            'planned_quantity_per_unit': 0.3, 'total_actual_quantity': 6.2, 'ingredient_availability':
+            'AVAILABLE', 'ingredient_expected_date': '2023-10-15T08:00:00Z', 'batch_transactions':
+            [{'batch_id': 301, 'quantity': 3.5}, {'batch_id': 302, 'quantity': 2.7}], 'cost': 15.25}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[ErrorResponse, ManufacturingOrderRecipeRow]]
@@ -119,11 +125,17 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRecipeRowRequest):
+        body (UpdateManufacturingOrderRecipeRowRequest): Request payload for updating a
+            manufacturing order recipe row with actual consumption data and revised requirements
+            Example: {'notes': 'Used organic ingredients as requested by customer',
+            'planned_quantity_per_unit': 0.3, 'total_actual_quantity': 6.2, 'ingredient_availability':
+            'AVAILABLE', 'ingredient_expected_date': '2023-10-15T08:00:00Z', 'batch_transactions':
+            [{'batch_id': 301, 'quantity': 3.5}, {'batch_id': 302, 'quantity': 2.7}], 'cost': 15.25}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[ErrorResponse, ManufacturingOrderRecipeRow]
@@ -150,11 +162,17 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRecipeRowRequest):
+        body (UpdateManufacturingOrderRecipeRowRequest): Request payload for updating a
+            manufacturing order recipe row with actual consumption data and revised requirements
+            Example: {'notes': 'Used organic ingredients as requested by customer',
+            'planned_quantity_per_unit': 0.3, 'total_actual_quantity': 6.2, 'ingredient_availability':
+            'AVAILABLE', 'ingredient_expected_date': '2023-10-15T08:00:00Z', 'batch_transactions':
+            [{'batch_id': 301, 'quantity': 3.5}, {'batch_id': 302, 'quantity': 2.7}], 'cost': 15.25}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[ErrorResponse, ManufacturingOrderRecipeRow]]
@@ -184,11 +202,17 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRecipeRowRequest):
+        body (UpdateManufacturingOrderRecipeRowRequest): Request payload for updating a
+            manufacturing order recipe row with actual consumption data and revised requirements
+            Example: {'notes': 'Used organic ingredients as requested by customer',
+            'planned_quantity_per_unit': 0.3, 'total_actual_quantity': 6.2, 'ingredient_availability':
+            'AVAILABLE', 'ingredient_expected_date': '2023-10-15T08:00:00Z', 'batch_transactions':
+            [{'batch_id': 301, 'quantity': 3.5}, {'batch_id': 302, 'quantity': 2.7}], 'cost': 15.25}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[ErrorResponse, ManufacturingOrderRecipeRow]

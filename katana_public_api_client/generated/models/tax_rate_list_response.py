@@ -25,9 +25,6 @@ class TaxRateListResponse:
                 'display_name': 'VAT (20.0%)', 'created_at': '2024-01-15T09:30:00Z', 'updated_at': '2024-01-15T09:30:00Z'},
                 {'id': 302, 'name': 'VAT 5%', 'rate': 5.0, 'is_default_sales': False, 'is_default_purchases': True,
                 'display_name': 'VAT (5.0%)', 'created_at': '2024-01-15T09:35:00Z', 'updated_at': '2024-01-15T09:35:00Z'}]}
-
-        Attributes:
-            data (Union[Unset, list['TaxRate']]): Array of tax rate objects
     """
 
     data: Unset | list["TaxRate"] = UNSET

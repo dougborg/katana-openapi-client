@@ -15,20 +15,6 @@ T = TypeVar("T", bound="SalesReturnRow")
 
 @_attrs_define
 class SalesReturnRow:
-    """
-    Attributes:
-        id (int):
-        sales_return_id (int):
-        variant_id (int):
-        quantity (float):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        return_reason_id (Union[None, Unset, int]):
-        notes (Union[None, Unset, str]):
-        unit_price (Union[None, Unset, float]):
-        total_price (Union[None, Unset, float]):
-    """
-
     id: int
     sales_return_id: int
     variant_id: int

@@ -27,9 +27,6 @@ class WebhookListResponse:
             'https://reporting.company.com/katana-events', 'token': 'whk_live_xyz789', 'enabled': False, 'description':
             'Business intelligence reporting', 'subscribed_events': ['manufacturing_order.completed',
             'purchase_order.received'], 'created_at': '2024-01-12T14:00:00Z', 'updated_at': '2024-01-14T16:45:00Z'}]}
-
-    Attributes:
-        data (Union[Unset, list['Webhook']]): Array of webhook configurations with their subscription details and status
     """
 
     data: Unset | list["Webhook"] = UNSET

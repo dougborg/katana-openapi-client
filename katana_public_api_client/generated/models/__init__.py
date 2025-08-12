@@ -73,6 +73,10 @@ from .create_variant_request_custom_fields_item import (
     CreateVariantRequestCustomFieldsItem,
 )
 from .create_webhook_request import CreateWebhookRequest
+from .custom_field import CustomField
+from .custom_fields_collection import CustomFieldsCollection
+from .custom_fields_collection_list_response import CustomFieldsCollectionListResponse
+from .custom_fields_collection_resource_type import CustomFieldsCollectionResourceType
 from .customer import Customer
 from .customer_address import CustomerAddress
 from .customer_address_entity_type import CustomerAddressEntityType
@@ -411,6 +415,10 @@ __all__ = (
     "CreateVariantRequestConfigAttributesItem",
     "CreateVariantRequestCustomFieldsItem",
     "CreateWebhookRequest",
+    "CustomField",
+    "CustomFieldsCollection",
+    "CustomFieldsCollectionListResponse",
+    "CustomFieldsCollectionResourceType",
     "Customer",
     "CustomerAddress",
     "CustomerAddressEntityType",

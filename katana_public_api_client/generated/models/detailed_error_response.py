@@ -17,15 +17,6 @@ T = TypeVar("T", bound="DetailedErrorResponse")
 
 @_attrs_define
 class DetailedErrorResponse:
-    """
-    Attributes:
-        status_code (Union[Unset, float]): HTTP status code
-        name (Union[Unset, str]): Error name/type
-        message (Union[Unset, str]): Human-readable error message
-        code (Union[None, Unset, str]): Application-specific error code
-        details (Union[Unset, list['ValidationErrorDetail']]): Detailed validation error information
-    """
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

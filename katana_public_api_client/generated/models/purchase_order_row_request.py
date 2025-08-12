@@ -15,15 +15,6 @@ class PurchaseOrderRowRequest:
     Example:
         {'quantity': 250, 'price_per_unit': 2.85, 'variant_id': 501, 'tax_rate_id': 1, 'purchase_uom': 'kg',
             'purchase_uom_conversion_rate': 1.0}
-
-    Attributes:
-        quantity (float): Quantity of items to order for this purchase order line
-        price_per_unit (float): Unit price for each item in this purchase order line
-        variant_id (int): Unique identifier of the product variant being ordered
-        tax_rate_id (Union[Unset, int]): Tax rate identifier to apply to this line item
-        purchase_uom_conversion_rate (Union[Unset, float]): Conversion rate between purchase unit of measure and base
-            unit
-        purchase_uom (Union[Unset, str]): Unit of measure for purchasing this item (e.g., kg, pieces, liters)
     """
 
     quantity: float

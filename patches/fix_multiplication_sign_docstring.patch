@@ -1,0 +1,11 @@
+--- a/katana_public_api_client/generated/models/sales_order_row.py
++++ b/katana_public_api_client/generated/models/sales_order_row.py
+@@ -52,7 +52,7 @@ class SalesOrderRow:
+             price_per_unit (Union[Unset, float]): Selling price per unit in the order currency
+             price_per_unit_in_base_currency (Union[Unset, float]): Selling price per unit converted to the base company
+                 currency
+-            total (Union[Unset, float]): Total line amount (quantity × price_per_unit) in order currency
++            total (Union[Unset, float]): Total line amount (quantity x price_per_unit) in order currency  # noqa: RUF002
+             total_in_base_currency (Union[Unset, float]): Total line amount converted to the base company currency
+             cogs_value (Union[None, Unset, float]): Cost of goods sold value for this line item
+             attributes (Union[Unset, list['SalesOrderRowAttributesItem']]): Custom attributes associated with this sales

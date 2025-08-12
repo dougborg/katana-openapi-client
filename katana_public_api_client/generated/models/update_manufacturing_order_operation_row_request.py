@@ -17,10 +17,10 @@ T = TypeVar("T", bound="UpdateManufacturingOrderOperationRowRequest")
 
 @_attrs_define
 class UpdateManufacturingOrderOperationRowRequest:
-    """
-    Attributes:
-        completed_by_operators (Union[Unset, list['Operator']]):
-        total_actual_time (Union[Unset, float]):
+    """Request payload for updating a manufacturing order operation row with actual completion data
+
+    Example:
+        {'completed_by_operators': [{'id': 101, 'name': 'John Smith'}], 'total_actual_time': 52.3}
     """
 
     completed_by_operators: Unset | list["Operator"] = UNSET

@@ -82,9 +82,11 @@ def sync_detailed(
             directly from a sales order row, linking production to customer demand for make-to-order
             manufacturing. Example: {'sales_order_row_id': 2501, 'create_subassemblies': True}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[ErrorResponse, ManufacturingOrder]]
@@ -115,9 +117,11 @@ def sync(
             directly from a sales order row, linking production to customer demand for make-to-order
             manufacturing. Example: {'sales_order_row_id': 2501, 'create_subassemblies': True}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[ErrorResponse, ManufacturingOrder]
@@ -143,9 +147,11 @@ async def asyncio_detailed(
             directly from a sales order row, linking production to customer demand for make-to-order
             manufacturing. Example: {'sales_order_row_id': 2501, 'create_subassemblies': True}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[ErrorResponse, ManufacturingOrder]]
@@ -174,9 +180,11 @@ async def asyncio(
             directly from a sales order row, linking production to customer demand for make-to-order
             manufacturing. Example: {'sales_order_row_id': 2501, 'create_subassemblies': True}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[ErrorResponse, ManufacturingOrder]

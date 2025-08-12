@@ -26,9 +26,6 @@ class MaterialListResponse:
             2.0, 'variants': [], 'configs': [{'id': 101, 'name': 'Grade', 'values': ['304', '316'], 'product_id': 3201}],
             'custom_field_collection_id': 201, 'supplier': None, 'created_at': '2024-01-10T10:00:00Z', 'updated_at':
             '2024-01-15T14:30:00Z', 'archived_at': None}]}
-
-    Attributes:
-        data (Union[Unset, list['Material']]): Array of materials including raw materials and components
     """
 
     data: Unset | list["Material"] = UNSET

@@ -15,18 +15,6 @@ T = TypeVar("T", bound="Operator")
 
 @_attrs_define
 class Operator:
-    """
-    Attributes:
-        id (int):
-        name (str):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
-        operator_id (Union[Unset, int]):
-        working_area (Union[None, Unset, str]):
-        resource_id (Union[None, Unset, int]):
-    """
-
     id: int
     name: str
     created_at: Unset | datetime.datetime = UNSET

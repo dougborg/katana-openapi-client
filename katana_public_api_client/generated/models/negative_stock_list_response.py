@@ -24,10 +24,6 @@ class NegativeStockListResponse:
             'quantity_on_hand': -15.0, 'quantity_allocated': 25.0}, {'variant_id': 3003, 'location_id': 2,
             'latest_negative_stock_date': '2024-01-16T09:45:00.000Z', 'quantity_on_hand': -5.0, 'quantity_allocated':
             10.0}]}
-
-    Attributes:
-        data (Union[Unset, list['NegativeStock']]): Array of negative stock records with variant, location, and deficit
-            information
     """
 
     data: Unset | list["NegativeStock"] = UNSET

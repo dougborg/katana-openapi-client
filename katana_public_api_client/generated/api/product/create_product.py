@@ -82,11 +82,22 @@ def sync_detailed(
 
     Args:
         body (CreateProductRequest): Request payload for creating a new finished product with
-            variants, configurations, and manufacturing specifications
+            variants, configurations, and manufacturing specifications Example: {'name': 'Professional
+            Kitchen Knife Set', 'uom': 'set', 'category_name': 'Kitchen Equipment', 'is_sellable':
+            True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly': False,
+            'additional_info': 'High-quality steel construction with ergonomic handles',
+            'batch_tracked': False, 'serial_tracked': True, 'operations_in_sequence': True,
+            'lead_time': 14, 'minimum_order_quantity': 1, 'configs': [{'name': 'Piece Count',
+            'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values':
+            ['Steel', 'Wooden', 'Composite']}], 'variants': [{'sku': 'KNF-PRO-8PC-STL', 'sales_price':
+            299.99, 'purchase_price': 150.0, 'config_attributes': [{'config_name': 'Piece Count',
+            'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            'Steel'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, Product]]
@@ -114,11 +125,22 @@ def sync(
 
     Args:
         body (CreateProductRequest): Request payload for creating a new finished product with
-            variants, configurations, and manufacturing specifications
+            variants, configurations, and manufacturing specifications Example: {'name': 'Professional
+            Kitchen Knife Set', 'uom': 'set', 'category_name': 'Kitchen Equipment', 'is_sellable':
+            True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly': False,
+            'additional_info': 'High-quality steel construction with ergonomic handles',
+            'batch_tracked': False, 'serial_tracked': True, 'operations_in_sequence': True,
+            'lead_time': 14, 'minimum_order_quantity': 1, 'configs': [{'name': 'Piece Count',
+            'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values':
+            ['Steel', 'Wooden', 'Composite']}], 'variants': [{'sku': 'KNF-PRO-8PC-STL', 'sales_price':
+            299.99, 'purchase_price': 150.0, 'config_attributes': [{'config_name': 'Piece Count',
+            'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            'Steel'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, Product]
@@ -141,11 +163,22 @@ async def asyncio_detailed(
 
     Args:
         body (CreateProductRequest): Request payload for creating a new finished product with
-            variants, configurations, and manufacturing specifications
+            variants, configurations, and manufacturing specifications Example: {'name': 'Professional
+            Kitchen Knife Set', 'uom': 'set', 'category_name': 'Kitchen Equipment', 'is_sellable':
+            True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly': False,
+            'additional_info': 'High-quality steel construction with ergonomic handles',
+            'batch_tracked': False, 'serial_tracked': True, 'operations_in_sequence': True,
+            'lead_time': 14, 'minimum_order_quantity': 1, 'configs': [{'name': 'Piece Count',
+            'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values':
+            ['Steel', 'Wooden', 'Composite']}], 'variants': [{'sku': 'KNF-PRO-8PC-STL', 'sales_price':
+            299.99, 'purchase_price': 150.0, 'config_attributes': [{'config_name': 'Piece Count',
+            'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            'Steel'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, Product]]
@@ -171,11 +204,22 @@ async def asyncio(
 
     Args:
         body (CreateProductRequest): Request payload for creating a new finished product with
-            variants, configurations, and manufacturing specifications
+            variants, configurations, and manufacturing specifications Example: {'name': 'Professional
+            Kitchen Knife Set', 'uom': 'set', 'category_name': 'Kitchen Equipment', 'is_sellable':
+            True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly': False,
+            'additional_info': 'High-quality steel construction with ergonomic handles',
+            'batch_tracked': False, 'serial_tracked': True, 'operations_in_sequence': True,
+            'lead_time': 14, 'minimum_order_quantity': 1, 'configs': [{'name': 'Piece Count',
+            'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values':
+            ['Steel', 'Wooden', 'Composite']}], 'variants': [{'sku': 'KNF-PRO-8PC-STL', 'sales_price':
+            299.99, 'purchase_price': 150.0, 'config_attributes': [{'config_name': 'Piece Count',
+            'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            'Steel'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, Product]

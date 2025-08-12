@@ -85,11 +85,15 @@ def sync_detailed(
 
     Args:
         service_id (str):
-        body (ServiceRequest):
+        body (ServiceRequest): Request payload for creating or updating service records with
+            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
+            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
+            'price': 150.0, 'currency': 'USD'}}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, Service]]
@@ -120,11 +124,15 @@ def sync(
 
     Args:
         service_id (str):
-        body (ServiceRequest):
+        body (ServiceRequest): Request payload for creating or updating service records with
+            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
+            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
+            'price': 150.0, 'currency': 'USD'}}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, Service]
@@ -150,11 +158,15 @@ async def asyncio_detailed(
 
     Args:
         service_id (str):
-        body (ServiceRequest):
+        body (ServiceRequest): Request payload for creating or updating service records with
+            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
+            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
+            'price': 150.0, 'currency': 'USD'}}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, Service]]
@@ -183,11 +195,15 @@ async def asyncio(
 
     Args:
         service_id (str):
-        body (ServiceRequest):
+        body (ServiceRequest): Request payload for creating or updating service records with
+            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
+            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
+            'price': 150.0, 'currency': 'USD'}}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, Service]

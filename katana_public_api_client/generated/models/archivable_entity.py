@@ -19,11 +19,6 @@ class ArchivableEntity:
 
     Example:
         {'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'archived_at': None}
-
-    Attributes:
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        archived_at (Union[None, Unset, str]): Nullable archive timestamp
     """
 
     created_at: Unset | datetime.datetime = UNSET

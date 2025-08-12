@@ -25,10 +25,6 @@ class SerialNumberStockListResponse:
             '2024-01-15T08:00:00.000Z'}, {'id': 6002, 'serial_number': 'KNF001234568', 'variant_id': 3001, 'location_id': 1,
             'quantity_on_hand': 1.0, 'status': 'ALLOCATED', 'created_at': '2024-01-15T08:30:00.000Z', 'updated_at':
             '2024-01-16T10:15:00.000Z'}]}
-
-    Attributes:
-        data (Union[Unset, list['SerialNumberStock']]): Array of serial number stock records with location and status
-            details
     """
 
     data: Unset | list["SerialNumberStock"] = UNSET

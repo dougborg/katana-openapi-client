@@ -17,9 +17,12 @@ T = TypeVar("T", bound="ServiceListResponse")
 
 @_attrs_define
 class ServiceListResponse:
-    """
-    Attributes:
-        data (Union[Unset, list['Service']]):
+    """Response containing a list of services available for purchase orders and operations
+
+    Example:
+        {'data': [{'id': 401, 'name': 'Assembly Service', 'price': 150.0, 'currency': 'USD', 'tax_rate_id': 1,
+            'description': 'Professional product assembly service', 'created_at': '2023-10-01T09:00:00Z', 'updated_at':
+            '2023-10-01T09:00:00Z'}]}
     """
 
     data: Unset | list["Service"] = UNSET

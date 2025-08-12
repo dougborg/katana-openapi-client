@@ -107,11 +107,14 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderProductionIngredientRequest):
+        body (UpdateManufacturingOrderProductionIngredientRequest): Request payload for updating
+            ingredient consumption data in a manufacturing order production batch Example:
+            {'quantity': 3.2, 'production_date': '2023-10-15T11:15:00Z', 'cost': 15.75}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrderProductionIngredientResponse]]
@@ -150,11 +153,14 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderProductionIngredientRequest):
+        body (UpdateManufacturingOrderProductionIngredientRequest): Request payload for updating
+            ingredient consumption data in a manufacturing order production batch Example:
+            {'quantity': 3.2, 'production_date': '2023-10-15T11:15:00Z', 'cost': 15.75}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrderProductionIngredientResponse]
@@ -187,11 +193,14 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderProductionIngredientRequest):
+        body (UpdateManufacturingOrderProductionIngredientRequest): Request payload for updating
+            ingredient consumption data in a manufacturing order production batch Example:
+            {'quantity': 3.2, 'production_date': '2023-10-15T11:15:00Z', 'cost': 15.75}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrderProductionIngredientResponse]]
@@ -228,11 +237,14 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderProductionIngredientRequest):
+        body (UpdateManufacturingOrderProductionIngredientRequest): Request payload for updating
+            ingredient consumption data in a manufacturing order production batch Example:
+            {'quantity': 3.2, 'production_date': '2023-10-15T11:15:00Z', 'cost': 15.75}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrderProductionIngredientResponse]

@@ -26,10 +26,6 @@ class VariantDefaultStorageBinLinkListResponse:
             '2024-01-15T08:00:00.000Z', 'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}, {'id': 502,
             'bin_name': 'A-02-SHELF-1', 'variant_id': 3002, 'storage_bin_id': 12346, 'created_at':
             '2024-01-16T09:00:00.000Z', 'updated_at': '2024-01-16T09:00:00.000Z', 'deleted_at': None}]}
-
-    Attributes:
-        data (Union[Unset, list['VariantDefaultStorageBinLinkResponse']]): Array of variant-storage bin links with
-            location assignments
     """
 
     data: Unset | list["VariantDefaultStorageBinLinkResponse"] = UNSET

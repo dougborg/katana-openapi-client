@@ -29,23 +29,6 @@ class ManufacturingOrderRecipeRow:
                 'planned_quantity_per_unit': 2.5, 'total_actual_quantity': 125.0, 'ingredient_availability': 'AVAILABLE',
                 'ingredient_expected_date': None, 'batch_transactions': [{'batch_id': 1201, 'quantity': 125.0}], 'cost': 437.5,
                 'created_at': '2024-01-15T08:00:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}
-
-        Attributes:
-            created_at (Union[Unset, datetime.datetime]):
-            updated_at (Union[Unset, datetime.datetime]):
-            deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
-            id (Union[Unset, int]):
-            manufacturing_order_id (Union[Unset, int]): ID of the manufacturing order this recipe row belongs to
-            variant_id (Union[Unset, int]): ID of the ingredient variant required for production
-            notes (Union[Unset, str]): Additional notes about this ingredient or special handling instructions
-            planned_quantity_per_unit (Union[Unset, float]): Planned quantity of this ingredient needed per unit produced
-            total_actual_quantity (Union[Unset, float]): Total actual quantity of this ingredient consumed
-            ingredient_availability (Union[Unset, str]): Current availability status of this ingredient
-            ingredient_expected_date (Union[Unset, datetime.datetime]): Expected date when ingredient will be available if
-                currently unavailable
-            batch_transactions (Union[Unset, list['ManufacturingOrderRecipeRowBatchTransactionsItem']]): Batch tracking
-                transactions for this ingredient consumption
-            cost (Union[Unset, float]): Total cost of this ingredient for the manufacturing order
     """
 
     created_at: Unset | datetime.datetime = UNSET

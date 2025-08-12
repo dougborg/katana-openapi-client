@@ -13,14 +13,6 @@ T = TypeVar("T", bound="ProductConfigsItem")
 
 @_attrs_define
 class ProductConfigsItem:
-    """
-    Attributes:
-        id (Union[Unset, int]): Unique identifier for the configuration attribute
-        name (Union[Unset, str]): Name of the configuration attribute (e.g., Size, Color)
-        values (Union[Unset, list[str]]): Available values for this configuration attribute
-        product_id (Union[Unset, int]): ID of the product this configuration belongs to
-    """
-
     id: Unset | int = UNSET
     name: Unset | str = UNSET
     values: Unset | list[str] = UNSET

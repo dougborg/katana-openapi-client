@@ -13,10 +13,10 @@ T = TypeVar("T", bound="ProductOperationRerank")
 
 @_attrs_define
 class ProductOperationRerank:
-    """
-    Attributes:
-        message (Union[Unset, str]):
-        success (Union[Unset, bool]):
+    """Response confirming the success of a product operation reordering request
+
+    Example:
+        {'message': 'Product operation successfully reordered', 'success': True}
     """
 
     message: Unset | str = UNSET

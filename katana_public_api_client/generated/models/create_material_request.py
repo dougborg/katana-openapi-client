@@ -24,19 +24,6 @@ class CreateMaterialRequest:
             1501, 'additional_info': 'Food-grade stainless steel, 1.5mm thickness', 'batch_tracked': True, 'is_sellable':
             False, 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'name': 'Grade', 'values':
             ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm', '3.0mm']}], 'variants': []}
-
-    Attributes:
-        name (str): Display name for the material used in inventory and manufacturing
-        variants (list['Variant']):
-        uom (Union[Unset, str]): Unit of measure for inventory tracking (e.g., kg, lb, pcs)
-        category_name (Union[Unset, str]):
-        default_supplier_id (Union[Unset, int]):
-        additional_info (Union[Unset, str]):
-        batch_tracked (Union[Unset, bool]):
-        is_sellable (Union[Unset, bool]):
-        purchase_uom (Union[Unset, str]):
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        configs (Union[Unset, list['CreateMaterialRequestConfigsItem']]):
     """
 
     name: str

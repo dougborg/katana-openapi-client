@@ -19,20 +19,14 @@ T = TypeVar("T", bound="UpdateVariantRequest")
 
 @_attrs_define
 class UpdateVariantRequest:
-    """
-    Attributes:
-        sku (Union[Unset, str]): Stock keeping unit code for unique identification of this product variant
-        sales_price (Union[Unset, float]): Default selling price per unit for this product variant
-        purchase_price (Union[Unset, float]): Default purchase cost per unit for this product variant
-        product_id (Union[None, Unset, int]):
-        material_id (Union[None, Unset, int]):
-        supplier_item_codes (Union[Unset, list[str]]):
-        internal_barcode (Union[Unset, str]):
-        registered_barcode (Union[Unset, str]):
-        lead_time (Union[None, Unset, int]):
-        minimum_order_quantity (Union[Unset, float]):
-        config_attributes (Union[Unset, list['UpdateVariantRequestConfigAttributesItem']]):
-        custom_fields (Union[Unset, list['UpdateVariantRequestCustomFieldsItem']]):
+    """Request payload for updating product variant details including pricing, configuration, and inventory information
+
+    Example:
+        {'sku': 'KNF-PRO-8PC-UPD', 'sales_price': 319.99, 'purchase_price': 160.0, 'product_id': 101, 'material_id':
+            None, 'supplier_item_codes': ['SUP-KNF-8PC-002'], 'internal_barcode': 'INT-KNF-002', 'registered_barcode':
+            '789123456790', 'lead_time': 5, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece
+            Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value': 'Premium Steel'}],
+            'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '7 years'}]}
     """
 
     sku: Unset | str = UNSET

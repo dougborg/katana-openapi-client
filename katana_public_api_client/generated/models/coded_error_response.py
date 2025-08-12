@@ -13,14 +13,6 @@ T = TypeVar("T", bound="CodedErrorResponse")
 
 @_attrs_define
 class CodedErrorResponse:
-    """
-    Attributes:
-        status_code (Union[Unset, float]): HTTP status code
-        name (Union[Unset, str]): Error name/type
-        message (Union[Unset, str]): Human-readable error message
-        code (Union[None, Unset, str]): Application-specific error code
-    """
-
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

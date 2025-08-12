@@ -27,28 +27,6 @@ class UpdateProductRequest:
                 'purchase_uom_conversion_rate': 1.0, 'custom_field_collection_id': 5, 'configs': [{'name': 'Piece Count',
                 'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values': ['Wood', 'Steel',
                 'Composite']}]}
-
-        Attributes:
-            name (Union[Unset, str]): Display name for the finished product used in sales and manufacturing
-            uom (Union[Unset, str]): Unit of measurement for the product (e.g., pcs, kg, m)
-            category_name (Union[Unset, str]): Product category for organizational grouping and reporting
-            is_sellable (Union[Unset, bool]): Whether this product can be sold to customers
-            is_producible (Union[Unset, bool]): Whether this product can be manufactured in-house
-            is_purchasable (Union[Unset, bool]): Whether this product can be purchased from suppliers
-            is_auto_assembly (Union[Unset, bool]): Whether the product should be automatically assembled when components are
-                available
-            default_supplier_id (Union[Unset, int]): Primary supplier ID for purchasing this product
-            additional_info (Union[Unset, str]): Additional notes or specifications for the product
-            batch_tracked (Union[Unset, bool]): Whether inventory movements are tracked by batch numbers
-            serial_tracked (Union[Unset, bool]): Whether inventory movements are tracked by individual serial numbers
-            operations_in_sequence (Union[Unset, bool]): Whether manufacturing operations must be completed in a specific
-                sequence
-            purchase_uom (Union[Unset, str]): Unit of measurement used when purchasing from suppliers
-            purchase_uom_conversion_rate (Union[Unset, float]): Conversion rate between base UOM and purchase UOM
-            configs (Union[Unset, list['UpdateProductRequestConfigsItem']]): Configuration attributes that define variant
-                combinations (size, color, etc.)
-            custom_field_collection_id (Union[None, Unset, int]): ID of the custom field collection associated with this
-                product
     """
 
     name: Unset | str = UNSET

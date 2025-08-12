@@ -23,11 +23,6 @@ class Service:
     Example:
         {'id': 'srv_abc123', 'type': 'services', 'attributes': {'name': 'CNC Machining Service', 'description':
             'Precision CNC machining for metal components', 'active': True}}
-
-    Attributes:
-        id (Union[Unset, str]): Unique identifier of the Service.
-        type_ (Union[Unset, ServiceType]): Resource type - always 'services'.
-        attributes (Union[Unset, ServiceAttributes]):
     """
 
     id: Unset | str = UNSET

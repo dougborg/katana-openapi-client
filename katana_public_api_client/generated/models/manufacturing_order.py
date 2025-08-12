@@ -32,33 +32,6 @@ class ManufacturingOrder:
                 'sales_order_delivery_deadline': '2024-01-30T12:00:00Z', 'material_cost': 8750.0, 'subassemblies_cost': 2250.0,
                 'operations_cost': 1500.0, 'serial_numbers': ['PKS-001-240115', 'PKS-002-240115', 'PKS-003-240115'],
                 'created_at': '2024-01-15T08:00:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}
-
-        Attributes:
-            created_at (Union[Unset, datetime.datetime]):
-            updated_at (Union[Unset, datetime.datetime]):
-            deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
-            id (Union[Unset, int]):
-            status (Union[Unset, ManufacturingOrderStatus]): Current production status of the manufacturing order
-            order_no (Union[Unset, str]): Unique manufacturing order number for tracking and reference
-            variant_id (Union[Unset, int]): ID of the product variant being manufactured
-            planned_quantity (Union[Unset, float]): Originally planned quantity to produce
-            actual_quantity (Union[None, Unset, float]): Actual quantity produced, null if production not completed
-            location_id (Union[Unset, int]): ID of the factory location where production takes place
-            order_created_date (Union[Unset, datetime.datetime]): Date and time when the manufacturing order was created
-            production_deadline_date (Union[Unset, datetime.datetime]): Target deadline for completing production
-            additional_info (Union[Unset, str]): Optional notes or additional information about the order
-            is_linked_to_sales_order (Union[Unset, bool]): Whether this manufacturing order is linked to a sales order
-            ingredient_availability (Union[Unset, str]): Status of material ingredient availability for production
-            total_cost (Union[Unset, float]): Total cost of the manufacturing order including all materials and operations
-            total_actual_time (Union[Unset, float]): Total actual time spent on production operations
-            total_planned_time (Union[Unset, float]): Total planned time for all production operations
-            sales_order_id (Union[Unset, int]): ID of the linked sales order, if applicable
-            sales_order_row_id (Union[Unset, int]): ID of the specific sales order row, if applicable
-            sales_order_delivery_deadline (Union[Unset, datetime.datetime]): Delivery deadline from the linked sales order
-            material_cost (Union[Unset, float]): Total cost of materials used in production
-            subassemblies_cost (Union[Unset, float]): Total cost of subassemblies used in production
-            operations_cost (Union[Unset, float]): Total cost of production operations and labor
-            serial_numbers (Union[Unset, list['SerialNumber']]): Serial numbers assigned to produced items
     """
 
     created_at: Unset | datetime.datetime = UNSET

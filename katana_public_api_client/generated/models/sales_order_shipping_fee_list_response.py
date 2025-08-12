@@ -22,9 +22,6 @@ class SalesOrderShippingFeeListResponse:
     Example:
         {'data': [{'id': 2801, 'sales_order_id': 2001, 'amount': 25.99, 'tax_rate_id': 301, 'description': 'UPS Ground
             Shipping'}]}
-
-    Attributes:
-        data (Union[Unset, list['SalesOrderShippingFee']]): Array of shipping fee records with costs and tax information
     """
 
     data: Unset | list["SalesOrderShippingFee"] = UNSET

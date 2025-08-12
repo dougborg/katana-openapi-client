@@ -20,16 +20,6 @@ class BatchStock:
         {'batch_id': 1109, 'batch_number': 'BAT-2024-001', 'batch_created_date': '2024-01-15T08:00:00.000Z',
             'expiration_date': '2025-10-23T10:37:05.085Z', 'location_id': 1, 'variant_id': 1001, 'quantity_in_stock':
             '25.00000', 'batch_barcode': '0317'}
-
-    Attributes:
-        batch_number (str): Unique batch number identifier
-        variant_id (int): ID of the variant this batch belongs to
-        expiration_date (Union[Unset, datetime.datetime]): Batch expiration date (ISO 8601)
-        batch_created_date (Union[Unset, datetime.datetime]): Batch creation date (ISO 8601)
-        batch_barcode (Union[None, Unset, str]): Optional barcode for the batch
-        batch_id (Union[Unset, int]):
-        location_id (Union[Unset, int]): ID of the location where the batch is stored
-        quantity_in_stock (Union[Unset, str]): Current quantity in stock for this batch
     """
 
     batch_number: str

@@ -19,9 +19,12 @@ T = TypeVar("T", bound="ManufacturingOrderOperationRowListResponse")
 
 @_attrs_define
 class ManufacturingOrderOperationRowListResponse:
-    """
-    Attributes:
-        data (Union[Unset, list['ManufacturingOrderOperationRow']]):
+    """Response containing a list of manufacturing order operation rows with time tracking and operator assignments
+
+    Example:
+        {'data': [{'id': 1501, 'manufacturing_order_id': 1001, 'operation_id': 201, 'time': 45.5, 'total_actual_time':
+            52.3, 'completed_by_operators': [{'id': 101, 'name': 'John Smith'}], 'created_at': '2023-10-15T09:00:00Z',
+            'updated_at': '2023-10-15T10:30:00Z'}]}
     """
 
     data: Unset | list["ManufacturingOrderOperationRow"] = UNSET

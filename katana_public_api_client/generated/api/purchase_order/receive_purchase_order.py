@@ -22,7 +22,7 @@ def _get_kwargs(
         "url": "/purchase_order_receive",
     }
 
-    _kwargs["json"]: dict[str, Any] | list[dict[str, Any]]
+    _kwargs["json"] = None  # type: dict[str, Any] | list[dict[str, Any]]
     if isinstance(body, list):
         _kwargs["json"] = []
         for componentsschemas_purchase_order_receive_request_type_0_item_data in body:
@@ -104,6 +104,7 @@ def sync_detailed(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+
     Returns:
         Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
     """
@@ -144,6 +145,7 @@ def sync(
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
+
     Returns:
         Union[Any, DetailedErrorResponse, ErrorResponse]
     """
@@ -178,6 +180,7 @@ async def asyncio_detailed(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
@@ -216,6 +219,7 @@ async def asyncio(
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[Any, DetailedErrorResponse, ErrorResponse]

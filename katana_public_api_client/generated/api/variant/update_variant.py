@@ -85,11 +85,19 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateVariantRequest):
+        body (UpdateVariantRequest): Request payload for updating product variant details
+            including pricing, configuration, and inventory information Example: {'sku': 'KNF-PRO-8PC-
+            UPD', 'sales_price': 319.99, 'purchase_price': 160.0, 'product_id': 101, 'material_id':
+            None, 'supplier_item_codes': ['SUP-KNF-8PC-002'], 'internal_barcode': 'INT-KNF-002',
+            'registered_barcode': '789123456790', 'lead_time': 5, 'minimum_order_quantity': 1,
+            'config_attributes': [{'config_name': 'Piece Count', 'config_value': '8-piece'},
+            {'config_name': 'Handle Material', 'config_value': 'Premium Steel'}], 'custom_fields':
+            [{'field_name': 'Warranty Period', 'field_value': '7 years'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, Variant]]
@@ -120,11 +128,19 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateVariantRequest):
+        body (UpdateVariantRequest): Request payload for updating product variant details
+            including pricing, configuration, and inventory information Example: {'sku': 'KNF-PRO-8PC-
+            UPD', 'sales_price': 319.99, 'purchase_price': 160.0, 'product_id': 101, 'material_id':
+            None, 'supplier_item_codes': ['SUP-KNF-8PC-002'], 'internal_barcode': 'INT-KNF-002',
+            'registered_barcode': '789123456790', 'lead_time': 5, 'minimum_order_quantity': 1,
+            'config_attributes': [{'config_name': 'Piece Count', 'config_value': '8-piece'},
+            {'config_name': 'Handle Material', 'config_value': 'Premium Steel'}], 'custom_fields':
+            [{'field_name': 'Warranty Period', 'field_value': '7 years'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, Variant]
@@ -150,11 +166,19 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateVariantRequest):
+        body (UpdateVariantRequest): Request payload for updating product variant details
+            including pricing, configuration, and inventory information Example: {'sku': 'KNF-PRO-8PC-
+            UPD', 'sales_price': 319.99, 'purchase_price': 160.0, 'product_id': 101, 'material_id':
+            None, 'supplier_item_codes': ['SUP-KNF-8PC-002'], 'internal_barcode': 'INT-KNF-002',
+            'registered_barcode': '789123456790', 'lead_time': 5, 'minimum_order_quantity': 1,
+            'config_attributes': [{'config_name': 'Piece Count', 'config_value': '8-piece'},
+            {'config_name': 'Handle Material', 'config_value': 'Premium Steel'}], 'custom_fields':
+            [{'field_name': 'Warranty Period', 'field_value': '7 years'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, Variant]]
@@ -183,11 +207,19 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateVariantRequest):
+        body (UpdateVariantRequest): Request payload for updating product variant details
+            including pricing, configuration, and inventory information Example: {'sku': 'KNF-PRO-8PC-
+            UPD', 'sales_price': 319.99, 'purchase_price': 160.0, 'product_id': 101, 'material_id':
+            None, 'supplier_item_codes': ['SUP-KNF-8PC-002'], 'internal_barcode': 'INT-KNF-002',
+            'registered_barcode': '789123456790', 'lead_time': 5, 'minimum_order_quantity': 1,
+            'config_attributes': [{'config_name': 'Piece Count', 'config_value': '8-piece'},
+            {'config_name': 'Handle Material', 'config_value': 'Premium Steel'}], 'custom_fields':
+            [{'field_name': 'Warranty Period', 'field_value': '7 years'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, Variant]

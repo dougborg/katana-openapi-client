@@ -19,13 +19,6 @@ class AdditionalCost:
     Example:
         {'id': 1, 'name': 'Shipping Cost', 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at':
             '2020-10-23T10:37:05.085Z', 'deleted_at': None}
-
-    Attributes:
-        id (int): Unique identifier
-        name (str):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
     """
 
     id: int

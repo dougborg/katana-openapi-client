@@ -23,10 +23,6 @@ class InventoryReorderPointListResponse:
         {'data': [{'variant_id': 3001, 'location_id': 1, 'value': 50.0, 'created_at': '2024-01-15T08:00:00.000Z',
             'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}, {'variant_id': 3002, 'location_id': 1, 'value':
             30.0, 'created_at': '2024-01-16T09:00:00.000Z', 'updated_at': '2024-01-16T09:00:00.000Z', 'deleted_at': None}]}
-
-    Attributes:
-        data (Union[Unset, list['InventoryReorderPoint']]): Array of reorder point records with variant, location, and
-            threshold information
     """
 
     data: Unset | list["InventoryReorderPoint"] = UNSET

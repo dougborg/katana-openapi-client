@@ -10,14 +10,6 @@ T = TypeVar("T", bound="CreateSalesReturnRowRequest")
 
 @_attrs_define
 class CreateSalesReturnRowRequest:
-    """
-    Attributes:
-        variant_id (int): ID of the variant being returned
-        quantity (float): Quantity being returned
-        return_reason_id (Union[Unset, int]): ID of the return reason
-        notes (Union[Unset, str]): Optional notes about this returned item
-    """
-
     variant_id: int
     quantity: float
     return_reason_id: Unset | int = UNSET

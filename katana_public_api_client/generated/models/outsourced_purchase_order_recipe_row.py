@@ -24,23 +24,6 @@ T = TypeVar("T", bound="OutsourcedPurchaseOrderRecipeRow")
 
 @_attrs_define
 class OutsourcedPurchaseOrderRecipeRow:
-    """
-    Attributes:
-        purchase_order_row_id (int):
-        ingredient_variant_id (int):
-        planned_quantity_per_unit (int):
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
-        id (Union[Unset, int]):
-        purchase_order_id (Union[Unset, int]):
-        ingredient_availability (Union[Unset, OutsourcedPurchaseOrderRecipeRowIngredientAvailability]):
-        ingredient_expected_date (Union[Unset, datetime.datetime]):
-        notes (Union[None, Unset, str]):
-        batch_transactions (Union[Unset, list['OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem']]):
-        cost (Union[Unset, float]):
-    """
-
     purchase_order_row_id: int
     ingredient_variant_id: int
     planned_quantity_per_unit: int

@@ -15,18 +15,6 @@ class CreatePurchaseOrderRowRequest:
     Example:
         {'purchase_order_id': 156, 'quantity': 50, 'variant_id': 503, 'tax_rate_id': 1, 'group_id': 1, 'price_per_unit':
             8.75, 'purchase_uom_conversion_rate': 1.0, 'purchase_uom': 'pieces', 'arrival_date': '2024-02-15T10:00:00Z'}
-
-    Attributes:
-        purchase_order_id (int): Unique identifier of the purchase order to add this line item to
-        quantity (float): Quantity of items to order for this line item
-        variant_id (int): Unique identifier of the product variant being ordered
-        price_per_unit (float): Unit price for each item in this line
-        tax_rate_id (Union[Unset, int]): Tax rate identifier to apply to this line item
-        group_id (Union[Unset, int]): Group identifier for organizing related line items
-        purchase_uom_conversion_rate (Union[Unset, float]): Conversion rate between purchase unit of measure and base
-            unit
-        purchase_uom (Union[Unset, str]): Unit of measure for purchasing this item
-        arrival_date (Union[Unset, str]): Optional arrival date in ISO 8601 format.
     """
 
     purchase_order_id: int

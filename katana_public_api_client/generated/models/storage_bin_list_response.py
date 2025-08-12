@@ -24,10 +24,6 @@ class StorageBinListResponse:
             'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}, {'id': 12346, 'bin_name': 'A-02-SHELF-1',
             'location_id': 1, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z',
             'deleted_at': None}]}
-
-    Attributes:
-        data (Union[Unset, list['StorageBinResponse']]): Array of storage bin records with location and identification
-            details
     """
 
     data: Unset | list["StorageBinResponse"] = UNSET

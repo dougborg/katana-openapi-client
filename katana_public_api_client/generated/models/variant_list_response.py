@@ -25,9 +25,6 @@ class VariantListResponse:
             'Steel'}]}, {'id': 3002, 'sku': 'KNF-PRO-12PC-WD', 'sales_price': 399.99, 'type': 'product',
             'config_attributes': [{'config_name': 'Piece Count', 'config_value': '12-piece'}, {'config_name': 'Handle
             Material', 'config_value': 'Wood'}]}]}
-
-    Attributes:
-        data (Union[Unset, list['VariantResponse']]): Array of variant objects returned by the API
     """
 
     data: Unset | list["VariantResponse"] = UNSET

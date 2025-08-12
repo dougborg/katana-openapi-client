@@ -12,11 +12,6 @@ class InventorySafetyStockLevel:
 
     Example:
         {'location_id': 1, 'variant_id': 3001, 'value': 25.0}
-
-    Attributes:
-        location_id (int): ID of the location where the safety stock level applies
-        variant_id (int): ID of the variant for which the safety stock level is set
-        value (float): Minimum quantity to maintain as safety stock buffer
     """
 
     location_id: int

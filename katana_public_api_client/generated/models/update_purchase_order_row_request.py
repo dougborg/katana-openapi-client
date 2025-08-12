@@ -15,17 +15,6 @@ class UpdatePurchaseOrderRowRequest:
     Example:
         {'quantity': 275, 'price_per_unit': 2.95, 'purchase_uom': 'kg', 'received_date': '2024-02-15T14:30:00Z',
             'arrival_date': '2024-02-15T10:00:00Z'}
-
-    Attributes:
-        quantity (Union[Unset, float]): Updatable only when received_date is null
-        variant_id (Union[Unset, int]): Updatable only when received_date is null
-        tax_rate_id (Union[Unset, int]): Updatable only when received_date is null
-        group_id (Union[Unset, int]): Updatable only when received_date is null
-        price_per_unit (Union[Unset, float]): Updatable only when received_date is null
-        purchase_uom_conversion_rate (Union[Unset, float]): Updatable only when received_date is null
-        purchase_uom (Union[Unset, str]): Updatable only when received_date is null
-        received_date (Union[Unset, str]): Updatable only when already set
-        arrival_date (Union[Unset, str]): Updatable only when received_date is not null
     """
 
     quantity: Unset | float = UNSET

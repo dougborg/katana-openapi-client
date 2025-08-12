@@ -17,12 +17,7 @@ T = TypeVar("T", bound="ServiceRequestData")
 
 @_attrs_define
 class ServiceRequestData:
-    """
-    Attributes:
-        type_ (ServiceRequestDataType): Resource type must be 'services'.
-        attributes (ServiceInputAttributes):  Example: {'name': 'Screen Printing', 'description': 'High quality screen
-            printing service.', 'price': 150.0, 'currency': 'USD'}.
-    """
+    """Service data wrapper following JSON:API conventions"""
 
     type_: ServiceRequestDataType
     attributes: "ServiceInputAttributes"

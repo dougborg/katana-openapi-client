@@ -21,15 +21,6 @@ class PurchaseOrderAccountingMetadata:
         Example:
             {'id': 156, 'purchase_order_id': 8001, 'purchaseOrderId': 8001, 'porReceivedGroupId': 2001, 'integrationType':
                 'quickbooks', 'billId': 'BILL-2024-001', 'createdAt': '2024-01-15T11:30:00Z'}
-
-        Attributes:
-            id (int): Unique identifier for the accounting metadata record
-            purchase_order_id (int): ID of the purchase order linked to the accounting system
-            purchaseOrderId (Union[Unset, int]): Alternative purchase order ID field for accounting system compatibility
-            por_received_group_id (Union[Unset, int]): ID of the received items group for accounting cost allocation
-            integration_type (Union[Unset, str]): Type of accounting system integration (e.g., quickbooks, xero, sage)
-            bill_id (Union[Unset, str]): Bill identifier in the external accounting system
-            created_at (Union[Unset, datetime.datetime]): Date and time when the accounting metadata was created
     """
 
     id: int

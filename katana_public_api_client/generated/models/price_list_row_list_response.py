@@ -24,9 +24,6 @@ class PriceListRowListResponse:
             'created_at': '2024-01-15T10:00:00Z', 'updated_at': '2024-01-15T10:00:00Z'}, {'id': 5002, 'price_list_id': 1001,
             'variant_id': 202, 'price': 69.99, 'currency': 'USD', 'created_at': '2024-01-15T10:05:00Z', 'updated_at':
             '2024-01-15T10:05:00Z'}]}
-
-    Attributes:
-        data (Union[Unset, list['PriceListRow']]): Array of price list row objects containing variant pricing
     """
 
     data: Unset | list["PriceListRow"] = UNSET

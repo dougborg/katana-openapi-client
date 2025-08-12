@@ -19,26 +19,15 @@ T = TypeVar("T", bound="CreateProductRequest")
 class CreateProductRequest:
     """Request payload for creating a new finished product with variants, configurations, and manufacturing specifications
 
-    Attributes:
-        name (str): Display name for the finished product used in sales and manufacturing
-        variants (list['Variant']):
-        uom (Union[Unset, str]):
-        category_name (Union[Unset, str]):
-        is_sellable (Union[Unset, bool]):
-        is_producible (Union[Unset, bool]):
-        is_purchasable (Union[Unset, bool]):
-        is_auto_assembly (Union[Unset, bool]):
-        default_supplier_id (Union[Unset, int]):
-        additional_info (Union[Unset, str]):
-        batch_tracked (Union[Unset, bool]):
-        serial_tracked (Union[Unset, bool]):
-        operations_in_sequence (Union[Unset, bool]):
-        purchase_uom (Union[Unset, str]):
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        lead_time (Union[None, Unset, int]):
-        minimum_order_quantity (Union[Unset, float]):
-        configs (Union[Unset, list['CreateProductRequestConfigsItem']]):
-        custom_field_collection_id (Union[None, Unset, int]):
+    Example:
+        {'name': 'Professional Kitchen Knife Set', 'uom': 'set', 'category_name': 'Kitchen Equipment', 'is_sellable':
+            True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly': False, 'additional_info': 'High-
+            quality steel construction with ergonomic handles', 'batch_tracked': False, 'serial_tracked': True,
+            'operations_in_sequence': True, 'lead_time': 14, 'minimum_order_quantity': 1, 'configs': [{'name': 'Piece
+            Count', 'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values': ['Steel', 'Wooden',
+            'Composite']}], 'variants': [{'sku': 'KNF-PRO-8PC-STL', 'sales_price': 299.99, 'purchase_price': 150.0,
+            'config_attributes': [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle
+            Material', 'config_value': 'Steel'}]}]}
     """
 
     name: str

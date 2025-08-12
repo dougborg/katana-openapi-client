@@ -12,10 +12,6 @@ class UnlinkVariantBinLocationRequest:
 
     Example:
         {'location_id': 1, 'variant_id': 3001}
-
-    Attributes:
-        location_id (int): ID of the location where the variant-bin link should be removed
-        variant_id (int): ID of the variant whose storage bin assignment should be removed
     """
 
     location_id: int

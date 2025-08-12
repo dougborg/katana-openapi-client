@@ -131,6 +131,7 @@ myst-parser = "^4.0.1"
 linkify-it-py = "^2.0.3"
 yamllint = "^1.37.1"
 openapi-spec-validator = "^0.7.2"
+openapi-python-client = "^0.25.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

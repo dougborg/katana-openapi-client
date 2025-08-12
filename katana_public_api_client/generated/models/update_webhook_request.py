@@ -18,13 +18,6 @@ class UpdateWebhookRequest:
             ['sales_order.created', 'sales_order.updated', 'sales_order.fulfilled', 'inventory.stock_adjustment',
             'manufacturing_order.completed', 'purchase_order.received'], 'description': 'Updated ERP integration webhook
             with expanded event coverage'}
-
-    Attributes:
-        url (str): HTTPS endpoint URL where webhook events will be sent (must use HTTPS for security)
-        subscribed_events (list[WebhookEvent]): List of event types to subscribe to (at least one event type required)
-        enabled (Union[Unset, bool]): Whether this webhook subscription should be active and receive events
-        description (Union[Unset, str]): Optional human-readable description of this webhook's purpose for management
-            and documentation
     """
 
     url: str

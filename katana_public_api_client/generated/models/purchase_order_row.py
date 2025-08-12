@@ -32,32 +32,6 @@ class PurchaseOrderRow:
                 'purchase_order_id': 156, 'landed_cost': 735.5, 'group_id': 1, 'created_at': '2024-01-28T09:15:00Z',
                 'updated_at': '2024-02-15T14:30:00Z', 'deleted_at': None, 'batch_transactions': [{'quantity': 150, 'batch_id':
                 1001}, {'quantity': 100, 'batch_id': 1002}]}
-
-        Attributes:
-            created_at (Union[Unset, datetime.datetime]):
-            updated_at (Union[Unset, datetime.datetime]):
-            deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
-            id (Union[Unset, int]): Unique identifier for this purchase order line item
-            quantity (Union[Unset, float]): Quantity of items ordered for this line
-            variant_id (Union[Unset, int]): Unique identifier of the product variant being ordered
-            tax_rate_id (Union[Unset, int]): Tax rate identifier applied to this line item
-            price_per_unit (Union[Unset, float]): Unit price for each item in the order currency
-            price_per_unit_in_base_currency (Union[Unset, float]): Unit price converted to the base currency
-            purchase_uom_conversion_rate (Union[Unset, float]): Conversion rate between purchase unit of measure and base
-                unit
-            purchase_uom (Union[Unset, str]): Unit of measure for purchasing this item (e.g., kg, pieces, liters)
-            currency (Union[Unset, str]): Currency used for this line item pricing
-            conversion_rate (Union[None, Unset, float]): Exchange rate used for currency conversion
-            total (Union[Unset, float]): Total amount for this line item in order currency
-            total_in_base_currency (Union[Unset, float]): Total amount for this line item in base currency
-            conversion_date (Union[None, Unset, datetime.datetime]): Date when currency conversion was performed
-            received_date (Union[None, Unset, datetime.datetime]): Date when this line item was received
-            arrival_date (Union[None, Unset, datetime.datetime]): Date when this line item arrived at the facility
-            batch_transactions (Union[Unset, list['PurchaseOrderRowBatchTransactionsItem']]): List of batch transactions
-                associated with this line item
-            purchase_order_id (Union[Unset, int]): Unique identifier of the parent purchase order
-            landed_cost (Union[Unset, float, str]): Total landed cost including shipping, duties, and other charges
-            group_id (Union[Unset, int]): Grouping identifier for organizational purposes
     """
 
     created_at: Unset | datetime.datetime = UNSET
@@ -283,7 +257,9 @@ class PurchaseOrderRow:
 
         total_in_base_currency = d.pop("total_in_base_currency", UNSET)
 
-        def _parse_conversion_date(data: object) -> None | Unset | datetime.datetime:
+        def _parse_conversion_date(
+            data: object,
+        ) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):

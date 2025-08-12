@@ -34,41 +34,6 @@ class Product:
                 'sku': 'KNF-PRO-8PC', 'name': '8-Piece Professional Set', 'sales_price': 299.99, 'purchase_price': 150.0}],
                 'configs': [{'id': 1, 'name': 'Piece Count', 'values': ['6-piece', '8-piece', '12-piece'], 'product_id': 101},
                 {'id': 2, 'name': 'Handle Material', 'values': ['Wood', 'Steel', 'Composite'], 'product_id': 101}]}
-
-        Attributes:
-            id (int): Unique identifier
-            created_at (Union[Unset, datetime.datetime]):
-            updated_at (Union[Unset, datetime.datetime]):
-            archived_at (Union[None, Unset, str]): Nullable archive timestamp
-            name (Union[Unset, str]): Display name for the product used in sales and manufacturing contexts
-            uom (Union[Unset, str]): Unit of measurement for the product (e.g., pcs, kg, m)
-            category_name (Union[Unset, str]): Product category for organizational grouping and reporting
-            is_sellable (Union[Unset, bool]): Whether this product can be sold to customers
-            is_producible (Union[Unset, bool]): Whether this product can be manufactured in-house
-            is_purchasable (Union[Unset, bool]): Whether this product can be purchased from suppliers
-            is_auto_assembly (Union[Unset, bool]): Whether the product should be automatically assembled when components are
-                available
-            default_supplier_id (Union[Unset, int]): Primary supplier ID for purchasing this product
-            additional_info (Union[Unset, str]): Additional notes or specifications for the product
-            batch_tracked (Union[Unset, bool]): Whether inventory movements are tracked by batch numbers
-            serial_tracked (Union[Unset, bool]): Whether inventory movements are tracked by individual serial numbers
-            operations_in_sequence (Union[Unset, bool]): Whether manufacturing operations must be completed in a specific
-                sequence
-            type_ (Union[Unset, str]): Product classification type (product, material, etc.)
-            purchase_uom (Union[Unset, str]): Unit of measurement used when purchasing from suppliers
-            purchase_uom_conversion_rate (Union[Unset, float]): Conversion rate between base UOM and purchase UOM
-            variants (Union[Unset, list['Variant']]): Product variants with different SKUs, pricing, and configurations
-            configs (Union[Unset, list['ProductConfigsItem']]): Configuration attributes that define variant combinations
-                (size, color, etc.)
-            custom_field_collection_id (Union[Unset, int]): ID of the custom field collection associated with this product
-            supplier (Union[Unset, Supplier]): Supplier company or individual providing materials, products, or services for
-                procurement operations Example: {'id': 4001, 'name': 'Premium Kitchen Supplies Ltd', 'email':
-                'orders@premiumkitchen.com', 'phone': '+1-555-0134', 'currency': 'USD', 'comment': 'Primary supplier for kitchen
-                equipment and utensils. Reliable delivery times.', 'default_address_id': 4001, 'created_at':
-                '2023-06-15T08:30:00Z', 'updated_at': '2024-01-15T14:20:00Z', 'deleted_at': None, 'addresses': [{'id': 4001,
-                'company': 'Premium Kitchen Supplies Ltd', 'street': '1250 Industrial Blvd', 'street2': 'Suite 200', 'city':
-                'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'US', 'created_at': '2023-06-15T08:30:00Z', 'updated_at':
-                '2023-06-15T08:30:00Z', 'deleted_at': None}]}.
     """
 
     id: int

@@ -15,18 +15,6 @@ T = TypeVar("T", bound="ServiceAttributes")
 
 @_attrs_define
 class ServiceAttributes:
-    """
-    Attributes:
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        name (Union[Unset, str]): Name of the Service. Example: Screen Printing.
-        description (Union[Unset, str]): A detailed description of the Service. Example: High quality screen printing
-            service for apparel and accessories..
-        price (Union[Unset, float]): Price of the Service. Example: 150.0.
-        currency (Union[Unset, str]): Currency code (e.g., USD). Example: USD.
-        active (Union[Unset, bool]): Indicates if the Service is active. Example: True.
-    """
-
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     name: Unset | str = UNSET

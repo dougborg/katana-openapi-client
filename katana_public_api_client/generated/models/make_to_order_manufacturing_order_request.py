@@ -15,11 +15,6 @@ class MakeToOrderManufacturingOrderRequest:
 
         Example:
             {'sales_order_row_id': 2501, 'create_subassemblies': True}
-
-        Attributes:
-            sales_order_row_id (float): ID of the sales order row to create a manufacturing order for
-            create_subassemblies (Union[Unset, bool]): Whether to automatically create manufacturing orders for
-                subassemblies as well Default: False.
     """
 
     sales_order_row_id: float

@@ -24,22 +24,6 @@ class UpdateMaterialRequest:
             specifications', 'batch_tracked': True, 'is_sellable': False, 'is_archived': False, 'purchase_uom': 'sheet',
             'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'name': 'Grade', 'values': ['304', '316', '430']},
             {'name': 'Finish', 'values': ['Brushed', 'Mirror', 'Matte']}], 'custom_field_collection_id': 201}
-
-    Attributes:
-        name (Union[Unset, str]): Display name for the material used in inventory and manufacturing
-        uom (Union[Unset, str]): Unit of measure for inventory tracking (e.g., kg, lb, pcs)
-        category_name (Union[Unset, str]):
-        default_supplier_id (Union[Unset, int]):
-        additional_info (Union[Unset, str]):
-        batch_tracked (Union[Unset, bool]):
-        is_sellable (Union[Unset, bool]):
-        is_archived (Union[Unset, bool]):
-        purchase_uom (Union[Unset, str]): If used, then purchase_uom_conversion_rate must have a value as well.
-        purchase_uom_conversion_rate (Union[Unset, float]): If used, then purchase_uom must have a value as well.
-        configs (Union[Unset, list['UpdateMaterialRequestConfigsItem']]): When updating configs, all configs and values
-            must be provided. Existing ones are matched,
-                    new ones are created, and configs not provided in the update are deleted.
-        custom_field_collection_id (Union[None, Unset, int]):
     """
 
     name: Unset | str = UNSET

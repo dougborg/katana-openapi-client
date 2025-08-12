@@ -23,25 +23,6 @@ class Customer:
             customer - high volume orders', 'currency': 'USD', 'reference_id': 'KPR-2024-001', 'category': 'Restaurant
             Chain', 'discount_rate': 5.0, 'default_billing_id': 3001, 'default_shipping_id': 3002, 'created_at':
             '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T14:30:00Z', 'deleted_at': None}
-
-    Attributes:
-        id (int): Unique identifier
-        name (str): Customer display name, either individual name or company name
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
-        first_name (Union[None, Unset, str]): Customer's first name for individual contacts
-        last_name (Union[None, Unset, str]): Customer's last name for individual contacts
-        company (Union[None, Unset, str]): Company name for business customers
-        email (Union[None, Unset, str]): Primary email address for communication and order notifications
-        phone (Union[None, Unset, str]): Primary phone number for customer contact
-        comment (Union[None, Unset, str]): Internal notes and comments about the customer
-        currency (Union[Unset, str]): Default currency code for all transactions with this customer
-        reference_id (Union[None, Unset, str]): External reference ID for integration with other systems
-        category (Union[None, Unset, str]): Customer category for segmentation and reporting
-        discount_rate (Union[None, Unset, float]): Default discount percentage applied to all orders (0-100)
-        default_billing_id (Union[None, Unset, int]): ID of the default billing address for this customer
-        default_shipping_id (Union[None, Unset, int]): ID of the default shipping address for this customer
     """
 
     id: int

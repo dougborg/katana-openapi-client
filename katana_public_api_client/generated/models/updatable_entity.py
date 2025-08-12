@@ -19,10 +19,6 @@ class UpdatableEntity:
 
     Example:
         {'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z'}
-
-    Attributes:
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
     """
 
     created_at: Unset | datetime.datetime = UNSET

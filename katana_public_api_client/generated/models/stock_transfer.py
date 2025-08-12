@@ -22,18 +22,6 @@ class StockTransfer:
         {'id': 3001, 'reference_no': 'ST-2024-001', 'from_location_id': 1, 'to_location_id': 2, 'status': 'COMPLETED',
             'transfer_date': '2024-01-15T16:00:00.000Z', 'additional_info': 'Rebalancing inventory between warehouses',
             'created_at': '2024-01-15T16:00:00.000Z', 'updated_at': '2024-01-15T16:00:00.000Z', 'deleted_at': None}
-
-    Attributes:
-        id (int): Unique identifier for the stock transfer
-        reference_no (str): Human-readable reference number for tracking the transfer
-        from_location_id (int): ID of the source location where stock is being transferred from
-        to_location_id (int): ID of the destination location where stock is being transferred to
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
-        deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
-        status (Union[Unset, StockTransferStatus]): Current status of the stock transfer workflow
-        transfer_date (Union[Unset, datetime.datetime]): Date and time when the transfer was executed
-        additional_info (Union[None, Unset, str]): Optional notes or comments about the transfer purpose
     """
 
     id: int

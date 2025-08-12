@@ -29,10 +29,6 @@ class SalesOrderListResponse:
             'SHOP-5678-2024', 'product_availability': 'IN_STOCK', 'ingredient_availability': 'IN_STOCK',
             'production_status': 'NOT_APPLICABLE', 'tracking_number': 'UPS1234567890', 'billing_address_id': 1201,
             'shipping_address_id': 1202, 'created_at': '2024-01-15T10:00:00Z', 'updated_at': '2024-01-20T16:30:00Z'}]}
-
-    Attributes:
-        data (Union[Unset, list['SalesOrder']]): Array of sales orders with complete order details and status
-            information
     """
 
     data: Unset | list["SalesOrder"] = UNSET

@@ -28,9 +28,6 @@ class PurchaseOrderListResponse:
             '2024-02-10', 'order_created_date': '2024-01-25', 'total': 875.0, 'total_in_base_currency': 875.0,
             'billing_status': 'BILLED', 'created_at': '2024-01-25T14:30:00Z', 'updated_at': '2024-02-10T11:45:00Z',
             'deleted_at': None}]}
-
-    Attributes:
-        data (Union[Unset, list['PurchaseOrder']]): Array of purchase order objects
     """
 
     data: Unset | list["PurchaseOrder"] = UNSET

@@ -80,11 +80,15 @@ def sync_detailed(
      Reranks the operations for a product.
 
     Args:
-        body (ProductOperationRerankRequest):
+        body (ProductOperationRerankRequest): Request payload for reordering product operations
+            within a manufacturing workflow to optimize production sequence Example:
+            {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group':
+            True}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[ErrorResponse, ProductOperationRerank]]
@@ -111,11 +115,15 @@ def sync(
      Reranks the operations for a product.
 
     Args:
-        body (ProductOperationRerankRequest):
+        body (ProductOperationRerankRequest): Request payload for reordering product operations
+            within a manufacturing workflow to optimize production sequence Example:
+            {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group':
+            True}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[ErrorResponse, ProductOperationRerank]
@@ -137,11 +145,15 @@ async def asyncio_detailed(
      Reranks the operations for a product.
 
     Args:
-        body (ProductOperationRerankRequest):
+        body (ProductOperationRerankRequest): Request payload for reordering product operations
+            within a manufacturing workflow to optimize production sequence Example:
+            {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group':
+            True}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[ErrorResponse, ProductOperationRerank]]
@@ -166,11 +178,15 @@ async def asyncio(
      Reranks the operations for a product.
 
     Args:
-        body (ProductOperationRerankRequest):
+        body (ProductOperationRerankRequest): Request payload for reordering product operations
+            within a manufacturing workflow to optimize production sequence Example:
+            {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group':
+            True}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[ErrorResponse, ProductOperationRerank]
