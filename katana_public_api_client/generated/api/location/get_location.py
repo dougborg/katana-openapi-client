@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 import httpx
 
@@ -23,11 +23,13 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, Union["DeletableEntity", "LocationType0"]]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
     if response.status_code == 200:
 
-        def _parse_response_200(data: object) -> Union["DeletableEntity", "LocationType0"]:
+        def _parse_response_200(
+            data: object,
+        ) -> Union["DeletableEntity", "LocationType0"]:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
@@ -68,8 +70,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, Union["DeletableEntity", "LocationType0"]]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -81,8 +83,8 @@ def _build_response(
 def sync_detailed(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Response[Union[ErrorResponse, Union["DeletableEntity", "LocationType0"]]]:
+    client: AuthenticatedClient | Client,
+) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -112,8 +114,8 @@ def sync_detailed(
 def sync(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[Union[ErrorResponse, Union["DeletableEntity", "LocationType0"]]]:
+    client: AuthenticatedClient | Client,
+) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -138,8 +140,8 @@ def sync(
 async def asyncio_detailed(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Response[Union[ErrorResponse, Union["DeletableEntity", "LocationType0"]]]:
+    client: AuthenticatedClient | Client,
+) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -167,8 +169,8 @@ async def asyncio_detailed(
 async def asyncio(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[Union[ErrorResponse, Union["DeletableEntity", "LocationType0"]]]:
+    client: AuthenticatedClient | Client,
+) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.

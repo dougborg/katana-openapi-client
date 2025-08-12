@@ -1,42 +1,44 @@
 import datetime
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error_response import ErrorResponse
-from ...models.get_all_inventory_movements_resource_type import GetAllInventoryMovementsResourceType
+from ...models.get_all_inventory_movements_resource_type import (
+    GetAllInventoryMovementsResourceType,
+)
 from ...models.inventory_movement_list_response import InventoryMovementListResponse
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    ids: Union[Unset, list[int]] = UNSET,
-    variant_ids: Union[Unset, list[int]] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    resource_type: Union[Unset, GetAllInventoryMovementsResourceType] = UNSET,
-    resource_id: Union[Unset, int] = UNSET,
-    caused_by_order_no: Union[Unset, str] = UNSET,
-    caused_by_resource_id: Union[Unset, int] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+    ids: Unset | list[int] = UNSET,
+    variant_ids: Unset | list[int] = UNSET,
+    location_id: Unset | int = UNSET,
+    resource_type: Unset | GetAllInventoryMovementsResourceType = UNSET,
+    resource_id: Unset | int = UNSET,
+    caused_by_order_no: Unset | str = UNSET,
+    caused_by_resource_id: Unset | int = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Union[Unset, list[int]] = UNSET
+    json_ids: Unset | list[int] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
     params["ids"] = json_ids
 
-    json_variant_ids: Union[Unset, list[int]] = UNSET
+    json_variant_ids: Unset | list[int] = UNSET
     if not isinstance(variant_ids, Unset):
         json_variant_ids = variant_ids
 
@@ -44,7 +46,7 @@ def _get_kwargs(
 
     params["location_id"] = location_id
 
-    json_resource_type: Union[Unset, str] = UNSET
+    json_resource_type: Unset | str = UNSET
     if not isinstance(resource_type, Unset):
         json_resource_type = resource_type.value
 
@@ -60,22 +62,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Union[Unset, str] = UNSET
+    json_created_at_min: Unset | str = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Union[Unset, str] = UNSET
+    json_created_at_max: Unset | str = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Union[Unset, str] = UNSET
+    json_updated_at_min: Unset | str = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Union[Unset, str] = UNSET
+    json_updated_at_max: Unset | str = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -92,8 +94,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, InventoryMovementListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | InventoryMovementListResponse | None:
     if response.status_code == 200:
         response_200 = InventoryMovementListResponse.from_dict(response.json())
 
@@ -117,8 +119,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, InventoryMovementListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | InventoryMovementListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -129,21 +131,21 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    variant_ids: Union[Unset, list[int]] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    resource_type: Union[Unset, GetAllInventoryMovementsResourceType] = UNSET,
-    resource_id: Union[Unset, int] = UNSET,
-    caused_by_order_no: Union[Unset, str] = UNSET,
-    caused_by_resource_id: Union[Unset, int] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-) -> Response[Union[ErrorResponse, InventoryMovementListResponse]]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    variant_ids: Unset | list[int] = UNSET,
+    location_id: Unset | int = UNSET,
+    resource_type: Unset | GetAllInventoryMovementsResourceType = UNSET,
+    resource_id: Unset | int = UNSET,
+    caused_by_order_no: Unset | str = UNSET,
+    caused_by_resource_id: Unset | int = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+) -> Response[ErrorResponse | InventoryMovementListResponse]:
     """List all inventory movements
 
      Returns a list of inventory movements created by your Katana resources. The inventory movements are
@@ -197,21 +199,21 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    variant_ids: Union[Unset, list[int]] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    resource_type: Union[Unset, GetAllInventoryMovementsResourceType] = UNSET,
-    resource_id: Union[Unset, int] = UNSET,
-    caused_by_order_no: Union[Unset, str] = UNSET,
-    caused_by_resource_id: Union[Unset, int] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-) -> Optional[Union[ErrorResponse, InventoryMovementListResponse]]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    variant_ids: Unset | list[int] = UNSET,
+    location_id: Unset | int = UNSET,
+    resource_type: Unset | GetAllInventoryMovementsResourceType = UNSET,
+    resource_id: Unset | int = UNSET,
+    caused_by_order_no: Unset | str = UNSET,
+    caused_by_resource_id: Unset | int = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+) -> ErrorResponse | InventoryMovementListResponse | None:
     """List all inventory movements
 
      Returns a list of inventory movements created by your Katana resources. The inventory movements are
@@ -260,21 +262,21 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    variant_ids: Union[Unset, list[int]] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    resource_type: Union[Unset, GetAllInventoryMovementsResourceType] = UNSET,
-    resource_id: Union[Unset, int] = UNSET,
-    caused_by_order_no: Union[Unset, str] = UNSET,
-    caused_by_resource_id: Union[Unset, int] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-) -> Response[Union[ErrorResponse, InventoryMovementListResponse]]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    variant_ids: Unset | list[int] = UNSET,
+    location_id: Unset | int = UNSET,
+    resource_type: Unset | GetAllInventoryMovementsResourceType = UNSET,
+    resource_id: Unset | int = UNSET,
+    caused_by_order_no: Unset | str = UNSET,
+    caused_by_resource_id: Unset | int = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+) -> Response[ErrorResponse | InventoryMovementListResponse]:
     """List all inventory movements
 
      Returns a list of inventory movements created by your Katana resources. The inventory movements are
@@ -326,21 +328,21 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    variant_ids: Union[Unset, list[int]] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    resource_type: Union[Unset, GetAllInventoryMovementsResourceType] = UNSET,
-    resource_id: Union[Unset, int] = UNSET,
-    caused_by_order_no: Union[Unset, str] = UNSET,
-    caused_by_resource_id: Union[Unset, int] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-) -> Optional[Union[ErrorResponse, InventoryMovementListResponse]]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    variant_ids: Unset | list[int] = UNSET,
+    location_id: Unset | int = UNSET,
+    resource_type: Unset | GetAllInventoryMovementsResourceType = UNSET,
+    resource_id: Unset | int = UNSET,
+    caused_by_order_no: Unset | str = UNSET,
+    caused_by_resource_id: Unset | int = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+) -> ErrorResponse | InventoryMovementListResponse | None:
     """List all inventory movements
 
      Returns a list of inventory movements created by your Katana resources. The inventory movements are

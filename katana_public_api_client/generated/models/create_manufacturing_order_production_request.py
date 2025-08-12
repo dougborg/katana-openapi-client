@@ -1,16 +1,22 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.manufacturing_order_operation_row import ManufacturingOrderOperationRow
-    from ..models.manufacturing_order_production_ingredient import ManufacturingOrderProductionIngredient
+    from ..models.manufacturing_order_operation_row import (
+        ManufacturingOrderOperationRow,
+    )
+    from ..models.manufacturing_order_production_ingredient import (
+        ManufacturingOrderProductionIngredient,
+    )
 
 
 T = TypeVar("T", bound="CreateManufacturingOrderProductionRequest")
@@ -41,8 +47,8 @@ class CreateManufacturingOrderProductionRequest:
     manufacturing_order_id: int
     quantity: float
     production_date: datetime.datetime
-    ingredients: Union[Unset, list["ManufacturingOrderProductionIngredient"]] = UNSET
-    operations: Union[Unset, list["ManufacturingOrderOperationRow"]] = UNSET
+    ingredients: Unset | list["ManufacturingOrderProductionIngredient"] = UNSET
+    operations: Unset | list["ManufacturingOrderOperationRow"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -52,14 +58,14 @@ class CreateManufacturingOrderProductionRequest:
 
         production_date = self.production_date.isoformat()
 
-        ingredients: Union[Unset, list[dict[str, Any]]] = UNSET
+        ingredients: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.ingredients, Unset):
             ingredients = []
             for ingredients_item_data in self.ingredients:
                 ingredients_item = ingredients_item_data.to_dict()
                 ingredients.append(ingredients_item)
 
-        operations: Union[Unset, list[dict[str, Any]]] = UNSET
+        operations: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.operations, Unset):
             operations = []
             for operations_item_data in self.operations:
@@ -84,8 +90,12 @@ class CreateManufacturingOrderProductionRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.manufacturing_order_operation_row import ManufacturingOrderOperationRow
-        from ..models.manufacturing_order_production_ingredient import ManufacturingOrderProductionIngredient
+        from ..models.manufacturing_order_operation_row import (
+            ManufacturingOrderOperationRow,
+        )
+        from ..models.manufacturing_order_production_ingredient import (
+            ManufacturingOrderProductionIngredient,
+        )
 
         d = dict(src_dict)
         manufacturing_order_id = d.pop("manufacturing_order_id")
@@ -97,14 +107,18 @@ class CreateManufacturingOrderProductionRequest:
         ingredients = []
         _ingredients = d.pop("ingredients", UNSET)
         for ingredients_item_data in _ingredients or []:
-            ingredients_item = ManufacturingOrderProductionIngredient.from_dict(ingredients_item_data)
+            ingredients_item = ManufacturingOrderProductionIngredient.from_dict(
+                ingredients_item_data
+            )
 
             ingredients.append(ingredients_item)
 
         operations = []
         _operations = d.pop("operations", UNSET)
         for operations_item_data in _operations or []:
-            operations_item = ManufacturingOrderOperationRow.from_dict(operations_item_data)
+            operations_item = ManufacturingOrderOperationRow.from_dict(
+                operations_item_data
+            )
 
             operations.append(operations_item)
 

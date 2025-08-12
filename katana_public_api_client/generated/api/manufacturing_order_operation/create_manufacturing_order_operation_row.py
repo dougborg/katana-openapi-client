@@ -1,11 +1,13 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.create_manufacturing_order_operation_row_request import CreateManufacturingOrderOperationRowRequest
+from ...models.create_manufacturing_order_operation_row_request import (
+    CreateManufacturingOrderOperationRowRequest,
+)
 from ...models.error_response import ErrorResponse
 from ...models.manufacturing_order_operation_row import ManufacturingOrderOperationRow
 from ...types import Response
@@ -31,8 +33,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, ManufacturingOrderOperationRow]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | ManufacturingOrderOperationRow | None:
     if response.status_code == 200:
         response_200 = ManufacturingOrderOperationRow.from_dict(response.json())
 
@@ -56,8 +58,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, ManufacturingOrderOperationRow]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | ManufacturingOrderOperationRow]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -68,9 +70,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderOperationRowRequest,
-) -> Response[Union[ErrorResponse, ManufacturingOrderOperationRow]]:
+) -> Response[ErrorResponse | ManufacturingOrderOperationRow]:
     """Create a manufacturing order operation row
 
      Add an operation row to an existing manufacturing order. Operation rows cannot be added when the
@@ -100,9 +102,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderOperationRowRequest,
-) -> Optional[Union[ErrorResponse, ManufacturingOrderOperationRow]]:
+) -> ErrorResponse | ManufacturingOrderOperationRow | None:
     """Create a manufacturing order operation row
 
      Add an operation row to an existing manufacturing order. Operation rows cannot be added when the
@@ -127,9 +129,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderOperationRowRequest,
-) -> Response[Union[ErrorResponse, ManufacturingOrderOperationRow]]:
+) -> Response[ErrorResponse | ManufacturingOrderOperationRow]:
     """Create a manufacturing order operation row
 
      Add an operation row to an existing manufacturing order. Operation rows cannot be added when the
@@ -157,9 +159,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderOperationRowRequest,
-) -> Optional[Union[ErrorResponse, ManufacturingOrderOperationRow]]:
+) -> ErrorResponse | ManufacturingOrderOperationRow | None:
     """Create a manufacturing order operation row
 
      Add an operation row to an existing manufacturing order. Operation rows cannot be added when the

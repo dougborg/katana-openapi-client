@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -32,8 +32,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, TaxRate]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> DetailedErrorResponse | ErrorResponse | TaxRate | None:
     if response.status_code == 200:
         response_200 = TaxRate.from_dict(response.json())
 
@@ -61,8 +61,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, TaxRate]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[DetailedErrorResponse | ErrorResponse | TaxRate]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -73,9 +73,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateTaxRateRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, TaxRate]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | TaxRate]:
     """Create a tax rate
 
      Creates a new tax rate object.
@@ -106,9 +106,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateTaxRateRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, TaxRate]]:
+) -> DetailedErrorResponse | ErrorResponse | TaxRate | None:
     """Create a tax rate
 
      Creates a new tax rate object.
@@ -134,9 +134,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateTaxRateRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, TaxRate]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | TaxRate]:
     """Create a tax rate
 
      Creates a new tax rate object.
@@ -165,9 +165,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateTaxRateRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, TaxRate]]:
+) -> DetailedErrorResponse | ErrorResponse | TaxRate | None:
     """Create a tax rate
 
      Creates a new tax rate object.

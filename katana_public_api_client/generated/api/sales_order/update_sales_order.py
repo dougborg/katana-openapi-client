@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 import httpx
 
@@ -31,8 +31,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Any, ErrorResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Any | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = cast(Any, None)
         return response_200
@@ -59,8 +59,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Any, ErrorResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[Any | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -72,9 +72,9 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateSalesOrderBody,
-) -> Response[Union[Any, ErrorResponse]]:
+) -> Response[Any | ErrorResponse]:
     """Update a sales order
 
      Updates a sales order.
@@ -106,9 +106,9 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateSalesOrderBody,
-) -> Optional[Union[Any, ErrorResponse]]:
+) -> Any | ErrorResponse | None:
     """Update a sales order
 
      Updates a sales order.
@@ -135,9 +135,9 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateSalesOrderBody,
-) -> Response[Union[Any, ErrorResponse]]:
+) -> Response[Any | ErrorResponse]:
     """Update a sales order
 
      Updates a sales order.
@@ -167,9 +167,9 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateSalesOrderBody,
-) -> Optional[Union[Any, ErrorResponse]]:
+) -> Any | ErrorResponse | None:
     """Update a sales order
 
      Updates a sales order.

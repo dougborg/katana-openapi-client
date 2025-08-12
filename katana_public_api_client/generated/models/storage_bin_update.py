@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
@@ -20,8 +20,8 @@ class StorageBinUpdate:
         location_id (Union[Unset, int]): Unique identifier of the location where storage bin is located
     """
 
-    bin_name: Union[Unset, str] = UNSET
-    location_id: Union[Unset, int] = UNSET
+    bin_name: Unset | str = UNSET
+    location_id: Unset | int = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         bin_name = self.bin_name

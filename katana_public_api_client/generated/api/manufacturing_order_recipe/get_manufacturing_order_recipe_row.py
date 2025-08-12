@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -22,8 +22,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, ManufacturingOrderRecipeRow]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | ManufacturingOrderRecipeRow | None:
     if response.status_code == 200:
         response_200 = ManufacturingOrderRecipeRow.from_dict(response.json())
 
@@ -47,8 +47,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, ManufacturingOrderRecipeRow]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | ManufacturingOrderRecipeRow]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -60,8 +60,8 @@ def _build_response(
 def sync_detailed(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Response[Union[ErrorResponse, ManufacturingOrderRecipeRow]]:
+    client: AuthenticatedClient | Client,
+) -> Response[ErrorResponse | ManufacturingOrderRecipeRow]:
     """Retrieve a manufacturing order recipe row
 
      Retrieves the details of an existing manufacturing order recipe row.
@@ -91,8 +91,8 @@ def sync_detailed(
 def sync(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[Union[ErrorResponse, ManufacturingOrderRecipeRow]]:
+    client: AuthenticatedClient | Client,
+) -> ErrorResponse | ManufacturingOrderRecipeRow | None:
     """Retrieve a manufacturing order recipe row
 
      Retrieves the details of an existing manufacturing order recipe row.
@@ -117,8 +117,8 @@ def sync(
 async def asyncio_detailed(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Response[Union[ErrorResponse, ManufacturingOrderRecipeRow]]:
+    client: AuthenticatedClient | Client,
+) -> Response[ErrorResponse | ManufacturingOrderRecipeRow]:
     """Retrieve a manufacturing order recipe row
 
      Retrieves the details of an existing manufacturing order recipe row.
@@ -146,8 +146,8 @@ async def asyncio_detailed(
 async def asyncio(
     id: float,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[Union[ErrorResponse, ManufacturingOrderRecipeRow]]:
+    client: AuthenticatedClient | Client,
+) -> ErrorResponse | ManufacturingOrderRecipeRow | None:
     """Retrieve a manufacturing order recipe row
 
      Retrieves the details of an existing manufacturing order recipe row.

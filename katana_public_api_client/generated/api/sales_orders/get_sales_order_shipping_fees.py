@@ -1,21 +1,23 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error_response import ErrorResponse
-from ...models.sales_order_shipping_fee_list_response import SalesOrderShippingFeeListResponse
+from ...models.sales_order_shipping_fee_list_response import (
+    SalesOrderShippingFeeListResponse,
+)
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    sales_order_id: Union[Unset, int] = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    sales_order_id: Unset | int = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -23,7 +25,7 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_ids: Union[Unset, list[int]] = UNSET
+    json_ids: Unset | list[int] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -43,8 +45,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | SalesOrderShippingFeeListResponse | None:
     if response.status_code == 200:
         response_200 = SalesOrderShippingFeeListResponse.from_dict(response.json())
 
@@ -68,8 +70,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | SalesOrderShippingFeeListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -80,12 +82,12 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    sales_order_id: Union[Unset, int] = UNSET,
-) -> Response[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    sales_order_id: Unset | int = UNSET,
+) -> Response[ErrorResponse | SalesOrderShippingFeeListResponse]:
     """List sales order shipping fees
 
      Retrieves shipping fees for sales orders.
@@ -120,12 +122,12 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    sales_order_id: Union[Unset, int] = UNSET,
-) -> Optional[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    sales_order_id: Unset | int = UNSET,
+) -> ErrorResponse | SalesOrderShippingFeeListResponse | None:
     """List sales order shipping fees
 
      Retrieves shipping fees for sales orders.
@@ -155,12 +157,12 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    sales_order_id: Union[Unset, int] = UNSET,
-) -> Response[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    sales_order_id: Unset | int = UNSET,
+) -> Response[ErrorResponse | SalesOrderShippingFeeListResponse]:
     """List sales order shipping fees
 
      Retrieves shipping fees for sales orders.
@@ -193,12 +195,12 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    ids: Union[Unset, list[int]] = UNSET,
-    sales_order_id: Union[Unset, int] = UNSET,
-) -> Optional[Union[ErrorResponse, SalesOrderShippingFeeListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    ids: Unset | list[int] = UNSET,
+    sales_order_id: Unset | int = UNSET,
+) -> ErrorResponse | SalesOrderShippingFeeListResponse | None:
     """List sales order shipping fees
 
      Retrieves shipping fees for sales orders.

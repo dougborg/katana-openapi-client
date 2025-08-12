@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 import httpx
 
@@ -7,7 +7,9 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
-from ...models.unlink_variant_bin_location_request import UnlinkVariantBinLocationRequest
+from ...models.unlink_variant_bin_location_request import (
+    UnlinkVariantBinLocationRequest,
+)
 from ...types import Response
 
 
@@ -24,10 +26,10 @@ def _get_kwargs(
 
     _kwargs["json"] = []
     for componentsschemas_unlink_variant_bin_location_list_request_item_data in body:
-        componentsschemas_unlink_variant_bin_location_list_request_item = (
-            componentsschemas_unlink_variant_bin_location_list_request_item_data.to_dict()
+        componentsschemas_unlink_variant_bin_location_list_request_item = componentsschemas_unlink_variant_bin_location_list_request_item_data.to_dict()
+        _kwargs["json"].append(
+            componentsschemas_unlink_variant_bin_location_list_request_item
         )
-        _kwargs["json"].append(componentsschemas_unlink_variant_bin_location_list_request_item)
 
     headers["Content-Type"] = "application/json"
 
@@ -36,8 +38,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Any, DetailedErrorResponse, ErrorResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
@@ -64,8 +66,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Any, DetailedErrorResponse, ErrorResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -76,9 +78,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: list["UnlinkVariantBinLocationRequest"],
-) -> Response[Union[Any, DetailedErrorResponse, ErrorResponse]]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Unlink variant default storage bins
 
      Bulk operation for unlinking variants from the default storage bins available in a specific
@@ -111,9 +113,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: list["UnlinkVariantBinLocationRequest"],
-) -> Optional[Union[Any, DetailedErrorResponse, ErrorResponse]]:
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Unlink variant default storage bins
 
      Bulk operation for unlinking variants from the default storage bins available in a specific
@@ -141,9 +143,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: list["UnlinkVariantBinLocationRequest"],
-) -> Response[Union[Any, DetailedErrorResponse, ErrorResponse]]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Unlink variant default storage bins
 
      Bulk operation for unlinking variants from the default storage bins available in a specific
@@ -174,9 +176,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: list["UnlinkVariantBinLocationRequest"],
-) -> Optional[Union[Any, DetailedErrorResponse, ErrorResponse]]:
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Unlink variant default storage bins
 
      Bulk operation for unlinking variants from the default storage bins available in a specific

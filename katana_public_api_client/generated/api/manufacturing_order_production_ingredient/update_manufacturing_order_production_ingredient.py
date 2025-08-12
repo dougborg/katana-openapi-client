@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -7,7 +7,9 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
-from ...models.manufacturing_order_production_ingredient_response import ManufacturingOrderProductionIngredientResponse
+from ...models.manufacturing_order_production_ingredient_response import (
+    ManufacturingOrderProductionIngredientResponse,
+)
 from ...models.update_manufacturing_order_production_ingredient_request import (
     UpdateManufacturingOrderProductionIngredientRequest,
 )
@@ -35,10 +37,17 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrderProductionIngredientResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> (
+    DetailedErrorResponse
+    | ErrorResponse
+    | ManufacturingOrderProductionIngredientResponse
+    | None
+):
     if response.status_code == 200:
-        response_200 = ManufacturingOrderProductionIngredientResponse.from_dict(response.json())
+        response_200 = ManufacturingOrderProductionIngredientResponse.from_dict(
+            response.json()
+        )
 
         return response_200
     if response.status_code == 401:
@@ -64,8 +73,12 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrderProductionIngredientResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[
+    DetailedErrorResponse
+    | ErrorResponse
+    | ManufacturingOrderProductionIngredientResponse
+]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -77,9 +90,13 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderProductionIngredientRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrderProductionIngredientResponse]]:
+) -> Response[
+    DetailedErrorResponse
+    | ErrorResponse
+    | ManufacturingOrderProductionIngredientResponse
+]:
     """Update a manufacturing order production ingredient
 
      Updates the specified manufacturing order production ingredient by setting the values of the
@@ -115,9 +132,14 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderProductionIngredientRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrderProductionIngredientResponse]]:
+) -> (
+    DetailedErrorResponse
+    | ErrorResponse
+    | ManufacturingOrderProductionIngredientResponse
+    | None
+):
     """Update a manufacturing order production ingredient
 
      Updates the specified manufacturing order production ingredient by setting the values of the
@@ -148,9 +170,13 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderProductionIngredientRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrderProductionIngredientResponse]]:
+) -> Response[
+    DetailedErrorResponse
+    | ErrorResponse
+    | ManufacturingOrderProductionIngredientResponse
+]:
     """Update a manufacturing order production ingredient
 
      Updates the specified manufacturing order production ingredient by setting the values of the
@@ -184,9 +210,14 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdateManufacturingOrderProductionIngredientRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, ManufacturingOrderProductionIngredientResponse]]:
+) -> (
+    DetailedErrorResponse
+    | ErrorResponse
+    | ManufacturingOrderProductionIngredientResponse
+    | None
+):
     """Update a manufacturing order production ingredient
 
      Updates the specified manufacturing order production ingredient by setting the values of the

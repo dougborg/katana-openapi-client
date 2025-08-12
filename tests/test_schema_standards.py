@@ -194,11 +194,10 @@ class TestPropertyDescriptions:
                         continue
 
                     # Only check actual property definitions (not inherited refs)
-                    if isinstance(prop_def, dict) and "type" in prop_def:
-                        if "description" not in prop_def:
-                            properties_missing_descriptions.append(
-                                f"{schema_name}.{prop_name}"
-                            )
+                    if isinstance(prop_def, dict) and "type" in prop_def and "description" not in prop_def:
+                        properties_missing_descriptions.append(
+                            f"{schema_name}.{prop_name}"
+                        )
 
         # Report missing descriptions
         if properties_missing_descriptions:

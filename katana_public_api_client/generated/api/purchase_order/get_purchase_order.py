@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -14,11 +14,11 @@ from ...types import UNSET, Response, Unset
 def _get_kwargs(
     id: int,
     *,
-    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
+    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_extend: Union[Unset, list[str]] = UNSET
+    json_extend: Unset | list[str] = UNSET
     if not isinstance(extend, Unset):
         json_extend = []
         for extend_item_data in extend:
@@ -39,8 +39,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, PurchaseOrder]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | PurchaseOrder | None:
     if response.status_code == 200:
         response_200 = PurchaseOrder.from_dict(response.json())
 
@@ -64,8 +64,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, PurchaseOrder]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | PurchaseOrder]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -77,9 +77,9 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
-) -> Response[Union[ErrorResponse, PurchaseOrder]]:
+    client: AuthenticatedClient | Client,
+    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
+) -> Response[ErrorResponse | PurchaseOrder]:
     """Retrieve a purchase order
 
      Retrieves the details of an existing purchase order based on ID
@@ -111,9 +111,9 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
-) -> Optional[Union[ErrorResponse, PurchaseOrder]]:
+    client: AuthenticatedClient | Client,
+    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
+) -> ErrorResponse | PurchaseOrder | None:
     """Retrieve a purchase order
 
      Retrieves the details of an existing purchase order based on ID
@@ -140,9 +140,9 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
-) -> Response[Union[ErrorResponse, PurchaseOrder]]:
+    client: AuthenticatedClient | Client,
+    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
+) -> Response[ErrorResponse | PurchaseOrder]:
     """Retrieve a purchase order
 
      Retrieves the details of an existing purchase order based on ID
@@ -172,9 +172,9 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-    extend: Union[Unset, list[GetPurchaseOrderExtendItem]] = UNSET,
-) -> Optional[Union[ErrorResponse, PurchaseOrder]]:
+    client: AuthenticatedClient | Client,
+    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
+) -> ErrorResponse | PurchaseOrder | None:
     """Retrieve a purchase order
 
      Retrieves the details of an existing purchase order based on ID

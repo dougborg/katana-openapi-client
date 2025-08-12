@@ -1,12 +1,14 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error_response import ErrorResponse
-from ...models.get_all_serial_numbers_resource_type import GetAllSerialNumbersResourceType
+from ...models.get_all_serial_numbers_resource_type import (
+    GetAllSerialNumbersResourceType,
+)
 from ...models.serial_number_list_response import SerialNumberListResponse
 from ...types import UNSET, Response, Unset
 
@@ -15,8 +17,8 @@ def _get_kwargs(
     *,
     resource_type: GetAllSerialNumbersResourceType,
     resource_id: int,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -41,8 +43,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, SerialNumberListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | SerialNumberListResponse | None:
     if response.status_code == 200:
         response_200 = SerialNumberListResponse.from_dict(response.json())
 
@@ -66,8 +68,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, SerialNumberListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | SerialNumberListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -78,12 +80,12 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     resource_type: GetAllSerialNumbersResourceType,
     resource_id: int,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Response[Union[ErrorResponse, SerialNumberListResponse]]:
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> Response[ErrorResponse | SerialNumberListResponse]:
     """List serial numbers
 
      Returns a list of serial numbers.
@@ -118,12 +120,12 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     resource_type: GetAllSerialNumbersResourceType,
     resource_id: int,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Optional[Union[ErrorResponse, SerialNumberListResponse]]:
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> ErrorResponse | SerialNumberListResponse | None:
     """List serial numbers
 
      Returns a list of serial numbers.
@@ -153,12 +155,12 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     resource_type: GetAllSerialNumbersResourceType,
     resource_id: int,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Response[Union[ErrorResponse, SerialNumberListResponse]]:
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> Response[ErrorResponse | SerialNumberListResponse]:
     """List serial numbers
 
      Returns a list of serial numbers.
@@ -191,12 +193,12 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     resource_type: GetAllSerialNumbersResourceType,
     resource_id: int,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Optional[Union[ErrorResponse, SerialNumberListResponse]]:
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> ErrorResponse | SerialNumberListResponse | None:
     """List serial numbers
 
      Returns a list of serial numbers.

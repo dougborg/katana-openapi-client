@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -29,30 +31,30 @@ class ManufacturingOrderProductionIngredient:
         cost (Union[Unset, float]):
     """
 
-    created_at: Union[Unset, datetime.datetime] = UNSET
-    updated_at: Union[Unset, datetime.datetime] = UNSET
-    deleted_at: Union[None, Unset, str] = UNSET
-    id: Union[Unset, int] = UNSET
-    location_id: Union[Unset, int] = UNSET
-    variant_id: Union[Unset, int] = UNSET
-    manufacturing_order_id: Union[Unset, int] = UNSET
-    manufacturing_order_recipe_row_id: Union[Unset, int] = UNSET
-    production_id: Union[Unset, int] = UNSET
-    quantity: Union[Unset, float] = UNSET
-    production_date: Union[Unset, datetime.datetime] = UNSET
-    cost: Union[Unset, float] = UNSET
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | str = UNSET
+    id: Unset | int = UNSET
+    location_id: Unset | int = UNSET
+    variant_id: Unset | int = UNSET
+    manufacturing_order_id: Unset | int = UNSET
+    manufacturing_order_recipe_row_id: Unset | int = UNSET
+    production_id: Unset | int = UNSET
+    quantity: Unset | float = UNSET
+    production_date: Unset | datetime.datetime = UNSET
+    cost: Unset | float = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        created_at: Union[Unset, str] = UNSET
+        created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: Union[None, Unset, str]
+        deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         else:
@@ -72,7 +74,7 @@ class ManufacturingOrderProductionIngredient:
 
         quantity = self.quantity
 
-        production_date: Union[Unset, str] = UNSET
+        production_date: Unset | str = UNSET
         if not isinstance(self.production_date, Unset):
             production_date = self.production_date.isoformat()
 
@@ -96,7 +98,9 @@ class ManufacturingOrderProductionIngredient:
         if manufacturing_order_id is not UNSET:
             field_dict["manufacturing_order_id"] = manufacturing_order_id
         if manufacturing_order_recipe_row_id is not UNSET:
-            field_dict["manufacturing_order_recipe_row_id"] = manufacturing_order_recipe_row_id
+            field_dict["manufacturing_order_recipe_row_id"] = (
+                manufacturing_order_recipe_row_id
+            )
         if production_id is not UNSET:
             field_dict["production_id"] = production_id
         if quantity is not UNSET:
@@ -112,25 +116,25 @@ class ManufacturingOrderProductionIngredient:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         _created_at = d.pop("created_at", UNSET)
-        created_at: Union[Unset, datetime.datetime]
+        created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: Unset | datetime.datetime
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> Union[None, Unset, str]:
+        def _parse_deleted_at(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -142,14 +146,16 @@ class ManufacturingOrderProductionIngredient:
 
         manufacturing_order_id = d.pop("manufacturing_order_id", UNSET)
 
-        manufacturing_order_recipe_row_id = d.pop("manufacturing_order_recipe_row_id", UNSET)
+        manufacturing_order_recipe_row_id = d.pop(
+            "manufacturing_order_recipe_row_id", UNSET
+        )
 
         production_id = d.pop("production_id", UNSET)
 
         quantity = d.pop("quantity", UNSET)
 
         _production_date = d.pop("production_date", UNSET)
-        production_date: Union[Unset, datetime.datetime]
+        production_date: Unset | datetime.datetime
         if isinstance(_production_date, Unset):
             production_date = UNSET
         else:

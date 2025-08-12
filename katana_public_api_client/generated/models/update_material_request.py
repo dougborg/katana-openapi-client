@@ -1,12 +1,14 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.update_material_request_configs_item import UpdateMaterialRequestConfigsItem
+    from ..models.update_material_request_configs_item import (
+        UpdateMaterialRequestConfigsItem,
+    )
 
 
 T = TypeVar("T", bound="UpdateMaterialRequest")
@@ -40,18 +42,18 @@ class UpdateMaterialRequest:
         custom_field_collection_id (Union[None, Unset, int]):
     """
 
-    name: Union[Unset, str] = UNSET
-    uom: Union[Unset, str] = UNSET
-    category_name: Union[Unset, str] = UNSET
-    default_supplier_id: Union[Unset, int] = UNSET
-    additional_info: Union[Unset, str] = UNSET
-    batch_tracked: Union[Unset, bool] = UNSET
-    is_sellable: Union[Unset, bool] = UNSET
-    is_archived: Union[Unset, bool] = UNSET
-    purchase_uom: Union[Unset, str] = UNSET
-    purchase_uom_conversion_rate: Union[Unset, float] = UNSET
-    configs: Union[Unset, list["UpdateMaterialRequestConfigsItem"]] = UNSET
-    custom_field_collection_id: Union[None, Unset, int] = UNSET
+    name: Unset | str = UNSET
+    uom: Unset | str = UNSET
+    category_name: Unset | str = UNSET
+    default_supplier_id: Unset | int = UNSET
+    additional_info: Unset | str = UNSET
+    batch_tracked: Unset | bool = UNSET
+    is_sellable: Unset | bool = UNSET
+    is_archived: Unset | bool = UNSET
+    purchase_uom: Unset | str = UNSET
+    purchase_uom_conversion_rate: Unset | float = UNSET
+    configs: Unset | list["UpdateMaterialRequestConfigsItem"] = UNSET
+    custom_field_collection_id: None | Unset | int = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -74,14 +76,14 @@ class UpdateMaterialRequest:
 
         purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
-        configs: Union[Unset, list[dict[str, Any]]] = UNSET
+        configs: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.configs, Unset):
             configs = []
             for configs_item_data in self.configs:
                 configs_item = configs_item_data.to_dict()
                 configs.append(configs_item)
 
-        custom_field_collection_id: Union[None, Unset, int]
+        custom_field_collection_id: None | Unset | int
         if isinstance(self.custom_field_collection_id, Unset):
             custom_field_collection_id = UNSET
         else:
@@ -119,7 +121,9 @@ class UpdateMaterialRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.update_material_request_configs_item import UpdateMaterialRequestConfigsItem
+        from ..models.update_material_request_configs_item import (
+            UpdateMaterialRequestConfigsItem,
+        )
 
         d = dict(src_dict)
         name = d.pop("name", UNSET)
@@ -149,14 +153,16 @@ class UpdateMaterialRequest:
 
             configs.append(configs_item)
 
-        def _parse_custom_field_collection_id(data: object) -> Union[None, Unset, int]:
+        def _parse_custom_field_collection_id(data: object) -> None | Unset | int:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, int], data)
+            return cast(None | Unset | int, data)
 
-        custom_field_collection_id = _parse_custom_field_collection_id(d.pop("custom_field_collection_id", UNSET))
+        custom_field_collection_id = _parse_custom_field_collection_id(
+            d.pop("custom_field_collection_id", UNSET)
+        )
 
         update_material_request = cls(
             name=name,

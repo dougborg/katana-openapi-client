@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -27,12 +29,12 @@ class Operator:
 
     id: int
     name: str
-    created_at: Union[Unset, datetime.datetime] = UNSET
-    updated_at: Union[Unset, datetime.datetime] = UNSET
-    deleted_at: Union[None, Unset, str] = UNSET
-    operator_id: Union[Unset, int] = UNSET
-    working_area: Union[None, Unset, str] = UNSET
-    resource_id: Union[None, Unset, int] = UNSET
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | str = UNSET
+    operator_id: Unset | int = UNSET
+    working_area: None | Unset | str = UNSET
+    resource_id: None | Unset | int = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -40,15 +42,15 @@ class Operator:
 
         name = self.name
 
-        created_at: Union[Unset, str] = UNSET
+        created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: Union[None, Unset, str]
+        deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         else:
@@ -56,13 +58,13 @@ class Operator:
 
         operator_id = self.operator_id
 
-        working_area: Union[None, Unset, str]
+        working_area: None | Unset | str
         if isinstance(self.working_area, Unset):
             working_area = UNSET
         else:
             working_area = self.working_area
 
-        resource_id: Union[None, Unset, int]
+        resource_id: None | Unset | int
         if isinstance(self.resource_id, Unset):
             resource_id = UNSET
         else:
@@ -99,45 +101,45 @@ class Operator:
         name = d.pop("name")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Union[Unset, datetime.datetime]
+        created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: Unset | datetime.datetime
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> Union[None, Unset, str]:
+        def _parse_deleted_at(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         operator_id = d.pop("operator_id", UNSET)
 
-        def _parse_working_area(data: object) -> Union[None, Unset, str]:
+        def _parse_working_area(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         working_area = _parse_working_area(d.pop("working_area", UNSET))
 
-        def _parse_resource_id(data: object) -> Union[None, Unset, int]:
+        def _parse_resource_id(data: object) -> None | Unset | int:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, int], data)
+            return cast(None | Unset | int, data)
 
         resource_id = _parse_resource_id(d.pop("resource_id", UNSET))
 

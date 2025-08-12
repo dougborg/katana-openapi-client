@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -31,8 +31,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, Service]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | Service | None:
     if response.status_code == 201:
         response_201 = Service.from_dict(response.json())
 
@@ -56,8 +56,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, Service]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | Service]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -68,9 +68,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: ServiceRequest,
-) -> Response[Union[ErrorResponse, Service]]:
+) -> Response[ErrorResponse | Service]:
     """Create Service
 
      Create a new Service. (See: [Create
@@ -100,9 +100,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: ServiceRequest,
-) -> Optional[Union[ErrorResponse, Service]]:
+) -> ErrorResponse | Service | None:
     """Create Service
 
      Create a new Service. (See: [Create
@@ -127,9 +127,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: ServiceRequest,
-) -> Response[Union[ErrorResponse, Service]]:
+) -> Response[ErrorResponse | Service]:
     """Create Service
 
      Create a new Service. (See: [Create
@@ -157,9 +157,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: ServiceRequest,
-) -> Optional[Union[ErrorResponse, Service]]:
+) -> ErrorResponse | Service | None:
     """Create Service
 
      Create a new Service. (See: [Create

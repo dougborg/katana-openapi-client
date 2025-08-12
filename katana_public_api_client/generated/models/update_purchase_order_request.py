@@ -1,9 +1,11 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
-from ..models.update_purchase_order_request_status import UpdatePurchaseOrderRequestStatus
+from ..models.update_purchase_order_request_status import (
+    UpdatePurchaseOrderRequestStatus,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="UpdatePurchaseOrderRequest")
@@ -31,15 +33,15 @@ class UpdatePurchaseOrderRequest:
         additional_info (Union[Unset, str]): Optional notes or special instructions for the supplier
     """
 
-    order_no: Union[Unset, str] = UNSET
-    supplier_id: Union[Unset, int] = UNSET
-    currency: Union[Unset, str] = UNSET
-    tracking_location_id: Union[Unset, int] = UNSET
-    status: Union[Unset, UpdatePurchaseOrderRequestStatus] = UNSET
-    expected_arrival_date: Union[Unset, str] = UNSET
-    order_created_date: Union[Unset, str] = UNSET
-    location_id: Union[Unset, int] = UNSET
-    additional_info: Union[Unset, str] = UNSET
+    order_no: Unset | str = UNSET
+    supplier_id: Unset | int = UNSET
+    currency: Unset | str = UNSET
+    tracking_location_id: Unset | int = UNSET
+    status: Unset | UpdatePurchaseOrderRequestStatus = UNSET
+    expected_arrival_date: Unset | str = UNSET
+    order_created_date: Unset | str = UNSET
+    location_id: Unset | int = UNSET
+    additional_info: Unset | str = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         order_no = self.order_no
@@ -50,7 +52,7 @@ class UpdatePurchaseOrderRequest:
 
         tracking_location_id = self.tracking_location_id
 
-        status: Union[Unset, str] = UNSET
+        status: Unset | str = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
@@ -98,7 +100,7 @@ class UpdatePurchaseOrderRequest:
         tracking_location_id = d.pop("tracking_location_id", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: Union[Unset, UpdatePurchaseOrderRequestStatus]
+        status: Unset | UpdatePurchaseOrderRequestStatus
         if isinstance(_status, Unset):
             status = UNSET
         else:

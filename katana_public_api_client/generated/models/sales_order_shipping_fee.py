@@ -1,8 +1,10 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..types import UNSET, Unset
 
@@ -27,8 +29,8 @@ class SalesOrderShippingFee:
     id: int
     sales_order_id: int
     amount: float
-    tax_rate_id: Union[Unset, int] = UNSET
-    description: Union[None, Unset, str] = UNSET
+    tax_rate_id: Unset | int = UNSET
+    description: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -40,7 +42,7 @@ class SalesOrderShippingFee:
 
         tax_rate_id = self.tax_rate_id
 
-        description: Union[None, Unset, str]
+        description: None | Unset | str
         if isinstance(self.description, Unset):
             description = UNSET
         else:
@@ -73,12 +75,12 @@ class SalesOrderShippingFee:
 
         tax_rate_id = d.pop("tax_rate_id", UNSET)
 
-        def _parse_description(data: object) -> Union[None, Unset, str]:
+        def _parse_description(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         description = _parse_description(d.pop("description", UNSET))
 

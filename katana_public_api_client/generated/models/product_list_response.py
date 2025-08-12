@@ -1,8 +1,10 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..types import UNSET, Unset
 
@@ -29,11 +31,11 @@ class ProductListResponse:
         data (Union[Unset, list['Product']]): Array of product objects returned by the API
     """
 
-    data: Union[Unset, list["Product"]] = UNSET
+    data: Unset | list["Product"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Union[Unset, list[dict[str, Any]]] = UNSET
+        data: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:

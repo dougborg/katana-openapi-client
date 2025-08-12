@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -33,8 +33,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrder | None:
     if response.status_code == 200:
         response_200 = PurchaseOrder.from_dict(response.json())
 
@@ -62,8 +62,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrder]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -75,9 +75,9 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrder]:
     """Update a purchase order
 
      Updates the specified purchase order by setting the values of the parameters passed.
@@ -113,9 +113,9 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]:
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrder | None:
     """Update a purchase order
 
      Updates the specified purchase order by setting the values of the parameters passed.
@@ -146,9 +146,9 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrder]:
     """Update a purchase order
 
      Updates the specified purchase order by setting the values of the parameters passed.
@@ -182,9 +182,9 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]:
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrder | None:
     """Update a purchase order
 
      Updates the specified purchase order by setting the values of the parameters passed.

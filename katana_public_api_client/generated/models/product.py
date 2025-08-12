@@ -2,8 +2,10 @@ import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -70,42 +72,42 @@ class Product:
     """
 
     id: int
-    created_at: Union[Unset, datetime.datetime] = UNSET
-    updated_at: Union[Unset, datetime.datetime] = UNSET
-    archived_at: Union[None, Unset, str] = UNSET
-    name: Union[Unset, str] = UNSET
-    uom: Union[Unset, str] = UNSET
-    category_name: Union[Unset, str] = UNSET
-    is_sellable: Union[Unset, bool] = UNSET
-    is_producible: Union[Unset, bool] = UNSET
-    is_purchasable: Union[Unset, bool] = UNSET
-    is_auto_assembly: Union[Unset, bool] = UNSET
-    default_supplier_id: Union[Unset, int] = UNSET
-    additional_info: Union[Unset, str] = UNSET
-    batch_tracked: Union[Unset, bool] = UNSET
-    serial_tracked: Union[Unset, bool] = UNSET
-    operations_in_sequence: Union[Unset, bool] = UNSET
-    type_: Union[Unset, str] = UNSET
-    purchase_uom: Union[Unset, str] = UNSET
-    purchase_uom_conversion_rate: Union[Unset, float] = UNSET
-    variants: Union[Unset, list["Variant"]] = UNSET
-    configs: Union[Unset, list["ProductConfigsItem"]] = UNSET
-    custom_field_collection_id: Union[Unset, int] = UNSET
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
+    archived_at: None | Unset | str = UNSET
+    name: Unset | str = UNSET
+    uom: Unset | str = UNSET
+    category_name: Unset | str = UNSET
+    is_sellable: Unset | bool = UNSET
+    is_producible: Unset | bool = UNSET
+    is_purchasable: Unset | bool = UNSET
+    is_auto_assembly: Unset | bool = UNSET
+    default_supplier_id: Unset | int = UNSET
+    additional_info: Unset | str = UNSET
+    batch_tracked: Unset | bool = UNSET
+    serial_tracked: Unset | bool = UNSET
+    operations_in_sequence: Unset | bool = UNSET
+    type_: Unset | str = UNSET
+    purchase_uom: Unset | str = UNSET
+    purchase_uom_conversion_rate: Unset | float = UNSET
+    variants: Unset | list["Variant"] = UNSET
+    configs: Unset | list["ProductConfigsItem"] = UNSET
+    custom_field_collection_id: Unset | int = UNSET
     supplier: Union[Unset, "Supplier"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        created_at: Union[Unset, str] = UNSET
+        created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        archived_at: Union[None, Unset, str]
+        archived_at: None | Unset | str
         if isinstance(self.archived_at, Unset):
             archived_at = UNSET
         else:
@@ -141,14 +143,14 @@ class Product:
 
         purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
-        variants: Union[Unset, list[dict[str, Any]]] = UNSET
+        variants: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.variants, Unset):
             variants = []
             for variants_item_data in self.variants:
                 variants_item = variants_item_data.to_dict()
                 variants.append(variants_item)
 
-        configs: Union[Unset, list[dict[str, Any]]] = UNSET
+        configs: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.configs, Unset):
             configs = []
             for configs_item_data in self.configs:
@@ -157,7 +159,7 @@ class Product:
 
         custom_field_collection_id = self.custom_field_collection_id
 
-        supplier: Union[Unset, dict[str, Any]] = UNSET
+        supplier: Unset | dict[str, Any] = UNSET
         if not isinstance(self.supplier, Unset):
             supplier = self.supplier.to_dict()
 
@@ -225,25 +227,25 @@ class Product:
         id = d.pop("id")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Union[Unset, datetime.datetime]
+        created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: Unset | datetime.datetime
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_archived_at(data: object) -> Union[None, Unset, str]:
+        def _parse_archived_at(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
@@ -294,7 +296,7 @@ class Product:
         custom_field_collection_id = d.pop("custom_field_collection_id", UNSET)
 
         _supplier = d.pop("supplier", UNSET)
-        supplier: Union[Unset, Supplier]
+        supplier: Unset | Supplier
         if isinstance(_supplier, Unset):
             supplier = UNSET
         else:

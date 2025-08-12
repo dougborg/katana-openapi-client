@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -13,11 +13,11 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    variant_id: Union[Unset, int] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    status: Union[Unset, GetAllSerialNumbersStockStatus] = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    variant_id: Unset | int = UNSET,
+    location_id: Unset | int = UNSET,
+    status: Unset | GetAllSerialNumbersStockStatus = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -29,7 +29,7 @@ def _get_kwargs(
 
     params["location_id"] = location_id
 
-    json_status: Union[Unset, str] = UNSET
+    json_status: Unset | str = UNSET
     if not isinstance(status, Unset):
         json_status = status.value
 
@@ -47,8 +47,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, SerialNumberStockListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | SerialNumberStockListResponse | None:
     if response.status_code == 200:
         response_200 = SerialNumberStockListResponse.from_dict(response.json())
 
@@ -72,8 +72,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, SerialNumberStockListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | SerialNumberStockListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -84,13 +84,13 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    variant_id: Union[Unset, int] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    status: Union[Unset, GetAllSerialNumbersStockStatus] = UNSET,
-) -> Response[Union[ErrorResponse, SerialNumberStockListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    variant_id: Unset | int = UNSET,
+    location_id: Unset | int = UNSET,
+    status: Unset | GetAllSerialNumbersStockStatus = UNSET,
+) -> Response[ErrorResponse | SerialNumberStockListResponse]:
     """List serial number stock
 
      Returns a list of serial number stock.
@@ -127,13 +127,13 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    variant_id: Union[Unset, int] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    status: Union[Unset, GetAllSerialNumbersStockStatus] = UNSET,
-) -> Optional[Union[ErrorResponse, SerialNumberStockListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    variant_id: Unset | int = UNSET,
+    location_id: Unset | int = UNSET,
+    status: Unset | GetAllSerialNumbersStockStatus = UNSET,
+) -> ErrorResponse | SerialNumberStockListResponse | None:
     """List serial number stock
 
      Returns a list of serial number stock.
@@ -165,13 +165,13 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    variant_id: Union[Unset, int] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    status: Union[Unset, GetAllSerialNumbersStockStatus] = UNSET,
-) -> Response[Union[ErrorResponse, SerialNumberStockListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    variant_id: Unset | int = UNSET,
+    location_id: Unset | int = UNSET,
+    status: Unset | GetAllSerialNumbersStockStatus = UNSET,
+) -> Response[ErrorResponse | SerialNumberStockListResponse]:
     """List serial number stock
 
      Returns a list of serial number stock.
@@ -206,13 +206,13 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    variant_id: Union[Unset, int] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    status: Union[Unset, GetAllSerialNumbersStockStatus] = UNSET,
-) -> Optional[Union[ErrorResponse, SerialNumberStockListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    variant_id: Unset | int = UNSET,
+    location_id: Unset | int = UNSET,
+    status: Unset | GetAllSerialNumbersStockStatus = UNSET,
+) -> ErrorResponse | SerialNumberStockListResponse | None:
     """List serial number stock
 
      Returns a list of serial number stock.

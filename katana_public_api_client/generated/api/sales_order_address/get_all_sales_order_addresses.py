@@ -1,22 +1,24 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error_response import ErrorResponse
-from ...models.get_all_sales_order_addresses_entity_type import GetAllSalesOrderAddressesEntityType
+from ...models.get_all_sales_order_addresses_entity_type import (
+    GetAllSalesOrderAddressesEntityType,
+)
 from ...models.sales_order_address_list_response import SalesOrderAddressListResponse
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    sales_order_id: Union[Unset, int] = UNSET,
-    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    sales_order_id: Unset | int = UNSET,
+    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -26,7 +28,7 @@ def _get_kwargs(
 
     params["sales_order_id"] = sales_order_id
 
-    json_entity_type: Union[Unset, str] = UNSET
+    json_entity_type: Unset | str = UNSET
     if not isinstance(entity_type, Unset):
         json_entity_type = entity_type.value
 
@@ -44,8 +46,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, SalesOrderAddressListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | SalesOrderAddressListResponse | None:
     if response.status_code == 200:
         response_200 = SalesOrderAddressListResponse.from_dict(response.json())
 
@@ -69,8 +71,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, SalesOrderAddressListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | SalesOrderAddressListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -81,12 +83,12 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    sales_order_id: Union[Unset, int] = UNSET,
-    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
-) -> Response[Union[ErrorResponse, SalesOrderAddressListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    sales_order_id: Unset | int = UNSET,
+    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
+) -> Response[ErrorResponse | SalesOrderAddressListResponse]:
     """List sales order addresses
 
      Returns a list of sales order addresses.
@@ -121,12 +123,12 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    sales_order_id: Union[Unset, int] = UNSET,
-    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
-) -> Optional[Union[ErrorResponse, SalesOrderAddressListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    sales_order_id: Unset | int = UNSET,
+    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
+) -> ErrorResponse | SalesOrderAddressListResponse | None:
     """List sales order addresses
 
      Returns a list of sales order addresses.
@@ -156,12 +158,12 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    sales_order_id: Union[Unset, int] = UNSET,
-    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
-) -> Response[Union[ErrorResponse, SalesOrderAddressListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    sales_order_id: Unset | int = UNSET,
+    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
+) -> Response[ErrorResponse | SalesOrderAddressListResponse]:
     """List sales order addresses
 
      Returns a list of sales order addresses.
@@ -194,12 +196,12 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    sales_order_id: Union[Unset, int] = UNSET,
-    entity_type: Union[Unset, GetAllSalesOrderAddressesEntityType] = UNSET,
-) -> Optional[Union[ErrorResponse, SalesOrderAddressListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    sales_order_id: Unset | int = UNSET,
+    entity_type: Unset | GetAllSalesOrderAddressesEntityType = UNSET,
+) -> ErrorResponse | SalesOrderAddressListResponse | None:
     """List sales order addresses
 
      Returns a list of sales order addresses.

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -22,8 +22,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, ManufacturingOrderProduction]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | ManufacturingOrderProduction | None:
     if response.status_code == 200:
         response_200 = ManufacturingOrderProduction.from_dict(response.json())
 
@@ -47,8 +47,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, ManufacturingOrderProduction]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | ManufacturingOrderProduction]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -60,8 +60,8 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Response[Union[ErrorResponse, ManufacturingOrderProduction]]:
+    client: AuthenticatedClient | Client,
+) -> Response[ErrorResponse | ManufacturingOrderProduction]:
     """Retrieve a manufacturing order production
 
      Retrieves the details of an existing manufacturing order production based on ID.
@@ -91,8 +91,8 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[Union[ErrorResponse, ManufacturingOrderProduction]]:
+    client: AuthenticatedClient | Client,
+) -> ErrorResponse | ManufacturingOrderProduction | None:
     """Retrieve a manufacturing order production
 
      Retrieves the details of an existing manufacturing order production based on ID.
@@ -117,8 +117,8 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Response[Union[ErrorResponse, ManufacturingOrderProduction]]:
+    client: AuthenticatedClient | Client,
+) -> Response[ErrorResponse | ManufacturingOrderProduction]:
     """Retrieve a manufacturing order production
 
      Retrieves the details of an existing manufacturing order production based on ID.
@@ -146,8 +146,8 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[Union[ErrorResponse, ManufacturingOrderProduction]]:
+    client: AuthenticatedClient | Client,
+) -> ErrorResponse | ManufacturingOrderProduction | None:
     """Retrieve a manufacturing order production
 
      Retrieves the details of an existing manufacturing order production based on ID.

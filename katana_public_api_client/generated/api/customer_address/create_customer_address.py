@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -32,8 +32,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[CustomerAddress, DetailedErrorResponse, ErrorResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> CustomerAddress | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = CustomerAddress.from_dict(response.json())
 
@@ -61,8 +61,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[CustomerAddress, DetailedErrorResponse, ErrorResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[CustomerAddress | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -73,9 +73,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateCustomerAddressRequest,
-) -> Response[Union[CustomerAddress, DetailedErrorResponse, ErrorResponse]]:
+) -> Response[CustomerAddress | DetailedErrorResponse | ErrorResponse]:
     """Create a customer address
 
      Creates a new customer address.
@@ -108,9 +108,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateCustomerAddressRequest,
-) -> Optional[Union[CustomerAddress, DetailedErrorResponse, ErrorResponse]]:
+) -> CustomerAddress | DetailedErrorResponse | ErrorResponse | None:
     """Create a customer address
 
      Creates a new customer address.
@@ -138,9 +138,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateCustomerAddressRequest,
-) -> Response[Union[CustomerAddress, DetailedErrorResponse, ErrorResponse]]:
+) -> Response[CustomerAddress | DetailedErrorResponse | ErrorResponse]:
     """Create a customer address
 
      Creates a new customer address.
@@ -171,9 +171,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateCustomerAddressRequest,
-) -> Optional[Union[CustomerAddress, DetailedErrorResponse, ErrorResponse]]:
+) -> CustomerAddress | DetailedErrorResponse | ErrorResponse | None:
     """Create a customer address
 
      Creates a new customer address.

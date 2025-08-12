@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -22,8 +22,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 204:
         response_204 = ErrorResponse.from_dict(response.json())
 
@@ -55,8 +55,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[DetailedErrorResponse, ErrorResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -68,8 +68,8 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Response[Union[DetailedErrorResponse, ErrorResponse]]:
+    client: AuthenticatedClient | Client,
+) -> Response[DetailedErrorResponse | ErrorResponse]:
     """Delete a manufacturing order
 
      Deletes a single manufacturing order by id.
@@ -99,8 +99,8 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse]]:
+    client: AuthenticatedClient | Client,
+) -> DetailedErrorResponse | ErrorResponse | None:
     """Delete a manufacturing order
 
      Deletes a single manufacturing order by id.
@@ -125,8 +125,8 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Response[Union[DetailedErrorResponse, ErrorResponse]]:
+    client: AuthenticatedClient | Client,
+) -> Response[DetailedErrorResponse | ErrorResponse]:
     """Delete a manufacturing order
 
      Deletes a single manufacturing order by id.
@@ -154,8 +154,8 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse]]:
+    client: AuthenticatedClient | Client,
+) -> DetailedErrorResponse | ErrorResponse | None:
     """Delete a manufacturing order
 
      Deletes a single manufacturing order by id.

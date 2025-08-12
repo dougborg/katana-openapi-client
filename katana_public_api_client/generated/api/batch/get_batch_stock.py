@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -12,16 +12,16 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    batch_id: Union[Unset, int] = UNSET,
-    batch_number: Union[Unset, str] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
-    batch_barcode: Union[Unset, str] = UNSET,
-    batch_created_at_min: Union[Unset, str] = UNSET,
-    batch_created_at_max: Union[Unset, str] = UNSET,
-    include_empty: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
+    batch_id: Unset | int = UNSET,
+    batch_number: Unset | str = UNSET,
+    location_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
+    batch_barcode: Unset | str = UNSET,
+    batch_created_at_min: Unset | str = UNSET,
+    batch_created_at_max: Unset | str = UNSET,
+    include_empty: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -57,8 +57,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[BatchStockListResponse, ErrorResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> BatchStockListResponse | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = BatchStockListResponse.from_dict(response.json())
 
@@ -82,8 +82,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[BatchStockListResponse, ErrorResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[BatchStockListResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -94,18 +94,18 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    batch_id: Union[Unset, int] = UNSET,
-    batch_number: Union[Unset, str] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
-    batch_barcode: Union[Unset, str] = UNSET,
-    batch_created_at_min: Union[Unset, str] = UNSET,
-    batch_created_at_max: Union[Unset, str] = UNSET,
-    include_empty: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Response[Union[BatchStockListResponse, ErrorResponse]]:
+    client: AuthenticatedClient | Client,
+    batch_id: Unset | int = UNSET,
+    batch_number: Unset | str = UNSET,
+    location_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
+    batch_barcode: Unset | str = UNSET,
+    batch_created_at_min: Unset | str = UNSET,
+    batch_created_at_max: Unset | str = UNSET,
+    include_empty: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> Response[BatchStockListResponse | ErrorResponse]:
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
@@ -153,18 +153,18 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    batch_id: Union[Unset, int] = UNSET,
-    batch_number: Union[Unset, str] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
-    batch_barcode: Union[Unset, str] = UNSET,
-    batch_created_at_min: Union[Unset, str] = UNSET,
-    batch_created_at_max: Union[Unset, str] = UNSET,
-    include_empty: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Optional[Union[BatchStockListResponse, ErrorResponse]]:
+    client: AuthenticatedClient | Client,
+    batch_id: Unset | int = UNSET,
+    batch_number: Unset | str = UNSET,
+    location_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
+    batch_barcode: Unset | str = UNSET,
+    batch_created_at_min: Unset | str = UNSET,
+    batch_created_at_max: Unset | str = UNSET,
+    include_empty: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> BatchStockListResponse | ErrorResponse | None:
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
@@ -207,18 +207,18 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    batch_id: Union[Unset, int] = UNSET,
-    batch_number: Union[Unset, str] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
-    batch_barcode: Union[Unset, str] = UNSET,
-    batch_created_at_min: Union[Unset, str] = UNSET,
-    batch_created_at_max: Union[Unset, str] = UNSET,
-    include_empty: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Response[Union[BatchStockListResponse, ErrorResponse]]:
+    client: AuthenticatedClient | Client,
+    batch_id: Unset | int = UNSET,
+    batch_number: Unset | str = UNSET,
+    location_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
+    batch_barcode: Unset | str = UNSET,
+    batch_created_at_min: Unset | str = UNSET,
+    batch_created_at_max: Unset | str = UNSET,
+    include_empty: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> Response[BatchStockListResponse | ErrorResponse]:
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
@@ -264,18 +264,18 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    batch_id: Union[Unset, int] = UNSET,
-    batch_number: Union[Unset, str] = UNSET,
-    location_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
-    batch_barcode: Union[Unset, str] = UNSET,
-    batch_created_at_min: Union[Unset, str] = UNSET,
-    batch_created_at_max: Union[Unset, str] = UNSET,
-    include_empty: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Optional[Union[BatchStockListResponse, ErrorResponse]]:
+    client: AuthenticatedClient | Client,
+    batch_id: Unset | int = UNSET,
+    batch_number: Unset | str = UNSET,
+    location_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
+    batch_barcode: Unset | str = UNSET,
+    batch_created_at_min: Unset | str = UNSET,
+    batch_created_at_max: Unset | str = UNSET,
+    include_empty: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> BatchStockListResponse | ErrorResponse | None:
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on

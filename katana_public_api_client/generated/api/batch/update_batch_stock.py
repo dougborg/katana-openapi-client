@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -33,8 +33,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[BatchResponse, DetailedErrorResponse, ErrorResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = BatchResponse.from_dict(response.json())
 
@@ -66,8 +66,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[BatchResponse, DetailedErrorResponse, ErrorResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -79,9 +79,9 @@ def _build_response(
 def sync_detailed(
     batch_id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
-) -> Response[Union[BatchResponse, DetailedErrorResponse, ErrorResponse]]:
+) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
@@ -116,9 +116,9 @@ def sync_detailed(
 def sync(
     batch_id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
-) -> Optional[Union[BatchResponse, DetailedErrorResponse, ErrorResponse]]:
+) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
@@ -148,9 +148,9 @@ def sync(
 async def asyncio_detailed(
     batch_id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
-) -> Response[Union[BatchResponse, DetailedErrorResponse, ErrorResponse]]:
+) -> Response[BatchResponse | DetailedErrorResponse | ErrorResponse]:
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
@@ -183,9 +183,9 @@ async def asyncio_detailed(
 async def asyncio(
     batch_id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
-) -> Optional[Union[BatchResponse, DetailedErrorResponse, ErrorResponse]]:
+) -> BatchResponse | DetailedErrorResponse | ErrorResponse | None:
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters

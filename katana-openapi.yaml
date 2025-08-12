@@ -1047,6 +1047,7 @@ components:
         deleted_at: null
 
     AdditionalCostListResponse:
+      description: Response containing a list of additional cost types for purchase orders and manufacturing orders
       type: object
       properties:
         data:
@@ -1356,14 +1357,27 @@ components:
 
     InventoryMovementListResponse:
       type: object
-      description: A list of inventory movement records.
+      description: A list of inventory movement records tracking stock changes, transfers, and adjustments across locations.
       properties:
         data:
           type: array
+          description: Array of inventory movement records with transaction details
           items:
             $ref: "#/components/schemas/InventoryMovement"
       required:
         - data
+      example:
+        data:
+          - id: 5001
+            variant_id: 2002
+            location_id: 1
+            movement_type: "TRANSFER_IN"
+            quantity: 10.0
+            cost_per_unit: 12.50
+            total_cost: 125.00
+            reference_id: 1001
+            movement_date: "2023-10-15T14:30:00Z"
+            notes: "Received from supplier shipment"
 
     Variant:
       description: Specific SKU of a product or material with unique pricing, configuration, and inventory tracking
@@ -2093,15 +2107,23 @@ components:
         - $ref: "#/components/schemas/DeletableEntity"
 
     UpdateManufacturingOrderProductionIngredientRequest:
+      description: Request payload for updating ingredient consumption data in a manufacturing order production batch
       type: object
       properties:
         quantity:
           type: number
+          description: Updated actual quantity of ingredient consumed
         production_date:
           type: string
           format: date-time
+          description: Updated date when the ingredient was consumed in production
         cost:
           type: number
+          description: Updated cost of the ingredient consumed
+      example:
+        quantity: 3.2
+        production_date: "2023-10-15T11:15:00Z"
+        cost: 15.75
 
     # Manufacturing Order Operation Row Schemas
     ManufacturingOrderOperationRow:
@@ -2214,6 +2236,7 @@ components:
         deleted_at: null
 
     CreateManufacturingOrderOperationRowRequest:
+      description: Request payload for creating a new manufacturing order operation row to track production operation time and operator assignments
       type: object
       required:
         - manufacturing_order_id
@@ -2222,20 +2245,35 @@ components:
       properties:
         manufacturing_order_id:
           type: integer
+          description: ID of the manufacturing order this operation belongs to
         operation_id:
           type: integer
+          description: ID of the operation being performed
         time:
           type: number
+          description: Estimated time in minutes for this operation
+      example:
+        manufacturing_order_id: 1001
+        operation_id: 201
+        time: 45.5
 
     UpdateManufacturingOrderOperationRowRequest:
+      description: Request payload for updating a manufacturing order operation row with actual completion data
       type: object
       properties:
         completed_by_operators:
           type: array
+          description: List of operators who completed this operation
           items:
             $ref: "#/components/schemas/Operator"
         total_actual_time:
           type: number
+          description: Actual time taken in minutes for this operation
+      example:
+        completed_by_operators:
+          - id: 101
+            name: "John Smith"
+        total_actual_time: 52.3
 
     ManufacturingOrderOperationRowResponse:
       type: object
@@ -2267,6 +2305,7 @@ components:
 
     # Manufacturing Order Recipe Row Schemas
     CreateManufacturingOrderRecipeRowRequest:
+      description: Request payload for creating a new manufacturing order recipe row to track ingredient requirements and consumption
       type: object
       required:
         - manufacturing_order_id
@@ -2275,21 +2314,29 @@ components:
       properties:
         manufacturing_order_id:
           type: integer
+          description: ID of the manufacturing order this ingredient belongs to
         variant_id:
           type: integer
+          description: ID of the ingredient variant being consumed
         notes:
           type: string
+          description: Additional notes about this ingredient usage
         planned_quantity_per_unit:
           type: number
+          description: Planned quantity of ingredient per unit of finished product
         total_actual_quantity:
           type: number
+          description: Total actual quantity of ingredient consumed
         ingredient_availability:
           type: string
+          description: Availability status of the ingredient
         ingredient_expected_date:
           type: string
           format: date-time
+          description: Expected date when ingredient will be available
         batch_transactions:
           type: array
+          description: Batch tracking transactions for this ingredient
           items:
             type: object
             required:
@@ -2298,36 +2345,75 @@ components:
             properties:
               batch_id:
                 type: integer
+                description: ID of the ingredient batch being consumed
               quantity:
                 type: number
+                description: Quantity consumed from this batch
         cost:
           type: number
+          description: Cost of this ingredient in the manufacturing order
+      example:
+        manufacturing_order_id: 1001
+        variant_id: 2002
+        notes: "Use fresh ingredients from cold storage"
+        planned_quantity_per_unit: 0.25
+        total_actual_quantity: 5.0
+        ingredient_availability: "AVAILABLE"
+        ingredient_expected_date: "2023-10-15T08:00:00Z"
+        batch_transactions:
+          - batch_id: 301
+            quantity: 3.0
+          - batch_id: 302
+            quantity: 2.0
+        cost: 12.50
 
     UpdateManufacturingOrderRecipeRowRequest:
+      description: Request payload for updating a manufacturing order recipe row with actual consumption data and revised requirements
       type: object
       properties:
         notes:
           type: string
+          description: Additional notes about this ingredient usage
         planned_quantity_per_unit:
           type: number
+          description: Revised planned quantity of ingredient per unit of finished product
         total_actual_quantity:
           type: number
+          description: Updated total actual quantity of ingredient consumed
         ingredient_availability:
           type: string
+          description: Current availability status of the ingredient
         ingredient_expected_date:
           type: string
           format: date-time
+          description: Updated expected date when ingredient will be available
         batch_transactions:
           type: array
+          description: Updated batch tracking transactions for this ingredient
           items:
             type: object
             properties:
               batch_id:
                 type: integer
+                description: ID of the ingredient batch being consumed
               quantity:
                 type: number
+                description: Quantity consumed from this batch
         cost:
           type: number
+          description: Updated cost of this ingredient in the manufacturing order
+      example:
+        notes: "Used organic ingredients as requested by customer"
+        planned_quantity_per_unit: 0.3
+        total_actual_quantity: 6.2
+        ingredient_availability: "AVAILABLE"
+        ingredient_expected_date: "2023-10-15T08:00:00Z"
+        batch_transactions:
+          - batch_id: 301
+            quantity: 3.5
+          - batch_id: 302
+            quantity: 2.7
+        cost: 15.25
 
     ManufacturingOrderRecipeRow:
       description: Represents an ingredient or component required for a manufacturing order, tracking planned and actual quantities used in production.
@@ -2532,35 +2618,69 @@ components:
         sales_order_row_id: 2501
 
     ManufacturingOrderProductionIngredientResponse:
+      description: Response containing ingredient consumption data for a manufacturing order production batch
       type: object
       properties:
         id:
           type: integer
+          description: Unique identifier for this ingredient consumption record
         location_id:
           type: integer
+          description: ID of the location where the ingredient was consumed
         variant_id:
           type: integer
+          description: ID of the ingredient variant consumed
         manufacturing_order_id:
           type: integer
+          description: ID of the manufacturing order this ingredient belongs to
         manufacturing_order_recipe_row_id:
           type: integer
+          description: ID of the recipe row this ingredient consumption relates to
         production_id:
           type: integer
+          description: ID of the production batch where ingredient was used
         quantity:
           type: number
+          description: Actual quantity of ingredient consumed
         production_date:
           type: string
           format: date-time
+          description: Date when the ingredient was consumed in production
         cost:
           type: number
+          description: Cost of the ingredient consumed
+      example:
+        id: 4001
+        location_id: 1
+        variant_id: 2002
+        manufacturing_order_id: 1001
+        manufacturing_order_recipe_row_id: 1501
+        production_id: 2001
+        quantity: 2.5
+        production_date: "2023-10-15T10:30:00Z"
+        cost: 12.50
 
     ManufacturingOrderOperationRowListResponse:
+      description: Response containing a list of manufacturing order operation rows with time tracking and operator assignments
       type: object
       properties:
         data:
           type: array
+          description: List of manufacturing order operation rows
           items:
             $ref: "#/components/schemas/ManufacturingOrderOperationRow"
+      example:
+        data:
+          - id: 1501
+            manufacturing_order_id: 1001
+            operation_id: 201
+            time: 45.5
+            total_actual_time: 52.3
+            completed_by_operators:
+              - id: 101
+                name: "John Smith"
+            created_at: "2023-10-15T09:00:00Z"
+            updated_at: "2023-10-15T10:30:00Z"
 
     CreateMaterialRequest:
       description: Request payload for creating a new raw material with variants and specifications
@@ -2993,6 +3113,34 @@ components:
           minItems: 1
           items:
             $ref: "#/components/schemas/Variant"
+      example:
+        name: "Professional Kitchen Knife Set"
+        uom: "set"
+        category_name: "Kitchen Equipment"
+        is_sellable: true
+        is_producible: true
+        is_purchasable: false
+        is_auto_assembly: false
+        additional_info: "High-quality steel construction with ergonomic handles"
+        batch_tracked: false
+        serial_tracked: true
+        operations_in_sequence: true
+        lead_time: 14
+        minimum_order_quantity: 1
+        configs:
+          - name: "Piece Count"
+            values: ["6-piece", "8-piece", "12-piece"]
+          - name: "Handle Material"
+            values: ["Steel", "Wooden", "Composite"]
+        variants:
+          - sku: "KNF-PRO-8PC-STL"
+            sales_price: 299.99
+            purchase_price: 150.00
+            config_attributes:
+              - config_name: "Piece Count"
+                config_value: "8-piece"
+              - config_name: "Handle Material"
+                config_value: "Steel"
 
     UpdateProductRequest:
       description: Request payload for updating an existing finished product's properties, configurations, and manufacturing specifications
@@ -4788,6 +4936,7 @@ components:
         deleted_at: null
 
     UpdateVariantRequest:
+      description: Request payload for updating product variant details including pricing, configuration, and inventory information
       type: object
       additionalProperties: false
       properties:
@@ -4846,6 +4995,25 @@ components:
                 type: string
               field_value:
                 type: string
+      example:
+        sku: "KNF-PRO-8PC-UPD"
+        sales_price: 319.99
+        purchase_price: 160.00
+        product_id: 101
+        material_id: null
+        supplier_item_codes: ["SUP-KNF-8PC-002"]
+        internal_barcode: "INT-KNF-002"
+        registered_barcode: "789123456790"
+        lead_time: 5
+        minimum_order_quantity: 1
+        config_attributes:
+          - config_name: "Piece Count"
+            config_value: "8-piece"
+          - config_name: "Handle Material"
+            config_value: "Premium Steel"
+        custom_fields:
+          - field_name: "Warranty Period"
+            field_value: "7 years"
 
     VariantListResponse:
       description: Response containing a paginated list of variants with their configuration attributes and parent product details
@@ -5303,12 +5471,24 @@ components:
           active: true
 
     ServiceListResponse:
+      description: Response containing a list of services available for purchase orders and operations
       type: object
       properties:
         data:
           type: array
+          description: List of service records
           items:
             $ref: "#/components/schemas/Service"
+      example:
+        data:
+          - id: 401
+            name: "Assembly Service"
+            price: 150.00
+            currency: "USD"
+            tax_rate_id: 1
+            description: "Professional product assembly service"
+            created_at: "2023-10-01T09:00:00Z"
+            updated_at: "2023-10-01T09:00:00Z"
 
     ServiceInputAttributes:
       type: object
@@ -5336,10 +5516,12 @@ components:
         currency: "USD"
 
     ServiceRequest:
+      description: Request payload for creating or updating service records with pricing and operational details
       type: object
       properties:
         data:
           type: object
+          description: Service data wrapper following JSON:API conventions
           properties:
             type:
               type: string
@@ -5353,6 +5535,14 @@ components:
             - attributes
       required:
         - data
+      example:
+        data:
+          type: "services"
+          attributes:
+            name: "Assembly Service"
+            description: "Professional product assembly service"
+            price: 150.00
+            currency: "USD"
 
     # Customer schemas
     Customer:
@@ -6551,6 +6741,7 @@ components:
 
     # BOM (Bill of Materials) rows
     BomRow:
+      description: Bill of Materials row defining ingredient requirements for product manufacturing
       allOf:
         - $ref: "#/components/schemas/BaseEntity"
         - $ref: "#/components/schemas/UpdatableEntity"
@@ -6759,12 +6950,24 @@ components:
         - $ref: "#/components/schemas/DeletableEntity"
 
     OperatorListResponse:
+      description: Response containing a list of operators available for manufacturing order operations and production tracking
       type: object
       properties:
         data:
           type: array
+          description: List of operator records
           items:
             $ref: "#/components/schemas/Operator"
+      example:
+        data:
+          - id: 101
+            operator_id: 101
+            name: "John Smith"
+            working_area: "Assembly Line 1"
+          - id: 102
+            operator_id: 102
+            name: "Maria Garcia"
+            working_area: "Quality Control"
 
     # Custom Fields Collections
     CustomFieldsCollection:
@@ -6817,6 +7020,43 @@ components:
             required: false
         created_at: "2024-01-08T10:00:00Z"
         updated_at: "2024-01-12T15:30:00Z"
+
+    CustomField:
+      description: Individual custom field definition with validation rules and configuration options
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the custom field
+        name:
+          type: string
+          description: Internal name/key for the custom field
+        field_type:
+          type: string
+          description: Type of the custom field (text, number, date, select, etc.)
+        label:
+          type: string
+          description: Display label for the custom field in user interfaces
+        required:
+          type: boolean
+          description: Whether this field is required when filling out the form
+        options:
+          type: array
+          description: Available options for select/dropdown field types
+          items:
+            type: string
+      required:
+        - id
+        - name
+        - field_type
+        - label
+      example:
+        id: 10
+        name: "quality_grade"
+        field_type: "select"
+        label: "Quality Grade"
+        required: true
+        options: ["A", "B", "C"]
 
     CustomFieldsCollectionListResponse:
       type: object
@@ -6949,6 +7189,7 @@ components:
 
     # Sales Return schemas
     SalesReturn:
+      description: Sales return record representing customer product returns with refund processing and inventory adjustments
       allOf:
         - type: object
           properties:
@@ -6991,8 +7232,33 @@ components:
             - return_location_id
             - status
         - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 3001
+        customer_id: 1001
+        sales_order_id: 2001
+        order_no: "SR-2023-001"
+        return_location_id: 1
+        status: "RETURNED"
+        currency: "USD"
+        return_date: "2023-10-15T14:30:00Z"
+        order_created_date: "2023-10-10T10:00:00Z"
+        additional_info: "Customer reported damaged items during shipping"
+        refund_status: "PROCESSED"
+        sales_return_rows:
+          - id: 3501
+            sales_return_id: 3001
+            variant_id: 2002
+            quantity: 2
+            return_reason_id: 1
+            notes: "Packaging was damaged"
+            unit_price: 25.00
+            total_price: 50.00
+        created_at: "2023-10-15T14:00:00Z"
+        updated_at: "2023-10-15T15:00:00Z"
+        deleted_at: null
 
     CreateSalesReturnRequest:
+      description: Request payload for creating a new sales return to process customer product returns and refunds
       type: object
       additionalProperties: false
       required:
@@ -7028,6 +7294,21 @@ components:
           items:
             $ref: "#/components/schemas/CreateSalesReturnRowRequest"
           description: Array of items being returned
+      example:
+        customer_id: 1001
+        sales_order_id: 2001
+        order_no: "SR-2023-001"
+        return_location_id: 1
+        currency: "USD"
+        order_created_date: "2023-10-10T10:00:00Z"
+        additional_info: "Customer reported damaged items during shipping"
+        sales_return_rows:
+          - variant_id: 2002
+            quantity: 2
+            return_reason_id: 1
+            notes: "Packaging was damaged"
+            unit_price: 25.00
+            total_price: 50.00
 
     SalesReturnRow:
       allOf:
@@ -7486,20 +7767,47 @@ components:
             updated_at: "2024-01-16T10:15:00.000Z"
 
     SalesReturnListResponse:
+      description: Response containing a list of sales returns with customer refund and return processing information
       type: object
       properties:
         data:
           type: array
+          description: List of sales return records
           items:
             $ref: "#/components/schemas/SalesReturn"
+      example:
+        data:
+          - id: 3001
+            customer_id: 1001
+            sales_order_id: 2001
+            order_no: "SR-2023-001"
+            return_location_id: 1
+            status: "RETURNED"
+            currency: "USD"
+            return_date: "2023-10-15T14:30:00Z"
+            order_created_date: "2023-10-10T10:00:00Z"
+            additional_info: "Customer reported damaged items"
+            refund_status: "PROCESSED"
 
     SalesReturnRowListResponse:
+      description: Response containing a list of sales return row items with product return details and quantities
       type: object
       properties:
         data:
           type: array
+          description: List of sales return row items
           items:
             $ref: "#/components/schemas/SalesReturnRow"
+      example:
+        data:
+          - id: 3501
+            sales_return_id: 3001
+            variant_id: 2002
+            quantity: 2
+            return_reason_id: 1
+            notes: "Packaging was damaged"
+            unit_price: 25.00
+            total_price: 50.00
 
     UserListResponse:
       type: object
@@ -7556,12 +7864,23 @@ components:
             deleted_at: null
 
     OutsourcedPurchaseOrderRecipeRowListResponse:
+      description: Response containing a list of outsourced purchase order recipe rows for externally manufactured products
       type: object
       properties:
         data:
           type: array
+          description: List of outsourced purchase order recipe row records
           items:
             $ref: "#/components/schemas/OutsourcedPurchaseOrderRecipeRow"
+      example:
+        data:
+          - id: 6001
+            purchase_order_id: 1001
+            variant_id: 2002
+            planned_quantity_per_unit: 2.5
+            ingredient_availability: "AVAILABLE"
+            ingredient_expected_date: "2023-10-15T08:00:00Z"
+            notes: "Supplier will handle assembly"
 
     OutsourcedPurchaseOrderRecipeRow:
       allOf:
@@ -7608,24 +7927,38 @@ components:
         - $ref: "#/components/schemas/DeletableEntity"
 
     ProductOperationRerankRequest:
+      description: Request payload for reordering product operations within a manufacturing workflow to optimize production sequence
       type: object
       required:
         - rank_product_operation_id
       properties:
         rank_product_operation_id:
           type: integer
+          description: ID of the product operation to be reordered
         preceeding_product_operation_id:
           type: integer
+          description: ID of the operation that should precede the operation being moved
         should_group:
           type: boolean
+          description: Whether operations should be grouped together in the sequence
+      example:
+        rank_product_operation_id: 501
+        preceeding_product_operation_id: 499
+        should_group: true
 
     ProductOperationRerank:
+      description: Response confirming the success of a product operation reordering request
       type: object
       properties:
         message:
           type: string
+          description: Status message about the reordering operation
         success:
           type: boolean
+          description: Whether the reordering operation was successful
+      example:
+        message: "Product operation successfully reordered"
+        success: true
 
     SalesOrderAccountingMetadataListResponse:
       description: Response containing a list of accounting metadata records linking sales orders to external accounting systems
@@ -11450,12 +11783,14 @@ paths:
                 data:
                   - createdAt: "2023-04-17T13:38:07.024Z"
                     id: 35
+                    purchase_order_id: 311
                     integrationType: quickBooks
                     purchaseOrderId: 311
                     porReceivedGroupId: 2000037
                     billId: "1082"
                   - createdAt: "2023-04-17T13:38:07.024Z"
                     id: 36
+                    purchase_order_id: 312
                     integrationType: quickBooks
                     purchaseOrderId: 312
                     porReceivedGroupId: 2000038

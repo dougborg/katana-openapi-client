@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -32,8 +32,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, SalesReturn]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> DetailedErrorResponse | ErrorResponse | SalesReturn | None:
     if response.status_code == 201:
         response_201 = SalesReturn.from_dict(response.json())
 
@@ -65,8 +65,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, SalesReturn]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[DetailedErrorResponse | ErrorResponse | SalesReturn]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -77,9 +77,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateSalesReturnRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, SalesReturn]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | SalesReturn]:
     """Create a sales return
 
      Creates a new sales return object.
@@ -108,9 +108,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateSalesReturnRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, SalesReturn]]:
+) -> DetailedErrorResponse | ErrorResponse | SalesReturn | None:
     """Create a sales return
 
      Creates a new sales return object.
@@ -134,9 +134,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateSalesReturnRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, SalesReturn]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | SalesReturn]:
     """Create a sales return
 
      Creates a new sales return object.
@@ -163,9 +163,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateSalesReturnRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, SalesReturn]]:
+) -> DetailedErrorResponse | ErrorResponse | SalesReturn | None:
     """Create a sales return
 
      Creates a new sales return object.

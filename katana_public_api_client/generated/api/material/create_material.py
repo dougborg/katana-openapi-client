@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -32,8 +32,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Material]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> DetailedErrorResponse | ErrorResponse | Material | None:
     if response.status_code == 200:
         response_200 = Material.from_dict(response.json())
 
@@ -61,8 +61,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, Material]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[DetailedErrorResponse | ErrorResponse | Material]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -73,9 +73,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateMaterialRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, Material]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Material]:
     """Create a material
 
      Creates a material object.
@@ -110,9 +110,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateMaterialRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Material]]:
+) -> DetailedErrorResponse | ErrorResponse | Material | None:
     """Create a material
 
      Creates a material object.
@@ -142,9 +142,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateMaterialRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, Material]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Material]:
     """Create a material
 
      Creates a material object.
@@ -177,9 +177,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateMaterialRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Material]]:
+) -> DetailedErrorResponse | ErrorResponse | Material | None:
     """Create a material
 
      Creates a material object.

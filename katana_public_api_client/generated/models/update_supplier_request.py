@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
@@ -25,11 +25,11 @@ class UpdateSupplierRequest:
         comment (Union[Unset, str]): Optional notes or comments about the supplier relationship
     """
 
-    name: Union[Unset, str] = UNSET
-    email: Union[Unset, str] = UNSET
-    phone: Union[Unset, str] = UNSET
-    currency: Union[Unset, str] = UNSET
-    comment: Union[Unset, str] = UNSET
+    name: Unset | str = UNSET
+    email: Unset | str = UNSET
+    phone: Unset | str = UNSET
+    currency: Unset | str = UNSET
+    comment: Unset | str = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name

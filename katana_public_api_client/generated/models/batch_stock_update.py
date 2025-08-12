@@ -1,6 +1,6 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
@@ -25,23 +25,23 @@ class BatchStockUpdate:
         batch_barcode (Union[None, Unset, str]): Updated barcode for the batch
     """
 
-    batch_number: Union[Unset, str] = UNSET
-    expiration_date: Union[Unset, datetime.datetime] = UNSET
-    batch_created_date: Union[Unset, datetime.datetime] = UNSET
-    batch_barcode: Union[None, Unset, str] = UNSET
+    batch_number: Unset | str = UNSET
+    expiration_date: Unset | datetime.datetime = UNSET
+    batch_created_date: Unset | datetime.datetime = UNSET
+    batch_barcode: None | Unset | str = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         batch_number = self.batch_number
 
-        expiration_date: Union[Unset, str] = UNSET
+        expiration_date: Unset | str = UNSET
         if not isinstance(self.expiration_date, Unset):
             expiration_date = self.expiration_date.isoformat()
 
-        batch_created_date: Union[Unset, str] = UNSET
+        batch_created_date: Unset | str = UNSET
         if not isinstance(self.batch_created_date, Unset):
             batch_created_date = self.batch_created_date.isoformat()
 
-        batch_barcode: Union[None, Unset, str]
+        batch_barcode: None | Unset | str
         if isinstance(self.batch_barcode, Unset):
             batch_barcode = UNSET
         else:
@@ -67,25 +67,25 @@ class BatchStockUpdate:
         batch_number = d.pop("batch_number", UNSET)
 
         _expiration_date = d.pop("expiration_date", UNSET)
-        expiration_date: Union[Unset, datetime.datetime]
+        expiration_date: Unset | datetime.datetime
         if isinstance(_expiration_date, Unset):
             expiration_date = UNSET
         else:
             expiration_date = isoparse(_expiration_date)
 
         _batch_created_date = d.pop("batch_created_date", UNSET)
-        batch_created_date: Union[Unset, datetime.datetime]
+        batch_created_date: Unset | datetime.datetime
         if isinstance(_batch_created_date, Unset):
             batch_created_date = UNSET
         else:
             batch_created_date = isoparse(_batch_created_date)
 
-        def _parse_batch_barcode(data: object) -> Union[None, Unset, str]:
+        def _parse_batch_barcode(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         batch_barcode = _parse_batch_barcode(d.pop("batch_barcode", UNSET))
 

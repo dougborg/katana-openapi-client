@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -33,8 +33,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Service]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> DetailedErrorResponse | ErrorResponse | Service | None:
     if response.status_code == 200:
         response_200 = Service.from_dict(response.json())
 
@@ -62,8 +62,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, Service]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[DetailedErrorResponse | ErrorResponse | Service]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -75,9 +75,9 @@ def _build_response(
 def sync_detailed(
     service_id: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: ServiceRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, Service]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Service]:
     """Update Service
 
      Update an existing Service. (See: [Update
@@ -110,9 +110,9 @@ def sync_detailed(
 def sync(
     service_id: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: ServiceRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Service]]:
+) -> DetailedErrorResponse | ErrorResponse | Service | None:
     """Update Service
 
      Update an existing Service. (See: [Update
@@ -140,9 +140,9 @@ def sync(
 async def asyncio_detailed(
     service_id: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: ServiceRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, Service]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Service]:
     """Update Service
 
      Update an existing Service. (See: [Update
@@ -173,9 +173,9 @@ async def asyncio_detailed(
 async def asyncio(
     service_id: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: ServiceRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Service]]:
+) -> DetailedErrorResponse | ErrorResponse | Service | None:
     """Update Service
 
      Update an existing Service. (See: [Update

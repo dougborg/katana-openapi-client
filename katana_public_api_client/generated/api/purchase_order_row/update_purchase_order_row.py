@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -33,8 +33,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderRow]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderRow | None:
     if response.status_code == 200:
         response_200 = PurchaseOrderRow.from_dict(response.json())
 
@@ -62,8 +62,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderRow]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderRow]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -75,9 +75,9 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRowRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderRow]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderRow]:
     """Update a purchase order row
 
      Updates the specified purchase order row by setting the values of the parameters passed.
@@ -113,9 +113,9 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRowRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderRow]]:
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderRow | None:
     """Update a purchase order row
 
      Updates the specified purchase order row by setting the values of the parameters passed.
@@ -146,9 +146,9 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRowRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderRow]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderRow]:
     """Update a purchase order row
 
      Updates the specified purchase order row by setting the values of the parameters passed.
@@ -182,9 +182,9 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRowRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderRow]]:
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderRow | None:
     """Update a purchase order row
 
      Updates the specified purchase order row by setting the values of the parameters passed.

@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -32,14 +34,14 @@ class NegativeStock:
             quantity_allocated (Union[Unset, float]): Quantity allocated to orders despite negative stock
     """
 
-    variant_id: Union[Unset, int] = UNSET
-    location_id: Union[Unset, int] = UNSET
-    latest_negative_stock_date: Union[Unset, datetime.datetime] = UNSET
-    name: Union[Unset, str] = UNSET
-    sku: Union[Unset, str] = UNSET
-    category: Union[Unset, str] = UNSET
-    quantity_on_hand: Union[Unset, float] = UNSET
-    quantity_allocated: Union[Unset, float] = UNSET
+    variant_id: Unset | int = UNSET
+    location_id: Unset | int = UNSET
+    latest_negative_stock_date: Unset | datetime.datetime = UNSET
+    name: Unset | str = UNSET
+    sku: Unset | str = UNSET
+    category: Unset | str = UNSET
+    quantity_on_hand: Unset | float = UNSET
+    quantity_allocated: Unset | float = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -47,7 +49,7 @@ class NegativeStock:
 
         location_id = self.location_id
 
-        latest_negative_stock_date: Union[Unset, str] = UNSET
+        latest_negative_stock_date: Unset | str = UNSET
         if not isinstance(self.latest_negative_stock_date, Unset):
             latest_negative_stock_date = self.latest_negative_stock_date.isoformat()
 
@@ -91,7 +93,7 @@ class NegativeStock:
         location_id = d.pop("location_id", UNSET)
 
         _latest_negative_stock_date = d.pop("latest_negative_stock_date", UNSET)
-        latest_negative_stock_date: Union[Unset, datetime.datetime]
+        latest_negative_stock_date: Unset | datetime.datetime
         if isinstance(_latest_negative_stock_date, Unset):
             latest_negative_stock_date = UNSET
         else:

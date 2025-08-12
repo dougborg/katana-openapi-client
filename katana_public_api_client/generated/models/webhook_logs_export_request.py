@@ -1,12 +1,14 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
 from ..models.webhook_logs_export_request_format import WebhookLogsExportRequestFormat
-from ..models.webhook_logs_export_request_status_filter_item import WebhookLogsExportRequestStatusFilterItem
+from ..models.webhook_logs_export_request_status_filter_item import (
+    WebhookLogsExportRequestStatusFilterItem,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="WebhookLogsExportRequest")
@@ -31,31 +33,31 @@ class WebhookLogsExportRequest:
             WebhookLogsExportRequestFormat.CSV.
     """
 
-    webhook_id: Union[Unset, int] = UNSET
-    start_date: Union[Unset, datetime.datetime] = UNSET
-    end_date: Union[Unset, datetime.datetime] = UNSET
-    status_filter: Union[Unset, list[WebhookLogsExportRequestStatusFilterItem]] = UNSET
-    format_: Union[Unset, WebhookLogsExportRequestFormat] = WebhookLogsExportRequestFormat.CSV
+    webhook_id: Unset | int = UNSET
+    start_date: Unset | datetime.datetime = UNSET
+    end_date: Unset | datetime.datetime = UNSET
+    status_filter: Unset | list[WebhookLogsExportRequestStatusFilterItem] = UNSET
+    format_: Unset | WebhookLogsExportRequestFormat = WebhookLogsExportRequestFormat.CSV
 
     def to_dict(self) -> dict[str, Any]:
         webhook_id = self.webhook_id
 
-        start_date: Union[Unset, str] = UNSET
+        start_date: Unset | str = UNSET
         if not isinstance(self.start_date, Unset):
             start_date = self.start_date.isoformat()
 
-        end_date: Union[Unset, str] = UNSET
+        end_date: Unset | str = UNSET
         if not isinstance(self.end_date, Unset):
             end_date = self.end_date.isoformat()
 
-        status_filter: Union[Unset, list[str]] = UNSET
+        status_filter: Unset | list[str] = UNSET
         if not isinstance(self.status_filter, Unset):
             status_filter = []
             for status_filter_item_data in self.status_filter:
                 status_filter_item = status_filter_item_data.value
                 status_filter.append(status_filter_item)
 
-        format_: Union[Unset, str] = UNSET
+        format_: Unset | str = UNSET
         if not isinstance(self.format_, Unset):
             format_ = self.format_.value
 
@@ -81,14 +83,14 @@ class WebhookLogsExportRequest:
         webhook_id = d.pop("webhook_id", UNSET)
 
         _start_date = d.pop("start_date", UNSET)
-        start_date: Union[Unset, datetime.datetime]
+        start_date: Unset | datetime.datetime
         if isinstance(_start_date, Unset):
             start_date = UNSET
         else:
             start_date = isoparse(_start_date)
 
         _end_date = d.pop("end_date", UNSET)
-        end_date: Union[Unset, datetime.datetime]
+        end_date: Unset | datetime.datetime
         if isinstance(_end_date, Unset):
             end_date = UNSET
         else:
@@ -97,12 +99,14 @@ class WebhookLogsExportRequest:
         status_filter = []
         _status_filter = d.pop("status_filter", UNSET)
         for status_filter_item_data in _status_filter or []:
-            status_filter_item = WebhookLogsExportRequestStatusFilterItem(status_filter_item_data)
+            status_filter_item = WebhookLogsExportRequestStatusFilterItem(
+                status_filter_item_data
+            )
 
             status_filter.append(status_filter_item)
 
         _format_ = d.pop("format", UNSET)
-        format_: Union[Unset, WebhookLogsExportRequestFormat]
+        format_: Unset | WebhookLogsExportRequestFormat
         if isinstance(_format_, Unset):
             format_ = UNSET
         else:

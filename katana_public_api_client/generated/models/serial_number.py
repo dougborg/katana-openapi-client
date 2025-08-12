@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..models.serial_number_resource_type import SerialNumberResourceType
@@ -24,12 +26,12 @@ class SerialNumber:
         transaction_date (Union[Unset, datetime.datetime]):
     """
 
-    id: Union[Unset, int] = UNSET
-    transaction_id: Union[Unset, str] = UNSET
-    serial_number: Union[Unset, str] = UNSET
-    resource_type: Union[Unset, SerialNumberResourceType] = UNSET
-    resource_id: Union[Unset, int] = UNSET
-    transaction_date: Union[Unset, datetime.datetime] = UNSET
+    id: Unset | int = UNSET
+    transaction_id: Unset | str = UNSET
+    serial_number: Unset | str = UNSET
+    resource_type: Unset | SerialNumberResourceType = UNSET
+    resource_id: Unset | int = UNSET
+    transaction_date: Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,13 +41,13 @@ class SerialNumber:
 
         serial_number = self.serial_number
 
-        resource_type: Union[Unset, str] = UNSET
+        resource_type: Unset | str = UNSET
         if not isinstance(self.resource_type, Unset):
             resource_type = self.resource_type.value
 
         resource_id = self.resource_id
 
-        transaction_date: Union[Unset, str] = UNSET
+        transaction_date: Unset | str = UNSET
         if not isinstance(self.transaction_date, Unset):
             transaction_date = self.transaction_date.isoformat()
 
@@ -77,7 +79,7 @@ class SerialNumber:
         serial_number = d.pop("serial_number", UNSET)
 
         _resource_type = d.pop("resource_type", UNSET)
-        resource_type: Union[Unset, SerialNumberResourceType]
+        resource_type: Unset | SerialNumberResourceType
         if isinstance(_resource_type, Unset):
             resource_type = UNSET
         else:
@@ -86,7 +88,7 @@ class SerialNumber:
         resource_id = d.pop("resource_id", UNSET)
 
         _transaction_date = d.pop("transaction_date", UNSET)
-        transaction_date: Union[Unset, datetime.datetime]
+        transaction_date: Unset | datetime.datetime
         if isinstance(_transaction_date, Unset):
             transaction_date = UNSET
         else:

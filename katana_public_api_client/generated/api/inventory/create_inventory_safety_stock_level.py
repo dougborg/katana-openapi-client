@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -31,8 +31,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, InventorySafetyStockLevel]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel | None:
     if response.status_code == 200:
         response_200 = InventorySafetyStockLevel.from_dict(response.json())
 
@@ -60,8 +60,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, InventorySafetyStockLevel]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -72,9 +72,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: InventorySafetyStockLevel,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, InventorySafetyStockLevel]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel]:
     """Update the safety stock level
 
      Update an item's safety stock level within a certain location and variant combination.
@@ -105,9 +105,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: InventorySafetyStockLevel,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, InventorySafetyStockLevel]]:
+) -> DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel | None:
     """Update the safety stock level
 
      Update an item's safety stock level within a certain location and variant combination.
@@ -133,9 +133,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: InventorySafetyStockLevel,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, InventorySafetyStockLevel]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel]:
     """Update the safety stock level
 
      Update an item's safety stock level within a certain location and variant combination.
@@ -164,9 +164,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: InventorySafetyStockLevel,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, InventorySafetyStockLevel]]:
+) -> DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel | None:
     """Update the safety stock level
 
      Update an item's safety stock level within a certain location and variant combination.

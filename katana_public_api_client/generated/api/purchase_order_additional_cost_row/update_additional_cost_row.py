@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -8,7 +8,9 @@ from ...client import AuthenticatedClient, Client
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.purchase_order_additional_cost_row import PurchaseOrderAdditionalCostRow
-from ...models.update_purchase_order_additional_cost_row_request import UpdatePurchaseOrderAdditionalCostRowRequest
+from ...models.update_purchase_order_additional_cost_row_request import (
+    UpdatePurchaseOrderAdditionalCostRowRequest,
+)
 from ...types import Response
 
 
@@ -33,8 +35,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderAdditionalCostRow | None:
     if response.status_code == 200:
         response_200 = PurchaseOrderAdditionalCostRow.from_dict(response.json())
 
@@ -62,8 +64,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderAdditionalCostRow]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -75,9 +77,9 @@ def _build_response(
 def sync_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderAdditionalCostRow]:
     """Update a purchase order additional cost row
 
      Updates the specified purchase order additional cost row by setting the values of the parameters
@@ -113,9 +115,9 @@ def sync_detailed(
 def sync(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]]:
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderAdditionalCostRow | None:
     """Update a purchase order additional cost row
 
      Updates the specified purchase order additional cost row by setting the values of the parameters
@@ -146,9 +148,9 @@ def sync(
 async def asyncio_detailed(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrderAdditionalCostRow]:
     """Update a purchase order additional cost row
 
      Updates the specified purchase order additional cost row by setting the values of the parameters
@@ -182,9 +184,9 @@ async def asyncio_detailed(
 async def asyncio(
     id: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderAdditionalCostRowRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrderAdditionalCostRow]]:
+) -> DetailedErrorResponse | ErrorResponse | PurchaseOrderAdditionalCostRow | None:
     """Update a purchase order additional cost row
 
      Updates the specified purchase order additional cost row by setting the values of the parameters

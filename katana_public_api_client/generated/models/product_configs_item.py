@@ -1,8 +1,10 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..types import UNSET, Unset
 
@@ -19,10 +21,10 @@ class ProductConfigsItem:
         product_id (Union[Unset, int]): ID of the product this configuration belongs to
     """
 
-    id: Union[Unset, int] = UNSET
-    name: Union[Unset, str] = UNSET
-    values: Union[Unset, list[str]] = UNSET
-    product_id: Union[Unset, int] = UNSET
+    id: Unset | int = UNSET
+    name: Unset | str = UNSET
+    values: Unset | list[str] = UNSET
+    product_id: Unset | int = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -30,7 +32,7 @@ class ProductConfigsItem:
 
         name = self.name
 
-        values: Union[Unset, list[str]] = UNSET
+        values: Unset | list[str] = UNSET
         if not isinstance(self.values, Unset):
             values = self.values
 

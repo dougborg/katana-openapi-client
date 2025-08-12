@@ -1,8 +1,10 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
 from ..types import UNSET, Unset
 
@@ -19,10 +21,10 @@ class CodedErrorResponse:
         code (Union[None, Unset, str]): Application-specific error code
     """
 
-    status_code: Union[Unset, float] = UNSET
-    name: Union[Unset, str] = UNSET
-    message: Union[Unset, str] = UNSET
-    code: Union[None, Unset, str] = UNSET
+    status_code: Unset | float = UNSET
+    name: Unset | str = UNSET
+    message: Unset | str = UNSET
+    code: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -32,7 +34,7 @@ class CodedErrorResponse:
 
         message = self.message
 
-        code: Union[None, Unset, str]
+        code: None | Unset | str
         if isinstance(self.code, Unset):
             code = UNSET
         else:
@@ -61,12 +63,12 @@ class CodedErrorResponse:
 
         message = d.pop("message", UNSET)
 
-        def _parse_code(data: object) -> Union[None, Unset, str]:
+        def _parse_code(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         code = _parse_code(d.pop("code", UNSET))
 

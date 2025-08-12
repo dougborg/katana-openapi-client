@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -12,10 +12,10 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    price_list_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    price_list_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -39,8 +39,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, PriceListRowListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | PriceListRowListResponse | None:
     if response.status_code == 200:
         response_200 = PriceListRowListResponse.from_dict(response.json())
 
@@ -64,8 +64,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, PriceListRowListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | PriceListRowListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -76,12 +76,12 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    price_list_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
-) -> Response[Union[ErrorResponse, PriceListRowListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    price_list_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
+) -> Response[ErrorResponse | PriceListRowListResponse]:
     """List price list rows
 
      Returns a list of price list rows.
@@ -116,12 +116,12 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    price_list_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
-) -> Optional[Union[ErrorResponse, PriceListRowListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    price_list_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
+) -> ErrorResponse | PriceListRowListResponse | None:
     """List price list rows
 
      Returns a list of price list rows.
@@ -151,12 +151,12 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    price_list_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
-) -> Response[Union[ErrorResponse, PriceListRowListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    price_list_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
+) -> Response[ErrorResponse | PriceListRowListResponse]:
     """List price list rows
 
      Returns a list of price list rows.
@@ -189,12 +189,12 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    price_list_id: Union[Unset, int] = UNSET,
-    variant_id: Union[Unset, int] = UNSET,
-) -> Optional[Union[ErrorResponse, PriceListRowListResponse]]:
+    client: AuthenticatedClient | Client,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    price_list_id: Unset | int = UNSET,
+    variant_id: Unset | int = UNSET,
+) -> ErrorResponse | PriceListRowListResponse | None:
     """List price list rows
 
      Returns a list of price list rows.

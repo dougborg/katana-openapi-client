@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
@@ -16,13 +16,13 @@ class UpdateProductRequestConfigsItem:
         values (Union[Unset, list[str]]): Available values for this configuration attribute
     """
 
-    name: Union[Unset, str] = UNSET
-    values: Union[Unset, list[str]] = UNSET
+    name: Unset | str = UNSET
+    values: Unset | list[str] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
 
-        values: Union[Unset, list[str]] = UNSET
+        values: Unset | list[str] = UNSET
         if not isinstance(self.values, Unset):
             values = self.values
 

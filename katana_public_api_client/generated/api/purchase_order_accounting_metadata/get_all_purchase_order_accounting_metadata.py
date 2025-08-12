@@ -1,21 +1,23 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.error_response import ErrorResponse
-from ...models.purchase_order_accounting_metadata_list_response import PurchaseOrderAccountingMetadataListResponse
+from ...models.purchase_order_accounting_metadata_list_response import (
+    PurchaseOrderAccountingMetadataListResponse,
+)
 from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    purchase_order_id: Union[Unset, float] = UNSET,
-    received_items_group_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
+    purchase_order_id: Unset | float = UNSET,
+    received_items_group_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -39,10 +41,12 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | PurchaseOrderAccountingMetadataListResponse | None:
     if response.status_code == 200:
-        response_200 = PurchaseOrderAccountingMetadataListResponse.from_dict(response.json())
+        response_200 = PurchaseOrderAccountingMetadataListResponse.from_dict(
+            response.json()
+        )
 
         return response_200
     if response.status_code == 401:
@@ -64,8 +68,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | PurchaseOrderAccountingMetadataListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -76,12 +80,12 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    purchase_order_id: Union[Unset, float] = UNSET,
-    received_items_group_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Response[Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]]:
+    client: AuthenticatedClient | Client,
+    purchase_order_id: Unset | float = UNSET,
+    received_items_group_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> Response[ErrorResponse | PurchaseOrderAccountingMetadataListResponse]:
     """List all purchase order accounting metadata
 
      Returns a list of purchase order accounting metadata entries.
@@ -116,12 +120,12 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    purchase_order_id: Union[Unset, float] = UNSET,
-    received_items_group_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Optional[Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]]:
+    client: AuthenticatedClient | Client,
+    purchase_order_id: Unset | float = UNSET,
+    received_items_group_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> ErrorResponse | PurchaseOrderAccountingMetadataListResponse | None:
     """List all purchase order accounting metadata
 
      Returns a list of purchase order accounting metadata entries.
@@ -151,12 +155,12 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    purchase_order_id: Union[Unset, float] = UNSET,
-    received_items_group_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Response[Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]]:
+    client: AuthenticatedClient | Client,
+    purchase_order_id: Unset | float = UNSET,
+    received_items_group_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> Response[ErrorResponse | PurchaseOrderAccountingMetadataListResponse]:
     """List all purchase order accounting metadata
 
      Returns a list of purchase order accounting metadata entries.
@@ -189,12 +193,12 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    purchase_order_id: Union[Unset, float] = UNSET,
-    received_items_group_id: Union[Unset, float] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-) -> Optional[Union[ErrorResponse, PurchaseOrderAccountingMetadataListResponse]]:
+    client: AuthenticatedClient | Client,
+    purchase_order_id: Unset | float = UNSET,
+    received_items_group_id: Unset | float = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+) -> ErrorResponse | PurchaseOrderAccountingMetadataListResponse | None:
     """List all purchase order accounting metadata
 
      Returns a list of purchase order accounting metadata entries.

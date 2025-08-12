@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -29,7 +29,9 @@ def _get_kwargs(
     return _kwargs
 
 
-def _parse_response(*, client: Union[AuthenticatedClient, Client], response: httpx.Response) -> Optional[ErrorResponse]:
+def _parse_response(
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | None:
     if response.status_code == 204:
         response_204 = ErrorResponse.from_dict(response.json())
 
@@ -48,7 +50,9 @@ def _parse_response(*, client: Union[AuthenticatedClient, Client], response: htt
         return None
 
 
-def _build_response(*, client: Union[AuthenticatedClient, Client], response: httpx.Response) -> Response[ErrorResponse]:
+def _build_response(
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -59,7 +63,7 @@ def _build_response(*, client: Union[AuthenticatedClient, Client], response: htt
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UnlinkManufacturingOrderRequest,
 ) -> Response[ErrorResponse]:
     """Unlink a manufacturing order from sales order row
@@ -92,9 +96,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UnlinkManufacturingOrderRequest,
-) -> Optional[ErrorResponse]:
+) -> ErrorResponse | None:
     """Unlink a manufacturing order from sales order row
 
      Unlinks the manufacturing order from a particular sales order row.
@@ -120,7 +124,7 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UnlinkManufacturingOrderRequest,
 ) -> Response[ErrorResponse]:
     """Unlink a manufacturing order from sales order row
@@ -151,9 +155,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: UnlinkManufacturingOrderRequest,
-) -> Optional[ErrorResponse]:
+) -> ErrorResponse | None:
     """Unlink a manufacturing order from sales order row
 
      Unlinks the manufacturing order from a particular sales order row.

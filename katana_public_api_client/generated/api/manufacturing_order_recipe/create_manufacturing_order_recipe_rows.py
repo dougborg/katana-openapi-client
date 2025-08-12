@@ -1,11 +1,13 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.create_manufacturing_order_recipe_row_request import CreateManufacturingOrderRecipeRowRequest
+from ...models.create_manufacturing_order_recipe_row_request import (
+    CreateManufacturingOrderRecipeRowRequest,
+)
 from ...models.error_response import ErrorResponse
 from ...models.manufacturing_order_recipe_row import ManufacturingOrderRecipeRow
 from ...types import Response
@@ -31,8 +33,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, ManufacturingOrderRecipeRow]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | ManufacturingOrderRecipeRow | None:
     if response.status_code == 200:
         response_200 = ManufacturingOrderRecipeRow.from_dict(response.json())
 
@@ -56,8 +58,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, ManufacturingOrderRecipeRow]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | ManufacturingOrderRecipeRow]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -68,9 +70,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRecipeRowRequest,
-) -> Response[Union[ErrorResponse, ManufacturingOrderRecipeRow]]:
+) -> Response[ErrorResponse | ManufacturingOrderRecipeRow]:
     """Create a manufacturing order recipe row
 
      Add a recipe row to an existing manufacturing order.
@@ -100,9 +102,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRecipeRowRequest,
-) -> Optional[Union[ErrorResponse, ManufacturingOrderRecipeRow]]:
+) -> ErrorResponse | ManufacturingOrderRecipeRow | None:
     """Create a manufacturing order recipe row
 
      Add a recipe row to an existing manufacturing order.
@@ -127,9 +129,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRecipeRowRequest,
-) -> Response[Union[ErrorResponse, ManufacturingOrderRecipeRow]]:
+) -> Response[ErrorResponse | ManufacturingOrderRecipeRow]:
     """Create a manufacturing order recipe row
 
      Add a recipe row to an existing manufacturing order.
@@ -157,9 +159,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateManufacturingOrderRecipeRowRequest,
-) -> Optional[Union[ErrorResponse, ManufacturingOrderRecipeRow]]:
+) -> ErrorResponse | ManufacturingOrderRecipeRow | None:
     """Create a manufacturing order recipe row
 
      Add a recipe row to an existing manufacturing order.

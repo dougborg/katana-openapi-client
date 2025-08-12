@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
@@ -26,7 +26,7 @@ class CreatePriceListRowRequest:
     price_list_id: int
     variant_id: int
     price: float
-    currency: Union[Unset, str] = UNSET
+    currency: Unset | str = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         price_list_id = self.price_list_id

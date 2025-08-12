@@ -1,9 +1,11 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
@@ -34,11 +36,11 @@ class BatchResponse:
     batch_number: str
     variant_id: int
     id: int
-    expiration_date: Union[Unset, datetime.datetime] = UNSET
-    batch_created_date: Union[Unset, datetime.datetime] = UNSET
-    batch_barcode: Union[None, Unset, str] = UNSET
-    created_at: Union[Unset, datetime.datetime] = UNSET
-    updated_at: Union[Unset, datetime.datetime] = UNSET
+    expiration_date: Unset | datetime.datetime = UNSET
+    batch_created_date: Unset | datetime.datetime = UNSET
+    batch_barcode: None | Unset | str = UNSET
+    created_at: Unset | datetime.datetime = UNSET
+    updated_at: Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -48,25 +50,25 @@ class BatchResponse:
 
         id = self.id
 
-        expiration_date: Union[Unset, str] = UNSET
+        expiration_date: Unset | str = UNSET
         if not isinstance(self.expiration_date, Unset):
             expiration_date = self.expiration_date.isoformat()
 
-        batch_created_date: Union[Unset, str] = UNSET
+        batch_created_date: Unset | str = UNSET
         if not isinstance(self.batch_created_date, Unset):
             batch_created_date = self.batch_created_date.isoformat()
 
-        batch_barcode: Union[None, Unset, str]
+        batch_barcode: None | Unset | str
         if isinstance(self.batch_barcode, Unset):
             batch_barcode = UNSET
         else:
             batch_barcode = self.batch_barcode
 
-        created_at: Union[Unset, str] = UNSET
+        created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
@@ -102,37 +104,37 @@ class BatchResponse:
         id = d.pop("id")
 
         _expiration_date = d.pop("expiration_date", UNSET)
-        expiration_date: Union[Unset, datetime.datetime]
+        expiration_date: Unset | datetime.datetime
         if isinstance(_expiration_date, Unset):
             expiration_date = UNSET
         else:
             expiration_date = isoparse(_expiration_date)
 
         _batch_created_date = d.pop("batch_created_date", UNSET)
-        batch_created_date: Union[Unset, datetime.datetime]
+        batch_created_date: Unset | datetime.datetime
         if isinstance(_batch_created_date, Unset):
             batch_created_date = UNSET
         else:
             batch_created_date = isoparse(_batch_created_date)
 
-        def _parse_batch_barcode(data: object) -> Union[None, Unset, str]:
+        def _parse_batch_barcode(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | Unset | str, data)
 
         batch_barcode = _parse_batch_barcode(d.pop("batch_barcode", UNSET))
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Union[Unset, datetime.datetime]
+        created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: Unset | datetime.datetime
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:

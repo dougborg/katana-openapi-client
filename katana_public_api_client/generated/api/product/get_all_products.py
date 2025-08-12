@@ -1,6 +1,6 @@
 import datetime
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -14,32 +14,32 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    ids: Union[Unset, list[int]] = UNSET,
-    name: Union[Unset, str] = UNSET,
-    uom: Union[Unset, str] = UNSET,
-    is_sellable: Union[Unset, bool] = UNSET,
-    is_producible: Union[Unset, bool] = UNSET,
-    is_purchasable: Union[Unset, bool] = UNSET,
-    is_auto_assembly: Union[Unset, bool] = UNSET,
-    default_supplier_id: Union[Unset, int] = UNSET,
-    batch_tracked: Union[Unset, bool] = UNSET,
-    serial_tracked: Union[Unset, bool] = UNSET,
-    operations_in_sequence: Union[Unset, bool] = UNSET,
-    purchase_uom: Union[Unset, str] = UNSET,
-    purchase_uom_conversion_rate: Union[Unset, float] = UNSET,
-    extend: Union[Unset, list[GetAllProductsExtendItem]] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    include_archived: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
+    ids: Unset | list[int] = UNSET,
+    name: Unset | str = UNSET,
+    uom: Unset | str = UNSET,
+    is_sellable: Unset | bool = UNSET,
+    is_producible: Unset | bool = UNSET,
+    is_purchasable: Unset | bool = UNSET,
+    is_auto_assembly: Unset | bool = UNSET,
+    default_supplier_id: Unset | int = UNSET,
+    batch_tracked: Unset | bool = UNSET,
+    serial_tracked: Unset | bool = UNSET,
+    operations_in_sequence: Unset | bool = UNSET,
+    purchase_uom: Unset | str = UNSET,
+    purchase_uom_conversion_rate: Unset | float = UNSET,
+    extend: Unset | list[GetAllProductsExtendItem] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    include_archived: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Union[Unset, list[int]] = UNSET
+    json_ids: Unset | list[int] = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -69,7 +69,7 @@ def _get_kwargs(
 
     params["purchase_uom_conversion_rate"] = purchase_uom_conversion_rate
 
-    json_extend: Union[Unset, list[str]] = UNSET
+    json_extend: Unset | list[str] = UNSET
     if not isinstance(extend, Unset):
         json_extend = []
         for extend_item_data in extend:
@@ -86,22 +86,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Union[Unset, str] = UNSET
+    json_created_at_min: Unset | str = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Union[Unset, str] = UNSET
+    json_created_at_max: Unset | str = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Union[Unset, str] = UNSET
+    json_updated_at_min: Unset | str = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Union[Unset, str] = UNSET
+    json_updated_at_max: Unset | str = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -118,8 +118,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ErrorResponse, ProductListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | ProductListResponse | None:
     if response.status_code == 200:
         response_200 = ProductListResponse.from_dict(response.json())
 
@@ -143,8 +143,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ErrorResponse, ProductListResponse]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | ProductListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -155,30 +155,30 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    name: Union[Unset, str] = UNSET,
-    uom: Union[Unset, str] = UNSET,
-    is_sellable: Union[Unset, bool] = UNSET,
-    is_producible: Union[Unset, bool] = UNSET,
-    is_purchasable: Union[Unset, bool] = UNSET,
-    is_auto_assembly: Union[Unset, bool] = UNSET,
-    default_supplier_id: Union[Unset, int] = UNSET,
-    batch_tracked: Union[Unset, bool] = UNSET,
-    serial_tracked: Union[Unset, bool] = UNSET,
-    operations_in_sequence: Union[Unset, bool] = UNSET,
-    purchase_uom: Union[Unset, str] = UNSET,
-    purchase_uom_conversion_rate: Union[Unset, float] = UNSET,
-    extend: Union[Unset, list[GetAllProductsExtendItem]] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    include_archived: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-) -> Response[Union[ErrorResponse, ProductListResponse]]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    name: Unset | str = UNSET,
+    uom: Unset | str = UNSET,
+    is_sellable: Unset | bool = UNSET,
+    is_producible: Unset | bool = UNSET,
+    is_purchasable: Unset | bool = UNSET,
+    is_auto_assembly: Unset | bool = UNSET,
+    default_supplier_id: Unset | int = UNSET,
+    batch_tracked: Unset | bool = UNSET,
+    serial_tracked: Unset | bool = UNSET,
+    operations_in_sequence: Unset | bool = UNSET,
+    purchase_uom: Unset | str = UNSET,
+    purchase_uom_conversion_rate: Unset | float = UNSET,
+    extend: Unset | list[GetAllProductsExtendItem] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    include_archived: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+) -> Response[ErrorResponse | ProductListResponse]:
     """List all products
 
      Returns a list of products you've previously created. The products are returned in sorted order,
@@ -250,30 +250,30 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    name: Union[Unset, str] = UNSET,
-    uom: Union[Unset, str] = UNSET,
-    is_sellable: Union[Unset, bool] = UNSET,
-    is_producible: Union[Unset, bool] = UNSET,
-    is_purchasable: Union[Unset, bool] = UNSET,
-    is_auto_assembly: Union[Unset, bool] = UNSET,
-    default_supplier_id: Union[Unset, int] = UNSET,
-    batch_tracked: Union[Unset, bool] = UNSET,
-    serial_tracked: Union[Unset, bool] = UNSET,
-    operations_in_sequence: Union[Unset, bool] = UNSET,
-    purchase_uom: Union[Unset, str] = UNSET,
-    purchase_uom_conversion_rate: Union[Unset, float] = UNSET,
-    extend: Union[Unset, list[GetAllProductsExtendItem]] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    include_archived: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-) -> Optional[Union[ErrorResponse, ProductListResponse]]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    name: Unset | str = UNSET,
+    uom: Unset | str = UNSET,
+    is_sellable: Unset | bool = UNSET,
+    is_producible: Unset | bool = UNSET,
+    is_purchasable: Unset | bool = UNSET,
+    is_auto_assembly: Unset | bool = UNSET,
+    default_supplier_id: Unset | int = UNSET,
+    batch_tracked: Unset | bool = UNSET,
+    serial_tracked: Unset | bool = UNSET,
+    operations_in_sequence: Unset | bool = UNSET,
+    purchase_uom: Unset | str = UNSET,
+    purchase_uom_conversion_rate: Unset | float = UNSET,
+    extend: Unset | list[GetAllProductsExtendItem] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    include_archived: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+) -> ErrorResponse | ProductListResponse | None:
     """List all products
 
      Returns a list of products you've previously created. The products are returned in sorted order,
@@ -340,30 +340,30 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    name: Union[Unset, str] = UNSET,
-    uom: Union[Unset, str] = UNSET,
-    is_sellable: Union[Unset, bool] = UNSET,
-    is_producible: Union[Unset, bool] = UNSET,
-    is_purchasable: Union[Unset, bool] = UNSET,
-    is_auto_assembly: Union[Unset, bool] = UNSET,
-    default_supplier_id: Union[Unset, int] = UNSET,
-    batch_tracked: Union[Unset, bool] = UNSET,
-    serial_tracked: Union[Unset, bool] = UNSET,
-    operations_in_sequence: Union[Unset, bool] = UNSET,
-    purchase_uom: Union[Unset, str] = UNSET,
-    purchase_uom_conversion_rate: Union[Unset, float] = UNSET,
-    extend: Union[Unset, list[GetAllProductsExtendItem]] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    include_archived: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-) -> Response[Union[ErrorResponse, ProductListResponse]]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    name: Unset | str = UNSET,
+    uom: Unset | str = UNSET,
+    is_sellable: Unset | bool = UNSET,
+    is_producible: Unset | bool = UNSET,
+    is_purchasable: Unset | bool = UNSET,
+    is_auto_assembly: Unset | bool = UNSET,
+    default_supplier_id: Unset | int = UNSET,
+    batch_tracked: Unset | bool = UNSET,
+    serial_tracked: Unset | bool = UNSET,
+    operations_in_sequence: Unset | bool = UNSET,
+    purchase_uom: Unset | str = UNSET,
+    purchase_uom_conversion_rate: Unset | float = UNSET,
+    extend: Unset | list[GetAllProductsExtendItem] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    include_archived: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+) -> Response[ErrorResponse | ProductListResponse]:
     """List all products
 
      Returns a list of products you've previously created. The products are returned in sorted order,
@@ -433,30 +433,30 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    ids: Union[Unset, list[int]] = UNSET,
-    name: Union[Unset, str] = UNSET,
-    uom: Union[Unset, str] = UNSET,
-    is_sellable: Union[Unset, bool] = UNSET,
-    is_producible: Union[Unset, bool] = UNSET,
-    is_purchasable: Union[Unset, bool] = UNSET,
-    is_auto_assembly: Union[Unset, bool] = UNSET,
-    default_supplier_id: Union[Unset, int] = UNSET,
-    batch_tracked: Union[Unset, bool] = UNSET,
-    serial_tracked: Union[Unset, bool] = UNSET,
-    operations_in_sequence: Union[Unset, bool] = UNSET,
-    purchase_uom: Union[Unset, str] = UNSET,
-    purchase_uom_conversion_rate: Union[Unset, float] = UNSET,
-    extend: Union[Unset, list[GetAllProductsExtendItem]] = UNSET,
-    include_deleted: Union[Unset, bool] = UNSET,
-    include_archived: Union[Unset, bool] = UNSET,
-    limit: Union[Unset, int] = 50,
-    page: Union[Unset, int] = 1,
-    created_at_min: Union[Unset, datetime.datetime] = UNSET,
-    created_at_max: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_min: Union[Unset, datetime.datetime] = UNSET,
-    updated_at_max: Union[Unset, datetime.datetime] = UNSET,
-) -> Optional[Union[ErrorResponse, ProductListResponse]]:
+    client: AuthenticatedClient | Client,
+    ids: Unset | list[int] = UNSET,
+    name: Unset | str = UNSET,
+    uom: Unset | str = UNSET,
+    is_sellable: Unset | bool = UNSET,
+    is_producible: Unset | bool = UNSET,
+    is_purchasable: Unset | bool = UNSET,
+    is_auto_assembly: Unset | bool = UNSET,
+    default_supplier_id: Unset | int = UNSET,
+    batch_tracked: Unset | bool = UNSET,
+    serial_tracked: Unset | bool = UNSET,
+    operations_in_sequence: Unset | bool = UNSET,
+    purchase_uom: Unset | str = UNSET,
+    purchase_uom_conversion_rate: Unset | float = UNSET,
+    extend: Unset | list[GetAllProductsExtendItem] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    include_archived: Unset | bool = UNSET,
+    limit: Unset | int = 50,
+    page: Unset | int = 1,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+) -> ErrorResponse | ProductListResponse | None:
     """List all products
 
      Returns a list of products you've previously created. The products are returned in sorted order,

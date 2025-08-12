@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
@@ -28,15 +28,15 @@ class UpdatePurchaseOrderRowRequest:
         arrival_date (Union[Unset, str]): Updatable only when received_date is not null
     """
 
-    quantity: Union[Unset, float] = UNSET
-    variant_id: Union[Unset, int] = UNSET
-    tax_rate_id: Union[Unset, int] = UNSET
-    group_id: Union[Unset, int] = UNSET
-    price_per_unit: Union[Unset, float] = UNSET
-    purchase_uom_conversion_rate: Union[Unset, float] = UNSET
-    purchase_uom: Union[Unset, str] = UNSET
-    received_date: Union[Unset, str] = UNSET
-    arrival_date: Union[Unset, str] = UNSET
+    quantity: Unset | float = UNSET
+    variant_id: Unset | int = UNSET
+    tax_rate_id: Unset | int = UNSET
+    group_id: Unset | int = UNSET
+    price_per_unit: Unset | float = UNSET
+    purchase_uom_conversion_rate: Unset | float = UNSET
+    purchase_uom: Unset | str = UNSET
+    received_date: Unset | str = UNSET
+    arrival_date: Unset | str = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         quantity = self.quantity

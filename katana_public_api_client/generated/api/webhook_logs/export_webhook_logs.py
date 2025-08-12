@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -32,8 +32,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, WebhookLogsExport]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> DetailedErrorResponse | ErrorResponse | WebhookLogsExport | None:
     if response.status_code == 200:
         response_200 = WebhookLogsExport.from_dict(response.json())
 
@@ -61,8 +61,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, WebhookLogsExport]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[DetailedErrorResponse | ErrorResponse | WebhookLogsExport]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -73,9 +73,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: WebhookLogsExportRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, WebhookLogsExport]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | WebhookLogsExport]:
     """Export webhook logs
 
      Use the endpoint to export your webhook logs and troubleshoot any issues.
@@ -109,9 +109,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: WebhookLogsExportRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, WebhookLogsExport]]:
+) -> DetailedErrorResponse | ErrorResponse | WebhookLogsExport | None:
     """Export webhook logs
 
      Use the endpoint to export your webhook logs and troubleshoot any issues.
@@ -140,9 +140,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: WebhookLogsExportRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, WebhookLogsExport]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | WebhookLogsExport]:
     """Export webhook logs
 
      Use the endpoint to export your webhook logs and troubleshoot any issues.
@@ -174,9 +174,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: WebhookLogsExportRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, WebhookLogsExport]]:
+) -> DetailedErrorResponse | ErrorResponse | WebhookLogsExport | None:
     """Export webhook logs
 
      Use the endpoint to export your webhook logs and troubleshoot any issues.

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -32,8 +32,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Variant]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> DetailedErrorResponse | ErrorResponse | Variant | None:
     if response.status_code == 200:
         response_200 = Variant.from_dict(response.json())
 
@@ -61,8 +61,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, Variant]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[DetailedErrorResponse | ErrorResponse | Variant]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -73,9 +73,9 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateVariantRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, Variant]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Variant]:
     """Create a variant
 
      Creates a new variant object. Note that you can create variants for both products and materials.
@@ -114,9 +114,9 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateVariantRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Variant]]:
+) -> DetailedErrorResponse | ErrorResponse | Variant | None:
     """Create a variant
 
      Creates a new variant object. Note that you can create variants for both products and materials.
@@ -150,9 +150,9 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateVariantRequest,
-) -> Response[Union[DetailedErrorResponse, ErrorResponse, Variant]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Variant]:
     """Create a variant
 
      Creates a new variant object. Note that you can create variants for both products and materials.
@@ -189,9 +189,9 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     body: CreateVariantRequest,
-) -> Optional[Union[DetailedErrorResponse, ErrorResponse, Variant]]:
+) -> DetailedErrorResponse | ErrorResponse | Variant | None:
     """Create a variant
 
      Creates a new variant object. Note that you can create variants for both products and materials.
