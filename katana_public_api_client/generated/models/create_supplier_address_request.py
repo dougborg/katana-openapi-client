@@ -10,6 +10,13 @@ T = TypeVar("T", bound="CreateSupplierAddressRequest")
 
 @_attrs_define
 class CreateSupplierAddressRequest:
+    """Request payload for creating a new address for an existing supplier
+
+    Example:
+        {'supplier_id': 4001, 'line_1': '856 Distribution Center Dr', 'line_2': None, 'city': 'Milwaukee', 'state':
+            'WI', 'zip': '53218', 'country': 'US'}
+    """
+
     supplier_id: int
     line_1: str
     line_2: None | Unset | str = UNSET

@@ -16,6 +16,14 @@ T = TypeVar("T", bound="CreateCustomerAddressRequest")
 
 @_attrs_define
 class CreateCustomerAddressRequest:
+    """Request payload for creating a new customer address with complete contact and location information
+
+    Example:
+        {'customer_id': 2003, 'entity_type': 'shipping', 'first_name': 'Maria', 'last_name': 'Garcia', 'company': 'Cafe
+            Central', 'phone': '+1-555-0127', 'line_1': '789 Main Street', 'line_2': 'Unit 5', 'city': 'San Francisco',
+            'state': 'CA', 'zip': '94102', 'country': 'USA', 'is_default': True}
+    """
+
     customer_id: int
     entity_type: CreateCustomerAddressRequestEntityType
     first_name: None | Unset | str = UNSET

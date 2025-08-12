@@ -89,7 +89,10 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRequest):
+        body (UpdateManufacturingOrderRequest): Request payload for updating an existing
+            manufacturing order's properties and production parameters. Example: {'planned_quantity':
+            75, 'additional_info': 'Increased quantity due to additional customer demand',
+            'production_deadline_date': '2024-01-30T17:00:00Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -125,7 +128,10 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRequest):
+        body (UpdateManufacturingOrderRequest): Request payload for updating an existing
+            manufacturing order's properties and production parameters. Example: {'planned_quantity':
+            75, 'additional_info': 'Increased quantity due to additional customer demand',
+            'production_deadline_date': '2024-01-30T17:00:00Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -156,7 +162,10 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRequest):
+        body (UpdateManufacturingOrderRequest): Request payload for updating an existing
+            manufacturing order's properties and production parameters. Example: {'planned_quantity':
+            75, 'additional_info': 'Increased quantity due to additional customer demand',
+            'production_deadline_date': '2024-01-30T17:00:00Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -190,7 +199,10 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderRequest):
+        body (UpdateManufacturingOrderRequest): Request payload for updating an existing
+            manufacturing order's properties and production parameters. Example: {'planned_quantity':
+            75, 'additional_info': 'Increased quantity due to additional customer demand',
+            'production_deadline_date': '2024-01-30T17:00:00Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

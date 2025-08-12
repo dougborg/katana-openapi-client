@@ -14,9 +14,7 @@ from ..models.custom_fields_collection_resource_type import (
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.custom_fields_collection_custom_fields_item import (
-        CustomFieldsCollectionCustomFieldsItem,
-    )
+    from ..models.custom_field import CustomField
 
 
 T = TypeVar("T", bound="CustomFieldsCollection")
@@ -24,12 +22,21 @@ T = TypeVar("T", bound="CustomFieldsCollection")
 
 @_attrs_define
 class CustomFieldsCollection:
+    """Collection of custom field definitions that can be applied to specific business objects for extended data capture
+
+    Example:
+        {'id': 5, 'name': 'Product Quality Specifications', 'resource_type': 'product', 'custom_fields': [{'id': 10,
+            'name': 'quality_grade', 'field_type': 'select', 'label': 'Quality Grade', 'required': True, 'options': ['A',
+            'B', 'C']}, {'id': 11, 'name': 'certification_date', 'field_type': 'date', 'label': 'Certification Date',
+            'required': False}], 'created_at': '2024-01-08T10:00:00Z', 'updated_at': '2024-01-12T15:30:00Z'}
+    """
+
     id: int
     name: str
     resource_type: CustomFieldsCollectionResourceType
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    custom_fields: Unset | list["CustomFieldsCollectionCustomFieldsItem"] = UNSET
+    custom_fields: Unset | list["CustomField"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -74,9 +81,7 @@ class CustomFieldsCollection:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.custom_fields_collection_custom_fields_item import (
-            CustomFieldsCollectionCustomFieldsItem,
-        )
+        from ..models.custom_field import CustomField
 
         d = dict(src_dict)
         id = d.pop("id")
@@ -102,9 +107,7 @@ class CustomFieldsCollection:
         custom_fields = []
         _custom_fields = d.pop("custom_fields", UNSET)
         for custom_fields_item_data in _custom_fields or []:
-            custom_fields_item = CustomFieldsCollectionCustomFieldsItem.from_dict(
-                custom_fields_item_data
-            )
+            custom_fields_item = CustomField.from_dict(custom_fields_item_data)
 
             custom_fields.append(custom_fields_item)
 

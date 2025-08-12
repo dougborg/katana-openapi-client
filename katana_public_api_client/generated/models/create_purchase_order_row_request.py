@@ -10,6 +10,13 @@ T = TypeVar("T", bound="CreatePurchaseOrderRowRequest")
 
 @_attrs_define
 class CreatePurchaseOrderRowRequest:
+    """Request payload for adding a new line item to an existing purchase order
+
+    Example:
+        {'purchase_order_id': 156, 'quantity': 50, 'variant_id': 503, 'tax_rate_id': 1, 'group_id': 1, 'price_per_unit':
+            8.75, 'purchase_uom_conversion_rate': 1.0, 'purchase_uom': 'pieces', 'arrival_date': '2024-02-15T10:00:00Z'}
+    """
+
     purchase_order_id: int
     quantity: float
     variant_id: int

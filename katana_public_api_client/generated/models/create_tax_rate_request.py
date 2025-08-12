@@ -10,6 +10,12 @@ T = TypeVar("T", bound="CreateTaxRateRequest")
 
 @_attrs_define
 class CreateTaxRateRequest:
+    """Request payload for creating a new tax rate to be applied to sales and purchase orders for financial compliance
+
+    Example:
+        {'name': 'VAT 20%', 'rate': 20.0}
+    """
+
     rate: float
     name: Unset | str = UNSET
 

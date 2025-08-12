@@ -15,6 +15,14 @@ T = TypeVar("T", bound="ManufacturingOrderProductionIngredientResponse")
 
 @_attrs_define
 class ManufacturingOrderProductionIngredientResponse:
+    """Response containing ingredient consumption data for a manufacturing order production batch
+
+    Example:
+        {'id': 4001, 'location_id': 1, 'variant_id': 2002, 'manufacturing_order_id': 1001,
+            'manufacturing_order_recipe_row_id': 1501, 'production_id': 2001, 'quantity': 2.5, 'production_date':
+            '2023-10-15T10:30:00Z', 'cost': 12.5}
+    """
+
     id: Unset | int = UNSET
     location_id: Unset | int = UNSET
     variant_id: Unset | int = UNSET

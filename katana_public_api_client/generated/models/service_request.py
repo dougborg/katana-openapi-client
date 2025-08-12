@@ -15,6 +15,13 @@ T = TypeVar("T", bound="ServiceRequest")
 
 @_attrs_define
 class ServiceRequest:
+    """Request payload for creating or updating service records with pricing and operational details
+
+    Example:
+        {'data': {'type': 'services', 'attributes': {'name': 'Assembly Service', 'description': 'Professional product
+            assembly service', 'price': 150.0, 'currency': 'USD'}}}
+    """
+
     data: "ServiceRequestData"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

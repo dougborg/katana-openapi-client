@@ -80,7 +80,10 @@ def sync_detailed(
      Reranks the operations for a product.
 
     Args:
-        body (ProductOperationRerankRequest):
+        body (ProductOperationRerankRequest): Request payload for reordering product operations
+            within a manufacturing workflow to optimize production sequence Example:
+            {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group':
+            True}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -112,7 +115,10 @@ def sync(
      Reranks the operations for a product.
 
     Args:
-        body (ProductOperationRerankRequest):
+        body (ProductOperationRerankRequest): Request payload for reordering product operations
+            within a manufacturing workflow to optimize production sequence Example:
+            {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group':
+            True}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -139,7 +145,10 @@ async def asyncio_detailed(
      Reranks the operations for a product.
 
     Args:
-        body (ProductOperationRerankRequest):
+        body (ProductOperationRerankRequest): Request payload for reordering product operations
+            within a manufacturing workflow to optimize production sequence Example:
+            {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group':
+            True}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -169,7 +178,10 @@ async def asyncio(
      Reranks the operations for a product.
 
     Args:
-        body (ProductOperationRerankRequest):
+        body (ProductOperationRerankRequest): Request payload for reordering product operations
+            within a manufacturing workflow to optimize production sequence Example:
+            {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group':
+            True}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

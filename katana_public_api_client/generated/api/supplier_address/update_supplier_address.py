@@ -85,7 +85,9 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateSupplierAddressRequest):
+        body (UpdateSupplierAddressRequest): Request payload for updating an existing supplier
+            address Example: {'line_1': '1250 Industrial Blvd', 'line_2': 'Suite 300', 'city':
+            'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'US'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -121,7 +123,9 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateSupplierAddressRequest):
+        body (UpdateSupplierAddressRequest): Request payload for updating an existing supplier
+            address Example: {'line_1': '1250 Industrial Blvd', 'line_2': 'Suite 300', 'city':
+            'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'US'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -152,7 +156,9 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateSupplierAddressRequest):
+        body (UpdateSupplierAddressRequest): Request payload for updating an existing supplier
+            address Example: {'line_1': '1250 Industrial Blvd', 'line_2': 'Suite 300', 'city':
+            'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'US'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -186,7 +192,9 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateSupplierAddressRequest):
+        body (UpdateSupplierAddressRequest): Request payload for updating an existing supplier
+            address Example: {'line_1': '1250 Industrial Blvd', 'line_2': 'Suite 300', 'city':
+            'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'US'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

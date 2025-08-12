@@ -15,7 +15,8 @@ T = TypeVar("T", bound="StorageBinResponse")
 
 @_attrs_define
 class StorageBinResponse:
-    """
+    """Complete storage bin record with location details and system metadata for warehouse organization
+
     Example:
         {'id': 12345, 'bin_name': 'A-01-SHELF-1', 'location_id': 1, 'created_at': '2020-10-23T10:37:05.085Z',
             'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}

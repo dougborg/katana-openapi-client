@@ -99,7 +99,9 @@ def sync_detailed(
     The endpoint accepts up to 500 variant storage bin objects.
 
     Args:
-        body (VariantDefaultStorageBinLink):
+        body (VariantDefaultStorageBinLink): Link defining the default storage bin assignment for
+            a specific variant to optimize warehouse picking and storage Example: {'location_id': 1,
+            'variant_id': 3001, 'bin_name': 'A-01-SHELF-1'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -141,7 +143,9 @@ def sync(
     The endpoint accepts up to 500 variant storage bin objects.
 
     Args:
-        body (VariantDefaultStorageBinLink):
+        body (VariantDefaultStorageBinLink): Link defining the default storage bin assignment for
+            a specific variant to optimize warehouse picking and storage Example: {'location_id': 1,
+            'variant_id': 3001, 'bin_name': 'A-01-SHELF-1'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -175,7 +179,9 @@ async def asyncio_detailed(
     The endpoint accepts up to 500 variant storage bin objects.
 
     Args:
-        body (VariantDefaultStorageBinLink):
+        body (VariantDefaultStorageBinLink): Link defining the default storage bin assignment for
+            a specific variant to optimize warehouse picking and storage Example: {'location_id': 1,
+            'variant_id': 3001, 'bin_name': 'A-01-SHELF-1'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -215,7 +221,9 @@ async def asyncio(
     The endpoint accepts up to 500 variant storage bin objects.
 
     Args:
-        body (VariantDefaultStorageBinLink):
+        body (VariantDefaultStorageBinLink): Link defining the default storage bin assignment for
+            a specific variant to optimize warehouse picking and storage Example: {'location_id': 1,
+            'variant_id': 3001, 'bin_name': 'A-01-SHELF-1'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

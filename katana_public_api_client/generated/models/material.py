@@ -21,10 +21,23 @@ T = TypeVar("T", bound="Material")
 
 @_attrs_define
 class Material:
+    """Represents raw materials and components used in manufacturing, including inventory tracking, supplier information,
+    and batch management.
+
+        Example:
+            {'id': 3201, 'name': 'Stainless Steel Sheet 304', 'uom': 'm²', 'category_name': 'Raw Materials',
+                'default_supplier_id': 1501, 'additional_info': 'Food-grade stainless steel, 1.5mm thickness', 'batch_tracked':
+                True, 'is_sellable': False, 'type': 'Raw Material', 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate':
+                2.0, 'variants': [], 'configs': [{'id': 101, 'name': 'Grade', 'values': ['304', '316'], 'product_id': 3201},
+                {'id': 102, 'name': 'Thickness', 'values': ['1.5mm', '2.0mm', '3.0mm'], 'product_id': 3201}],
+                'custom_field_collection_id': 201, 'supplier': None, 'created_at': '2024-01-10T10:00:00Z', 'updated_at':
+                '2024-01-15T14:30:00Z', 'archived_at': None}
+    """
+
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     archived_at: None | Unset | str = UNSET
-    id: Unset | int = UNSET
     name: Unset | str = UNSET
     uom: Unset | str = UNSET
     category_name: Unset | str = UNSET
@@ -42,6 +55,8 @@ class Material:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -55,8 +70,6 @@ class Material:
             archived_at = UNSET
         else:
             archived_at = self.archived_at
-
-        id = self.id
 
         name = self.name
 
@@ -100,15 +113,17 @@ class Material:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if archived_at is not UNSET:
             field_dict["archived_at"] = archived_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if name is not UNSET:
             field_dict["name"] = name
         if uom is not UNSET:
@@ -147,6 +162,8 @@ class Material:
         from ..models.variant import Variant
 
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -169,8 +186,6 @@ class Material:
             return cast(None | Unset | str, data)
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
-
-        id = d.pop("id", UNSET)
 
         name = d.pop("name", UNSET)
 
@@ -216,10 +231,10 @@ class Material:
             supplier = Supplier.from_dict(_supplier)
 
         material = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             archived_at=archived_at,
-            id=id,
             name=name,
             uom=uom,
             category_name=category_name,

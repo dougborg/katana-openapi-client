@@ -10,6 +10,13 @@ T = TypeVar("T", bound="SupplierAddressRequest")
 
 @_attrs_define
 class SupplierAddressRequest:
+    """Request payload for creating or specifying a supplier address
+
+    Example:
+        {'line_1': '1250 Industrial Blvd', 'line_2': 'Suite 200', 'city': 'Chicago', 'state': 'IL', 'zip': '60601',
+            'country': 'US'}
+    """
+
     line_1: str
     supplier_id: Unset | int = UNSET
     line_2: Unset | str = UNSET

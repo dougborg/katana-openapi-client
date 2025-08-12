@@ -17,6 +17,15 @@ T = TypeVar("T", bound="SalesReturnListResponse")
 
 @_attrs_define
 class SalesReturnListResponse:
+    """Response containing a list of sales returns with customer refund and return processing information
+
+    Example:
+        {'data': [{'id': 3001, 'customer_id': 1001, 'sales_order_id': 2001, 'order_no': 'SR-2023-001',
+            'return_location_id': 1, 'status': 'RETURNED', 'currency': 'USD', 'return_date': '2023-10-15T14:30:00Z',
+            'order_created_date': '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported damaged items',
+            'refund_status': 'PROCESSED'}]}
+    """
+
     data: Unset | list["SalesReturn"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

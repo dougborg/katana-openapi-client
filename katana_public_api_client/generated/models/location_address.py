@@ -13,6 +13,13 @@ T = TypeVar("T", bound="LocationAddress")
 
 @_attrs_define
 class LocationAddress:
+    """Physical address information for manufacturing locations and warehouse facilities
+
+    Example:
+        {'id': 5001, 'city': 'Austin', 'country': 'USA', 'line_1': '1500 Industrial Blvd', 'line_2': 'Building A',
+            'state': 'TX', 'zip': '78745'}
+    """
+
     id: int
     city: str
     country: str

@@ -78,7 +78,10 @@ def sync_detailed(
      Creates a new manufacturing order object that is linked to a specific sales order row.
 
     Args:
-        body (MakeToOrderManufacturingOrderRequest):
+        body (MakeToOrderManufacturingOrderRequest): Request to create a manufacturing order
+            directly from a sales order row, linking production to customer demand for make-to-order
+            manufacturing. Example: {'sales_order_row_id': 2501, 'create_subassemblies': True}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -110,7 +113,10 @@ def sync(
      Creates a new manufacturing order object that is linked to a specific sales order row.
 
     Args:
-        body (MakeToOrderManufacturingOrderRequest):
+        body (MakeToOrderManufacturingOrderRequest): Request to create a manufacturing order
+            directly from a sales order row, linking production to customer demand for make-to-order
+            manufacturing. Example: {'sales_order_row_id': 2501, 'create_subassemblies': True}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -137,7 +143,10 @@ async def asyncio_detailed(
      Creates a new manufacturing order object that is linked to a specific sales order row.
 
     Args:
-        body (MakeToOrderManufacturingOrderRequest):
+        body (MakeToOrderManufacturingOrderRequest): Request to create a manufacturing order
+            directly from a sales order row, linking production to customer demand for make-to-order
+            manufacturing. Example: {'sales_order_row_id': 2501, 'create_subassemblies': True}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -167,7 +176,10 @@ async def asyncio(
      Creates a new manufacturing order object that is linked to a specific sales order row.
 
     Args:
-        body (MakeToOrderManufacturingOrderRequest):
+        body (MakeToOrderManufacturingOrderRequest): Request to create a manufacturing order
+            directly from a sales order row, linking production to customer demand for make-to-order
+            manufacturing. Example: {'sales_order_row_id': 2501, 'create_subassemblies': True}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

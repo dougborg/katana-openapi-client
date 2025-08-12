@@ -15,6 +15,14 @@ T = TypeVar("T", bound="PriceListRow")
 
 @_attrs_define
 class PriceListRow:
+    """Individual product variant pricing entry within a price list for customer-specific or market-specific pricing
+    management
+
+        Example:
+            {'id': 5001, 'price_list_id': 1001, 'variant_id': 201, 'price': 249.99, 'currency': 'USD', 'created_at':
+                '2024-01-15T10:00:00Z', 'updated_at': '2024-01-15T10:00:00Z'}
+    """
+
     id: int
     price_list_id: int
     variant_id: int

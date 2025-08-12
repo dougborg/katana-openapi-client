@@ -88,7 +88,9 @@ def sync_detailed(
       The endpoint accepts up to 500 variant bin location objects.
 
     Args:
-        body (list['UnlinkVariantBinLocationRequest']):
+        body (list['UnlinkVariantBinLocationRequest']): Batch request to remove variant storage
+            bin assignments for multiple location-variant combinations Example: [{'location_id': 1,
+            'variant_id': 3001}, {'location_id': 1, 'variant_id': 3002}].
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -122,7 +124,9 @@ def sync(
       The endpoint accepts up to 500 variant bin location objects.
 
     Args:
-        body (list['UnlinkVariantBinLocationRequest']):
+        body (list['UnlinkVariantBinLocationRequest']): Batch request to remove variant storage
+            bin assignments for multiple location-variant combinations Example: [{'location_id': 1,
+            'variant_id': 3001}, {'location_id': 1, 'variant_id': 3002}].
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -151,7 +155,9 @@ async def asyncio_detailed(
       The endpoint accepts up to 500 variant bin location objects.
 
     Args:
-        body (list['UnlinkVariantBinLocationRequest']):
+        body (list['UnlinkVariantBinLocationRequest']): Batch request to remove variant storage
+            bin assignments for multiple location-variant combinations Example: [{'location_id': 1,
+            'variant_id': 3001}, {'location_id': 1, 'variant_id': 3002}].
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -183,7 +189,9 @@ async def asyncio(
       The endpoint accepts up to 500 variant bin location objects.
 
     Args:
-        body (list['UnlinkVariantBinLocationRequest']):
+        body (list['UnlinkVariantBinLocationRequest']): Batch request to remove variant storage
+            bin assignments for multiple location-variant combinations Example: [{'location_id': 1,
+            'variant_id': 3001}, {'location_id': 1, 'variant_id': 3002}].
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

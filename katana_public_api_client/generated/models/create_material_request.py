@@ -17,6 +17,15 @@ T = TypeVar("T", bound="CreateMaterialRequest")
 
 @_attrs_define
 class CreateMaterialRequest:
+    """Request payload for creating a new raw material with variants and specifications
+
+    Example:
+        {'name': 'Stainless Steel Sheet 304', 'uom': 'm²', 'category_name': 'Raw Materials', 'default_supplier_id':
+            1501, 'additional_info': 'Food-grade stainless steel, 1.5mm thickness', 'batch_tracked': True, 'is_sellable':
+            False, 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'name': 'Grade', 'values':
+            ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm', '3.0mm']}], 'variants': []}
+    """
+
     name: str
     variants: list["Variant"]
     uom: Unset | str = UNSET

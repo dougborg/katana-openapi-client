@@ -13,6 +13,12 @@ T = TypeVar("T", bound="ProductOperationRerank")
 
 @_attrs_define
 class ProductOperationRerank:
+    """Response confirming the success of a product operation reordering request
+
+    Example:
+        {'message': 'Product operation successfully reordered', 'success': True}
+    """
+
     message: Unset | str = UNSET
     success: Unset | bool = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

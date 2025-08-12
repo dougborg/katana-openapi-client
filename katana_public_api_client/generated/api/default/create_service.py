@@ -77,7 +77,10 @@ def sync_detailed(
     Service](https://developer.katanamrp.com/reference/createservice))
 
     Args:
-        body (ServiceRequest):
+        body (ServiceRequest): Request payload for creating or updating service records with
+            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
+            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
+            'price': 150.0, 'currency': 'USD'}}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -110,7 +113,10 @@ def sync(
     Service](https://developer.katanamrp.com/reference/createservice))
 
     Args:
-        body (ServiceRequest):
+        body (ServiceRequest): Request payload for creating or updating service records with
+            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
+            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
+            'price': 150.0, 'currency': 'USD'}}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -138,7 +144,10 @@ async def asyncio_detailed(
     Service](https://developer.katanamrp.com/reference/createservice))
 
     Args:
-        body (ServiceRequest):
+        body (ServiceRequest): Request payload for creating or updating service records with
+            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
+            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
+            'price': 150.0, 'currency': 'USD'}}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -169,7 +178,10 @@ async def asyncio(
     Service](https://developer.katanamrp.com/reference/createservice))
 
     Args:
-        body (ServiceRequest):
+        body (ServiceRequest): Request payload for creating or updating service records with
+            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
+            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
+            'price': 150.0, 'currency': 'USD'}}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

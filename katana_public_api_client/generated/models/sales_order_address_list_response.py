@@ -17,6 +17,19 @@ T = TypeVar("T", bound="SalesOrderAddressListResponse")
 
 @_attrs_define
 class SalesOrderAddressListResponse:
+    """Response containing a list of billing and shipping addresses associated with sales orders
+
+    Example:
+        {'data': [{'id': 1201, 'sales_order_id': 2001, 'entity_type': 'billing', 'first_name': 'Sarah', 'last_name':
+            'Johnson', 'company': "Johnson's Restaurant", 'phone': '+1-503-555-0123', 'line_1': '123 Main Street', 'line_2':
+            'Suite 4B', 'city': 'Portland', 'state': 'OR', 'zip': '97201', 'country': 'US', 'created_at':
+            '2024-01-15T10:00:00Z', 'updated_at': '2024-01-15T10:00:00Z'}]}
+
+    Attributes:
+        data (Union[Unset, list['SalesOrderAddress']]): Array of sales order addresses with complete contact and
+            location information
+    """
+
     data: Unset | list["SalesOrderAddress"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

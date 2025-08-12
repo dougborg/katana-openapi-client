@@ -15,12 +15,23 @@ T = TypeVar("T", bound="NegativeStock")
 
 @_attrs_define
 class NegativeStock:
+    """Record of a variant with negative inventory levels indicating oversold or under-received stock requiring immediate
+    attention
+
+        Example:
+            {'variant_id': 3001, 'location_id': 1, 'latest_negative_stock_date': '2024-01-15T16:30:00.000Z', 'name':
+                'Professional Kitchen Knife Set - 8-Piece - Steel Handles', 'sku': 'KNF-PRO-8PC-STL', 'category': 'Kitchen
+                Equipment', 'quantity_on_hand': -15.0, 'quantity_allocated': 25.0}
+    """
+
     variant_id: Unset | int = UNSET
     location_id: Unset | int = UNSET
     latest_negative_stock_date: Unset | datetime.datetime = UNSET
     name: Unset | str = UNSET
     sku: Unset | str = UNSET
     category: Unset | str = UNSET
+    quantity_on_hand: Unset | float = UNSET
+    quantity_allocated: Unset | float = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,6 +49,10 @@ class NegativeStock:
 
         category = self.category
 
+        quantity_on_hand = self.quantity_on_hand
+
+        quantity_allocated = self.quantity_allocated
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
@@ -53,6 +68,10 @@ class NegativeStock:
             field_dict["sku"] = sku
         if category is not UNSET:
             field_dict["category"] = category
+        if quantity_on_hand is not UNSET:
+            field_dict["quantity_on_hand"] = quantity_on_hand
+        if quantity_allocated is not UNSET:
+            field_dict["quantity_allocated"] = quantity_allocated
 
         return field_dict
 
@@ -76,6 +95,10 @@ class NegativeStock:
 
         category = d.pop("category", UNSET)
 
+        quantity_on_hand = d.pop("quantity_on_hand", UNSET)
+
+        quantity_allocated = d.pop("quantity_allocated", UNSET)
+
         negative_stock = cls(
             variant_id=variant_id,
             location_id=location_id,
@@ -83,6 +106,8 @@ class NegativeStock:
             name=name,
             sku=sku,
             category=category,
+            quantity_on_hand=quantity_on_hand,
+            quantity_allocated=quantity_allocated,
         )
 
         negative_stock.additional_properties = d

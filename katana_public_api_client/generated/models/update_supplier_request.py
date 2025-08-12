@@ -10,6 +10,14 @@ T = TypeVar("T", bound="UpdateSupplierRequest")
 
 @_attrs_define
 class UpdateSupplierRequest:
+    """Request payload for updating an existing supplier's contact information and details
+
+    Example:
+        {'name': 'Premium Kitchen Supplies Ltd', 'email': 'orders@premiumkitchen.com', 'phone': '+1-555-0134',
+            'currency': 'USD', 'comment': 'Primary supplier for kitchen equipment and utensils. Excellent customer
+            service.'}
+    """
+
     name: Unset | str = UNSET
     email: Unset | str = UNSET
     phone: Unset | str = UNSET

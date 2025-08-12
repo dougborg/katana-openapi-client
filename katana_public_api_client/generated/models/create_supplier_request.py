@@ -14,6 +14,14 @@ T = TypeVar("T", bound="CreateSupplierRequest")
 
 @_attrs_define
 class CreateSupplierRequest:
+    """Request payload for creating a new supplier with contact information and addresses
+
+    Example:
+        {'name': 'Premium Kitchen Supplies Ltd', 'currency': 'USD', 'email': 'orders@premiumkitchen.com', 'phone':
+            '+1-555-0134', 'comment': 'Primary supplier for kitchen equipment and utensils', 'addresses': [{'line_1': '1250
+            Industrial Blvd', 'line_2': 'Suite 200', 'city': 'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'US'}]}
+    """
+
     name: str
     currency: Unset | str = UNSET
     email: Unset | str = UNSET

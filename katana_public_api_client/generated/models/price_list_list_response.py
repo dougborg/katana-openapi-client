@@ -17,6 +17,18 @@ T = TypeVar("T", bound="PriceListListResponse")
 
 @_attrs_define
 class PriceListListResponse:
+    """Response containing a paginated list of price lists configured for customer-specific and market-specific pricing
+    management
+
+        Example:
+            {'data': [{'id': 1001, 'name': 'Premium Customer Pricing', 'currency': 'USD', 'is_default': False,
+                'markup_percentage': 25.0, 'start_date': '2024-01-01T00:00:00Z', 'end_date': '2024-12-31T23:59:59Z',
+                'created_at': '2024-01-01T10:00:00Z', 'updated_at': '2024-01-15T14:30:00Z', 'deleted_at': None}, {'id': 1002,
+                'name': 'Wholesale Rates', 'currency': 'USD', 'is_default': True, 'markup_percentage': 15.0, 'start_date': None,
+                'end_date': None, 'created_at': '2024-01-01T10:05:00Z', 'updated_at': '2024-01-01T10:05:00Z', 'deleted_at':
+                None}]}
+    """
+
     data: Unset | list["PriceList"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

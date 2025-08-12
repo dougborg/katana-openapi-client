@@ -85,7 +85,10 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateSupplierRequest):
+        body (UpdateSupplierRequest): Request payload for updating an existing supplier's contact
+            information and details Example: {'name': 'Premium Kitchen Supplies Ltd', 'email':
+            'orders@premiumkitchen.com', 'phone': '+1-555-0134', 'currency': 'USD', 'comment':
+            'Primary supplier for kitchen equipment and utensils. Excellent customer service.'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -121,7 +124,10 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateSupplierRequest):
+        body (UpdateSupplierRequest): Request payload for updating an existing supplier's contact
+            information and details Example: {'name': 'Premium Kitchen Supplies Ltd', 'email':
+            'orders@premiumkitchen.com', 'phone': '+1-555-0134', 'currency': 'USD', 'comment':
+            'Primary supplier for kitchen equipment and utensils. Excellent customer service.'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -152,7 +158,10 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateSupplierRequest):
+        body (UpdateSupplierRequest): Request payload for updating an existing supplier's contact
+            information and details Example: {'name': 'Premium Kitchen Supplies Ltd', 'email':
+            'orders@premiumkitchen.com', 'phone': '+1-555-0134', 'currency': 'USD', 'comment':
+            'Primary supplier for kitchen equipment and utensils. Excellent customer service.'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -186,7 +195,10 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateSupplierRequest):
+        body (UpdateSupplierRequest): Request payload for updating an existing supplier's contact
+            information and details Example: {'name': 'Premium Kitchen Supplies Ltd', 'email':
+            'orders@premiumkitchen.com', 'phone': '+1-555-0134', 'currency': 'USD', 'comment':
+            'Primary supplier for kitchen equipment and utensils. Excellent customer service.'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

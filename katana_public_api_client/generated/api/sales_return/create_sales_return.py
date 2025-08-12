@@ -85,7 +85,13 @@ def sync_detailed(
      Creates a new sales return object.
 
     Args:
-        body (CreateSalesReturnRequest):
+        body (CreateSalesReturnRequest): Request payload for creating a new sales return to
+            process customer product returns and refunds Example: {'customer_id': 1001,
+            'sales_order_id': 2001, 'order_no': 'SR-2023-001', 'return_location_id': 1, 'currency':
+            'USD', 'order_created_date': '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported
+            damaged items during shipping', 'sales_return_rows': [{'variant_id': 2002, 'quantity': 2,
+            'return_reason_id': 1, 'notes': 'Packaging was damaged', 'unit_price': 25.0,
+            'total_price': 50.0}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -117,7 +123,13 @@ def sync(
      Creates a new sales return object.
 
     Args:
-        body (CreateSalesReturnRequest):
+        body (CreateSalesReturnRequest): Request payload for creating a new sales return to
+            process customer product returns and refunds Example: {'customer_id': 1001,
+            'sales_order_id': 2001, 'order_no': 'SR-2023-001', 'return_location_id': 1, 'currency':
+            'USD', 'order_created_date': '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported
+            damaged items during shipping', 'sales_return_rows': [{'variant_id': 2002, 'quantity': 2,
+            'return_reason_id': 1, 'notes': 'Packaging was damaged', 'unit_price': 25.0,
+            'total_price': 50.0}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -144,7 +156,13 @@ async def asyncio_detailed(
      Creates a new sales return object.
 
     Args:
-        body (CreateSalesReturnRequest):
+        body (CreateSalesReturnRequest): Request payload for creating a new sales return to
+            process customer product returns and refunds Example: {'customer_id': 1001,
+            'sales_order_id': 2001, 'order_no': 'SR-2023-001', 'return_location_id': 1, 'currency':
+            'USD', 'order_created_date': '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported
+            damaged items during shipping', 'sales_return_rows': [{'variant_id': 2002, 'quantity': 2,
+            'return_reason_id': 1, 'notes': 'Packaging was damaged', 'unit_price': 25.0,
+            'total_price': 50.0}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -174,7 +192,13 @@ async def asyncio(
      Creates a new sales return object.
 
     Args:
-        body (CreateSalesReturnRequest):
+        body (CreateSalesReturnRequest): Request payload for creating a new sales return to
+            process customer product returns and refunds Example: {'customer_id': 1001,
+            'sales_order_id': 2001, 'order_no': 'SR-2023-001', 'return_location_id': 1, 'currency':
+            'USD', 'order_created_date': '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported
+            damaged items during shipping', 'sales_return_rows': [{'variant_id': 2002, 'quantity': 2,
+            'return_reason_id': 1, 'notes': 'Packaging was damaged', 'unit_price': 25.0,
+            'total_price': 50.0}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

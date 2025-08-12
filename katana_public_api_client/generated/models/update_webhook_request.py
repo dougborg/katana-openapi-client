@@ -11,6 +11,15 @@ T = TypeVar("T", bound="UpdateWebhookRequest")
 
 @_attrs_define
 class UpdateWebhookRequest:
+    """Request payload for updating an existing webhook subscription configuration
+
+    Example:
+        {'url': 'https://api.customer.com/webhooks/katana-v2', 'enabled': True, 'subscribed_events':
+            ['sales_order.created', 'sales_order.updated', 'sales_order.fulfilled', 'inventory.stock_adjustment',
+            'manufacturing_order.completed', 'purchase_order.received'], 'description': 'Updated ERP integration webhook
+            with expanded event coverage'}
+    """
+
     url: str
     subscribed_events: list[WebhookEvent]
     enabled: Unset | bool = UNSET

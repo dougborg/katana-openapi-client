@@ -10,6 +10,13 @@ T = TypeVar("T", bound="MakeToOrderManufacturingOrderRequest")
 
 @_attrs_define
 class MakeToOrderManufacturingOrderRequest:
+    """Request to create a manufacturing order directly from a sales order row, linking production to customer demand for
+    make-to-order manufacturing.
+
+        Example:
+            {'sales_order_row_id': 2501, 'create_subassemblies': True}
+    """
+
     sales_order_row_id: float
     create_subassemblies: Unset | bool = False
 

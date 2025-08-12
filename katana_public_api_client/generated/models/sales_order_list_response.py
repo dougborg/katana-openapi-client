@@ -17,6 +17,20 @@ T = TypeVar("T", bound="SalesOrderListResponse")
 
 @_attrs_define
 class SalesOrderListResponse:
+    """Response containing a list of sales orders with pagination support for retrieving customer order data
+
+    Example:
+        {'data': [{'id': 2001, 'customer_id': 1501, 'order_no': 'SO-2024-001', 'source': 'Shopify',
+            'order_created_date': '2024-01-15T10:00:00Z', 'delivery_date': '2024-01-22T14:00:00Z', 'picked_date': None,
+            'location_id': 1, 'status': 'PACKED', 'currency': 'USD', 'conversion_rate': 1.0, 'conversion_date':
+            '2024-01-15T10:00:00Z', 'invoicing_status': 'INVOICED', 'total': 1250.0, 'total_in_base_currency': 1250.0,
+            'additional_info': 'Customer requested expedited delivery', 'customer_ref': 'CUST-REF-2024-001',
+            'ecommerce_order_type': 'standard', 'ecommerce_store_name': 'Kitchen Pro Store', 'ecommerce_order_id':
+            'SHOP-5678-2024', 'product_availability': 'IN_STOCK', 'ingredient_availability': 'IN_STOCK',
+            'production_status': 'NOT_APPLICABLE', 'tracking_number': 'UPS1234567890', 'billing_address_id': 1201,
+            'shipping_address_id': 1202, 'created_at': '2024-01-15T10:00:00Z', 'updated_at': '2024-01-20T16:30:00Z'}]}
+    """
+
     data: Unset | list["SalesOrder"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

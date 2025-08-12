@@ -73,13 +73,8 @@ from .create_variant_request_custom_fields_item import (
     CreateVariantRequestCustomFieldsItem,
 )
 from .create_webhook_request import CreateWebhookRequest
+from .custom_field import CustomField
 from .custom_fields_collection import CustomFieldsCollection
-from .custom_fields_collection_custom_fields_item import (
-    CustomFieldsCollectionCustomFieldsItem,
-)
-from .custom_fields_collection_custom_fields_item_field_type import (
-    CustomFieldsCollectionCustomFieldsItemFieldType,
-)
 from .custom_fields_collection_list_response import CustomFieldsCollectionListResponse
 from .custom_fields_collection_resource_type import CustomFieldsCollectionResourceType
 from .customer import Customer
@@ -365,6 +360,10 @@ from .webhook_event import WebhookEvent
 from .webhook_list_response import WebhookListResponse
 from .webhook_logs_export import WebhookLogsExport
 from .webhook_logs_export_request import WebhookLogsExportRequest
+from .webhook_logs_export_request_format import WebhookLogsExportRequestFormat
+from .webhook_logs_export_request_status_filter_item import (
+    WebhookLogsExportRequestStatusFilterItem,
+)
 
 __all__ = (
     "AdditionalCost",
@@ -416,9 +415,8 @@ __all__ = (
     "CreateVariantRequestConfigAttributesItem",
     "CreateVariantRequestCustomFieldsItem",
     "CreateWebhookRequest",
+    "CustomField",
     "CustomFieldsCollection",
-    "CustomFieldsCollectionCustomFieldsItem",
-    "CustomFieldsCollectionCustomFieldsItemFieldType",
     "CustomFieldsCollectionListResponse",
     "CustomFieldsCollectionResourceType",
     "Customer",
@@ -628,4 +626,6 @@ __all__ = (
     "WebhookListResponse",
     "WebhookLogsExport",
     "WebhookLogsExportRequest",
+    "WebhookLogsExportRequestFormat",
+    "WebhookLogsExportRequestStatusFilterItem",
 )

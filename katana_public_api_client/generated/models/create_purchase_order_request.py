@@ -20,6 +20,32 @@ T = TypeVar("T", bound="CreatePurchaseOrderRequest")
 
 @_attrs_define
 class CreatePurchaseOrderRequest:
+    """Request payload for creating a new purchase order to procure materials or products from suppliers
+
+    Example:
+        {'order_no': 'PO-2024-0156', 'entity_type': 'regular', 'supplier_id': 4001, 'currency': 'USD', 'status':
+            'NOT_RECEIVED', 'expected_arrival_date': '2024-02-15', 'order_created_date': '2024-01-28', 'location_id': 1,
+            'additional_info': "Rush order - needed for Valentine's Day production run", 'purchase_order_rows':
+            [{'quantity': 250, 'price_per_unit': 2.85, 'variant_id': 501, 'tax_rate_id': 1, 'purchase_uom': 'kg',
+            'purchase_uom_conversion_rate': 1.0}, {'quantity': 100, 'price_per_unit': 12.5, 'variant_id': 502,
+            'tax_rate_id': 1, 'purchase_uom': 'pieces', 'purchase_uom_conversion_rate': 1.0}]}
+
+    Attributes:
+        order_no (str): Unique purchase order number for tracking and reference
+        supplier_id (int): Unique identifier of the supplier providing the materials or services
+        location_id (int): Primary location where the purchased items will be received and stored
+        purchase_order_rows (list['PurchaseOrderRowRequest']): List of line items being ordered, including quantities
+            and pricing
+        entity_type (Union[Unset, CreatePurchaseOrderRequestEntityType]): Type of purchase order - regular for materials
+            or outsourced for subcontracted work
+        currency (Union[Unset, str]): Active ISO 4217 currency code (e.g. USD, EUR).
+        status (Union[Unset, CreatePurchaseOrderRequestStatus]): Initial status of the purchase order when created
+        expected_arrival_date (Union[Unset, str]): Expected date when the purchased items will arrive at the facility
+        order_created_date (Union[Unset, str]): Date when the purchase order was created
+        tracking_location_id (Union[Unset, int]): Submittable only when entity_type is outsourced
+        additional_info (Union[Unset, str]): Optional notes or special instructions for the supplier
+    """
+
     order_no: str
     supplier_id: int
     location_id: int

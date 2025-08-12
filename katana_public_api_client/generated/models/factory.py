@@ -15,6 +15,14 @@ T = TypeVar("T", bound="Factory")
 
 @_attrs_define
 class Factory:
+    """Manufacturing facility or warehouse location with operational settings and regional configuration
+
+    Example:
+        {'id': 1, 'name': 'Seattle Production Facility', 'address': '1234 Industrial Way, Seattle, WA 98101',
+            'currency': 'USD', 'timezone': 'America/Los_Angeles', 'created_at': '2024-01-15T08:00:00Z', 'updated_at':
+            '2024-01-15T08:00:00Z'}
+    """
+
     id: int
     name: str
     currency: str

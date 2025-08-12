@@ -10,6 +10,13 @@ T = TypeVar("T", bound="CreatePriceListRowRequest")
 
 @_attrs_define
 class CreatePriceListRowRequest:
+    """Request payload for adding a product variant with specific pricing to a price list for customer-specific pricing
+    management
+
+        Example:
+            {'price_list_id': 1001, 'variant_id': 201, 'price': 249.99, 'currency': 'USD'}
+    """
+
     price_list_id: int
     variant_id: int
     price: float

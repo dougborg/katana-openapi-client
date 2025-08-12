@@ -17,6 +17,16 @@ T = TypeVar("T", bound="TaxRateListResponse")
 
 @_attrs_define
 class TaxRateListResponse:
+    """Response containing a paginated list of tax rates configured for the organization's sales and purchase tax
+    compliance
+
+        Example:
+            {'data': [{'id': 301, 'name': 'VAT 20%', 'rate': 20.0, 'is_default_sales': True, 'is_default_purchases': False,
+                'display_name': 'VAT (20.0%)', 'created_at': '2024-01-15T09:30:00Z', 'updated_at': '2024-01-15T09:30:00Z'},
+                {'id': 302, 'name': 'VAT 5%', 'rate': 5.0, 'is_default_sales': False, 'is_default_purchases': True,
+                'display_name': 'VAT (5.0%)', 'created_at': '2024-01-15T09:35:00Z', 'updated_at': '2024-01-15T09:35:00Z'}]}
+    """
+
     data: Unset | list["TaxRate"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

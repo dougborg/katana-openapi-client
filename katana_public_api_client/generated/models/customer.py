@@ -15,6 +15,16 @@ T = TypeVar("T", bound="Customer")
 
 @_attrs_define
 class Customer:
+    """Customer entity representing individuals or companies that purchase products or services
+
+    Example:
+        {'id': 2001, 'name': 'Kitchen Pro Restaurants', 'first_name': 'Sarah', 'last_name': 'Johnson', 'company':
+            'Kitchen Pro Restaurants Ltd', 'email': 'orders@kitchenpro.com', 'phone': '+1-555-0123', 'comment': 'Preferred
+            customer - high volume orders', 'currency': 'USD', 'reference_id': 'KPR-2024-001', 'category': 'Restaurant
+            Chain', 'discount_rate': 5.0, 'default_billing_id': 3001, 'default_shipping_id': 3002, 'created_at':
+            '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T14:30:00Z', 'deleted_at': None}
+    """
+
     id: int
     name: str
     created_at: Unset | datetime.datetime = UNSET

@@ -19,6 +19,14 @@ T = TypeVar("T", bound="OutsourcedPurchaseOrderRecipeRowListResponse")
 
 @_attrs_define
 class OutsourcedPurchaseOrderRecipeRowListResponse:
+    """Response containing a list of outsourced purchase order recipe rows for externally manufactured products
+
+    Example:
+        {'data': [{'id': 6001, 'purchase_order_id': 1001, 'variant_id': 2002, 'planned_quantity_per_unit': 2.5,
+            'ingredient_availability': 'AVAILABLE', 'ingredient_expected_date': '2023-10-15T08:00:00Z', 'notes': 'Supplier
+            will handle assembly'}]}
+    """
+
     data: Unset | list["OutsourcedPurchaseOrderRecipeRow"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

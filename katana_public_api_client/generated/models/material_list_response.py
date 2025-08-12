@@ -17,6 +17,17 @@ T = TypeVar("T", bound="MaterialListResponse")
 
 @_attrs_define
 class MaterialListResponse:
+    """Response containing a list of materials with pagination support for inventory and procurement management.
+
+    Example:
+        {'data': [{'id': 3201, 'name': 'Stainless Steel Sheet 304', 'uom': 'm²', 'category_name': 'Raw Materials',
+            'default_supplier_id': 1501, 'additional_info': 'Food-grade stainless steel, 1.5mm thickness', 'batch_tracked':
+            True, 'is_sellable': False, 'type': 'Raw Material', 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate':
+            2.0, 'variants': [], 'configs': [{'id': 101, 'name': 'Grade', 'values': ['304', '316'], 'product_id': 3201}],
+            'custom_field_collection_id': 201, 'supplier': None, 'created_at': '2024-01-10T10:00:00Z', 'updated_at':
+            '2024-01-15T14:30:00Z', 'archived_at': None}]}
+    """
+
     data: Unset | list["Material"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

@@ -15,6 +15,13 @@ T = TypeVar("T", bound="UpdateManufacturingOrderRequest")
 
 @_attrs_define
 class UpdateManufacturingOrderRequest:
+    """Request payload for updating an existing manufacturing order's properties and production parameters.
+
+    Example:
+        {'planned_quantity': 75, 'additional_info': 'Increased quantity due to additional customer demand',
+            'production_deadline_date': '2024-01-30T17:00:00Z'}
+    """
+
     planned_quantity: Unset | float = UNSET
     additional_info: Unset | str = UNSET
     production_deadline_date: Unset | datetime.datetime = UNSET

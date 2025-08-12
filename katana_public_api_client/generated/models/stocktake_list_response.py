@@ -17,6 +17,17 @@ T = TypeVar("T", bound="StocktakeListResponse")
 
 @_attrs_define
 class StocktakeListResponse:
+    """List of stocktake records showing all physical inventory count sessions and their completion status
+
+    Example:
+        {'data': [{'id': 4001, 'reference_no': 'STK-2024-001', 'location_id': 1, 'status': 'COMPLETED', 'count_date':
+            '2024-01-15T09:00:00.000Z', 'notes': 'Monthly physical inventory count', 'created_at':
+            '2024-01-15T09:00:00.000Z', 'updated_at': '2024-01-15T17:30:00.000Z'}, {'id': 4002, 'reference_no':
+            'STK-2024-002', 'location_id': 2, 'status': 'IN_PROGRESS', 'count_date': '2024-01-16T10:00:00.000Z', 'notes':
+            'Spot check for high-value items', 'created_at': '2024-01-16T10:00:00.000Z', 'updated_at':
+            '2024-01-16T12:00:00.000Z'}]}
+    """
+
     data: Unset | list["Stocktake"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

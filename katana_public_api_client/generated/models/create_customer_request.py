@@ -13,6 +13,15 @@ T = TypeVar("T", bound="CreateCustomerRequest")
 
 @_attrs_define
 class CreateCustomerRequest:
+    """Request payload for creating a new customer with contact and business information
+
+    Example:
+        {'name': 'Gourmet Bistro Group', 'first_name': 'Elena', 'last_name': 'Rodriguez', 'company': 'Gourmet Bistro
+            Group Inc', 'email': 'procurement@gourmetbistro.com', 'phone': '+1-555-0125', 'comment': 'Premium restaurant
+            chain - priority orders', 'currency': 'USD', 'reference_id': 'GBG-2024-003', 'category': 'Fine Dining',
+            'discount_rate': 7.5}
+    """
+
     name: str
     first_name: None | Unset | str = UNSET
     last_name: None | Unset | str = UNSET

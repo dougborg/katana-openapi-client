@@ -5,7 +5,10 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
-from ..models.webhook_event import WebhookEvent
+from ..models.webhook_logs_export_request_format import WebhookLogsExportRequestFormat
+from ..models.webhook_logs_export_request_status_filter_item import (
+    WebhookLogsExportRequestStatusFilterItem,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="WebhookLogsExportRequest")
@@ -13,47 +16,54 @@ T = TypeVar("T", bound="WebhookLogsExportRequest")
 
 @_attrs_define
 class WebhookLogsExportRequest:
+    """Request parameters for exporting webhook delivery logs for analysis and debugging
+
+    Example:
+        {'webhook_id': 1, 'start_date': '2024-01-10T00:00:00Z', 'end_date': '2024-01-15T23:59:59Z', 'status_filter':
+            ['failure', 'retry'], 'format': 'csv'}
+    """
+
     webhook_id: Unset | int = UNSET
-    event: Unset | WebhookEvent = UNSET
-    status_code: Unset | int = UNSET
-    delivered: Unset | bool = UNSET
-    created_at_min: Unset | datetime.datetime = UNSET
-    created_at_max: Unset | datetime.datetime = UNSET
+    start_date: Unset | datetime.datetime = UNSET
+    end_date: Unset | datetime.datetime = UNSET
+    status_filter: Unset | list[WebhookLogsExportRequestStatusFilterItem] = UNSET
+    format_: Unset | WebhookLogsExportRequestFormat = WebhookLogsExportRequestFormat.CSV
 
     def to_dict(self) -> dict[str, Any]:
         webhook_id = self.webhook_id
 
-        event: Unset | str = UNSET
-        if not isinstance(self.event, Unset):
-            event = self.event.value
+        start_date: Unset | str = UNSET
+        if not isinstance(self.start_date, Unset):
+            start_date = self.start_date.isoformat()
 
-        status_code = self.status_code
+        end_date: Unset | str = UNSET
+        if not isinstance(self.end_date, Unset):
+            end_date = self.end_date.isoformat()
 
-        delivered = self.delivered
+        status_filter: Unset | list[str] = UNSET
+        if not isinstance(self.status_filter, Unset):
+            status_filter = []
+            for status_filter_item_data in self.status_filter:
+                status_filter_item = status_filter_item_data.value
+                status_filter.append(status_filter_item)
 
-        created_at_min: Unset | str = UNSET
-        if not isinstance(self.created_at_min, Unset):
-            created_at_min = self.created_at_min.isoformat()
-
-        created_at_max: Unset | str = UNSET
-        if not isinstance(self.created_at_max, Unset):
-            created_at_max = self.created_at_max.isoformat()
+        format_: Unset | str = UNSET
+        if not isinstance(self.format_, Unset):
+            format_ = self.format_.value
 
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
         if webhook_id is not UNSET:
             field_dict["webhook_id"] = webhook_id
-        if event is not UNSET:
-            field_dict["event"] = event
-        if status_code is not UNSET:
-            field_dict["status_code"] = status_code
-        if delivered is not UNSET:
-            field_dict["delivered"] = delivered
-        if created_at_min is not UNSET:
-            field_dict["created_at_min"] = created_at_min
-        if created_at_max is not UNSET:
-            field_dict["created_at_max"] = created_at_max
+        if start_date is not UNSET:
+            field_dict["start_date"] = start_date
+        if end_date is not UNSET:
+            field_dict["end_date"] = end_date
+        if status_filter is not UNSET:
+            field_dict["status_filter"] = status_filter
+        if format_ is not UNSET:
+            field_dict["format"] = format_
 
         return field_dict
 
@@ -62,38 +72,42 @@ class WebhookLogsExportRequest:
         d = dict(src_dict)
         webhook_id = d.pop("webhook_id", UNSET)
 
-        _event = d.pop("event", UNSET)
-        event: Unset | WebhookEvent
-        if isinstance(_event, Unset):
-            event = UNSET
+        _start_date = d.pop("start_date", UNSET)
+        start_date: Unset | datetime.datetime
+        if isinstance(_start_date, Unset):
+            start_date = UNSET
         else:
-            event = WebhookEvent(_event)
+            start_date = isoparse(_start_date)
 
-        status_code = d.pop("status_code", UNSET)
-
-        delivered = d.pop("delivered", UNSET)
-
-        _created_at_min = d.pop("created_at_min", UNSET)
-        created_at_min: Unset | datetime.datetime
-        if isinstance(_created_at_min, Unset):
-            created_at_min = UNSET
+        _end_date = d.pop("end_date", UNSET)
+        end_date: Unset | datetime.datetime
+        if isinstance(_end_date, Unset):
+            end_date = UNSET
         else:
-            created_at_min = isoparse(_created_at_min)
+            end_date = isoparse(_end_date)
 
-        _created_at_max = d.pop("created_at_max", UNSET)
-        created_at_max: Unset | datetime.datetime
-        if isinstance(_created_at_max, Unset):
-            created_at_max = UNSET
+        status_filter = []
+        _status_filter = d.pop("status_filter", UNSET)
+        for status_filter_item_data in _status_filter or []:
+            status_filter_item = WebhookLogsExportRequestStatusFilterItem(
+                status_filter_item_data
+            )
+
+            status_filter.append(status_filter_item)
+
+        _format_ = d.pop("format", UNSET)
+        format_: Unset | WebhookLogsExportRequestFormat
+        if isinstance(_format_, Unset):
+            format_ = UNSET
         else:
-            created_at_max = isoparse(_created_at_max)
+            format_ = WebhookLogsExportRequestFormat(_format_)
 
         webhook_logs_export_request = cls(
             webhook_id=webhook_id,
-            event=event,
-            status_code=status_code,
-            delivered=delivered,
-            created_at_min=created_at_min,
-            created_at_max=created_at_max,
+            start_date=start_date,
+            end_date=end_date,
+            status_filter=status_filter,
+            format_=format_,
         )
 
         return webhook_logs_export_request

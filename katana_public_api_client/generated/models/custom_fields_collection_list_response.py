@@ -17,6 +17,20 @@ T = TypeVar("T", bound="CustomFieldsCollectionListResponse")
 
 @_attrs_define
 class CustomFieldsCollectionListResponse:
+    """List of custom field collections configured for extending business object data capture
+
+    Example:
+        {'data': [{'id': 5, 'name': 'Product Quality Specifications', 'resource_type': 'product', 'custom_fields':
+            [{'id': 10, 'name': 'quality_grade', 'field_type': 'select', 'label': 'Quality Grade', 'required': True,
+            'options': ['A', 'B', 'C']}, {'id': 11, 'name': 'certification_date', 'field_type': 'date', 'label':
+            'Certification Date', 'required': False}], 'created_at': '2024-01-08T10:00:00Z', 'updated_at':
+            '2024-01-12T15:30:00Z'}, {'id': 6, 'name': 'Customer Account Details', 'resource_type': 'customer',
+            'custom_fields': [{'id': 12, 'name': 'credit_limit', 'field_type': 'number', 'label': 'Credit Limit',
+            'required': True}, {'id': 13, 'name': 'payment_terms', 'field_type': 'select', 'label': 'Payment Terms',
+            'required': True, 'options': ['Net 30', 'Net 60', 'COD']}], 'created_at': '2024-01-10T11:00:00Z', 'updated_at':
+            '2024-01-14T09:15:00Z'}]}
+    """
+
     data: Unset | list["CustomFieldsCollection"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

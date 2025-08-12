@@ -12,7 +12,8 @@ T = TypeVar("T", bound="BatchStockUpdate")
 
 @_attrs_define
 class BatchStockUpdate:
-    """
+    """Request payload for updating batch properties and tracking information
+
     Example:
         {'batch_number': 'BAT-2024-001-UPDATED', 'expiration_date': '2025-12-31T23:59:59.000Z', 'batch_barcode':
             '0317-V2'}

@@ -21,10 +21,25 @@ T = TypeVar("T", bound="Product")
 
 @_attrs_define
 class Product:
+    """A finished good or component that can be sold, manufactured, or purchased, with support for variants and
+    configurations
+
+        Example:
+            {'id': 101, 'name': 'Professional Kitchen Knife Set', 'uom': 'set', 'category_name': 'Kitchenware',
+                'is_sellable': True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly': False,
+                'default_supplier_id': None, 'additional_info': 'High-carbon stainless steel with ergonomic handles',
+                'batch_tracked': False, 'serial_tracked': True, 'operations_in_sequence': True, 'type': 'product',
+                'purchase_uom': 'set', 'purchase_uom_conversion_rate': 1.0, 'custom_field_collection_id': 5, 'created_at':
+                '2024-01-15T09:30:00Z', 'updated_at': '2024-08-20T14:45:00Z', 'archived_at': None, 'variants': [{'id': 301,
+                'sku': 'KNF-PRO-8PC', 'name': '8-Piece Professional Set', 'sales_price': 299.99, 'purchase_price': 150.0}],
+                'configs': [{'id': 1, 'name': 'Piece Count', 'values': ['6-piece', '8-piece', '12-piece'], 'product_id': 101},
+                {'id': 2, 'name': 'Handle Material', 'values': ['Wood', 'Steel', 'Composite'], 'product_id': 101}]}
+    """
+
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     archived_at: None | Unset | str = UNSET
-    id: Unset | int = UNSET
     name: Unset | str = UNSET
     uom: Unset | str = UNSET
     category_name: Unset | str = UNSET
@@ -47,6 +62,8 @@ class Product:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -60,8 +77,6 @@ class Product:
             archived_at = UNSET
         else:
             archived_at = self.archived_at
-
-        id = self.id
 
         name = self.name
 
@@ -115,15 +130,17 @@ class Product:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if archived_at is not UNSET:
             field_dict["archived_at"] = archived_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if name is not UNSET:
             field_dict["name"] = name
         if uom is not UNSET:
@@ -172,6 +189,8 @@ class Product:
         from ..models.variant import Variant
 
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -194,8 +213,6 @@ class Product:
             return cast(None | Unset | str, data)
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
-
-        id = d.pop("id", UNSET)
 
         name = d.pop("name", UNSET)
 
@@ -251,10 +268,10 @@ class Product:
             supplier = Supplier.from_dict(_supplier)
 
         product = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             archived_at=archived_at,
-            id=id,
             name=name,
             uom=uom,
             category_name=category_name,

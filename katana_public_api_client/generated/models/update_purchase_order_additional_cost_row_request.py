@@ -13,6 +13,12 @@ T = TypeVar("T", bound="UpdatePurchaseOrderAdditionalCostRowRequest")
 
 @_attrs_define
 class UpdatePurchaseOrderAdditionalCostRowRequest:
+    """Request payload for updating an existing additional cost line item on a purchase order
+
+    Example:
+        {'additional_cost_id': 1, 'tax_rate_id': 1, 'price': 150.0, 'distribution_method': 'BY_VALUE'}
+    """
+
     additional_cost_id: Unset | int = UNSET
     tax_rate_id: Unset | int = UNSET
     price: Unset | float = UNSET

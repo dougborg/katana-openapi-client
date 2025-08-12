@@ -17,6 +17,18 @@ T = TypeVar("T", bound="PurchaseOrderRowListResponse")
 
 @_attrs_define
 class PurchaseOrderRowListResponse:
+    """Response containing a list of purchase order line items with pagination support for detailed order management
+
+    Example:
+        {'data': [{'id': 501, 'quantity': 250, 'variant_id': 501, 'tax_rate_id': 1, 'price_per_unit': 2.85,
+            'price_per_unit_in_base_currency': 2.85, 'purchase_uom': 'kg', 'currency': 'USD', 'total': 712.5,
+            'total_in_base_currency': 712.5, 'purchase_order_id': 156, 'created_at': '2024-01-28T09:15:00Z', 'updated_at':
+            '2024-02-15T14:30:00Z', 'deleted_at': None}, {'id': 502, 'quantity': 100, 'variant_id': 502, 'tax_rate_id': 1,
+            'price_per_unit': 12.5, 'price_per_unit_in_base_currency': 12.5, 'purchase_uom': 'pieces', 'currency': 'USD',
+            'total': 1250.0, 'total_in_base_currency': 1250.0, 'purchase_order_id': 156, 'created_at':
+            '2024-01-28T09:15:00Z', 'updated_at': '2024-02-15T14:30:00Z', 'deleted_at': None}]}
+    """
+
     data: Unset | list["PurchaseOrderRow"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

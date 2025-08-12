@@ -71,7 +71,10 @@ def sync_detailed(
      Unlinks the manufacturing order from a particular sales order row.
 
     Args:
-        body (UnlinkManufacturingOrderRequest):
+        body (UnlinkManufacturingOrderRequest): Request to unlink a manufacturing order from its
+            associated sales order row, removing the direct connection while preserving both orders.
+            Example: {'sales_order_row_id': 2501}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -103,7 +106,10 @@ def sync(
      Unlinks the manufacturing order from a particular sales order row.
 
     Args:
-        body (UnlinkManufacturingOrderRequest):
+        body (UnlinkManufacturingOrderRequest): Request to unlink a manufacturing order from its
+            associated sales order row, removing the direct connection while preserving both orders.
+            Example: {'sales_order_row_id': 2501}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -130,7 +136,10 @@ async def asyncio_detailed(
      Unlinks the manufacturing order from a particular sales order row.
 
     Args:
-        body (UnlinkManufacturingOrderRequest):
+        body (UnlinkManufacturingOrderRequest): Request to unlink a manufacturing order from its
+            associated sales order row, removing the direct connection while preserving both orders.
+            Example: {'sales_order_row_id': 2501}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -160,7 +169,10 @@ async def asyncio(
      Unlinks the manufacturing order from a particular sales order row.
 
     Args:
-        body (UnlinkManufacturingOrderRequest):
+        body (UnlinkManufacturingOrderRequest): Request to unlink a manufacturing order from its
+            associated sales order row, removing the direct connection while preserving both orders.
+            Example: {'sales_order_row_id': 2501}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

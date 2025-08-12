@@ -15,6 +15,12 @@ T = TypeVar("T", bound="UpdateManufacturingOrderProductionIngredientRequest")
 
 @_attrs_define
 class UpdateManufacturingOrderProductionIngredientRequest:
+    """Request payload for updating ingredient consumption data in a manufacturing order production batch
+
+    Example:
+        {'quantity': 3.2, 'production_date': '2023-10-15T11:15:00Z', 'cost': 15.75}
+    """
+
     quantity: Unset | float = UNSET
     production_date: Unset | datetime.datetime = UNSET
     cost: Unset | float = UNSET

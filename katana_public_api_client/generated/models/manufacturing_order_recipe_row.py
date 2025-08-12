@@ -21,6 +21,16 @@ T = TypeVar("T", bound="ManufacturingOrderRecipeRow")
 
 @_attrs_define
 class ManufacturingOrderRecipeRow:
+    """Represents an ingredient or component required for a manufacturing order, tracking planned and actual quantities
+    used in production.
+
+        Example:
+            {'id': 4001, 'manufacturing_order_id': 3001, 'variant_id': 3201, 'notes': 'Use only grade 304 material',
+                'planned_quantity_per_unit': 2.5, 'total_actual_quantity': 125.0, 'ingredient_availability': 'AVAILABLE',
+                'ingredient_expected_date': None, 'batch_transactions': [{'batch_id': 1201, 'quantity': 125.0}], 'cost': 437.5,
+                'created_at': '2024-01-15T08:00:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}
+    """
+
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | str = UNSET

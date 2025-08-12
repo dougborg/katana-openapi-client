@@ -85,7 +85,10 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdatePurchaseOrderRequest):
+        body (UpdatePurchaseOrderRequest): Request payload for updating an existing purchase
+            order's details, status, and line items Example: {'order_no': 'PO-2024-0156-REVISED',
+            'expected_arrival_date': '2024-02-20', 'status': 'PARTIALLY_RECEIVED', 'additional_info':
+            'Delivery delayed due to weather - updated schedule'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -121,7 +124,10 @@ def sync(
 
     Args:
         id (int):
-        body (UpdatePurchaseOrderRequest):
+        body (UpdatePurchaseOrderRequest): Request payload for updating an existing purchase
+            order's details, status, and line items Example: {'order_no': 'PO-2024-0156-REVISED',
+            'expected_arrival_date': '2024-02-20', 'status': 'PARTIALLY_RECEIVED', 'additional_info':
+            'Delivery delayed due to weather - updated schedule'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -152,7 +158,10 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdatePurchaseOrderRequest):
+        body (UpdatePurchaseOrderRequest): Request payload for updating an existing purchase
+            order's details, status, and line items Example: {'order_no': 'PO-2024-0156-REVISED',
+            'expected_arrival_date': '2024-02-20', 'status': 'PARTIALLY_RECEIVED', 'additional_info':
+            'Delivery delayed due to weather - updated schedule'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -186,7 +195,10 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdatePurchaseOrderRequest):
+        body (UpdatePurchaseOrderRequest): Request payload for updating an existing purchase
+            order's details, status, and line items Example: {'order_no': 'PO-2024-0156-REVISED',
+            'expected_arrival_date': '2024-02-20', 'status': 'PARTIALLY_RECEIVED', 'additional_info':
+            'Delivery delayed due to weather - updated schedule'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

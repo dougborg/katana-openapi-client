@@ -17,6 +17,16 @@ T = TypeVar("T", bound="SupplierAddressListResponse")
 
 @_attrs_define
 class SupplierAddressListResponse:
+    """Response containing a list of supplier addresses with pagination support for address management
+
+    Example:
+        {'data': [{'id': 4001, 'supplier_id': 4001, 'line_1': '1250 Industrial Blvd', 'line_2': 'Suite 200', 'city':
+            'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'US', 'created_at': '2023-06-15T08:30:00Z', 'updated_at':
+            '2023-06-15T08:30:00Z', 'deleted_at': None}, {'id': 4002, 'supplier_id': 4001, 'line_1': '856 Distribution
+            Center Dr', 'line_2': None, 'city': 'Milwaukee', 'state': 'WI', 'zip': '53218', 'country': 'US', 'created_at':
+            '2023-06-15T08:30:00Z', 'updated_at': '2023-06-15T08:30:00Z', 'deleted_at': None}]}
+    """
+
     data: Unset | list["SupplierAddress"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

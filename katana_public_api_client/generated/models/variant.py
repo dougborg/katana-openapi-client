@@ -20,6 +20,18 @@ T = TypeVar("T", bound="Variant")
 
 @_attrs_define
 class Variant:
+    """Specific SKU of a product or material with unique pricing, configuration, and inventory tracking
+
+    Example:
+        {'id': 3001, 'sku': 'KNF-PRO-8PC-STL', 'sales_price': 299.99, 'product_id': 101, 'material_id': None,
+            'purchase_price': 150.0, 'product_or_material_name': 'Professional Kitchen Knife Set - 8-Piece - Steel Handles',
+            'type': 'product', 'internal_barcode': 'INT-KNF-001', 'registered_barcode': '789123456789',
+            'supplier_item_codes': ['SUP-KNF-8PC-001'], 'lead_time': 7, 'minimum_order_quantity': 1, 'custom_fields':
+            [{'field_name': 'Warranty Period', 'field_value': '5 years'}], 'config_attributes': [{'config_name': 'Piece
+            Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value': 'Steel'}], 'created_at':
+            '2024-01-15T08:00:00.000Z', 'updated_at': '2024-08-20T14:45:00.000Z', 'deleted_at': None}
+    """
+
     id: int
     sku: str
     created_at: Unset | datetime.datetime = UNSET

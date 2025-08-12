@@ -17,6 +17,13 @@ T = TypeVar("T", bound="SalesOrderAccountingMetadataListResponse")
 
 @_attrs_define
 class SalesOrderAccountingMetadataListResponse:
+    """Response containing a list of accounting metadata records linking sales orders to external accounting systems
+
+    Example:
+        {'data': [{'id': 2901, 'sales_order_id': 2001, 'fulfillment_id': 2701, 'invoice_id': 'INV-2024-001',
+            'integration_type': 'xero', 'created_at': '2024-01-20T17:00:00Z'}]}
+    """
+
     data: Unset | list["SalesOrderAccountingMetadata"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

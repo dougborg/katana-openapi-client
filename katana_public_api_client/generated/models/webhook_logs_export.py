@@ -13,6 +13,12 @@ T = TypeVar("T", bound="WebhookLogsExport")
 
 @_attrs_define
 class WebhookLogsExport:
+    """Webhook log export result containing downloadable data for debugging and monitoring webhook delivery
+
+    Example:
+        {'url': 'https://katana-exports.s3.amazonaws.com/webhook-logs-2024-01-15.csv?expires=1705392000'}
+    """
+
     url: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

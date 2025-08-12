@@ -76,7 +76,21 @@ def sync_detailed(
      Creates a new sales order object.
 
     Args:
-        body (CreateSalesOrderRequest):
+        body (CreateSalesOrderRequest): Request payload for creating a new sales order with
+            customer information, order lines, and delivery details Example: {'order_no':
+            'SO-2024-002', 'customer_id': 1501, 'sales_order_rows': [{'quantity': 3, 'variant_id':
+            2101, 'tax_rate_id': 301, 'location_id': 1, 'price_per_unit': 599.99, 'total_discount':
+            50.0, 'attributes': [{'key': 'engrave_text', 'value': 'Professional Kitchen'}, {'key':
+            'rush_order', 'value': 'true'}]}], 'tracking_number': None, 'tracking_number_url': None,
+            'addresses': [{'entity_type': 'billing', 'first_name': 'David', 'last_name': 'Wilson',
+            'company': "Wilson's Catering", 'line_1': '456 Commerce Ave', 'city': 'Seattle', 'state':
+            'WA', 'zip': '98101', 'country': 'US'}, {'entity_type': 'shipping', 'first_name': 'David',
+            'last_name': 'Wilson', 'company': "Wilson's Catering", 'line_1': '789 Industrial Blvd',
+            'city': 'Seattle', 'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
+            '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z', 'currency': 'USD',
+            'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
+            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale',
+            'ecommerce_store_name': 'B2B Portal', 'ecommerce_order_id': 'B2B-7891-2024'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -108,7 +122,21 @@ def sync(
      Creates a new sales order object.
 
     Args:
-        body (CreateSalesOrderRequest):
+        body (CreateSalesOrderRequest): Request payload for creating a new sales order with
+            customer information, order lines, and delivery details Example: {'order_no':
+            'SO-2024-002', 'customer_id': 1501, 'sales_order_rows': [{'quantity': 3, 'variant_id':
+            2101, 'tax_rate_id': 301, 'location_id': 1, 'price_per_unit': 599.99, 'total_discount':
+            50.0, 'attributes': [{'key': 'engrave_text', 'value': 'Professional Kitchen'}, {'key':
+            'rush_order', 'value': 'true'}]}], 'tracking_number': None, 'tracking_number_url': None,
+            'addresses': [{'entity_type': 'billing', 'first_name': 'David', 'last_name': 'Wilson',
+            'company': "Wilson's Catering", 'line_1': '456 Commerce Ave', 'city': 'Seattle', 'state':
+            'WA', 'zip': '98101', 'country': 'US'}, {'entity_type': 'shipping', 'first_name': 'David',
+            'last_name': 'Wilson', 'company': "Wilson's Catering", 'line_1': '789 Industrial Blvd',
+            'city': 'Seattle', 'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
+            '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z', 'currency': 'USD',
+            'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
+            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale',
+            'ecommerce_store_name': 'B2B Portal', 'ecommerce_order_id': 'B2B-7891-2024'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -135,7 +163,21 @@ async def asyncio_detailed(
      Creates a new sales order object.
 
     Args:
-        body (CreateSalesOrderRequest):
+        body (CreateSalesOrderRequest): Request payload for creating a new sales order with
+            customer information, order lines, and delivery details Example: {'order_no':
+            'SO-2024-002', 'customer_id': 1501, 'sales_order_rows': [{'quantity': 3, 'variant_id':
+            2101, 'tax_rate_id': 301, 'location_id': 1, 'price_per_unit': 599.99, 'total_discount':
+            50.0, 'attributes': [{'key': 'engrave_text', 'value': 'Professional Kitchen'}, {'key':
+            'rush_order', 'value': 'true'}]}], 'tracking_number': None, 'tracking_number_url': None,
+            'addresses': [{'entity_type': 'billing', 'first_name': 'David', 'last_name': 'Wilson',
+            'company': "Wilson's Catering", 'line_1': '456 Commerce Ave', 'city': 'Seattle', 'state':
+            'WA', 'zip': '98101', 'country': 'US'}, {'entity_type': 'shipping', 'first_name': 'David',
+            'last_name': 'Wilson', 'company': "Wilson's Catering", 'line_1': '789 Industrial Blvd',
+            'city': 'Seattle', 'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
+            '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z', 'currency': 'USD',
+            'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
+            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale',
+            'ecommerce_store_name': 'B2B Portal', 'ecommerce_order_id': 'B2B-7891-2024'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -165,7 +207,21 @@ async def asyncio(
      Creates a new sales order object.
 
     Args:
-        body (CreateSalesOrderRequest):
+        body (CreateSalesOrderRequest): Request payload for creating a new sales order with
+            customer information, order lines, and delivery details Example: {'order_no':
+            'SO-2024-002', 'customer_id': 1501, 'sales_order_rows': [{'quantity': 3, 'variant_id':
+            2101, 'tax_rate_id': 301, 'location_id': 1, 'price_per_unit': 599.99, 'total_discount':
+            50.0, 'attributes': [{'key': 'engrave_text', 'value': 'Professional Kitchen'}, {'key':
+            'rush_order', 'value': 'true'}]}], 'tracking_number': None, 'tracking_number_url': None,
+            'addresses': [{'entity_type': 'billing', 'first_name': 'David', 'last_name': 'Wilson',
+            'company': "Wilson's Catering", 'line_1': '456 Commerce Ave', 'city': 'Seattle', 'state':
+            'WA', 'zip': '98101', 'country': 'US'}, {'entity_type': 'shipping', 'first_name': 'David',
+            'last_name': 'Wilson', 'company': "Wilson's Catering", 'line_1': '789 Industrial Blvd',
+            'city': 'Seattle', 'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
+            '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z', 'currency': 'USD',
+            'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
+            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale',
+            'ecommerce_store_name': 'B2B Portal', 'ecommerce_order_id': 'B2B-7891-2024'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

@@ -15,6 +15,14 @@ T = TypeVar("T", bound="User")
 
 @_attrs_define
 class User:
+    """System user account with authentication credentials and role-based permissions
+
+    Example:
+        {'id': 42, 'first_name': 'Sarah', 'last_name': 'Johnson', 'email': 'sarah.johnson@company.com', 'role':
+            'production_manager', 'status': 'active', 'last_login_at': '2024-01-15T14:30:00Z', 'created_at':
+            '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T14:30:00Z'}
+    """
+
     id: int
     first_name: str
     last_name: str

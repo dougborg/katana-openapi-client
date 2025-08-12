@@ -1,25 +1,31 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
 
-from ..models.custom_fields_collection_custom_fields_item_field_type import (
-    CustomFieldsCollectionCustomFieldsItemFieldType,
-)
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="CustomFieldsCollectionCustomFieldsItem")
+T = TypeVar("T", bound="CustomField")
 
 
 @_attrs_define
-class CustomFieldsCollectionCustomFieldsItem:
-    id: Unset | int = UNSET
-    name: Unset | str = UNSET
-    field_type: Unset | CustomFieldsCollectionCustomFieldsItemFieldType = UNSET
+class CustomField:
+    """Individual custom field definition with validation rules and configuration options
+
+    Example:
+        {'id': 10, 'name': 'quality_grade', 'field_type': 'select', 'label': 'Quality Grade', 'required': True,
+            'options': ['A', 'B', 'C']}
+    """
+
+    id: int
+    name: str
+    field_type: str
+    label: str
     required: Unset | bool = UNSET
+    options: Unset | list[str] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -27,51 +33,59 @@ class CustomFieldsCollectionCustomFieldsItem:
 
         name = self.name
 
-        field_type: Unset | str = UNSET
-        if not isinstance(self.field_type, Unset):
-            field_type = self.field_type.value
+        field_type = self.field_type
+
+        label = self.label
 
         required = self.required
 
+        options: Unset | list[str] = UNSET
+        if not isinstance(self.options, Unset):
+            options = self.options
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
-        if id is not UNSET:
-            field_dict["id"] = id
-        if name is not UNSET:
-            field_dict["name"] = name
-        if field_type is not UNSET:
-            field_dict["field_type"] = field_type
+        field_dict.update(
+            {
+                "id": id,
+                "name": name,
+                "field_type": field_type,
+                "label": label,
+            }
+        )
         if required is not UNSET:
             field_dict["required"] = required
+        if options is not UNSET:
+            field_dict["options"] = options
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        id = d.pop("id", UNSET)
+        id = d.pop("id")
 
-        name = d.pop("name", UNSET)
+        name = d.pop("name")
 
-        _field_type = d.pop("field_type", UNSET)
-        field_type: Unset | CustomFieldsCollectionCustomFieldsItemFieldType
-        if isinstance(_field_type, Unset):
-            field_type = UNSET
-        else:
-            field_type = CustomFieldsCollectionCustomFieldsItemFieldType(_field_type)
+        field_type = d.pop("field_type")
+
+        label = d.pop("label")
 
         required = d.pop("required", UNSET)
 
-        custom_fields_collection_custom_fields_item = cls(
+        options = cast(list[str], d.pop("options", UNSET))
+
+        custom_field = cls(
             id=id,
             name=name,
             field_type=field_type,
+            label=label,
             required=required,
+            options=options,
         )
 
-        custom_fields_collection_custom_fields_item.additional_properties = d
-        return custom_fields_collection_custom_fields_item
+        custom_field.additional_properties = d
+        return custom_field
 
     @property
     def additional_keys(self) -> list[str]:

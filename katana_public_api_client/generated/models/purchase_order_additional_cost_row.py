@@ -15,6 +15,15 @@ T = TypeVar("T", bound="PurchaseOrderAdditionalCostRow")
 
 @_attrs_define
 class PurchaseOrderAdditionalCostRow:
+    """Additional cost line item within a purchase order, representing charges like shipping, duties, or handling fees
+
+    Example:
+        {'id': 201, 'additional_cost_id': 1, 'group_id': 1, 'name': 'International Shipping', 'distribution_method':
+            'BY_VALUE', 'tax_rate_id': 1, 'tax_rate': 8.5, 'price': 125.0, 'price_in_base': 125.0, 'currency': 'USD',
+            'currency_conversion_rate': 1.0, 'currency_conversion_rate_fix_date': '2024-01-28T09:15:00Z', 'created_at':
+            '2024-01-28T09:15:00Z', 'updated_at': '2024-01-28T09:15:00Z', 'deleted_at': None}
+    """
+
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | str = UNSET

@@ -21,6 +21,19 @@ T = TypeVar("T", bound="PurchaseOrderRow")
 
 @_attrs_define
 class PurchaseOrderRow:
+    """Individual line item within a purchase order, representing a specific product with quantities, pricing, and delivery
+    details
+
+        Example:
+            {'id': 501, 'quantity': 250, 'variant_id': 501, 'tax_rate_id': 1, 'price_per_unit': 2.85,
+                'price_per_unit_in_base_currency': 2.85, 'purchase_uom_conversion_rate': 1.0, 'purchase_uom': 'kg', 'currency':
+                'USD', 'conversion_rate': 1.0, 'total': 712.5, 'total_in_base_currency': 712.5, 'conversion_date':
+                '2024-01-28T09:15:00Z', 'received_date': '2024-02-15T14:30:00Z', 'arrival_date': '2024-02-15T10:00:00Z',
+                'purchase_order_id': 156, 'landed_cost': 735.5, 'group_id': 1, 'created_at': '2024-01-28T09:15:00Z',
+                'updated_at': '2024-02-15T14:30:00Z', 'deleted_at': None, 'batch_transactions': [{'quantity': 150, 'batch_id':
+                1001}, {'quantity': 100, 'batch_id': 1002}]}
+    """
+
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | str = UNSET

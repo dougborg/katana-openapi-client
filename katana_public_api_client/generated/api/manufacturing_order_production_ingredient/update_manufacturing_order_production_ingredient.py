@@ -107,7 +107,9 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderProductionIngredientRequest):
+        body (UpdateManufacturingOrderProductionIngredientRequest): Request payload for updating
+            ingredient consumption data in a manufacturing order production batch Example:
+            {'quantity': 3.2, 'production_date': '2023-10-15T11:15:00Z', 'cost': 15.75}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -151,7 +153,9 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderProductionIngredientRequest):
+        body (UpdateManufacturingOrderProductionIngredientRequest): Request payload for updating
+            ingredient consumption data in a manufacturing order production batch Example:
+            {'quantity': 3.2, 'production_date': '2023-10-15T11:15:00Z', 'cost': 15.75}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -189,7 +193,9 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderProductionIngredientRequest):
+        body (UpdateManufacturingOrderProductionIngredientRequest): Request payload for updating
+            ingredient consumption data in a manufacturing order production batch Example:
+            {'quantity': 3.2, 'production_date': '2023-10-15T11:15:00Z', 'cost': 15.75}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -231,7 +237,9 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderProductionIngredientRequest):
+        body (UpdateManufacturingOrderProductionIngredientRequest): Request payload for updating
+            ingredient consumption data in a manufacturing order production batch Example:
+            {'quantity': 3.2, 'production_date': '2023-10-15T11:15:00Z', 'cost': 15.75}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

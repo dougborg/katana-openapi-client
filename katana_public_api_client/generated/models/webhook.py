@@ -15,6 +15,15 @@ T = TypeVar("T", bound="Webhook")
 
 @_attrs_define
 class Webhook:
+    """Webhook subscription configuration for real-time event notifications to external systems
+
+    Example:
+        {'id': 1, 'url': 'https://api.customer.com/webhooks/katana', 'token': 'whk_live_abc123def456', 'enabled': True,
+            'description': 'ERP integration webhook for inventory sync', 'subscribed_events': ['sales_order.created',
+            'sales_order.updated', 'inventory.stock_adjustment', 'manufacturing_order.completed'], 'created_at':
+            '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T11:30:00Z'}
+    """
+
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     id: Unset | int = UNSET

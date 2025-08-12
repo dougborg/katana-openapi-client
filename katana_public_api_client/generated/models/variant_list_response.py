@@ -17,6 +17,16 @@ T = TypeVar("T", bound="VariantListResponse")
 
 @_attrs_define
 class VariantListResponse:
+    """Response containing a paginated list of variants with their configuration attributes and parent product details
+
+    Example:
+        {'data': [{'id': 3001, 'sku': 'KNF-PRO-8PC-STL', 'sales_price': 299.99, 'type': 'product', 'config_attributes':
+            [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            'Steel'}]}, {'id': 3002, 'sku': 'KNF-PRO-12PC-WD', 'sales_price': 399.99, 'type': 'product',
+            'config_attributes': [{'config_name': 'Piece Count', 'config_value': '12-piece'}, {'config_name': 'Handle
+            Material', 'config_value': 'Wood'}]}]}
+    """
+
     data: Unset | list["VariantResponse"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

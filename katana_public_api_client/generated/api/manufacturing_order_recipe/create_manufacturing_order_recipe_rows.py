@@ -79,7 +79,13 @@ def sync_detailed(
       Recipe rows cannot be added when the manufacturing order status is DONE.
 
     Args:
-        body (CreateManufacturingOrderRecipeRowRequest):
+        body (CreateManufacturingOrderRecipeRowRequest): Request payload for creating a new
+            manufacturing order recipe row to track ingredient requirements and consumption Example:
+            {'manufacturing_order_id': 1001, 'variant_id': 2002, 'notes': 'Use fresh ingredients from
+            cold storage', 'planned_quantity_per_unit': 0.25, 'total_actual_quantity': 5.0,
+            'ingredient_availability': 'AVAILABLE', 'ingredient_expected_date':
+            '2023-10-15T08:00:00Z', 'batch_transactions': [{'batch_id': 301, 'quantity': 3.0},
+            {'batch_id': 302, 'quantity': 2.0}], 'cost': 12.5}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -112,7 +118,13 @@ def sync(
       Recipe rows cannot be added when the manufacturing order status is DONE.
 
     Args:
-        body (CreateManufacturingOrderRecipeRowRequest):
+        body (CreateManufacturingOrderRecipeRowRequest): Request payload for creating a new
+            manufacturing order recipe row to track ingredient requirements and consumption Example:
+            {'manufacturing_order_id': 1001, 'variant_id': 2002, 'notes': 'Use fresh ingredients from
+            cold storage', 'planned_quantity_per_unit': 0.25, 'total_actual_quantity': 5.0,
+            'ingredient_availability': 'AVAILABLE', 'ingredient_expected_date':
+            '2023-10-15T08:00:00Z', 'batch_transactions': [{'batch_id': 301, 'quantity': 3.0},
+            {'batch_id': 302, 'quantity': 2.0}], 'cost': 12.5}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -140,7 +152,13 @@ async def asyncio_detailed(
       Recipe rows cannot be added when the manufacturing order status is DONE.
 
     Args:
-        body (CreateManufacturingOrderRecipeRowRequest):
+        body (CreateManufacturingOrderRecipeRowRequest): Request payload for creating a new
+            manufacturing order recipe row to track ingredient requirements and consumption Example:
+            {'manufacturing_order_id': 1001, 'variant_id': 2002, 'notes': 'Use fresh ingredients from
+            cold storage', 'planned_quantity_per_unit': 0.25, 'total_actual_quantity': 5.0,
+            'ingredient_availability': 'AVAILABLE', 'ingredient_expected_date':
+            '2023-10-15T08:00:00Z', 'batch_transactions': [{'batch_id': 301, 'quantity': 3.0},
+            {'batch_id': 302, 'quantity': 2.0}], 'cost': 12.5}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -171,7 +189,13 @@ async def asyncio(
       Recipe rows cannot be added when the manufacturing order status is DONE.
 
     Args:
-        body (CreateManufacturingOrderRecipeRowRequest):
+        body (CreateManufacturingOrderRecipeRowRequest): Request payload for creating a new
+            manufacturing order recipe row to track ingredient requirements and consumption Example:
+            {'manufacturing_order_id': 1001, 'variant_id': 2002, 'notes': 'Use fresh ingredients from
+            cold storage', 'planned_quantity_per_unit': 0.25, 'total_actual_quantity': 5.0,
+            'ingredient_availability': 'AVAILABLE', 'ingredient_expected_date':
+            '2023-10-15T08:00:00Z', 'batch_transactions': [{'batch_id': 301, 'quantity': 3.0},
+            {'batch_id': 302, 'quantity': 2.0}], 'cost': 12.5}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

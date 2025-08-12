@@ -8,6 +8,12 @@ T = TypeVar("T", bound="CreatePriceListCustomerRequest")
 
 @_attrs_define
 class CreatePriceListCustomerRequest:
+    """Request payload for assigning a customer to a price list for custom pricing
+
+    Example:
+        {'price_list_id': 1002, 'customer_id': 2002}
+    """
+
     price_list_id: int
     customer_id: int
 

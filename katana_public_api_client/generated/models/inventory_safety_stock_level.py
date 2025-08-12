@@ -8,6 +8,12 @@ T = TypeVar("T", bound="InventorySafetyStockLevel")
 
 @_attrs_define
 class InventorySafetyStockLevel:
+    """Safety stock level configuration to maintain minimum inventory buffers and prevent stockouts
+
+    Example:
+        {'location_id': 1, 'variant_id': 3001, 'value': 25.0}
+    """
+
     location_id: int
     variant_id: int
     value: float

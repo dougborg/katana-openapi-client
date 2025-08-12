@@ -15,6 +15,17 @@ T = TypeVar("T", bound="InventoryListResponse")
 
 @_attrs_define
 class InventoryListResponse:
+    """List of current inventory levels showing stock quantities for all variants across all locations
+
+    Example:
+        {'data': [{'id': 1001, 'variant_id': 3001, 'location_id': 1, 'quantity_on_hand': 150.0, 'quantity_allocated':
+            25.0, 'quantity_available': 125.0, 'average_cost': 25.5, 'total_value': 3825.0, 'created_at':
+            '2024-01-15T08:00:00.000Z', 'updated_at': '2024-01-15T12:30:00.000Z'}, {'id': 1002, 'variant_id': 3002,
+            'location_id': 1, 'quantity_on_hand': 75.0, 'quantity_allocated': 10.0, 'quantity_available': 65.0,
+            'average_cost': 45.0, 'total_value': 3375.0, 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at':
+            '2024-01-15T14:15:00.000Z'}]}
+    """
+
     data: list["Inventory"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

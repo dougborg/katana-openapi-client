@@ -85,7 +85,12 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateWebhookRequest):
+        body (UpdateWebhookRequest): Request payload for updating an existing webhook subscription
+            configuration Example: {'url': 'https://api.customer.com/webhooks/katana-v2', 'enabled':
+            True, 'subscribed_events': ['sales_order.created', 'sales_order.updated',
+            'sales_order.fulfilled', 'inventory.stock_adjustment', 'manufacturing_order.completed',
+            'purchase_order.received'], 'description': 'Updated ERP integration webhook with expanded
+            event coverage'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -121,7 +126,12 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateWebhookRequest):
+        body (UpdateWebhookRequest): Request payload for updating an existing webhook subscription
+            configuration Example: {'url': 'https://api.customer.com/webhooks/katana-v2', 'enabled':
+            True, 'subscribed_events': ['sales_order.created', 'sales_order.updated',
+            'sales_order.fulfilled', 'inventory.stock_adjustment', 'manufacturing_order.completed',
+            'purchase_order.received'], 'description': 'Updated ERP integration webhook with expanded
+            event coverage'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -152,7 +162,12 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateWebhookRequest):
+        body (UpdateWebhookRequest): Request payload for updating an existing webhook subscription
+            configuration Example: {'url': 'https://api.customer.com/webhooks/katana-v2', 'enabled':
+            True, 'subscribed_events': ['sales_order.created', 'sales_order.updated',
+            'sales_order.fulfilled', 'inventory.stock_adjustment', 'manufacturing_order.completed',
+            'purchase_order.received'], 'description': 'Updated ERP integration webhook with expanded
+            event coverage'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -186,7 +201,12 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateWebhookRequest):
+        body (UpdateWebhookRequest): Request payload for updating an existing webhook subscription
+            configuration Example: {'url': 'https://api.customer.com/webhooks/katana-v2', 'enabled':
+            True, 'subscribed_events': ['sales_order.created', 'sales_order.updated',
+            'sales_order.fulfilled', 'inventory.stock_adjustment', 'manufacturing_order.completed',
+            'purchase_order.received'], 'description': 'Updated ERP integration webhook with expanded
+            event coverage'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

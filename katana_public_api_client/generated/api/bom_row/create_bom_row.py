@@ -79,7 +79,9 @@ def sync_detailed(
      Create a new BOM row for a product.
 
     Args:
-        body (CreateBomRowRequest):
+        body (CreateBomRowRequest): Request payload for creating a new BOM row Example:
+            {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2002,
+            'quantity': 2.5, 'notes': 'Handle with care - fragile component'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -111,7 +113,9 @@ def sync(
      Create a new BOM row for a product.
 
     Args:
-        body (CreateBomRowRequest):
+        body (CreateBomRowRequest): Request payload for creating a new BOM row Example:
+            {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2002,
+            'quantity': 2.5, 'notes': 'Handle with care - fragile component'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -138,7 +142,9 @@ async def asyncio_detailed(
      Create a new BOM row for a product.
 
     Args:
-        body (CreateBomRowRequest):
+        body (CreateBomRowRequest): Request payload for creating a new BOM row Example:
+            {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2002,
+            'quantity': 2.5, 'notes': 'Handle with care - fragile component'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -168,7 +174,9 @@ async def asyncio(
      Create a new BOM row for a product.
 
     Args:
-        body (CreateBomRowRequest):
+        body (CreateBomRowRequest): Request payload for creating a new BOM row Example:
+            {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2002,
+            'quantity': 2.5, 'notes': 'Handle with care - fragile component'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

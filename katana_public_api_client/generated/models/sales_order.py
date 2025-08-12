@@ -30,6 +30,71 @@ T = TypeVar("T", bound="SalesOrder")
 
 @_attrs_define
 class SalesOrder:
+    """Sales order representing a customer's request to purchase products with delivery and payment terms
+
+    Example:
+        {'id': 2001, 'customer_id': 1501, 'order_no': 'SO-2024-001', 'source': 'Shopify', 'order_created_date':
+            '2024-01-15T10:00:00Z', 'delivery_date': '2024-01-22T14:00:00Z', 'picked_date': None, 'location_id': 1,
+            'status': 'PACKED', 'currency': 'USD', 'conversion_rate': 1.0, 'conversion_date': '2024-01-15T10:00:00Z',
+            'invoicing_status': 'INVOICED', 'total': 1250.0, 'total_in_base_currency': 1250.0, 'additional_info': 'Customer
+            requested expedited delivery', 'customer_ref': 'CUST-REF-2024-001', 'sales_order_rows': [{'id': 2501,
+            'quantity': 2, 'variant_id': 2101, 'tax_rate_id': 301, 'location_id': 1, 'product_availability': 'IN_STOCK',
+            'product_expected_date': None, 'price_per_unit': 599.99, 'price_per_unit_in_base_currency': 599.99, 'total':
+            1199.98, 'total_in_base_currency': 1199.98, 'cogs_value': 400.0, 'created_at': '2024-01-15T10:00:00Z',
+            'updated_at': '2024-01-15T10:00:00Z'}], 'ecommerce_order_type': 'standard', 'ecommerce_store_name': 'Kitchen Pro
+            Store', 'ecommerce_order_id': 'SHOP-5678-2024', 'product_availability': 'IN_STOCK', 'product_expected_date':
+            None, 'ingredient_availability': 'IN_STOCK', 'ingredient_expected_date': None, 'production_status':
+            'NOT_APPLICABLE', 'tracking_number': 'UPS1234567890', 'tracking_number_url':
+            'https://www.ups.com/track?track=UPS1234567890', 'billing_address_id': 1201, 'shipping_address_id': 1202,
+            'addresses': [{'id': 1201, 'sales_order_id': 2001, 'entity_type': 'billing', 'first_name': 'Sarah', 'last_name':
+            'Johnson', 'company': "Johnson's Restaurant", 'address_line_1': '123 Main Street', 'city': 'Portland', 'state':
+            'OR', 'zip': '97201', 'country': 'US'}], 'created_at': '2024-01-15T10:00:00Z', 'updated_at':
+            '2024-01-20T16:30:00Z'}
+
+    Attributes:
+        id (int): Unique identifier
+        customer_id (int): Unique identifier of the customer placing the order
+        order_no (str): Unique order number for tracking and reference purposes
+        location_id (int): Unique identifier of the fulfillment location for this order
+        status (SalesOrderStatus): Current fulfillment status of the sales order
+        created_at (Union[Unset, datetime.datetime]):
+        updated_at (Union[Unset, datetime.datetime]):
+        source (Union[None, Unset, str]): Source system or channel where the order originated (e.g., Shopify, manual
+            entry)
+        order_created_date (Union[Unset, datetime.datetime]): Date and time when the sales order was created in the
+            system
+        delivery_date (Union[None, Unset, datetime.datetime]): Requested or promised delivery date for the order
+        picked_date (Union[None, Unset, datetime.datetime]): Date when items were picked from inventory for shipment
+        currency (Union[Unset, str]): Currency code for the order pricing (ISO 4217 format)
+        conversion_rate (Union[None, Unset, float]): Exchange rate used to convert order currency to base company
+            currency
+        conversion_date (Union[None, Unset, datetime.datetime]): Date when the currency conversion rate was applied
+        invoicing_status (Union[None, Unset, str]): Current invoicing status indicating billing progress
+        total (Union[Unset, float]): Total order amount in the order currency
+        total_in_base_currency (Union[Unset, float]): Total order amount converted to the company's base currency
+        additional_info (Union[None, Unset, str]): Additional notes or instructions for the sales order
+        customer_ref (Union[None, Unset, str]): Customer's reference number or purchase order number
+        sales_order_rows (Union[Unset, list['SalesOrderRow']]): Line items included in the sales order with product
+            details and quantities
+        ecommerce_order_type (Union[None, Unset, str]): Type of ecommerce order when imported from external platforms
+        ecommerce_store_name (Union[None, Unset, str]): Name of the ecommerce store when order originated from external
+            platforms
+        ecommerce_order_id (Union[None, Unset, str]): Original order ID from the external ecommerce platform
+        product_availability (Union[None, SalesOrderProductAvailabilityType0, Unset]):
+        product_expected_date (Union[None, Unset, datetime.datetime]): Expected date when products will be available for
+            fulfillment
+        ingredient_availability (Union[None, SalesOrderIngredientAvailabilityType0, Unset]):
+        ingredient_expected_date (Union[None, Unset, datetime.datetime]): Expected date when ingredients will be
+            available for production
+        production_status (Union[None, SalesOrderProductionStatusType0, Unset]): Current status of production for items
+            in this order
+        tracking_number (Union[None, Unset, str]): Shipping carrier tracking number for package tracking
+        tracking_number_url (Union[None, Unset, str]): URL link to track the shipment on carrier website
+        billing_address_id (Union[None, Unset, int]): Reference to the customer address used for billing
+        shipping_address_id (Union[None, Unset, int]): Reference to the customer address used for shipping
+        addresses (Union[Unset, list['SalesOrderAddress']]): Complete address information for billing and shipping
+    """
+
     id: int
     customer_id: int
     order_no: str

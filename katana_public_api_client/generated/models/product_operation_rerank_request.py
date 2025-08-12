@@ -13,6 +13,12 @@ T = TypeVar("T", bound="ProductOperationRerankRequest")
 
 @_attrs_define
 class ProductOperationRerankRequest:
+    """Request payload for reordering product operations within a manufacturing workflow to optimize production sequence
+
+    Example:
+        {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group': True}
+    """
+
     rank_product_operation_id: int
     preceeding_product_operation_id: Unset | int = UNSET
     should_group: Unset | bool = UNSET

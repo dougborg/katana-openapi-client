@@ -25,6 +25,47 @@ T = TypeVar("T", bound="SalesOrderRow")
 
 @_attrs_define
 class SalesOrderRow:
+    """Individual line item within a sales order representing a specific product variant, quantity, pricing, and delivery
+    details
+
+        Example:
+            {'id': 2501, 'quantity': 2, 'variant_id': 2101, 'tax_rate_id': 301, 'location_id': 1, 'product_availability':
+                'IN_STOCK', 'product_expected_date': None, 'price_per_unit': 599.99, 'price_per_unit_in_base_currency': 599.99,
+                'total': 1199.98, 'total_in_base_currency': 1199.98, 'cogs_value': 400.0, 'attributes': [{'key': 'engrave_text',
+                'value': "Johnson's Kitchen"}, {'key': 'gift_wrap', 'value': 'true'}], 'batch_transactions': [{'batch_id': 1801,
+                'quantity': 2.0}], 'serial_numbers': [10001, 10002], 'linked_manufacturing_order_id': None, 'conversion_rate':
+                1.0, 'conversion_date': '2024-01-15T10:00:00Z', 'created_at': '2024-01-15T10:00:00Z', 'updated_at':
+                '2024-01-15T10:00:00Z'}
+
+        Attributes:
+            id (int): Unique identifier for the sales order row
+            quantity (float): Ordered quantity of the product variant
+            variant_id (int): ID of the product variant being ordered
+            created_at (Union[Unset, datetime.datetime]):
+            updated_at (Union[Unset, datetime.datetime]):
+            tax_rate_id (Union[None, Unset, int]): ID of the tax rate applied to this line item
+            location_id (Union[None, Unset, int]): Location where the product should be picked from
+            product_availability (Union[None, SalesOrderRowProductAvailabilityType0, Unset]): Current availability status of
+                the product for this order row
+            product_expected_date (Union[None, Unset, datetime.datetime]): Expected date when the product will be available
+                if not currently in stock
+            price_per_unit (Union[Unset, float]): Selling price per unit in the order currency
+            price_per_unit_in_base_currency (Union[Unset, float]): Selling price per unit converted to the base company
+                currency
+            total (Union[Unset, float]): Total line amount (quantity x price_per_unit) in order currency  # noqa: RUF002
+            total_in_base_currency (Union[Unset, float]): Total line amount converted to the base company currency
+            cogs_value (Union[None, Unset, float]): Cost of goods sold value for this line item
+            attributes (Union[Unset, list['SalesOrderRowAttributesItem']]): Custom attributes associated with this sales
+                order row
+            batch_transactions (Union[Unset, list['SalesOrderRowBatchTransactionsItem']]): Batch allocations for this order
+                row when using batch tracking
+            serial_numbers (Union[Unset, list[int]]): Serial numbers allocated to this order row for serialized products
+            linked_manufacturing_order_id (Union[None, Unset, int]): ID of the manufacturing order linked to this sales
+                order row for make-to-order items
+            conversion_rate (Union[None, Unset, float]): Currency conversion rate used for this row
+            conversion_date (Union[None, Unset, datetime.datetime]): Date when the currency conversion rate was applied
+    """
+
     id: int
     quantity: float
     variant_id: int

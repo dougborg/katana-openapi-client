@@ -17,6 +17,15 @@ T = TypeVar("T", bound="SerialNumberListResponse")
 
 @_attrs_define
 class SerialNumberListResponse:
+    """List of serial number records for tracking individual units and enabling full product traceability
+
+    Example:
+        {'data': [{'id': 5001, 'serial_number': 'KNF001234567', 'variant_id': 3001, 'location_id': 1, 'status':
+            'IN_STOCK', 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at': '2024-01-15T08:00:00.000Z'}, {'id': 5002,
+            'serial_number': 'KNF001234568', 'variant_id': 3001, 'location_id': 1, 'status': 'SOLD', 'created_at':
+            '2024-01-15T08:30:00.000Z', 'updated_at': '2024-01-16T14:20:00.000Z'}]}
+    """
+
     data: Unset | list["SerialNumber"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

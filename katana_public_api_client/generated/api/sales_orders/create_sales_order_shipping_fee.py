@@ -87,7 +87,9 @@ def sync_detailed(
      Creates a sales order shipping fee and adds it to a sales order.
 
     Args:
-        body (CreateSalesOrderShippingFeeRequest):
+        body (CreateSalesOrderShippingFeeRequest): Request payload for adding a shipping fee to an
+            existing sales order Example: {'sales_order_id': 2001, 'amount': 25.99, 'description':
+            'Express Shipping - Next Day Delivery', 'tax_rate_id': 301}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -119,7 +121,9 @@ def sync(
      Creates a sales order shipping fee and adds it to a sales order.
 
     Args:
-        body (CreateSalesOrderShippingFeeRequest):
+        body (CreateSalesOrderShippingFeeRequest): Request payload for adding a shipping fee to an
+            existing sales order Example: {'sales_order_id': 2001, 'amount': 25.99, 'description':
+            'Express Shipping - Next Day Delivery', 'tax_rate_id': 301}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -146,7 +150,9 @@ async def asyncio_detailed(
      Creates a sales order shipping fee and adds it to a sales order.
 
     Args:
-        body (CreateSalesOrderShippingFeeRequest):
+        body (CreateSalesOrderShippingFeeRequest): Request payload for adding a shipping fee to an
+            existing sales order Example: {'sales_order_id': 2001, 'amount': 25.99, 'description':
+            'Express Shipping - Next Day Delivery', 'tax_rate_id': 301}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -176,7 +182,9 @@ async def asyncio(
      Creates a sales order shipping fee and adds it to a sales order.
 
     Args:
-        body (CreateSalesOrderShippingFeeRequest):
+        body (CreateSalesOrderShippingFeeRequest): Request payload for adding a shipping fee to an
+            existing sales order Example: {'sales_order_id': 2001, 'amount': 25.99, 'description':
+            'Express Shipping - Next Day Delivery', 'tax_rate_id': 301}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

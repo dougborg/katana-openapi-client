@@ -13,6 +13,12 @@ T = TypeVar("T", bound="CreatePurchaseOrderAdditionalCostRowRequest")
 
 @_attrs_define
 class CreatePurchaseOrderAdditionalCostRowRequest:
+    """Request payload for adding additional costs (shipping, duties, handling fees) to a purchase order
+
+    Example:
+        {'additional_cost_id': 1, 'group_id': 1, 'tax_rate_id': 1, 'price': 125.0, 'distribution_method': 'BY_VALUE'}
+    """
+
     additional_cost_id: int
     group_id: int
     tax_rate_id: int

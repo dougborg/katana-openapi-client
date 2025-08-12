@@ -15,8 +15,16 @@ T = TypeVar("T", bound="PurchaseOrderAccountingMetadata")
 
 @_attrs_define
 class PurchaseOrderAccountingMetadata:
-    id: Unset | int = UNSET
-    purchase_order_id: Unset | int = UNSET
+    """Accounting integration metadata linking purchase orders to external accounting systems for bill processing and
+    financial record synchronization
+
+        Example:
+            {'id': 156, 'purchase_order_id': 8001, 'purchaseOrderId': 8001, 'porReceivedGroupId': 2001, 'integrationType':
+                'quickbooks', 'billId': 'BILL-2024-001', 'createdAt': '2024-01-15T11:30:00Z'}
+    """
+
+    id: int
+    purchase_order_id: int
     purchaseOrderId: Unset | int = UNSET
     por_received_group_id: Unset | int = UNSET
     integration_type: Unset | str = UNSET
@@ -43,11 +51,12 @@ class PurchaseOrderAccountingMetadata:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
-        if id is not UNSET:
-            field_dict["id"] = id
-        if purchase_order_id is not UNSET:
-            field_dict["purchase_order_id"] = purchase_order_id
+        field_dict.update(
+            {
+                "id": id,
+                "purchase_order_id": purchase_order_id,
+            }
+        )
         if purchaseOrderId is not UNSET:
             field_dict["purchaseOrderId"] = purchaseOrderId
         if por_received_group_id is not UNSET:
@@ -64,9 +73,9 @@ class PurchaseOrderAccountingMetadata:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        id = d.pop("id", UNSET)
+        id = d.pop("id")
 
-        purchase_order_id = d.pop("purchase_order_id", UNSET)
+        purchase_order_id = d.pop("purchase_order_id")
 
         purchaseOrderId = d.pop("purchaseOrderId", UNSET)
 

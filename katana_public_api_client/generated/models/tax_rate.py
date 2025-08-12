@@ -15,6 +15,14 @@ T = TypeVar("T", bound="TaxRate")
 
 @_attrs_define
 class TaxRate:
+    """Tax rate configuration for applying taxes to sales and purchase transactions based on jurisdiction and business
+    requirements
+
+        Example:
+            {'id': 301, 'name': 'VAT 20%', 'rate': 20.0, 'is_default_sales': True, 'is_default_purchases': False,
+                'display_name': 'VAT (20.0%)', 'created_at': '2024-01-15T09:30:00Z', 'updated_at': '2024-01-15T09:30:00Z'}
+    """
+
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     id: Unset | int = UNSET

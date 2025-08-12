@@ -80,7 +80,9 @@ def sync_detailed(
      Update an item's safety stock level within a certain location and variant combination.
 
     Args:
-        body (InventorySafetyStockLevel):
+        body (InventorySafetyStockLevel): Safety stock level configuration to maintain minimum
+            inventory buffers and prevent stockouts Example: {'location_id': 1, 'variant_id': 3001,
+            'value': 25.0}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -112,7 +114,9 @@ def sync(
      Update an item's safety stock level within a certain location and variant combination.
 
     Args:
-        body (InventorySafetyStockLevel):
+        body (InventorySafetyStockLevel): Safety stock level configuration to maintain minimum
+            inventory buffers and prevent stockouts Example: {'location_id': 1, 'variant_id': 3001,
+            'value': 25.0}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -139,7 +143,9 @@ async def asyncio_detailed(
      Update an item's safety stock level within a certain location and variant combination.
 
     Args:
-        body (InventorySafetyStockLevel):
+        body (InventorySafetyStockLevel): Safety stock level configuration to maintain minimum
+            inventory buffers and prevent stockouts Example: {'location_id': 1, 'variant_id': 3001,
+            'value': 25.0}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -169,7 +175,9 @@ async def asyncio(
      Update an item's safety stock level within a certain location and variant combination.
 
     Args:
-        body (InventorySafetyStockLevel):
+        body (InventorySafetyStockLevel): Safety stock level configuration to maintain minimum
+            inventory buffers and prevent stockouts Example: {'location_id': 1, 'variant_id': 3001,
+            'value': 25.0}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

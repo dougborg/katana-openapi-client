@@ -20,6 +20,64 @@ T = TypeVar("T", bound="PurchaseOrder")
 
 @_attrs_define
 class PurchaseOrder:
+    """Complete purchase order for procuring materials or products from suppliers, including order details, line items, and
+    supplier information
+
+        Example:
+            {'id': 156, 'status': 'OPEN', 'order_no': 'PO-2024-0156', 'entity_type': 'regular', 'default_group_id': 1,
+                'supplier_id': 4001, 'currency': 'USD', 'expected_arrival_date': '2024-02-15', 'order_created_date':
+                '2024-01-28', 'additional_info': "Rush order - needed for Valentine's Day production run", 'location_id': 1,
+                'tracking_location_id': None, 'total': 1962.5, 'total_in_base_currency': 1962.5, 'billing_status': 'UNBILLED',
+                'last_document_status': 'CONFIRMED', 'ingredient_availability': 'AVAILABLE', 'ingredient_expected_date': None,
+                'created_at': '2024-01-28T09:15:00Z', 'updated_at': '2024-01-28T09:15:00Z', 'deleted_at': None,
+                'purchase_order_rows': [{'id': 501, 'quantity': 250, 'variant_id': 501, 'tax_rate_id': 1, 'price_per_unit':
+                2.85, 'price_per_unit_in_base_currency': 2.85, 'purchase_uom_conversion_rate': 1.0, 'purchase_uom': 'kg',
+                'currency': 'USD', 'conversion_rate': 1.0, 'total': 712.5, 'total_in_base_currency': 712.5, 'conversion_date':
+                '2024-01-28T09:15:00Z', 'created_at': '2024-01-28T09:15:00Z', 'updated_at': '2024-01-28T09:15:00Z',
+                'deleted_at': None}, {'id': 502, 'quantity': 100, 'variant_id': 502, 'tax_rate_id': 1, 'price_per_unit': 12.5,
+                'price_per_unit_in_base_currency': 12.5, 'purchase_uom_conversion_rate': 1.0, 'purchase_uom': 'pieces',
+                'currency': 'USD', 'conversion_rate': 1.0, 'total': 1250.0, 'total_in_base_currency': 1250.0, 'conversion_date':
+                '2024-01-28T09:15:00Z', 'created_at': '2024-01-28T09:15:00Z', 'updated_at': '2024-01-28T09:15:00Z',
+                'deleted_at': None}], 'supplier': {'id': 4001, 'name': 'Premium Kitchen Supplies Ltd', 'email':
+                'orders@premiumkitchen.com', 'phone': '+1-555-0134', 'currency': 'USD', 'comment': 'Primary supplier for kitchen
+                equipment and utensils', 'default_address_id': 4001, 'created_at': '2023-06-15T08:30:00Z', 'updated_at':
+                '2024-01-15T14:20:00Z', 'deleted_at': None}}
+
+        Attributes:
+            created_at (Union[Unset, datetime.datetime]):
+            updated_at (Union[Unset, datetime.datetime]):
+            deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
+            id (Union[Unset, int]): Unique identifier for the purchase order
+            status (Union[Unset, str]): Current status of the purchase order (e.g., OPEN, RECEIVED, CLOSED)
+            order_no (Union[Unset, str]): Unique purchase order number for tracking and reference
+            entity_type (Union[Unset, str]): Type of purchase order - regular for materials or outsourced for subcontracted
+                work
+            default_group_id (Union[Unset, int]): Default grouping identifier for organizational purposes
+            supplier_id (Union[Unset, int]): Unique identifier of the supplier providing the materials or services
+            currency (Union[Unset, str]): Currency used for this purchase order (ISO 4217 format)
+            expected_arrival_date (Union[Unset, str]): Expected date when the purchased items will arrive at the facility
+            order_created_date (Union[Unset, str]): Date when the purchase order was created
+            additional_info (Union[Unset, str]): Optional notes or special instructions for the supplier
+            location_id (Union[Unset, int]): Primary location where the purchased items will be received and stored
+            tracking_location_id (Union[None, Unset, int]): Optional tracking location for outsourced operations
+            total (Union[Unset, float]): Total amount of the purchase order in the order currency
+            total_in_base_currency (Union[Unset, float]): Total amount converted to the base currency
+            billing_status (Union[Unset, str]): Current billing/payment status of the purchase order
+            last_document_status (Union[Unset, str]): Status of the last document processed for this order
+            ingredient_availability (Union[None, Unset, str]): Availability status of ingredients/materials in this order
+            ingredient_expected_date (Union[None, Unset, str]): Expected date when all ingredients/materials will be
+                available
+            purchase_order_rows (Union[Unset, list['PurchaseOrderRow']]): List of line items in this purchase order
+            supplier (Union[Unset, Supplier]): Supplier company or individual providing materials, products, or services for
+                procurement operations Example: {'id': 4001, 'name': 'Premium Kitchen Supplies Ltd', 'email':
+                'orders@premiumkitchen.com', 'phone': '+1-555-0134', 'currency': 'USD', 'comment': 'Primary supplier for kitchen
+                equipment and utensils. Reliable delivery times.', 'default_address_id': 4001, 'created_at':
+                '2023-06-15T08:30:00Z', 'updated_at': '2024-01-15T14:20:00Z', 'deleted_at': None, 'addresses': [{'id': 4001,
+                'company': 'Premium Kitchen Supplies Ltd', 'street': '1250 Industrial Blvd', 'street2': 'Suite 200', 'city':
+                'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'US', 'created_at': '2023-06-15T08:30:00Z', 'updated_at':
+                '2023-06-15T08:30:00Z', 'deleted_at': None}]}.
+    """
+
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | str = UNSET

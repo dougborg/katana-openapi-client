@@ -85,7 +85,10 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderOperationRowRequest):
+        body (UpdateManufacturingOrderOperationRowRequest): Request payload for updating a
+            manufacturing order operation row with actual completion data Example:
+            {'completed_by_operators': [{'id': 101, 'name': 'John Smith'}], 'total_actual_time':
+            52.3}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -124,7 +127,10 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderOperationRowRequest):
+        body (UpdateManufacturingOrderOperationRowRequest): Request payload for updating a
+            manufacturing order operation row with actual completion data Example:
+            {'completed_by_operators': [{'id': 101, 'name': 'John Smith'}], 'total_actual_time':
+            52.3}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -158,7 +164,10 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderOperationRowRequest):
+        body (UpdateManufacturingOrderOperationRowRequest): Request payload for updating a
+            manufacturing order operation row with actual completion data Example:
+            {'completed_by_operators': [{'id': 101, 'name': 'John Smith'}], 'total_actual_time':
+            52.3}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -195,7 +204,10 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateManufacturingOrderOperationRowRequest):
+        body (UpdateManufacturingOrderOperationRowRequest): Request payload for updating a
+            manufacturing order operation row with actual completion data Example:
+            {'completed_by_operators': [{'id': 101, 'name': 'John Smith'}], 'total_actual_time':
+            52.3}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

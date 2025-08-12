@@ -77,7 +77,11 @@ def sync_detailed(
       operation rows are created automatically based on the product recipe and operations.
 
     Args:
-        body (CreateManufacturingOrderRequest):
+        body (CreateManufacturingOrderRequest): Request payload for creating a new manufacturing
+            order to initiate production of products or components. Example: {'variant_id': 2101,
+            'planned_quantity': 50, 'location_id': 1, 'order_created_date': '2024-01-15T08:00:00Z',
+            'production_deadline_date': '2024-01-25T17:00:00Z', 'additional_info': 'Priority order for
+            new product launch'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -110,7 +114,11 @@ def sync(
       operation rows are created automatically based on the product recipe and operations.
 
     Args:
-        body (CreateManufacturingOrderRequest):
+        body (CreateManufacturingOrderRequest): Request payload for creating a new manufacturing
+            order to initiate production of products or components. Example: {'variant_id': 2101,
+            'planned_quantity': 50, 'location_id': 1, 'order_created_date': '2024-01-15T08:00:00Z',
+            'production_deadline_date': '2024-01-25T17:00:00Z', 'additional_info': 'Priority order for
+            new product launch'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -138,7 +146,11 @@ async def asyncio_detailed(
       operation rows are created automatically based on the product recipe and operations.
 
     Args:
-        body (CreateManufacturingOrderRequest):
+        body (CreateManufacturingOrderRequest): Request payload for creating a new manufacturing
+            order to initiate production of products or components. Example: {'variant_id': 2101,
+            'planned_quantity': 50, 'location_id': 1, 'order_created_date': '2024-01-15T08:00:00Z',
+            'production_deadline_date': '2024-01-25T17:00:00Z', 'additional_info': 'Priority order for
+            new product launch'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -169,7 +181,11 @@ async def asyncio(
       operation rows are created automatically based on the product recipe and operations.
 
     Args:
-        body (CreateManufacturingOrderRequest):
+        body (CreateManufacturingOrderRequest): Request payload for creating a new manufacturing
+            order to initiate production of products or components. Example: {'variant_id': 2101,
+            'planned_quantity': 50, 'location_id': 1, 'order_created_date': '2024-01-15T08:00:00Z',
+            'production_deadline_date': '2024-01-25T17:00:00Z', 'additional_info': 'Priority order for
+            new product launch'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

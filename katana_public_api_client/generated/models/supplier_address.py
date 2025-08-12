@@ -15,6 +15,14 @@ T = TypeVar("T", bound="SupplierAddress")
 
 @_attrs_define
 class SupplierAddress:
+    """Physical address information for a supplier, used for shipping, billing, and correspondence
+
+    Example:
+        {'id': 4001, 'supplier_id': 4001, 'line_1': '1250 Industrial Blvd', 'line_2': 'Suite 200', 'city': 'Chicago',
+            'state': 'IL', 'zip': '60601', 'country': 'US', 'created_at': '2023-06-15T08:30:00Z', 'updated_at':
+            '2023-06-15T08:30:00Z', 'deleted_at': None}
+    """
+
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | str = UNSET

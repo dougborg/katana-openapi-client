@@ -16,6 +16,14 @@ T = TypeVar("T", bound="StockTransfer")
 
 @_attrs_define
 class StockTransfer:
+    """Inventory transfer record for moving stock between different warehouse locations or facilities
+
+    Example:
+        {'id': 3001, 'reference_no': 'ST-2024-001', 'from_location_id': 1, 'to_location_id': 2, 'status': 'COMPLETED',
+            'transfer_date': '2024-01-15T16:00:00.000Z', 'additional_info': 'Rebalancing inventory between warehouses',
+            'created_at': '2024-01-15T16:00:00.000Z', 'updated_at': '2024-01-15T16:00:00.000Z', 'deleted_at': None}
+    """
+
     id: int
     reference_no: str
     from_location_id: int

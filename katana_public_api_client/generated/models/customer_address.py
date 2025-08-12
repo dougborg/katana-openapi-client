@@ -16,6 +16,15 @@ T = TypeVar("T", bound="CustomerAddress")
 
 @_attrs_define
 class CustomerAddress:
+    """Customer address for billing and shipping purposes with complete contact information
+
+    Example:
+        {'id': 3001, 'customer_id': 2001, 'entity_type': 'billing', 'default': True, 'first_name': 'Sarah', 'last_name':
+            'Johnson', 'company': 'Kitchen Pro Restaurants Ltd', 'phone': '+1-555-0123', 'line_1': '123 Restaurant Row',
+            'line_2': 'Suite 200', 'city': 'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'USA', 'created_at':
+            '2024-01-10T09:15:00Z', 'updated_at': '2024-01-10T09:15:00Z'}
+    """
+
     id: int
     customer_id: int
     entity_type: CustomerAddressEntityType
