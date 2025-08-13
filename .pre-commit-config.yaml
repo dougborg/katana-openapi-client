@@ -21,6 +21,7 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-added-large-files
+        exclude: 'docs/katana-api-comprehensive/openapi-spec\.json'
       - id: check-case-conflict
       - id: check-merge-conflict
       - id: debug-statements

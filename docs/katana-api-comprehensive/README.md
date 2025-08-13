@@ -1,0 +1,277 @@
+# Comprehensive Katana API Documentation
+
+This directory contains complete documentation for the Katana Manufacturing ERP API,
+extracted from https://developer.katanamrp.com.
+
+## Content Summary
+
+- **Total pages processed**: 245
+- **OpenAPI specification**: ✅ Included
+- **API endpoints**: 103
+- **Failed URLs**: 0
+
+## Files
+
+### Documentation Pages
+
+- **addshippingfee.md**: 125 bytes
+- **api-authentication.md**: 33 bytes
+- **api-errors.md**: 39 bytes
+- **api-filtering.md**: 23 bytes
+- **api-introduction.md**: 29 bytes
+- **api-pagination.md**: 25 bytes
+- **api-rate-limiting.md**: 31 bytes
+- **api-versioning.md**: 25 bytes
+- **batchcreatebomrows.md**: 2,442 bytes
+- **bom-row.md**: 19 bytes
+- **create-customer.md**: 4,980 bytes
+- **create-product.md**: 6,766 bytes
+- **create-sales-order-address.md**: 2,808 bytes
+- **create-sales-order-fulfillment.md**: 4,117 bytes
+- **create-sales-order-row.md**: 2,991 bytes
+- **create-sales-order.md**: 7,965 bytes
+- **create-supplier.md**: 3,096 bytes
+- **create-tax-rate.md**: 1,802 bytes
+- **create-variant.md**: 4,107 bytes
+- **createbatch.md**: 2,204 bytes
+- **createbomrow.md**: 1,999 bytes
+- **createcustomeraddress.md**: 2,929 bytes
+- **createinventorysafetystocklevel.md**: 1,994 bytes
+- **createmanufacturingorder.md**: 3,280 bytes
+- **createmanufacturingorderoperationrow.md**: 6,152 bytes
+- **createmanufacturingorderproduction.md**: 4,827 bytes
+- **createmanufacturingorderreciperows.md**: 2,373 bytes
+- **creatematerial.md**: 6,255 bytes
+- **createpoadditionalcostrow.md**: 91 bytes
+- **createpricelist.md**: 1,691 bytes
+- **createpricelistcustomer.md**: 2,590 bytes
+- **createpricelistrow.md**: 3,430 bytes
+- **createproductoperationrows.md**: 55 bytes
+- **createpurchaseorder.md**: 4,776 bytes
+- **createpurchaseorderreciperow.md**: 97 bytes
+- **createpurchaseorderrow.md**: 2,909 bytes
+- **createrecipes.md**: 69 bytes
+- **createsalesreturn.md**: 2,484 bytes
+- **createsalesreturnrow.md**: 2,783 bytes
+- **createserialnumbers.md**: 1,877 bytes
+- **createservice.md**: 3,798 bytes
+- **createstockadjustment.md**: 4,002 bytes
+- **createstocktake.md**: 3,587 bytes
+- **createstocktakerows.md**: 2,700 bytes
+- **createstocktransfer.md**: 3,866 bytes
+- **createsupplieraddress.md**: 2,346 bytes
+- **createwebhook.md**: 4,571 bytes
+- **delete-sales-order-address.md**: 1,033 bytes
+- **delete-sales-order-fulfillment.md**: 1,062 bytes
+- **delete-sales-order-row.md**: 1,091 bytes
+- **delete-sales-order.md**: 964 bytes
+- **deletebomrow.md**: 941 bytes
+- **deletecustomer.md**: 946 bytes
+- **deletecustomeraddress.md**: 1,014 bytes
+- **deletemanufacturingorder.md**: 1,038 bytes
+- **deletemanufacturingorderoperationrow.md**: 1,118 bytes
+- **deletemanufacturingorderproduction.md**: 1,104 bytes
+- **deletemanufacturingorderreciperow.md**: 1,100 bytes
+- **deletematerial.md**: 946 bytes
+- **deletepoadditionalcost.md**: 91 bytes
+- **deletepricelist.md**: 963 bytes
+- **deletepricelistcustomer.md**: 1,038 bytes
+- **deletepricelistrow.md**: 1,002 bytes
+- **deleteproduct.md**: 941 bytes
+- **deleteproductoperationrow.md**: 1,161 bytes
+- **deletepurchaseorder.md**: 1,002 bytes
+- **deletepurchaseorderreciperow.md**: 91 bytes
+- **deletepurchaseorderrow.md**: 1,026 bytes
+- **deletereciperow.md**: 1,104 bytes
+- **deletesalesreturn.md**: 969 bytes
+- **deletesalesreturnrow.md**: 1,014 bytes
+- **deleteserialnumbers.md**: 83 bytes
+- **deleteservice.md**: 941 bytes
+- **deleteshippingfee.md**: 133 bytes
+- **deletestockadjustment.md**: 1,020 bytes
+- **deletestocktakebyid.md**: 1,425 bytes
+- **deletestocktakerowbyid.md**: 1,462 bytes
+- **deletestocktransfer.md**: 1,475 bytes
+- **deletestoragebin.md**: 962 bytes
+- **deletesupplier.md**: 946 bytes
+- **deletesupplieraddress.md**: 1,014 bytes
+- **deletevariant.md**: 941 bytes
+- **deletewebhook.md**: 944 bytes
+- **export-webhook-logs.md**: 76 bytes
+- **findpurchaseorders.md**: 4,423 bytes
+- **findstockadjustments.md**: 2,933 bytes
+- **findstocktakerows.md**: 2,357 bytes
+- **findstocktakes.md**: 2,510 bytes
+- **findstocktransfers.md**: 3,160 bytes
+- **getadditionalcosts.md**: 1,873 bytes
+- **getallbomrows.md**: 2,073 bytes
+- **getallmanufacturingorderoperationrows.md**: 2,966 bytes
+- **getallmanufacturingorderproductions.md**: 3,462 bytes
+- **getallmanufacturingorderreciperows.md**: 2,810 bytes
+- **getallmanufacturingorders.md**: 3,324 bytes
+- **getallmaterials.md**: 4,418 bytes
+- **getallnegativestock.md**: 79 bytes
+- **getallpricelistcustomers.md**: 1,771 bytes
+- **getallpricelistrows.md**: 2,060 bytes
+- **getallpricelists.md**: 1,633 bytes
+- **getallproductoperationrows.md**: 59 bytes
+- **getallpurchaseorderaccountingmetadata.md**: 1,752 bytes
+- **getallpurchaseorderreciperows.md**: 97 bytes
+- **getallpurchaseorderrows.md**: 2,929 bytes
+- **getallrecipes.md**: 70 bytes
+- **getallsalesorderaccountingmetadata.md**: 1,692 bytes
+- **getallsalesorderrows.md**: 3,793 bytes
+- **getallsalesreturnrows.md**: 2,777 bytes
+- **getallsalesreturns.md**: 3,079 bytes
+- **getallservices.md**: 2,906 bytes
+- **getallshippingfees.md**: 49 bytes
+- **getallstoragebins.md**: 1,594 bytes
+- **getallusers.md**: 1,514 bytes
+- **getallwebhooks.md**: 1,548 bytes
+- **getbatchstock.md**: 2,003 bytes
+- **getcustomeraddresses.md**: 3,008 bytes
+- **getcustomfieldscollections.md**: 1,285 bytes
+- **getfactory.md**: 1,412 bytes
+- **getlocation.md**: 1,382 bytes
+- **getmanufacturingorder.md**: 2,053 bytes
+- **getmanufacturingorderoperationrow.md**: 1,950 bytes
+- **getmanufacturingorderproduction.md**: 2,397 bytes
+- **getmanufacturingorderreciperow.md**: 1,592 bytes
+- **getmaterial.md**: 2,803 bytes
+- **getoperators.md**: 1,217 bytes
+- **getpoadditionalcostrow.md**: 95 bytes
+- **getpricelist.md**: 1,078 bytes
+- **getpricelistcustomer.md**: 1,129 bytes
+- **getpricelistrow.md**: 1,146 bytes
+- **getproduct.md**: 2,852 bytes
+- **getpurchaseorder.md**: 2,839 bytes
+- **getpurchaseorderadditionalcostrows.md**: 93 bytes
+- **getpurchaseorderreciperow.md**: 101 bytes
+- **getpurchaseorderrow.md**: 1,672 bytes
+- **getreturnableitems.md**: 1,498 bytes
+- **getreturnreasons.md**: 1,267 bytes
+- **getsalesorderaddresses.md**: 3,080 bytes
+- **getsalesreturn.md**: 1,492 bytes
+- **getsalesreturnrow.md**: 1,527 bytes
+- **getsalesreturnrowunassignedbatchtransactions.md**: 1,480 bytes
+- **getserialnumbers.md**: 1,376 bytes
+- **getserialnumberstock.md**: 87 bytes
+- **getservice.md**: 1,685 bytes
+- **getshippingfee.md**: 51 bytes
+- **getsupplieraddresses.md**: 2,529 bytes
+- **getvariant.md**: 2,905 bytes
+- **getwebhook.md**: 1,161 bytes
+- **linkvariantdefaultstoragebins.md**: 71 bytes
+- **list-all-customers.md**: 3,912 bytes
+- **list-all-inventory-movements.md**: 2,655 bytes
+- **list-all-locations.md**: 3,081 bytes
+- **list-all-products.md**: 4,852 bytes
+- **list-all-sales-order-fulfillments.md**: 3,061 bytes
+- **list-all-sales-orders.md**: 6,181 bytes
+- **list-all-suppliers.md**: 2,667 bytes
+- **list-all-tax-rates.md**: 2,061 bytes
+- **list-all-variants.md**: 4,691 bytes
+- **list-current-inventory.md**: 2,953 bytes
+- **login.md**: 9 bytes
+- **maketoordermanufacturingorder.md**: 89 bytes
+- **outsourced-purchase-order-recipe-row.md**: 99 bytes
+- **receivepurchaseorder.md**: 53 bytes
+- **recipe.md**: 17 bytes
+- **rerankproductoperation.md**: 75 bytes
+- **retrieve-sales-order-fulfillment.md**: 1,644 bytes
+- **retrieve-sales-order-row.md**: 2,756 bytes
+- **retrieve-sales-order.md**: 4,010 bytes
+- **the-bom-row-object.md**: 41 bytes
+- **the-customer-address-object.md**: 59 bytes
+- **the-customer-object.md**: 43 bytes
+- **the-inventory-object.md**: 45 bytes
+- **the-location-object.md**: 43 bytes
+- **the-manufacturing-order-object.md**: 65 bytes
+- **the-manufacturing-order-operation-row-object.md**: 93 bytes
+- **the-manufacturing-order-production-object.md**: 87 bytes
+- **the-manufacturing-order-recipe-row-object.md**: 87 bytes
+- **the-material-object.md**: 43 bytes
+- **the-product-object.md**: 41 bytes
+- **the-product-operation-object.md**: 61 bytes
+- **the-purchase-order-accounting-metadata-object.md**: 95 bytes
+- **the-purchase-order-object.md**: 55 bytes
+- **the-purchase-order-row-object.md**: 63 bytes
+- **the-recipe-bom-object.md**: 51 bytes
+- **the-sales-order-address-object.md**: 65 bytes
+- **the-sales-order-fulfillment-object.md**: 73 bytes
+- **the-sales-order-object.md**: 49 bytes
+- **the-sales-order-row-object.md**: 57 bytes
+- **the-sales-return-object.md**: 51 bytes
+- **the-sales-return-row-object.md**: 59 bytes
+- **the-serial-number-object.md**: 53 bytes
+- **the-serial-number-stock-object.md**: 65 bytes
+- **the-service-object.md**: 41 bytes
+- **the-stock-adjustment-object.md**: 59 bytes
+- **the-stock-transfer-object.md**: 55 bytes
+- **the-stocktake-object.md**: 45 bytes
+- **the-stocktake-row-object.md**: 53 bytes
+- **the-storage-bin-object.md**: 49 bytes
+- **the-supplier-object.md**: 43 bytes
+- **the-tax-rate-object.md**: 43 bytes
+- **the-variant-default-storage-bin-object.md**: 81 bytes
+- **the-variant-object.md**: 41 bytes
+- **the-webhook-object.md**: 41 bytes
+- **unlinkmanufacturingorder.md**: 103 bytes
+- **unlinkvariantdefaultstoragebins.md**: 75 bytes
+- **update-reorder-point.md**: 53 bytes
+- **update-sales-order-address.md**: 2,720 bytes
+- **update-sales-order-fulfillment.md**: 3,230 bytes
+- **update-sales-order-row.md**: 4,387 bytes
+- **update-sales-order.md**: 5,603 bytes
+- **updateadditionalcostrow.md**: 91 bytes
+- **updatebatchstock.md**: 2,267 bytes
+- **updatebomrow.md**: 2,269 bytes
+- **updatecustomer.md**: 2,893 bytes
+- **updatecustomeraddress.md**: 2,697 bytes
+- **updatedefaultstoragebin.md**: 1,839 bytes
+- **updatemanufacturingorder.md**: 4,552 bytes
+- **updatemanufacturingorderoperationrow.md**: 7,109 bytes
+- **updatemanufacturingorderproduction.md**: 3,106 bytes
+- **updatemanufacturingorderproductioningredient.md**: 2,534 bytes
+- **updatemanufacturingorderreciperows.md**: 2,393 bytes
+- **updatematerial.md**: 4,818 bytes
+- **updatepricelist.md**: 1,942 bytes
+- **updatepricelistcustomer.md**: 1,912 bytes
+- **updatepricelistrow.md**: 2,312 bytes
+- **updateproduct.md**: 5,484 bytes
+- **updateproductoperationrow.md**: 5,742 bytes
+- **updatepurchaseorder.md**: 3,441 bytes
+- **updatepurchaseorderreciperow.md**: 97 bytes
+- **updatepurchaseorderrow.md**: 3,553 bytes
+- **updatereciperow.md**: 2,441 bytes
+- **updatesalesreturn.md**: 3,306 bytes
+- **updatesalesreturnrow.md**: 3,421 bytes
+- **updateservice.md**: 3,055 bytes
+- **updateshippingfee.md**: 47 bytes
+- **updatestockadjustment.md**: 2,311 bytes
+- **updatestocktakebyid.md**: 2,472 bytes
+- **updatestocktakerowbyid.md**: 2,268 bytes
+- **updatestocktransfer.md**: 2,737 bytes
+- **updatestocktransferstatus.md**: 2,548 bytes
+- **updatesupplier.md**: 2,234 bytes
+- **updatesupplieraddress.md**: 2,281 bytes
+- **updatevariant.md**: 4,408 bytes
+- **updatewebhook.md**: 4,721 bytes
+- **webhooks.md**: 21 bytes
+
+### OpenAPI Specification
+
+- **openapi-spec.json**: Complete API specification with 103 endpoints
+
+## Extraction Details
+
+- **Base URL**: https://developer.katanamrp.com
+- **Extraction method**: Combined crawling and OpenAPI spec extraction
+- **Content source**: README.io documentation platform with embedded JSON data
+
+This documentation is optimized for AI/LLM analysis and includes:
+
+- Static content descriptions
+- Complete OpenAPI specifications with real JSON examples
+- Schema definitions and validation rules
+- Request/response examples for all endpoints
