@@ -6084,7 +6084,7 @@ components:
               description: Selling price per unit converted to the base company currency
             total:
               type: number
-              description: Total line amount (quantity × price_per_unit) in order currency
+              description: Total line amount (quantity * price_per_unit) in order currency
             total_in_base_currency:
               type: number
               description: Total line amount converted to the base company currency

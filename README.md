@@ -18,6 +18,8 @@ resilience.
 - **🛡️ Transport-Layer Resilience**: httpx-native approach, no decorators needed
 - **⚡ Async/Sync Support**: Use with asyncio or traditional synchronous code
 - **🔍 Rich Observability**: Built-in logging and metrics
+- **🏗️ Streamlined Architecture**: Flattened imports, automated regeneration, zero
+  patches
 
 ## 🚀 Quick Start
 
@@ -55,8 +57,8 @@ The modern, pythonic client with automatic resilience:
 import asyncio
 
 from katana_public_api_client import KatanaClient
-from katana_public_api_client.generated.api.product import get_all_products
-from katana_public_api_client.generated.api.sales_order import get_all_sales_orders
+from katana_public_api_client.api.product import get_all_products
+from katana_public_api_client.api.sales_order import get_all_sales_orders
 
 async def main():
     # Automatic configuration from .env file
@@ -94,7 +96,7 @@ For maximum control and custom resilience patterns:
 import asyncio
 
 from katana_public_api_client import AuthenticatedClient
-from katana_public_api_client.generated.api.product import get_all_products
+from katana_public_api_client.api.product import get_all_products
 
 async def main():
     client = AuthenticatedClient(
@@ -186,7 +188,7 @@ async with KatanaClient(
 
 ```python
 from katana_public_api_client import KatanaClient
-from katana_public_api_client.generated.api.product import get_all_products
+from katana_public_api_client.api.product import get_all_products
 
 async with KatanaClient() as client:
     # Get all products with automatic pagination
@@ -202,10 +204,10 @@ async with KatanaClient() as client:
 
 ```python
 from katana_public_api_client import KatanaClient
-from katana_public_api_client.generated.api.inventory import get_all_inventory_points
-from katana_public_api_client.generated.api.manufacturing_order import get_all_manufacturing_orders
-from katana_public_api_client.generated.api.product import get_all_products, get_product
-from katana_public_api_client.generated.api.sales_order import get_all_sales_orders, get_sales_order
+from katana_public_api_client.api.inventory import get_all_inventory_points
+from katana_public_api_client.api.manufacturing_order import get_all_manufacturing_orders
+from katana_public_api_client.api.product import get_all_products, get_product
+from katana_public_api_client.api.sales_order import get_all_sales_orders, get_sales_order
 
 async with KatanaClient() as client:
     # Direct API methods with automatic pagination and resilience

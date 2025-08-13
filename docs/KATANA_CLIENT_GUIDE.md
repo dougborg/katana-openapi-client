@@ -32,7 +32,7 @@ echo "KATANA_BASE_URL=https://api.katanamrp.com/v1" >> .env
 import asyncio
 
 from katana_public_api_client import KatanaClient
-from katana_public_api_client.generated.api.product import get_all_products
+from katana_public_api_client.api.product import get_all_products
 
 async def main():
     # Automatic configuration from .env file
@@ -256,7 +256,7 @@ async def test_api_integration():
                 mock_httpx.return_value.request = AsyncMock(return_value=mock_response)
 
                 # Test your API logic here
-                from katana_public_api_client.generated.api.product import get_all_products
+                from katana_public_api_client.api.product import get_all_products
                 response = await get_all_products.asyncio_detailed(
                     client=client,
                     limit=10
@@ -273,7 +273,7 @@ import os
 import pytest
 
 from katana_public_api_client import KatanaClient
-from katana_public_api_client.generated.api.product import get_all_products
+from katana_public_api_client.api.product import get_all_products
 
 @pytest.mark.integration
 @pytest.mark.asyncio

@@ -135,11 +135,11 @@ katana-openapi-client/
 │   ├── __init__.py
 │   ├── katana_client.py         # Main client implementation
 │   ├── client.py                # Base client classes
+│   ├── client_types.py          # Type definitions
+│   ├── errors.py                # Exception classes
 │   ├── log_setup.py             # Logging configuration
-│   └── generated/               # Generated client code
-│       ├── api/                 # Generated API methods
-│       ├── models/              # Generated models
-│       └── client.py            # Generated client
+│   ├── api/                     # Generated API methods (flattened)
+│   └── models/                  # Generated models (flattened)
 ├── tests/                       # Test suite
 ├── docs/                        # Documentation
 ├── scripts/                     # Development scripts
@@ -198,6 +198,43 @@ KATANA_BASE_URL=https://api.katanamrp.com/v1
 - Keep examples current and working
 - Update the README.md if adding user-facing features
 - Include docstrings for all public methods
+
+## Client Regeneration
+
+The OpenAPI client is automatically generated from `katana-openapi.yaml` using
+[`openapi-python-client`](https://github.com/openapi-generators/openapi-python-client).
+
+### Regeneration Process
+
+```bash
+# Regenerate client from OpenAPI spec
+poetry run python scripts/regenerate_client.py
+```
+
+### What Gets Regenerated
+
+**Replaced Files** (Generated Content):
+
+- `client.py` - Base HTTP client classes
+- `client_types.py` - Type definitions (renamed from `types.py`)
+- `errors.py` - Exception definitions
+- `py.typed` - Type checking marker
+- `api/` - All API endpoint modules (137+ files)
+- `models/` - All data model classes (150+ files)
+
+**Preserved Files** (Custom Content):
+
+- `katana_client.py` - Our resilient client implementation
+- `log_setup.py` - Custom logging configuration
+- `__init__.py` - Custom exports (gets rewritten but preserves structure)
+
+### Regeneration Features
+
+- **🔄 Flattened Structure**: No more `generated/` subdirectory
+- **🛡️ File Preservation**: Custom files are never overwritten
+- **🔧 Automatic Fixes**: Uses `ruff --unsafe-fixes` for code quality
+- **✅ Dual Validation**: Both openapi-spec-validator and Redocly validation
+- **🎯 Source-Level Fixes**: Issues resolved in OpenAPI spec when possible
 
 ### Documentation Style
 

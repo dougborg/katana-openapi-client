@@ -47,7 +47,7 @@ class TestPerformance:
         # in test_transport_auto_pagination.py
 
         # This test now focuses on overall client performance
-        from katana_public_api_client.generated.api.product import get_all_products
+        from katana_public_api_client.api.product import get_all_products
 
         try:
             with patch("asyncio.sleep", new_callable=AsyncMock):  # Skip sleep delays
@@ -229,7 +229,7 @@ class TestMemoryUsage:
 
         # Test automatic pagination performance with large dataset
         # Note: This now tests the transport layer automatic pagination
-        from katana_public_api_client.generated.api.product import get_all_products
+        from katana_public_api_client.api.product import get_all_products
 
         try:
             with patch("asyncio.sleep", new_callable=AsyncMock):  # Skip delays
@@ -303,7 +303,7 @@ class TestConcurrencyAndRaceConditions:
         api3_responses = create_mock_responses("API3", 2)  # 2 pages
 
         # Test concurrent API calls with proper mocking
-        from katana_public_api_client.generated.api.product import get_all_products
+        from katana_public_api_client.api.product import get_all_products
 
         # Mock the get_all_products.asyncio_detailed calls
         with patch.object(get_all_products, "asyncio_detailed") as mock_method:

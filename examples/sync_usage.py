@@ -16,13 +16,13 @@ import logging
 import httpx
 
 from katana_public_api_client import KatanaClient
-from katana_public_api_client.generated.api.product import get_all_products
-from katana_public_api_client.generated.client import AuthenticatedClient
-from katana_public_api_client.generated.errors import UnexpectedStatus
-from katana_public_api_client.generated.models.product_list_response import (
+from katana_public_api_client.api.product import get_all_products
+from katana_public_api_client.client import AuthenticatedClient
+from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.errors import UnexpectedStatus
+from katana_public_api_client.models.product_list_response import (
     ProductListResponse,
 )
-from katana_public_api_client.generated.types import UNSET
 
 # Set up logging
 logger = logging.getLogger(__name__)

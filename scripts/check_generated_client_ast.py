@@ -43,7 +43,7 @@ def compare_ast(dir1, dir2):
 
 
 def main():
-    src = "katana_public_api_client/generated"
+    src = "katana_public_api_client"
     with tempfile.TemporaryDirectory() as tmp:
         old = os.path.join(tmp, "old")
         copy_dir(src, old)
