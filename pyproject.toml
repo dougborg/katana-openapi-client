@@ -318,11 +318,10 @@ minor_tags = ["feat"]
 patch_tags = ["fix", "perf"]
 
 [tool.semantic_release.changelog]
-template_dir = "templates"
 exclude_commit_patterns = []
-changelog_file = "docs/CHANGELOG.md"
 
 [tool.semantic_release.changelog.default_templates]
+changelog_file = "docs/CHANGELOG.md"
 
 [tool.semantic_release.branches.main]
 match = "main"
