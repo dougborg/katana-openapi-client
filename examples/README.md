@@ -91,7 +91,7 @@ API methods:
 
 ```python
 from katana_public_api_client import KatanaClient
-from katana_public_api_client.generated.api.product import get_all_products
+from katana_public_api_client.api.product import get_all_products
 
 async with KatanaClient() as client:
     # Pass client directly - no .client property needed

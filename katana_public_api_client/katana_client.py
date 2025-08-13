@@ -25,10 +25,10 @@ from tenacity import (
     wait_exponential,
 )
 
-from .generated.client import AuthenticatedClient
-from .generated.models.detailed_error_response import DetailedErrorResponse
-from .generated.models.error_response import ErrorResponse
-from .generated.types import Unset
+from .client import AuthenticatedClient
+from .client_types import Unset
+from .models.detailed_error_response import DetailedErrorResponse
+from .models.error_response import ErrorResponse
 
 
 class ResilientAsyncTransport(AsyncHTTPTransport):
@@ -518,7 +518,7 @@ class KatanaClient(AuthenticatedClient):
     Usage:
         # Auto-pagination happens automatically - just call the API
         async with KatanaClient() as client:
-            from katana_public_api_client.generated.api.product import get_all_products
+            from katana_public_api_client.api.product import get_all_products
 
             # This automatically collects all pages if pagination is detected
             response = await get_all_products.asyncio_detailed(

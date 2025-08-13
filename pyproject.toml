@@ -132,6 +132,7 @@ linkify-it-py = "^2.0.3"
 yamllint = "^1.37.1"
 openapi-spec-validator = "^0.7.2"
 openapi-python-client = "^0.25.3"
+pyyaml = "^6.0.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -141,7 +142,6 @@ build-backend = "poetry.core.masonry.api"
 files = ["katana_public_api_client", "tests", "scripts"]
 exclude = [
   "tests/conftest.py",                     # Avoid duplicate module name issue
-  "katana_public_api_client/generated/.*", # Exclude generated code
 ]
 # TODO: enable "strict" once all these individual checks are passing
 # strict = true
@@ -234,7 +234,7 @@ exclude_lines = [
 
 [tool.ruff]
 line-length = 88
-src = ["katana_public_api_client", "tests", "scripts", "katana_public_api_client/generated"]
+src = ["katana_public_api_client", "tests", "scripts"]
 target-version = "py311"  # Updated to reflect minimum Python version
 fix = true
 show-fixes = true

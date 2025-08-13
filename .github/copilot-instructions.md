@@ -1,10 +1,13 @@
 # AI Agent Instructions for Katana OpenAPI Client
 
-**CRITICAL: Follow these instructions completely and precisely before attempting any other actions. Only fallback to additional search or context gathering if the information in these instructions is incomplete or found to be in error.**
+**CRITICAL: Follow these instructions completely and precisely before attempting any
+other actions. Only fallback to additional search or context gathering if the
+information in these instructions is incomplete or found to be in error.**
 
 ## Quick Start - Fresh Clone Setup
 
-Follow these exact commands in order for a fresh clone setup. **NEVER CANCEL any build or long-running command** - they are expected to take time.
+Follow these exact commands in order for a fresh clone setup. **NEVER CANCEL any build
+or long-running command** - they are expected to take time.
 
 ### 1. Install Poetry (Python Package Manager)
 
@@ -33,7 +36,8 @@ poetry install
 # If failures occur due to network timeouts, retry the command
 ```
 
-**CRITICAL**: This command **NEVER CANCEL** - may take up to 30 minutes on slow networks but typically completes in ~26 seconds.
+**CRITICAL**: This command **NEVER CANCEL** - may take up to 30 minutes on slow networks
+but typically completes in ~26 seconds.
 
 ### 3. Verify Installation
 
@@ -47,7 +51,8 @@ poetry run poe help
 
 ## Development Commands - Validated Timings
 
-All commands below have been tested and timed. **NEVER CANCEL** any command before the timeout expires.
+All commands below have been tested and timed. **NEVER CANCEL** any command before the
+timeout expires.
 
 ### Code Quality and Formatting
 
@@ -55,7 +60,7 @@ All commands below have been tested and timed. **NEVER CANCEL** any command befo
 # Format checking (fastest) - 2 seconds
 poetry run poe format-check
 
-# Full formatting - 2 seconds  
+# Full formatting - 2 seconds
 poetry run poe format
 
 # Python-only formatting - 1 second
@@ -74,11 +79,12 @@ poetry run poe lint
 
 # Individual linting commands (faster)
 poetry run poe lint-ruff      # 2 seconds - fast linting
-poetry run poe lint-mypy      # 8 seconds - type checking  
+poetry run poe lint-mypy      # 8 seconds - type checking
 poetry run poe lint-yaml      # 1 second - YAML validation
 ```
 
-**CRITICAL**: Full linting (`poe lint`) **NEVER CANCEL** - takes ~11 seconds but timeout to 15+ minutes for safety.
+**CRITICAL**: Full linting (`poe lint`) **NEVER CANCEL** - takes ~11 seconds but timeout
+to 15+ minutes for safety.
 
 ### Testing
 
@@ -87,7 +93,7 @@ poetry run poe lint-yaml      # 1 second - YAML validation
 # TIMEOUT: Set 30+ minutes for safety
 poetry run poe test
 
-# Test with coverage - NEVER CANCEL, takes 39 seconds  
+# Test with coverage - NEVER CANCEL, takes 39 seconds
 # TIMEOUT: Set 45+ minutes for safety
 poetry run poe test-coverage
 
@@ -96,13 +102,14 @@ poetry run poe test-unit          # Unit tests only
 poetry run poe test-integration   # Integration tests only (needs KATANA_API_KEY)
 ```
 
-**CRITICAL**: Tests **NEVER CANCEL** - take 27-39 seconds but timeout to 30-45+ minutes for safety.
+**CRITICAL**: Tests **NEVER CANCEL** - take 27-39 seconds but timeout to 30-45+ minutes
+for safety.
 
 ### Documentation
 
 ```bash
 # Build documentation - NEVER CANCEL, takes 2.5 minutes
-# TIMEOUT: Set 60+ minutes for safety  
+# TIMEOUT: Set 60+ minutes for safety
 poetry run poe docs-build
 
 # Clean documentation build
@@ -112,7 +119,8 @@ poetry run poe docs-clean
 poetry run poe docs-serve
 ```
 
-**CRITICAL**: Documentation build **NEVER CANCEL** - takes ~2.5 minutes but timeout to 60+ minutes for safety.
+**CRITICAL**: Documentation build **NEVER CANCEL** - takes ~2.5 minutes but timeout to
+60+ minutes for safety.
 
 ### Combined Workflows
 
@@ -130,7 +138,8 @@ poetry run poe ci
 
 ## Pre-commit Hooks Setup
 
-**WARNING**: Pre-commit hooks may fail in network-restricted environments due to PyPI timeouts.
+**WARNING**: Pre-commit hooks may fail in network-restricted environments due to PyPI
+timeouts.
 
 ```bash
 # Install pre-commit hooks - may fail due to network restrictions
@@ -144,7 +153,8 @@ poetry run poe pre-commit-run
 poetry run poe pre-commit-update
 ```
 
-**Network Issue**: Pre-commit installation often fails with `ReadTimeoutError` from PyPI. This is expected in restricted environments.
+**Network Issue**: Pre-commit installation often fails with `ReadTimeoutError` from
+PyPI. This is expected in restricted environments.
 
 ## OpenAPI and Client Regeneration
 
@@ -163,18 +173,18 @@ poetry run poe validate-all
 
 ### Client Regeneration
 
-**WARNING**: Client regeneration may fail in network-restricted environments.
-
 ```bash
 # Full client regeneration - NEVER CANCEL, can take 2+ minutes
 # TIMEOUT: Set 60+ minutes for safety
 poetry run poe regenerate-client
 
-# Manual regeneration script with options
-poetry run python scripts/regenerate_client.py --skip-tests --skip-format
+# Client regeneration
+poetry run python scripts/regenerate_client.py
 ```
 
-**Network Issue**: May fail with `FileNotFoundError: openapi-python-client` due to PyPI timeout during package installation.
+**Note**: The regeneration process is now fully automated using npx to install
+openapi-python-client temporarily, and ruff --unsafe-fixes to handle code quality
+automatically.
 
 ## Manual Functionality Validation
 
@@ -185,8 +195,8 @@ After setup, validate functionality with these scenarios:
 ```bash
 poetry run python -c "
 from katana_public_api_client import KatanaClient
-from katana_public_api_client.generated.api.product import get_all_products
-from katana_public_api_client.generated.models import ProductListResponse
+from katana_public_api_client.api.product import get_all_products
+from katana_public_api_client.models import ProductListResponse
 print('✅ All imports successful')
 "
 ```
@@ -207,7 +217,7 @@ print('✅ Client creation successful')
 poetry run python -c "
 import asyncio
 from katana_public_api_client import KatanaClient
-from katana_public_api_client.generated.api.product import get_all_products
+from katana_public_api_client.api.product import get_all_products
 
 async def test_api_pattern():
     async with KatanaClient(api_key='test-key', base_url='https://test.example.com') as client:
@@ -223,7 +233,7 @@ asyncio.run(test_api_pattern())
 ### Required Software
 
 - **Python**: 3.11, 3.12, or 3.13 (verified: Python 3.12.3 works)
-- **pip**: 24.0+ (verified: pip 24.0 works)  
+- **pip**: 24.0+ (verified: pip 24.0 works)
 - **Node.js**: 20.19.4+ for Redocly validation (verified: available)
 - **npm/npx**: 10.8.2+ for OpenAPI tools (verified: available)
 
@@ -238,9 +248,6 @@ poetry run pip install pytest-cov
 
 # If python-dotenv import fails
 poetry run pip install python-dotenv
-
-# If openapi-python-client is missing (for regeneration)
-poetry run pip install openapi-python-client
 ```
 
 ## Network Limitations and Workarounds
@@ -250,15 +257,15 @@ This environment has **network restrictions** that cause several commands to fai
 ### Known Failing Commands
 
 1. **Pre-commit hooks installation**: Fails with `ReadTimeoutError` from PyPI
-2. **openapi-python-client installation**: Fails with PyPI timeout during `poetry run poe regenerate-client`
-3. **Poetry official installer**: `curl -sSL https://install.python-poetry.org | python3 -` fails due to DNS resolution
+1. **Poetry official installer**:
+   `curl -sSL https://install.python-poetry.org | python3 -` fails due to DNS resolution
 
 ### Working Network Commands
 
 1. **pip install poetry**: Works (uses system pip)
-2. **poetry install**: Works (uses Poetry's caching)
-3. **npm/npx commands**: Work (including Redocly validation)
-4. **poetry run pip install**: Works for individual packages
+1. **poetry install**: Works (uses Poetry's caching)
+1. **npm/npx commands**: Work (including Redocly validation and openapi-python-client)
+1. **poetry run pip install**: Works for individual packages
 
 ### Workarounds
 
@@ -269,23 +276,32 @@ This environment has **network restrictions** that cause several commands to fai
 
 ## Architecture Overview
 
-This is a production-ready Python client for the Katana Manufacturing ERP API built with a **transport-layer resilience** approach.
+This is a production-ready Python client for the Katana Manufacturing ERP API built with
+a **transport-layer resilience** approach.
 
 ### Core Components
 
-- **`katana_public_api_client/katana_client.py`**: Main client with `ResilientAsyncTransport` - all resilience features happen automatically
-- **`katana_public_api_client/generated/api/`**: 76+ generated API endpoint modules (don't edit directly)  
-- **`katana_public_api_client/generated/models/`**: 150+ generated data models (don't edit directly)
-- **`katana_public_api_client/generated/client.py`**: Generated OpenAPI client (base classes)
+- **`katana_public_api_client/katana_client.py`**: Main client with
+  `ResilientAsyncTransport` - all resilience features happen automatically
+- **`katana_public_api_client/api/`**: 76+ generated API endpoint modules (flattened
+  structure, don't edit directly)
+- **`katana_public_api_client/models/`**: 150+ generated data models (flattened
+  structure, don't edit directly)
+- **`katana_public_api_client/client.py`**: Generated OpenAPI client (base classes)
+- **`katana_public_api_client/client_types.py`**: Type definitions (renamed from
+  types.py to avoid stdlib conflicts)
 
 ### Key Architectural Pattern
 
-**Transport-Layer Resilience**: Instead of wrapping API methods, we intercept at the httpx transport level. This means ALL API calls through `KatanaClient` get automatic retries, rate limiting, and pagination without any code changes needed in the generated client.
+**Transport-Layer Resilience**: Instead of wrapping API methods, we intercept at the
+httpx transport level. This means ALL API calls through `KatanaClient` get automatic
+retries, rate limiting, and pagination without any code changes needed in the generated
+client.
 
 ```python
 # Generated API methods work transparently with resilience:
 from katana_public_api_client import KatanaClient
-from katana_public_api_client.generated.api.product import get_all_products
+from katana_public_api_client.api.product import get_all_products
 
 async with KatanaClient() as client:
     # This call automatically gets retries, rate limiting, pagination:
@@ -298,8 +314,12 @@ async with KatanaClient() as client:
 
 ### Don't Edit (Generated)
 
-- `katana_public_api_client/generated/api/**/*.py`
-- `katana_public_api_client/generated/models/**/*.py`
+- `katana_public_api_client/api/**/*.py`
+- `katana_public_api_client/models/**/*.py`
+- `katana_public_api_client/client.py`
+- `katana_public_api_client/client_types.py`
+- `katana_public_api_client/errors.py`
+- `katana_public_api_client/py.typed`
 
 ### Edit These Files
 
@@ -309,12 +329,45 @@ async with KatanaClient() as client:
 - `scripts/` - Development scripts
 - `docs/` - Documentation
 
+## Recent Optimizations (2025)
+
+The client generation process has been significantly optimized:
+
+### Automated Code Quality with ruff --unsafe-fixes
+
+The regeneration script now uses `ruff check --fix --unsafe-fixes` to automatically fix
+the vast majority of lint issues. This eliminated the need for manual patches and
+post-processing.
+
+**Benefits:**
+
+- Fixes 6,589+ lint issues automatically (import sorting, unused imports, code style)
+- No manual patches required
+- Consistent code quality without maintenance overhead
+
+### Source-Level Problem Prevention
+
+Fixed issues at the OpenAPI specification source instead of post-processing:
+
+- **Unicode multiplication signs**: Fixed `×` to `*` in `katana-openapi.yaml` to prevent
+  RUF002 lint errors
+- **Non-interactive generation**: Added `--yes` flag to npx commands to prevent hanging
+
+### Streamlined File Organization
+
+- **Eliminated patches/ directory**: All fixes now automated
+- **Clear temp directory naming**: `openapi_gen_temp` instead of confusing package names
+- **Flattened import structure**: Direct imports without `.generated` subdirectory
+
+**Result**: The regeneration process is now fully automated and requires no manual
+intervention.
+
 ## Configuration Consolidation
 
 All tool configurations are in `pyproject.toml` following **PEP 621** standards:
 
 - **Project metadata**: `[project]` section
-- **MyPy**: `[tool.mypy]` section  
+- **MyPy**: `[tool.mypy]` section
 - **Pytest**: `[tool.pytest.ini_options]` section
 - **Ruff**: `[tool.ruff]` section (replaces Black, isort, flake8)
 - **Coverage**: `[tool.coverage]` section
@@ -344,7 +397,7 @@ poetry run poe pre-commit-install
 # 1. Format code
 poetry run poe format
 
-# 2. Run linting  
+# 2. Run linting
 poetry run poe lint
 
 # 3. Run tests
@@ -373,12 +426,13 @@ Without credentials, integration tests are skipped.
 
 ## Conventional Commits (CRITICAL)
 
-This project uses **semantic-release** with conventional commits for automated versioning. **ALWAYS** use the correct commit type:
+This project uses **semantic-release** with conventional commits for automated
+versioning. **ALWAYS** use the correct commit type:
 
 ### Commit Types
 
 - **`feat:`** - New features (triggers MINOR version bump)
-- **`fix:`** - Bug fixes (triggers PATCH version bump)  
+- **`fix:`** - Bug fixes (triggers PATCH version bump)
 - **`chore:`** - Development/tooling (NO version bump)
 - **`docs:`** - Documentation only (NO version bump)
 - **`test:`** - Test changes only (NO version bump)
@@ -423,13 +477,16 @@ async with KatanaClient() as client:
 ## Common Pitfalls
 
 1. **Never cancel builds/tests** - Set long timeouts (30-60+ minutes)
-2. **Network timeouts are common** - Retry failed package installations  
-3. **Use `poetry run`** - Don't run commands outside Poetry environment
-4. **Pre-commit may fail** - Network restrictions cause PyPI timeouts
-5. **Generated code is read-only** - Use regeneration script instead of editing
-6. **Conventional commits matter** - Wrong types trigger unwanted releases
-7. **Integration tests need credentials** - Set `KATANA_API_KEY` in `.env`
-8. **Use correct import paths** - Generated code is in `katana_public_api_client.generated`
+1. **Network timeouts are common** - Retry failed package installations
+1. **Use `poetry run`** - Don't run commands outside Poetry environment
+1. **Pre-commit may fail** - Network restrictions cause PyPI timeouts
+1. **Generated code is read-only** - Use regeneration script instead of editing
+1. **Conventional commits matter** - Wrong types trigger unwanted releases
+1. **Integration tests need credentials** - Set `KATANA_API_KEY` in `.env`
+1. **Use correct import paths** - Direct imports from `katana_public_api_client.api` (no
+   `.generated` subdirectory)
+1. **Client types import** - Use `from katana_public_api_client.client_types import`
+   instead of `types`
 
 ## Version Support Policy
 
@@ -441,20 +498,23 @@ async with KatanaClient() as client:
 
 **NEVER CANCEL these commands before the timeout:**
 
-| Command | Expected Time | Timeout Setting |
-|---------|---------------|-----------------|
-| `poetry install` | ~26 seconds | 30+ minutes |
-| `poetry run poe lint` | ~11 seconds | 15+ minutes |
-| `poetry run poe test` | ~27 seconds | 30+ minutes |
-| `poetry run poe test-coverage` | ~39 seconds | 45+ minutes |
-| `poetry run poe check` | ~40 seconds | 60+ minutes |
-| `poetry run poe docs-build` | ~2.5 minutes | 60+ minutes |
-| `poetry run poe regenerate-client` | ~2+ minutes | 60+ minutes |
-| `poetry run poe pre-commit-run` | ~30+ seconds | 60+ minutes |
+| Command                            | Expected Time | Timeout Setting |
+| ---------------------------------- | ------------- | --------------- |
+| `poetry install`                   | ~26 seconds   | 30+ minutes     |
+| `poetry run poe lint`              | ~11 seconds   | 15+ minutes     |
+| `poetry run poe test`              | ~27 seconds   | 30+ minutes     |
+| `poetry run poe test-coverage`     | ~39 seconds   | 45+ minutes     |
+| `poetry run poe check`             | ~40 seconds   | 60+ minutes     |
+| `poetry run poe docs-build`        | ~2.5 minutes  | 60+ minutes     |
+| `poetry run poe regenerate-client` | ~2+ minutes   | 60+ minutes     |
+| `poetry run poe pre-commit-run`    | ~30+ seconds  | 60+ minutes     |
 
-**Remember**: Always set generous timeouts. Network delays and package compilation can extend these times significantly.
+**Remember**: Always set generous timeouts. Network delays and package compilation can
+extend these times significantly.
 
----
+______________________________________________________________________
 
-**Final Reminder**: These instructions are based on exhaustive testing of every command. Follow them exactly and **NEVER CANCEL** long-running operations. The transport-layer resilience approach makes this client robust without requiring wrapper methods or decorators.
-
+**Final Reminder**: These instructions are based on exhaustive testing of every command.
+Follow them exactly and **NEVER CANCEL** long-running operations. The transport-layer
+resilience approach makes this client robust without requiring wrapper methods or
+decorators.

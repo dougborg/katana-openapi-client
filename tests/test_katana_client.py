@@ -372,7 +372,7 @@ class TestKatanaClientIntegration:
 
         # Test with a mock to avoid actual API calls during testing
         with patch(
-            "katana_public_api_client.generated.api.product.get_all_products.asyncio_detailed"
+            "katana_public_api_client.api.product.get_all_products.asyncio_detailed"
         ) as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
@@ -382,7 +382,7 @@ class TestKatanaClientIntegration:
 
             async with KatanaClient() as client:
                 # Test a simple API call
-                from katana_public_api_client.generated.api.product import (
+                from katana_public_api_client.api.product import (
                     get_all_products,
                 )
 

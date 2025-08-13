@@ -7,7 +7,7 @@ import pytest
 from dotenv import load_dotenv
 
 from katana_public_api_client import AuthenticatedClient, KatanaClient
-from katana_public_api_client.generated.api.product import get_all_products
+from katana_public_api_client.api.product import get_all_products
 
 # Load environment variables from .env file
 load_dotenv()
@@ -122,7 +122,7 @@ class TestRealAPIIntegration:
             try:
 
                 async def test_katana_pagination():
-                    from katana_public_api_client.generated.api.product import (
+                    from katana_public_api_client.api.product import (
                         get_all_products,
                     )
 
@@ -260,7 +260,7 @@ class TestRealAPIIntegration:
             async with KatanaClient(
                 api_key="invalid-api-key-12345", base_url=base_url
             ) as client:
-                from katana_public_api_client.generated.api.product import (
+                from katana_public_api_client.api.product import (
                     get_all_products,
                 )
 
