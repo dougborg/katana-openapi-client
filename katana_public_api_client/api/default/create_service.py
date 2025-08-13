@@ -33,10 +33,10 @@ def _get_kwargs(
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> ErrorResponse | Service | None:
-    if response.status_code == 201:
-        response_201 = Service.from_dict(response.json())
+    if response.status_code == 200:
+        response_200 = Service.from_dict(response.json())
 
-        return response_201
+        return response_200
     if response.status_code == 401:
         response_401 = ErrorResponse.from_dict(response.json())
 

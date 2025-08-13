@@ -88,7 +88,7 @@ def sync_detailed(
         body (UpdateWebhookRequest): Request payload for updating an existing webhook subscription
             configuration Example: {'url': 'https://api.customer.com/webhooks/katana-v2', 'enabled':
             True, 'subscribed_events': ['sales_order.created', 'sales_order.updated',
-            'sales_order.fulfilled', 'inventory.stock_adjustment', 'manufacturing_order.completed',
+            'sales_order.delivered', 'current_inventory.product_updated', 'manufacturing_order.done',
             'purchase_order.received'], 'description': 'Updated ERP integration webhook with expanded
             event coverage'}.
 
@@ -129,7 +129,7 @@ def sync(
         body (UpdateWebhookRequest): Request payload for updating an existing webhook subscription
             configuration Example: {'url': 'https://api.customer.com/webhooks/katana-v2', 'enabled':
             True, 'subscribed_events': ['sales_order.created', 'sales_order.updated',
-            'sales_order.fulfilled', 'inventory.stock_adjustment', 'manufacturing_order.completed',
+            'sales_order.delivered', 'current_inventory.product_updated', 'manufacturing_order.done',
             'purchase_order.received'], 'description': 'Updated ERP integration webhook with expanded
             event coverage'}.
 
@@ -165,7 +165,7 @@ async def asyncio_detailed(
         body (UpdateWebhookRequest): Request payload for updating an existing webhook subscription
             configuration Example: {'url': 'https://api.customer.com/webhooks/katana-v2', 'enabled':
             True, 'subscribed_events': ['sales_order.created', 'sales_order.updated',
-            'sales_order.fulfilled', 'inventory.stock_adjustment', 'manufacturing_order.completed',
+            'sales_order.delivered', 'current_inventory.product_updated', 'manufacturing_order.done',
             'purchase_order.received'], 'description': 'Updated ERP integration webhook with expanded
             event coverage'}.
 
@@ -204,7 +204,7 @@ async def asyncio(
         body (UpdateWebhookRequest): Request payload for updating an existing webhook subscription
             configuration Example: {'url': 'https://api.customer.com/webhooks/katana-v2', 'enabled':
             True, 'subscribed_events': ['sales_order.created', 'sales_order.updated',
-            'sales_order.fulfilled', 'inventory.stock_adjustment', 'manufacturing_order.completed',
+            'sales_order.delivered', 'current_inventory.product_updated', 'manufacturing_order.done',
             'purchase_order.received'], 'description': 'Updated ERP integration webhook with expanded
             event coverage'}.
 

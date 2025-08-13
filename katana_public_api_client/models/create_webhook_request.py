@@ -15,8 +15,8 @@ class CreateWebhookRequest:
 
     Example:
         {'url': 'https://api.customer.com/webhooks/katana', 'subscribed_events': ['sales_order.created',
-            'sales_order.updated', 'inventory.stock_adjustment', 'manufacturing_order.completed'], 'description': 'ERP
-            integration webhook for inventory and order sync'}
+            'sales_order.delivered', 'current_inventory.product_out_of_stock', 'manufacturing_order.done'], 'description':
+            'ERP integration webhook for inventory and order sync'}
     """
 
     url: str

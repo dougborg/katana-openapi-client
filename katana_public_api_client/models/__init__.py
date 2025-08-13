@@ -357,6 +357,8 @@ from .variant_response_product_or_material_configs_item import (
 from .variant_response_type import VariantResponseType
 from .webhook import Webhook
 from .webhook_event import WebhookEvent
+from .webhook_event_payload import WebhookEventPayload
+from .webhook_event_payload_object import WebhookEventPayloadObject
 from .webhook_list_response import WebhookListResponse
 from .webhook_logs_export import WebhookLogsExport
 from .webhook_logs_export_request import WebhookLogsExportRequest
@@ -623,6 +625,8 @@ __all__ = (
     "VariantResponseType",
     "Webhook",
     "WebhookEvent",
+    "WebhookEventPayload",
+    "WebhookEventPayloadObject",
     "WebhookListResponse",
     "WebhookLogsExport",
     "WebhookLogsExportRequest",

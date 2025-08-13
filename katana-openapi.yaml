@@ -701,23 +701,29 @@ components:
         type: object
         properties:
           total_records:
-            type: integer
-            description: Total number of records in the result set matching the filters
+            type: string
+            description: Total number of records in the result set matching the filters (as string)
+            example: "150"
           total_pages:
-            type: integer
-            description: Number of pages in the result set
+            type: string
+            description: Number of pages in the result set (as string)
+            example: "6"
           offset:
-            type: integer
-            description: The offset from 0 for the start of this page
+            type: string
+            description: The offset from 0 for the start of this page (as string)
+            example: "50"
           page:
-            type: integer
-            description: The current page number being requested
+            type: string
+            description: The current page number being requested (as string)
+            example: "3"
           first_page:
-            type: boolean
-            description: Whether the requested page is the first one in the collection
+            type: string
+            description: Whether the requested page is the first one in the collection (as string)
+            example: "false"
           last_page:
-            type: boolean
-            description: Whether the requested page is the last one in the collection
+            type: string
+            description: Whether the requested page is the last one in the collection (as string)
+            example: "false"
         required:
           - total_records
           - total_pages
@@ -5213,43 +5219,36 @@ components:
 
     WebhookEvent:
       type: string
+      description: |
+        Available webhook events for real-time notifications.
+        Complete list of all 58 supported events as documented in the Katana API.
       enum:
+        # Sales Order Events
         - sales_order.created
-        - sales_order.packed
-        - sales_order.delivered
         - sales_order.updated
         - sales_order.deleted
+        - sales_order.packed
+        - sales_order.delivered
         - sales_order.availability_updated
+        # Purchase Order Events
         - purchase_order.created
         - purchase_order.updated
         - purchase_order.deleted
         - purchase_order.partially_received
         - purchase_order.received
+        # Purchase Order Row Events
         - purchase_order_row.created
-        - purchase_order_row.received
         - purchase_order_row.updated
         - purchase_order_row.deleted
-        - outsourced_purchase_order.created
-        - outsourced_purchase_order.updated
-        - outsourced_purchase_order.deleted
-        - outsourced_purchase_order.received
-        - outsourced_purchase_order_row.created
-        - outsourced_purchase_order_row.updated
-        - outsourced_purchase_order_row.deleted
-        - outsourced_purchase_order_row.received
-        - outsourced_purchase_order_recipe_row.created
-        - outsourced_purchase_order_recipe_row.updated
-        - outsourced_purchase_order_recipe_row.deleted
+        - purchase_order_row.received
+        # Manufacturing Order Events
         - manufacturing_order.created
         - manufacturing_order.updated
         - manufacturing_order.deleted
         - manufacturing_order.in_progress
         - manufacturing_order.blocked
         - manufacturing_order.done
-        - manufacturing_order_recipe_row.created
-        - manufacturing_order_recipe_row.updated
-        - manufacturing_order_recipe_row.deleted
-        - manufacturing_order_recipe_row.ingredients_in_stock
+        # Manufacturing Order Operation Row Events
         - manufacturing_order_operation_row.created
         - manufacturing_order_operation_row.updated
         - manufacturing_order_operation_row.deleted
@@ -5257,22 +5256,106 @@ components:
         - manufacturing_order_operation_row.paused
         - manufacturing_order_operation_row.blocked
         - manufacturing_order_operation_row.completed
+        # Manufacturing Order Recipe Row Events
+        - manufacturing_order_recipe_row.created
+        - manufacturing_order_recipe_row.updated
+        - manufacturing_order_recipe_row.deleted
+        - manufacturing_order_recipe_row.ingredients_in_stock
+        # Current Inventory Events
         - current_inventory.product_updated
         - current_inventory.material_updated
         - current_inventory.product_out_of_stock
         - current_inventory.material_out_of_stock
+        # Product Events
         - product.created
         - product.updated
         - product.deleted
+        # Material Events
         - material.created
         - material.updated
         - material.deleted
+        # Variant Events
         - variant.created
         - variant.updated
         - variant.deleted
+        # Product Recipe Row Events
         - product_recipe_row.created
         - product_recipe_row.updated
         - product_recipe_row.deleted
+        # Outsourced Purchase Order Events
+        - outsourced_purchase_order.created
+        - outsourced_purchase_order.updated
+        - outsourced_purchase_order.deleted
+        - outsourced_purchase_order.received
+        # Outsourced Purchase Order Row Events
+        - outsourced_purchase_order_row.created
+        - outsourced_purchase_order_row.updated
+        - outsourced_purchase_order_row.deleted
+        - outsourced_purchase_order_row.received
+        # Outsourced Purchase Order Recipe Row Events
+        - outsourced_purchase_order_recipe_row.created
+        - outsourced_purchase_order_recipe_row.updated
+        - outsourced_purchase_order_recipe_row.deleted
+
+    WebhookEventPayload:
+      type: object
+      description: |
+        Webhook event payload structure sent to registered webhook endpoints.
+        Contains information about the event and the affected resource.
+      required:
+        - resource_type
+        - action
+        - webhook_id
+        - object
+      properties:
+        resource_type:
+          type: string
+          description: Indicates the resource type affected by this event
+          example: "sales_order"
+        action:
+          $ref: "#/components/schemas/WebhookEvent"
+          description: The event that triggered this webhook
+          example: "sales_order.delivered"
+        webhook_id:
+          type: integer
+          description: ID of the registered webhook that was used to send the payload
+          example: 123
+        object:
+          type: object
+          description: |
+            The object affected by this event. Contains id, status and href to retrieve the resource.
+
+            Notes:
+            - href property doesn't apply to deleted events (e.g., sales_order.deleted, product_recipe_row.deleted)
+            - status field appears in examples but is not documented in official Katana API docs
+          required:
+            - id
+            - status
+          properties:
+            id:
+              type: string
+              description: Unique identifier of the affected resource
+              example: "12345"
+            status:
+              type: string
+              description: |
+                Current status of the affected resource.
+                Note: This field appears in webhook payload examples but is not documented
+                in the official Katana API documentation. The actual values and format
+                may vary by resource type and may not be reliable for programmatic use.
+              example: "DELIVERED"
+            href:
+              type: string
+              description: API endpoint URL to retrieve the full resource (not available for deleted events)
+              example: "https://api.katanamrp.com/v1/sales_orders/12345"
+      example:
+        resource_type: "sales_order"
+        action: "sales_order.delivered"
+        webhook_id: 123
+        object:
+          id: "12345"
+          status: "DELIVERED"
+          href: "https://api.katanamrp.com/v1/sales_orders/12345"
 
     CreateWebhookRequest:
       type: object
@@ -5299,9 +5382,9 @@ components:
         url: "https://api.customer.com/webhooks/katana"
         subscribed_events:
           - "sales_order.created"
-          - "sales_order.updated"
-          - "inventory.stock_adjustment"
-          - "manufacturing_order.completed"
+          - "sales_order.delivered"
+          - "current_inventory.product_out_of_stock"
+          - "manufacturing_order.done"
         description: "ERP integration webhook for inventory and order sync"
 
     UpdateWebhookRequest:
@@ -5334,9 +5417,9 @@ components:
         subscribed_events:
           - "sales_order.created"
           - "sales_order.updated"
-          - "sales_order.fulfilled"
-          - "inventory.stock_adjustment"
-          - "manufacturing_order.completed"
+          - "sales_order.delivered"
+          - "current_inventory.product_updated"
+          - "manufacturing_order.done"
           - "purchase_order.received"
         description: "Updated ERP integration webhook with expanded event coverage"
 
@@ -5399,7 +5482,7 @@ components:
             subscribed_events:
               - "sales_order.created"
               - "sales_order.updated"
-              - "inventory.stock_adjustment"
+              - "current_inventory.product_updated"
             created_at: "2024-01-10T09:00:00Z"
             updated_at: "2024-01-15T11:30:00Z"
           - id: 2
@@ -5408,7 +5491,7 @@ components:
             enabled: false
             description: "Business intelligence reporting"
             subscribed_events:
-              - "manufacturing_order.completed"
+              - "manufacturing_order.done"
               - "purchase_order.received"
             created_at: "2024-01-12T14:00:00Z"
             updated_at: "2024-01-14T16:45:00Z"
@@ -13212,7 +13295,7 @@ paths:
                   return_reason_id: 1
                   notes: "Defective items"
       responses:
-        "201":
+        "200":
           description: Sales return created successfully
           headers:
             X-Ratelimit-Limit:
@@ -13392,7 +13475,7 @@ paths:
               $ref: "#/components/schemas/ServiceRequest"
       operationId: createService
       responses:
-        "201":
+        "200":
           description: "Service created successfully."
           content:
             application/json:
@@ -14273,7 +14356,7 @@ paths:
               start_date: "2023-01-01T00:00:00.000Z"
               end_date: "2023-12-31T23:59:59.999Z"
       responses:
-        "201":
+        "200":
           description: Price list created successfully
           headers:
             X-Ratelimit-Limit:
@@ -14368,7 +14451,7 @@ paths:
               price: 29.99
               currency: "USD"
       responses:
-        "201":
+        "200":
           description: Price list row created successfully
           headers:
             X-Ratelimit-Limit:
@@ -14458,7 +14541,7 @@ paths:
               price_list_id: 12345
               customer_id: 67890
       responses:
-        "201":
+        "200":
           description: Price list customer assignment created successfully
           headers:
             X-Ratelimit-Limit:
@@ -14548,15 +14631,8 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateBomRowRequest"
       responses:
-        "200":
-          description: BOM row created successfully
-          headers:
-            X-Ratelimit-Limit:
-              $ref: "#/components/headers/X-Ratelimit-Limit"
-            X-Ratelimit-Remaining:
-              $ref: "#/components/headers/X-Ratelimit-Remaining"
-            X-Ratelimit-Reset:
-              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "204":
+          $ref: "#/components/responses/NoContent"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "422":
@@ -14581,19 +14657,8 @@ paths:
             schema:
               $ref: "#/components/schemas/BatchCreateBomRowsRequest"
       responses:
-        "200":
-          description: BOM rows created
-          headers:
-            X-Ratelimit-Limit:
-              $ref: "#/components/headers/X-Ratelimit-Limit"
-            X-Ratelimit-Remaining:
-              $ref: "#/components/headers/X-Ratelimit-Remaining"
-            X-Ratelimit-Reset:
-              $ref: "#/components/headers/X-Ratelimit-Reset"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/BomRowListResponse"
+        "204":
+          $ref: "#/components/responses/NoContent"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "422":
@@ -15179,7 +15244,7 @@ paths:
               amount: 15.99
               description: "Standard shipping"
       responses:
-        "201":
+        "200":
           description: Shipping fee created successfully
           headers:
             X-Ratelimit-Limit:
@@ -15207,6 +15272,505 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+
+webhooks:
+  # Sales Order Events (6 events: created, updated, deleted, packed, delivered, availability_updated)
+  sales_order_events:
+    post:
+      operationId: salesOrderEventsWebhook
+      summary: Sales Order Events
+      description: |
+        Webhook events for sales orders. Supports all sales order lifecycle events:
+        - sales_order.created: When a new sales order is created
+        - sales_order.updated: When a sales order is updated (any attribute)
+        - sales_order.deleted: When a sales order is deleted
+        - sales_order.packed: When status is marked as PACKED
+        - sales_order.delivered: When status is marked as DELIVERED
+        - sales_order.availability_updated: When availability or expected date is updated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEventPayload"
+            examples:
+              created:
+                summary: Sales Order Created
+                value:
+                  resource_type: "sales_order"
+                  action: "sales_order.created"
+                  webhook_id: 123
+                  object:
+                    id: "12345"
+                    status: "DRAFT"
+                    href: "https://api.katanamrp.com/v1/sales_orders/12345"
+              delivered:
+                summary: Sales Order Delivered
+                value:
+                  resource_type: "sales_order"
+                  action: "sales_order.delivered"
+                  webhook_id: 123
+                  object:
+                    id: "12345"
+                    status: "DELIVERED"
+                    href: "https://api.katanamrp.com/v1/sales_orders/12345"
+              deleted:
+                summary: Sales Order Deleted (no href)
+                value:
+                  resource_type: "sales_order"
+                  action: "sales_order.deleted"
+                  webhook_id: 123
+                  object:
+                    id: "12345"
+                    status: "CANCELLED"
+      responses:
+        '200':
+          description: Webhook received successfully
+        '2XX':
+          description: Webhook received successfully (any 2XX response acknowledges receipt)
+
+  # Purchase Order Events (5 events: created, updated, deleted, partially_received, received)
+  purchase_order_events:
+    post:
+      operationId: purchaseOrderEventsWebhook
+      summary: Purchase Order Events
+      description: |
+        Webhook events for purchase orders. Supports all purchase order lifecycle events:
+        - purchase_order.created: When a new purchase order is created
+        - purchase_order.updated: When a purchase order is updated
+        - purchase_order.deleted: When a purchase order is deleted
+        - purchase_order.partially_received: When status is marked as PARTIALLY_RECEIVED
+        - purchase_order.received: When status is marked as RECEIVED
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEventPayload"
+            examples:
+              created:
+                summary: Purchase Order Created
+                value:
+                  resource_type: "purchase_order"
+                  action: "purchase_order.created"
+                  webhook_id: 123
+                  object:
+                    id: "po-67890"
+                    status: "DRAFT"
+                    href: "https://api.katanamrp.com/v1/purchase_orders/po-67890"
+              received:
+                summary: Purchase Order Received
+                value:
+                  resource_type: "purchase_order"
+                  action: "purchase_order.received"
+                  webhook_id: 123
+                  object:
+                    id: "po-67890"
+                    status: "RECEIVED"
+                    href: "https://api.katanamrp.com/v1/purchase_orders/po-67890"
+      responses:
+        '200':
+          description: Webhook received successfully
+        '2XX':
+          description: Webhook received successfully
+
+  # Purchase Order Row Events (4 events: created, updated, deleted, received)
+  purchase_order_row_events:
+    post:
+      operationId: purchaseOrderRowEventsWebhook
+      summary: Purchase Order Row Events
+      description: |
+        Webhook events for purchase order rows. Supports all purchase order row lifecycle events:
+        - purchase_order_row.created: When a new purchase order row is created
+        - purchase_order_row.updated: When a purchase order row is updated
+        - purchase_order_row.deleted: When a purchase order row is deleted
+        - purchase_order_row.received: When a purchase order row is marked received
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEventPayload"
+            example:
+              resource_type: "purchase_order_row"
+              action: "purchase_order_row.created"
+              webhook_id: 123
+              object:
+                id: "por-123"
+                status: "DRAFT"
+                href: "https://api.katanamrp.com/v1/purchase_order_rows/por-123"
+      responses:
+        '200':
+          description: Webhook received successfully
+        '2XX':
+          description: Webhook received successfully
+
+  # Manufacturing Order Events (6 events: created, updated, deleted, in_progress, blocked, done)
+  manufacturing_order_events:
+    post:
+      operationId: manufacturingOrderEventsWebhook
+      summary: Manufacturing Order Events
+      description: |
+        Webhook events for manufacturing orders. Supports all manufacturing order lifecycle events:
+        - manufacturing_order.created: When a new manufacturing order is created
+        - manufacturing_order.updated: When a manufacturing order is updated (except ingredient_availability, total_planned_time, total_actual_time, and cost-related fields)
+        - manufacturing_order.deleted: When a manufacturing order is deleted
+        - manufacturing_order.in_progress: When status gets marked as IN_PROGRESS
+        - manufacturing_order.blocked: When status gets marked as BLOCKED
+        - manufacturing_order.done: When status gets marked as DONE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEventPayload"
+            examples:
+              created:
+                summary: Manufacturing Order Created
+                value:
+                  resource_type: "manufacturing_order"
+                  action: "manufacturing_order.created"
+                  webhook_id: 123
+                  object:
+                    id: "mo-456"
+                    status: "DRAFT"
+                    href: "https://api.katanamrp.com/v1/manufacturing_orders/mo-456"
+              done:
+                summary: Manufacturing Order Done
+                value:
+                  resource_type: "manufacturing_order"
+                  action: "manufacturing_order.done"
+                  webhook_id: 123
+                  object:
+                    id: "mo-456"
+                    status: "DONE"
+                    href: "https://api.katanamrp.com/v1/manufacturing_orders/mo-456"
+      responses:
+        '200':
+          description: Webhook received successfully
+        '2XX':
+          description: Webhook received successfully
+
+  # Manufacturing Order Operation Row Events (7 events: created, updated, deleted, in_progress, paused, blocked, completed)
+  manufacturing_order_operation_row_events:
+    post:
+      operationId: manufacturingOrderOperationRowEventsWebhook
+      summary: Manufacturing Order Operation Row Events
+      description: |
+        Webhook events for manufacturing order operation rows. Supports all operation row lifecycle events:
+        - manufacturing_order_operation_row.created: When an operation row is added to a manufacturing order
+        - manufacturing_order_operation_row.updated: When an operation row is updated in a manufacturing order
+        - manufacturing_order_operation_row.deleted: When an operation row is deleted from a manufacturing order
+        - manufacturing_order_operation_row.in_progress: When the operation status gets marked as IN_PROGRESS
+        - manufacturing_order_operation_row.paused: When the operation status gets marked as PAUSED
+        - manufacturing_order_operation_row.blocked: When the operation status gets marked as BLOCKED
+        - manufacturing_order_operation_row.completed: When the operation status gets marked as COMPLETED
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEventPayload"
+            example:
+              resource_type: "manufacturing_order_operation_row"
+              action: "manufacturing_order_operation_row.completed"
+              webhook_id: 123
+              object:
+                id: "moor-789"
+                status: "COMPLETED"
+                href: "https://api.katanamrp.com/v1/manufacturing_order_operation_rows/moor-789"
+      responses:
+        '200':
+          description: Webhook received successfully
+        '2XX':
+          description: Webhook received successfully
+
+  # Manufacturing Order Recipe Row Events (4 events: created, updated, deleted, ingredients_in_stock)
+  manufacturing_order_recipe_row_events:
+    post:
+      operationId: manufacturingOrderRecipeRowEventsWebhook
+      summary: Manufacturing Order Recipe Row Events
+      description: |
+        Webhook events for manufacturing order recipe rows. Supports all recipe row lifecycle events:
+        - manufacturing_order_recipe_row.created: When a recipe row is added to a manufacturing order
+        - manufacturing_order_recipe_row.updated: When a recipe row is updated in a manufacturing order
+        - manufacturing_order_recipe_row.deleted: When a recipe row is deleted from a manufacturing order
+        - manufacturing_order_recipe_row.ingredients_in_stock: When the ingredient availability of a manufacturing order recipe row is updated to IN_STOCK
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEventPayload"
+            example:
+              resource_type: "manufacturing_order_recipe_row"
+              action: "manufacturing_order_recipe_row.ingredients_in_stock"
+              webhook_id: 123
+              object:
+                id: "morr-101"
+                status: "IN_STOCK"
+                href: "https://api.katanamrp.com/v1/manufacturing_order_recipe_rows/morr-101"
+      responses:
+        '200':
+          description: Webhook received successfully
+        '2XX':
+          description: Webhook received successfully
+
+  # Current Inventory Events (4 events: product_updated, material_updated, product_out_of_stock, material_out_of_stock)
+  current_inventory_events:
+    post:
+      operationId: currentInventoryEventsWebhook
+      summary: Current Inventory Events
+      description: |
+        Webhook events for current inventory changes. Supports all inventory monitoring events:
+        - current_inventory.product_updated: When a product's current stock level or average cost is updated
+        - current_inventory.material_updated: When a material's current stock level or average cost is updated
+        - current_inventory.product_out_of_stock: When a product's current stock level is below the optimal level (quantity_missing_or_excess <= 0)
+        - current_inventory.material_out_of_stock: When a material's current stock level is below the optimal level (quantity_missing_or_excess <= 0)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEventPayload"
+            examples:
+              product_updated:
+                summary: Product Inventory Updated
+                value:
+                  resource_type: "current_inventory"
+                  action: "current_inventory.product_updated"
+                  webhook_id: 123
+                  object:
+                    id: "prod-456"
+                    status: "UPDATED"
+                    href: "https://api.katanamrp.com/v1/products/prod-456"
+              out_of_stock:
+                summary: Product Out of Stock
+                value:
+                  resource_type: "current_inventory"
+                  action: "current_inventory.product_out_of_stock"
+                  webhook_id: 123
+                  object:
+                    id: "prod-456"
+                    status: "OUT_OF_STOCK"
+                    href: "https://api.katanamrp.com/v1/products/prod-456"
+      responses:
+        '200':
+          description: Webhook received successfully
+        '2XX':
+          description: Webhook received successfully
+
+  # Product Events (3 events: created, updated, deleted)
+  product_events:
+    post:
+      operationId: productEventsWebhook
+      summary: Product Events
+      description: |
+        Webhook events for products. Supports all product lifecycle events:
+        - product.created: When a new product is created
+        - product.updated: When a product is updated
+        - product.deleted: When a product is deleted
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEventPayload"
+            example:
+              resource_type: "product"
+              action: "product.created"
+              webhook_id: 123
+              object:
+                id: "prod-789"
+                status: "ACTIVE"
+                href: "https://api.katanamrp.com/v1/products/prod-789"
+      responses:
+        '200':
+          description: Webhook received successfully
+        '2XX':
+          description: Webhook received successfully
+
+  # Material Events (3 events: created, updated, deleted)
+  material_events:
+    post:
+      operationId: materialEventsWebhook
+      summary: Material Events
+      description: |
+        Webhook events for materials. Supports all material lifecycle events:
+        - material.created: When a new material is created
+        - material.updated: When a material is updated
+        - material.deleted: When a material is deleted
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEventPayload"
+            example:
+              resource_type: "material"
+              action: "material.created"
+              webhook_id: 123
+              object:
+                id: "mat-321"
+                status: "ACTIVE"
+                href: "https://api.katanamrp.com/v1/materials/mat-321"
+      responses:
+        '200':
+          description: Webhook received successfully
+        '2XX':
+          description: Webhook received successfully
+
+  # Variant Events (3 events: created, updated, deleted)
+  variant_events:
+    post:
+      operationId: variantEventsWebhook
+      summary: Variant Events
+      description: |
+        Webhook events for variants. Supports all variant lifecycle events:
+        - variant.created: When a new variant is added to a product or material
+        - variant.updated: When a variant is updated
+        - variant.deleted: When a variant is deleted
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEventPayload"
+            example:
+              resource_type: "variant"
+              action: "variant.created"
+              webhook_id: 123
+              object:
+                id: "var-654"
+                status: "ACTIVE"
+                href: "https://api.katanamrp.com/v1/variants/var-654"
+      responses:
+        '200':
+          description: Webhook received successfully
+        '2XX':
+          description: Webhook received successfully
+
+  # Product Recipe Row Events (3 events: created, updated, deleted)
+  product_recipe_row_events:
+    post:
+      operationId: productRecipeRowEventsWebhook
+      summary: Product Recipe Row Events
+      description: |
+        Webhook events for product recipe rows. Supports all product recipe row lifecycle events:
+        - product_recipe_row.created: When a product recipe row is created
+        - product_recipe_row.updated: When a product recipe row is updated
+        - product_recipe_row.deleted: When a product recipe row is deleted (no href for deleted events)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEventPayload"
+            example:
+              resource_type: "product_recipe_row"
+              action: "product_recipe_row.created"
+              webhook_id: 123
+              object:
+                id: "prr-987"
+                status: "ACTIVE"
+                href: "https://api.katanamrp.com/v1/product_recipe_rows/prr-987"
+      responses:
+        '200':
+          description: Webhook received successfully
+        '2XX':
+          description: Webhook received successfully
+
+  # Outsourced Purchase Order Events (4 events: created, updated, deleted, received)
+  outsourced_purchase_order_events:
+    post:
+      operationId: outsourcedPurchaseOrderEventsWebhook
+      summary: Outsourced Purchase Order Events
+      description: |
+        Webhook events for outsourced purchase orders. Supports all outsourced purchase order lifecycle events:
+        - outsourced_purchase_order.created: When an outsourced purchase order is created
+        - outsourced_purchase_order.updated: When an outsourced purchase order is updated
+        - outsourced_purchase_order.deleted: When an outsourced purchase order is deleted
+        - outsourced_purchase_order.received: When an outsourced purchase order is received
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEventPayload"
+            example:
+              resource_type: "outsourced_purchase_order"
+              action: "outsourced_purchase_order.created"
+              webhook_id: 123
+              object:
+                id: "opo-555"
+                status: "DRAFT"
+                href: "https://api.katanamrp.com/v1/outsourced_purchase_orders/opo-555"
+      responses:
+        '200':
+          description: Webhook received successfully
+        '2XX':
+          description: Webhook received successfully
+
+  # Outsourced Purchase Order Row Events (4 events: created, updated, deleted, received)
+  outsourced_purchase_order_row_events:
+    post:
+      operationId: outsourcedPurchaseOrderRowEventsWebhook
+      summary: Outsourced Purchase Order Row Events
+      description: |
+        Webhook events for outsourced purchase order rows. Supports all outsourced purchase order row lifecycle events:
+        - outsourced_purchase_order_row.created: When an outsourced purchase order row is created
+        - outsourced_purchase_order_row.updated: When an outsourced purchase order row is updated
+        - outsourced_purchase_order_row.deleted: When an outsourced purchase order row is deleted
+        - outsourced_purchase_order_row.received: When an outsourced purchase order row is received
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEventPayload"
+            example:
+              resource_type: "outsourced_purchase_order_row"
+              action: "outsourced_purchase_order_row.created"
+              webhook_id: 123
+              object:
+                id: "opor-777"
+                status: "DRAFT"
+                href: "https://api.katanamrp.com/v1/outsourced_purchase_order_rows/opor-777"
+      responses:
+        '200':
+          description: Webhook received successfully
+        '2XX':
+          description: Webhook received successfully
+
+  # Outsourced Purchase Order Recipe Row Events (3 events: created, updated, deleted)
+  outsourced_purchase_order_recipe_row_events:
+    post:
+      operationId: outsourcedPurchaseOrderRecipeRowEventsWebhook
+      summary: Outsourced Purchase Order Recipe Row Events
+      description: |
+        Webhook events for outsourced purchase order recipe rows. Supports all outsourced purchase order recipe row lifecycle events:
+        - outsourced_purchase_order_recipe_row.created: When an outsourced purchase order recipe row is created
+        - outsourced_purchase_order_recipe_row.updated: When an outsourced purchase order recipe row is updated
+        - outsourced_purchase_order_recipe_row.deleted: When an outsourced purchase order recipe row is deleted
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEventPayload"
+            example:
+              resource_type: "outsourced_purchase_order_recipe_row"
+              action: "outsourced_purchase_order_recipe_row.created"
+              webhook_id: 123
+              object:
+                id: "oporr-888"
+                status: "ACTIVE"
+                href: "https://api.katanamrp.com/v1/outsourced_purchase_order_recipe_rows/oporr-888"
+      responses:
+        '200':
+          description: Webhook received successfully
+        '2XX':
+          description: Webhook received successfully
 
 x-explorer-enabled: false
 x-samples-enabled: true

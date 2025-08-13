@@ -15,9 +15,9 @@ class UpdateWebhookRequest:
 
     Example:
         {'url': 'https://api.customer.com/webhooks/katana-v2', 'enabled': True, 'subscribed_events':
-            ['sales_order.created', 'sales_order.updated', 'sales_order.fulfilled', 'inventory.stock_adjustment',
-            'manufacturing_order.completed', 'purchase_order.received'], 'description': 'Updated ERP integration webhook
-            with expanded event coverage'}
+            ['sales_order.created', 'sales_order.updated', 'sales_order.delivered', 'current_inventory.product_updated',
+            'manufacturing_order.done', 'purchase_order.received'], 'description': 'Updated ERP integration webhook with
+            expanded event coverage'}
     """
 
     url: str
