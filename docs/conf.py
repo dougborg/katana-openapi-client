@@ -57,7 +57,7 @@ autoapi_options = [
     "show-module-summary",
     "imported-members",
 ]
-autoapi_keep_files = True
+autoapi_keep_files = False
 
 # Exclude only tests and cache files from AutoAPI, include generated client
 autoapi_ignore = [
@@ -65,6 +65,8 @@ autoapi_ignore = [
     "**/conftest.py",
     "**/__pycache__/**/*",
     "**/.*",
+    # Ignore specific problematic modules that cause KeyError
+    "**/generated/**",
 ]
 
 # Napoleon settings (for Google/NumPy style docstrings)
