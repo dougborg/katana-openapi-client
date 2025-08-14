@@ -4,3 +4,7 @@ This is a temporary test file to verify semantic-release changelog generation wo
 correctly.
 
 This file can be deleted after testing is complete.
+
+## Update
+
+Testing fix-type commit for semantic-release validation.
