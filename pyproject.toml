@@ -1,6 +1,6 @@
 [project]
 name = "katana-openapi-client"
-version = "0.8.0"
+version = "0.8.1"
 description = "A modern, pythonic Katana Manufacturing ERP API client with automatic retries, rate limiting, and smart pagination"
 authors = [
     {name = "Doug Borg", email = "dougborg@dougborg.org"},
@@ -344,8 +344,8 @@ upload_to_vcs_release = true
 format-python = "ruff format ."
 format-python-check = "ruff format --check ."
 
-format-markdown = "mdformat README.md docs/KATANA_CLIENT_GUIDE.md docs/POETRY_USAGE.md docs/README.md docs/TESTING_GUIDE.md docs/CONTRIBUTING.md docs/CODE_OF_CONDUCT.md docs/RELEASE_WORKFLOW.md docs/SEMANTIC_RELEASE_GUIDE.md docs/PYPI_SETUP.md docs/index.md --wrap 88"
-format-markdown-check = "mdformat --check README.md docs/KATANA_CLIENT_GUIDE.md docs/POETRY_USAGE.md docs/README.md docs/TESTING_GUIDE.md docs/CONTRIBUTING.md docs/CODE_OF_CONDUCT.md docs/RELEASE_WORKFLOW.md docs/SEMANTIC_RELEASE_GUIDE.md docs/PYPI_SETUP.md docs/index.md"
+format-markdown = "mdformat README.md docs/KATANA_CLIENT_GUIDE.md docs/POETRY_USAGE.md docs/README.md docs/TESTING_GUIDE.md docs/CONTRIBUTING.md docs/CODE_OF_CONDUCT.md docs/SEMANTIC_RELEASE_GUIDE.md docs/PYPI_SETUP.md docs/index.md docs/CHANGELOG.md --wrap 88"
+format-markdown-check = "mdformat --check README.md docs/KATANA_CLIENT_GUIDE.md docs/POETRY_USAGE.md docs/README.md docs/TESTING_GUIDE.md docs/CONTRIBUTING.md docs/CODE_OF_CONDUCT.md docs/SEMANTIC_RELEASE_GUIDE.md docs/PYPI_SETUP.md docs/index.md docs/CHANGELOG.md"
 
 format = ["format-python", "format-markdown"]
 format-check = ["format-python-check", "format-markdown-check"]
