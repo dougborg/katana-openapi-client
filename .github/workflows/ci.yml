@@ -42,7 +42,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --with dev,docs --no-interaction
+        run: poetry install --extras "dev docs" --no-interaction
 
       - name: Check code formatting
         run: poetry run poe format-check
@@ -79,7 +79,7 @@ jobs:
           installer-parallel: true
 
       - name: Install dependencies
-        run: poetry install --with dev,docs --no-interaction
+        run: poetry install --extras "dev docs" --no-interaction
 
       - name: Validate OpenAPI specification
         run: poetry run poe validate-openapi

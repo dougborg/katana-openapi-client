@@ -33,7 +33,7 @@ jobs:
           installer-parallel: true
 
       - name: Install dependencies
-        run: poetry install --with dev --no-interaction
+        run: poetry install --extras "dev" --no-interaction
 
       - name: Run full CI pipeline
         run: poetry run poe ci
@@ -68,7 +68,7 @@ jobs:
           installer-parallel: true
 
       - name: Install dependencies
-        run: poetry install --with dev --no-interaction
+        run: poetry install --extras "dev" --no-interaction
 
       - name: Python Semantic Release
         id: release
