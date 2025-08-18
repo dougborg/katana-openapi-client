@@ -74,6 +74,7 @@ dev = [
   # Code quality and linting
   "ruff>=0.12.4,<0.13",
   "mypy>=1.17.0,<2.0.0",
+  "pre-commit>=4.2.0",
   # Task runner
   "poethepoet>=0.36.0",
   # Build tools
@@ -92,47 +93,26 @@ dev = [
   "types-python-dateutil>=2.8.0",
   "types-PyYAML>=6.0.0",
   "types-urllib3>=1.26.0",
+  "mypy-extensions>=1.1.0",
   # OpenAPI tools
   "openapi-python-client>=0.25.2",
   # Semantic release
   "python-semantic-release>=9.0.0",
-  "mypy-extensions>=1.1.0",
-  # Documentation generation
-  "sphinx>=7.0.0",
-  "sphinx-rtd-theme>=2.0.0",
-  "sphinx-autoapi>=3.0.0",
-  "myst-parser>=2.0.0",
-  "linkify-it-py>=2.0.0",
+  # Documentation - MkDocs (new)
+  "mkdocs>=1.6.0",
+  "mkdocs-material>=9.5.0",
+  "mkdocstrings[python]>=0.25.0",
+  "mkdocs-gen-files>=0.5.0",
+  "mkdocs-literate-nav>=0.6.0",
 ]
 
 [tool.poetry]
 # Keep Poetry section for package discovery and build configuration
 packages = [{ include = "katana_public_api_client" }]
-include = ["katana_public_api_client/py.typed", "katana-openapi.yaml"]
+include = ["katana_public_api_client/py.typed", "docs/katana-openapi.yaml"]
 
-
-[tool.poetry.group.dev.dependencies]
-pre-commit = "^4.2.0"
-poethepoet = "^0.36.0"
-ruff = "^0.12.4"
-mypy = "^1.17.0"
-mdformat = "^0.7.22"
-mdformat-gfm = "^0.4.1"
-mdformat-tables = "^1.0.0"
-mdformat-toc = "^0.3.0"
-types-pyyaml = "^6.0.12.20250516"
-pytest = "^8.4.1"
-pytest-asyncio = "^1.1.0"
-pytest-timeout = "^2.4.0"
-sphinx = "^8.2.3"
-sphinx-rtd-theme = "^3.0.2"
-sphinx-autoapi = "^3.6.0"
-myst-parser = "^4.0.1"
-linkify-it-py = "^2.0.3"
-yamllint = "^1.37.1"
-openapi-spec-validator = "^0.7.2"
-openapi-python-client = "^0.25.3"
-pyyaml = "^6.0.2"
+[tool.poetry.group.docs.dependencies]
+mkdocs-swagger-ui-tag = "^0.7.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -345,8 +325,8 @@ upload_to_vcs_release = true
 format-python = "ruff format ."
 format-python-check = "ruff format --check ."
 
-format-markdown = "mdformat README.md docs/KATANA_CLIENT_GUIDE.md docs/POETRY_USAGE.md docs/README.md docs/TESTING_GUIDE.md docs/CONTRIBUTING.md docs/CODE_OF_CONDUCT.md docs/SEMANTIC_RELEASE_GUIDE.md docs/PYPI_SETUP.md docs/index.md docs/CHANGELOG.md --wrap 88"
-format-markdown-check = "mdformat --check README.md docs/KATANA_CLIENT_GUIDE.md docs/POETRY_USAGE.md docs/README.md docs/TESTING_GUIDE.md docs/CONTRIBUTING.md docs/CODE_OF_CONDUCT.md docs/SEMANTIC_RELEASE_GUIDE.md docs/PYPI_SETUP.md docs/index.md docs/CHANGELOG.md"
+format-markdown = "mdformat README.md docs/KATANA_CLIENT_GUIDE.md docs/POETRY_USAGE.md docs/TESTING_GUIDE.md docs/CONTRIBUTING.md docs/CODE_OF_CONDUCT.md docs/SEMANTIC_RELEASE_GUIDE.md docs/PYPI_SETUP.md docs/index.md docs/CHANGELOG.md docs/CLIENT_README.md docs/DOCUMENTATION_MIGRATION_SUMMARY.md docs/openapi-docs.md --wrap 88"
+format-markdown-check = "mdformat --check README.md docs/KATANA_CLIENT_GUIDE.md docs/POETRY_USAGE.md docs/TESTING_GUIDE.md docs/CONTRIBUTING.md docs/CODE_OF_CONDUCT.md docs/SEMANTIC_RELEASE_GUIDE.md docs/PYPI_SETUP.md docs/index.md docs/CHANGELOG.md docs/CLIENT_README.md docs/DOCUMENTATION_MIGRATION_SUMMARY.md docs/openapi-docs.md"
 
 format = ["format-python", "format-markdown"]
 format-check = ["format-python-check", "format-markdown-check"]
@@ -378,16 +358,16 @@ test-all = "pytest"  # Run everything including docs (if CI_DOCS_BUILD is set)
 # OpenAPI and Code Generation Tasks
 # -----------------------------------------------------------------------------
 regenerate-client = "python scripts/regenerate_client.py"
-validate-openapi = "openapi-spec-validator katana-openapi.yaml"
-validate-openapi-redocly = "npx @redocly/cli lint katana-openapi.yaml"
+validate-openapi = "openapi-spec-validator docs/katana-openapi.yaml"
+validate-openapi-redocly = "npx @redocly/cli lint docs/katana-openapi.yaml"
 
 # -----------------------------------------------------------------------------
 # Documentation Tasks
 # -----------------------------------------------------------------------------
-docs-build = "sphinx-build -b html docs docs/_build/html"
-docs-clean = "rm -rf docs/_build"
-docs-serve = "python -m http.server 8000 -d docs/_build/html"
-docs-autobuild = "sphinx-autobuild docs docs/_build/html --open-browser"
+docs-build = "mkdocs build"
+docs-clean = "rm -rf site"
+docs-serve = "mkdocs serve"
+docs-autobuild = "mkdocs serve --watch docs --watch katana_public_api_client"
 
 # -----------------------------------------------------------------------------
 # Pre-commit Tasks
@@ -438,7 +418,7 @@ echo "   poe test-unit           - Run unit tests only"
 echo "   poe test-integration    - Run integration tests only"
 echo ""
 echo "📁 Documentation:"
-echo "   poe docs-build          - Build Sphinx documentation"
+echo "   poe docs-build          - Build MkDocs documentation"
 echo "   poe docs-clean          - Clean documentation build files"
 echo "   poe docs-serve          - Serve documentation locally"
 echo "   poe docs-autobuild      - Auto-rebuild docs on changes"

@@ -586,7 +586,7 @@ def main():
     """Main function."""
     # Setup paths
     workspace_path = Path.cwd()
-    spec_path = workspace_path / "katana-openapi.yaml"
+    spec_path = workspace_path / "docs" / "katana-openapi.yaml"
     client_path = workspace_path / "katana_public_api_client"
 
     print("🚀 Katana OpenAPI Client Regeneration")

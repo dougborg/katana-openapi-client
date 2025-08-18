@@ -60,9 +60,9 @@ venv/
 # Django stuff:
 *.log
 
-# Sphinx documentation
+# MkDocs documentation
+site/
 docs/_build/
-docs/_static/
 docs/autoapi/
 docs/*.log
 docs/all_warnings.txt

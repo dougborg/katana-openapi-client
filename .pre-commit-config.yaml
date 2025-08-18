@@ -20,6 +20,7 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        args: [--allow-multiple-documents, --unsafe]
       - id: check-added-large-files
         exclude: 'docs/katana-api-comprehensive/openapi-spec\.json'
       - id: check-case-conflict

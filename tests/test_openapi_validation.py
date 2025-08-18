@@ -10,12 +10,12 @@ class TestOpenAPIValidation:
 
     def test_openapi_file_exists(self):
         """Test that the OpenAPI specification file exists."""
-        openapi_file = Path("katana-openapi.yaml")
+        openapi_file = Path("docs/katana-openapi.yaml")
         assert openapi_file.exists(), "OpenAPI specification file not found"
 
     def test_openapi_file_is_valid_yaml(self):
         """Test that the OpenAPI file is valid YAML."""
-        openapi_file = Path("katana-openapi.yaml")
+        openapi_file = Path("docs/katana-openapi.yaml")
 
         with open(openapi_file) as f:
             spec = yaml.safe_load(f)
@@ -25,7 +25,7 @@ class TestOpenAPIValidation:
 
     def test_openapi_version(self):
         """Test that the OpenAPI specification uses version 3.1.x."""
-        openapi_file = Path("katana-openapi.yaml")
+        openapi_file = Path("docs/katana-openapi.yaml")
 
         with open(openapi_file) as f:
             spec = yaml.safe_load(f)
@@ -36,7 +36,7 @@ class TestOpenAPIValidation:
 
     def test_openapi_required_sections(self):
         """Test that the OpenAPI specification has all required sections."""
-        openapi_file = Path("katana-openapi.yaml")
+        openapi_file = Path("docs/katana-openapi.yaml")
 
         with open(openapi_file) as f:
             spec = yaml.safe_load(f)
@@ -47,7 +47,7 @@ class TestOpenAPIValidation:
 
     def test_openapi_info_section(self):
         """Test that the info section has required fields."""
-        openapi_file = Path("katana-openapi.yaml")
+        openapi_file = Path("docs/katana-openapi.yaml")
 
         with open(openapi_file) as f:
             spec = yaml.safe_load(f)
@@ -58,7 +58,7 @@ class TestOpenAPIValidation:
 
     def test_openapi_endpoints_exist(self):
         """Test that the OpenAPI specification defines endpoints."""
-        openapi_file = Path("katana-openapi.yaml")
+        openapi_file = Path("docs/katana-openapi.yaml")
 
         with open(openapi_file) as f:
             spec = yaml.safe_load(f)
@@ -71,7 +71,7 @@ class TestOpenAPIValidation:
 
     def test_openapi_components_section(self):
         """Test that the OpenAPI specification has components section."""
-        openapi_file = Path("katana-openapi.yaml")
+        openapi_file = Path("docs/katana-openapi.yaml")
 
         with open(openapi_file) as f:
             spec = yaml.safe_load(f)
@@ -90,7 +90,7 @@ class TestOpenAPIValidation:
 
     def test_openapi_security_definitions(self):
         """Test that the OpenAPI specification defines security schemes."""
-        openapi_file = Path("katana-openapi.yaml")
+        openapi_file = Path("docs/katana-openapi.yaml")
 
         with open(openapi_file) as f:
             spec = yaml.safe_load(f)
@@ -104,7 +104,7 @@ class TestOpenAPIValidation:
 
     def test_endpoint_methods(self):
         """Test that endpoints define proper HTTP methods."""
-        openapi_file = Path("katana-openapi.yaml")
+        openapi_file = Path("docs/katana-openapi.yaml")
 
         with open(openapi_file) as f:
             spec = yaml.safe_load(f)

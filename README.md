@@ -237,7 +237,7 @@ async with KatanaClient() as client:
 
 ```text
 katana-openapi-client/
-├── katana-openapi.yaml          # OpenAPI 3.1.0 specification
+├── docs/katana-openapi.yaml     # OpenAPI 3.1.0 specification
 ├── katana_public_api_client/    # Generated Python client
 │   ├── katana_client.py         # KatanaClient with transport-layer resilience
 │   ├── client.py                # Base generated client classes

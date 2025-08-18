@@ -19,7 +19,7 @@ import yaml
 @pytest.fixture(scope="session")
 def openapi_spec() -> dict[str, Any]:
     """Load the OpenAPI specification once for all tests."""
-    spec_path = Path(__file__).parent.parent / "katana-openapi.yaml"
+    spec_path = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
     with open(spec_path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 

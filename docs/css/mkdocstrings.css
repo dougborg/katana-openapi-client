@@ -1,0 +1,71 @@
+/* Custom styling for mkdocstrings */
+
+/* Improve code block styling */
+.highlight pre {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+}
+
+/* Enhance API documentation styling */
+.doc-signature {
+    background: var(--md-code-bg-color);
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+    margin: 0.5rem 0;
+    font-family: var(--md-code-font);
+    font-size: 0.85em;
+}
+
+/* Style parameter lists */
+.doc-parameters {
+    margin: 1rem 0;
+}
+
+.doc-parameter {
+    margin-bottom: 0.5rem;
+}
+
+.doc-parameter-name {
+    font-weight: bold;
+    color: var(--md-primary-fg-color);
+}
+
+/* Improve class/function headings */
+.doc-heading {
+    border-bottom: 1px solid var(--md-default-fg-color--lightest);
+    padding-bottom: 0.25rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+/* Style return type annotations */
+.doc-returns {
+    margin-top: 1rem;
+    padding: 0.5rem;
+    background: var(--md-code-bg-color);
+    border-radius: 0.25rem;
+    border-left: 3px solid var(--md-primary-fg-color);
+}
+
+/* Improve source code links */
+.doc-source-link {
+    float: right;
+    font-size: 0.8em;
+    color: var(--md-default-fg-color--light);
+}
+
+.doc-source-link:hover {
+    color: var(--md-primary-fg-color);
+}
+
+/* Hide edit button on generated API reference pages */
+[data-md-url*="/reference/"] .md-content__button.md-icon {
+    display: none !important;
+}
+
+/* Alternative selector for edit action buttons on API reference pages */
+.md-content[data-md-url*="/reference/"] .md-content__action,
+[data-md-url*="/reference/"] .md-content__action {
+    display: none !important;
+}

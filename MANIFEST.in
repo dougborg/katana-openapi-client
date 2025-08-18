@@ -1,7 +1,7 @@
 include README.md
 include LICENSE
 include CHANGELOG.md
-include katana-openapi.yaml
+include docs/katana-openapi.yaml
 include pyproject.toml
 include poetry.lock
 

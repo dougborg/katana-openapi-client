@@ -1,6 +1,6 @@
 apis:
-  katana:
-    root: katana-openapi.yaml
+  katana@v1:
+    root: docs/katana-openapi.yaml
 extends:
   - recommended
 rules:
