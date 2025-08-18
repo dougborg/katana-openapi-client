@@ -122,6 +122,7 @@ build-backend = "poetry.core.masonry.api"
 files = ["katana_public_api_client", "tests", "scripts"]
 exclude = [
   "tests/conftest.py",                     # Avoid duplicate module name issue
+  "scripts/extract_all_katana_docs.py",   # Utility script with external dependencies
 ]
 # TODO: enable "strict" once all these individual checks are passing
 # strict = true
