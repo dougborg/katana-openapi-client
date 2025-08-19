@@ -322,6 +322,7 @@ from .update_purchase_order_request import UpdatePurchaseOrderRequest
 from .update_purchase_order_request_status import UpdatePurchaseOrderRequestStatus
 from .update_purchase_order_row_request import UpdatePurchaseOrderRowRequest
 from .update_sales_order_body import UpdateSalesOrderBody
+from .update_sales_order_body_status import UpdateSalesOrderBodyStatus
 from .update_supplier_address_request import UpdateSupplierAddressRequest
 from .update_supplier_request import UpdateSupplierRequest
 from .update_variant_request import UpdateVariantRequest
@@ -600,6 +601,7 @@ __all__ = (
     "UpdatePurchaseOrderRequestStatus",
     "UpdatePurchaseOrderRowRequest",
     "UpdateSalesOrderBody",
+    "UpdateSalesOrderBodyStatus",
     "UpdateSupplierAddressRequest",
     "UpdateSupplierRequest",
     "UpdateVariantRequest",

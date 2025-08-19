@@ -1,6 +1,6 @@
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
 from attrs import (
     define as _attrs_define,
@@ -23,6 +23,7 @@ from ..models.sales_order_status import SalesOrderStatus
 if TYPE_CHECKING:
     from ..models.sales_order_address import SalesOrderAddress
     from ..models.sales_order_row import SalesOrderRow
+    from ..models.sales_order_shipping_fee import SalesOrderShippingFee
 
 
 T = TypeVar("T", bound="SalesOrder")
@@ -92,6 +93,9 @@ class SalesOrder:
         tracking_number_url (Union[None, Unset, str]): URL link to track the shipment on carrier website
         billing_address_id (Union[None, Unset, int]): Reference to the customer address used for billing
         shipping_address_id (Union[None, Unset, int]): Reference to the customer address used for shipping
+        linked_manufacturing_order_id (Union[None, Unset, int]): ID of the linked manufacturing order if this sales
+            order has associated production
+        shipping_fee (Union['SalesOrderShippingFee', None, Unset]): Shipping fee details for this sales order
         addresses (Union[Unset, list['SalesOrderAddress']]): Complete address information for billing and shipping
     """
 
@@ -129,10 +133,14 @@ class SalesOrder:
     tracking_number_url: None | Unset | str = UNSET
     billing_address_id: None | Unset | int = UNSET
     shipping_address_id: None | Unset | int = UNSET
+    linked_manufacturing_order_id: None | Unset | int = UNSET
+    shipping_fee: Union["SalesOrderShippingFee", None, Unset] = UNSET
     addresses: Unset | list["SalesOrderAddress"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.sales_order_shipping_fee import SalesOrderShippingFee
+
         id = self.id
 
         customer_id = self.customer_id
@@ -306,6 +314,20 @@ class SalesOrder:
         else:
             shipping_address_id = self.shipping_address_id
 
+        linked_manufacturing_order_id: None | Unset | int
+        if isinstance(self.linked_manufacturing_order_id, Unset):
+            linked_manufacturing_order_id = UNSET
+        else:
+            linked_manufacturing_order_id = self.linked_manufacturing_order_id
+
+        shipping_fee: None | Unset | dict[str, Any]
+        if isinstance(self.shipping_fee, Unset):
+            shipping_fee = UNSET
+        elif isinstance(self.shipping_fee, SalesOrderShippingFee):
+            shipping_fee = self.shipping_fee.to_dict()
+        else:
+            shipping_fee = self.shipping_fee
+
         addresses: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.addresses, Unset):
             addresses = []
@@ -378,6 +400,10 @@ class SalesOrder:
             field_dict["billing_address_id"] = billing_address_id
         if shipping_address_id is not UNSET:
             field_dict["shipping_address_id"] = shipping_address_id
+        if linked_manufacturing_order_id is not UNSET:
+            field_dict["linked_manufacturing_order_id"] = linked_manufacturing_order_id
+        if shipping_fee is not UNSET:
+            field_dict["shipping_fee"] = shipping_fee
         if addresses is not UNSET:
             field_dict["addresses"] = addresses
 
@@ -387,6 +413,7 @@ class SalesOrder:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.sales_order_address import SalesOrderAddress
         from ..models.sales_order_row import SalesOrderRow
+        from ..models.sales_order_shipping_fee import SalesOrderShippingFee
 
         d = dict(src_dict)
         id = d.pop("id")
@@ -709,6 +736,36 @@ class SalesOrder:
             d.pop("shipping_address_id", UNSET)
         )
 
+        def _parse_linked_manufacturing_order_id(data: object) -> None | Unset | int:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | int, data)
+
+        linked_manufacturing_order_id = _parse_linked_manufacturing_order_id(
+            d.pop("linked_manufacturing_order_id", UNSET)
+        )
+
+        def _parse_shipping_fee(
+            data: object,
+        ) -> Union["SalesOrderShippingFee", None, Unset]:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                shipping_fee_type_0 = SalesOrderShippingFee.from_dict(data)
+
+                return shipping_fee_type_0
+            except:  # noqa: E722
+                pass
+            return cast(Union["SalesOrderShippingFee", None, Unset], data)
+
+        shipping_fee = _parse_shipping_fee(d.pop("shipping_fee", UNSET))
+
         addresses = []
         _addresses = d.pop("addresses", UNSET)
         for addresses_item_data in _addresses or []:
@@ -749,6 +806,8 @@ class SalesOrder:
             tracking_number_url=tracking_number_url,
             billing_address_id=billing_address_id,
             shipping_address_id=shipping_address_id,
+            linked_manufacturing_order_id=linked_manufacturing_order_id,
+            shipping_fee=shipping_fee,
             addresses=addresses,
         )
 
