@@ -14,6 +14,8 @@ automatically. The setup process:
 1. **Installs Poetry** - Python package manager for dependency management
 1. **Installs all dependencies** - Runs `poetry install --extras "dev docs"` to install
    production, development, and documentation dependencies
+1. **Installs pre-commit hooks** - Runs `poetry run poe pre-commit-install` (may fail in
+   restricted environments)
 1. **Validates environment** - Tests package imports and runs format checks
 1. **Provides task runner** - Verifies `poethepoet (poe)` task runner is available
 

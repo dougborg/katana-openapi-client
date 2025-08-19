@@ -52,6 +52,12 @@ jobs:
           poetry install --extras "dev docs"
           echo "✅ Dependencies installed successfully"
 
+      - name: Install pre-commit hooks
+        run: |
+          echo "🪝 Installing pre-commit hooks..."
+          poetry run poe pre-commit-install || echo "⚠️  Pre-commit installation may fail in restricted environments"
+          echo "✅ Pre-commit hooks installation attempted"
+
       - name: Verify installation
         run: |
           echo "🔍 Verifying Poetry virtual environment..."
