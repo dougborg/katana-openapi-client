@@ -13135,6 +13135,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../update_sales_order_body_status/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    update_sales_order_body_status
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../update_supplier_address_request/" class="md-nav__link">
         
   
@@ -14250,6 +14273,7 @@ Attributes:
     variant_id (int): ID of the product variant being ordered
     created_at (Union[Unset, datetime.datetime]):
     updated_at (Union[Unset, datetime.datetime]):
+    sales_order_id (Union[Unset, int]): ID of the sales order this row belongs to
     tax_rate_id (Union[None, Unset, int]): ID of the tax rate applied to this line item
     location_id (Union[None, Unset, int]): Location where the product should be picked from
     product_availability (Union[None, SalesOrderRowProductAvailabilityType0, Unset]): Current availability status of
@@ -14261,6 +14285,7 @@ Attributes:
         currency
     total (Union[Unset, float]): Total line amount (quantity * price_per_unit) in order currency
     total_in_base_currency (Union[Unset, float]): Total line amount converted to the base company currency
+    total_discount (Union[None, Unset, str]): Discount amount applied to this line item
     cogs_value (Union[None, Unset, float]): Cost of goods sold value for this line item
     attributes (Union[Unset, list[&#39;SalesOrderRowAttributesItem&#39;]]): Custom attributes associated with this sales
         order row
