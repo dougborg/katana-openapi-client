@@ -1,0 +1,79 @@
+name: "Copilot Setup Steps"
+
+# Automatically run the setup steps when they are changed to allow for easy validation, and
+# allow manual testing through the repository's "Actions" tab
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # Set the permissions to the lowest permissions possible needed for your steps.
+    # Copilot will be given its own token for its operations.
+    permissions:
+      # If you want to clone the repository as part of your setup steps, for example to install dependencies, you'll need the `contents: read` permission. If you don't clone the repository in your setup steps, Copilot will do this for you automatically after the steps complete.
+      contents: read
+
+    # You can define any steps you want, and they will run before the agent starts.
+    # If you do not check out your code, Copilot will do this for you.
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: |
+          echo "📦 Installing Poetry (Python package manager)..."
+          pip install poetry
+          echo "✅ Poetry installed successfully"
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project false
+
+      - name: Install dependencies
+        run: |
+          echo "🔧 Installing project dependencies with Poetry..."
+          echo "⏱️  This may take several minutes, please be patient..."
+          poetry install --extras "dev docs"
+          echo "✅ Dependencies installed successfully"
+
+      - name: Verify installation
+        run: |
+          echo "🔍 Verifying Poetry virtual environment..."
+          poetry env info
+
+          echo "🎯 Verifying poethepoet (poe) task runner..."
+          poetry run poe --help > /dev/null
+          echo "✅ Poe task runner available"
+
+          echo "🧪 Testing package imports..."
+          poetry run python -c "
+          import katana_public_api_client
+          from katana_public_api_client import KatanaClient
+          print('✅ Package imports successful')
+          "
+
+      - name: Run quick validation
+        run: |
+          echo "⚡ Running quick validation checks..."
+
+          # Format check (fastest validation)
+          echo "🎨 Checking code formatting..."
+          poetry run poe format-check
+
+          echo "✅ Environment setup complete and validated"
