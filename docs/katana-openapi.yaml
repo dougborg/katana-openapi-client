@@ -783,14 +783,6 @@ components:
           $ref: "#/components/headers/X-Ratelimit-Remaining"
         X-Ratelimit-Reset:
           $ref: "#/components/headers/X-Ratelimit-Reset"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ErrorResponse"
-          example:
-            statusCode: 204
-            name: NotContent
-            message: No content
 
     UnauthorizedError:
       description: Make sure you've entered your API token correctly.
@@ -1626,6 +1618,17 @@ components:
         - quantity_expected
         - quantity_missing_or_excess
         - quantity_potential
+      example:
+        variant_id: 3001
+        location_id: 1
+        reorder_point: "25.0"
+        average_cost: "15.50"
+        value_in_stock: "2325.00"
+        quantity_in_stock: "150.0"
+        quantity_committed: "25.0"
+        quantity_expected: "50.0"
+        quantity_missing_or_excess: "0.0"
+        quantity_potential: "175.0"
 
     InventoryListResponse:
       type: object
@@ -14758,6 +14761,20 @@ paths:
         Retrieve a list of all Service objects.
         (See: [Get All Services](https://developer.katanamrp.com/reference/getallservices))
       operationId: getAllServices
+      parameters:
+        - $ref: "#/components/parameters/ids"
+        - $ref: "#/components/parameters/name"
+        - $ref: "#/components/parameters/uom"
+        - $ref: "#/components/parameters/is_sellable"
+        - $ref: "#/components/parameters/category_name"
+        - $ref: "#/components/parameters/include_deleted"
+        - $ref: "#/components/parameters/include_archived"
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/created_at_min"
+        - $ref: "#/components/parameters/created_at_max"
+        - $ref: "#/components/parameters/updated_at_min"
+        - $ref: "#/components/parameters/updated_at_max"
       responses:
         "200":
           description: "A list of Service objects."
@@ -14867,7 +14884,7 @@ paths:
       operationId: deleteService
       responses:
         "204":
-          description: Webhook deleted successfully
+          description: Service deleted successfully
           headers:
             X-Ratelimit-Limit:
               $ref: "#/components/headers/X-Ratelimit-Limit"
@@ -15193,15 +15210,8 @@ paths:
           schema:
             type: integer
       responses:
-        "200":
-          description: Sales order deleted
-          headers:
-            X-Ratelimit-Limit:
-              $ref: "#/components/headers/X-Ratelimit-Limit"
-            X-Ratelimit-Remaining:
-              $ref: "#/components/headers/X-Ratelimit-Remaining"
-            X-Ratelimit-Reset:
-              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "204":
+          $ref: "#/components/responses/NoContent"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "404":
@@ -16827,15 +16837,8 @@ paths:
           schema:
             type: integer
       responses:
-        "200":
-          description: Customer address deleted
-          headers:
-            X-Ratelimit-Limit:
-              $ref: "#/components/headers/X-Ratelimit-Limit"
-            X-Ratelimit-Remaining:
-              $ref: "#/components/headers/X-Ratelimit-Remaining"
-            X-Ratelimit-Reset:
-              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "204":
+          $ref: "#/components/responses/NoContent"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "404":
@@ -17478,7 +17481,16 @@ paths:
       parameters:
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
-        - $ref: "#/components/parameters/ids"
+        - name: id
+          in: query
+          description: Filter by BOM row ID
+          schema:
+            type: string
+        - name: product_item_id
+          in: query
+          description: Filter by product item ID
+          schema:
+            type: integer
         - name: product_variant_id
           in: query
           description: Filter by product variant ID
@@ -17489,7 +17501,10 @@ paths:
           description: Filter by ingredient variant ID
           schema:
             type: integer
-        - $ref: "#/components/parameters/include_deleted"
+        - $ref: "#/components/parameters/created_at_min"
+        - $ref: "#/components/parameters/created_at_max"
+        - $ref: "#/components/parameters/updated_at_min"
+        - $ref: "#/components/parameters/updated_at_max"
       responses:
         "200":
           description: List of BOM rows
