@@ -3,8 +3,9 @@
 from pathlib import Path
 
 import mkdocs_gen_files
+from mkdocs_gen_files.nav import Nav
 
-nav = mkdocs_gen_files.Nav()
+nav = Nav()
 
 # Root package path
 root = Path(__file__).parent.parent
