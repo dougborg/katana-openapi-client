@@ -14191,6 +14191,292 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+    post:
+      summary: Create a sales return row
+      tags:
+        - Sales return row
+      description: Creates a new sales return row.
+      operationId: createSalesReturnRow
+      requestBody:
+        description: Sales return row details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - sales_return_id
+                - variant_id
+                - quantity
+              properties:
+                sales_return_id:
+                  type: integer
+                  description: Sales return ID
+                variant_id:
+                  type: integer
+                  description: Product variant ID
+                quantity:
+                  type: number
+                  description: Quantity being returned
+                  minimum: 0
+                reason:
+                  type: string
+                  description: Reason for return
+                notes:
+                  type: string
+                  description: Additional notes
+      responses:
+        "201":
+          description: Sales return row created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesReturnRow"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /sales_return_rows/{id}:
+    get:
+      summary: Retrieve a sales return row
+      tags:
+        - Sales return row
+      description: Retrieves a sales return row by ID.
+      operationId: getSalesReturnRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales return row ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sales return row details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesReturnRow"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a sales return row
+      tags:
+        - Sales return row
+      description: Updates a sales return row.
+      operationId: updateSalesReturnRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales return row ID
+          schema:
+            type: integer
+      requestBody:
+        description: Sales return row update details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                quantity:
+                  type: number
+                  description: Quantity being returned
+                  minimum: 0
+                reason:
+                  type: string
+                  description: Reason for return
+                notes:
+                  type: string
+                  description: Additional notes
+      responses:
+        "200":
+          description: Sales return row updated successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesReturnRow"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a sales return row
+      tags:
+        - Sales return row
+      description: Deletes a sales return row.
+      operationId: deleteSalesReturnRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales return row ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Sales return row deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /sales_return_rows/{id}/unassigned_batch_transactions:
+    get:
+      summary: Get unassigned batch transactions for a sales return row
+      tags:
+        - Sales return row
+      description: Retrieves unassigned batch transactions associated with a sales return row.
+      operationId: getSalesReturnRowUnassignedBatchTransactions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales return row ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of unassigned batch transactions
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: Batch transaction ID
+                        batch_id:
+                          type: integer
+                          description: Batch ID
+                        quantity:
+                          type: number
+                          description: Transaction quantity
+                        status:
+                          type: string
+                          description: Transaction status
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /sales_returns/return_reasons:
+    get:
+      summary: Get sales return reasons
+      tags:
+        - Sales return
+      description: Retrieves the list of available return reasons for sales returns.
+      operationId: getSalesReturnReasons
+      responses:
+        "200":
+          description: List of return reasons
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Return reason ID
+                        name:
+                          type: string
+                          description: Return reason name
+                        description:
+                          type: string
+                          description: Return reason description
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   # Recipe endpoints
   /recipes:
     get:
@@ -14286,6 +14572,134 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "422":
           $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /recipe_rows/{id}:
+    get:
+      summary: Retrieve a recipe row
+      tags:
+        - Recipe
+      description: Retrieves a recipe row by ID. The recipe rows endpoint is deprecated in favor of BOM rows.
+      operationId: getRecipeRow
+      deprecated: true
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Recipe row ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recipe row details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recipe"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a recipe row
+      tags:
+        - Recipe
+      description: Updates a recipe row. The recipe rows endpoint is deprecated in favor of BOM rows.
+      operationId: updateRecipeRow
+      deprecated: true
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Recipe row ID
+          schema:
+            type: integer
+      requestBody:
+        description: Recipe row update details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                quantity:
+                  type: number
+                  description: Ingredient quantity required
+                  minimum: 0
+                notes:
+                  type: string
+                  description: Additional notes about the recipe row
+      responses:
+        "200":
+          description: Recipe row updated successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recipe"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a recipe row
+      tags:
+        - Recipe
+      description: Deletes a recipe row. The recipe rows endpoint is deprecated in favor of BOM rows.
+      operationId: deleteRecipeRow
+      deprecated: true
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Recipe row ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Recipe row deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -14450,120 +14864,6 @@ paths:
       responses:
         "204":
           description: Webhook deleted successfully
-          headers:
-            X-Ratelimit-Limit:
-              $ref: "#/components/headers/X-Ratelimit-Limit"
-            X-Ratelimit-Remaining:
-              $ref: "#/components/headers/X-Ratelimit-Remaining"
-            X-Ratelimit-Reset:
-              $ref: "#/components/headers/X-Ratelimit-Reset"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /services/{id}:
-    get:
-      summary: Retrieve a service
-      tags:
-        - Service
-      description: Retrieves the details of an existing service by ID.
-      operationId: getServiceById
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Service ID
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Service details
-          headers:
-            X-Ratelimit-Limit:
-              $ref: "#/components/headers/X-Ratelimit-Limit"
-            X-Ratelimit-Remaining:
-              $ref: "#/components/headers/X-Ratelimit-Remaining"
-            X-Ratelimit-Reset:
-              $ref: "#/components/headers/X-Ratelimit-Reset"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Service"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    patch:
-      summary: Update a service
-      tags:
-        - Service
-      description: Updates the specified service by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
-      operationId: updateServiceById
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Service ID
-          schema:
-            type: integer
-      requestBody:
-        description: Service details to update
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateServiceRequest"
-      responses:
-        "200":
-          description: Service updated
-          headers:
-            X-Ratelimit-Limit:
-              $ref: "#/components/headers/X-Ratelimit-Limit"
-            X-Ratelimit-Remaining:
-              $ref: "#/components/headers/X-Ratelimit-Remaining"
-            X-Ratelimit-Reset:
-              $ref: "#/components/headers/X-Ratelimit-Reset"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Service"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
-        "422":
-          $ref: "#/components/responses/UnprocessableEntityError"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    delete:
-      summary: Delete a service
-      tags:
-        - Service
-      description: Deletes a service by ID.
-      operationId: deleteServiceById
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Service ID
-          schema:
-            type: integer
-      responses:
-        "204":
-          description: Service deleted successfully
           headers:
             X-Ratelimit-Limit:
               $ref: "#/components/headers/X-Ratelimit-Limit"
@@ -14829,6 +15129,67 @@ paths:
               $ref: "#/components/headers/X-Ratelimit-Remaining"
             X-Ratelimit-Reset:
               $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /sales_orders/{id}/returnable_items:
+    get:
+      summary: Get returnable items for a sales order
+      tags:
+        - Sales order
+      description: Retrieves a list of items that can be returned from a sales order.
+      operationId: getSalesOrderReturnableItems
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales order ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of returnable items
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: Sales order row ID
+                        variant_id:
+                          type: integer
+                          description: Product variant ID
+                        product_id:
+                          type: integer
+                          description: Product ID
+                        quantity:
+                          type: number
+                          description: Quantity available for return
+                        returned_quantity:
+                          type: number
+                          description: Quantity already returned
+                        max_returnable_quantity:
+                          type: number
+                          description: Maximum quantity that can be returned
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "404":
@@ -15263,6 +15624,252 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+    post:
+      summary: Create a stock transfer
+      tags:
+        - Stock transfer
+      description: Creates a new stock transfer.
+      operationId: createStockTransfer
+      requestBody:
+        description: Stock transfer details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - from_location_id
+                - to_location_id
+                - variant_id
+                - quantity
+              properties:
+                from_location_id:
+                  type: integer
+                  description: Source location ID
+                to_location_id:
+                  type: integer
+                  description: Destination location ID
+                variant_id:
+                  type: integer
+                  description: Product variant ID
+                quantity:
+                  type: number
+                  description: Quantity to transfer
+                  minimum: 0
+                notes:
+                  type: string
+                  description: Transfer notes
+      responses:
+        "201":
+          description: Stock transfer created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockTransfer"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /stock_transfers/{id}:
+    get:
+      summary: Retrieve a stock transfer
+      tags:
+        - Stock transfer
+      description: Retrieves a stock transfer by ID.
+      operationId: getStockTransfer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Stock transfer ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Stock transfer details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockTransfer"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a stock transfer
+      tags:
+        - Stock transfer
+      description: Updates a stock transfer.
+      operationId: updateStockTransfer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Stock transfer ID
+          schema:
+            type: integer
+      requestBody:
+        description: Stock transfer update details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                quantity:
+                  type: number
+                  description: Quantity to transfer
+                  minimum: 0
+                notes:
+                  type: string
+                  description: Transfer notes
+      responses:
+        "200":
+          description: Stock transfer updated successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockTransfer"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a stock transfer
+      tags:
+        - Stock transfer
+      description: Deletes a stock transfer.
+      operationId: deleteStockTransfer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Stock transfer ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Stock transfer deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /stock_transfers/{id}/status:
+    patch:
+      summary: Update stock transfer status
+      tags:
+        - Stock transfer
+      description: Updates the status of a stock transfer.
+      operationId: updateStockTransferStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Stock transfer ID
+          schema:
+            type: integer
+      requestBody:
+        description: Status update details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  description: New status for the stock transfer
+                  enum:
+                    - pending
+                    - in_transit
+                    - completed
+                    - cancelled
+      responses:
+        "200":
+          description: Stock transfer status updated successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockTransfer"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   # Sales Order sub-resources
   /sales_order_rows:
     get:
@@ -15680,6 +16287,181 @@ paths:
                 $ref: "#/components/schemas/SalesOrderFulfillmentListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      summary: Create a sales order fulfillment
+      tags:
+        - Sales order fulfillment
+      description: Creates a new sales order fulfillment.
+      operationId: createSalesOrderFulfillment
+      requestBody:
+        description: Sales order fulfillment details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - sales_order_id
+              properties:
+                sales_order_id:
+                  type: integer
+                  description: Sales order ID
+                tracking_number:
+                  type: string
+                  description: Shipment tracking number
+                notes:
+                  type: string
+                  description: Additional notes for the fulfillment
+      responses:
+        "201":
+          description: Sales order fulfillment created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderFulfillment"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /sales_order_fulfillments/{id}:
+    get:
+      summary: Retrieve a sales order fulfillment
+      tags:
+        - Sales order fulfillment
+      description: Retrieves a sales order fulfillment by ID.
+      operationId: getSalesOrderFulfillment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales order fulfillment ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sales order fulfillment details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderFulfillment"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a sales order fulfillment
+      tags:
+        - Sales order fulfillment
+      description: Updates a sales order fulfillment.
+      operationId: updateSalesOrderFulfillment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales order fulfillment ID
+          schema:
+            type: integer
+      requestBody:
+        description: Sales order fulfillment update details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                tracking_number:
+                  type: string
+                  description: Shipment tracking number
+                notes:
+                  type: string
+                  description: Additional notes for the fulfillment
+      responses:
+        "200":
+          description: Sales order fulfillment updated successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderFulfillment"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a sales order fulfillment
+      tags:
+        - Sales order fulfillment
+      description: Deletes a sales order fulfillment.
+      operationId: deleteSalesOrderFulfillment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales order fulfillment ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Sales order fulfillment deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -17138,6 +17920,121 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+    post:
+      summary: Create serial numbers
+      tags:
+        - Serial number
+      description: Creates new serial numbers for a resource.
+      operationId: createSerialNumbers
+      requestBody:
+        description: Serial number creation details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - resource_type
+                - resource_id
+                - serial_numbers
+              properties:
+                resource_type:
+                  type: string
+                  description: Resource type
+                  enum:
+                    - ManufacturingOrder
+                    - Production
+                    - StockAdjustmentRow
+                    - StockTransferRow
+                    - PurchaseOrderRow
+                    - SalesOrderRow
+                resource_id:
+                  type: integer
+                  description: Resource ID
+                serial_numbers:
+                  type: array
+                  description: List of serial numbers to create
+                  items:
+                    type: string
+      responses:
+        "201":
+          description: Serial numbers created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SerialNumberListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete serial numbers
+      tags:
+        - Serial number
+      description: Deletes serial numbers for a resource.
+      operationId: deleteSerialNumbers
+      parameters:
+        - name: resource_type
+          in: query
+          required: true
+          description: Resource type
+          schema:
+            type: string
+            enum:
+              - ManufacturingOrder
+              - Production
+              - StockAdjustmentRow
+              - StockTransferRow
+              - PurchaseOrderRow
+              - SalesOrderRow
+        - name: resource_id
+          in: query
+          required: true
+          description: Resource id
+          schema:
+            type: integer
+        - name: serial_number_ids
+          in: query
+          required: true
+          description: Comma-separated list of serial number IDs to delete
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Serial numbers deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /serial_numbers_stock:
     get:
       summary: List serial number stock
@@ -17325,6 +18222,64 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+    post:
+      summary: Create an inventory reorder point
+      tags:
+        - Inventory
+      description: Creates a new inventory reorder point.
+      operationId: createInventoryReorderPoint
+      requestBody:
+        description: Inventory reorder point details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - variant_id
+                - location_id
+                - reorder_point
+              properties:
+                variant_id:
+                  type: integer
+                  description: Product variant ID
+                location_id:
+                  type: integer
+                  description: Location ID
+                reorder_point:
+                  type: number
+                  description: Minimum stock level that triggers reorder
+                  minimum: 0
+                reorder_quantity:
+                  type: number
+                  description: Quantity to reorder when reorder point is reached
+                  minimum: 0
+      responses:
+        "201":
+          description: Inventory reorder point created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryReorderPoint"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   # Outsourced purchase order recipe rows endpoint
   /outsourced_purchase_order_recipe_rows:
     get:
@@ -17364,6 +18319,182 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+    post:
+      summary: Create an outsourced purchase order recipe row
+      tags:
+        - Purchase orders
+      description: Creates a new outsourced purchase order recipe row.
+      operationId: createOutsourcedPurchaseOrderRecipeRow
+      requestBody:
+        description: Outsourced purchase order recipe row details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - outsourced_purchase_order_id
+                - recipe_row_id
+                - quantity
+              properties:
+                outsourced_purchase_order_id:
+                  type: integer
+                  description: Outsourced purchase order ID
+                recipe_row_id:
+                  type: integer
+                  description: Recipe row ID
+                quantity:
+                  type: number
+                  description: Quantity required
+                  minimum: 0
+      responses:
+        "201":
+          description: Outsourced purchase order recipe row created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutsourcedPurchaseOrderRecipeRow"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /outsourced_purchase_order_recipe_rows/{id}:
+    get:
+      summary: Retrieve an outsourced purchase order recipe row
+      tags:
+        - Purchase orders
+      description: Retrieves an outsourced purchase order recipe row by ID.
+      operationId: getOutsourcedPurchaseOrderRecipeRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Outsourced purchase order recipe row ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Outsourced purchase order recipe row details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutsourcedPurchaseOrderRecipeRow"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update an outsourced purchase order recipe row
+      tags:
+        - Purchase orders
+      description: Updates an outsourced purchase order recipe row.
+      operationId: updateOutsourcedPurchaseOrderRecipeRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Outsourced purchase order recipe row ID
+          schema:
+            type: integer
+      requestBody:
+        description: Outsourced purchase order recipe row update details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                quantity:
+                  type: number
+                  description: Quantity required
+                  minimum: 0
+      responses:
+        "200":
+          description: Outsourced purchase order recipe row updated successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutsourcedPurchaseOrderRecipeRow"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete an outsourced purchase order recipe row
+      tags:
+        - Purchase orders
+      description: Deletes an outsourced purchase order recipe row.
+      operationId: deleteOutsourcedPurchaseOrderRecipeRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Outsourced purchase order recipe row ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Outsourced purchase order recipe row deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   # Product operation rerank endpoint
   /product_operation_rerank:
     post:
@@ -17396,6 +18527,225 @@ paths:
           $ref: "#/components/responses/BadRequestError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /product_operation_rows:
+    get:
+      summary: List product operation rows
+      tags:
+        - Products
+      description: Returns a list of product operation rows.
+      operationId: getAllProductOperationRows
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+        - name: product_id
+          in: query
+          description: Filter by product ID
+          schema:
+            type: integer
+        - name: operation_id
+          in: query
+          description: Filter by operation ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of product operation rows
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: Product operation row ID
+                        product_id:
+                          type: integer
+                          description: Product ID
+                        operation_id:
+                          type: integer
+                          description: Operation ID
+                        sequence:
+                          type: integer
+                          description: Operation sequence
+                        notes:
+                          type: string
+                          description: Operation notes
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /product_operation_rows/{id}:
+    get:
+      summary: Retrieve a product operation row
+      tags:
+        - Products
+      description: Retrieves a product operation row by ID.
+      operationId: getProductOperationRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product operation row ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product operation row details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Product operation row ID
+                  product_id:
+                    type: integer
+                    description: Product ID
+                  operation_id:
+                    type: integer
+                    description: Operation ID
+                  sequence:
+                    type: integer
+                    description: Operation sequence
+                  notes:
+                    type: string
+                    description: Operation notes
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a product operation row
+      tags:
+        - Products
+      description: Updates a product operation row.
+      operationId: updateProductOperationRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product operation row ID
+          schema:
+            type: integer
+      requestBody:
+        description: Product operation row update details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                sequence:
+                  type: integer
+                  description: Operation sequence
+                  minimum: 1
+                notes:
+                  type: string
+                  description: Operation notes
+      responses:
+        "200":
+          description: Product operation row updated successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Product operation row ID
+                  product_id:
+                    type: integer
+                    description: Product ID
+                  operation_id:
+                    type: integer
+                    description: Operation ID
+                  sequence:
+                    type: integer
+                    description: Operation sequence
+                  notes:
+                    type: string
+                    description: Operation notes
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a product operation row
+      tags:
+        - Products
+      description: Deletes a product operation row.
+      operationId: deleteProductOperationRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product operation row ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Product operation row deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -17521,6 +18871,132 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "422":
           $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /sales_order_shipping_fee/{id}:
+    get:
+      summary: Retrieve a sales order shipping fee
+      tags:
+        - Sales orders
+      description: Retrieves a sales order shipping fee by ID.
+      operationId: getSalesOrderShippingFee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales order shipping fee ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sales order shipping fee details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderShippingFee"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a sales order shipping fee
+      tags:
+        - Sales orders
+      description: Updates a sales order shipping fee.
+      operationId: updateSalesOrderShippingFee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales order shipping fee ID
+          schema:
+            type: integer
+      requestBody:
+        description: Shipping fee update details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                amount:
+                  type: number
+                  format: float
+                  description: Shipping fee amount
+                  minimum: 0
+                description:
+                  type: string
+                  description: Shipping fee description
+      responses:
+        "200":
+          description: Sales order shipping fee updated successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderShippingFee"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a sales order shipping fee
+      tags:
+        - Sales orders
+      description: Deletes a sales order shipping fee.
+      operationId: deleteSalesOrderShippingFee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales order shipping fee ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Sales order shipping fee deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
