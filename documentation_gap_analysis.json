@@ -1,0 +1,3619 @@
+{
+  "validation_results": {
+    "endpoints": {
+      "missing_in_current": [
+        "/recipes",
+        "/stocktake_rows/{id}",
+        "/sales_order_shipping_fee/{id}",
+        "/price_list_customers/{id}",
+        "/sales_return_rows/{id}/unassigned_batch_transactions",
+        "/stocktakes/{id}",
+        "/outsourced_purchase_order_recipe_rows/{id}",
+        "/customers/{id}",
+        "/price_list_rows/{id}",
+        "/services/{id}",
+        "/product_operation_rows/",
+        "/stock_adjustments/{id}",
+        "/recipe_rows/{id}",
+        "/sales_order_fulfillments/{id}",
+        "/stock_transfers/{id}",
+        "/stock_transfers/{id}/status",
+        "/sales_return_rows/{id}",
+        "/sales_orders/{id}/returnable_items",
+        "/sales_order_addresses/{id}",
+        "/sales_order_rows/{id}",
+        "/price_lists/{id}",
+        "/sales_returns/return_reasons",
+        "/product_operation_rows/{id}"
+      ],
+      "missing_in_comprehensive": [
+        "/services/{serviceId}"
+      ],
+      "method_mismatches": [
+        {
+          "path": "/stock_adjustments",
+          "current_methods": [
+            "get"
+          ],
+          "comprehensive_methods": [
+            "get",
+            "post"
+          ],
+          "missing_in_current": [
+            "post"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/sales_order_rows",
+          "current_methods": [
+            "get"
+          ],
+          "comprehensive_methods": [
+            "get",
+            "post"
+          ],
+          "missing_in_current": [
+            "post"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/stocktake_rows",
+          "current_methods": [
+            "get"
+          ],
+          "comprehensive_methods": [
+            "get",
+            "post"
+          ],
+          "missing_in_current": [
+            "post"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/sales_order_fulfillments",
+          "current_methods": [
+            "get"
+          ],
+          "comprehensive_methods": [
+            "get",
+            "post"
+          ],
+          "missing_in_current": [
+            "post"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/serial_numbers",
+          "current_methods": [
+            "get"
+          ],
+          "comprehensive_methods": [
+            "delete",
+            "get",
+            "post"
+          ],
+          "missing_in_current": [
+            "delete",
+            "post"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/sales_returns/{id}",
+          "current_methods": [
+            "get"
+          ],
+          "comprehensive_methods": [
+            "patch",
+            "delete",
+            "get"
+          ],
+          "missing_in_current": [
+            "patch",
+            "delete"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/customer_addresses/{id}",
+          "current_methods": [
+            "patch",
+            "delete",
+            "get"
+          ],
+          "comprehensive_methods": [
+            "patch",
+            "delete"
+          ],
+          "missing_in_current": [],
+          "extra_in_current": [
+            "get"
+          ]
+        },
+        {
+          "path": "/inventory_reorder_points",
+          "current_methods": [
+            "get"
+          ],
+          "comprehensive_methods": [
+            "post"
+          ],
+          "missing_in_current": [
+            "post"
+          ],
+          "extra_in_current": [
+            "get"
+          ]
+        },
+        {
+          "path": "/sales_order_addresses",
+          "current_methods": [
+            "get"
+          ],
+          "comprehensive_methods": [
+            "get",
+            "post"
+          ],
+          "missing_in_current": [
+            "post"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/stocktakes",
+          "current_methods": [
+            "get"
+          ],
+          "comprehensive_methods": [
+            "get",
+            "post"
+          ],
+          "missing_in_current": [
+            "post"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/sales_return_rows",
+          "current_methods": [
+            "get"
+          ],
+          "comprehensive_methods": [
+            "get",
+            "post"
+          ],
+          "missing_in_current": [
+            "post"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/stock_transfers",
+          "current_methods": [
+            "get"
+          ],
+          "comprehensive_methods": [
+            "get",
+            "post"
+          ],
+          "missing_in_current": [
+            "post"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/outsourced_purchase_order_recipe_rows",
+          "current_methods": [
+            "get"
+          ],
+          "comprehensive_methods": [
+            "get",
+            "post"
+          ],
+          "missing_in_current": [
+            "post"
+          ],
+          "extra_in_current": []
+        }
+      ],
+      "parameter_mismatches": [
+        {
+          "path": "/stock_adjustments",
+          "method": "get",
+          "current_params": [
+            "location_id"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "location_id",
+            "ids",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min",
+            "stock_adjustment_number"
+          ],
+          "missing_in_current": [
+            "limit",
+            "ids",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min",
+            "stock_adjustment_number"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/sales_returns",
+          "method": "get",
+          "current_params": [
+            "sales_order_id",
+            "status",
+            "customer_id"
+          ],
+          "comprehensive_params": [
+            "return_order_no",
+            "status",
+            "limit",
+            "ids",
+            "order_created_date_max",
+            "return_date_min",
+            "include_deleted",
+            "created_at_min",
+            "sales_order_id",
+            "created_at_max",
+            "page",
+            "order_created_date_min",
+            "updated_at_min",
+            "updated_at_max",
+            "return_date_max",
+            "refund_status"
+          ],
+          "missing_in_current": [
+            "ids",
+            "order_created_date_max",
+            "return_date_min",
+            "include_deleted",
+            "created_at_min",
+            "page",
+            "order_created_date_min",
+            "updated_at_max",
+            "return_date_max",
+            "refund_status",
+            "return_order_no",
+            "limit",
+            "created_at_max",
+            "updated_at_min"
+          ],
+          "extra_in_current": [
+            "customer_id"
+          ]
+        },
+        {
+          "path": "/tax_rates",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "rate",
+            "limit",
+            "ids",
+            "name",
+            "created_at_min",
+            "is_default_purchases",
+            "page",
+            "created_at_max",
+            "updated_at_max",
+            "is_default_sales",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "rate",
+            "limit",
+            "ids",
+            "name",
+            "created_at_min",
+            "is_default_purchases",
+            "page",
+            "created_at_max",
+            "updated_at_max",
+            "is_default_sales",
+            "updated_at_min"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/bin_locations",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "bin_name",
+            "limit",
+            "location_id",
+            "include_deleted",
+            "page"
+          ],
+          "missing_in_current": [
+            "bin_name",
+            "limit",
+            "page",
+            "location_id",
+            "include_deleted"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/sales_order_accounting_metadata",
+          "method": "get",
+          "current_params": [
+            "sales_order_id"
+          ],
+          "comprehensive_params": [
+            "sales_order_id",
+            "limit",
+            "page",
+            "fulfillment_id"
+          ],
+          "missing_in_current": [
+            "limit",
+            "page",
+            "fulfillment_id"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/variants/{id}",
+          "method": "get",
+          "current_params": [
+            "id"
+          ],
+          "comprehensive_params": [
+            "id",
+            "extend"
+          ],
+          "missing_in_current": [
+            "extend"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/serial_numbers_stock",
+          "method": "get",
+          "current_params": [
+            "status",
+            "location_id",
+            "variant_id"
+          ],
+          "comprehensive_params": [],
+          "missing_in_current": [],
+          "extra_in_current": [
+            "status",
+            "location_id",
+            "variant_id"
+          ]
+        },
+        {
+          "path": "/sales_order_rows",
+          "method": "get",
+          "current_params": [
+            "sales_order_id",
+            "variant_id"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "location_id",
+            "ids",
+            "tax_rate_id",
+            "variant_id",
+            "extend",
+            "include_deleted",
+            "created_at_min",
+            "linked_manufacturing_order_id",
+            "page",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min",
+            "product_availability",
+            "sales_order_ids"
+          ],
+          "missing_in_current": [
+            "limit",
+            "location_id",
+            "ids",
+            "tax_rate_id",
+            "extend",
+            "include_deleted",
+            "created_at_min",
+            "linked_manufacturing_order_id",
+            "page",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min",
+            "product_availability",
+            "sales_order_ids"
+          ],
+          "extra_in_current": [
+            "sales_order_id"
+          ]
+        },
+        {
+          "path": "/po_additional_cost_rows",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "limit",
+            "additional_cost_id",
+            "ids",
+            "tax_rate_id",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "distribution_method",
+            "page",
+            "group_id",
+            "updated_at_max",
+            "currency",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "limit",
+            "additional_cost_id",
+            "ids",
+            "tax_rate_id",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "distribution_method",
+            "page",
+            "group_id",
+            "updated_at_max",
+            "currency",
+            "updated_at_min"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/services",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "uom",
+            "limit",
+            "ids",
+            "name",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "is_sellable",
+            "category_name",
+            "updated_at_max",
+            "include_archived",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "uom",
+            "limit",
+            "ids",
+            "name",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "is_sellable",
+            "category_name",
+            "updated_at_max",
+            "include_archived",
+            "updated_at_min"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/customers",
+          "method": "get",
+          "current_params": [
+            "name",
+            "email"
+          ],
+          "comprehensive_params": [
+            "first_name",
+            "limit",
+            "ids",
+            "last_name",
+            "name",
+            "company",
+            "email",
+            "category",
+            "include_deleted",
+            "page",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "reference_id",
+            "phone",
+            "currency",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "ids",
+            "include_deleted",
+            "created_at_min",
+            "page",
+            "phone",
+            "currency",
+            "first_name",
+            "limit",
+            "last_name",
+            "company",
+            "category",
+            "created_at_max",
+            "updated_at_min",
+            "reference_id",
+            "updated_at_max"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/price_lists",
+          "method": "get",
+          "current_params": [
+            "currency",
+            "name"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "is_active",
+            "ids",
+            "name",
+            "page"
+          ],
+          "missing_in_current": [
+            "limit",
+            "is_active",
+            "page",
+            "ids"
+          ],
+          "extra_in_current": [
+            "currency"
+          ]
+        },
+        {
+          "path": "/materials",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "uom",
+            "batch_tracked",
+            "limit",
+            "ids",
+            "default_supplier_id",
+            "name",
+            "extend",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "is_sellable",
+            "purchase_uom_conversion_rate",
+            "updated_at_max",
+            "purchase_uom",
+            "include_archived",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "uom",
+            "ids",
+            "extend",
+            "include_deleted",
+            "created_at_min",
+            "page",
+            "include_archived",
+            "batch_tracked",
+            "limit",
+            "default_supplier_id",
+            "name",
+            "created_at_max",
+            "updated_at_min",
+            "is_sellable",
+            "purchase_uom_conversion_rate",
+            "purchase_uom",
+            "updated_at_max"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/products",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "uom",
+            "is_producible",
+            "ids",
+            "include_deleted",
+            "page",
+            "serial_tracked",
+            "batch_tracked",
+            "limit",
+            "purchase_uom_conversion_rate",
+            "updated_at_min",
+            "is_purchasable",
+            "extend",
+            "created_at_min",
+            "operations_in_sequence",
+            "include_archived",
+            "default_supplier_id",
+            "name",
+            "created_at_max",
+            "is_auto_assembly",
+            "is_sellable",
+            "purchase_uom",
+            "updated_at_max"
+          ],
+          "missing_in_current": [
+            "uom",
+            "is_producible",
+            "ids",
+            "is_purchasable",
+            "include_deleted",
+            "extend",
+            "created_at_min",
+            "page",
+            "operations_in_sequence",
+            "updated_at_max",
+            "include_archived",
+            "serial_tracked",
+            "batch_tracked",
+            "limit",
+            "default_supplier_id",
+            "name",
+            "created_at_max",
+            "is_auto_assembly",
+            "is_sellable",
+            "purchase_uom_conversion_rate",
+            "purchase_uom",
+            "updated_at_min"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/suppliers",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "limit",
+            "ids",
+            "name",
+            "include_deleted",
+            "email",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "phone",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "limit",
+            "ids",
+            "name",
+            "include_deleted",
+            "email",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "phone",
+            "updated_at_min"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/stocktake_rows",
+          "method": "get",
+          "current_params": [
+            "variant_id",
+            "stocktake_id"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "ids",
+            "stocktake_ids",
+            "batch_id",
+            "stock_adjustment_id",
+            "variant_id",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "limit",
+            "ids",
+            "stocktake_ids",
+            "batch_id",
+            "stock_adjustment_id",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "extra_in_current": [
+            "stocktake_id"
+          ]
+        },
+        {
+          "path": "/sales_order_fulfillments",
+          "method": "get",
+          "current_params": [
+            "sales_order_id"
+          ],
+          "comprehensive_params": [
+            "status",
+            "limit",
+            "tracking_method",
+            "tracking_number",
+            "include_deleted",
+            "created_at_min",
+            "sales_order_id",
+            "created_at_max",
+            "page",
+            "tracking_carrier",
+            "picked_date_min",
+            "updated_at_max",
+            "updated_at_min",
+            "tracking_url"
+          ],
+          "missing_in_current": [
+            "status",
+            "limit",
+            "tracking_method",
+            "tracking_number",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "tracking_carrier",
+            "picked_date_min",
+            "updated_at_max",
+            "updated_at_min",
+            "tracking_url"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/purchase_order_accounting_metadata",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "purchase_order_id",
+            "limit",
+            "page",
+            "received_items_group_id"
+          ],
+          "missing_in_current": [
+            "purchase_order_id",
+            "limit",
+            "page",
+            "received_items_group_id"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/manufacturing_order_recipe_rows",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "limit",
+            "ids",
+            "variant_id",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "ingredient_availability",
+            "updated_at_min",
+            "manufacturing_order_id"
+          ],
+          "missing_in_current": [
+            "limit",
+            "ids",
+            "variant_id",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "ingredient_availability",
+            "updated_at_min",
+            "manufacturing_order_id"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/serial_numbers",
+          "method": "get",
+          "current_params": [
+            "resource_type",
+            "resource_id"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "resource_type",
+            "page",
+            "resource_id"
+          ],
+          "missing_in_current": [
+            "limit",
+            "page"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/sales_order_shipping_fee",
+          "method": "get",
+          "current_params": [
+            "sales_order_id"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "ids",
+            "created_at_min",
+            "include_deleted",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "limit",
+            "ids",
+            "created_at_min",
+            "include_deleted",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "extra_in_current": [
+            "sales_order_id"
+          ]
+        },
+        {
+          "path": "/variants",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "limit",
+            "ids",
+            "product_id",
+            "sku",
+            "supplier_item_codes",
+            "registered_barcode",
+            "extend",
+            "include_deleted",
+            "sales_price",
+            "purchase_price",
+            "page",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "internal_barcode",
+            "include_archived",
+            "updated_at_min",
+            "material_id"
+          ],
+          "missing_in_current": [
+            "ids",
+            "product_id",
+            "extend",
+            "include_deleted",
+            "created_at_min",
+            "page",
+            "internal_barcode",
+            "include_archived",
+            "limit",
+            "sku",
+            "registered_barcode",
+            "sales_price",
+            "purchase_price",
+            "created_at_max",
+            "updated_at_min",
+            "supplier_item_codes",
+            "updated_at_max",
+            "material_id"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/sales_order_addresses",
+          "method": "get",
+          "current_params": [
+            "sales_order_id",
+            "entity_type"
+          ],
+          "comprehensive_params": [
+            "ids",
+            "country",
+            "include_deleted",
+            "page",
+            "phone",
+            "first_name",
+            "limit",
+            "city",
+            "company",
+            "entity_type",
+            "updated_at_min",
+            "state",
+            "created_at_min",
+            "line_1",
+            "zip",
+            "line_2",
+            "sales_order_ids",
+            "last_name",
+            "created_at_max",
+            "updated_at_max"
+          ],
+          "missing_in_current": [
+            "ids",
+            "country",
+            "state",
+            "include_deleted",
+            "created_at_min",
+            "line_1",
+            "page",
+            "zip",
+            "updated_at_max",
+            "phone",
+            "line_2",
+            "sales_order_ids",
+            "first_name",
+            "limit",
+            "last_name",
+            "city",
+            "company",
+            "created_at_max",
+            "updated_at_min"
+          ],
+          "extra_in_current": [
+            "sales_order_id"
+          ]
+        },
+        {
+          "path": "/supplier_addresses",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "supplier_ids",
+            "limit",
+            "ids",
+            "country",
+            "state",
+            "city",
+            "include_deleted",
+            "created_at_min",
+            "line_1",
+            "zip",
+            "page",
+            "created_at_max",
+            "updated_at_max",
+            "line_2",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "supplier_ids",
+            "limit",
+            "ids",
+            "country",
+            "state",
+            "city",
+            "include_deleted",
+            "created_at_min",
+            "line_1",
+            "zip",
+            "page",
+            "created_at_max",
+            "updated_at_max",
+            "line_2",
+            "updated_at_min"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/locations",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "limit",
+            "ids",
+            "sales_allowed",
+            "manufacturing_allowed",
+            "address_id",
+            "name",
+            "legal_name",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "rank",
+            "page",
+            "purchases_allowed",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "limit",
+            "ids",
+            "sales_allowed",
+            "manufacturing_allowed",
+            "address_id",
+            "name",
+            "legal_name",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "rank",
+            "page",
+            "purchases_allowed",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/operators",
+          "method": "get",
+          "current_params": [
+            "resource_id",
+            "working_area"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "page",
+            "resource_id",
+            "working_area"
+          ],
+          "missing_in_current": [
+            "limit",
+            "page"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/materials/{id}",
+          "method": "get",
+          "current_params": [
+            "id"
+          ],
+          "comprehensive_params": [
+            "id",
+            "extend"
+          ],
+          "missing_in_current": [
+            "extend"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/inventory",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "limit",
+            "location_id",
+            "variant_id",
+            "extend",
+            "page",
+            "include_archived"
+          ],
+          "missing_in_current": [
+            "limit",
+            "page",
+            "location_id",
+            "include_archived",
+            "variant_id",
+            "extend"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/manufacturing_order_productions",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "limit",
+            "ids",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min",
+            "manufacturing_order_ids"
+          ],
+          "missing_in_current": [
+            "limit",
+            "ids",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min",
+            "manufacturing_order_ids"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/bom_rows",
+          "method": "get",
+          "current_params": [
+            "ingredient_variant_id",
+            "product_variant_id"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "ingredient_variant_id",
+            "product_item_id",
+            "product_variant_id",
+            "created_at_min",
+            "created_at_max",
+            "id",
+            "page",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "limit",
+            "product_item_id",
+            "created_at_min",
+            "created_at_max",
+            "id",
+            "page",
+            "updated_at_min",
+            "updated_at_max"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/users",
+          "method": "get",
+          "current_params": [
+            "status",
+            "role"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "limit",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_min",
+            "updated_at_max"
+          ],
+          "extra_in_current": [
+            "status",
+            "role"
+          ]
+        },
+        {
+          "path": "/purchase_orders/{id}",
+          "method": "get",
+          "current_params": [
+            "id"
+          ],
+          "comprehensive_params": [
+            "id",
+            "extend"
+          ],
+          "missing_in_current": [
+            "extend"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/stocktakes",
+          "method": "get",
+          "current_params": [
+            "status",
+            "location_id"
+          ],
+          "comprehensive_params": [
+            "status",
+            "limit",
+            "location_id",
+            "ids",
+            "stock_adjustment_id",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min",
+            "stocktake_number"
+          ],
+          "missing_in_current": [
+            "limit",
+            "ids",
+            "stock_adjustment_id",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min",
+            "stocktake_number"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/sales_return_rows",
+          "method": "get",
+          "current_params": [
+            "sales_return_id",
+            "variant_id"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "ids",
+            "variant_id",
+            "sales_order_row_id",
+            "include_deleted",
+            "reason_id",
+            "sales_return_id",
+            "page",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min",
+            "restock_location_id"
+          ],
+          "missing_in_current": [
+            "limit",
+            "ids",
+            "sales_order_row_id",
+            "include_deleted",
+            "reason_id",
+            "page",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min",
+            "restock_location_id"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/customer_addresses",
+          "method": "get",
+          "current_params": [
+            "customer_id",
+            "entity_type"
+          ],
+          "comprehensive_params": [
+            "ids",
+            "country",
+            "include_deleted",
+            "page",
+            "phone",
+            "first_name",
+            "limit",
+            "city",
+            "company",
+            "entity_type",
+            "updated_at_min",
+            "state",
+            "created_at_min",
+            "line_1",
+            "zip",
+            "line_2",
+            "last_name",
+            "created_at_max",
+            "customer_ids",
+            "updated_at_max"
+          ],
+          "missing_in_current": [
+            "ids",
+            "country",
+            "state",
+            "include_deleted",
+            "created_at_min",
+            "line_1",
+            "page",
+            "zip",
+            "updated_at_max",
+            "phone",
+            "line_2",
+            "first_name",
+            "limit",
+            "last_name",
+            "city",
+            "company",
+            "created_at_max",
+            "customer_ids",
+            "updated_at_min"
+          ],
+          "extra_in_current": [
+            "customer_id"
+          ]
+        },
+        {
+          "path": "/negative_stock",
+          "method": "get",
+          "current_params": [
+            "latest_negative_stock_date_max",
+            "latest_negative_stock_date_min"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "location_id",
+            "sku",
+            "latest_negative_stock_date_max",
+            "name",
+            "variant_id",
+            "category",
+            "page",
+            "latest_negative_stock_date_min"
+          ],
+          "missing_in_current": [
+            "limit",
+            "location_id",
+            "sku",
+            "name",
+            "variant_id",
+            "category",
+            "page"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/additional_costs",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "limit",
+            "ids",
+            "name",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "limit",
+            "ids",
+            "name",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/webhooks",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "limit",
+            "url",
+            "ids",
+            "enabled",
+            "page"
+          ],
+          "missing_in_current": [
+            "limit",
+            "url",
+            "page",
+            "ids",
+            "enabled"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/purchase_orders",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "status",
+            "limit",
+            "ids",
+            "location_id",
+            "extend",
+            "include_deleted",
+            "created_at_min",
+            "supplier_id",
+            "page",
+            "created_at_max",
+            "billing_status",
+            "tracking_location_id",
+            "entity_type",
+            "updated_at_max",
+            "currency",
+            "updated_at_min",
+            "order_no"
+          ],
+          "missing_in_current": [
+            "ids",
+            "extend",
+            "include_deleted",
+            "created_at_min",
+            "supplier_id",
+            "page",
+            "tracking_location_id",
+            "currency",
+            "order_no",
+            "status",
+            "limit",
+            "location_id",
+            "created_at_max",
+            "updated_at_min",
+            "billing_status",
+            "entity_type",
+            "updated_at_max"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/stock_transfers",
+          "method": "get",
+          "current_params": [
+            "from_location_id",
+            "to_location_id"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "source_location_id",
+            "ids",
+            "include_deleted",
+            "target_location_id",
+            "stock_transfer_number",
+            "created_at_min",
+            "page",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "limit",
+            "source_location_id",
+            "ids",
+            "target_location_id",
+            "include_deleted",
+            "stock_transfer_number",
+            "created_at_min",
+            "page",
+            "created_at_max",
+            "updated_at_min",
+            "updated_at_max"
+          ],
+          "extra_in_current": [
+            "from_location_id",
+            "to_location_id"
+          ]
+        },
+        {
+          "path": "/manufacturing_order_operation_rows",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "status",
+            "limit",
+            "ids",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min",
+            "manufacturing_order_id"
+          ],
+          "missing_in_current": [
+            "status",
+            "limit",
+            "ids",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min",
+            "manufacturing_order_id"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/batch_stocks",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "batch_number",
+            "limit",
+            "location_id",
+            "batch_id",
+            "variant_id",
+            "page",
+            "batch_created_at_min",
+            "batch_created_at_max",
+            "batch_barcode",
+            "include_empty"
+          ],
+          "missing_in_current": [
+            "batch_number",
+            "limit",
+            "location_id",
+            "batch_id",
+            "variant_id",
+            "page",
+            "batch_created_at_min",
+            "batch_created_at_max",
+            "batch_barcode",
+            "include_empty"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/price_list_customers",
+          "method": "get",
+          "current_params": [
+            "price_list_id",
+            "customer_id"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "ids",
+            "price_list_ids",
+            "page",
+            "customer_ids"
+          ],
+          "missing_in_current": [
+            "limit",
+            "ids",
+            "price_list_ids",
+            "page",
+            "customer_ids"
+          ],
+          "extra_in_current": [
+            "price_list_id",
+            "customer_id"
+          ]
+        },
+        {
+          "path": "/inventory_movements",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "limit",
+            "resource_type",
+            "caused_by_order_no",
+            "location_id",
+            "ids",
+            "resource_id",
+            "caused_by_resource_id",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "variant_ids",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "limit",
+            "resource_type",
+            "caused_by_order_no",
+            "location_id",
+            "ids",
+            "resource_id",
+            "caused_by_resource_id",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "variant_ids",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/manufacturing_orders",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "status",
+            "limit",
+            "location_id",
+            "ids",
+            "is_linked_to_sales_order",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min",
+            "order_no"
+          ],
+          "missing_in_current": [
+            "status",
+            "limit",
+            "location_id",
+            "ids",
+            "is_linked_to_sales_order",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "updated_at_max",
+            "updated_at_min",
+            "order_no"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/products/{id}",
+          "method": "get",
+          "current_params": [
+            "id"
+          ],
+          "comprehensive_params": [
+            "id",
+            "extend"
+          ],
+          "missing_in_current": [
+            "extend"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/purchase_order_rows",
+          "method": "get",
+          "current_params": [],
+          "comprehensive_params": [
+            "limit",
+            "ids",
+            "tax_rate_id",
+            "variant_id",
+            "include_deleted",
+            "created_at_min",
+            "purchase_uom",
+            "created_at_max",
+            "page",
+            "group_id",
+            "updated_at_max",
+            "purchase_order_id",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "limit",
+            "ids",
+            "tax_rate_id",
+            "variant_id",
+            "include_deleted",
+            "created_at_min",
+            "purchase_uom",
+            "created_at_max",
+            "page",
+            "group_id",
+            "updated_at_max",
+            "purchase_order_id",
+            "updated_at_min"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/sales_orders",
+          "method": "get",
+          "current_params": [
+            "location_id",
+            "status",
+            "customer_id",
+            "order_no"
+          ],
+          "comprehensive_params": [
+            "ecommerce_order_id",
+            "ids",
+            "invoicing_status",
+            "include_deleted",
+            "page",
+            "currency",
+            "order_no",
+            "source",
+            "limit",
+            "ecommerce_store_name",
+            "updated_at_min",
+            "production_status",
+            "created_at_min",
+            "product_availability",
+            "customer_id",
+            "status",
+            "location_id",
+            "ecommerce_order_type",
+            "created_at_max",
+            "ingredient_availability",
+            "updated_at_max"
+          ],
+          "missing_in_current": [
+            "ecommerce_order_id",
+            "ids",
+            "invoicing_status",
+            "include_deleted",
+            "created_at_min",
+            "page",
+            "updated_at_max",
+            "currency",
+            "product_availability",
+            "source",
+            "limit",
+            "ecommerce_order_type",
+            "created_at_max",
+            "ecommerce_store_name",
+            "ingredient_availability",
+            "updated_at_min",
+            "production_status"
+          ],
+          "extra_in_current": []
+        },
+        {
+          "path": "/outsourced_purchase_order_recipe_rows",
+          "method": "get",
+          "current_params": [
+            "outsourced_purchase_order_id"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "ids",
+            "ingredient_variant_id",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "purchase_order_row_id",
+            "purchase_order_id",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "missing_in_current": [
+            "limit",
+            "ids",
+            "ingredient_variant_id",
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "page",
+            "purchase_order_row_id",
+            "purchase_order_id",
+            "updated_at_max",
+            "updated_at_min"
+          ],
+          "extra_in_current": [
+            "outsourced_purchase_order_id"
+          ]
+        },
+        {
+          "path": "/price_list_rows",
+          "method": "get",
+          "current_params": [
+            "price_list_id",
+            "variant_id"
+          ],
+          "comprehensive_params": [
+            "limit",
+            "ids",
+            "price_list_ids",
+            "variant_ids",
+            "page"
+          ],
+          "missing_in_current": [
+            "limit",
+            "ids",
+            "price_list_ids",
+            "variant_ids",
+            "page"
+          ],
+          "extra_in_current": [
+            "price_list_id",
+            "variant_id"
+          ]
+        }
+      ]
+    },
+    "schemas": {
+      "missing_definitions": [
+        "Standard",
+        "NotFoundError",
+        "Darth",
+        "DELIVERED",
+        "Luke",
+        "EUR",
+        "StockAdjustmentRow",
+        "COUNTED",
+        "Country",
+        "Company"
+      ],
+      "property_mismatches": [
+        {
+          "schema": "CodedErrorResponse",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "DetailedErrorResponse",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "UpdatableEntity",
+          "issues": [
+            "property_created_at_missing_description",
+            "property_updated_at_missing_description"
+          ]
+        },
+        {
+          "schema": "ArchivableEntity",
+          "issues": [
+            "property_created_at_missing_description",
+            "property_updated_at_missing_description"
+          ]
+        },
+        {
+          "schema": "DeletableEntity",
+          "issues": [
+            "property_created_at_missing_description",
+            "property_updated_at_missing_description"
+          ]
+        },
+        {
+          "schema": "AdditionalCost",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "BatchStock",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "InventoryMovement",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "Inventory",
+          "issues": [
+            "missing_description",
+            "property_variant_id_missing_description",
+            "property_location_id_missing_description",
+            "property_reorder_point_missing_description",
+            "property_average_cost_missing_description",
+            "property_value_in_stock_missing_description",
+            "property_quantity_in_stock_missing_description",
+            "property_quantity_committed_missing_description",
+            "property_quantity_expected_missing_description",
+            "property_quantity_missing_or_excess_missing_description",
+            "property_quantity_potential_missing_description",
+            "property_variant_missing_description",
+            "property_location_missing_description"
+          ]
+        },
+        {
+          "schema": "InventoryReorderPoint",
+          "issues": [
+            "missing_description",
+            "property_location_id_missing_description",
+            "property_variant_id_missing_description",
+            "property_value_missing_description"
+          ]
+        },
+        {
+          "schema": "InventoryReorderPointResponse",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "InventorySafetyStockLevelResponse",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "ManufacturingOrderProductionIngredient",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "ManufacturingOrderOperationRowResponse",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "ManufacturingOrderOperationProduction",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "SerialNumber",
+          "issues": [
+            "missing_description",
+            "property_id_missing_description",
+            "property_transaction_id_missing_description",
+            "property_serial_number_missing_description",
+            "property_resource_type_missing_description",
+            "property_resource_id_missing_description",
+            "property_transaction_date_missing_description"
+          ]
+        },
+        {
+          "schema": "PurchaseOrderReceiveRow",
+          "issues": [
+            "missing_description",
+            "property_purchase_order_row_id_missing_description",
+            "property_quantity_missing_description",
+            "property_batch_transactions_missing_description"
+          ]
+        },
+        {
+          "schema": "ServiceAttributes",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "Service",
+          "issues": [
+            "property_attributes_missing_description"
+          ]
+        },
+        {
+          "schema": "ServiceInputAttributes",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "Operator",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "Stocktake",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "StocktakeRow",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "SerialNumberStock",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "SalesReturnRow",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "CreateSalesReturnRowRequest",
+          "issues": [
+            "missing_description"
+          ]
+        },
+        {
+          "schema": "OutsourcedPurchaseOrderRecipeRow",
+          "issues": [
+            "missing_description"
+          ]
+        }
+      ],
+      "type_mismatches": [],
+      "description_mismatches": []
+    },
+    "documentation": {
+      "missing_files": [
+        "update_product",
+        "delete_material",
+        "get_purchase_order_additional_cost_rows",
+        "receive_purchase_order",
+        "update_purchase_order_row",
+        "get_all_sales_return_rows",
+        "create_inventory_safety_stock_level",
+        "get_location",
+        "get_sales_return",
+        "get_all_customer_addresses",
+        "get_outsourced_purchase_order_recipe_rows",
+        "get_all_custom_fields_collections",
+        "get_manufacturing_order_recipe_row",
+        "get_all_storage_bins",
+        "update_default_storage_bin",
+        "get_all_customers",
+        "create_manufacturing_order",
+        "get_all_purchase_order_accounting_metadata",
+        "delete_supplier",
+        "export_webhook_logs",
+        "create_purchase_order_row",
+        "create_product",
+        "get_all_price_list_rows",
+        "find_purchase_orders",
+        "create_manufacturing_order_operation_row",
+        "get_additional_costs",
+        "create_sales_return",
+        "delete_webhook",
+        "update_additional_cost_row",
+        "create_tax_rate",
+        "create_material",
+        "create_purchase_order",
+        "delete_sales_order",
+        "get_purchase_order",
+        "get_variant",
+        "get_manufacturing_order",
+        "get_all_inventory_movements",
+        "update_manufacturing_order_production",
+        "delete_purchase_order_row",
+        "get_service",
+        "update_variant",
+        "get_all_users",
+        "create_price_list",
+        "get_all_price_lists",
+        "get_all_products",
+        "get_customer_address",
+        "update_sales_order",
+        "delete_variant",
+        "rerank_product_operations",
+        "get_all_manufacturing_order_productions",
+        "update_material",
+        "get_purchase_order_row",
+        "get_all_sales_orders",
+        "get_all_locations",
+        "delete_customer_address",
+        "get_all_sales_order_fulfillments",
+        "create_supplier",
+        "create_po_additional_cost_row",
+        "delete_manufacturing_order_operation_row",
+        "get_all_sales_order_addresses",
+        "delete_product",
+        "update_supplier_address",
+        "create_bom_row",
+        "get_product",
+        "get_sales_order_accounting_metadata",
+        "batch_create_bom_rows",
+        "create_variant",
+        "get_all_services",
+        "get_all_serial_numbers_stock",
+        "get_all_materials",
+        "get_all_stocktake_rows",
+        "update_customer_address",
+        "get_all_stock_transfers",
+        "delete_service",
+        "create_price_list_customer",
+        "create_manufacturing_order_recipe_rows",
+        "create_batch",
+        "get_batch_stock",
+        "delete_storage_bin",
+        "get_all_manufacturing_order_recipe_rows",
+        "get_all_suppliers",
+        "get_all_webhooks",
+        "update_webhook",
+        "create_sales_order",
+        "delete_manufacturing_order",
+        "get_all_stocktakes",
+        "make_to_order_manufacturing_order",
+        "get_all_sales_order_rows",
+        "get_all_serial_numbers",
+        "get_webhook",
+        "get_all_purchase_order_rows",
+        "update_manufacturing_order",
+        "update_manufacturing_order_production_ingredient",
+        "get_factory",
+        "get_supplier_addresses",
+        "create_manufacturing_order_production",
+        "get_all_operators",
+        "unlink_manufacturing_order",
+        "delete_manufacturing_order_production",
+        "update_manufacturing_order_recipe_rows",
+        "update_batch_stock",
+        "delete_supplier_address",
+        "unlink_variant_default_storage_bins",
+        "link_variant_default_storage_bins",
+        "delete_po_additional_cost",
+        "get_all_manufacturing_orders",
+        "delete_purchase_order",
+        "get_all_bom_rows",
+        "create_sales_order_shipping_fee",
+        "get_all_tax_rates",
+        "create_price_list_row",
+        "update_bom_row",
+        "get_all_negative_stock",
+        "get_manufacturing_order_operation_row",
+        "create_webhook",
+        "get_manufacturing_order_production",
+        "create_supplier_address",
+        "update_service",
+        "get_all_variants",
+        "get_all_sales_returns",
+        "get_sales_order_shipping_fees",
+        "delete_bom_row",
+        "delete_manufacturing_order_recipe_row",
+        "create_service",
+        "create_customer_address",
+        "get_inventory_reorder_points",
+        "get_material",
+        "update_purchase_order",
+        "create_customer",
+        "get_sales_order",
+        "update_manufacturing_order_operation_row",
+        "get_all_price_list_customers",
+        "update_supplier",
+        "get_all_stock_adjustments",
+        "get_all_inventory_point",
+        "get_po_additional_cost_row",
+        "get_all_manufacturing_order_operation_rows"
+      ],
+      "content_mismatches": []
+    },
+    "summary": {
+      "total_endpoints_current": 81,
+      "total_endpoints_comprehensive": 103,
+      "total_schemas_current": 179,
+      "total_schemas_comprehensive": 0,
+      "endpoints_missing_in_current": 23,
+      "endpoints_missing_in_comprehensive": 1,
+      "endpoint_method_mismatches": 13,
+      "endpoint_parameter_mismatches": 50,
+      "schema_issues": 37,
+      "missing_documentation_files": 137
+    }
+  },
+  "gap_analysis": {
+    "missing_endpoints": {
+      "critical": [
+        "/customers/{id}",
+        "/sales_orders/{id}/returnable_items"
+      ],
+      "important": [
+        "/services/{id}",
+        "/stock_adjustments/{id}",
+        "/stock_transfers/{id}",
+        "/stock_transfers/{id}/status",
+        "/sales_order_rows/{id}",
+        "/price_lists/{id}"
+      ],
+      "nice_to_have": [
+        "/recipes",
+        "/stocktake_rows/{id}",
+        "/sales_order_shipping_fee/{id}",
+        "/price_list_customers/{id}",
+        "/sales_return_rows/{id}/unassigned_batch_transactions",
+        "/stocktakes/{id}",
+        "/outsourced_purchase_order_recipe_rows/{id}",
+        "/price_list_rows/{id}",
+        "/product_operation_rows/",
+        "/recipe_rows/{id}",
+        "/sales_order_fulfillments/{id}",
+        "/sales_return_rows/{id}",
+        "/sales_order_addresses/{id}",
+        "/sales_returns/return_reasons",
+        "/product_operation_rows/{id}"
+      ]
+    },
+    "method_gaps": {
+      "crud_completeness_issues": [
+        {
+          "path": "/sales_returns/{id}",
+          "missing_crud_methods": [
+            "patch",
+            "delete"
+          ],
+          "impact": "High - Core entity operations unavailable"
+        }
+      ],
+      "standard_operations_missing": [
+        {
+          "path": "/stock_adjustments",
+          "missing_methods": [
+            "post"
+          ],
+          "impact": "Medium - Cannot create new resources"
+        },
+        {
+          "path": "/sales_order_rows",
+          "missing_methods": [
+            "post"
+          ],
+          "impact": "Medium - Cannot create new resources"
+        },
+        {
+          "path": "/stocktake_rows",
+          "missing_methods": [
+            "post"
+          ],
+          "impact": "Medium - Cannot create new resources"
+        },
+        {
+          "path": "/sales_order_fulfillments",
+          "missing_methods": [
+            "post"
+          ],
+          "impact": "Medium - Cannot create new resources"
+        },
+        {
+          "path": "/serial_numbers",
+          "missing_methods": [
+            "post"
+          ],
+          "impact": "Medium - Cannot create new resources"
+        },
+        {
+          "path": "/inventory_reorder_points",
+          "missing_methods": [
+            "post"
+          ],
+          "impact": "Medium - Cannot create new resources"
+        },
+        {
+          "path": "/sales_order_addresses",
+          "missing_methods": [
+            "post"
+          ],
+          "impact": "Medium - Cannot create new resources"
+        },
+        {
+          "path": "/stocktakes",
+          "missing_methods": [
+            "post"
+          ],
+          "impact": "Medium - Cannot create new resources"
+        },
+        {
+          "path": "/sales_return_rows",
+          "missing_methods": [
+            "post"
+          ],
+          "impact": "Medium - Cannot create new resources"
+        },
+        {
+          "path": "/stock_transfers",
+          "missing_methods": [
+            "post"
+          ],
+          "impact": "Medium - Cannot create new resources"
+        },
+        {
+          "path": "/outsourced_purchase_order_recipe_rows",
+          "missing_methods": [
+            "post"
+          ],
+          "impact": "Medium - Cannot create new resources"
+        }
+      ],
+      "minor_gaps": []
+    },
+    "parameter_gaps": {
+      "pagination_missing": [
+        {
+          "endpoint": "GET /stock_adjustments",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_returns",
+          "missing_params": [
+            "page",
+            "limit"
+          ]
+        },
+        {
+          "endpoint": "GET /tax_rates",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /bin_locations",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_order_accounting_metadata",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_order_rows",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /po_additional_cost_rows",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /services",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /customers",
+          "missing_params": [
+            "page",
+            "limit"
+          ]
+        },
+        {
+          "endpoint": "GET /price_lists",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /materials",
+          "missing_params": [
+            "page",
+            "limit"
+          ]
+        },
+        {
+          "endpoint": "GET /products",
+          "missing_params": [
+            "page",
+            "limit"
+          ]
+        },
+        {
+          "endpoint": "GET /suppliers",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /stocktake_rows",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_order_fulfillments",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /purchase_order_accounting_metadata",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /manufacturing_order_recipe_rows",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /serial_numbers",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_order_shipping_fee",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /variants",
+          "missing_params": [
+            "page",
+            "limit"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_order_addresses",
+          "missing_params": [
+            "page",
+            "limit"
+          ]
+        },
+        {
+          "endpoint": "GET /supplier_addresses",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /locations",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /operators",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /inventory",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /manufacturing_order_productions",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /bom_rows",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /users",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /stocktakes",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_return_rows",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /customer_addresses",
+          "missing_params": [
+            "page",
+            "limit"
+          ]
+        },
+        {
+          "endpoint": "GET /negative_stock",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /additional_costs",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /webhooks",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /purchase_orders",
+          "missing_params": [
+            "page",
+            "limit"
+          ]
+        },
+        {
+          "endpoint": "GET /stock_transfers",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /manufacturing_order_operation_rows",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /batch_stocks",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /price_list_customers",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /inventory_movements",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /manufacturing_orders",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /purchase_order_rows",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_orders",
+          "missing_params": [
+            "page",
+            "limit"
+          ]
+        },
+        {
+          "endpoint": "GET /outsourced_purchase_order_recipe_rows",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "endpoint": "GET /price_list_rows",
+          "missing_params": [
+            "limit",
+            "page"
+          ]
+        }
+      ],
+      "filtering_missing": [
+        {
+          "endpoint": "GET /stock_adjustments",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_returns",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "updated_at_max",
+            "created_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /tax_rates",
+          "missing_params": [
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /bin_locations",
+          "missing_params": [
+            "include_deleted"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_order_rows",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /po_additional_cost_rows",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /services",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /customers",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_min",
+            "updated_at_max"
+          ]
+        },
+        {
+          "endpoint": "GET /materials",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_min",
+            "updated_at_max"
+          ]
+        },
+        {
+          "endpoint": "GET /products",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "updated_at_max",
+            "created_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /suppliers",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /stocktake_rows",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_order_fulfillments",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /manufacturing_order_recipe_rows",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_order_shipping_fee",
+          "missing_params": [
+            "created_at_min",
+            "include_deleted",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /variants",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_min",
+            "updated_at_max"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_order_addresses",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "updated_at_max",
+            "created_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /supplier_addresses",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /locations",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /manufacturing_order_productions",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /bom_rows",
+          "missing_params": [
+            "created_at_min",
+            "created_at_max",
+            "updated_at_min",
+            "updated_at_max"
+          ]
+        },
+        {
+          "endpoint": "GET /users",
+          "missing_params": [
+            "created_at_min",
+            "created_at_max",
+            "updated_at_min",
+            "updated_at_max"
+          ]
+        },
+        {
+          "endpoint": "GET /stocktakes",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_return_rows",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /customer_addresses",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "updated_at_max",
+            "created_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /additional_costs",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /purchase_orders",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_min",
+            "updated_at_max"
+          ]
+        },
+        {
+          "endpoint": "GET /stock_transfers",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_min",
+            "updated_at_max"
+          ]
+        },
+        {
+          "endpoint": "GET /manufacturing_order_operation_rows",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /inventory_movements",
+          "missing_params": [
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /manufacturing_orders",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /purchase_order_rows",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_orders",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "updated_at_max",
+            "created_at_max",
+            "updated_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /outsourced_purchase_order_recipe_rows",
+          "missing_params": [
+            "include_deleted",
+            "created_at_min",
+            "created_at_max",
+            "updated_at_max",
+            "updated_at_min"
+          ]
+        }
+      ],
+      "other_missing": [
+        {
+          "endpoint": "GET /stock_adjustments",
+          "missing_params": [
+            "ids",
+            "stock_adjustment_number"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_returns",
+          "missing_params": [
+            "ids",
+            "order_created_date_max",
+            "return_date_min",
+            "order_created_date_min",
+            "return_date_max"
+          ]
+        },
+        {
+          "endpoint": "GET /tax_rates",
+          "missing_params": [
+            "rate",
+            "ids",
+            "name",
+            "is_default_purchases",
+            "is_default_sales"
+          ]
+        },
+        {
+          "endpoint": "GET /bin_locations",
+          "missing_params": [
+            "bin_name",
+            "location_id"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_order_accounting_metadata",
+          "missing_params": [
+            "fulfillment_id"
+          ]
+        },
+        {
+          "endpoint": "GET /variants/{id}",
+          "missing_params": [
+            "extend"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_order_rows",
+          "missing_params": [
+            "location_id",
+            "ids",
+            "tax_rate_id",
+            "extend",
+            "linked_manufacturing_order_id"
+          ]
+        },
+        {
+          "endpoint": "GET /po_additional_cost_rows",
+          "missing_params": [
+            "additional_cost_id",
+            "ids",
+            "tax_rate_id",
+            "distribution_method",
+            "group_id"
+          ]
+        },
+        {
+          "endpoint": "GET /services",
+          "missing_params": [
+            "uom",
+            "ids",
+            "name",
+            "is_sellable",
+            "category_name"
+          ]
+        },
+        {
+          "endpoint": "GET /customers",
+          "missing_params": [
+            "ids",
+            "phone",
+            "currency",
+            "first_name",
+            "last_name"
+          ]
+        },
+        {
+          "endpoint": "GET /price_lists",
+          "missing_params": [
+            "is_active",
+            "ids"
+          ]
+        },
+        {
+          "endpoint": "GET /materials",
+          "missing_params": [
+            "uom",
+            "ids",
+            "extend",
+            "include_archived",
+            "batch_tracked"
+          ]
+        },
+        {
+          "endpoint": "GET /products",
+          "missing_params": [
+            "uom",
+            "is_producible",
+            "ids",
+            "is_purchasable",
+            "extend"
+          ]
+        },
+        {
+          "endpoint": "GET /suppliers",
+          "missing_params": [
+            "ids",
+            "name",
+            "email",
+            "phone"
+          ]
+        },
+        {
+          "endpoint": "GET /stocktake_rows",
+          "missing_params": [
+            "ids",
+            "stocktake_ids",
+            "batch_id",
+            "stock_adjustment_id"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_order_fulfillments",
+          "missing_params": [
+            "status",
+            "tracking_method",
+            "tracking_number",
+            "tracking_carrier",
+            "picked_date_min"
+          ]
+        },
+        {
+          "endpoint": "GET /purchase_order_accounting_metadata",
+          "missing_params": [
+            "purchase_order_id",
+            "received_items_group_id"
+          ]
+        },
+        {
+          "endpoint": "GET /manufacturing_order_recipe_rows",
+          "missing_params": [
+            "ids",
+            "variant_id",
+            "ingredient_availability",
+            "manufacturing_order_id"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_order_shipping_fee",
+          "missing_params": [
+            "ids"
+          ]
+        },
+        {
+          "endpoint": "GET /variants",
+          "missing_params": [
+            "ids",
+            "product_id",
+            "extend",
+            "internal_barcode",
+            "include_archived"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_order_addresses",
+          "missing_params": [
+            "ids",
+            "country",
+            "state",
+            "line_1",
+            "zip"
+          ]
+        },
+        {
+          "endpoint": "GET /supplier_addresses",
+          "missing_params": [
+            "supplier_ids",
+            "ids",
+            "country",
+            "state",
+            "city"
+          ]
+        },
+        {
+          "endpoint": "GET /locations",
+          "missing_params": [
+            "ids",
+            "sales_allowed",
+            "manufacturing_allowed",
+            "address_id",
+            "name"
+          ]
+        },
+        {
+          "endpoint": "GET /materials/{id}",
+          "missing_params": [
+            "extend"
+          ]
+        },
+        {
+          "endpoint": "GET /inventory",
+          "missing_params": [
+            "location_id",
+            "include_archived",
+            "variant_id",
+            "extend"
+          ]
+        },
+        {
+          "endpoint": "GET /manufacturing_order_productions",
+          "missing_params": [
+            "ids",
+            "manufacturing_order_ids"
+          ]
+        },
+        {
+          "endpoint": "GET /bom_rows",
+          "missing_params": [
+            "product_item_id",
+            "id"
+          ]
+        },
+        {
+          "endpoint": "GET /purchase_orders/{id}",
+          "missing_params": [
+            "extend"
+          ]
+        },
+        {
+          "endpoint": "GET /stocktakes",
+          "missing_params": [
+            "ids",
+            "stock_adjustment_id",
+            "stocktake_number"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_return_rows",
+          "missing_params": [
+            "ids",
+            "sales_order_row_id",
+            "reason_id",
+            "restock_location_id"
+          ]
+        },
+        {
+          "endpoint": "GET /customer_addresses",
+          "missing_params": [
+            "ids",
+            "country",
+            "state",
+            "line_1",
+            "zip"
+          ]
+        },
+        {
+          "endpoint": "GET /negative_stock",
+          "missing_params": [
+            "location_id",
+            "sku",
+            "name",
+            "variant_id",
+            "category"
+          ]
+        },
+        {
+          "endpoint": "GET /additional_costs",
+          "missing_params": [
+            "ids",
+            "name"
+          ]
+        },
+        {
+          "endpoint": "GET /webhooks",
+          "missing_params": [
+            "url",
+            "ids",
+            "enabled"
+          ]
+        },
+        {
+          "endpoint": "GET /purchase_orders",
+          "missing_params": [
+            "ids",
+            "extend",
+            "supplier_id",
+            "tracking_location_id",
+            "currency"
+          ]
+        },
+        {
+          "endpoint": "GET /stock_transfers",
+          "missing_params": [
+            "source_location_id",
+            "ids",
+            "target_location_id",
+            "stock_transfer_number"
+          ]
+        },
+        {
+          "endpoint": "GET /manufacturing_order_operation_rows",
+          "missing_params": [
+            "status",
+            "ids",
+            "manufacturing_order_id"
+          ]
+        },
+        {
+          "endpoint": "GET /batch_stocks",
+          "missing_params": [
+            "batch_number",
+            "location_id",
+            "batch_id",
+            "variant_id",
+            "batch_created_at_min"
+          ]
+        },
+        {
+          "endpoint": "GET /price_list_customers",
+          "missing_params": [
+            "ids",
+            "price_list_ids",
+            "customer_ids"
+          ]
+        },
+        {
+          "endpoint": "GET /inventory_movements",
+          "missing_params": [
+            "resource_type",
+            "caused_by_order_no",
+            "location_id",
+            "ids",
+            "resource_id"
+          ]
+        },
+        {
+          "endpoint": "GET /manufacturing_orders",
+          "missing_params": [
+            "status",
+            "location_id",
+            "ids",
+            "is_linked_to_sales_order",
+            "order_no"
+          ]
+        },
+        {
+          "endpoint": "GET /products/{id}",
+          "missing_params": [
+            "extend"
+          ]
+        },
+        {
+          "endpoint": "GET /purchase_order_rows",
+          "missing_params": [
+            "ids",
+            "tax_rate_id",
+            "variant_id",
+            "purchase_uom",
+            "group_id"
+          ]
+        },
+        {
+          "endpoint": "GET /sales_orders",
+          "missing_params": [
+            "ecommerce_order_id",
+            "ids",
+            "invoicing_status",
+            "currency",
+            "product_availability"
+          ]
+        },
+        {
+          "endpoint": "GET /outsourced_purchase_order_recipe_rows",
+          "missing_params": [
+            "ids",
+            "ingredient_variant_id",
+            "purchase_order_row_id",
+            "purchase_order_id"
+          ]
+        },
+        {
+          "endpoint": "GET /price_list_rows",
+          "missing_params": [
+            "ids",
+            "price_list_ids",
+            "variant_ids"
+          ]
+        }
+      ]
+    },
+    "schema_gaps": {
+      "critical_schemas_without_descriptions": [
+        "Inventory"
+      ],
+      "properties_missing_descriptions": [
+        {
+          "schema": "UpdatableEntity",
+          "properties_without_descriptions": [
+            "created_at",
+            "updated_at"
+          ]
+        },
+        {
+          "schema": "ArchivableEntity",
+          "properties_without_descriptions": [
+            "created_at",
+            "updated_at"
+          ]
+        },
+        {
+          "schema": "DeletableEntity",
+          "properties_without_descriptions": [
+            "created_at",
+            "updated_at"
+          ]
+        },
+        {
+          "schema": "Inventory",
+          "properties_without_descriptions": [
+            "variant_id",
+            "location_id",
+            "reorder_point",
+            "average_cost",
+            "value_in_stock"
+          ]
+        },
+        {
+          "schema": "InventoryReorderPoint",
+          "properties_without_descriptions": [
+            "location_id",
+            "variant_id",
+            "value"
+          ]
+        },
+        {
+          "schema": "SerialNumber",
+          "properties_without_descriptions": [
+            "id",
+            "transaction_id",
+            "serial_number",
+            "resource_type",
+            "resource_id"
+          ]
+        },
+        {
+          "schema": "PurchaseOrderReceiveRow",
+          "properties_without_descriptions": [
+            "purchase_order_row_id",
+            "quantity",
+            "batch_transactions"
+          ]
+        },
+        {
+          "schema": "Service",
+          "properties_without_descriptions": [
+            "attributes"
+          ]
+        }
+      ],
+      "potential_missing_schemas": []
+    }
+  },
+  "recommendations": {
+    "immediate_actions": [
+      {
+        "action": "Implement missing critical endpoints",
+        "details": [
+          "/customers/{id}",
+          "/sales_orders/{id}/returnable_items"
+        ],
+        "effort": "High",
+        "impact": "High"
+      },
+      {
+        "action": "Add missing CRUD methods to entity endpoints",
+        "details": [
+          "/sales_returns/{id}"
+        ],
+        "effort": "Medium",
+        "impact": "High"
+      },
+      {
+        "action": "Add descriptions to critical business entity schemas",
+        "details": [
+          "Inventory"
+        ],
+        "effort": "Low",
+        "impact": "Medium"
+      }
+    ],
+    "short_term_improvements": [
+      {
+        "action": "Implement important missing endpoints",
+        "details": [
+          "/services/{id}",
+          "/stock_adjustments/{id}",
+          "/stock_transfers/{id}",
+          "/stock_transfers/{id}/status",
+          "/sales_order_rows/{id}"
+        ],
+        "effort": "Medium",
+        "impact": "Medium"
+      },
+      {
+        "action": "Add pagination parameters to list endpoints",
+        "details": "45 endpoints missing pagination",
+        "effort": "Low",
+        "impact": "Medium"
+      },
+      {
+        "action": "Add common filtering parameters (date ranges, include_deleted)",
+        "details": "34 endpoints missing filters",
+        "effort": "Low",
+        "impact": "Medium"
+      }
+    ],
+    "long_term_enhancements": [
+      {
+        "action": "Implement additional endpoints for completeness",
+        "details": "15 additional endpoints",
+        "effort": "Medium",
+        "impact": "Low"
+      }
+    ],
+    "implementation_priority": [
+      "1. Critical entity CRUD endpoints (/customers/{id}, etc.)",
+      "2. Missing CRUD methods (PATCH, DELETE for entities)",
+      "3. Schema descriptions for business entities",
+      "4. Pagination parameters for list endpoints",
+      "5. Common filtering parameters",
+      "6. Important operational endpoints",
+      "7. Additional endpoints for feature completeness"
+    ]
+  },
+  "technical_specifications": {
+    "missing_endpoint_specs": [
+      {
+        "path": "/customers/{id}",
+        "methods": {
+          "get": {
+            "summary": "Retrieve a specific customer",
+            "parameters": [
+              {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Customer details",
+                "schema": "$ref:Customer"
+              }
+            }
+          },
+          "patch": {
+            "summary": "Update a customer",
+            "parameters": [
+              {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            ],
+            "requestBody": {
+              "schema": "$ref:CustomerUpdate"
+            },
+            "responses": {
+              "200": {
+                "description": "Updated customer",
+                "schema": "$ref:Customer"
+              }
+            }
+          },
+          "delete": {
+            "summary": "Delete a customer",
+            "parameters": [
+              {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            ],
+            "responses": {
+              "204": {
+                "description": "Customer deleted successfully"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "missing_method_specs": [
+      {
+        "path": "/sales_returns/{id}",
+        "methods": {
+          "patch": {
+            "summary": "Update sales_return",
+            "requestBody": {
+              "required": true
+            },
+            "responses": {
+              "200": {
+                "description": "Resource updated successfully"
+              }
+            }
+          },
+          "delete": {
+            "summary": "Delete sales_return",
+            "responses": {
+              "204": {
+                "description": "Resource deleted successfully"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "parameter_additions": []
+  }
+}
