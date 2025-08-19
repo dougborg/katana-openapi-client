@@ -13,15 +13,15 @@ from ...models.service_request import ServiceRequest
 
 
 def _get_kwargs(
-    service_id: str,
+    id: str,
     *,
     body: ServiceRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
     _kwargs: dict[str, Any] = {
-        "method": "put",
-        "url": f"/services/{service_id}",
+        "method": "patch",
+        "url": f"/services/{id}",
     }
 
     _kwargs["json"] = body.to_dict()
@@ -73,7 +73,7 @@ def _build_response(
 
 
 def sync_detailed(
-    service_id: str,
+    id: str,
     *,
     client: AuthenticatedClient | Client,
     body: ServiceRequest,
@@ -84,11 +84,12 @@ def sync_detailed(
     Service](https://developer.katanamrp.com/reference/updateservice))
 
     Args:
-        service_id (str):
+        id (str):
         body (ServiceRequest): Request payload for creating or updating service records with
             pricing and operational details Example: {'data': {'type': 'services', 'attributes':
             {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}}.
+            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
+            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -100,7 +101,7 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
-        service_id=service_id,
+        id=id,
         body=body,
     )
 
@@ -112,7 +113,7 @@ def sync_detailed(
 
 
 def sync(
-    service_id: str,
+    id: str,
     *,
     client: AuthenticatedClient | Client,
     body: ServiceRequest,
@@ -123,11 +124,12 @@ def sync(
     Service](https://developer.katanamrp.com/reference/updateservice))
 
     Args:
-        service_id (str):
+        id (str):
         body (ServiceRequest): Request payload for creating or updating service records with
             pricing and operational details Example: {'data': {'type': 'services', 'attributes':
             {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}}.
+            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
+            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -139,14 +141,14 @@ def sync(
     """
 
     return sync_detailed(
-        service_id=service_id,
+        id=id,
         client=client,
         body=body,
     ).parsed
 
 
 async def asyncio_detailed(
-    service_id: str,
+    id: str,
     *,
     client: AuthenticatedClient | Client,
     body: ServiceRequest,
@@ -157,11 +159,12 @@ async def asyncio_detailed(
     Service](https://developer.katanamrp.com/reference/updateservice))
 
     Args:
-        service_id (str):
+        id (str):
         body (ServiceRequest): Request payload for creating or updating service records with
             pricing and operational details Example: {'data': {'type': 'services', 'attributes':
             {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}}.
+            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
+            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -173,7 +176,7 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
-        service_id=service_id,
+        id=id,
         body=body,
     )
 
@@ -183,7 +186,7 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    service_id: str,
+    id: str,
     *,
     client: AuthenticatedClient | Client,
     body: ServiceRequest,
@@ -194,11 +197,12 @@ async def asyncio(
     Service](https://developer.katanamrp.com/reference/updateservice))
 
     Args:
-        service_id (str):
+        id (str):
         body (ServiceRequest): Request payload for creating or updating service records with
             pricing and operational details Example: {'data': {'type': 'services', 'attributes':
             {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}}.
+            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
+            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -211,7 +215,7 @@ async def asyncio(
 
     return (
         await asyncio_detailed(
-            service_id=service_id,
+            id=id,
             client=client,
             body=body,
         )

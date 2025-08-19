@@ -80,7 +80,8 @@ def sync_detailed(
         body (ServiceRequest): Request payload for creating or updating service records with
             pricing and operational details Example: {'data': {'type': 'services', 'attributes':
             {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}}.
+            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
+            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -116,7 +117,8 @@ def sync(
         body (ServiceRequest): Request payload for creating or updating service records with
             pricing and operational details Example: {'data': {'type': 'services', 'attributes':
             {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}}.
+            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
+            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -147,7 +149,8 @@ async def asyncio_detailed(
         body (ServiceRequest): Request payload for creating or updating service records with
             pricing and operational details Example: {'data': {'type': 'services', 'attributes':
             {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}}.
+            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
+            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -181,7 +184,8 @@ async def asyncio(
         body (ServiceRequest): Request payload for creating or updating service records with
             pricing and operational details Example: {'data': {'type': 'services', 'attributes':
             {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}}.
+            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
+            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

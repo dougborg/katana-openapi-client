@@ -19,6 +19,10 @@ T = TypeVar("T", bound="Inventory")
 
 @_attrs_define
 class Inventory:
+    """Represents the current inventory state for a specific product variant at a location.
+    Includes stock levels, commitments, expectations, and financial information.
+    """
+
     variant_id: int
     location_id: int
     reorder_point: str

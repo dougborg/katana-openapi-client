@@ -1587,6 +1587,9 @@ components:
 
     Inventory:
       type: object
+      description: |
+        Represents the current inventory state for a specific product variant at a location.
+        Includes stock levels, commitments, expectations, and financial information.
       properties:
         variant_id:
           type: integer
@@ -5681,40 +5684,7 @@ components:
             price: 150.00
             currency: "USD"
 
-    UpdateServiceRequest:
-      description: Request payload for updating an existing service
-      type: object
-      additionalProperties: false
-      properties:
-        name:
-          type: string
-          description: Name of the Service
-        description:
-          type: string
-          description: A brief description of the Service
-        price:
-          type: number
-          description: Price of the Service
-        currency:
-          type: string
-          description: Currency code for the price
-        uom:
-          type: string
-          description: Unit of measure for the service
-        category_name:
-          type: string
-          description: Service category name
-        is_sellable:
-          type: boolean
-          description: Whether this service can be sold
-        additional_info:
-          type: string
-          description: Additional information about the service
-      example:
-        name: "Screen Printing"
-        description: "High quality screen printing service."
-        price: 150.0
-        currency: "USD"
+
         uom: "pcs"
         category_name: "Printing Services"
         is_sellable: true
@@ -14860,7 +14830,7 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-    put:
+    patch:
       summary: "Update Service"
       description: >
         Update an existing Service.
@@ -18785,67 +18755,6 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /product_operation_rows/:
-    get:
-      summary: List product operation rows (alias)
-      tags:
-        - Products
-      description: Returns a list of product operation rows. (alias endpoint with trailing slash)
-      operationId: getAllProductOperationRowsAlias
-      parameters:
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/page"
-        - name: product_id
-          in: query
-          description: Filter by product ID
-          schema:
-            type: integer
-        - name: operation_id
-          in: query
-          description: Filter by operation ID
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: List of product operation rows
-          headers:
-            X-Ratelimit-Limit:
-              $ref: "#/components/headers/X-Ratelimit-Limit"
-            X-Ratelimit-Remaining:
-              $ref: "#/components/headers/X-Ratelimit-Remaining"
-            X-Ratelimit-Reset:
-              $ref: "#/components/headers/X-Ratelimit-Reset"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                          description: Product operation row ID
-                        product_id:
-                          type: integer
-                          description: Product ID
-                        operation_id:
-                          type: integer
-                          description: Operation ID
-                        sequence:
-                          type: integer
-                          description: Operation sequence
-                        notes:
-                          type: string
-                          description: Operation notes
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
 
   /product_operation_rows/{id}:
     get:
