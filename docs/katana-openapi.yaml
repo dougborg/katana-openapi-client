@@ -6423,6 +6423,173 @@ components:
         created_at: "2024-01-15T10:00:00Z"
         updated_at: "2024-01-15T10:00:00Z"
 
+    CreateSalesOrderRowRequest:
+      description: Request payload for creating a new sales order row (line item)
+      type: object
+      additionalProperties: false
+      required:
+        - sales_order_id
+        - variant_id
+        - quantity
+      properties:
+        sales_order_id:
+          type: integer
+          description: ID of the sales order this row belongs to
+        variant_id:
+          type: integer
+          description: ID of the product variant being ordered
+        quantity:
+          type: number
+          description: Ordered quantity of the product variant
+        price_per_unit:
+          type: number
+          description: Selling price per unit in the order currency
+        tax_rate_id:
+          type: integer
+          description: ID of the tax rate applied to this line item
+        location_id:
+          type: integer
+          description: Location where the product should be picked from
+      example:
+        sales_order_id: 2001
+        variant_id: 2101
+        quantity: 2
+        price_per_unit: 599.99
+        tax_rate_id: 301
+        location_id: 1
+
+    UpdateSalesOrderRowRequest:
+      description: Request payload for updating an existing sales order row
+      type: object
+      additionalProperties: false
+      properties:
+        variant_id:
+          type: integer
+          description: ID of the product variant being ordered
+        quantity:
+          type: number
+          description: Ordered quantity of the product variant
+        price_per_unit:
+          type: number
+          description: Selling price per unit in the order currency
+        tax_rate_id:
+          type: integer
+          description: ID of the tax rate applied to this line item
+        location_id:
+          type: integer
+          description: Location where the product should be picked from
+      example:
+        quantity: 3
+        price_per_unit: 549.99
+
+    CreateSalesOrderAddressRequest:
+      description: Request payload for creating a new sales order address
+      type: object
+      additionalProperties: false
+      required:
+        - sales_order_id
+        - entity_type
+        - address_line_1
+        - city
+        - country
+      properties:
+        sales_order_id:
+          type: integer
+          description: ID of the sales order this address belongs to
+        entity_type:
+          type: string
+          enum:
+            - billing
+            - shipping
+          description: Type of address (billing or shipping)
+        first_name:
+          type: string
+          description: First name for the address contact
+        last_name:
+          type: string
+          description: Last name for the address contact
+        company:
+          type: string
+          description: Company name for the address
+        address_line_1:
+          type: string
+          description: Primary address line
+        address_line_2:
+          type: string
+          description: Secondary address line
+        city:
+          type: string
+          description: City name
+        state:
+          type: string
+          description: State or province
+        zip:
+          type: string
+          description: Postal code
+        country:
+          type: string
+          description: Country code
+        phone:
+          type: string
+          description: Contact phone number
+      example:
+        sales_order_id: 2001
+        entity_type: "shipping"
+        first_name: "John"
+        last_name: "Johnson"
+        company: "Johnson's Restaurant"
+        address_line_1: "123 Main Street"
+        city: "Portland"
+        state: "OR"
+        zip: "97201"
+        country: "US"
+        phone: "+1-555-0123"
+
+    UpdateSalesOrderAddressRequest:
+      description: Request payload for updating an existing sales order address
+      type: object
+      additionalProperties: false
+      properties:
+        entity_type:
+          type: string
+          enum:
+            - billing
+            - shipping
+          description: Type of address (billing or shipping)
+        first_name:
+          type: string
+          description: First name for the address contact
+        last_name:
+          type: string
+          description: Last name for the address contact
+        company:
+          type: string
+          description: Company name for the address
+        address_line_1:
+          type: string
+          description: Primary address line
+        address_line_2:
+          type: string
+          description: Secondary address line
+        city:
+          type: string
+          description: City name
+        state:
+          type: string
+          description: State or province
+        zip:
+          type: string
+          description: Postal code
+        country:
+          type: string
+          description: Country code
+        phone:
+          type: string
+          description: Contact phone number
+      example:
+        address_line_1: "456 Oak Avenue"
+        phone: "+1-555-0456"
+
     SalesOrderListResponse:
       description: Response containing a list of sales orders with pagination support for retrieving customer order data
       type: object
@@ -15138,6 +15305,156 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+    post:
+      summary: Create a sales order row
+      tags:
+        - Sales order row
+      description: Creates a new sales order row (line item).
+      operationId: createSalesOrderRow
+      requestBody:
+        description: Sales order row details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSalesOrderRowRequest"
+      responses:
+        "200":
+          description: Sales order row created
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderRow"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /sales_order_rows/{id}:
+    get:
+      summary: Retrieve a sales order row
+      tags:
+        - Sales order row
+      description: Retrieves the details of an existing sales order row by ID.
+      operationId: getSalesOrderRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales order row ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sales order row details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderRow"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a sales order row
+      tags:
+        - Sales order row
+      description: Updates the specified sales order row by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+      operationId: updateSalesOrderRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales order row ID
+          schema:
+            type: integer
+      requestBody:
+        description: Sales order row details to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSalesOrderRowRequest"
+      responses:
+        "200":
+          description: Sales order row updated
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderRow"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a sales order row
+      tags:
+        - Sales order row
+      description: Deletes a sales order row by ID.
+      operationId: deleteSalesOrderRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales order row ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Sales order row deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /sales_order_addresses:
     get:
       summary: List sales order addresses
@@ -15177,6 +15494,156 @@ paths:
                 $ref: "#/components/schemas/SalesOrderAddressListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      summary: Create a sales order address
+      tags:
+        - Sales order address
+      description: Creates a new sales order address (billing or shipping).
+      operationId: createSalesOrderAddress
+      requestBody:
+        description: Sales order address details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSalesOrderAddressRequest"
+      responses:
+        "200":
+          description: Sales order address created
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderAddress"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /sales_order_addresses/{id}:
+    get:
+      summary: Retrieve a sales order address
+      tags:
+        - Sales order address
+      description: Retrieves the details of an existing sales order address by ID.
+      operationId: getSalesOrderAddress
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales order address ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sales order address details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderAddress"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a sales order address
+      tags:
+        - Sales order address
+      description: Updates the specified sales order address by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+      operationId: updateSalesOrderAddress
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales order address ID
+          schema:
+            type: integer
+      requestBody:
+        description: Sales order address details to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSalesOrderAddressRequest"
+      responses:
+        "200":
+          description: Sales order address updated
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderAddress"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a sales order address
+      tags:
+        - Sales order address
+      description: Deletes a sales order address by ID.
+      operationId: deleteSalesOrderAddress
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales order address ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Sales order address deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
