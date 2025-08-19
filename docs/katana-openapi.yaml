@@ -5681,6 +5681,45 @@ components:
             price: 150.00
             currency: "USD"
 
+    UpdateServiceRequest:
+      description: Request payload for updating an existing service
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: Name of the Service
+        description:
+          type: string
+          description: A brief description of the Service
+        price:
+          type: number
+          description: Price of the Service
+        currency:
+          type: string
+          description: Currency code for the price
+        uom:
+          type: string
+          description: Unit of measure for the service
+        category_name:
+          type: string
+          description: Service category name
+        is_sellable:
+          type: boolean
+          description: Whether this service can be sold
+        additional_info:
+          type: string
+          description: Additional information about the service
+      example:
+        name: "Screen Printing"
+        description: "High quality screen printing service."
+        price: 150.0
+        currency: "USD"
+        uom: "pcs"
+        category_name: "Printing Services"
+        is_sellable: true
+        additional_info: "Professional quality guaranteed"
+
     # Customer schemas
     Customer:
       description: Customer entity representing individuals or companies that purchase products or services
@@ -5919,6 +5958,61 @@ components:
         reference_id: "GBG-2024-003"
         category: "Fine Dining"
         discount_rate: 7.5
+
+    UpdateCustomerRequest:
+      description: Request payload for updating an existing customer with contact and business information
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: Customer display name, either individual name or company name
+        first_name:
+          type: [string, "null"]
+          description: Customer's first name for individual contacts
+        last_name:
+          type: [string, "null"]
+          description: Customer's last name for individual contacts
+        company:
+          type: [string, "null"]
+          description: Company name for business customers
+        email:
+          type: [string, "null"]
+          description: Primary email address for communication and order notifications
+        phone:
+          type: [string, "null"]
+          description: Primary phone number for customer contact
+        comment:
+          type: [string, "null"]
+          description: Internal notes and comments about the customer
+        currency:
+          type: [string, "null"]
+          description: Default currency code for all transactions with this customer
+        reference_id:
+          type: [string, "null"]
+          description: External reference ID for integration with other systems
+        category:
+          type: [string, "null"]
+          description: Customer category for segmentation and reporting
+        discount_rate:
+          type: [number, "null"]
+          description: Default discount percentage applied to all orders (0-100)
+        default_shipping_id:
+          type: [integer, "null"]
+          description: Default shipping address ID for this customer
+      example:
+        name: "Gourmet Bistro Group"
+        first_name: "Elena"
+        last_name: "Rodriguez"
+        company: "Gourmet Bistro Group Inc"
+        email: "procurement@gourmetbistro.com"
+        phone: "+1-555-0125"
+        comment: "Premium restaurant chain - priority orders"
+        currency: "USD"
+        reference_id: "GBG-2024-003"
+        category: "Fine Dining"
+        discount_rate: 7.5
+        default_shipping_id: 2
 
     # Sales Order schemas
     SalesOrder:
@@ -6589,6 +6683,73 @@ components:
             updated_at: "2024-01-16T10:00:00.000Z"
             deleted_at: null
 
+    CreateStockAdjustmentRequest:
+      description: Request payload for creating a new stock adjustment to correct inventory levels
+      type: object
+      additionalProperties: false
+      required:
+        - reference_no
+        - location_id
+        - adjustment_date
+      properties:
+        reference_no:
+          type: string
+          description: Human-readable reference number for tracking and audit purposes
+        location_id:
+          type: integer
+          description: ID of the location where the stock adjustment is performed
+        adjustment_date:
+          type: string
+          format: date-time
+          description: Date and time when the adjustment was performed
+        additional_info:
+          type: string
+          description: Optional notes or comments about the adjustment reason
+        status:
+          type: string
+          description: Status of the stock adjustment
+          enum:
+            - DRAFT
+            - COMPLETED
+          default: DRAFT
+      example:
+        reference_no: "SA-2024-003"
+        location_id: 1
+        adjustment_date: "2024-01-17T14:30:00.000Z"
+        additional_info: "Cycle count correction"
+        status: "DRAFT"
+
+    UpdateStockAdjustmentRequest:
+      description: Request payload for updating an existing stock adjustment
+      type: object
+      additionalProperties: false
+      properties:
+        reference_no:
+          type: string
+          description: Human-readable reference number for tracking and audit purposes
+        location_id:
+          type: integer
+          description: ID of the location where the stock adjustment is performed
+        adjustment_date:
+          type: string
+          format: date-time
+          description: Date and time when the adjustment was performed
+        additional_info:
+          type: string
+          description: Optional notes or comments about the adjustment reason
+        status:
+          type: string
+          description: Status of the stock adjustment
+          enum:
+            - DRAFT
+            - COMPLETED
+      example:
+        reference_no: "SA-2024-003"
+        location_id: 1
+        adjustment_date: "2024-01-17T14:30:00.000Z"
+        additional_info: "Cycle count correction - updated"
+        status: "COMPLETED"
+
     StockTransfer:
       description: Inventory transfer record for moving stock between different warehouse locations or facilities
       allOf:
@@ -7074,6 +7235,140 @@ components:
             created_at: "2023-10-15T14:31:00Z"
             updated_at: "2023-10-15T14:31:00Z"
 
+    # Recipe schemas (deprecated in favor of BOM rows)
+    Recipe:
+      type: object
+      description: Recipe row representing ingredient requirements for product manufacturing (deprecated in favor of BOM rows)
+      deprecated: true
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the recipe row
+        recipe_row_id:
+          type: string
+          description: Recipe row UUID identifier
+        product_id:
+          type: integer
+          description: ID of the product that uses this recipe
+        product_item_id:
+          type: integer
+          description: ID of the product item
+        product_variant_id:
+          type: integer
+          description: ID of the product variant this recipe belongs to
+        ingredient_variant_id:
+          type: integer
+          description: ID of the ingredient variant used in this recipe
+        quantity:
+          type: number
+          description: Required quantity of the ingredient
+        notes:
+          type: [string, "null"]
+          description: Additional notes for this recipe row
+        rank:
+          type: integer
+          description: Display order rank for recipe rows
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the recipe was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the recipe was last updated
+      required:
+        - id
+        - product_variant_id
+        - ingredient_variant_id
+        - quantity
+      example:
+        id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        recipe_row_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        product_id: 1
+        product_item_id: 1
+        product_variant_id: 1
+        ingredient_variant_id: 1
+        quantity: 2
+        notes: "some notes"
+        rank: 10000
+        created_at: "2021-04-05T12:00:00.000Z"
+        updated_at: "2021-04-05T12:00:00.000Z"
+
+    CreateRecipesRequest:
+      type: object
+      description: Request payload for creating recipe rows (deprecated in favor of BOM rows)
+      deprecated: true
+      additionalProperties: false
+      required:
+        - rows
+      properties:
+        keep_current_rows:
+          type: boolean
+          description: Existing ingredient lines are kept by default, and new lines will be added to existing product recipes. Set to false to delete all existing ingredient lines for related products and add the ingredients as new recipes.
+        rows:
+          type: array
+          minItems: 1
+          maxItems: 150
+          description: Array of recipe rows to create
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - ingredient_variant_id
+              - product_variant_id
+              - quantity
+            properties:
+              quantity:
+                type: number
+                maximum: 10000000000000000
+                minimum: 0
+                description: Required quantity of the ingredient
+              ingredient_variant_id:
+                type: integer
+                maximum: 2147483647
+                description: ID of the ingredient variant
+              product_variant_id:
+                type: number
+                minimum: 0
+                maximum: 2147483647
+                description: ID of the product variant
+              notes:
+                type: string
+                maxLength: 255
+                minLength: 0
+                description: Additional notes for this recipe row
+      example:
+        keep_current_rows: true
+        rows:
+          - ingredient_variant_id: 1001
+            product_variant_id: 2001
+            quantity: 2.5
+            notes: "Primary ingredient"
+
+    RecipeListResponse:
+      type: object
+      description: Response containing a list of recipe rows
+      deprecated: true
+      properties:
+        data:
+          type: array
+          description: Array of recipe objects
+          items:
+            $ref: "#/components/schemas/Recipe"
+      example:
+        data:
+          - id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+            recipe_row_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+            product_id: 1
+            product_item_id: 1
+            product_variant_id: 1
+            ingredient_variant_id: 1
+            quantity: 2
+            notes: "some notes"
+            rank: 10000
+            created_at: "2021-04-05T12:00:00.000Z"
+            updated_at: "2021-04-05T12:00:00.000Z"
+
     # Factory
     Factory:
       allOf:
@@ -7500,6 +7795,47 @@ components:
             notes: "Packaging was damaged"
             unit_price: 25.00
             total_price: 50.00
+
+    UpdateSalesReturnRequest:
+      description: Request payload for updating an existing sales return
+      type: object
+      additionalProperties: false
+      properties:
+        customer_id:
+          type: integer
+          description: ID of the customer initiating the return
+        sales_order_id:
+          type: integer
+          description: ID of the original sales order being returned
+        order_no:
+          type: string
+          description: Return order reference number
+        return_location_id:
+          type: integer
+          description: ID of the location where items are being returned to
+        currency:
+          type: string
+          description: Currency code (e.g., USD, EUR)
+        order_created_date:
+          type: string
+          format: date-time
+          description: Date when the original order was created
+        additional_info:
+          type: string
+          description: Optional notes or comments about the return
+        status:
+          type: string
+          enum: [DRAFT, RETURNED, CANCELLED]
+          description: Status of the sales return
+      example:
+        customer_id: 1001
+        sales_order_id: 2001
+        order_no: "SR-2023-001"
+        return_location_id: 1
+        currency: "USD"
+        order_created_date: "2023-10-10T10:00:00Z"
+        additional_info: "Customer reported damaged items during shipping"
+        status: "RETURNED"
 
     SalesReturnRow:
       allOf:
@@ -13370,6 +13706,83 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+    patch:
+      summary: Update a sales return
+      tags:
+        - Sales return
+      description: Updates the specified sales return by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+      operationId: updateSalesReturn
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales return ID
+          schema:
+            type: integer
+      requestBody:
+        description: Sales return details to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSalesReturnRequest"
+      responses:
+        "200":
+          description: Sales return updated
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesReturn"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a sales return
+      tags:
+        - Sales return
+      description: Deletes a sales return by ID.
+      operationId: deleteSalesReturn
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sales return ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Sales return deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   # Sales Return Rows endpoints
   /sales_return_rows:
     get:
@@ -13407,6 +13820,106 @@ paths:
                 $ref: "#/components/schemas/SalesReturnRowListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # Recipe endpoints
+  /recipes:
+    get:
+      summary: Get all recipes
+      tags:
+        - Recipe
+      description: Returns a list of all recipe rows. The recipes endpoint is deprecated in favor of BOM rows.
+      operationId: getAllRecipes
+      deprecated: true
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+        - name: product_variant_id
+          in: query
+          description: Filter by product variant ID
+          schema:
+            type: integer
+        - name: ingredient_variant_id
+          in: query
+          description: Filter by ingredient variant ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of recipe rows
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+            X-Total-Records:
+              description: Total number of records
+              schema:
+                type: number
+            X-Total-Pages:
+              description: Total number of pages
+              schema:
+                type: number
+            X-Offset:
+              description: Current offset
+              schema:
+                type: number
+            X-Page:
+              description: Current page number
+              schema:
+                type: number
+            X-First-Page:
+              description: Whether this is the first page
+              schema:
+                type: boolean
+            X-Last-Page:
+              description: Whether this is the last page
+              schema:
+                type: boolean
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      summary: Create recipes
+      tags:
+        - Recipe
+      description: Create one or many new recipe rows for a product. The endpoint accepts up to 150 recipe rows and processes them in bulk. This endpoint is deprecated in favor of BOM rows.
+      operationId: createRecipes
+      deprecated: true
+      requestBody:
+        description: Recipe creation details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRecipesRequest"
+      responses:
+        "204":
+          description: Recipe rows created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -13571,6 +14084,120 @@ paths:
       responses:
         "204":
           description: Webhook deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /services/{id}:
+    get:
+      summary: Retrieve a service
+      tags:
+        - Service
+      description: Retrieves the details of an existing service by ID.
+      operationId: getServiceById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Service ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Service details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a service
+      tags:
+        - Service
+      description: Updates the specified service by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+      operationId: updateServiceById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Service ID
+          schema:
+            type: integer
+      requestBody:
+        description: Service details to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateServiceRequest"
+      responses:
+        "200":
+          description: Service updated
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a service
+      tags:
+        - Service
+      description: Deletes a service by ID.
+      operationId: deleteServiceById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Service ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Service deleted successfully
           headers:
             X-Ratelimit-Limit:
               $ref: "#/components/headers/X-Ratelimit-Limit"
@@ -13923,6 +14550,120 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /customers/{id}:
+    get:
+      summary: Retrieve a customer
+      tags:
+        - Customer
+      description: Retrieves the details of an existing customer by ID.
+      operationId: getCustomer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Customer ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Customer details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a customer
+      tags:
+        - Customer
+      description: Updates the specified customer by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+      operationId: updateCustomer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Customer ID
+          schema:
+            type: integer
+      requestBody:
+        description: Customer details to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCustomerRequest"
+      responses:
+        "200":
+          description: Customer updated
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a customer
+      tags:
+        - Customer
+      description: Deletes a customer by ID.
+      operationId: deleteCustomer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Customer ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Customer deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   # Stock adjustment endpoints
   /stock_adjustments:
     get:
@@ -13957,6 +14698,156 @@ paths:
                 $ref: "#/components/schemas/StockAdjustmentListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      summary: Create a stock adjustment
+      tags:
+        - Stock adjustment
+      description: Creates a new stock adjustment to correct inventory levels.
+      operationId: createStockAdjustment
+      requestBody:
+        description: Stock adjustment details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStockAdjustmentRequest"
+      responses:
+        "200":
+          description: Stock adjustment created
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockAdjustment"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /stock_adjustments/{id}:
+    get:
+      summary: Retrieve a stock adjustment
+      tags:
+        - Stock adjustment
+      description: Retrieves the details of an existing stock adjustment by ID.
+      operationId: getStockAdjustment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Stock adjustment ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Stock adjustment details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockAdjustment"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a stock adjustment
+      tags:
+        - Stock adjustment
+      description: Updates the specified stock adjustment by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+      operationId: updateStockAdjustment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Stock adjustment ID
+          schema:
+            type: integer
+      requestBody:
+        description: Stock adjustment details to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStockAdjustmentRequest"
+      responses:
+        "200":
+          description: Stock adjustment updated
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockAdjustment"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a stock adjustment
+      tags:
+        - Stock adjustment
+      description: Deletes a stock adjustment by ID.
+      operationId: deleteStockAdjustment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Stock adjustment ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Stock adjustment deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
