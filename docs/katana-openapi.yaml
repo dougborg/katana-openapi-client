@@ -14489,14 +14489,48 @@ paths:
       parameters:
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
-        - name: product_variant_id
+        - name: created_at_min
           in: query
-          description: Filter by product variant ID
+          description: Filter by minimum creation date (ISO 8601 format)
           schema:
-            type: integer
+            type: string
+            format: date-time
+        - name: created_at_max
+          in: query
+          description: Filter by maximum creation date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+        - name: updated_at_min
+          in: query
+          description: Filter by minimum last updated date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+        - name: updated_at_max
+          in: query
+          description: Filter by maximum last updated date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
         - name: ingredient_variant_id
           in: query
           description: Filter by ingredient variant ID
+          schema:
+            type: integer
+        - name: product_variant_ids
+          in: query
+          description: Filter by product variant IDs (comma-separated)
+          schema:
+            type: string
+        - name: product_id
+          in: query
+          description: Filter by product ID
+          schema:
+            type: integer
+        - name: recipe_row_id
+          in: query
+          description: Filter by recipe row ID
           schema:
             type: integer
       responses:
@@ -14795,9 +14829,9 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /services/{serviceId}:
+  /services/{id}:
     parameters:
-      - name: serviceId
+      - name: id
         in: path
         description: "Unique identifier for the Service"
         required: true
@@ -14892,6 +14926,31 @@ paths:
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
         - $ref: "#/components/parameters/ids"
+        - $ref: "#/components/parameters/include_deleted"
+        - name: created_at_min
+          in: query
+          description: Filter by minimum creation date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+        - name: created_at_max
+          in: query
+          description: Filter by maximum creation date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+        - name: updated_at_min
+          in: query
+          description: Filter by minimum last updated date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+        - name: updated_at_max
+          in: query
+          description: Filter by maximum last updated date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
         - name: order_no
           in: query
           description: Filter by order number
@@ -14919,7 +14978,51 @@ paths:
               - PACKED
               - DELIVERED
               - PENDING
-        - $ref: "#/components/parameters/include_deleted"
+        - name: production_status
+          in: query
+          description: Filter by production status
+          schema:
+            type: string
+        - name: invoicing_status
+          in: query
+          description: Filter by invoicing status
+          schema:
+            type: string
+        - name: currency
+          in: query
+          description: Filter by currency
+          schema:
+            type: string
+        - name: source
+          in: query
+          description: Filter by source
+          schema:
+            type: string
+        - name: ecommerce_store_name
+          in: query
+          description: Filter by ecommerce store name
+          schema:
+            type: string
+        - name: ecommerce_order_id
+          in: query
+          description: Filter by ecommerce order ID
+          schema:
+            type: string
+        - name: ecommerce_order_type
+          in: query
+          description: Filter by ecommerce order type
+          schema:
+            type: string
+        - name: ingredient_availability
+          in: query
+          description: Filter by ingredient availability
+          schema:
+            type: string
+        - name: product_availability
+          in: query
+          description: Filter by product availability
+          schema:
+            type: string
       responses:
         "200":
           description: List of sales orders
@@ -15211,6 +15314,31 @@ paths:
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
         - $ref: "#/components/parameters/ids"
+        - $ref: "#/components/parameters/include_deleted"
+        - name: created_at_min
+          in: query
+          description: Filter by minimum creation date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+        - name: created_at_max
+          in: query
+          description: Filter by maximum creation date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+        - name: updated_at_min
+          in: query
+          description: Filter by minimum last updated date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+        - name: updated_at_max
+          in: query
+          description: Filter by maximum last updated date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
         - name: name
           in: query
           description: Filter by customer name
@@ -15221,7 +15349,41 @@ paths:
           description: Filter by customer email
           schema:
             type: string
-        - $ref: "#/components/parameters/include_deleted"
+        - name: first_name
+          in: query
+          description: Filter by first name
+          schema:
+            type: string
+        - name: last_name
+          in: query
+          description: Filter by last name
+          schema:
+            type: string
+        - name: company
+          in: query
+          description: Filter by company name
+          schema:
+            type: string
+        - name: phone
+          in: query
+          description: Filter by phone number
+          schema:
+            type: string
+        - name: category
+          in: query
+          description: Filter by customer category
+          schema:
+            type: string
+        - name: currency
+          in: query
+          description: Filter by currency
+          schema:
+            type: string
+        - name: reference_id
+          in: query
+          description: Filter by reference ID
+          schema:
+            type: string
       responses:
         "200":
           description: List of customers
@@ -15592,17 +15754,46 @@ paths:
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
         - $ref: "#/components/parameters/ids"
-        - name: from_location_id
+        - $ref: "#/components/parameters/include_deleted"
+        - name: created_at_min
+          in: query
+          description: Filter by minimum creation date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+        - name: created_at_max
+          in: query
+          description: Filter by maximum creation date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+        - name: updated_at_min
+          in: query
+          description: Filter by minimum last updated date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+        - name: updated_at_max
+          in: query
+          description: Filter by maximum last updated date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+        - name: source_location_id
           in: query
           description: Filter by source location ID
           schema:
             type: integer
-        - name: to_location_id
+        - name: target_location_id
           in: query
-          description: Filter by destination location ID
+          description: Filter by target location ID
           schema:
             type: integer
-        - $ref: "#/components/parameters/include_deleted"
+        - name: stock_transfer_number
+          in: query
+          description: Filter by stock transfer number
+          schema:
+            type: string
       responses:
         "200":
           description: List of stock transfers
@@ -18539,6 +18730,68 @@ paths:
         - Products
       description: Returns a list of product operation rows.
       operationId: getAllProductOperationRows
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+        - name: product_id
+          in: query
+          description: Filter by product ID
+          schema:
+            type: integer
+        - name: operation_id
+          in: query
+          description: Filter by operation ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of product operation rows
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: Product operation row ID
+                        product_id:
+                          type: integer
+                          description: Product ID
+                        operation_id:
+                          type: integer
+                          description: Operation ID
+                        sequence:
+                          type: integer
+                          description: Operation sequence
+                        notes:
+                          type: string
+                          description: Operation notes
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /product_operation_rows/:
+    get:
+      summary: List product operation rows (alias)
+      tags:
+        - Products
+      description: Returns a list of product operation rows. (alias endpoint with trailing slash)
+      operationId: getAllProductOperationRowsAlias
       parameters:
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
