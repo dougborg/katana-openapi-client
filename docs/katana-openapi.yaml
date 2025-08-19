@@ -7018,6 +7018,71 @@ components:
         price_list_id: 1002
         customer_id: 2002
 
+    UpdatePriceListRequest:
+      description: Request payload for updating an existing price list
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: Descriptive name for the price list
+        currency:
+          type: string
+          description: "ISO 4217 currency code for all prices in this list"
+        is_default:
+          type: boolean
+          description: Whether this price list should be the default fallback
+        markup_percentage:
+          type: number
+          description: Percentage markup applied to base costs
+        start_date:
+          type: string
+          format: date-time
+          description: Date and time when this price list becomes active
+        end_date:
+          type: string
+          format: date-time
+          description: Date and time when this price list expires
+      example:
+        name: "Premium Customer Pricing - Updated"
+        markup_percentage: 30.0
+        end_date: "2025-12-31T23:59:59Z"
+
+    UpdatePriceListRowRequest:
+      description: Request payload for updating an existing price list row
+      type: object
+      additionalProperties: false
+      properties:
+        price_list_id:
+          type: integer
+          description: ID of the price list to add the variant pricing to
+        variant_id:
+          type: integer
+          description: ID of the product variant to set custom pricing for
+        price:
+          type: number
+          description: Custom price for this variant in the price list's currency
+        currency:
+          type: string
+          description: "ISO 4217 currency code (must match the price list's currency)"
+      example:
+        price: 259.99
+        currency: "USD"
+
+    UpdatePriceListCustomerRequest:
+      description: Request payload for updating an existing price list customer assignment
+      type: object
+      additionalProperties: false
+      properties:
+        price_list_id:
+          type: integer
+          description: ID of the price list
+        customer_id:
+          type: integer
+          description: ID of the customer to assign to price list
+      example:
+        price_list_id: 1003
+
     PriceListRow:
       description: Individual product variant pricing entry within a price list for customer-specific or market-specific pricing management
       allOf:
@@ -8264,6 +8329,140 @@ components:
             notes: "Count matches expected"
             created_at: "2024-01-15T10:15:00.000Z"
             updated_at: "2024-01-15T10:15:00.000Z"
+
+    CreateStocktakeRequest:
+      description: Request payload for creating a new stocktake to perform physical inventory counting
+      type: object
+      additionalProperties: false
+      required:
+        - reference_no
+        - location_id
+        - stocktake_date
+      properties:
+        reference_no:
+          type: string
+          description: Human-readable reference number for the stocktake
+        location_id:
+          type: integer
+          description: ID of the location where the stocktake will be performed
+        stocktake_date:
+          type: string
+          format: date-time
+          description: Date and time when the stocktake was performed
+        notes:
+          type: string
+          description: Optional notes about the stocktake
+        status:
+          type: string
+          description: Status of the stocktake
+          enum:
+            - DRAFT
+            - IN_PROGRESS
+            - COMPLETED
+          default: DRAFT
+      example:
+        reference_no: "STK-2024-003"
+        location_id: 1
+        stocktake_date: "2024-01-17T09:00:00.000Z"
+        notes: "Quarterly inventory count"
+        status: "DRAFT"
+
+    UpdateStocktakeRequest:
+      description: Request payload for updating an existing stocktake
+      type: object
+      additionalProperties: false
+      properties:
+        reference_no:
+          type: string
+          description: Human-readable reference number for the stocktake
+        location_id:
+          type: integer
+          description: ID of the location where the stocktake is performed
+        stocktake_date:
+          type: string
+          format: date-time
+          description: Date and time when the stocktake was performed
+        notes:
+          type: string
+          description: Optional notes about the stocktake
+        status:
+          type: string
+          description: Status of the stocktake
+          enum:
+            - DRAFT
+            - IN_PROGRESS
+            - COMPLETED
+      example:
+        reference_no: "STK-2024-003"
+        location_id: 1
+        stocktake_date: "2024-01-17T09:00:00.000Z"
+        notes: "Quarterly inventory count - updated"
+        status: "IN_PROGRESS"
+
+    CreateStocktakeRowRequest:
+      description: Request payload for creating a new stocktake row for counting specific variants
+      type: object
+      additionalProperties: false
+      required:
+        - stocktake_id
+        - variant_id
+        - system_quantity
+      properties:
+        stocktake_id:
+          type: integer
+          description: ID of the stocktake this row belongs to
+        variant_id:
+          type: integer
+          description: ID of the variant being counted
+        batch_id:
+          type: integer
+          description: ID of the specific batch being counted (if applicable)
+        system_quantity:
+          type: number
+          description: System recorded quantity before counting
+        actual_quantity:
+          type: number
+          description: Actual counted quantity
+        notes:
+          type: string
+          description: Optional notes about the count
+      example:
+        stocktake_id: 4001
+        variant_id: 3001
+        system_quantity: 150.0
+        actual_quantity: 147.0
+        notes: "Minor count difference noted"
+
+    UpdateStocktakeRowRequest:
+      description: Request payload for updating an existing stocktake row
+      type: object
+      additionalProperties: false
+      properties:
+        stocktake_id:
+          type: integer
+          description: ID of the stocktake this row belongs to
+        variant_id:
+          type: integer
+          description: ID of the variant being counted
+        batch_id:
+          type: integer
+          description: ID of the specific batch being counted (if applicable)
+        system_quantity:
+          type: number
+          description: System recorded quantity before counting
+        actual_quantity:
+          type: number
+          description: Actual counted quantity
+        variance_quantity:
+          type: number
+          description: Calculated variance between system and actual quantity
+        notes:
+          type: string
+          description: Optional notes about the count
+      example:
+        actual_quantity: 148.0
+        variance_quantity: -2.0
+        notes: "Recount confirmed minor variance"
 
     SerialNumberStockListResponse:
       type: object
@@ -15336,6 +15535,120 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /price_lists/{id}:
+    get:
+      summary: Retrieve a price list
+      tags:
+        - Price list
+      description: Retrieves the details of an existing price list by ID.
+      operationId: getPriceList
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Price list ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Price list details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceList"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a price list
+      tags:
+        - Price list
+      description: Updates the specified price list by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+      operationId: updatePriceList
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Price list ID
+          schema:
+            type: integer
+      requestBody:
+        description: Price list details to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePriceListRequest"
+      responses:
+        "200":
+          description: Price list updated
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceList"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a price list
+      tags:
+        - Price list
+      description: Deletes a price list by ID.
+      operationId: deletePriceList
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Price list ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Price list deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /price_list_rows:
     get:
       summary: List price list rows
@@ -15428,6 +15741,120 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /price_list_rows/{id}:
+    get:
+      summary: Retrieve a price list row
+      tags:
+        - Price list row
+      description: Retrieves the details of an existing price list row by ID.
+      operationId: getPriceListRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Price list row ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Price list row details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListRow"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a price list row
+      tags:
+        - Price list row
+      description: Updates the specified price list row by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+      operationId: updatePriceListRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Price list row ID
+          schema:
+            type: integer
+      requestBody:
+        description: Price list row details to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePriceListRowRequest"
+      responses:
+        "200":
+          description: Price list row updated
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListRow"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a price list row
+      tags:
+        - Price list row
+      description: Deletes a price list row by ID.
+      operationId: deletePriceListRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Price list row ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Price list row deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /price_list_customers:
     get:
       summary: List price list customers
@@ -15511,6 +15938,120 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "422":
           $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /price_list_customers/{id}:
+    get:
+      summary: Retrieve a price list customer assignment
+      tags:
+        - Price list customer
+      description: Retrieves the details of an existing price list customer assignment by ID.
+      operationId: getPriceListCustomer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Price list customer assignment ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Price list customer assignment details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListCustomer"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a price list customer assignment
+      tags:
+        - Price list customer
+      description: Updates the specified price list customer assignment by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+      operationId: updatePriceListCustomer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Price list customer assignment ID
+          schema:
+            type: integer
+      requestBody:
+        description: Price list customer assignment details to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePriceListCustomerRequest"
+      responses:
+        "200":
+          description: Price list customer assignment updated
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListCustomer"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a price list customer assignment
+      tags:
+        - Price list customer
+      description: Removes a customer from a price list by deleting the assignment.
+      operationId: deletePriceListCustomer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Price list customer assignment ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Price list customer assignment deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -15738,6 +16279,156 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+    post:
+      summary: Create a stocktake
+      tags:
+        - Stocktake
+      description: Creates a new stocktake to perform inventory counting.
+      operationId: createStocktake
+      requestBody:
+        description: Stocktake details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStocktakeRequest"
+      responses:
+        "200":
+          description: Stocktake created
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stocktake"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /stocktakes/{id}:
+    get:
+      summary: Retrieve a stocktake
+      tags:
+        - Stocktake
+      description: Retrieves the details of an existing stocktake by ID.
+      operationId: getStocktake
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Stocktake ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Stocktake details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stocktake"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a stocktake
+      tags:
+        - Stocktake
+      description: Updates the specified stocktake by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+      operationId: updateStocktake
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Stocktake ID
+          schema:
+            type: integer
+      requestBody:
+        description: Stocktake details to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStocktakeRequest"
+      responses:
+        "200":
+          description: Stocktake updated
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stocktake"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a stocktake
+      tags:
+        - Stocktake
+      description: Deletes a stocktake by ID.
+      operationId: deleteStocktake
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Stocktake ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Stocktake deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /stocktake_rows:
     get:
       summary: List stocktake rows
@@ -15774,6 +16465,156 @@ paths:
                 $ref: "#/components/schemas/StocktakeRowListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      summary: Create a stocktake row
+      tags:
+        - Stocktake row
+      description: Creates a new stocktake row for counting specific variants.
+      operationId: createStocktakeRow
+      requestBody:
+        description: Stocktake row details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStocktakeRowRequest"
+      responses:
+        "200":
+          description: Stocktake row created
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StocktakeRow"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /stocktake_rows/{id}:
+    get:
+      summary: Retrieve a stocktake row
+      tags:
+        - Stocktake row
+      description: Retrieves the details of an existing stocktake row by ID.
+      operationId: getStocktakeRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Stocktake row ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Stocktake row details
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StocktakeRow"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      summary: Update a stocktake row
+      tags:
+        - Stocktake row
+      description: Updates the specified stocktake row by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+      operationId: updateStocktakeRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Stocktake row ID
+          schema:
+            type: integer
+      requestBody:
+        description: Stocktake row details to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStocktakeRowRequest"
+      responses:
+        "200":
+          description: Stocktake row updated
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StocktakeRow"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete a stocktake row
+      tags:
+        - Stocktake row
+      description: Deletes a stocktake row by ID.
+      operationId: deleteStocktakeRow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Stocktake row ID
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Stocktake row deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
