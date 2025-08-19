@@ -12,7 +12,7 @@ from ...models.location_type_0 import LocationType0
 
 
 def _get_kwargs(
-    id: float,
+    id: int,
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
@@ -81,7 +81,7 @@ def _build_response(
 
 
 def sync_detailed(
-    id: float,
+    id: int,
     *,
     client: AuthenticatedClient | Client,
 ) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
@@ -90,7 +90,7 @@ def sync_detailed(
      Retrieves the details of an existing location based on ID.
 
     Args:
-        id (float):
+        id (int):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -113,7 +113,7 @@ def sync_detailed(
 
 
 def sync(
-    id: float,
+    id: int,
     *,
     client: AuthenticatedClient | Client,
 ) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
@@ -122,7 +122,7 @@ def sync(
      Retrieves the details of an existing location based on ID.
 
     Args:
-        id (float):
+        id (int):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -140,7 +140,7 @@ def sync(
 
 
 async def asyncio_detailed(
-    id: float,
+    id: int,
     *,
     client: AuthenticatedClient | Client,
 ) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
@@ -149,7 +149,7 @@ async def asyncio_detailed(
      Retrieves the details of an existing location based on ID.
 
     Args:
-        id (float):
+        id (int):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -170,7 +170,7 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    id: float,
+    id: int,
     *,
     client: AuthenticatedClient | Client,
 ) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
@@ -179,7 +179,7 @@ async def asyncio(
      Retrieves the details of an existing location based on ID.
 
     Args:
-        id (float):
+        id (int):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

@@ -17,6 +17,8 @@ T = TypeVar("T", bound="DetailedErrorResponse")
 
 @_attrs_define
 class DetailedErrorResponse:
+    """Enhanced error response containing detailed validation error information for complex request failures"""
+
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

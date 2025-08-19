@@ -17,7 +17,6 @@ from ...models.manufacturing_order_list_response import ManufacturingOrderListRe
 def _get_kwargs(
     *,
     ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
     status: Unset | GetAllManufacturingOrdersStatus = UNSET,
     order_no: Unset | str = UNSET,
     location_id: Unset | int = UNSET,
@@ -37,8 +36,6 @@ def _get_kwargs(
         json_ids = ids
 
     params["ids"] = json_ids
-
-    params["name"] = name
 
     json_status: Unset | str = UNSET
     if not isinstance(status, Unset):
@@ -129,7 +126,6 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
     status: Unset | GetAllManufacturingOrdersStatus = UNSET,
     order_no: Unset | str = UNSET,
     location_id: Unset | int = UNSET,
@@ -150,7 +146,6 @@ def sync_detailed(
 
     Args:
         ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
         status (Union[Unset, GetAllManufacturingOrdersStatus]):
         order_no (Union[Unset, str]):
         location_id (Union[Unset, int]):
@@ -174,7 +169,6 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         ids=ids,
-        name=name,
         status=status,
         order_no=order_no,
         location_id=location_id,
@@ -199,7 +193,6 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
     status: Unset | GetAllManufacturingOrdersStatus = UNSET,
     order_no: Unset | str = UNSET,
     location_id: Unset | int = UNSET,
@@ -220,7 +213,6 @@ def sync(
 
     Args:
         ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
         status (Union[Unset, GetAllManufacturingOrdersStatus]):
         order_no (Union[Unset, str]):
         location_id (Union[Unset, int]):
@@ -245,7 +237,6 @@ def sync(
     return sync_detailed(
         client=client,
         ids=ids,
-        name=name,
         status=status,
         order_no=order_no,
         location_id=location_id,
@@ -264,7 +255,6 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
     status: Unset | GetAllManufacturingOrdersStatus = UNSET,
     order_no: Unset | str = UNSET,
     location_id: Unset | int = UNSET,
@@ -285,7 +275,6 @@ async def asyncio_detailed(
 
     Args:
         ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
         status (Union[Unset, GetAllManufacturingOrdersStatus]):
         order_no (Union[Unset, str]):
         location_id (Union[Unset, int]):
@@ -309,7 +298,6 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         ids=ids,
-        name=name,
         status=status,
         order_no=order_no,
         location_id=location_id,
@@ -332,7 +320,6 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
     status: Unset | GetAllManufacturingOrdersStatus = UNSET,
     order_no: Unset | str = UNSET,
     location_id: Unset | int = UNSET,
@@ -353,7 +340,6 @@ async def asyncio(
 
     Args:
         ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
         status (Union[Unset, GetAllManufacturingOrdersStatus]):
         order_no (Union[Unset, str]):
         location_id (Union[Unset, int]):
@@ -379,7 +365,6 @@ async def asyncio(
         await asyncio_detailed(
             client=client,
             ids=ids,
-            name=name,
             status=status,
             order_no=order_no,
             location_id=location_id,

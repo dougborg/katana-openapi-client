@@ -16,8 +16,7 @@ def _get_kwargs(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     name: Unset | str = UNSET,
-    currency: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    is_active: Unset | bool = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -33,9 +32,7 @@ def _get_kwargs(
 
     params["name"] = name
 
-    params["currency"] = currency
-
-    params["include_deleted"] = include_deleted
+    params["is_active"] = is_active
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -91,8 +88,7 @@ def sync_detailed(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     name: Unset | str = UNSET,
-    currency: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    is_active: Unset | bool = UNSET,
 ) -> Response[ErrorResponse | PriceListListResponse]:
     """List price lists
 
@@ -103,8 +99,7 @@ def sync_detailed(
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
         name (Union[Unset, str]):
-        currency (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
+        is_active (Union[Unset, bool]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -120,8 +115,7 @@ def sync_detailed(
         page=page,
         ids=ids,
         name=name,
-        currency=currency,
-        include_deleted=include_deleted,
+        is_active=is_active,
     )
 
     response = client.get_httpx_client().request(
@@ -138,8 +132,7 @@ def sync(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     name: Unset | str = UNSET,
-    currency: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    is_active: Unset | bool = UNSET,
 ) -> ErrorResponse | PriceListListResponse | None:
     """List price lists
 
@@ -150,8 +143,7 @@ def sync(
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
         name (Union[Unset, str]):
-        currency (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
+        is_active (Union[Unset, bool]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -168,8 +160,7 @@ def sync(
         page=page,
         ids=ids,
         name=name,
-        currency=currency,
-        include_deleted=include_deleted,
+        is_active=is_active,
     ).parsed
 
 
@@ -180,8 +171,7 @@ async def asyncio_detailed(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     name: Unset | str = UNSET,
-    currency: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    is_active: Unset | bool = UNSET,
 ) -> Response[ErrorResponse | PriceListListResponse]:
     """List price lists
 
@@ -192,8 +182,7 @@ async def asyncio_detailed(
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
         name (Union[Unset, str]):
-        currency (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
+        is_active (Union[Unset, bool]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -209,8 +198,7 @@ async def asyncio_detailed(
         page=page,
         ids=ids,
         name=name,
-        currency=currency,
-        include_deleted=include_deleted,
+        is_active=is_active,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -225,8 +213,7 @@ async def asyncio(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     name: Unset | str = UNSET,
-    currency: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    is_active: Unset | bool = UNSET,
 ) -> ErrorResponse | PriceListListResponse | None:
     """List price lists
 
@@ -237,8 +224,7 @@ async def asyncio(
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
         name (Union[Unset, str]):
-        currency (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
+        is_active (Union[Unset, bool]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -256,7 +242,6 @@ async def asyncio(
             page=page,
             ids=ids,
             name=name,
-            currency=currency,
-            include_deleted=include_deleted,
+            is_active=is_active,
         )
     ).parsed

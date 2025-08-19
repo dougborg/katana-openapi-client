@@ -1,3 +1,4 @@
+import datetime
 from http import HTTPStatus
 from typing import Any
 
@@ -17,7 +18,11 @@ def _get_kwargs(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
-    sales_order_id: Unset | int = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -31,7 +36,27 @@ def _get_kwargs(
 
     params["ids"] = json_ids
 
-    params["sales_order_id"] = sales_order_id
+    json_created_at_min: Unset | str = UNSET
+    if not isinstance(created_at_min, Unset):
+        json_created_at_min = created_at_min.isoformat()
+    params["created_at_min"] = json_created_at_min
+
+    json_created_at_max: Unset | str = UNSET
+    if not isinstance(created_at_max, Unset):
+        json_created_at_max = created_at_max.isoformat()
+    params["created_at_max"] = json_created_at_max
+
+    json_updated_at_min: Unset | str = UNSET
+    if not isinstance(updated_at_min, Unset):
+        json_updated_at_min = updated_at_min.isoformat()
+    params["updated_at_min"] = json_updated_at_min
+
+    json_updated_at_max: Unset | str = UNSET
+    if not isinstance(updated_at_max, Unset):
+        json_updated_at_max = updated_at_max.isoformat()
+    params["updated_at_max"] = json_updated_at_max
+
+    params["include_deleted"] = include_deleted
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -86,7 +111,11 @@ def sync_detailed(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
-    sales_order_id: Unset | int = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> Response[ErrorResponse | SalesOrderShippingFeeListResponse]:
     """List sales order shipping fees
 
@@ -96,7 +125,11 @@ def sync_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
-        sales_order_id (Union[Unset, int]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
+        include_deleted (Union[Unset, bool]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -111,7 +144,11 @@ def sync_detailed(
         limit=limit,
         page=page,
         ids=ids,
-        sales_order_id=sales_order_id,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
+        include_deleted=include_deleted,
     )
 
     response = client.get_httpx_client().request(
@@ -127,7 +164,11 @@ def sync(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
-    sales_order_id: Unset | int = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> ErrorResponse | SalesOrderShippingFeeListResponse | None:
     """List sales order shipping fees
 
@@ -137,7 +178,11 @@ def sync(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
-        sales_order_id (Union[Unset, int]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
+        include_deleted (Union[Unset, bool]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -153,7 +198,11 @@ def sync(
         limit=limit,
         page=page,
         ids=ids,
-        sales_order_id=sales_order_id,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
+        include_deleted=include_deleted,
     ).parsed
 
 
@@ -163,7 +212,11 @@ async def asyncio_detailed(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
-    sales_order_id: Unset | int = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> Response[ErrorResponse | SalesOrderShippingFeeListResponse]:
     """List sales order shipping fees
 
@@ -173,7 +226,11 @@ async def asyncio_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
-        sales_order_id (Union[Unset, int]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
+        include_deleted (Union[Unset, bool]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -188,7 +245,11 @@ async def asyncio_detailed(
         limit=limit,
         page=page,
         ids=ids,
-        sales_order_id=sales_order_id,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
+        include_deleted=include_deleted,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -202,7 +263,11 @@ async def asyncio(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
-    sales_order_id: Unset | int = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> ErrorResponse | SalesOrderShippingFeeListResponse | None:
     """List sales order shipping fees
 
@@ -212,7 +277,11 @@ async def asyncio(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
-        sales_order_id (Union[Unset, int]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
+        include_deleted (Union[Unset, bool]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -229,6 +298,10 @@ async def asyncio(
             limit=limit,
             page=page,
             ids=ids,
-            sales_order_id=sales_order_id,
+            created_at_min=created_at_min,
+            created_at_max=created_at_max,
+            updated_at_min=updated_at_min,
+            updated_at_max=updated_at_max,
+            include_deleted=include_deleted,
         )
     ).parsed

@@ -11,7 +11,7 @@ from ...models.manufacturing_order_operation_row import ManufacturingOrderOperat
 
 
 def _get_kwargs(
-    id: float,
+    id: int,
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
@@ -58,7 +58,7 @@ def _build_response(
 
 
 def sync_detailed(
-    id: float,
+    id: int,
     *,
     client: AuthenticatedClient | Client,
 ) -> Response[ErrorResponse | ManufacturingOrderOperationRow]:
@@ -67,7 +67,7 @@ def sync_detailed(
      Retrieves the details of an existing manufacturing order operation row.
 
     Args:
-        id (float):
+        id (int):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -90,7 +90,7 @@ def sync_detailed(
 
 
 def sync(
-    id: float,
+    id: int,
     *,
     client: AuthenticatedClient | Client,
 ) -> ErrorResponse | ManufacturingOrderOperationRow | None:
@@ -99,7 +99,7 @@ def sync(
      Retrieves the details of an existing manufacturing order operation row.
 
     Args:
-        id (float):
+        id (int):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -117,7 +117,7 @@ def sync(
 
 
 async def asyncio_detailed(
-    id: float,
+    id: int,
     *,
     client: AuthenticatedClient | Client,
 ) -> Response[ErrorResponse | ManufacturingOrderOperationRow]:
@@ -126,7 +126,7 @@ async def asyncio_detailed(
      Retrieves the details of an existing manufacturing order operation row.
 
     Args:
-        id (float):
+        id (int):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -147,7 +147,7 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    id: float,
+    id: int,
     *,
     client: AuthenticatedClient | Client,
 ) -> ErrorResponse | ManufacturingOrderOperationRow | None:
@@ -156,7 +156,7 @@ async def asyncio(
      Retrieves the details of an existing manufacturing order operation row.
 
     Args:
-        id (float):
+        id (int):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

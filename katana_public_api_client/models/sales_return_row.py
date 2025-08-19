@@ -15,6 +15,8 @@ T = TypeVar("T", bound="SalesReturnRow")
 
 @_attrs_define
 class SalesReturnRow:
+    """Individual line item within a sales return specifying returned product, quantity, and refund details"""
+
     id: int
     sales_return_id: int
     variant_id: int

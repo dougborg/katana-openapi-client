@@ -327,8 +327,8 @@ upload_to_vcs_release = true
 format-python = "ruff format ."
 format-python-check = "ruff format --check ."
 
-format-markdown = "mdformat README.md docs/KATANA_CLIENT_GUIDE.md docs/POETRY_USAGE.md docs/TESTING_GUIDE.md docs/CONTRIBUTING.md docs/CODE_OF_CONDUCT.md docs/SEMANTIC_RELEASE_GUIDE.md docs/PYPI_SETUP.md docs/index.md docs/CHANGELOG.md docs/CLIENT_README.md docs/DOCUMENTATION_MIGRATION_SUMMARY.md docs/openapi-docs.md --wrap 88"
-format-markdown-check = "mdformat --check README.md docs/KATANA_CLIENT_GUIDE.md docs/POETRY_USAGE.md docs/TESTING_GUIDE.md docs/CONTRIBUTING.md docs/CODE_OF_CONDUCT.md docs/SEMANTIC_RELEASE_GUIDE.md docs/PYPI_SETUP.md docs/index.md docs/CHANGELOG.md docs/CLIENT_README.md docs/DOCUMENTATION_MIGRATION_SUMMARY.md docs/openapi-docs.md"
+format-markdown = "mdformat README.md docs/*.md --wrap 88"
+format-markdown-check = "mdformat --check README.md docs/*.md"
 
 format = ["format-python", "format-markdown"]
 format-check = ["format-python-check", "format-markdown-check"]

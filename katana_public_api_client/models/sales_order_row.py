@@ -41,8 +41,8 @@ class SalesOrderRow:
             id (int): Unique identifier for the sales order row
             quantity (float): Ordered quantity of the product variant
             variant_id (int): ID of the product variant being ordered
-            created_at (Union[Unset, datetime.datetime]):
-            updated_at (Union[Unset, datetime.datetime]):
+            created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+            updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
             sales_order_id (Union[Unset, int]): ID of the sales order this row belongs to
             tax_rate_id (Union[None, Unset, int]): ID of the tax rate applied to this line item
             location_id (Union[None, Unset, int]): Location where the product should be picked from

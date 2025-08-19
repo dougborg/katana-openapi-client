@@ -15,14 +15,17 @@ from ...models.serial_number_list_response import SerialNumberListResponse
 
 def _get_kwargs(
     *,
-    resource_type: GetAllSerialNumbersResourceType,
-    resource_id: int,
+    resource_type: Unset | GetAllSerialNumbersResourceType = UNSET,
+    resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_resource_type = resource_type.value
+    json_resource_type: Unset | str = UNSET
+    if not isinstance(resource_type, Unset):
+        json_resource_type = resource_type.value
+
     params["resource_type"] = json_resource_type
 
     params["resource_id"] = resource_id
@@ -81,8 +84,8 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    resource_type: GetAllSerialNumbersResourceType,
-    resource_id: int,
+    resource_type: Unset | GetAllSerialNumbersResourceType = UNSET,
+    resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
 ) -> Response[ErrorResponse | SerialNumberListResponse]:
@@ -91,8 +94,8 @@ def sync_detailed(
      Returns a list of serial numbers.
 
     Args:
-        resource_type (GetAllSerialNumbersResourceType):
-        resource_id (int):
+        resource_type (Union[Unset, GetAllSerialNumbersResourceType]):
+        resource_id (Union[Unset, int]):
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
@@ -123,8 +126,8 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    resource_type: GetAllSerialNumbersResourceType,
-    resource_id: int,
+    resource_type: Unset | GetAllSerialNumbersResourceType = UNSET,
+    resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
 ) -> ErrorResponse | SerialNumberListResponse | None:
@@ -133,8 +136,8 @@ def sync(
      Returns a list of serial numbers.
 
     Args:
-        resource_type (GetAllSerialNumbersResourceType):
-        resource_id (int):
+        resource_type (Union[Unset, GetAllSerialNumbersResourceType]):
+        resource_id (Union[Unset, int]):
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
@@ -160,8 +163,8 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    resource_type: GetAllSerialNumbersResourceType,
-    resource_id: int,
+    resource_type: Unset | GetAllSerialNumbersResourceType = UNSET,
+    resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
 ) -> Response[ErrorResponse | SerialNumberListResponse]:
@@ -170,8 +173,8 @@ async def asyncio_detailed(
      Returns a list of serial numbers.
 
     Args:
-        resource_type (GetAllSerialNumbersResourceType):
-        resource_id (int):
+        resource_type (Union[Unset, GetAllSerialNumbersResourceType]):
+        resource_id (Union[Unset, int]):
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 
@@ -200,8 +203,8 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    resource_type: GetAllSerialNumbersResourceType,
-    resource_id: int,
+    resource_type: Unset | GetAllSerialNumbersResourceType = UNSET,
+    resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
 ) -> ErrorResponse | SerialNumberListResponse | None:
@@ -210,8 +213,8 @@ async def asyncio(
      Returns a list of serial numbers.
 
     Args:
-        resource_type (GetAllSerialNumbersResourceType):
-        resource_id (int):
+        resource_type (Union[Unset, GetAllSerialNumbersResourceType]):
+        resource_id (Union[Unset, int]):
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
 

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -22,10 +22,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | None:
+) -> Any | ErrorResponse | None:
     if response.status_code == 204:
-        response_204 = ErrorResponse.from_dict(response.json())
-
+        response_204 = cast(Any, None)
         return response_204
     if response.status_code == 401:
         response_401 = ErrorResponse.from_dict(response.json())
@@ -51,7 +50,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse]:
+) -> Response[Any | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -64,7 +63,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse]:
+) -> Response[Any | ErrorResponse]:
     """Delete a manufacturing order recipe row
 
      Deletes a single manufacturing order recipe row by id.
@@ -78,7 +77,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[ErrorResponse]
+        Response[Union[Any, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -96,7 +95,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> ErrorResponse | None:
+) -> Any | ErrorResponse | None:
     """Delete a manufacturing order recipe row
 
      Deletes a single manufacturing order recipe row by id.
@@ -110,7 +109,7 @@ def sync(
 
 
     Returns:
-        ErrorResponse
+        Union[Any, ErrorResponse]
     """
 
     return sync_detailed(
@@ -123,7 +122,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse]:
+) -> Response[Any | ErrorResponse]:
     """Delete a manufacturing order recipe row
 
      Deletes a single manufacturing order recipe row by id.
@@ -137,7 +136,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[ErrorResponse]
+        Response[Union[Any, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -153,7 +152,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> ErrorResponse | None:
+) -> Any | ErrorResponse | None:
     """Delete a manufacturing order recipe row
 
      Deletes a single manufacturing order recipe row by id.
@@ -167,7 +166,7 @@ async def asyncio(
 
 
     Returns:
-        ErrorResponse
+        Union[Any, ErrorResponse]
     """
 
     return (

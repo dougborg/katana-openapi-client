@@ -15,6 +15,8 @@ T = TypeVar("T", bound="InventoryReorderPointResponse")
 
 @_attrs_define
 class InventoryReorderPointResponse:
+    """Complete inventory reorder point configuration including metadata and creation/update timestamps"""
+
     location_id: int
     variant_id: int
     value: float

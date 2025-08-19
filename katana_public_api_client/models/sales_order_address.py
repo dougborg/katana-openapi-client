@@ -28,8 +28,8 @@ class SalesOrderAddress:
         id (int): Unique identifier for the address record
         sales_order_id (int): ID of the sales order this address belongs to
         entity_type (SalesOrderAddressEntityType): Type of address - billing for invoicing or shipping for delivery
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
         first_name (Union[None, Unset, str]): First name of the contact person
         last_name (Union[None, Unset, str]): Last name of the contact person
         company (Union[None, Unset, str]): Company name for business deliveries

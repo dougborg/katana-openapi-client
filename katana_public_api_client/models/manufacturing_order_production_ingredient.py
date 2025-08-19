@@ -15,6 +15,8 @@ T = TypeVar("T", bound="ManufacturingOrderProductionIngredient")
 
 @_attrs_define
 class ManufacturingOrderProductionIngredient:
+    """Record of actual ingredient consumption during manufacturing order production, tracking quantities and costs"""
+
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | str = UNSET

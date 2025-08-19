@@ -16,6 +16,8 @@ T = TypeVar("T", bound="Stocktake")
 
 @_attrs_define
 class Stocktake:
+    """Physical inventory count process for reconciling actual stock levels with system records"""
+
     id: int
     reference_no: str
     location_id: int

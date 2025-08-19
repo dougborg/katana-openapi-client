@@ -16,8 +16,8 @@ def _get_kwargs(
     *,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
     sales_order_id: Unset | int = UNSET,
+    fulfillment_id: Unset | float = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -25,13 +25,9 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_ids: Unset | list[int] = UNSET
-    if not isinstance(ids, Unset):
-        json_ids = ids
-
-    params["ids"] = json_ids
-
     params["sales_order_id"] = sales_order_id
+
+    params["fulfillment_id"] = fulfillment_id
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -87,8 +83,8 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
     sales_order_id: Unset | int = UNSET,
+    fulfillment_id: Unset | float = UNSET,
 ) -> Response[ErrorResponse | SalesOrderAccountingMetadataListResponse]:
     """List sales order accounting metadata
 
@@ -97,8 +93,8 @@ def sync_detailed(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
         sales_order_id (Union[Unset, int]):
+        fulfillment_id (Union[Unset, float]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -112,8 +108,8 @@ def sync_detailed(
     kwargs = _get_kwargs(
         limit=limit,
         page=page,
-        ids=ids,
         sales_order_id=sales_order_id,
+        fulfillment_id=fulfillment_id,
     )
 
     response = client.get_httpx_client().request(
@@ -128,8 +124,8 @@ def sync(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
     sales_order_id: Unset | int = UNSET,
+    fulfillment_id: Unset | float = UNSET,
 ) -> ErrorResponse | SalesOrderAccountingMetadataListResponse | None:
     """List sales order accounting metadata
 
@@ -138,8 +134,8 @@ def sync(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
         sales_order_id (Union[Unset, int]):
+        fulfillment_id (Union[Unset, float]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -154,8 +150,8 @@ def sync(
         client=client,
         limit=limit,
         page=page,
-        ids=ids,
         sales_order_id=sales_order_id,
+        fulfillment_id=fulfillment_id,
     ).parsed
 
 
@@ -164,8 +160,8 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
     sales_order_id: Unset | int = UNSET,
+    fulfillment_id: Unset | float = UNSET,
 ) -> Response[ErrorResponse | SalesOrderAccountingMetadataListResponse]:
     """List sales order accounting metadata
 
@@ -174,8 +170,8 @@ async def asyncio_detailed(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
         sales_order_id (Union[Unset, int]):
+        fulfillment_id (Union[Unset, float]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -189,8 +185,8 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         limit=limit,
         page=page,
-        ids=ids,
         sales_order_id=sales_order_id,
+        fulfillment_id=fulfillment_id,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -203,8 +199,8 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    ids: Unset | list[int] = UNSET,
     sales_order_id: Unset | int = UNSET,
+    fulfillment_id: Unset | float = UNSET,
 ) -> ErrorResponse | SalesOrderAccountingMetadataListResponse | None:
     """List sales order accounting metadata
 
@@ -213,8 +209,8 @@ async def asyncio(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
         sales_order_id (Union[Unset, int]):
+        fulfillment_id (Union[Unset, float]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -230,7 +226,7 @@ async def asyncio(
             client=client,
             limit=limit,
             page=page,
-            ids=ids,
             sales_order_id=sales_order_id,
+            fulfillment_id=fulfillment_id,
         )
     ).parsed

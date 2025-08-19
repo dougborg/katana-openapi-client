@@ -14,8 +14,9 @@ def _get_kwargs(
     *,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    price_list_id: Unset | int = UNSET,
-    customer_id: Unset | int = UNSET,
+    price_list_ids: Unset | list[int] = UNSET,
+    customer_ids: Unset | list[int] = UNSET,
+    ids: Unset | list[int] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -23,9 +24,23 @@ def _get_kwargs(
 
     params["page"] = page
 
-    params["price_list_id"] = price_list_id
+    json_price_list_ids: Unset | list[int] = UNSET
+    if not isinstance(price_list_ids, Unset):
+        json_price_list_ids = price_list_ids
 
-    params["customer_id"] = customer_id
+    params["price_list_ids"] = json_price_list_ids
+
+    json_customer_ids: Unset | list[int] = UNSET
+    if not isinstance(customer_ids, Unset):
+        json_customer_ids = customer_ids
+
+    params["customer_ids"] = json_customer_ids
+
+    json_ids: Unset | list[int] = UNSET
+    if not isinstance(ids, Unset):
+        json_ids = ids
+
+    params["ids"] = json_ids
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -79,8 +94,9 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    price_list_id: Unset | int = UNSET,
-    customer_id: Unset | int = UNSET,
+    price_list_ids: Unset | list[int] = UNSET,
+    customer_ids: Unset | list[int] = UNSET,
+    ids: Unset | list[int] = UNSET,
 ) -> Response[ErrorResponse | PriceListCustomerListResponse]:
     """List price list customers
 
@@ -89,8 +105,9 @@ def sync_detailed(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        price_list_id (Union[Unset, int]):
-        customer_id (Union[Unset, int]):
+        price_list_ids (Union[Unset, list[int]]):
+        customer_ids (Union[Unset, list[int]]):
+        ids (Union[Unset, list[int]]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -104,8 +121,9 @@ def sync_detailed(
     kwargs = _get_kwargs(
         limit=limit,
         page=page,
-        price_list_id=price_list_id,
-        customer_id=customer_id,
+        price_list_ids=price_list_ids,
+        customer_ids=customer_ids,
+        ids=ids,
     )
 
     response = client.get_httpx_client().request(
@@ -120,8 +138,9 @@ def sync(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    price_list_id: Unset | int = UNSET,
-    customer_id: Unset | int = UNSET,
+    price_list_ids: Unset | list[int] = UNSET,
+    customer_ids: Unset | list[int] = UNSET,
+    ids: Unset | list[int] = UNSET,
 ) -> ErrorResponse | PriceListCustomerListResponse | None:
     """List price list customers
 
@@ -130,8 +149,9 @@ def sync(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        price_list_id (Union[Unset, int]):
-        customer_id (Union[Unset, int]):
+        price_list_ids (Union[Unset, list[int]]):
+        customer_ids (Union[Unset, list[int]]):
+        ids (Union[Unset, list[int]]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -146,8 +166,9 @@ def sync(
         client=client,
         limit=limit,
         page=page,
-        price_list_id=price_list_id,
-        customer_id=customer_id,
+        price_list_ids=price_list_ids,
+        customer_ids=customer_ids,
+        ids=ids,
     ).parsed
 
 
@@ -156,8 +177,9 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    price_list_id: Unset | int = UNSET,
-    customer_id: Unset | int = UNSET,
+    price_list_ids: Unset | list[int] = UNSET,
+    customer_ids: Unset | list[int] = UNSET,
+    ids: Unset | list[int] = UNSET,
 ) -> Response[ErrorResponse | PriceListCustomerListResponse]:
     """List price list customers
 
@@ -166,8 +188,9 @@ async def asyncio_detailed(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        price_list_id (Union[Unset, int]):
-        customer_id (Union[Unset, int]):
+        price_list_ids (Union[Unset, list[int]]):
+        customer_ids (Union[Unset, list[int]]):
+        ids (Union[Unset, list[int]]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -181,8 +204,9 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         limit=limit,
         page=page,
-        price_list_id=price_list_id,
-        customer_id=customer_id,
+        price_list_ids=price_list_ids,
+        customer_ids=customer_ids,
+        ids=ids,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -195,8 +219,9 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    price_list_id: Unset | int = UNSET,
-    customer_id: Unset | int = UNSET,
+    price_list_ids: Unset | list[int] = UNSET,
+    customer_ids: Unset | list[int] = UNSET,
+    ids: Unset | list[int] = UNSET,
 ) -> ErrorResponse | PriceListCustomerListResponse | None:
     """List price list customers
 
@@ -205,8 +230,9 @@ async def asyncio(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        price_list_id (Union[Unset, int]):
-        customer_id (Union[Unset, int]):
+        price_list_ids (Union[Unset, list[int]]):
+        customer_ids (Union[Unset, list[int]]):
+        ids (Union[Unset, list[int]]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -222,7 +248,8 @@ async def asyncio(
             client=client,
             limit=limit,
             page=page,
-            price_list_id=price_list_id,
-            customer_id=customer_id,
+            price_list_ids=price_list_ids,
+            customer_ids=customer_ids,
+            ids=ids,
         )
     ).parsed

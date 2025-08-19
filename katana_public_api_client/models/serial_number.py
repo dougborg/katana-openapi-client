@@ -16,6 +16,8 @@ T = TypeVar("T", bound="SerialNumber")
 
 @_attrs_define
 class SerialNumber:
+    """Individual serial number record for tracking specific units of serialized inventory items through transactions"""
+
     id: Unset | int = UNSET
     transaction_id: Unset | str = UNSET
     serial_number: Unset | str = UNSET

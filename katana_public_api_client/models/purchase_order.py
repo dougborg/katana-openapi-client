@@ -44,8 +44,8 @@ class PurchaseOrder:
                 '2024-01-15T14:20:00Z', 'deleted_at': None}}
 
         Attributes:
-            created_at (Union[Unset, datetime.datetime]):
-            updated_at (Union[Unset, datetime.datetime]):
+            created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+            updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
             deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
             id (Union[Unset, int]): Unique identifier for the purchase order
             status (Union[Unset, str]): Current status of the purchase order (e.g., OPEN, RECEIVED, CLOSED)

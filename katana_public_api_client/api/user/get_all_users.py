@@ -1,3 +1,4 @@
+import datetime
 from http import HTTPStatus
 from typing import Any
 
@@ -14,8 +15,10 @@ def _get_kwargs(
     *,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    role: Unset | str = UNSET,
-    status: Unset | str = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -23,9 +26,25 @@ def _get_kwargs(
 
     params["page"] = page
 
-    params["role"] = role
+    json_created_at_min: Unset | str = UNSET
+    if not isinstance(created_at_min, Unset):
+        json_created_at_min = created_at_min.isoformat()
+    params["created_at_min"] = json_created_at_min
 
-    params["status"] = status
+    json_created_at_max: Unset | str = UNSET
+    if not isinstance(created_at_max, Unset):
+        json_created_at_max = created_at_max.isoformat()
+    params["created_at_max"] = json_created_at_max
+
+    json_updated_at_min: Unset | str = UNSET
+    if not isinstance(updated_at_min, Unset):
+        json_updated_at_min = updated_at_min.isoformat()
+    params["updated_at_min"] = json_updated_at_min
+
+    json_updated_at_max: Unset | str = UNSET
+    if not isinstance(updated_at_max, Unset):
+        json_updated_at_max = updated_at_max.isoformat()
+    params["updated_at_max"] = json_updated_at_max
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -79,8 +98,10 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    role: Unset | str = UNSET,
-    status: Unset | str = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> Response[ErrorResponse | UserListResponse]:
     """List all users
 
@@ -89,8 +110,10 @@ def sync_detailed(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        role (Union[Unset, str]):
-        status (Union[Unset, str]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -104,8 +127,10 @@ def sync_detailed(
     kwargs = _get_kwargs(
         limit=limit,
         page=page,
-        role=role,
-        status=status,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
     )
 
     response = client.get_httpx_client().request(
@@ -120,8 +145,10 @@ def sync(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    role: Unset | str = UNSET,
-    status: Unset | str = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> ErrorResponse | UserListResponse | None:
     """List all users
 
@@ -130,8 +157,10 @@ def sync(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        role (Union[Unset, str]):
-        status (Union[Unset, str]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -146,8 +175,10 @@ def sync(
         client=client,
         limit=limit,
         page=page,
-        role=role,
-        status=status,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
     ).parsed
 
 
@@ -156,8 +187,10 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    role: Unset | str = UNSET,
-    status: Unset | str = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> Response[ErrorResponse | UserListResponse]:
     """List all users
 
@@ -166,8 +199,10 @@ async def asyncio_detailed(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        role (Union[Unset, str]):
-        status (Union[Unset, str]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -181,8 +216,10 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         limit=limit,
         page=page,
-        role=role,
-        status=status,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -195,8 +232,10 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    role: Unset | str = UNSET,
-    status: Unset | str = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> ErrorResponse | UserListResponse | None:
     """List all users
 
@@ -205,8 +244,10 @@ async def asyncio(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        role (Union[Unset, str]):
-        status (Union[Unset, str]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -222,7 +263,9 @@ async def asyncio(
             client=client,
             limit=limit,
             page=page,
-            role=role,
-            status=status,
+            created_at_min=created_at_min,
+            created_at_max=created_at_max,
+            updated_at_min=updated_at_min,
+            updated_at_max=updated_at_max,
         )
     ).parsed

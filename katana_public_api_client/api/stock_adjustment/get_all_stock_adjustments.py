@@ -1,3 +1,4 @@
+import datetime
 from http import HTTPStatus
 from typing import Any
 
@@ -16,7 +17,12 @@ def _get_kwargs(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     location_id: Unset | int = UNSET,
+    stock_adjustment_number: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -32,7 +38,29 @@ def _get_kwargs(
 
     params["location_id"] = location_id
 
+    params["stock_adjustment_number"] = stock_adjustment_number
+
     params["include_deleted"] = include_deleted
+
+    json_created_at_min: Unset | str = UNSET
+    if not isinstance(created_at_min, Unset):
+        json_created_at_min = created_at_min.isoformat()
+    params["created_at_min"] = json_created_at_min
+
+    json_created_at_max: Unset | str = UNSET
+    if not isinstance(created_at_max, Unset):
+        json_created_at_max = created_at_max.isoformat()
+    params["created_at_max"] = json_created_at_max
+
+    json_updated_at_min: Unset | str = UNSET
+    if not isinstance(updated_at_min, Unset):
+        json_updated_at_min = updated_at_min.isoformat()
+    params["updated_at_min"] = json_updated_at_min
+
+    json_updated_at_max: Unset | str = UNSET
+    if not isinstance(updated_at_max, Unset):
+        json_updated_at_max = updated_at_max.isoformat()
+    params["updated_at_max"] = json_updated_at_max
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -88,7 +116,12 @@ def sync_detailed(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     location_id: Unset | int = UNSET,
+    stock_adjustment_number: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> Response[ErrorResponse | StockAdjustmentListResponse]:
     """List all stock adjustments
 
@@ -99,7 +132,12 @@ def sync_detailed(
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
         location_id (Union[Unset, int]):
+        stock_adjustment_number (Union[Unset, str]):
         include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -115,7 +153,12 @@ def sync_detailed(
         page=page,
         ids=ids,
         location_id=location_id,
+        stock_adjustment_number=stock_adjustment_number,
         include_deleted=include_deleted,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
     )
 
     response = client.get_httpx_client().request(
@@ -132,7 +175,12 @@ def sync(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     location_id: Unset | int = UNSET,
+    stock_adjustment_number: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> ErrorResponse | StockAdjustmentListResponse | None:
     """List all stock adjustments
 
@@ -143,7 +191,12 @@ def sync(
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
         location_id (Union[Unset, int]):
+        stock_adjustment_number (Union[Unset, str]):
         include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -160,7 +213,12 @@ def sync(
         page=page,
         ids=ids,
         location_id=location_id,
+        stock_adjustment_number=stock_adjustment_number,
         include_deleted=include_deleted,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
     ).parsed
 
 
@@ -171,7 +229,12 @@ async def asyncio_detailed(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     location_id: Unset | int = UNSET,
+    stock_adjustment_number: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> Response[ErrorResponse | StockAdjustmentListResponse]:
     """List all stock adjustments
 
@@ -182,7 +245,12 @@ async def asyncio_detailed(
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
         location_id (Union[Unset, int]):
+        stock_adjustment_number (Union[Unset, str]):
         include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -198,7 +266,12 @@ async def asyncio_detailed(
         page=page,
         ids=ids,
         location_id=location_id,
+        stock_adjustment_number=stock_adjustment_number,
         include_deleted=include_deleted,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -213,7 +286,12 @@ async def asyncio(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     location_id: Unset | int = UNSET,
+    stock_adjustment_number: Unset | str = UNSET,
     include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> ErrorResponse | StockAdjustmentListResponse | None:
     """List all stock adjustments
 
@@ -224,7 +302,12 @@ async def asyncio(
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
         location_id (Union[Unset, int]):
+        stock_adjustment_number (Union[Unset, str]):
         include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -242,6 +325,11 @@ async def asyncio(
             page=page,
             ids=ids,
             location_id=location_id,
+            stock_adjustment_number=stock_adjustment_number,
             include_deleted=include_deleted,
+            created_at_min=created_at_min,
+            created_at_max=created_at_max,
+            updated_at_min=updated_at_min,
+            updated_at_max=updated_at_max,
         )
     ).parsed

@@ -15,6 +15,8 @@ T = TypeVar("T", bound="ServiceAttributes")
 
 @_attrs_define
 class ServiceAttributes:
+    """Service definition attributes including name, price, and status for configuring external services"""
+
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     name: Unset | str = UNSET

@@ -366,3 +366,211 @@ stability.
 - **Rate Limit Monitoring**: Provide dashboards for API usage monitoring and limit
   tracking
 - **Documentation**: Clearly document rate limiting strategy and best practices
+
+### Missing Pagination Parameters on Collection Endpoints
+
+**Issue**: Some collection endpoints that return arrays of resources lack standard
+pagination parameters, making it difficult to handle large datasets efficiently.
+
+**Affected Endpoints**:
+
+- `GET /serial_numbers_stock` - Returns array but no `limit`, `page`, or `offset`
+  parameters
+- `GET /custom_fields_collections` - Returns array but no pagination parameters
+
+**Current Behavior**:
+
+- These endpoints return all results in a single response
+- No way to paginate through large result sets
+- Potentially inefficient for large datasets
+- Inconsistent with other collection endpoints that do support pagination
+
+**Verification**: Both endpoints confirmed to lack pagination parameters in the official
+API specification (checked against comprehensive documentation).
+
+**Business Impact**:
+
+- **Performance**: Large result sets may cause slow API responses
+- **Memory Usage**: Clients must handle potentially large JSON payloads
+- **User Experience**: No progressive loading possible for large datasets
+- **Consistency**: Inconsistent API behavior compared to other collection endpoints
+
+**Expected Collection Endpoint Patterns**:
+
+Most collection endpoints support:
+
+- `limit` - Maximum number of results per page
+- `page` - Page number for pagination
+- `offset` - Alternative pagination method
+- Response metadata with pagination info
+
+**Recommendation**:
+
+- **Add Pagination Support**: Implement standard pagination parameters for these
+  endpoints
+- **Consistent Parameters**: Use same pagination parameter names as other endpoints
+- **Response Metadata**: Include pagination metadata in responses (`total_count`,
+  `page_info`, etc.)
+- **Backward Compatibility**: Ensure changes don't break existing clients
+- **Documentation**: Update API documentation to reflect pagination capabilities
+
+### Inconsistent 204 No Content Responses
+
+**Issue**: Several endpoints return `204 No Content` where they should return created
+resource data or success information with content.
+
+**Affected Endpoints**:
+
+- `POST /manufacturing_order_unlink` - Returns `204 No Content`
+- `POST /purchase_order_receive` - Returns `204 No Content`
+- `POST /unlink_variant_bin_locations` - Returns `204 No Content`
+- `POST /recipes` - Returns `204 No Content`
+- `POST /bom_rows` - Returns `204 No Content` (documented above)
+- `POST /bom_rows/batch/create` - Returns `204 No Content` (documented above)
+- `POST /product_operation_rows` - Returns `204 No Content`
+
+**Current Behavior**:
+
+- These creation/action endpoints return no response body
+- Client cannot determine success details or created resource information
+- Forces additional API calls to verify operation results
+
+**Problems**:
+
+- **No Confirmation Data**: Impossible to get created resource IDs or operation details
+- **Integration Challenges**: Difficult to chain operations that depend on results
+- **Non-Standard Pattern**: Most REST APIs return created resources with `201 Created`
+- **User Experience**: No immediate feedback on operation success details
+
+**Business Impact**:
+
+- **Workflow Disruption**: Cannot build efficient automated workflows
+- **Additional API Calls**: Forced to make extra requests to verify results
+- **Development Complexity**: Harder to build reliable integrations
+- **Inconsistent API**: Mixed patterns confuse developers
+
+**Recommendation**:
+
+- **Return Resource Data**: Provide created/modified resource information in response
+  body
+- **Use 201 Created**: For creation operations, return appropriate success status with
+  data
+- **Consistent Patterns**: Align all similar operations to return useful response data
+- **Documentation**: Update examples to show expected response formats
+
+### Parameter Naming Inconsistencies
+
+**Issue**: Related endpoints use different parameter names for the same concepts,
+creating confusion and integration complexity.
+
+**Examples of Inconsistent Naming**:
+
+- **ID Parameters**: Some endpoints use `customer_id` while related endpoints use
+  `customer_ids` (array)
+- **Resource Filters**: Mixed patterns like `sales_order_id` vs `sales_order_ids` for
+  filtering
+- **Date Ranges**: Inconsistent use of `created_at_min/max` vs other date range patterns
+- **Status Filters**: Some endpoints have `status` parameters while related endpoints
+  lack them
+
+**Current Impact**:
+
+- **Developer Confusion**: Must check each endpoint's parameters individually
+- **Integration Complexity**: Cannot reuse parameter handling logic across similar
+  endpoints
+- **Documentation Overhead**: Requires extensive parameter documentation per endpoint
+- **Client Generation Issues**: Generated clients may have inconsistent method
+  signatures
+
+**Business Impact**:
+
+- **Development Time**: Slower integration development due to parameter inconsistencies
+- **Error Prone**: Easy to use wrong parameter names when switching between endpoints
+- **Maintenance Burden**: Harder to maintain consistent client code
+
+**Recommendation**:
+
+- **Standardize Parameter Names**: Establish consistent naming conventions for common
+  parameters
+- **Resource ID Patterns**: Use consistent patterns for single vs. multiple resource IDs
+- **Date Range Conventions**: Standardize date filtering parameter names across all
+  endpoints
+- **Documentation**: Create parameter naming guidelines for future endpoints
+
+### Response Schema Documentation via References
+
+**Issue**: Many endpoint responses use `$ref` references to shared response schemas
+without providing endpoint-specific context or descriptions.
+
+**Current Pattern**:
+
+```yaml
+responses:
+  "401":
+    $ref: "#/components/responses/UnauthorizedError"
+  "422":
+    $ref: "#/components/responses/UnprocessableEntityError"
+```
+
+**Problems**:
+
+- **No Endpoint Context**: Generic error responses don't explain endpoint-specific error
+  conditions
+- **Limited Debugging Info**: Developers can't understand what specific validations
+  might fail
+- **Poor Developer Experience**: No guidance on how to handle errors for specific
+  operations
+- **Documentation Gaps**: OpenAPI documentation tools show generic descriptions only
+
+**Business Impact**:
+
+- **Integration Difficulty**: Developers struggle to handle errors appropriately
+- **Support Burden**: More support requests due to unclear error handling
+- **Development Delays**: Time spent figuring out endpoint-specific error conditions
+
+**Recommendation**:
+
+- **Add Endpoint-Specific Descriptions**: Provide context for how shared responses apply
+  to each endpoint
+- **Error Condition Examples**: Document specific validation failures for each endpoint
+- **Hybrid Approach**: Use `$ref` for consistency but add endpoint-specific descriptions
+- **Documentation**: Enhance error handling examples in API documentation
+
+### Inconsistent Resource Pattern - Factory Endpoint
+
+**Issue**: The `/factory` endpoint follows a singleton pattern that differs from other
+resource endpoints, potentially causing confusion.
+
+**Current Behavior**:
+
+- `GET /factory` - Returns factory information (singleton resource)
+- No `/factories` (plural) endpoint
+- No individual factory ID-based endpoints like `/factories/{id}`
+
+**Pattern Comparison**:
+
+```yaml
+# Standard Collection Pattern:
+GET /customers      # List all customers
+GET /customers/{id} # Get specific customer
+
+# Factory Singleton Pattern:
+GET /factory        # Get factory info (no collection)
+```
+
+**Potential Issues**:
+
+- **Developer Expectations**: Most REST APIs use consistent collection patterns
+- **Client Generation**: Code generators may handle singleton differently
+- **Documentation Clarity**: Pattern inconsistency requires special documentation
+- **Future Scaling**: Unclear how pattern would extend if multiple factories supported
+
+**Current Assessment**: This appears to be a legitimate business requirement (single
+factory per account), but the pattern inconsistency should be documented.
+
+**Recommendation**:
+
+- **Document Pattern**: Clearly explain why `/factory` uses singleton pattern
+- **API Guidelines**: Document when singleton vs. collection patterns are appropriate
+- **Client Examples**: Provide specific examples for singleton resource usage
+- **Future Planning**: Consider how pattern would evolve for multi-factory scenarios

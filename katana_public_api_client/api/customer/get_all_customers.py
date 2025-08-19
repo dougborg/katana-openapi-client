@@ -1,3 +1,4 @@
+import datetime
 from http import HTTPStatus
 from typing import Any
 
@@ -15,9 +16,20 @@ def _get_kwargs(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
     name: Unset | str = UNSET,
     email: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    first_name: Unset | str = UNSET,
+    last_name: Unset | str = UNSET,
+    company: Unset | str = UNSET,
+    phone: Unset | str = UNSET,
+    category: Unset | str = UNSET,
+    currency: Unset | str = UNSET,
+    reference_id: Unset | str = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -31,11 +43,45 @@ def _get_kwargs(
 
     params["ids"] = json_ids
 
+    params["include_deleted"] = include_deleted
+
+    json_created_at_min: Unset | str = UNSET
+    if not isinstance(created_at_min, Unset):
+        json_created_at_min = created_at_min.isoformat()
+    params["created_at_min"] = json_created_at_min
+
+    json_created_at_max: Unset | str = UNSET
+    if not isinstance(created_at_max, Unset):
+        json_created_at_max = created_at_max.isoformat()
+    params["created_at_max"] = json_created_at_max
+
+    json_updated_at_min: Unset | str = UNSET
+    if not isinstance(updated_at_min, Unset):
+        json_updated_at_min = updated_at_min.isoformat()
+    params["updated_at_min"] = json_updated_at_min
+
+    json_updated_at_max: Unset | str = UNSET
+    if not isinstance(updated_at_max, Unset):
+        json_updated_at_max = updated_at_max.isoformat()
+    params["updated_at_max"] = json_updated_at_max
+
     params["name"] = name
 
     params["email"] = email
 
-    params["include_deleted"] = include_deleted
+    params["first_name"] = first_name
+
+    params["last_name"] = last_name
+
+    params["company"] = company
+
+    params["phone"] = phone
+
+    params["category"] = category
+
+    params["currency"] = currency
+
+    params["reference_id"] = reference_id
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -90,9 +136,20 @@ def sync_detailed(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
     name: Unset | str = UNSET,
     email: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    first_name: Unset | str = UNSET,
+    last_name: Unset | str = UNSET,
+    company: Unset | str = UNSET,
+    phone: Unset | str = UNSET,
+    category: Unset | str = UNSET,
+    currency: Unset | str = UNSET,
+    reference_id: Unset | str = UNSET,
 ) -> Response[CustomerListResponse | ErrorResponse]:
     """List all customers
 
@@ -102,9 +159,20 @@ def sync_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
+        include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
         name (Union[Unset, str]):
         email (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
+        first_name (Union[Unset, str]):
+        last_name (Union[Unset, str]):
+        company (Union[Unset, str]):
+        phone (Union[Unset, str]):
+        category (Union[Unset, str]):
+        currency (Union[Unset, str]):
+        reference_id (Union[Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -119,9 +187,20 @@ def sync_detailed(
         limit=limit,
         page=page,
         ids=ids,
+        include_deleted=include_deleted,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
         name=name,
         email=email,
-        include_deleted=include_deleted,
+        first_name=first_name,
+        last_name=last_name,
+        company=company,
+        phone=phone,
+        category=category,
+        currency=currency,
+        reference_id=reference_id,
     )
 
     response = client.get_httpx_client().request(
@@ -137,9 +216,20 @@ def sync(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
     name: Unset | str = UNSET,
     email: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    first_name: Unset | str = UNSET,
+    last_name: Unset | str = UNSET,
+    company: Unset | str = UNSET,
+    phone: Unset | str = UNSET,
+    category: Unset | str = UNSET,
+    currency: Unset | str = UNSET,
+    reference_id: Unset | str = UNSET,
 ) -> CustomerListResponse | ErrorResponse | None:
     """List all customers
 
@@ -149,9 +239,20 @@ def sync(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
+        include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
         name (Union[Unset, str]):
         email (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
+        first_name (Union[Unset, str]):
+        last_name (Union[Unset, str]):
+        company (Union[Unset, str]):
+        phone (Union[Unset, str]):
+        category (Union[Unset, str]):
+        currency (Union[Unset, str]):
+        reference_id (Union[Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -167,9 +268,20 @@ def sync(
         limit=limit,
         page=page,
         ids=ids,
+        include_deleted=include_deleted,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
         name=name,
         email=email,
-        include_deleted=include_deleted,
+        first_name=first_name,
+        last_name=last_name,
+        company=company,
+        phone=phone,
+        category=category,
+        currency=currency,
+        reference_id=reference_id,
     ).parsed
 
 
@@ -179,9 +291,20 @@ async def asyncio_detailed(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
     name: Unset | str = UNSET,
     email: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    first_name: Unset | str = UNSET,
+    last_name: Unset | str = UNSET,
+    company: Unset | str = UNSET,
+    phone: Unset | str = UNSET,
+    category: Unset | str = UNSET,
+    currency: Unset | str = UNSET,
+    reference_id: Unset | str = UNSET,
 ) -> Response[CustomerListResponse | ErrorResponse]:
     """List all customers
 
@@ -191,9 +314,20 @@ async def asyncio_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
+        include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
         name (Union[Unset, str]):
         email (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
+        first_name (Union[Unset, str]):
+        last_name (Union[Unset, str]):
+        company (Union[Unset, str]):
+        phone (Union[Unset, str]):
+        category (Union[Unset, str]):
+        currency (Union[Unset, str]):
+        reference_id (Union[Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -208,9 +342,20 @@ async def asyncio_detailed(
         limit=limit,
         page=page,
         ids=ids,
+        include_deleted=include_deleted,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
         name=name,
         email=email,
-        include_deleted=include_deleted,
+        first_name=first_name,
+        last_name=last_name,
+        company=company,
+        phone=phone,
+        category=category,
+        currency=currency,
+        reference_id=reference_id,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -224,9 +369,20 @@ async def asyncio(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
     name: Unset | str = UNSET,
     email: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    first_name: Unset | str = UNSET,
+    last_name: Unset | str = UNSET,
+    company: Unset | str = UNSET,
+    phone: Unset | str = UNSET,
+    category: Unset | str = UNSET,
+    currency: Unset | str = UNSET,
+    reference_id: Unset | str = UNSET,
 ) -> CustomerListResponse | ErrorResponse | None:
     """List all customers
 
@@ -236,9 +392,20 @@ async def asyncio(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
+        include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
         name (Union[Unset, str]):
         email (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
+        first_name (Union[Unset, str]):
+        last_name (Union[Unset, str]):
+        company (Union[Unset, str]):
+        phone (Union[Unset, str]):
+        category (Union[Unset, str]):
+        currency (Union[Unset, str]):
+        reference_id (Union[Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -255,8 +422,19 @@ async def asyncio(
             limit=limit,
             page=page,
             ids=ids,
+            include_deleted=include_deleted,
+            created_at_min=created_at_min,
+            created_at_max=created_at_max,
+            updated_at_min=updated_at_min,
+            updated_at_max=updated_at_max,
             name=name,
             email=email,
-            include_deleted=include_deleted,
+            first_name=first_name,
+            last_name=last_name,
+            company=company,
+            phone=phone,
+            category=category,
+            currency=currency,
+            reference_id=reference_id,
         )
     ).parsed

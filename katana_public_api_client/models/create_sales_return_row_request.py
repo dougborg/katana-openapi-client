@@ -10,6 +10,8 @@ T = TypeVar("T", bound="CreateSalesReturnRowRequest")
 
 @_attrs_define
 class CreateSalesReturnRowRequest:
+    """Request payload for creating a new sales return row with product and quantity information"""
+
     variant_id: int
     quantity: float
     return_reason_id: Unset | int = UNSET

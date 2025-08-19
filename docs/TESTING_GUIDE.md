@@ -1,152 +1,149 @@
-# Testing Guide for Katana OpenAPI Client
+# Testing Guide
 
-## Overview
+This guide explains the testing architecture and approach for the Katana OpenAPI Client
+project.
 
-We've replaced all the scattered test scripts with a proper pytest-based test suite that
-uses Poetry for dependency management and execution.
+## Testing Philosophy
+
+Our test suite uses a **zero-tolerance approach** for API quality issues:
+
+- **Equal treatment**: Every endpoint and schema receives identical validation
+- **Comprehensive coverage**: All API elements are automatically tested
+- **Parameterized testing**: Precise failure identification with detailed context
+- **External consistency**: Validation against official Katana documentation
 
 ## Test Structure
 
-```text
-tests/
-├── conftest.py              # Test configuration and fixtures
-├── test_enhanced_client.py  # Core enhanced client functionality
-├── test_integration.py      # Integration tests with generated client
-├── test_performance.py      # Performance and stress tests
-└── test_generated_client.py # Generated client compatibility tests
-```
+### Core API Quality Tests
 
-**Configuration**: All test configuration is centralized in `pyproject.toml` under
-`[tool.pytest.ini_options]`.
+**`test_openapi_specification.py`** - OpenAPI Document Structure
+
+- OpenAPI version compliance and document structure
+- Required sections validation (info, paths, components)
+- Operation ID uniqueness and YAML syntax validation
+
+**`test_schema_comprehensive.py`** - Schema Validation
+
+- Schema descriptions and property descriptions for all schemas
+- BaseEntity inheritance patterns and structure standards
+- Automatic coverage for new schemas without maintenance
+
+**`test_endpoint_comprehensive.py`** - Endpoint Validation
+
+- Operation IDs, documentation, response schemas, parameters
+- Collection endpoint pagination validation
+- Request body validation and error response coverage
+
+**`test_external_documentation_comparison.py`** - External Consistency
+
+- Validates against comprehensive documentation from developer.katanamrp.com
+- Endpoint completeness, method coverage, parameter consistency
+- Business domain coverage verification
+
+### Specialized Tests
+
+**`test_generated_client.py`** - Generated client structure and imports
+**`test_katana_client.py`** - Custom client implementation and transport layer\
+**`test_real_api.py`** - Integration tests against real API (requires credentials)
+**`test_performance.py`** - Performance, retry behavior, memory usage
+**`test_transport_auto_pagination.py`** - Transport layer pagination features
+**`test_documentation.py`** - Documentation build and content validation
 
 ## Running Tests
 
-### Basic Test Execution
+### Development Workflow
 
 ```bash
 # Run all tests
 poetry run poe test
 
-# Run with verbose output
-poetry run poe test-verbose
+# Test specific areas
+poetry run pytest tests/test_schema_comprehensive.py        # Schema issues
+poetry run pytest tests/test_endpoint_comprehensive.py     # Endpoint issues
+poetry run pytest tests/test_openapi_specification.py      # Structure issues
+poetry run pytest tests/test_external_documentation_comparison.py  # External consistency
 
-# Run specific test file
-poetry run poe test -- tests/test_katana_client.py
-
-# Run specific test class
-poetry run poe test -- tests/test_katana_client.py::TestKatanaClient
-
-# Run specific test method
-poetry run poe test -- tests/test_katana_client.py::TestKatanaClient::test_client_initialization
-```
-
-### Test Categories
-
-```bash
-# Run only unit tests
-poetry run poe test-unit
-
-# Run only integration tests
-poetry run poe test-integration
-
-# Skip slow tests
-poetry run poe test -- -m "not slow"
-
-# Run async tests only
-poetry run poe test -- -m asyncio
-```
-
-### Coverage Reports
-
-```bash
-# Run tests with coverage
+# Run with coverage
 poetry run poe test-coverage
-
-# Generate HTML coverage report
-poetry run poe test-coverage-html
-
-# Open coverage report
-open htmlcov/index.html
 ```
 
-## Test Features
+### Debugging Test Failures
 
-### Fixtures Available
+Parameterized tests provide precise failure identification:
 
-- `mock_api_credentials`: Mock API credentials for testing
-- `enhanced_client`: Pre-configured enhanced client instance
-- `mock_response`: Mock successful API response
-- `mock_paginated_responses`: Mock responses for pagination testing
-- `async_mock`: Utility for creating async mocks
-
-### Test Organization
-
-1. **Unit Tests**: Test individual components in isolation
-1. **Integration Tests**: Test interaction with generated client
-1. **Performance Tests**: Test pagination, concurrency, and memory usage
-1. **Compatibility Tests**: Ensure backward compatibility and proper imports
-
-### What's Tested
-
-- ✅ Enhanced client initialization and configuration
-- ✅ Method enhancement with retry logic
-- ✅ Pagination functionality with various scenarios
-- ✅ Error handling and rate limiting
-- ✅ Integration with generated OpenAPI client
-- ✅ Type safety and IDE support preservation
-- ✅ Backward compatibility
-- ✅ Performance characteristics
-- ✅ Concurrent usage scenarios
-
-## Poetry Commands for Testing
-
-```bash
-# Install all dependencies including test deps
-poetry install
-
-# Update dependencies
-poetry update
-
-# Add new test dependency to dev extras
-# Note: With PEP 621, manually add to pyproject.toml [project.optional-dependencies] dev array
-poetry add <package>
-
-# Run tests in isolated environment
-poetry run pytest
-
-# Check installed packages
-poetry show
-
-# Check virtual environment info
-poetry env info
-
-# Activate shell in poetry environment
-poetry shell
+```
+test_schema_comprehensive.py::test_schema_has_description[schema-Customer] FAILED
+test_endpoint_comprehensive.py::test_endpoint_has_documentation[GET-customers] FAILED
 ```
 
-## Continuous Integration
+Each failure shows exactly which schema or endpoint needs attention.
 
-The test suite is designed to work well in CI environments:
+## Test Categories
 
-- Fast execution with proper async handling
-- Comprehensive mocking to avoid external dependencies
-- Clear separation of unit vs integration tests
-- Configurable test markers for selective execution
+### Quality Assurance Tests
 
-## Migration from Old Test Scripts
+- **Zero tolerance**: All tests must pass for release
+- **Equal treatment**: No endpoint or schema is more important than another
+- **Automatic scaling**: New API elements automatically get full validation
 
-All functionality from the old test scripts has been consolidated:
+### Integration Tests
 
-- `test_*.py` scripts → Proper pytest test classes
-- Ad-hoc testing → Structured test fixtures and scenarios
-- Manual verification → Automated assertions
-- Scattered functionality → Organized test categories
+- **Real API tests**: Require `KATANA_API_KEY` in `.env` file
+- **Network resilience**: Test retry behavior and error handling
+- **Performance validation**: Memory usage and response time testing
 
-## Best Practices
+### Documentation Tests
 
-1. **Use fixtures** for common test setup
-1. **Mock external dependencies** to keep tests fast and reliable
-1. **Test both success and failure scenarios**
-1. **Use descriptive test names** that explain what's being tested
-1. **Group related tests** in classes for better organization
-1. **Mark slow tests** appropriately so they can be skipped during development
+- **Build validation**: Ensure documentation compiles correctly
+- **Content consistency**: Verify examples and API references are current
+
+## Key Benefits
+
+### For Contributors
+
+- **Clear failure messages**: Know exactly what needs to be fixed
+- **No maintenance burden**: Tests automatically cover new API elements
+- **Consistent standards**: Every addition follows the same quality requirements
+
+### For API Quality
+
+- **Comprehensive coverage**: Nothing falls through the cracks
+- **External consistency**: API matches official documentation
+- **Schema composition**: Proper `allOf` and `$ref` usage validation
+
+### For CI/CD
+
+- **Fast failure detection**: Issues identified immediately
+- **Precise debugging**: No need to hunt through multiple test files
+- **Reliable coverage**: Equal validation for all API elements
+
+## Schema Composition Handling
+
+Our tests properly handle OpenAPI schema composition patterns:
+
+- **Direct properties**: Schemas with `properties` are fully validated
+- **Composed schemas**: Schemas using `allOf` with `$ref` are correctly skipped
+- **Base schema validation**: Referenced schemas (like `BaseEntity`, `UpdatableEntity`)
+  are thoroughly tested
+- **Inheritance validation**: Property descriptions are inherited through `$ref`
+  composition
+
+When tests are skipped for composed schemas, this is expected behavior - the validation
+happens at the base schema level.
+
+## Adding New Tests
+
+When extending the test suite:
+
+1. **Use parameterized tests** for comprehensive coverage
+1. **Avoid hard-coded entity lists** - let tests discover API elements automatically
+1. **Follow the zero-tolerance approach** - no exceptions for specific endpoints or
+   schemas
+1. **Provide clear failure messages** with actionable debugging information
+
+## External Dependencies
+
+- **Official Katana documentation**: Tests validate against `developer.katanamrp.com`
+  content
+- **Generated client validation**: Ensures openapi-python-client generates valid code
+- **Real API integration**: Optional tests with actual Katana API (credentials required)

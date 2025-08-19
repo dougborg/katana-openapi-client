@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -32,10 +32,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | None:
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 204:
-        response_204 = ErrorResponse.from_dict(response.json())
-
+        response_204 = cast(Any, None)
         return response_204
     if response.status_code == 401:
         response_401 = ErrorResponse.from_dict(response.json())
@@ -61,7 +60,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -74,7 +73,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: BatchCreateBomRowsRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Create many BOM rows
 
      Create BOM rows for a product.
@@ -92,7 +91,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse]]
+        Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -110,7 +109,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: BatchCreateBomRowsRequest,
-) -> DetailedErrorResponse | ErrorResponse | None:
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Create many BOM rows
 
      Create BOM rows for a product.
@@ -128,7 +127,7 @@ def sync(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse]
+        Union[Any, DetailedErrorResponse, ErrorResponse]
     """
 
     return sync_detailed(
@@ -141,7 +140,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: BatchCreateBomRowsRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Create many BOM rows
 
      Create BOM rows for a product.
@@ -159,7 +158,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse]]
+        Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -175,7 +174,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: BatchCreateBomRowsRequest,
-) -> DetailedErrorResponse | ErrorResponse | None:
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Create many BOM rows
 
      Create BOM rows for a product.
@@ -193,7 +192,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse]
+        Union[Any, DetailedErrorResponse, ErrorResponse]
     """
 
     return (

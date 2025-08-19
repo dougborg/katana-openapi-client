@@ -15,6 +15,8 @@ T = TypeVar("T", bound="Operator")
 
 @_attrs_define
 class Operator:
+    """Manufacturing operator or worker assigned to specific production operations and work areas"""
+
     id: int
     name: str
     created_at: Unset | datetime.datetime = UNSET

@@ -16,6 +16,8 @@ T = TypeVar("T", bound="SerialNumberStock")
 
 @_attrs_define
 class SerialNumberStock:
+    """Current stock status and location of individual serialized inventory items"""
+
     id: int
     variant_id: int
     location_id: int

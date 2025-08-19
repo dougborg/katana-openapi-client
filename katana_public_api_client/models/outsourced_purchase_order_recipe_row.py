@@ -24,6 +24,8 @@ T = TypeVar("T", bound="OutsourcedPurchaseOrderRecipeRow")
 
 @_attrs_define
 class OutsourcedPurchaseOrderRecipeRow:
+    """Recipe ingredient row for outsourced purchase orders defining material requirements and availability"""
+
     purchase_order_row_id: int
     ingredient_variant_id: int
     planned_quantity_per_unit: int

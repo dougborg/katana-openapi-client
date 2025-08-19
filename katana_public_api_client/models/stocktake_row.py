@@ -15,6 +15,8 @@ T = TypeVar("T", bound="StocktakeRow")
 
 @_attrs_define
 class StocktakeRow:
+    """Individual item record within a stocktake showing system vs actual quantities and variance"""
+
     id: int
     stocktake_id: int
     variant_id: int

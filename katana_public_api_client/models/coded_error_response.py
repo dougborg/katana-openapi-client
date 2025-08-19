@@ -13,6 +13,8 @@ T = TypeVar("T", bound="CodedErrorResponse")
 
 @_attrs_define
 class CodedErrorResponse:
+    """Error response with an additional application-specific error code for detailed error handling"""
+
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET
     message: Unset | str = UNSET

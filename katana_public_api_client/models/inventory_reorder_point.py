@@ -8,6 +8,10 @@ T = TypeVar("T", bound="InventoryReorderPoint")
 
 @_attrs_define
 class InventoryReorderPoint:
+    """Configuration that defines the minimum inventory level that triggers automatic reordering for a specific variant at
+    a location
+    """
+
     location_id: int
     variant_id: int
     value: float

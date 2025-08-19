@@ -13,7 +13,8 @@ T = TypeVar("T", bound="ServiceInputAttributes")
 
 @_attrs_define
 class ServiceInputAttributes:
-    """
+    """Input attributes for creating or updating service definitions with pricing and descriptive information
+
     Example:
         {'name': 'Screen Printing', 'description': 'High quality screen printing service.', 'price': 150.0, 'currency':
             'USD'}

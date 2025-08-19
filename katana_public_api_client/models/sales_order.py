@@ -58,8 +58,8 @@ class SalesOrder:
         order_no (str): Unique order number for tracking and reference purposes
         location_id (int): Unique identifier of the fulfillment location for this order
         status (SalesOrderStatus): Current fulfillment status of the sales order
-        created_at (Union[Unset, datetime.datetime]):
-        updated_at (Union[Unset, datetime.datetime]):
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
         source (Union[None, Unset, str]): Source system or channel where the order originated (e.g., Shopify, manual
             entry)
         order_created_date (Union[Unset, datetime.datetime]): Date and time when the sales order was created in the

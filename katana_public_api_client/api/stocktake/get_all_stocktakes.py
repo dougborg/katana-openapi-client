@@ -1,3 +1,4 @@
+import datetime
 from http import HTTPStatus
 from typing import Any
 
@@ -7,7 +8,6 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
-from ...models.get_all_stocktakes_status import GetAllStocktakesStatus
 from ...models.stocktake_list_response import StocktakeListResponse
 
 
@@ -17,7 +17,14 @@ def _get_kwargs(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     location_id: Unset | int = UNSET,
-    status: Unset | GetAllStocktakesStatus = UNSET,
+    status: Unset | str = UNSET,
+    stocktake_number: Unset | str = UNSET,
+    stock_adjustment_id: Unset | float = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -33,11 +40,33 @@ def _get_kwargs(
 
     params["location_id"] = location_id
 
-    json_status: Unset | str = UNSET
-    if not isinstance(status, Unset):
-        json_status = status.value
+    params["status"] = status
 
-    params["status"] = json_status
+    params["stocktake_number"] = stocktake_number
+
+    params["stock_adjustment_id"] = stock_adjustment_id
+
+    json_created_at_min: Unset | str = UNSET
+    if not isinstance(created_at_min, Unset):
+        json_created_at_min = created_at_min.isoformat()
+    params["created_at_min"] = json_created_at_min
+
+    json_created_at_max: Unset | str = UNSET
+    if not isinstance(created_at_max, Unset):
+        json_created_at_max = created_at_max.isoformat()
+    params["created_at_max"] = json_created_at_max
+
+    json_updated_at_min: Unset | str = UNSET
+    if not isinstance(updated_at_min, Unset):
+        json_updated_at_min = updated_at_min.isoformat()
+    params["updated_at_min"] = json_updated_at_min
+
+    json_updated_at_max: Unset | str = UNSET
+    if not isinstance(updated_at_max, Unset):
+        json_updated_at_max = updated_at_max.isoformat()
+    params["updated_at_max"] = json_updated_at_max
+
+    params["include_deleted"] = include_deleted
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -93,7 +122,14 @@ def sync_detailed(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     location_id: Unset | int = UNSET,
-    status: Unset | GetAllStocktakesStatus = UNSET,
+    status: Unset | str = UNSET,
+    stocktake_number: Unset | str = UNSET,
+    stock_adjustment_id: Unset | float = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> Response[ErrorResponse | StocktakeListResponse]:
     """List stocktakes
 
@@ -104,7 +140,14 @@ def sync_detailed(
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
         location_id (Union[Unset, int]):
-        status (Union[Unset, GetAllStocktakesStatus]):
+        status (Union[Unset, str]):
+        stocktake_number (Union[Unset, str]):
+        stock_adjustment_id (Union[Unset, float]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
+        include_deleted (Union[Unset, bool]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -121,6 +164,13 @@ def sync_detailed(
         ids=ids,
         location_id=location_id,
         status=status,
+        stocktake_number=stocktake_number,
+        stock_adjustment_id=stock_adjustment_id,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
+        include_deleted=include_deleted,
     )
 
     response = client.get_httpx_client().request(
@@ -137,7 +187,14 @@ def sync(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     location_id: Unset | int = UNSET,
-    status: Unset | GetAllStocktakesStatus = UNSET,
+    status: Unset | str = UNSET,
+    stocktake_number: Unset | str = UNSET,
+    stock_adjustment_id: Unset | float = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> ErrorResponse | StocktakeListResponse | None:
     """List stocktakes
 
@@ -148,7 +205,14 @@ def sync(
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
         location_id (Union[Unset, int]):
-        status (Union[Unset, GetAllStocktakesStatus]):
+        status (Union[Unset, str]):
+        stocktake_number (Union[Unset, str]):
+        stock_adjustment_id (Union[Unset, float]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
+        include_deleted (Union[Unset, bool]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -166,6 +230,13 @@ def sync(
         ids=ids,
         location_id=location_id,
         status=status,
+        stocktake_number=stocktake_number,
+        stock_adjustment_id=stock_adjustment_id,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
+        include_deleted=include_deleted,
     ).parsed
 
 
@@ -176,7 +247,14 @@ async def asyncio_detailed(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     location_id: Unset | int = UNSET,
-    status: Unset | GetAllStocktakesStatus = UNSET,
+    status: Unset | str = UNSET,
+    stocktake_number: Unset | str = UNSET,
+    stock_adjustment_id: Unset | float = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> Response[ErrorResponse | StocktakeListResponse]:
     """List stocktakes
 
@@ -187,7 +265,14 @@ async def asyncio_detailed(
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
         location_id (Union[Unset, int]):
-        status (Union[Unset, GetAllStocktakesStatus]):
+        status (Union[Unset, str]):
+        stocktake_number (Union[Unset, str]):
+        stock_adjustment_id (Union[Unset, float]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
+        include_deleted (Union[Unset, bool]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -204,6 +289,13 @@ async def asyncio_detailed(
         ids=ids,
         location_id=location_id,
         status=status,
+        stocktake_number=stocktake_number,
+        stock_adjustment_id=stock_adjustment_id,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
+        include_deleted=include_deleted,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -218,7 +310,14 @@ async def asyncio(
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
     location_id: Unset | int = UNSET,
-    status: Unset | GetAllStocktakesStatus = UNSET,
+    status: Unset | str = UNSET,
+    stocktake_number: Unset | str = UNSET,
+    stock_adjustment_id: Unset | float = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    include_deleted: Unset | bool = UNSET,
 ) -> ErrorResponse | StocktakeListResponse | None:
     """List stocktakes
 
@@ -229,7 +328,14 @@ async def asyncio(
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
         location_id (Union[Unset, int]):
-        status (Union[Unset, GetAllStocktakesStatus]):
+        status (Union[Unset, str]):
+        stocktake_number (Union[Unset, str]):
+        stock_adjustment_id (Union[Unset, float]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
+        include_deleted (Union[Unset, bool]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -248,5 +354,12 @@ async def asyncio(
             ids=ids,
             location_id=location_id,
             status=status,
+            stocktake_number=stocktake_number,
+            stock_adjustment_id=stock_adjustment_id,
+            created_at_min=created_at_min,
+            created_at_max=created_at_max,
+            updated_at_min=updated_at_min,
+            updated_at_max=updated_at_max,
+            include_deleted=include_deleted,
         )
     ).parsed

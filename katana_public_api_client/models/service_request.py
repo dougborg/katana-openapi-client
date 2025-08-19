@@ -19,7 +19,8 @@ class ServiceRequest:
 
     Example:
         {'data': {'type': 'services', 'attributes': {'name': 'Assembly Service', 'description': 'Professional product
-            assembly service', 'price': 150.0, 'currency': 'USD'}}}
+            assembly service', 'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
+            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}
     """
 
     data: "ServiceRequestData"

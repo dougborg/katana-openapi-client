@@ -16,7 +16,8 @@ T = TypeVar("T", bound="InventoryMovement")
 
 @_attrs_define
 class InventoryMovement:
-    """
+    """Record of inventory quantity changes caused by transactions like sales, purchases, manufacturing, or adjustments
+
     Example:
         {'id': 12345, 'variant_id': 3001, 'location_id': 1, 'resource_type': 'PurchaseOrderRow', 'resource_id': 5001,
             'caused_by_order_no': 'PO-2024-001', 'caused_by_resource_id': 5001, 'movement_date': '2024-01-15T10:30:00.000Z',

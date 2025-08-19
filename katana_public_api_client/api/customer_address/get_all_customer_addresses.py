@@ -1,3 +1,4 @@
+import datetime
 from http import HTTPStatus
 from typing import Any
 
@@ -17,8 +18,24 @@ def _get_kwargs(
     *,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    customer_id: Unset | int = UNSET,
     entity_type: Unset | GetAllCustomerAddressesEntityType = UNSET,
+    ids: Unset | list[int] = UNSET,
+    customer_ids: Unset | list[int] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    company: Unset | str = UNSET,
+    first_name: Unset | str = UNSET,
+    last_name: Unset | str = UNSET,
+    line_1: Unset | str = UNSET,
+    line_2: Unset | str = UNSET,
+    city: Unset | str = UNSET,
+    state: Unset | str = UNSET,
+    zip_: Unset | str = UNSET,
+    country: Unset | str = UNSET,
+    phone: Unset | str = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -26,13 +43,65 @@ def _get_kwargs(
 
     params["page"] = page
 
-    params["customer_id"] = customer_id
-
     json_entity_type: Unset | str = UNSET
     if not isinstance(entity_type, Unset):
         json_entity_type = entity_type.value
 
     params["entity_type"] = json_entity_type
+
+    json_ids: Unset | list[int] = UNSET
+    if not isinstance(ids, Unset):
+        json_ids = ids
+
+    params["ids"] = json_ids
+
+    json_customer_ids: Unset | list[int] = UNSET
+    if not isinstance(customer_ids, Unset):
+        json_customer_ids = customer_ids
+
+    params["customer_ids"] = json_customer_ids
+
+    params["include_deleted"] = include_deleted
+
+    json_created_at_min: Unset | str = UNSET
+    if not isinstance(created_at_min, Unset):
+        json_created_at_min = created_at_min.isoformat()
+    params["created_at_min"] = json_created_at_min
+
+    json_created_at_max: Unset | str = UNSET
+    if not isinstance(created_at_max, Unset):
+        json_created_at_max = created_at_max.isoformat()
+    params["created_at_max"] = json_created_at_max
+
+    json_updated_at_min: Unset | str = UNSET
+    if not isinstance(updated_at_min, Unset):
+        json_updated_at_min = updated_at_min.isoformat()
+    params["updated_at_min"] = json_updated_at_min
+
+    json_updated_at_max: Unset | str = UNSET
+    if not isinstance(updated_at_max, Unset):
+        json_updated_at_max = updated_at_max.isoformat()
+    params["updated_at_max"] = json_updated_at_max
+
+    params["company"] = company
+
+    params["first_name"] = first_name
+
+    params["last_name"] = last_name
+
+    params["line_1"] = line_1
+
+    params["line_2"] = line_2
+
+    params["city"] = city
+
+    params["state"] = state
+
+    params["zip"] = zip_
+
+    params["country"] = country
+
+    params["phone"] = phone
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -86,8 +155,24 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    customer_id: Unset | int = UNSET,
     entity_type: Unset | GetAllCustomerAddressesEntityType = UNSET,
+    ids: Unset | list[int] = UNSET,
+    customer_ids: Unset | list[int] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    company: Unset | str = UNSET,
+    first_name: Unset | str = UNSET,
+    last_name: Unset | str = UNSET,
+    line_1: Unset | str = UNSET,
+    line_2: Unset | str = UNSET,
+    city: Unset | str = UNSET,
+    state: Unset | str = UNSET,
+    zip_: Unset | str = UNSET,
+    country: Unset | str = UNSET,
+    phone: Unset | str = UNSET,
 ) -> Response[CustomerAddressListResponse | ErrorResponse]:
     """List customer addresses
 
@@ -96,8 +181,24 @@ def sync_detailed(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        customer_id (Union[Unset, int]):
         entity_type (Union[Unset, GetAllCustomerAddressesEntityType]):
+        ids (Union[Unset, list[int]]):
+        customer_ids (Union[Unset, list[int]]):
+        include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
+        company (Union[Unset, str]):
+        first_name (Union[Unset, str]):
+        last_name (Union[Unset, str]):
+        line_1 (Union[Unset, str]):
+        line_2 (Union[Unset, str]):
+        city (Union[Unset, str]):
+        state (Union[Unset, str]):
+        zip_ (Union[Unset, str]):
+        country (Union[Unset, str]):
+        phone (Union[Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -111,8 +212,24 @@ def sync_detailed(
     kwargs = _get_kwargs(
         limit=limit,
         page=page,
-        customer_id=customer_id,
         entity_type=entity_type,
+        ids=ids,
+        customer_ids=customer_ids,
+        include_deleted=include_deleted,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
+        company=company,
+        first_name=first_name,
+        last_name=last_name,
+        line_1=line_1,
+        line_2=line_2,
+        city=city,
+        state=state,
+        zip_=zip_,
+        country=country,
+        phone=phone,
     )
 
     response = client.get_httpx_client().request(
@@ -127,8 +244,24 @@ def sync(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    customer_id: Unset | int = UNSET,
     entity_type: Unset | GetAllCustomerAddressesEntityType = UNSET,
+    ids: Unset | list[int] = UNSET,
+    customer_ids: Unset | list[int] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    company: Unset | str = UNSET,
+    first_name: Unset | str = UNSET,
+    last_name: Unset | str = UNSET,
+    line_1: Unset | str = UNSET,
+    line_2: Unset | str = UNSET,
+    city: Unset | str = UNSET,
+    state: Unset | str = UNSET,
+    zip_: Unset | str = UNSET,
+    country: Unset | str = UNSET,
+    phone: Unset | str = UNSET,
 ) -> CustomerAddressListResponse | ErrorResponse | None:
     """List customer addresses
 
@@ -137,8 +270,24 @@ def sync(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        customer_id (Union[Unset, int]):
         entity_type (Union[Unset, GetAllCustomerAddressesEntityType]):
+        ids (Union[Unset, list[int]]):
+        customer_ids (Union[Unset, list[int]]):
+        include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
+        company (Union[Unset, str]):
+        first_name (Union[Unset, str]):
+        last_name (Union[Unset, str]):
+        line_1 (Union[Unset, str]):
+        line_2 (Union[Unset, str]):
+        city (Union[Unset, str]):
+        state (Union[Unset, str]):
+        zip_ (Union[Unset, str]):
+        country (Union[Unset, str]):
+        phone (Union[Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -153,8 +302,24 @@ def sync(
         client=client,
         limit=limit,
         page=page,
-        customer_id=customer_id,
         entity_type=entity_type,
+        ids=ids,
+        customer_ids=customer_ids,
+        include_deleted=include_deleted,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
+        company=company,
+        first_name=first_name,
+        last_name=last_name,
+        line_1=line_1,
+        line_2=line_2,
+        city=city,
+        state=state,
+        zip_=zip_,
+        country=country,
+        phone=phone,
     ).parsed
 
 
@@ -163,8 +328,24 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    customer_id: Unset | int = UNSET,
     entity_type: Unset | GetAllCustomerAddressesEntityType = UNSET,
+    ids: Unset | list[int] = UNSET,
+    customer_ids: Unset | list[int] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    company: Unset | str = UNSET,
+    first_name: Unset | str = UNSET,
+    last_name: Unset | str = UNSET,
+    line_1: Unset | str = UNSET,
+    line_2: Unset | str = UNSET,
+    city: Unset | str = UNSET,
+    state: Unset | str = UNSET,
+    zip_: Unset | str = UNSET,
+    country: Unset | str = UNSET,
+    phone: Unset | str = UNSET,
 ) -> Response[CustomerAddressListResponse | ErrorResponse]:
     """List customer addresses
 
@@ -173,8 +354,24 @@ async def asyncio_detailed(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        customer_id (Union[Unset, int]):
         entity_type (Union[Unset, GetAllCustomerAddressesEntityType]):
+        ids (Union[Unset, list[int]]):
+        customer_ids (Union[Unset, list[int]]):
+        include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
+        company (Union[Unset, str]):
+        first_name (Union[Unset, str]):
+        last_name (Union[Unset, str]):
+        line_1 (Union[Unset, str]):
+        line_2 (Union[Unset, str]):
+        city (Union[Unset, str]):
+        state (Union[Unset, str]):
+        zip_ (Union[Unset, str]):
+        country (Union[Unset, str]):
+        phone (Union[Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -188,8 +385,24 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         limit=limit,
         page=page,
-        customer_id=customer_id,
         entity_type=entity_type,
+        ids=ids,
+        customer_ids=customer_ids,
+        include_deleted=include_deleted,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
+        company=company,
+        first_name=first_name,
+        last_name=last_name,
+        line_1=line_1,
+        line_2=line_2,
+        city=city,
+        state=state,
+        zip_=zip_,
+        country=country,
+        phone=phone,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -202,8 +415,24 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-    customer_id: Unset | int = UNSET,
     entity_type: Unset | GetAllCustomerAddressesEntityType = UNSET,
+    ids: Unset | list[int] = UNSET,
+    customer_ids: Unset | list[int] = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
+    company: Unset | str = UNSET,
+    first_name: Unset | str = UNSET,
+    last_name: Unset | str = UNSET,
+    line_1: Unset | str = UNSET,
+    line_2: Unset | str = UNSET,
+    city: Unset | str = UNSET,
+    state: Unset | str = UNSET,
+    zip_: Unset | str = UNSET,
+    country: Unset | str = UNSET,
+    phone: Unset | str = UNSET,
 ) -> CustomerAddressListResponse | ErrorResponse | None:
     """List customer addresses
 
@@ -212,8 +441,24 @@ async def asyncio(
     Args:
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
-        customer_id (Union[Unset, int]):
         entity_type (Union[Unset, GetAllCustomerAddressesEntityType]):
+        ids (Union[Unset, list[int]]):
+        customer_ids (Union[Unset, list[int]]):
+        include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
+        company (Union[Unset, str]):
+        first_name (Union[Unset, str]):
+        last_name (Union[Unset, str]):
+        line_1 (Union[Unset, str]):
+        line_2 (Union[Unset, str]):
+        city (Union[Unset, str]):
+        state (Union[Unset, str]):
+        zip_ (Union[Unset, str]):
+        country (Union[Unset, str]):
+        phone (Union[Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -229,7 +474,23 @@ async def asyncio(
             client=client,
             limit=limit,
             page=page,
-            customer_id=customer_id,
             entity_type=entity_type,
+            ids=ids,
+            customer_ids=customer_ids,
+            include_deleted=include_deleted,
+            created_at_min=created_at_min,
+            created_at_max=created_at_max,
+            updated_at_min=updated_at_min,
+            updated_at_max=updated_at_max,
+            company=company,
+            first_name=first_name,
+            last_name=last_name,
+            line_1=line_1,
+            line_2=line_2,
+            city=city,
+            state=state,
+            zip_=zip_,
+            country=country,
+            phone=phone,
         )
     ).parsed

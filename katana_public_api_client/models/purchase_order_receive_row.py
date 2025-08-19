@@ -16,6 +16,8 @@ T = TypeVar("T", bound="PurchaseOrderReceiveRow")
 
 @_attrs_define
 class PurchaseOrderReceiveRow:
+    """Row-level data for receiving items against a purchase order, including quantity and batch details"""
+
     purchase_order_row_id: int
     quantity: float
     received_date: Unset | str = UNSET

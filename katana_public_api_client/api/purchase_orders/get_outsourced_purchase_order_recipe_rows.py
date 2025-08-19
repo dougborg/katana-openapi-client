@@ -1,3 +1,4 @@
+import datetime
 from http import HTTPStatus
 from typing import Any
 
@@ -17,7 +18,14 @@ def _get_kwargs(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
-    outsourced_purchase_order_id: Unset | int = UNSET,
+    purchase_order_id: Unset | float = UNSET,
+    purchase_order_row_id: Unset | float = UNSET,
+    ingredient_variant_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -31,7 +39,33 @@ def _get_kwargs(
 
     params["ids"] = json_ids
 
-    params["outsourced_purchase_order_id"] = outsourced_purchase_order_id
+    params["purchase_order_id"] = purchase_order_id
+
+    params["purchase_order_row_id"] = purchase_order_row_id
+
+    params["ingredient_variant_id"] = ingredient_variant_id
+
+    params["include_deleted"] = include_deleted
+
+    json_created_at_min: Unset | str = UNSET
+    if not isinstance(created_at_min, Unset):
+        json_created_at_min = created_at_min.isoformat()
+    params["created_at_min"] = json_created_at_min
+
+    json_created_at_max: Unset | str = UNSET
+    if not isinstance(created_at_max, Unset):
+        json_created_at_max = created_at_max.isoformat()
+    params["created_at_max"] = json_created_at_max
+
+    json_updated_at_min: Unset | str = UNSET
+    if not isinstance(updated_at_min, Unset):
+        json_updated_at_min = updated_at_min.isoformat()
+    params["updated_at_min"] = json_updated_at_min
+
+    json_updated_at_max: Unset | str = UNSET
+    if not isinstance(updated_at_max, Unset):
+        json_updated_at_max = updated_at_max.isoformat()
+    params["updated_at_max"] = json_updated_at_max
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -88,7 +122,14 @@ def sync_detailed(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
-    outsourced_purchase_order_id: Unset | int = UNSET,
+    purchase_order_id: Unset | float = UNSET,
+    purchase_order_row_id: Unset | float = UNSET,
+    ingredient_variant_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> Response[ErrorResponse | OutsourcedPurchaseOrderRecipeRowListResponse]:
     """List all outsourced purchase order recipe rows
 
@@ -98,7 +139,14 @@ def sync_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
-        outsourced_purchase_order_id (Union[Unset, int]):
+        purchase_order_id (Union[Unset, float]):
+        purchase_order_row_id (Union[Unset, float]):
+        ingredient_variant_id (Union[Unset, int]):
+        include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -113,7 +161,14 @@ def sync_detailed(
         limit=limit,
         page=page,
         ids=ids,
-        outsourced_purchase_order_id=outsourced_purchase_order_id,
+        purchase_order_id=purchase_order_id,
+        purchase_order_row_id=purchase_order_row_id,
+        ingredient_variant_id=ingredient_variant_id,
+        include_deleted=include_deleted,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
     )
 
     response = client.get_httpx_client().request(
@@ -129,7 +184,14 @@ def sync(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
-    outsourced_purchase_order_id: Unset | int = UNSET,
+    purchase_order_id: Unset | float = UNSET,
+    purchase_order_row_id: Unset | float = UNSET,
+    ingredient_variant_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> ErrorResponse | OutsourcedPurchaseOrderRecipeRowListResponse | None:
     """List all outsourced purchase order recipe rows
 
@@ -139,7 +201,14 @@ def sync(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
-        outsourced_purchase_order_id (Union[Unset, int]):
+        purchase_order_id (Union[Unset, float]):
+        purchase_order_row_id (Union[Unset, float]):
+        ingredient_variant_id (Union[Unset, int]):
+        include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -155,7 +224,14 @@ def sync(
         limit=limit,
         page=page,
         ids=ids,
-        outsourced_purchase_order_id=outsourced_purchase_order_id,
+        purchase_order_id=purchase_order_id,
+        purchase_order_row_id=purchase_order_row_id,
+        ingredient_variant_id=ingredient_variant_id,
+        include_deleted=include_deleted,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
     ).parsed
 
 
@@ -165,7 +241,14 @@ async def asyncio_detailed(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
-    outsourced_purchase_order_id: Unset | int = UNSET,
+    purchase_order_id: Unset | float = UNSET,
+    purchase_order_row_id: Unset | float = UNSET,
+    ingredient_variant_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> Response[ErrorResponse | OutsourcedPurchaseOrderRecipeRowListResponse]:
     """List all outsourced purchase order recipe rows
 
@@ -175,7 +258,14 @@ async def asyncio_detailed(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
-        outsourced_purchase_order_id (Union[Unset, int]):
+        purchase_order_id (Union[Unset, float]):
+        purchase_order_row_id (Union[Unset, float]):
+        ingredient_variant_id (Union[Unset, int]):
+        include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -190,7 +280,14 @@ async def asyncio_detailed(
         limit=limit,
         page=page,
         ids=ids,
-        outsourced_purchase_order_id=outsourced_purchase_order_id,
+        purchase_order_id=purchase_order_id,
+        purchase_order_row_id=purchase_order_row_id,
+        ingredient_variant_id=ingredient_variant_id,
+        include_deleted=include_deleted,
+        created_at_min=created_at_min,
+        created_at_max=created_at_max,
+        updated_at_min=updated_at_min,
+        updated_at_max=updated_at_max,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -204,7 +301,14 @@ async def asyncio(
     limit: Unset | int = 50,
     page: Unset | int = 1,
     ids: Unset | list[int] = UNSET,
-    outsourced_purchase_order_id: Unset | int = UNSET,
+    purchase_order_id: Unset | float = UNSET,
+    purchase_order_row_id: Unset | float = UNSET,
+    ingredient_variant_id: Unset | int = UNSET,
+    include_deleted: Unset | bool = UNSET,
+    created_at_min: Unset | datetime.datetime = UNSET,
+    created_at_max: Unset | datetime.datetime = UNSET,
+    updated_at_min: Unset | datetime.datetime = UNSET,
+    updated_at_max: Unset | datetime.datetime = UNSET,
 ) -> ErrorResponse | OutsourcedPurchaseOrderRecipeRowListResponse | None:
     """List all outsourced purchase order recipe rows
 
@@ -214,7 +318,14 @@ async def asyncio(
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
         ids (Union[Unset, list[int]]):
-        outsourced_purchase_order_id (Union[Unset, int]):
+        purchase_order_id (Union[Unset, float]):
+        purchase_order_row_id (Union[Unset, float]):
+        ingredient_variant_id (Union[Unset, int]):
+        include_deleted (Union[Unset, bool]):
+        created_at_min (Union[Unset, datetime.datetime]):
+        created_at_max (Union[Unset, datetime.datetime]):
+        updated_at_min (Union[Unset, datetime.datetime]):
+        updated_at_max (Union[Unset, datetime.datetime]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -231,6 +342,13 @@ async def asyncio(
             limit=limit,
             page=page,
             ids=ids,
-            outsourced_purchase_order_id=outsourced_purchase_order_id,
+            purchase_order_id=purchase_order_id,
+            purchase_order_row_id=purchase_order_row_id,
+            ingredient_variant_id=ingredient_variant_id,
+            include_deleted=include_deleted,
+            created_at_min=created_at_min,
+            created_at_max=created_at_max,
+            updated_at_min=updated_at_min,
+            updated_at_max=updated_at_max,
         )
     ).parsed

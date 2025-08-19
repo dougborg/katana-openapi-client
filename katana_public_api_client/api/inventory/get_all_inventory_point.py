@@ -16,7 +16,6 @@ def _get_kwargs(
     location_id: Unset | int = UNSET,
     variant_id: Unset | int = UNSET,
     include_archived: Unset | bool = UNSET,
-    ids: Unset | list[int] = UNSET,
     extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
@@ -28,12 +27,6 @@ def _get_kwargs(
     params["variant_id"] = variant_id
 
     params["include_archived"] = include_archived
-
-    json_ids: Unset | list[int] = UNSET
-    if not isinstance(ids, Unset):
-        json_ids = ids
-
-    params["ids"] = json_ids
 
     json_extend: Unset | list[str] = UNSET
     if not isinstance(extend, Unset):
@@ -101,7 +94,6 @@ def sync_detailed(
     location_id: Unset | int = UNSET,
     variant_id: Unset | int = UNSET,
     include_archived: Unset | bool = UNSET,
-    ids: Unset | list[int] = UNSET,
     extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
@@ -115,7 +107,6 @@ def sync_detailed(
         location_id (Union[Unset, int]):
         variant_id (Union[Unset, int]):
         include_archived (Union[Unset, bool]):
-        ids (Union[Unset, list[int]]):
         extend (Union[Unset, list[GetAllInventoryPointExtendItem]]):
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
@@ -134,7 +125,6 @@ def sync_detailed(
         location_id=location_id,
         variant_id=variant_id,
         include_archived=include_archived,
-        ids=ids,
         extend=extend,
         limit=limit,
         page=page,
@@ -153,7 +143,6 @@ def sync(
     location_id: Unset | int = UNSET,
     variant_id: Unset | int = UNSET,
     include_archived: Unset | bool = UNSET,
-    ids: Unset | list[int] = UNSET,
     extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
@@ -167,7 +156,6 @@ def sync(
         location_id (Union[Unset, int]):
         variant_id (Union[Unset, int]):
         include_archived (Union[Unset, bool]):
-        ids (Union[Unset, list[int]]):
         extend (Union[Unset, list[GetAllInventoryPointExtendItem]]):
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
@@ -187,7 +175,6 @@ def sync(
         location_id=location_id,
         variant_id=variant_id,
         include_archived=include_archived,
-        ids=ids,
         extend=extend,
         limit=limit,
         page=page,
@@ -200,7 +187,6 @@ async def asyncio_detailed(
     location_id: Unset | int = UNSET,
     variant_id: Unset | int = UNSET,
     include_archived: Unset | bool = UNSET,
-    ids: Unset | list[int] = UNSET,
     extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
@@ -214,7 +200,6 @@ async def asyncio_detailed(
         location_id (Union[Unset, int]):
         variant_id (Union[Unset, int]):
         include_archived (Union[Unset, bool]):
-        ids (Union[Unset, list[int]]):
         extend (Union[Unset, list[GetAllInventoryPointExtendItem]]):
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
@@ -233,7 +218,6 @@ async def asyncio_detailed(
         location_id=location_id,
         variant_id=variant_id,
         include_archived=include_archived,
-        ids=ids,
         extend=extend,
         limit=limit,
         page=page,
@@ -250,7 +234,6 @@ async def asyncio(
     location_id: Unset | int = UNSET,
     variant_id: Unset | int = UNSET,
     include_archived: Unset | bool = UNSET,
-    ids: Unset | list[int] = UNSET,
     extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
@@ -264,7 +247,6 @@ async def asyncio(
         location_id (Union[Unset, int]):
         variant_id (Union[Unset, int]):
         include_archived (Union[Unset, bool]):
-        ids (Union[Unset, list[int]]):
         extend (Union[Unset, list[GetAllInventoryPointExtendItem]]):
         limit (Union[Unset, int]):  Default: 50.
         page (Union[Unset, int]):  Default: 1.
@@ -285,7 +267,6 @@ async def asyncio(
             location_id=location_id,
             variant_id=variant_id,
             include_archived=include_archived,
-            ids=ids,
             extend=extend,
             limit=limit,
             page=page,
