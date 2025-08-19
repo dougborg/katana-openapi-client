@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.8.1 (2025-08-19)
+
+### Bug Fixes
+
+- Align sales order schemas with official Katana API documentation
+  ([`7d6b9e2`](https://github.com/dougborg/katana-openapi-client/commit/7d6b9e2bdb173939013d053ec039d381e07be90d))
+
 ## Unreleased
 
 ### Bug Fixes
