@@ -279,7 +279,7 @@ upload_to_repository = false
 remove_dist = false
 commit_author = "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
 commit_message = "chore(release): {version}"
-build_command = "mdformat docs/CHANGELOG.md --wrap 88"
+build_command = "pip install mdformat mdformat-gfm mdformat-tables mdformat-toc && mdformat docs/CHANGELOG.md --wrap 88"
 major_on_zero = false
 allow_zero_version = true
 
