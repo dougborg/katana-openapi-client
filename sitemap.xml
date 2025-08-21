@@ -2,2874 +2,3334 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/CHANGELOG/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/CLIENT_README/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/CODE_OF_CONDUCT/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/CONTRIBUTING/</loc>
-         <lastmod>2025-08-19</lastmod>
-    </url>
-    <url>
-         <loc>https://dougborg.github.io/katana-openapi-client/DOCUMENTATION_MIGRATION_SUMMARY/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/KATANA_API_QUESTIONS/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/KATANA_CLIENT_GUIDE/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/POETRY_USAGE/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/PYPI_SETUP/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/SEMANTIC_RELEASE_GUIDE/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/TESTING_GUIDE/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/openapi-docs/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/addshippingfee/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/api-authentication/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/api-errors/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/api-filtering/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/api-introduction/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/api-pagination/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/api-rate-limiting/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/api-versioning/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/batchcreatebomrows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/bom-row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/create-customer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/create-product/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/create-sales-order-address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/create-sales-order-fulfillment/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/create-sales-order-row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/create-sales-order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/create-supplier/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/create-tax-rate/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/create-variant/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createbatch/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createbomrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createcustomeraddress/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createinventorysafetystocklevel/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createmanufacturingorder/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createmanufacturingorderoperationrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createmanufacturingorderproduction/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createmanufacturingorderreciperows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/creatematerial/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createpoadditionalcostrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createpricelist/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createpricelistcustomer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createpricelistrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createproductoperationrows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createpurchaseorder/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createpurchaseorderreciperow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createpurchaseorderrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createrecipes/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createsalesreturn/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createsalesreturnrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createserialnumbers/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createservice/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createstockadjustment/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createstocktake/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createstocktakerows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createstocktransfer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createsupplieraddress/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/createwebhook/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/delete-sales-order-address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/delete-sales-order-fulfillment/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/delete-sales-order-row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/delete-sales-order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletebomrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletecustomer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletecustomeraddress/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletemanufacturingorder/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletemanufacturingorderoperationrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletemanufacturingorderproduction/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletemanufacturingorderreciperow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletematerial/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletepoadditionalcost/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletepricelist/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletepricelistcustomer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletepricelistrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deleteproduct/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deleteproductoperationrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletepurchaseorder/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletepurchaseorderreciperow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletepurchaseorderrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletereciperow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletesalesreturn/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletesalesreturnrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deleteserialnumbers/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deleteservice/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deleteshippingfee/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletestockadjustment/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletestocktakebyid/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletestocktakerowbyid/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletestocktransfer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletestoragebin/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletesupplier/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletesupplieraddress/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletevariant/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/deletewebhook/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/export-webhook-logs/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/findpurchaseorders/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/findstockadjustments/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/findstocktakerows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/findstocktakes/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/findstocktransfers/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getadditionalcosts/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallbomrows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallmanufacturingorderoperationrows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallmanufacturingorderproductions/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallmanufacturingorderreciperows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallmanufacturingorders/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallmaterials/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallnegativestock/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallpricelistcustomers/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallpricelistrows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallpricelists/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallproductoperationrows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallpurchaseorderaccountingmetadata/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallpurchaseorderreciperows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallpurchaseorderrows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallrecipes/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallsalesorderaccountingmetadata/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallsalesorderrows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallsalesreturnrows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallsalesreturns/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallservices/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallshippingfees/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallstoragebins/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallusers/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getallwebhooks/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getbatchstock/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getcustomeraddresses/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getcustomfieldscollections/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getfactory/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getlocation/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getmanufacturingorder/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getmanufacturingorderoperationrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getmanufacturingorderproduction/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getmanufacturingorderreciperow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getmaterial/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getoperators/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getpoadditionalcostrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getpricelist/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getpricelistcustomer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getpricelistrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getproduct/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getpurchaseorder/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getpurchaseorderadditionalcostrows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getpurchaseorderreciperow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getpurchaseorderrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getreturnableitems/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getreturnreasons/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getsalesorderaddresses/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getsalesreturn/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getsalesreturnrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getsalesreturnrowunassignedbatchtransactions/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getserialnumbers/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getserialnumberstock/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getservice/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getshippingfee/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getsupplieraddresses/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getvariant/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/getwebhook/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/linkvariantdefaultstoragebins/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/list-all-customers/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/list-all-inventory-movements/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/list-all-locations/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/list-all-products/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/list-all-sales-order-fulfillments/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/list-all-sales-orders/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/list-all-suppliers/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/list-all-tax-rates/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/list-all-variants/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/list-current-inventory/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/login/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/maketoordermanufacturingorder/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/outsourced-purchase-order-recipe-row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/receivepurchaseorder/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/recipe/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/rerankproductoperation/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/retrieve-sales-order-fulfillment/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/retrieve-sales-order-row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/retrieve-sales-order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-bom-row-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-customer-address-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-customer-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-inventory-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-location-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-manufacturing-order-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-manufacturing-order-operation-row-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-manufacturing-order-production-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-manufacturing-order-recipe-row-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-material-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-product-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-product-operation-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-purchase-order-accounting-metadata-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-purchase-order-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-purchase-order-row-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-recipe-bom-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-sales-order-address-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-sales-order-fulfillment-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-sales-order-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-sales-order-row-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-sales-return-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-sales-return-row-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-serial-number-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-serial-number-stock-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-service-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-stock-adjustment-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-stock-transfer-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-stocktake-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-stocktake-row-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-storage-bin-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-supplier-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-tax-rate-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-variant-default-storage-bin-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-variant-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/the-webhook-object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/unlinkmanufacturingorder/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/unlinkvariantdefaultstoragebins/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/update-reorder-point/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/update-sales-order-address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/update-sales-order-fulfillment/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/update-sales-order-row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/update-sales-order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updateadditionalcostrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatebatchstock/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatebomrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatecustomer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatecustomeraddress/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatedefaultstoragebin/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatemanufacturingorder/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatemanufacturingorderoperationrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatemanufacturingorderproduction/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatemanufacturingorderproductioningredient/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatemanufacturingorderreciperows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatematerial/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatepricelist/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatepricelistcustomer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatepricelistrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updateproduct/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updateproductoperationrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatepurchaseorder/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatepurchaseorderreciperow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatepurchaseorderrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatereciperow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatesalesreturn/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatesalesreturnrow/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updateservice/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updateshippingfee/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatestockadjustment/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatestocktakebyid/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatestocktakerowbyid/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatestocktransfer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatestocktransferstatus/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatesupplier/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatesupplieraddress/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatevariant/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/updatewebhook/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/webhooks/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/SUMMARY/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/client/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/client_types/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/errors/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/katana_client/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/log_setup/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/additional_costs/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/additional_costs/get_additional_costs/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/batch/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/batch/create_batch/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/batch/get_batch_stock/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/batch/update_batch_stock/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/bom_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/bom_row/batch_create_bom_rows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/bom_row/create_bom_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/bom_row/delete_bom_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/bom_row/get_all_bom_rows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/bom_row/update_bom_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/custom_fields/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/custom_fields/get_all_custom_fields_collections/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/customer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/customer/create_customer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/customer/delete_customer/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/customer/get_all_customers/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/customer/update_customer/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/customer_address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/customer_address/create_customer_address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/customer_address/delete_customer_address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/customer_address/get_all_customer_addresses/</loc>
-         <lastmod>2025-08-19</lastmod>
-    </url>
-    <url>
-         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/customer_address/get_customer_address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/customer_address/update_customer_address/</loc>
-         <lastmod>2025-08-19</lastmod>
-    </url>
-    <url>
-         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/default/</loc>
-         <lastmod>2025-08-19</lastmod>
-    </url>
-    <url>
-         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/default/create_service/</loc>
-         <lastmod>2025-08-19</lastmod>
-    </url>
-    <url>
-         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/default/delete_service/</loc>
-         <lastmod>2025-08-19</lastmod>
-    </url>
-    <url>
-         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/default/get_all_services/</loc>
-         <lastmod>2025-08-19</lastmod>
-    </url>
-    <url>
-         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/default/get_service/</loc>
-         <lastmod>2025-08-19</lastmod>
-    </url>
-    <url>
-         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/default/update_service/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/factory/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/factory/get_factory/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/inventory/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/inventory/create_inventory_reorder_point/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/inventory/create_inventory_safety_stock_level/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/inventory/get_all_inventory_point/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/inventory/get_all_negative_stock/</loc>
-         <lastmod>2025-08-19</lastmod>
-    </url>
-    <url>
-         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/inventory/get_inventory_reorder_points/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/inventory_movements/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/inventory_movements/get_all_inventory_movements/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/location/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/location/get_all_locations/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/location/get_location/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order/create_manufacturing_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order/delete_manufacturing_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order/get_all_manufacturing_order_productions/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order/get_all_manufacturing_orders/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order/get_manufacturing_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order/make_to_order_manufacturing_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order/unlink_manufacturing_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order/update_manufacturing_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_operation/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_operation/create_manufacturing_order_operation_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_operation/delete_manufacturing_order_operation_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_operation/get_all_manufacturing_order_operation_rows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_operation/get_manufacturing_order_operation_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_operation/update_manufacturing_order_operation_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_production/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_production/create_manufacturing_order_production/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_production/delete_manufacturing_order_production/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_production/get_manufacturing_order_production/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_production/update_manufacturing_order_production/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_production_ingredient/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_production_ingredient/update_manufacturing_order_production_ingredient/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_recipe/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_recipe/create_manufacturing_order_recipe_rows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_recipe/delete_manufacturing_order_recipe_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_recipe/get_all_manufacturing_order_recipe_rows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_recipe/get_manufacturing_order_recipe_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/manufacturing_order_recipe/update_manufacturing_order_recipe_rows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/material/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/material/create_material/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/material/delete_material/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/material/get_all_materials/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/material/get_material/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/material/update_material/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/operator/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/operator/get_all_operators/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list/create_price_list/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list/delete_price_list/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list/get_all_price_lists/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list/get_price_list/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list/update_price_list/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list_customer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list_customer/create_price_list_customer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list_customer/delete_price_list_customer/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list_customer/get_all_price_list_customers/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list_customer/get_price_list_customer/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list_customer/update_price_list_customer/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list_row/create_price_list_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list_row/delete_price_list_row/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list_row/get_all_price_list_rows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list_row/get_price_list_row/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/price_list_row/update_price_list_row/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/product/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/product/create_product/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/product/delete_product/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/product/get_all_products/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/product/get_product/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/product/update_product/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/products/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/products/create_product_operation_rows/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/products/delete_product_operation_row/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/products/get_all_product_operation_rows/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/products/rerank_product_operations/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/products/update_product_operation_row/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order/create_purchase_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order/delete_purchase_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order/find_purchase_orders/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order/get_purchase_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order/receive_purchase_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order/update_purchase_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order_accounting_metadata/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order_accounting_metadata/get_all_purchase_order_accounting_metadata/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order_additional_cost_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order_additional_cost_row/create_po_additional_cost_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order_additional_cost_row/delete_po_additional_cost/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order_additional_cost_row/get_po_additional_cost_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order_additional_cost_row/get_purchase_order_additional_cost_rows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order_additional_cost_row/update_additional_cost_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order_row/create_purchase_order_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order_row/delete_purchase_order_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order_row/get_all_purchase_order_rows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order_row/get_purchase_order_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_order_row/update_purchase_order_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_orders/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_orders/create_outsourced_purchase_order_recipe_row/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_orders/delete_outsourced_purchase_order_recipe_row/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_orders/get_outsourced_purchase_order_recipe_row/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_orders/get_outsourced_purchase_order_recipe_rows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/purchase_orders/update_outsourced_purchase_order_recipe_row/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/recipe/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/recipe/create_recipes/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/recipe/delete_recipe_row/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/recipe/get_all_recipes/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/recipe/update_recipe_row/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order/create_sales_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order/delete_sales_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order/get_all_sales_orders/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order/get_sales_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order/get_sales_order_returnable_items/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order/update_sales_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_address/create_sales_order_address/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_address/delete_sales_order_address/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_address/get_all_sales_order_addresses/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_address/update_sales_order_address/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_fulfillment/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_fulfillment/create_sales_order_fulfillment/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_fulfillment/delete_sales_order_fulfillment/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_fulfillment/get_all_sales_order_fulfillments/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_fulfillment/get_sales_order_fulfillment/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_fulfillment/update_sales_order_fulfillment/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_row/create_sales_order_row/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_row/delete_sales_order_row/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_row/get_all_sales_order_rows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_row/get_sales_order_row/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_order_row/update_sales_order_row/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_orders/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_orders/create_sales_order_shipping_fee/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_orders/delete_sales_order_shipping_fee/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_orders/get_sales_order_accounting_metadata/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_orders/get_sales_order_shipping_fee/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_orders/get_sales_order_shipping_fees/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_orders/update_sales_order_shipping_fee/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_return/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_return/create_sales_return/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_return/delete_sales_return/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_return/get_all_sales_returns/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_return/get_sales_return/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_return/get_sales_return_reasons/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_return/update_sales_return/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_return_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_return_row/create_sales_return_row/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_return_row/delete_sales_return_row/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_return_row/get_all_sales_return_rows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_return_row/get_sales_return_row/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_return_row/get_sales_return_row_unassigned_batch_transactions/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/sales_return_row/update_sales_return_row/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/serial_number/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/serial_number/create_serial_numbers/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/serial_number/delete_serial_numbers/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/serial_number/get_all_serial_numbers/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/serial_number/get_all_serial_numbers_stock/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/services/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/services/create_service/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/services/delete_service/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/services/get_all_services/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/services/get_service/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/services/update_service/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stock_adjustment/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stock_adjustment/create_stock_adjustment/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stock_adjustment/delete_stock_adjustment/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stock_adjustment/get_all_stock_adjustments/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stock_adjustment/update_stock_adjustment/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stock_transfer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stock_transfer/create_stock_transfer/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stock_transfer/delete_stock_transfer/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stock_transfer/get_all_stock_transfers/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stock_transfer/update_stock_transfer/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stock_transfer/update_stock_transfer_status/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stocktake/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stocktake/create_stocktake/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stocktake/delete_stocktake/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stocktake/get_all_stocktakes/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stocktake/update_stocktake/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stocktake_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stocktake_row/create_stocktake_row/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stocktake_row/delete_stocktake_row/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stocktake_row/get_all_stocktake_rows/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/stocktake_row/update_stocktake_row/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/storage_bin/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/storage_bin/delete_storage_bin/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/storage_bin/get_all_storage_bins/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/storage_bin/update_default_storage_bin/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/supplier/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/supplier/create_supplier/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/supplier/delete_supplier/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/supplier/get_all_suppliers/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/supplier/update_supplier/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/supplier_address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/supplier_address/create_supplier_address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/supplier_address/delete_supplier_address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/supplier_address/get_supplier_addresses/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/supplier_address/update_supplier_address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/tax_rate/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/tax_rate/create_tax_rate/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/tax_rate/get_all_tax_rates/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/user/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/user/get_all_users/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/variant/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/variant/create_variant/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/variant/delete_variant/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/variant/get_all_variants/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/variant/get_variant/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/variant/update_variant/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/variant_default_storage_bin/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/variant_default_storage_bin/link_variant_default_storage_bins/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/variant_default_storage_bin/unlink_variant_default_storage_bins/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/webhook/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/webhook/create_webhook/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/webhook/delete_webhook/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/webhook/get_all_webhooks/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/webhook/get_webhook/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/webhook/update_webhook/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/webhook_logs/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/api/webhook_logs/export_webhook_logs/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/additional_cost/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/additional_cost_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/archivable_entity/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/base_entity/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/batch/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/batch_create_bom_rows_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/batch_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/batch_stock/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/batch_stock_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/batch_stock_update/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/bom_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/bom_row_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/coded_error_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_bom_row_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_customer_address_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_customer_address_request_entity_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_customer_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_inventory_reorder_point_body/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_manufacturing_order_operation_row_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_manufacturing_order_production_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_manufacturing_order_recipe_row_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_manufacturing_order_recipe_row_request_batch_transactions_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_manufacturing_order_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_material_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_material_request_configs_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_outsourced_purchase_order_recipe_row_body/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_price_list_customer_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_price_list_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_price_list_row_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_product_operation_rows_body/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_product_operation_rows_body_rows_item/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_product_operation_rows_body_rows_item_type/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_product_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_product_request_configs_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_purchase_order_additional_cost_row_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_purchase_order_additional_cost_row_request_distribution_method/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_purchase_order_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_purchase_order_request_entity_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_purchase_order_request_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_purchase_order_row_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_recipes_request/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_recipes_request_rows_item/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_sales_order_address_request/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_sales_order_address_request_entity_type/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_sales_order_fulfillment_body/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_sales_order_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_sales_order_request_sales_order_rows_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_sales_order_request_sales_order_rows_item_attributes_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_sales_order_request_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_sales_order_row_request/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_sales_order_shipping_fee_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_sales_return_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_sales_return_row_body/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_sales_return_row_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_serial_numbers_body/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_serial_numbers_body_resource_type/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_stock_adjustment_request/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_stock_adjustment_request_status/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_stock_transfer_body/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_stocktake_request/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_stocktake_request_status/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_stocktake_row_request/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_supplier_address_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_supplier_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_tax_rate_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_variant_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_variant_request_config_attributes_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_variant_request_custom_fields_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/create_webhook_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/custom_field/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/custom_fields_collection/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/custom_fields_collection_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/custom_fields_collection_resource_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/customer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/customer_address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/customer_address_entity_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/customer_address_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/customer_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/deletable_entity/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/detailed_error_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/error_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/factory/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/find_purchase_orders_billing_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/find_purchase_orders_entity_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/find_purchase_orders_extend_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/find_purchase_orders_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_customer_addresses_entity_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_inventory_movements_resource_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_inventory_point_extend_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_locations_response_200/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_manufacturing_order_operation_rows_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_manufacturing_order_recipe_rows_ingredient_availability/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_manufacturing_orders_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_materials_extend_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_product_operation_rows_response_200/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_product_operation_rows_response_200_data_item/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_products_extend_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_sales_order_addresses_entity_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
-         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_sales_orders_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_sales_order_rows_extend_item/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
-         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_sales_returns_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_sales_order_rows_product_availability/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_sales_orders_ingredient_availability/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_sales_orders_product_availability/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_sales_returns_refund_status/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_serial_numbers_resource_type/</loc>
-         <lastmod>2025-08-19</lastmod>
-    </url>
-    <url>
-         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_serial_numbers_stock_status/</loc>
-         <lastmod>2025-08-19</lastmod>
-    </url>
-    <url>
-         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_stocktakes_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_all_variants_extend_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_material_extend_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_product_extend_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_purchase_order_additional_cost_rows_distribution_method/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_purchase_order_extend_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_sales_order_returnable_items_response_200/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_sales_order_returnable_items_response_200_data_item/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_sales_order_row_extend_item/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_sales_return_reasons_response_200/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_sales_return_reasons_response_200_data_item/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_sales_return_row_unassigned_batch_transactions_response_200/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_sales_return_row_unassigned_batch_transactions_response_200_data_item/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/get_variant_extend_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/inventory/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/inventory_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/inventory_movement/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/inventory_movement_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/inventory_movement_resource_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/inventory_reorder_point/</loc>
-         <lastmod>2025-08-19</lastmod>
-    </url>
-    <url>
-         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/inventory_reorder_point_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/inventory_reorder_point_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/inventory_safety_stock_level/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/inventory_safety_stock_level_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/location_address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/location_type_0/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/make_to_order_manufacturing_order_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/manufacturing_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/manufacturing_order_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/manufacturing_order_operation_production/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/manufacturing_order_operation_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/manufacturing_order_operation_row_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/manufacturing_order_operation_row_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/manufacturing_order_production/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/manufacturing_order_production_ingredient/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/manufacturing_order_production_ingredient_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/manufacturing_order_production_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/manufacturing_order_recipe_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/manufacturing_order_recipe_row_batch_transactions_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/manufacturing_order_recipe_row_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/manufacturing_order_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/material/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/material_configs_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/material_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/negative_stock/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/negative_stock_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/operator/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/operator_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/outsourced_purchase_order_recipe_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/outsourced_purchase_order_recipe_row_batch_transactions_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/outsourced_purchase_order_recipe_row_ingredient_availability/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/outsourced_purchase_order_recipe_row_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/price_list/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/price_list_customer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/price_list_customer_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/price_list_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/price_list_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/price_list_row_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/product/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/product_configs_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/product_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/product_operation_rerank/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/product_operation_rerank_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/purchase_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/purchase_order_accounting_metadata/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/purchase_order_accounting_metadata_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/purchase_order_additional_cost_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/purchase_order_additional_cost_row_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/purchase_order_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/purchase_order_receive_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/purchase_order_receive_row_batch_transactions_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/purchase_order_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/purchase_order_row_batch_transactions_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/purchase_order_row_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/purchase_order_row_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/recipe/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/recipe_list_response/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_accounting_metadata/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_accounting_metadata_integration_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_accounting_metadata_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_address_entity_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_address_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_fulfillment/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_fulfillment_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_ingredient_availability_type_0/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_product_availability_type_0/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_production_status_type_0/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_row_attributes_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_row_batch_transactions_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_row_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_row_product_availability_type_0/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_shipping_fee/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_shipping_fee_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_order_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_return/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_return_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_return_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_return_row_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/sales_return_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/serial_number/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/serial_number_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/serial_number_resource_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/serial_number_stock/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/serial_number_stock_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/serial_number_stock_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/service/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/service_attributes/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/service_input_attributes/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/service_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/service_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/service_request_data/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/service_request_data_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/service_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/stock_adjustment/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/stock_adjustment_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/stock_adjustment_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/stock_transfer/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/stock_transfer_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/stock_transfer_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/stocktake/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/stocktake_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/stocktake_row/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/stocktake_row_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/stocktake_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/storage_bin/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/storage_bin_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/storage_bin_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/storage_bin_update/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/supplier/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/supplier_address/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/supplier_address_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/supplier_address_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/supplier_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/tax_rate/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/tax_rate_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/unlink_manufacturing_order_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/unlink_variant_bin_location_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/updatable_entity/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_bom_row_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_customer_address_body/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_customer_address_body_entity_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_customer_request/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_manufacturing_order_operation_row_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_manufacturing_order_production_ingredient_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_manufacturing_order_production_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_manufacturing_order_recipe_row_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_manufacturing_order_recipe_row_request_batch_transactions_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_manufacturing_order_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_material_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_material_request_configs_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_outsourced_purchase_order_recipe_row_body/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_price_list_customer_request/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_price_list_request/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_price_list_row_request/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_product_operation_row_body/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_product_operation_row_response_200/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_product_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_product_request_configs_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_purchase_order_additional_cost_row_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_purchase_order_additional_cost_row_request_distribution_method/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_purchase_order_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_purchase_order_request_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_purchase_order_row_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_recipe_row_body/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_sales_order_address_request/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_sales_order_address_request_entity_type/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_sales_order_body/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_sales_order_body_status/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_sales_order_fulfillment_body/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_sales_order_row_request/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_sales_order_shipping_fee_body/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_sales_return_request/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_sales_return_request_status/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_sales_return_row_body/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_stock_adjustment_request/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_stock_adjustment_request_status/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_stock_transfer_body/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_stock_transfer_status_body/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_stock_transfer_status_body_status/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_stocktake_request/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_stocktake_request_status/</loc>
+         <lastmod>2025-08-21</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_stocktake_row_request/</loc>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_supplier_address_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_supplier_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_variant_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_variant_request_config_attributes_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_variant_request_custom_fields_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/update_webhook_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/user/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/user_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/validation_error_detail/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/validation_error_detail_info/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/variant/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/variant_config_attributes_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/variant_custom_fields_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/variant_default_storage_bin_link/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/variant_default_storage_bin_link_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/variant_default_storage_bin_link_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/variant_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/variant_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/variant_response_config_attributes_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/variant_response_custom_fields_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/variant_response_product_or_material/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/variant_response_product_or_material_configs_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/variant_response_type/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/webhook/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/webhook_event/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/webhook_event_payload/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/webhook_event_payload_object/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/webhook_list_response/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/webhook_logs_export/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/webhook_logs_export_request/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/webhook_logs_export_request_format/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
     <url>
          <loc>https://dougborg.github.io/katana-openapi-client/reference/katana_public_api_client/models/webhook_logs_export_request_status_filter_item/</loc>
-         <lastmod>2025-08-19</lastmod>
+         <lastmod>2025-08-21</lastmod>
     </url>
 </urlset>

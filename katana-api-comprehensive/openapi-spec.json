@@ -19950,7 +19950,7 @@
         }
       }
     },
-    "/product_operation_rows/": {
+    "/product_operation_rows": {
       "post": {
         "summary": "Create product operations",
         "tags": [
