@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.9.0 (2025-08-21)
+
+### Chores
+
+- Add automated setup workflow for GitHub Copilot coding agent
+  ([`112930e`](https://github.com/dougborg/katana-openapi-client/commit/112930ed3d84790d48eccaed9befa2a68ead6650))
+
+- Add pre-commit hooks installation to Copilot setup workflow
+  ([`e3eef1a`](https://github.com/dougborg/katana-openapi-client/commit/e3eef1aaff2afbdb6ece367d02640599e2b9d93f))
+
+### Features
+
+- Implement comprehensive API documentation validation framework and add missing
+  endpoints
+  ([`5bb6873`](https://github.com/dougborg/katana-openapi-client/commit/5bb6873479c63a9fcd2a4b9d9c61f3a1ef6c8a99))
+
 ## v0.8.1 (2025-08-19)
 
 ### Bug Fixes
