@@ -23,9 +23,9 @@ class TaxRate:
                 'display_name': 'VAT (20.0%)', 'created_at': '2024-01-15T09:30:00Z', 'updated_at': '2024-01-15T09:30:00Z'}
     """
 
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    id: Unset | int = UNSET
     name: Unset | str = UNSET
     rate: Unset | float = UNSET
     is_default_sales: Unset | bool = UNSET
@@ -34,6 +34,8 @@ class TaxRate:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -41,8 +43,6 @@ class TaxRate:
         updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
-
-        id = self.id
 
         name = self.name
 
@@ -56,13 +56,15 @@ class TaxRate:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if name is not UNSET:
             field_dict["name"] = name
         if rate is not UNSET:
@@ -79,6 +81,8 @@ class TaxRate:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -93,8 +97,6 @@ class TaxRate:
         else:
             updated_at = isoparse(_updated_at)
 
-        id = d.pop("id", UNSET)
-
         name = d.pop("name", UNSET)
 
         rate = d.pop("rate", UNSET)
@@ -106,9 +108,9 @@ class TaxRate:
         display_name = d.pop("display_name", UNSET)
 
         tax_rate = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
-            id=id,
             name=name,
             rate=rate,
             is_default_sales=is_default_sales,

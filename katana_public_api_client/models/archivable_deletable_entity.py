@@ -1,6 +1,6 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -10,23 +10,27 @@ from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
-T = TypeVar("T", bound="ServiceAttributes")
+T = TypeVar("T", bound="ArchivableDeletableEntity")
 
 
 @_attrs_define
-class ServiceAttributes:
-    """Service definition attributes including name, price, and status for configuring external services"""
+class ArchivableDeletableEntity:
+    """
+    Example:
+        {'id': 12345, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'archived_at':
+            None, 'deleted_at': None}
+    """
 
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    name: Unset | str = UNSET
-    description: Unset | str = UNSET
-    price: Unset | float = UNSET
-    currency: Unset | str = UNSET
-    active: Unset | bool = UNSET
+    archived_at: None | Unset | str = UNSET
+    deleted_at: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -35,39 +39,41 @@ class ServiceAttributes:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        name = self.name
+        archived_at: None | Unset | str
+        if isinstance(self.archived_at, Unset):
+            archived_at = UNSET
+        else:
+            archived_at = self.archived_at
 
-        description = self.description
-
-        price = self.price
-
-        currency = self.currency
-
-        active = self.active
+        deleted_at: None | Unset | str
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        else:
+            deleted_at = self.deleted_at
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
-        if name is not UNSET:
-            field_dict["name"] = name
-        if description is not UNSET:
-            field_dict["description"] = description
-        if price is not UNSET:
-            field_dict["price"] = price
-        if currency is not UNSET:
-            field_dict["currency"] = currency
-        if active is not UNSET:
-            field_dict["active"] = active
+        if archived_at is not UNSET:
+            field_dict["archived_at"] = archived_at
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -82,28 +88,34 @@ class ServiceAttributes:
         else:
             updated_at = isoparse(_updated_at)
 
-        name = d.pop("name", UNSET)
+        def _parse_archived_at(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
 
-        description = d.pop("description", UNSET)
+        archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
-        price = d.pop("price", UNSET)
+        def _parse_deleted_at(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
 
-        currency = d.pop("currency", UNSET)
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        active = d.pop("active", UNSET)
-
-        service_attributes = cls(
+        archivable_deletable_entity = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
-            name=name,
-            description=description,
-            price=price,
-            currency=currency,
-            active=active,
+            archived_at=archived_at,
+            deleted_at=deleted_at,
         )
 
-        service_attributes.additional_properties = d
-        return service_attributes
+        archivable_deletable_entity.additional_properties = d
+        return archivable_deletable_entity
 
     @property
     def additional_keys(self) -> list[str]:

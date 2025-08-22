@@ -14,7 +14,7 @@ class PurchaseOrderRowRequest:
 
     Example:
         {'quantity': 250, 'price_per_unit': 2.85, 'variant_id': 501, 'tax_rate_id': 1, 'purchase_uom': 'kg',
-            'purchase_uom_conversion_rate': 1.0}
+            'purchase_uom_conversion_rate': 1.0, 'arrival_date': '2024-08-20T14:45:00Z'}
     """
 
     quantity: float
@@ -23,6 +23,7 @@ class PurchaseOrderRowRequest:
     tax_rate_id: Unset | int = UNSET
     purchase_uom_conversion_rate: Unset | float = UNSET
     purchase_uom: Unset | str = UNSET
+    arrival_date: Unset | str = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         quantity = self.quantity
@@ -36,6 +37,8 @@ class PurchaseOrderRowRequest:
         purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
         purchase_uom = self.purchase_uom
+
+        arrival_date = self.arrival_date
 
         field_dict: dict[str, Any] = {}
 
@@ -52,6 +55,8 @@ class PurchaseOrderRowRequest:
             field_dict["purchase_uom_conversion_rate"] = purchase_uom_conversion_rate
         if purchase_uom is not UNSET:
             field_dict["purchase_uom"] = purchase_uom
+        if arrival_date is not UNSET:
+            field_dict["arrival_date"] = arrival_date
 
         return field_dict
 
@@ -70,6 +75,8 @@ class PurchaseOrderRowRequest:
 
         purchase_uom = d.pop("purchase_uom", UNSET)
 
+        arrival_date = d.pop("arrival_date", UNSET)
+
         purchase_order_row_request = cls(
             quantity=quantity,
             price_per_unit=price_per_unit,
@@ -77,6 +84,7 @@ class PurchaseOrderRowRequest:
             tax_rate_id=tax_rate_id,
             purchase_uom_conversion_rate=purchase_uom_conversion_rate,
             purchase_uom=purchase_uom,
+            arrival_date=arrival_date,
         )
 
         return purchase_order_row_request

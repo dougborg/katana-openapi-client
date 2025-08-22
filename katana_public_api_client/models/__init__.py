@@ -2,6 +2,7 @@
 
 from .additional_cost import AdditionalCost
 from .additional_cost_list_response import AdditionalCostListResponse
+from .archivable_deletable_entity import ArchivableDeletableEntity
 from .archivable_entity import ArchivableEntity
 from .base_entity import BaseEntity
 from .batch import Batch
@@ -85,6 +86,11 @@ from .create_sales_return_row_request import CreateSalesReturnRowRequest
 from .create_serial_numbers_body import CreateSerialNumbersBody
 from .create_serial_numbers_body_resource_type import (
     CreateSerialNumbersBodyResourceType,
+)
+from .create_service_request import CreateServiceRequest
+from .create_service_variant_request import CreateServiceVariantRequest
+from .create_service_variant_request_custom_fields_item import (
+    CreateServiceVariantRequestCustomFieldsItem,
 )
 from .create_stock_adjustment_request import CreateStockAdjustmentRequest
 from .create_stock_adjustment_request_status import CreateStockAdjustmentRequestStatus
@@ -253,7 +259,6 @@ from .product_configs_item import ProductConfigsItem
 from .product_list_response import ProductListResponse
 from .product_operation_rerank import ProductOperationRerank
 from .product_operation_rerank_request import ProductOperationRerankRequest
-from .purchase_order import PurchaseOrder
 from .purchase_order_accounting_metadata import PurchaseOrderAccountingMetadata
 from .purchase_order_accounting_metadata_list_response import (
     PurchaseOrderAccountingMetadataListResponse,
@@ -262,6 +267,13 @@ from .purchase_order_additional_cost_row import PurchaseOrderAdditionalCostRow
 from .purchase_order_additional_cost_row_list_response import (
     PurchaseOrderAdditionalCostRowListResponse,
 )
+from .purchase_order_base import PurchaseOrderBase
+from .purchase_order_base_billing_status import PurchaseOrderBaseBillingStatus
+from .purchase_order_base_entity_type import PurchaseOrderBaseEntityType
+from .purchase_order_base_last_document_status import (
+    PurchaseOrderBaseLastDocumentStatus,
+)
+from .purchase_order_base_status import PurchaseOrderBaseStatus
 from .purchase_order_list_response import PurchaseOrderListResponse
 from .purchase_order_receive_row import PurchaseOrderReceiveRow
 from .purchase_order_receive_row_batch_transactions_item import (
@@ -316,13 +328,11 @@ from .serial_number_stock import SerialNumberStock
 from .serial_number_stock_list_response import SerialNumberStockListResponse
 from .serial_number_stock_status import SerialNumberStockStatus
 from .service import Service
-from .service_attributes import ServiceAttributes
-from .service_input_attributes import ServiceInputAttributes
 from .service_list_response import ServiceListResponse
-from .service_request import ServiceRequest
-from .service_request_data import ServiceRequestData
-from .service_request_data_type import ServiceRequestDataType
 from .service_type import ServiceType
+from .service_variant import ServiceVariant
+from .service_variant_custom_fields_item import ServiceVariantCustomFieldsItem
+from .service_variant_type import ServiceVariantType
 from .stock_adjustment import StockAdjustment
 from .stock_adjustment_list_response import StockAdjustmentListResponse
 from .stock_adjustment_status import StockAdjustmentStatus
@@ -406,6 +416,7 @@ from .update_sales_order_shipping_fee_body import UpdateSalesOrderShippingFeeBod
 from .update_sales_return_request import UpdateSalesReturnRequest
 from .update_sales_return_request_status import UpdateSalesReturnRequestStatus
 from .update_sales_return_row_body import UpdateSalesReturnRowBody
+from .update_service_request import UpdateServiceRequest
 from .update_stock_adjustment_request import UpdateStockAdjustmentRequest
 from .update_stock_adjustment_request_status import UpdateStockAdjustmentRequestStatus
 from .update_stock_transfer_body import UpdateStockTransferBody
@@ -464,6 +475,7 @@ from .webhook_logs_export_request_status_filter_item import (
 __all__ = (
     "AdditionalCost",
     "AdditionalCostListResponse",
+    "ArchivableDeletableEntity",
     "ArchivableEntity",
     "BaseEntity",
     "Batch",
@@ -518,6 +530,9 @@ __all__ = (
     "CreateSalesReturnRowRequest",
     "CreateSerialNumbersBody",
     "CreateSerialNumbersBodyResourceType",
+    "CreateServiceRequest",
+    "CreateServiceVariantRequest",
+    "CreateServiceVariantRequestCustomFieldsItem",
     "CreateStockAdjustmentRequest",
     "CreateStockAdjustmentRequestStatus",
     "CreateStockTransferBody",
@@ -627,11 +642,15 @@ __all__ = (
     "ProductListResponse",
     "ProductOperationRerank",
     "ProductOperationRerankRequest",
-    "PurchaseOrder",
     "PurchaseOrderAccountingMetadata",
     "PurchaseOrderAccountingMetadataListResponse",
     "PurchaseOrderAdditionalCostRow",
     "PurchaseOrderAdditionalCostRowListResponse",
+    "PurchaseOrderBase",
+    "PurchaseOrderBaseBillingStatus",
+    "PurchaseOrderBaseEntityType",
+    "PurchaseOrderBaseLastDocumentStatus",
+    "PurchaseOrderBaseStatus",
     "PurchaseOrderListResponse",
     "PurchaseOrderReceiveRow",
     "PurchaseOrderReceiveRowBatchTransactionsItem",
@@ -674,13 +693,11 @@ __all__ = (
     "SerialNumberStockListResponse",
     "SerialNumberStockStatus",
     "Service",
-    "ServiceAttributes",
-    "ServiceInputAttributes",
     "ServiceListResponse",
-    "ServiceRequest",
-    "ServiceRequestData",
-    "ServiceRequestDataType",
     "ServiceType",
+    "ServiceVariant",
+    "ServiceVariantCustomFieldsItem",
+    "ServiceVariantType",
     "StockAdjustment",
     "StockAdjustmentListResponse",
     "StockAdjustmentStatus",
@@ -742,6 +759,7 @@ __all__ = (
     "UpdateSalesReturnRequest",
     "UpdateSalesReturnRequestStatus",
     "UpdateSalesReturnRowBody",
+    "UpdateServiceRequest",
     "UpdateStockAdjustmentRequest",
     "UpdateStockAdjustmentRequestStatus",
     "UpdateStockTransferBody",

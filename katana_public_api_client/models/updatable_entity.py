@@ -15,17 +15,19 @@ T = TypeVar("T", bound="UpdatableEntity")
 
 @_attrs_define
 class UpdatableEntity:
-    """Common fields for entities that can be updated
-
+    """
     Example:
-        {'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z'}
+        {'id': 12345, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z'}
     """
 
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -36,7 +38,11 @@ class UpdatableEntity:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
@@ -47,6 +53,8 @@ class UpdatableEntity:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -62,6 +70,7 @@ class UpdatableEntity:
             updated_at = isoparse(_updated_at)
 
         updatable_entity = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
         )
