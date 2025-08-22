@@ -211,8 +211,149 @@ class KatanaDocumentationExtractor:
         """Extract meaningful content from HTML using specific README.io DOM structure."""
         soup = BeautifulSoup(html_content, "html.parser")
 
-        # Strategy: Extract specific content in priority order, taking only the first match
+        # Strategy: Extract comprehensive content for object pages, fallback to description for others
 
+        # Check if this is an "object" documentation page by looking for attribute tables
+        has_attribute_table = bool(
+            soup.find("table") or soup.select("[data-testid*='table']")
+        )
+        is_object_page = "object" in html_content.lower() and has_attribute_table
+
+        if is_object_page:
+            return self.extract_full_object_content(soup)
+        else:
+            return self.extract_description_content(soup)
+
+    def extract_full_object_content(self, soup: BeautifulSoup) -> str:
+        """Extract comprehensive content for object documentation pages including tables."""
+        content_parts = []
+
+        # 1. Look for README.io main content area
+        readme_content = soup.select_one(".rm-Markdown")
+        if readme_content and isinstance(readme_content, Tag):
+            # Remove navigation and UI elements
+            for elem in readme_content.find_all(
+                ["nav", "script", "style", ".rm-SidebarMenu"]
+            ):
+                elem.decompose()
+
+            # Extract structured content
+            content_parts.extend(self.extract_structured_content(readme_content))
+
+        # 2. Fallback to main content area
+        if not content_parts:
+            main_content = soup.select_one("#content")
+            if main_content and isinstance(main_content, Tag):
+                # Remove navigation and UI elements
+                for elem in main_content.find_all(
+                    ["nav", "script", "style", "form", ".sidebar"]
+                ):
+                    elem.decompose()
+
+                content_parts.extend(self.extract_structured_content(main_content))
+
+        # Join all content parts
+        full_content = (
+            "\n\n".join(content_parts)
+            if content_parts
+            else "No meaningful content found"
+        )
+        return self.clean_extracted_content(full_content)
+
+    def extract_structured_content(self, container: Tag) -> list[str]:
+        """Extract structured content including headings, paragraphs, and tables."""
+        content_parts = []
+
+        # Process content in document order
+        for element in container.find_all(
+            ["h1", "h2", "h3", "h4", "h5", "h6", "p", "table", "div"]
+        ):
+            if not isinstance(element, Tag):
+                continue
+
+            # Skip if this element is inside a table (we'll process tables separately)
+            if element.find_parent("table"):
+                continue
+
+            element_content = self.process_content_element(element)
+            if element_content:
+                content_parts.append(element_content)
+
+        return content_parts
+
+    def process_content_element(self, element: Tag) -> str:
+        """Process individual content elements (headings, paragraphs, tables)."""
+        if element.name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
+            # Process headings
+            heading_text = element.get_text(strip=True)
+            if heading_text and not self.is_navigation_text(heading_text):
+                level = int(element.name[1])
+                return f"{'#' * level} {heading_text}"
+
+        elif element.name == "p":
+            # Process paragraphs
+            para_text = element.get_text(strip=True)
+            if (
+                para_text
+                and len(para_text) > 10
+                and not self.is_navigation_text(para_text)
+            ):
+                return para_text
+
+        elif element.name == "table":
+            # Process tables (attribute tables are key for object docs)
+            return self.extract_table_content(element)
+
+        elif element.name == "div":
+            # Process divs that might contain structured content
+            div_text = element.get_text(strip=True)
+            if (
+                div_text
+                and len(div_text) > 20
+                and not self.is_navigation_text(div_text)
+                and not element.find("table")
+            ):  # Don't double-process table containers
+                return div_text
+
+        return ""
+
+    def extract_table_content(self, table: Tag) -> str:
+        """Extract table content in markdown format."""
+        rows = []
+
+        # Extract header row
+        header_row = table.find("tr")
+        if header_row and isinstance(header_row, Tag):
+            headers = []
+            for th in header_row.find_all(["th", "td"]):
+                if isinstance(th, Tag):
+                    header_text = th.get_text(strip=True)
+                    headers.append(header_text if header_text else "")
+
+            if headers:
+                rows.append("| " + " | ".join(headers) + " |")
+                rows.append("| " + " | ".join(["---"] * len(headers)) + " |")
+
+        # Extract data rows
+        for tr in table.find_all("tr")[1:]:  # Skip header row
+            if isinstance(tr, Tag):
+                cells = []
+                for td in tr.find_all(["td", "th"]):
+                    if isinstance(td, Tag):
+                        cell_text = (
+                            td.get_text(strip=True)
+                            .replace("\n", " ")
+                            .replace("|", "\\|")
+                        )
+                        cells.append(cell_text if cell_text else "")
+
+                if cells:
+                    rows.append("| " + " | ".join(cells) + " |")
+
+        return "\n".join(rows) if rows else ""
+
+    def extract_description_content(self, soup: BeautifulSoup) -> str:
+        """Extract description content for non-object pages (original logic)."""
         # 1. Look for the main description in the content header
         content_header = soup.select_one("#content > header:first-child")
         if content_header and isinstance(content_header, Tag):
@@ -297,6 +438,30 @@ class KatanaDocumentationExtractor:
                         )
 
         return "No meaningful content found"
+
+    def clean_extracted_content(self, content: str) -> str:
+        """Clean up extracted content by removing excessive whitespace and duplicates."""
+        if not content:
+            return "No meaningful content found"
+
+        # Split into lines and clean each line
+        lines = content.split("\n")
+        cleaned_lines = []
+        seen_lines = set()
+
+        for line in lines:
+            cleaned_line = line.strip()
+            # Skip empty lines and duplicates
+            if cleaned_line and cleaned_line not in seen_lines:
+                cleaned_lines.append(cleaned_line)
+                seen_lines.add(cleaned_line)
+
+        # Join lines and limit excessive newlines
+        result = "\n".join(cleaned_lines)
+        # Replace multiple consecutive newlines with double newlines
+        result = re.sub(r"\n{3,}", "\n\n", result)
+
+        return result if result else "No meaningful content found"
 
     def is_navigation_text(self, text: str) -> bool:
         """Check if text appears to be navigation or UI text."""
