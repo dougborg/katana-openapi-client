@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from ..models.create_product_request_configs_item import (
         CreateProductRequestConfigsItem,
     )
-    from ..models.variant import Variant
+    from ..models.create_variant_request import CreateVariantRequest
 
 
 T = TypeVar("T", bound="CreateProductRequest")
@@ -26,12 +26,13 @@ class CreateProductRequest:
             'operations_in_sequence': True, 'lead_time': 14, 'minimum_order_quantity': 1, 'configs': [{'name': 'Piece
             Count', 'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values': ['Steel', 'Wooden',
             'Composite']}], 'variants': [{'sku': 'KNF-PRO-8PC-STL', 'sales_price': 299.99, 'purchase_price': 150.0,
-            'config_attributes': [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle
-            Material', 'config_value': 'Steel'}]}]}
+            'supplier_item_codes': ['KNF-8PC-STEEL-001'], 'lead_time': 14, 'minimum_order_quantity': 1, 'config_attributes':
+            [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            'Steel'}]}]}
     """
 
     name: str
-    variants: list["Variant"]
+    variants: list["CreateVariantRequest"]
     uom: Unset | str = UNSET
     category_name: Unset | str = UNSET
     is_sellable: Unset | bool = UNSET
@@ -155,7 +156,7 @@ class CreateProductRequest:
         from ..models.create_product_request_configs_item import (
             CreateProductRequestConfigsItem,
         )
-        from ..models.variant import Variant
+        from ..models.create_variant_request import CreateVariantRequest
 
         d = dict(src_dict)
         name = d.pop("name")
@@ -163,7 +164,7 @@ class CreateProductRequest:
         variants = []
         _variants = d.pop("variants")
         for variants_item_data in _variants:
-            variants_item = Variant.from_dict(variants_item_data)
+            variants_item = CreateVariantRequest.from_dict(variants_item_data)
 
             variants.append(variants_item)
 

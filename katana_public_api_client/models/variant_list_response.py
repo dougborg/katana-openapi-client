@@ -24,7 +24,12 @@ class VariantListResponse:
             [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
             'Steel'}]}, {'id': 3002, 'sku': 'KNF-PRO-12PC-WD', 'sales_price': 399.99, 'type': 'product',
             'config_attributes': [{'config_name': 'Piece Count', 'config_value': '12-piece'}, {'config_name': 'Handle
-            Material', 'config_value': 'Wood'}]}]}
+            Material', 'config_value': 'Wood'}]}, {'id': 5001, 'sku': 'STEEL-304-1.5MM', 'sales_price': None,
+            'purchase_price': 45.0, 'type': 'material', 'lead_time': 5, 'minimum_order_quantity': 1, 'config_attributes':
+            [{'config_name': 'Grade', 'config_value': '304'}, {'config_name': 'Thickness', 'config_value': '1.5mm'}]},
+            {'id': 5003, 'sku': 'ALU-6061-2.0MM', 'sales_price': None, 'purchase_price': 38.5, 'type': 'material',
+            'lead_time': 3, 'minimum_order_quantity': 2, 'config_attributes': [{'config_name': 'Alloy', 'config_value':
+            '6061'}, {'config_name': 'Thickness', 'config_value': '2.0mm'}]}]}
     """
 
     data: Unset | list["VariantResponse"] = UNSET

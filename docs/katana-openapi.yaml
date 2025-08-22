@@ -1119,10 +1119,10 @@ components:
       example:
         id: 12345
     UpdatableEntity:
+      description: Common fields for entities that can be updated
       allOf:
         - $ref: "#/components/schemas/BaseEntity"
         - type: object
-          description: Common fields for entities that can be updated
           properties:
             created_at:
               type: string
@@ -1137,10 +1137,10 @@ components:
         created_at: "2020-10-23T10:37:05.085Z"
         updated_at: "2020-10-23T10:37:05.085Z"
     ArchivableEntity:
+      description: Common fields for entities that can be archived
       allOf:
         - $ref: "#/components/schemas/BaseEntity"
         - type: object
-          description: Common fields for entities that can be archived
           properties:
             created_at:
               type: string
@@ -1160,10 +1160,10 @@ components:
         updated_at: "2020-10-23T10:37:05.085Z"
         archived_at: null
     DeletableEntity:
+      description: Common fields for entities that can be deleted
       allOf:
         - $ref: "#/components/schemas/BaseEntity"
         - type: object
-          description: Common fields for entities that can be deleted
           properties:
             created_at:
               type: string
@@ -1183,10 +1183,10 @@ components:
         updated_at: "2020-10-23T10:37:05.085Z"
         deleted_at: null
     ArchivableDeletableEntity:
+      description: Common fields for entities that can be both archived and deleted
       allOf:
         - $ref: "#/components/schemas/BaseEntity"
         - type: object
-          description: Common fields for entities that can be both archived and deleted
           properties:
             created_at:
               type: string
@@ -1212,6 +1212,70 @@ components:
         updated_at: "2020-10-23T10:37:05.085Z"
         archived_at: null
         deleted_at: null
+    MaterialConfig:
+      description: Configuration option for a material that defines variant attributes
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - type: object
+          properties:
+            name:
+              type: string
+              description: Configuration attribute name (e.g., Grade, Thickness, Color)
+            values:
+              type: array
+              description: Array of possible values for this configuration attribute
+              items:
+                type: string
+            material_id:
+              type: integer
+              description: ID of the material this configuration belongs to
+          required:
+            - name
+            - values
+            - material_id
+      example:
+        id: 101
+        name: Grade
+        values:
+          - "Premium"
+          - "Standard"
+          - "Economy"
+        material_id: 1
+    ItemConfig:
+      description: Configuration option for products and materials that defines variant attributes
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - type: object
+          properties:
+            name:
+              type: string
+              description: Configuration attribute name (e.g., Size, Color, Style, Grade)
+            values:
+              type: array
+              description: Array of possible values for this configuration attribute
+              items:
+                type: string
+            product_id:
+              type:
+                - integer
+                - "null"
+              description: ID of the product this configuration belongs to (null for materials)
+            material_id:
+              type:
+                - integer
+                - "null"
+              description: ID of the material this configuration belongs to (null for products)
+          required:
+            - name
+            - values
+      example:
+        id: 201
+        name: Type
+        values:
+          - "Standard"
+          - "Double-bladed"
+        product_id: 1
+        material_id: null
     AdditionalCost:
       description: Additional cost types that can be applied to purchase orders and manufacturing orders (e.g., shipping, taxes, duties)
       allOf:
@@ -1586,6 +1650,9 @@ components:
               description: Display name combining the parent product/material name with variant attributes
             type:
               type: string
+              enum:
+                - product
+                - material
               description: |-
                 Type classification - either 'product' or 'material'
             internal_barcode:
@@ -2957,6 +3024,9 @@ components:
       required:
         - name
         - variants
+      dependentRequired:
+        purchase_uom: [purchase_uom_conversion_rate]
+        purchase_uom_conversion_rate: [purchase_uom]
       properties:
         name:
           type: string
@@ -2984,36 +3054,27 @@ components:
         purchase_uom:
           type: string
           maxLength: 7
-          description: Unit of measure used when purchasing from suppliers
+          description: |-
+            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
+            for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
+            of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
         purchase_uom_conversion_rate:
           type: number
           maximum: 1000000000000
-          description: Conversion rate from purchase UOM to base UOM
+          description: |-
+            The conversion rate between the purchase and material UoMs. If used, material must have a purchase_uom
+            that is different from uom.
         configs:
           type: array
-          minItems: 1
           description: Material configuration options for creating variants
           items:
-            type: object
-            additionalProperties: false
-            required:
-              - name
-              - values
-            properties:
-              name:
-                type: string
-                description: Configuration attribute name (e.g., Grade, Thickness)
-              values:
-                type: array
-                description: Available values for this configuration attribute
-                items:
-                  type: string
+            $ref: "#/components/schemas/MaterialConfig"
         variants:
           type: array
           minItems: 1
           description: Material variants with specific configurations and properties
           items:
-            $ref: "#/components/schemas/Variant"
+            $ref: "#/components/schemas/CreateVariantRequest"
       example:
         name: Stainless Steel Sheet 304
         uom: m²
@@ -3034,77 +3095,109 @@ components:
               - 1.5mm
               - 2.0mm
               - 3.0mm
-        variants: []
-    Material:
-      description:
-        Represents raw materials and components used in manufacturing, including inventory tracking, supplier information,
-        and batch management.
+        variants:
+          - sku: STEEL-304-1.5MM
+            sales_price: null
+            purchase_price: 45.00
+            lead_time: 5
+            minimum_order_quantity: 1
+            config_attributes:
+              - config_name: Grade
+                config_value: "304"
+              - config_name: Thickness
+                config_value: "1.5mm"
+    InventoryItem:
+      description: Base schema for products and materials with common inventory management features including tracking, supplier relationships, and variant configurations
       allOf:
         - $ref: "#/components/schemas/ArchivableEntity"
         - type: object
           properties:
             name:
               type: string
-              description: Name of the material
+              description: Display name for the item used in sales, manufacturing, and purchasing contexts
             uom:
               type: string
-              description: Primary unit of measure for the material (e.g., kg, pcs, m)
+              description: Unit of measurement for the item (e.g., pcs, kg, m)
             category_name:
               type: string
-              description: Category classification for organizing materials
-            default_supplier_id:
-              type: integer
-              description: ID of the default supplier for this material
-            additional_info:
-              type: string
-              description: Optional notes or additional information about the material
-            batch_tracked:
-              type: boolean
-              description: Whether this material requires batch tracking for traceability
+              description: Category for organizational grouping and reporting
             is_sellable:
               type: boolean
-              description: Whether this material can be sold directly as a finished product
-            type:
+              description: Whether this item can be sold to customers
+            default_supplier_id:
+              type:
+                - integer
+                - "null"
+              maximum: 2147483647
+              description: Primary supplier ID for purchasing this item
+            additional_info:
               type: string
-              description: Type classification of the material
+              description: Additional notes, specifications, or internal comments
+            batch_tracked:
+              type: boolean
+              description: Whether inventory movements are tracked by batch numbers
             purchase_uom:
-              type: string
-              description: Unit of measure used when purchasing this material from suppliers
+              type:
+                - string
+                - "null"
+              maxLength: 7
+              description: |-
+                If purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
+                for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
+                of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
             purchase_uom_conversion_rate:
-              type: number
-              description: Conversion rate between purchase UoM and primary UoM
+              type:
+                - number
+                - "null"
+              maximum: 1000000000000
+              description: |-
+                The conversion rate between the purchase and default UoMs. If used, item must have a purchase_uom
+                that is different from uom.
+            custom_field_collection_id:
+              type:
+                - integer
+                - "null"
+              maximum: 2147483647
+              description: ID of the custom field collection associated with this item
             variants:
               type: array
-              description: Different variants or configurations of this material
+              description: Item variants with different SKUs, pricing, and configurations
               items:
                 $ref: "#/components/schemas/Variant"
             configs:
               type: array
-              description: Configuration options and attributes for the material
+              description: Configuration attributes that define variant combinations (size, color, etc.)
               items:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                    description: Configuration option ID
-                  name:
-                    type: string
-                    description: Name of the configuration option
-                  values:
-                    type: array
-                    description: Available values for this configuration
-                    items:
-                      type: string
-                  product_id:
-                    type: integer
-                    description: Associated product ID for this configuration
-            custom_field_collection_id:
-              type: integer
-              description: ID of custom field collection for additional data
+                $ref: "#/components/schemas/ItemConfig"
             supplier:
-              $ref: "#/components/schemas/Supplier"
-              description: Default supplier information for this material
-        - $ref: "#/components/schemas/ArchivableEntity"
+              anyOf:
+                - $ref: "#/components/schemas/Supplier"
+                - type: "null"
+              description: Primary supplier information for this item
+            type:
+              type: string
+              enum:
+                - product
+                - material
+              description: Item type discriminator - either 'product' or 'material'
+          required:
+            - name
+            - type
+    Material:
+      description:
+        Represents raw materials and components used in manufacturing, including inventory tracking, supplier information,
+        and batch management.
+      allOf:
+        - $ref: "#/components/schemas/InventoryItem"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - material
+              description: Item type discriminator. Material objects are of type "material"
+          required:
+            - type
       example:
         id: 3201
         name: Stainless Steel Sheet 304
@@ -3114,24 +3207,36 @@ components:
         additional_info: Food-grade stainless steel, 1.5mm thickness
         batch_tracked: true
         is_sellable: false
-        type: Raw Material
+        type: material
         purchase_uom: sheet
         purchase_uom_conversion_rate: 2.0
-        variants: []
+        variants:
+          - id: 5001
+            sku: STEEL-304-1.5MM
+            sales_price: null
+            purchase_price: 45.00
+            type: material
+            lead_time: 5
+            minimum_order_quantity: 1
+            config_attributes:
+              - config_name: Grade
+                config_value: "304"
+              - config_name: Thickness
+                config_value: "1.5mm"
+            created_at: "2024-01-10T10:00:00Z"
+            updated_at: "2024-01-15T14:30:00Z"
         configs:
           - id: 101
             name: Grade
             values:
               - "304"
               - "316"
-            product_id: 3201
           - id: 102
             name: Thickness
             values:
               - 1.5mm
               - 2.0mm
               - 3.0mm
-            product_id: 3201
         custom_field_collection_id: 201
         supplier: null
         created_at: "2024-01-10T10:00:00Z"
@@ -3156,17 +3261,49 @@ components:
             additional_info: Food-grade stainless steel, 1.5mm thickness
             batch_tracked: true
             is_sellable: false
-            type: Raw Material
+            type: material
             purchase_uom: sheet
             purchase_uom_conversion_rate: 2.0
-            variants: []
+            variants:
+              - id: 5001
+                sku: STEEL-304-1.5MM
+                sales_price: null
+                purchase_price: 45.00
+                type: material
+                lead_time: 5
+                minimum_order_quantity: 1
+                config_attributes:
+                  - config_name: Grade
+                    config_value: "304"
+                  - config_name: Thickness
+                    config_value: "1.5mm"
+                created_at: "2024-01-10T10:00:00Z"
+                updated_at: "2024-01-15T14:30:00Z"
+              - id: 5002
+                sku: STEEL-316-1.5MM
+                sales_price: null
+                purchase_price: 52.00
+                type: material
+                lead_time: 7
+                minimum_order_quantity: 1
+                config_attributes:
+                  - config_name: Grade
+                    config_value: "316"
+                  - config_name: Thickness
+                    config_value: "1.5mm"
+                created_at: "2024-01-10T10:00:00Z"
+                updated_at: "2024-01-15T14:30:00Z"
             configs:
               - id: 101
                 name: Grade
                 values:
                   - "304"
                   - "316"
-                product_id: 3201
+              - id: 102
+                name: Thickness
+                values:
+                  - "1.5mm"
+                  - "2.0mm"
             custom_field_collection_id: 201
             supplier: null
             created_at: "2024-01-10T10:00:00Z"
@@ -3176,6 +3313,9 @@ components:
       description: Request payload for updating an existing raw material's properties and specifications
       type: object
       additionalProperties: false
+      dependentRequired:
+        purchase_uom: [purchase_uom_conversion_rate]
+        purchase_uom_conversion_rate: [purchase_uom]
       properties:
         name:
           type: string
@@ -3206,10 +3346,15 @@ components:
         purchase_uom:
           type: string
           maxLength: 7
-          description: If used, then purchase_uom_conversion_rate must have a value as well.
+          description: |-
+            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
+            for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
+            of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
         purchase_uom_conversion_rate:
           type: number
-          description: If used, then purchase_uom must have a value as well.
+          description: |-
+            The conversion rate between the purchase and material UoMs. If used, material must have a purchase_uom
+            that is different from uom.
           maximum: 1000000000000
         configs:
           type: array
@@ -3331,6 +3476,9 @@ components:
       required:
         - name
         - variants
+      dependentRequired:
+        purchase_uom: [purchase_uom_conversion_rate]
+        purchase_uom_conversion_rate: [purchase_uom]
       properties:
         name:
           type: string
@@ -3373,11 +3521,16 @@ components:
         purchase_uom:
           type: string
           maxLength: 7
-          description: Unit of measure used when purchasing from suppliers
+          description: |-
+            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
+            for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
+            of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
         purchase_uom_conversion_rate:
           type: number
           maximum: 1000000000000
-          description: Conversion rate from purchase UOM to base UOM
+          description: |-
+            The conversion rate between the purchase and product UoMs. If used, product must have a purchase_uom
+            that is different from uom.
         lead_time:
           type:
             - integer
@@ -3419,7 +3572,7 @@ components:
           minItems: 1
           description: Product variants with specific configurations and properties
           items:
-            $ref: "#/components/schemas/Variant"
+            $ref: "#/components/schemas/CreateVariantRequest"
       example:
         name: Professional Kitchen Knife Set
         uom: set
@@ -3449,6 +3602,10 @@ components:
           - sku: KNF-PRO-8PC-STL
             sales_price: 299.99
             purchase_price: 150.0
+            supplier_item_codes:
+              - "KNF-8PC-STEEL-001"
+            lead_time: 14
+            minimum_order_quantity: 1
             config_attributes:
               - config_name: Piece Count
                 config_value: 8-piece
@@ -3460,6 +3617,9 @@ components:
         specifications
       type: object
       additionalProperties: false
+      dependentRequired:
+        purchase_uom: [purchase_uom_conversion_rate]
+        purchase_uom_conversion_rate: [purchase_uom]
       properties:
         name:
           type: string
@@ -3502,11 +3662,16 @@ components:
         purchase_uom:
           type: string
           maxLength: 7
-          description: Unit of measurement used when purchasing from suppliers
+          description: |-
+            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
+            for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
+            of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
         purchase_uom_conversion_rate:
           type: number
           maximum: 1000000000000
-          description: Conversion rate between base UOM and purchase UOM
+          description: |-
+            The conversion rate between the purchase and product UoMs. If used, product must have a purchase_uom
+            that is different from uom.
         configs:
           type: array
           description: Configuration attributes that define variant combinations (size, color, etc.)
@@ -3560,21 +3725,14 @@ components:
         A finished good or component that can be sold, manufactured, or purchased, with support for variants and
         configurations
       allOf:
-        - $ref: "#/components/schemas/ArchivableEntity"
+        - $ref: "#/components/schemas/InventoryItem"
         - type: object
           properties:
-            name:
+            type:
               type: string
-              description: Display name for the product used in sales and manufacturing contexts
-            uom:
-              type: string
-              description: Unit of measurement for the product (e.g., pcs, kg, m)
-            category_name:
-              type: string
-              description: Product category for organizational grouping and reporting
-            is_sellable:
-              type: boolean
-              description: Whether this product can be sold to customers
+              enum:
+                - product
+              description: Item type discriminator. Product objects are of type "product"
             is_producible:
               type: boolean
               description: Whether this product can be manufactured in-house
@@ -3584,103 +3742,83 @@ components:
             is_auto_assembly:
               type: boolean
               description: Whether the product should be automatically assembled when components are available
-            default_supplier_id:
-              type: integer
-              description: Primary supplier ID for purchasing this product
-            additional_info:
-              type: string
-              description: Additional notes or specifications for the product
-            batch_tracked:
-              type: boolean
-              description: Whether inventory movements are tracked by batch numbers
             serial_tracked:
               type: boolean
               description: Whether inventory movements are tracked by individual serial numbers
             operations_in_sequence:
               type: boolean
               description: Whether manufacturing operations must be completed in a specific sequence
-            type:
-              type: string
-              description: Product classification type (product, material, etc.)
-            purchase_uom:
-              type: string
-              description: Unit of measurement used when purchasing from suppliers
-            purchase_uom_conversion_rate:
-              type: number
-              description: Conversion rate between base UOM and purchase UOM
-            variants:
-              type: array
-              description: Product variants with different SKUs, pricing, and configurations
-              items:
-                $ref: "#/components/schemas/Variant"
+            lead_time:
+              type:
+                - integer
+                - "null"
+              maximum: 999
+              description: Expected lead time for procurement or production
+            minimum_order_quantity:
+              type:
+                - number
+                - "null"
+              maximum: 999999999
+              minimum: 0
+              description: Minimum quantity that must be ordered
             configs:
               type: array
               description: Configuration attributes that define variant combinations (size, color, etc.)
               items:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                    description: Unique identifier for the configuration attribute
-                  name:
-                    type: string
-                    description: Name of the configuration attribute (e.g., Size, Color)
-                  values:
-                    type: array
-                    description: Available values for this configuration attribute
-                    items:
-                      type: string
-                  product_id:
-                    type: integer
-                    description: ID of the product this configuration belongs to
-            custom_field_collection_id:
-              type: integer
-              description: ID of the custom field collection associated with this product
-            supplier:
-              $ref: "#/components/schemas/Supplier"
-        - $ref: "#/components/schemas/ArchivableEntity"
+                $ref: "#/components/schemas/ItemConfig"
+          required:
+            - type
       example:
-        id: 101
-        name: Professional Kitchen Knife Set
-        uom: set
-        category_name: Kitchenware
+        id: 1
+        name: Standard-hilt lightsaber
+        uom: pcs
+        category_name: lightsaber
         is_sellable: true
         is_producible: true
-        is_purchasable: false
-        is_auto_assembly: false
-        default_supplier_id: null
-        additional_info: High-carbon stainless steel with ergonomic handles
-        batch_tracked: false
-        serial_tracked: true
-        operations_in_sequence: true
+        is_purchasable: true
+        is_auto_assembly: true
+        default_supplier_id: 1
+        additional_info: additional info
+        batch_tracked: true
+        serial_tracked: false
+        operations_in_sequence: false
         type: product
-        purchase_uom: set
-        purchase_uom_conversion_rate: 1.0
-        custom_field_collection_id: 5
-        created_at: "2024-01-15T09:30:00Z"
-        updated_at: "2024-08-20T14:45:00Z"
+        purchase_uom: pcs
+        purchase_uom_conversion_rate: 1
+        lead_time: 1
+        minimum_order_quantity: 3
+        custom_field_collection_id: 1
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2020-10-23T10:37:05.085Z"
         archived_at: null
         variants:
-          - id: 301
-            sku: KNF-PRO-8PC
-            name: 8-Piece Professional Set
-            sales_price: 299.99
-            purchase_price: 150.0
+          - id: 1
+            sku: EM
+            sales_price: 40
+            purchase_price: 0
+            type: product
+            created_at: "2020-10-23T10:37:05.085Z"
+            updated_at: "2020-10-23T10:37:05.085Z"
+            lead_time: 1
+            minimum_order_quantity: 3
+            config_attributes:
+              - config_name: Type
+                config_value: Standard
+            internal_barcode: internalcode
+            registered_barcode: registeredcode
+            supplier_item_codes:
+              - code
+            custom_fields:
+              - field_name: Power level
+                field_value: Strong
         configs:
           - id: 1
-            name: Piece Count
+            name: Type
             values:
-              - 6-piece
-              - 8-piece
-              - 12-piece
-            product_id: 101
-          - id: 2
-            name: Handle Material
-            values:
-              - Wood
-              - Steel
-              - Composite
-            product_id: 101
+              - Standard
+              - Double-bladed
+            product_id: 1
+        supplier: null
     ProductListResponse:
       description: Response containing a paginated list of products with their variants and configurations
       type: object
@@ -5142,7 +5280,6 @@ components:
       additionalProperties: false
       required:
         - sku
-        - supplier_item_codes
       properties:
         sku:
           type: string
@@ -5171,10 +5308,11 @@ components:
           description: ID of the parent material if this variant belongs to a raw material
         supplier_item_codes:
           type: array
-          minItems: 1
           description: Supplier-specific part numbers or SKUs for purchasing this variant
           items:
             type: string
+            minLength: 1
+            maxLength: 40
         internal_barcode:
           type: string
           minLength: 3
@@ -5182,7 +5320,8 @@ components:
           description: Internal barcode for warehouse scanning and tracking
         registered_barcode:
           type: string
-          maxLength: 120
+          minLength: 3
+          maxLength: 40
           description: Official registered barcode (UPC, EAN, etc.) for retail use
         lead_time:
           type:
@@ -5197,6 +5336,7 @@ components:
           description: Minimum quantity that must be ordered from suppliers
         config_attributes:
           type: array
+          minItems: 1
           description: Configuration attribute values that define this variant (color, size, etc.)
           items:
             type: object
@@ -5213,6 +5353,7 @@ components:
                 description: Value for this configuration attribute (e.g., Blue, Large)
         custom_fields:
           type: array
+          maxItems: 3
           description: Custom field values specific to this variant
           items:
             type: object
@@ -5329,63 +5470,15 @@ components:
                     type: string
                     description: Value stored in the custom field
             product_or_material:
-              type: object
+              oneOf:
+                - $ref: "#/components/schemas/Product"
+                - $ref: "#/components/schemas/Material"
+              discriminator:
+                propertyName: type
+                mapping:
+                  product: "#/components/schemas/Product"
+                  material: "#/components/schemas/Material"
               description: Details of the parent product or material this variant belongs to
-              properties:
-                id:
-                  type: integer
-                  description: Unique identifier of the parent product or material
-                name:
-                  type: string
-                  description: Name of the parent product or material
-                uom:
-                  type: string
-                  description: Unit of measurement
-                category_name:
-                  type: string
-                  description: Category classification
-                is_producible:
-                  type: boolean
-                  description: Whether the parent can be manufactured
-                default_supplier_id:
-                  type: integer
-                  description: Primary supplier ID
-                is_purchasable:
-                  type: boolean
-                  description: Whether the parent can be purchased
-                type:
-                  type: string
-                  description: Type classification (product/material)
-                purchase_uom:
-                  type: string
-                  description: Purchase unit of measurement
-                purchase_uom_conversion_rate:
-                  type: number
-                  description: Conversion rate for purchase UOM
-                batch_tracked:
-                  type: boolean
-                  description: Whether batch tracking is enabled
-                configs:
-                  type: array
-                  description: Configuration definitions for variants
-                  items:
-                    type: object
-                additional_info:
-                  type: string
-                  description: Additional notes or specifications
-                created_at:
-                  type: string
-                  format: date-time
-                  description: Creation timestamp
-                updated_at:
-                  type: string
-                  format: date-time
-                  description: Last update timestamp
-                variants:
-                  type: array
-                  description: All variants of this product or material
-                  items:
-                    $ref: "#/components/schemas/Variant"
         - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 3001
@@ -5414,7 +5507,13 @@ components:
           name: Professional Kitchen Knife Set
           uom: set
           category_name: Kitchenware
+          is_sellable: true
+          is_producible: true
+          is_purchasable: false
           type: product
+          created_at: "2024-01-15T08:00:00.000Z"
+          updated_at: "2024-08-20T14:45:00.000Z"
+          archived_at: null
         created_at: "2024-01-15T08:00:00.000Z"
         updated_at: "2024-08-20T14:45:00.000Z"
         deleted_at: null
@@ -5548,6 +5647,30 @@ components:
                 config_value: 12-piece
               - config_name: Handle Material
                 config_value: Wood
+          - id: 5001
+            sku: STEEL-304-1.5MM
+            sales_price: null
+            purchase_price: 45.00
+            type: material
+            lead_time: 5
+            minimum_order_quantity: 1
+            config_attributes:
+              - config_name: Grade
+                config_value: "304"
+              - config_name: Thickness
+                config_value: "1.5mm"
+          - id: 5003
+            sku: ALU-6061-2.0MM
+            sales_price: null
+            purchase_price: 38.50
+            type: material
+            lead_time: 3
+            minimum_order_quantity: 2
+            config_attributes:
+              - config_name: Alloy
+                config_value: "6061"
+              - config_name: Thickness
+                config_value: "2.0mm"
     VariantDefaultStorageBinLink:
       type: object
       description:
@@ -8243,7 +8366,6 @@ components:
       example:
         id: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
         recipe_row_id: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
-        product_id: 1
         product_item_id: 1
         product_variant_id: 1
         ingredient_variant_id: 1
@@ -8319,7 +8441,6 @@ components:
         data:
           - id: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
             recipe_row_id: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
-            product_id: 1
             product_item_id: 1
             product_variant_id: 1
             ingredient_variant_id: 1
@@ -11527,15 +11648,14 @@ paths:
                 category_name: Lightsaber components
                 default_supplier_id: 1
                 type: material
-                purchase_uom: pcs
-                purchase_uom_conversion_rate: 1
+                purchase_uom: null
+                purchase_uom_conversion_rate: null
                 batch_tracked: false
                 is_sellable: false
                 variants:
                   - id: 1
                     sku: KC
                     sales_price: null
-                    product_id: 1
                     purchase_price: 45
                     type: material
                     created_at: "2020-10-23T10:37:05.085Z"
@@ -11558,7 +11678,6 @@ paths:
                     values:
                       - Standard
                       - Double-bladed
-                    product_id: 1
                 additional_info: additional info
                 custom_field_collection_id: 1
                 created_at: "2020-10-23T10:37:05.085Z"
@@ -11621,8 +11740,8 @@ paths:
                     category_name: Lightsaber components
                     default_supplier_id: 1
                     type: material
-                    purchase_uom: pcs
-                    purchase_uom_conversion_rate: 1
+                    purchase_uom: null
+                    purchase_uom_conversion_rate: null
                     batch_tracked: false
                     is_sellable: false
                     archived_at: "2020-10-20T10:37:05.085Z"
@@ -11655,7 +11774,6 @@ paths:
                         values:
                           - Standard
                           - Double-bladed
-                        product_id: 1
                     additional_info: additional info
                     custom_field_collection_id: 1
                     created_at: "2020-10-23T10:37:05.085Z"
@@ -11708,8 +11826,8 @@ paths:
                 category_name: Lightsaber components
                 default_supplier_id: 1
                 type: material
-                purchase_uom: pcs
-                purchase_uom_conversion_rate: 1
+                purchase_uom: null
+                purchase_uom_conversion_rate: null
                 batch_tracked: false
                 is_sellable: false
                 archived_at: "2020-10-20T10:37:05.085Z"
@@ -11742,7 +11860,6 @@ paths:
                     values:
                       - Standard
                       - Double-bladed
-                    product_id: 1
                 additional_info: additional info
                 custom_field_collection_id: 1
                 created_at: "2020-10-23T10:37:05.085Z"
@@ -11802,8 +11919,8 @@ paths:
                 category_name: Lightsaber components
                 default_supplier_id: 1
                 type: material
-                purchase_uom: pcs
-                purchase_uom_conversion_rate: 1
+                purchase_uom: null
+                purchase_uom_conversion_rate: null
                 batch_tracked: false
                 is_sellable: false
                 archived_at: "2020-10-20T10:37:05.085Z"
@@ -11811,7 +11928,6 @@ paths:
                   - id: 1
                     sku: KC
                     sales_price: null
-                    product_id: 1
                     purchase_price: 45
                     type: material
                     created_at: "2020-10-23T10:37:05.085Z"
@@ -11834,7 +11950,6 @@ paths:
                     values:
                       - Standard
                       - Double-bladed
-                    product_id: 1
                 additional_info: additional info
                 custom_field_collection_id: 1
                 created_at: "2020-10-23T10:37:05.085Z"
@@ -11973,7 +12088,6 @@ paths:
                   - id: 1
                     sku: EM
                     sales_price: 40
-                    product_id: 1
                     purchase_price: 0
                     type: product
                     created_at: "2020-10-23T10:37:05.085Z"
@@ -12078,7 +12192,6 @@ paths:
                       - id: 1
                         sku: EM
                         sales_price: 40
-                        product_id: 1
                         purchase_price: 0
                         type: product
                         created_at: "2020-10-23T10:37:05.085Z"
@@ -12095,12 +12208,12 @@ paths:
                         custom_fields:
                           - field_name: Power level
                             field_value: Strong
-                    configs:
-                      - id: 1
-                        name: Type
-                        values:
-                          - Standard
-                          - Double-bladed
+                        configs:
+                          - id: 1
+                            name: Type
+                            values:
+                              - Standard
+                              - Double-bladed
                         product_id: 1
                     additional_info: additional info
                     custom_field_collection_id: 1
@@ -12167,7 +12280,6 @@ paths:
                   - id: 1
                     sku: EM
                     sales_price: 40
-                    product_id: 1
                     purchase_price: 0
                     type: product
                     created_at: "2020-10-23T10:37:05.085Z"
@@ -12264,7 +12376,6 @@ paths:
                   - id: 1
                     sku: EM
                     sales_price: 40
-                    product_id: 1
                     purchase_price: 0
                     type: product
                     created_at: "2020-10-23T10:37:05.085Z"
@@ -13788,7 +13899,6 @@ paths:
                 id: 1
                 sku: EM
                 sales_price: 40
-                product_id: 1
                 material_id: null
                 purchase_price: 0
                 type: product
@@ -13863,7 +13973,6 @@ paths:
                   - id: 1
                     sku: EM
                     sales_price: 40
-                    product_id: 1
                     material_id: null
                     purchase_price: 0
                     type: product
@@ -13894,7 +14003,6 @@ paths:
                         - id: 1
                           sku: EM
                           sales_price: 40
-                          product_id: 1
                           purchase_price: 0
                           type: product
                           created_at: "2020-10-23T10:37:05.085Z"
@@ -13913,14 +14021,11 @@ paths:
                               field_value: Strong
                       configs:
                         - id: 1
+                          product_id: 1
                           name: Type
                           values:
                             - Standard
                             - Double-bladed
-                          product_id: 1
-                      additional_info: additional info
-                      created_at: "2020-10-23T10:37:05.085Z"
-                      updated_at: "2020-10-23T10:37:05.085Z"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -13955,7 +14060,6 @@ paths:
                 id: 1
                 sku: EM
                 sales_price: 40
-                product_id: 1
                 material_id: null
                 purchase_price: 0
                 type: product
@@ -13986,7 +14090,6 @@ paths:
                     - id: 1
                       sku: EM
                       sales_price: 40
-                      product_id: 1
                       purchase_price: 0
                       type: product
                       created_at: "2020-10-23T10:37:05.085Z"
@@ -14054,7 +14157,6 @@ paths:
                 id: 1
                 sku: EM
                 sales_price: 40
-                product_id: 1
                 material_id: null
                 purchase_price: 0
                 type: product

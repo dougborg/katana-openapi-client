@@ -15,7 +15,8 @@ T = TypeVar("T", bound="DeletableEntity")
 
 @_attrs_define
 class DeletableEntity:
-    """
+    """Common fields for entities that can be deleted
+
     Example:
         {'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}
     """

@@ -9,7 +9,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.product_type import ProductType
+from ..models.inventory_item_type import InventoryItemType
 
 if TYPE_CHECKING:
     from ..models.item_config import ItemConfig
@@ -17,32 +17,18 @@ if TYPE_CHECKING:
     from ..models.variant import Variant
 
 
-T = TypeVar("T", bound="Product")
+T = TypeVar("T", bound="InventoryItem")
 
 
 @_attrs_define
-class Product:
-    """A finished good or component that can be sold, manufactured, or purchased, with support for variants and
-    configurations
-
-        Example:
-            {'id': 1, 'name': 'Standard-hilt lightsaber', 'uom': 'pcs', 'category_name': 'lightsaber', 'is_sellable': True,
-                'is_producible': True, 'is_purchasable': True, 'is_auto_assembly': True, 'default_supplier_id': 1,
-                'additional_info': 'additional info', 'batch_tracked': True, 'serial_tracked': False, 'operations_in_sequence':
-                False, 'type': 'product', 'purchase_uom': 'pcs', 'purchase_uom_conversion_rate': 1, 'lead_time': 1,
-                'minimum_order_quantity': 3, 'custom_field_collection_id': 1, 'created_at': '2020-10-23T10:37:05.085Z',
-                'updated_at': '2020-10-23T10:37:05.085Z', 'archived_at': None, 'variants': [{'id': 1, 'sku': 'EM',
-                'sales_price': 40, 'purchase_price': 0, 'type': 'product', 'created_at': '2020-10-23T10:37:05.085Z',
-                'updated_at': '2020-10-23T10:37:05.085Z', 'lead_time': 1, 'minimum_order_quantity': 3, 'config_attributes':
-                [{'config_name': 'Type', 'config_value': 'Standard'}], 'internal_barcode': 'internalcode', 'registered_barcode':
-                'registeredcode', 'supplier_item_codes': ['code'], 'custom_fields': [{'field_name': 'Power level',
-                'field_value': 'Strong'}]}], 'configs': [{'id': 1, 'name': 'Type', 'values': ['Standard', 'Double-bladed'],
-                'product_id': 1}], 'supplier': None}
+class InventoryItem:
+    """Base schema for products and materials with common inventory management features including tracking, supplier
+    relationships, and variant configurations
     """
 
     id: int
     name: str
-    type_: ProductType
+    type_: InventoryItemType
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     archived_at: None | Unset | str = UNSET
@@ -58,13 +44,6 @@ class Product:
     variants: Unset | list["Variant"] = UNSET
     configs: Unset | list["ItemConfig"] = UNSET
     supplier: Union["Supplier", None, Unset] = UNSET
-    is_producible: Unset | bool = UNSET
-    is_purchasable: Unset | bool = UNSET
-    is_auto_assembly: Unset | bool = UNSET
-    serial_tracked: Unset | bool = UNSET
-    operations_in_sequence: Unset | bool = UNSET
-    lead_time: None | Unset | int = UNSET
-    minimum_order_quantity: None | Unset | float = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -146,28 +125,6 @@ class Product:
         else:
             supplier = self.supplier
 
-        is_producible = self.is_producible
-
-        is_purchasable = self.is_purchasable
-
-        is_auto_assembly = self.is_auto_assembly
-
-        serial_tracked = self.serial_tracked
-
-        operations_in_sequence = self.operations_in_sequence
-
-        lead_time: None | Unset | int
-        if isinstance(self.lead_time, Unset):
-            lead_time = UNSET
-        else:
-            lead_time = self.lead_time
-
-        minimum_order_quantity: None | Unset | float
-        if isinstance(self.minimum_order_quantity, Unset):
-            minimum_order_quantity = UNSET
-        else:
-            minimum_order_quantity = self.minimum_order_quantity
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -207,20 +164,6 @@ class Product:
             field_dict["configs"] = configs
         if supplier is not UNSET:
             field_dict["supplier"] = supplier
-        if is_producible is not UNSET:
-            field_dict["is_producible"] = is_producible
-        if is_purchasable is not UNSET:
-            field_dict["is_purchasable"] = is_purchasable
-        if is_auto_assembly is not UNSET:
-            field_dict["is_auto_assembly"] = is_auto_assembly
-        if serial_tracked is not UNSET:
-            field_dict["serial_tracked"] = serial_tracked
-        if operations_in_sequence is not UNSET:
-            field_dict["operations_in_sequence"] = operations_in_sequence
-        if lead_time is not UNSET:
-            field_dict["lead_time"] = lead_time
-        if minimum_order_quantity is not UNSET:
-            field_dict["minimum_order_quantity"] = minimum_order_quantity
 
         return field_dict
 
@@ -235,7 +178,7 @@ class Product:
 
         name = d.pop("name")
 
-        type_ = ProductType(d.pop("type"))
+        type_ = InventoryItemType(d.pop("type"))
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -343,37 +286,7 @@ class Product:
 
         supplier = _parse_supplier(d.pop("supplier", UNSET))
 
-        is_producible = d.pop("is_producible", UNSET)
-
-        is_purchasable = d.pop("is_purchasable", UNSET)
-
-        is_auto_assembly = d.pop("is_auto_assembly", UNSET)
-
-        serial_tracked = d.pop("serial_tracked", UNSET)
-
-        operations_in_sequence = d.pop("operations_in_sequence", UNSET)
-
-        def _parse_lead_time(data: object) -> None | Unset | int:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | Unset | int, data)
-
-        lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
-
-        def _parse_minimum_order_quantity(data: object) -> None | Unset | float:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | Unset | float, data)
-
-        minimum_order_quantity = _parse_minimum_order_quantity(
-            d.pop("minimum_order_quantity", UNSET)
-        )
-
-        product = cls(
+        inventory_item = cls(
             id=id,
             name=name,
             type_=type_,
@@ -392,17 +305,10 @@ class Product:
             variants=variants,
             configs=configs,
             supplier=supplier,
-            is_producible=is_producible,
-            is_purchasable=is_purchasable,
-            is_auto_assembly=is_auto_assembly,
-            serial_tracked=serial_tracked,
-            operations_in_sequence=operations_in_sequence,
-            lead_time=lead_time,
-            minimum_order_quantity=minimum_order_quantity,
         )
 
-        product.additional_properties = d
-        return product
+        inventory_item.additional_properties = d
+        return inventory_item
 
     @property
     def additional_keys(self) -> list[str]:

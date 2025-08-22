@@ -31,11 +31,11 @@ class CreateVariantRequest:
     """
 
     sku: str
-    supplier_item_codes: list[str]
     sales_price: Unset | float = UNSET
     purchase_price: Unset | float = UNSET
     product_id: None | Unset | int = UNSET
     material_id: None | Unset | int = UNSET
+    supplier_item_codes: Unset | list[str] = UNSET
     internal_barcode: Unset | str = UNSET
     registered_barcode: Unset | str = UNSET
     lead_time: None | Unset | int = UNSET
@@ -45,8 +45,6 @@ class CreateVariantRequest:
 
     def to_dict(self) -> dict[str, Any]:
         sku = self.sku
-
-        supplier_item_codes = self.supplier_item_codes
 
         sales_price = self.sales_price
 
@@ -63,6 +61,10 @@ class CreateVariantRequest:
             material_id = UNSET
         else:
             material_id = self.material_id
+
+        supplier_item_codes: Unset | list[str] = UNSET
+        if not isinstance(self.supplier_item_codes, Unset):
+            supplier_item_codes = self.supplier_item_codes
 
         internal_barcode = self.internal_barcode
 
@@ -95,7 +97,6 @@ class CreateVariantRequest:
         field_dict.update(
             {
                 "sku": sku,
-                "supplier_item_codes": supplier_item_codes,
             }
         )
         if sales_price is not UNSET:
@@ -106,6 +107,8 @@ class CreateVariantRequest:
             field_dict["product_id"] = product_id
         if material_id is not UNSET:
             field_dict["material_id"] = material_id
+        if supplier_item_codes is not UNSET:
+            field_dict["supplier_item_codes"] = supplier_item_codes
         if internal_barcode is not UNSET:
             field_dict["internal_barcode"] = internal_barcode
         if registered_barcode is not UNSET:
@@ -133,8 +136,6 @@ class CreateVariantRequest:
         d = dict(src_dict)
         sku = d.pop("sku")
 
-        supplier_item_codes = cast(list[str], d.pop("supplier_item_codes"))
-
         sales_price = d.pop("sales_price", UNSET)
 
         purchase_price = d.pop("purchase_price", UNSET)
@@ -156,6 +157,8 @@ class CreateVariantRequest:
             return cast(None | Unset | int, data)
 
         material_id = _parse_material_id(d.pop("material_id", UNSET))
+
+        supplier_item_codes = cast(list[str], d.pop("supplier_item_codes", UNSET))
 
         internal_barcode = d.pop("internal_barcode", UNSET)
 
@@ -192,11 +195,11 @@ class CreateVariantRequest:
 
         create_variant_request = cls(
             sku=sku,
-            supplier_item_codes=supplier_item_codes,
             sales_price=sales_price,
             purchase_price=purchase_price,
             product_id=product_id,
             material_id=material_id,
+            supplier_item_codes=supplier_item_codes,
             internal_barcode=internal_barcode,
             registered_barcode=registered_barcode,
             lead_time=lead_time,

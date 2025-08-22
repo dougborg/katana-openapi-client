@@ -15,7 +15,8 @@ T = TypeVar("T", bound="ArchivableDeletableEntity")
 
 @_attrs_define
 class ArchivableDeletableEntity:
-    """
+    """Common fields for entities that can be both archived and deleted
+
     Example:
         {'id': 12345, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'archived_at':
             None, 'deleted_at': None}

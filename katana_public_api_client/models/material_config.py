@@ -6,17 +6,21 @@ from attrs import (
     field as _attrs_field,
 )
 
-from ..client_types import UNSET, Unset
-
-T = TypeVar("T", bound="MaterialConfigsItem")
+T = TypeVar("T", bound="MaterialConfig")
 
 
 @_attrs_define
-class MaterialConfigsItem:
-    id: Unset | int = UNSET
-    name: Unset | str = UNSET
-    values: Unset | list[str] = UNSET
-    product_id: Unset | int = UNSET
+class MaterialConfig:
+    """Configuration option for a material that defines variant attributes
+
+    Example:
+        {'id': 101, 'name': 'Grade', 'values': ['Premium', 'Standard', 'Economy'], 'material_id': 1}
+    """
+
+    id: int
+    name: str
+    values: list[str]
+    material_id: int
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -24,46 +28,43 @@ class MaterialConfigsItem:
 
         name = self.name
 
-        values: Unset | list[str] = UNSET
-        if not isinstance(self.values, Unset):
-            values = self.values
+        values = self.values
 
-        product_id = self.product_id
+        material_id = self.material_id
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
-        if id is not UNSET:
-            field_dict["id"] = id
-        if name is not UNSET:
-            field_dict["name"] = name
-        if values is not UNSET:
-            field_dict["values"] = values
-        if product_id is not UNSET:
-            field_dict["product_id"] = product_id
+        field_dict.update(
+            {
+                "id": id,
+                "name": name,
+                "values": values,
+                "material_id": material_id,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        id = d.pop("id", UNSET)
+        id = d.pop("id")
 
-        name = d.pop("name", UNSET)
+        name = d.pop("name")
 
-        values = cast(list[str], d.pop("values", UNSET))
+        values = cast(list[str], d.pop("values"))
 
-        product_id = d.pop("product_id", UNSET)
+        material_id = d.pop("material_id")
 
-        material_configs_item = cls(
+        material_config = cls(
             id=id,
             name=name,
             values=values,
-            product_id=product_id,
+            material_id=material_id,
         )
 
-        material_configs_item.additional_properties = d
-        return material_configs_item
+        material_config.additional_properties = d
+        return material_config
 
     @property
     def additional_keys(self) -> list[str]:

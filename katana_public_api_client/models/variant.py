@@ -9,6 +9,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+from ..models.variant_type import VariantType
 
 if TYPE_CHECKING:
     from ..models.variant_config_attributes_item import VariantConfigAttributesItem
@@ -42,7 +43,7 @@ class Variant:
     material_id: None | Unset | int = UNSET
     purchase_price: Unset | float = UNSET
     product_or_material_name: Unset | str = UNSET
-    type_: Unset | str = UNSET
+    type_: Unset | VariantType = UNSET
     internal_barcode: Unset | str = UNSET
     registered_barcode: Unset | str = UNSET
     supplier_item_codes: Unset | list[str] = UNSET
@@ -93,7 +94,9 @@ class Variant:
 
         product_or_material_name = self.product_or_material_name
 
-        type_ = self.type_
+        type_: Unset | str = UNSET
+        if not isinstance(self.type_, Unset):
+            type_ = self.type_.value
 
         internal_barcode = self.internal_barcode
 
@@ -236,7 +239,12 @@ class Variant:
 
         product_or_material_name = d.pop("product_or_material_name", UNSET)
 
-        type_ = d.pop("type", UNSET)
+        _type_ = d.pop("type", UNSET)
+        type_: Unset | VariantType
+        if isinstance(_type_, Unset):
+            type_ = UNSET
+        else:
+            type_ = VariantType(_type_)
 
         internal_barcode = d.pop("internal_barcode", UNSET)
 
