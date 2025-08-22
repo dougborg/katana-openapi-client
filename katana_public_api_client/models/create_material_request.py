@@ -6,10 +6,8 @@ from attrs import define as _attrs_define
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.create_material_request_configs_item import (
-        CreateMaterialRequestConfigsItem,
-    )
-    from ..models.variant import Variant
+    from ..models.create_variant_request import CreateVariantRequest
+    from ..models.material_config import MaterialConfig
 
 
 T = TypeVar("T", bound="CreateMaterialRequest")
@@ -23,11 +21,14 @@ class CreateMaterialRequest:
         {'name': 'Stainless Steel Sheet 304', 'uom': 'm²', 'category_name': 'Raw Materials', 'default_supplier_id':
             1501, 'additional_info': 'Food-grade stainless steel, 1.5mm thickness', 'batch_tracked': True, 'is_sellable':
             False, 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'name': 'Grade', 'values':
-            ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm', '3.0mm']}], 'variants': []}
+            ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm', '3.0mm']}], 'variants': [{'sku':
+            'STEEL-304-1.5MM', 'sales_price': None, 'purchase_price': 45.0, 'lead_time': 5, 'minimum_order_quantity': 1,
+            'config_attributes': [{'config_name': 'Grade', 'config_value': '304'}, {'config_name': 'Thickness',
+            'config_value': '1.5mm'}]}]}
     """
 
     name: str
-    variants: list["Variant"]
+    variants: list["CreateVariantRequest"]
     uom: Unset | str = UNSET
     category_name: Unset | str = UNSET
     default_supplier_id: Unset | int = UNSET
@@ -36,7 +37,7 @@ class CreateMaterialRequest:
     is_sellable: Unset | bool = UNSET
     purchase_uom: Unset | str = UNSET
     purchase_uom_conversion_rate: Unset | float = UNSET
-    configs: Unset | list["CreateMaterialRequestConfigsItem"] = UNSET
+    configs: Unset | list["MaterialConfig"] = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -100,10 +101,8 @@ class CreateMaterialRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.create_material_request_configs_item import (
-            CreateMaterialRequestConfigsItem,
-        )
-        from ..models.variant import Variant
+        from ..models.create_variant_request import CreateVariantRequest
+        from ..models.material_config import MaterialConfig
 
         d = dict(src_dict)
         name = d.pop("name")
@@ -111,7 +110,7 @@ class CreateMaterialRequest:
         variants = []
         _variants = d.pop("variants")
         for variants_item_data in _variants:
-            variants_item = Variant.from_dict(variants_item_data)
+            variants_item = CreateVariantRequest.from_dict(variants_item_data)
 
             variants.append(variants_item)
 
@@ -134,7 +133,7 @@ class CreateMaterialRequest:
         configs = []
         _configs = d.pop("configs", UNSET)
         for configs_item_data in _configs or []:
-            configs_item = CreateMaterialRequestConfigsItem.from_dict(configs_item_data)
+            configs_item = MaterialConfig.from_dict(configs_item_data)
 
             configs.append(configs_item)
 

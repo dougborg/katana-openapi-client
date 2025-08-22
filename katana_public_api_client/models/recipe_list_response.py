@@ -21,8 +21,8 @@ class RecipeListResponse:
 
     Example:
         {'data': [{'id': 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 'recipe_row_id': 'aaaaaaaa-bbbb-cccc-dddd-
-            eeeeeeeeeeee', 'product_id': 1, 'product_item_id': 1, 'product_variant_id': 1, 'ingredient_variant_id': 1,
-            'quantity': 2, 'notes': 'some notes', 'rank': 10000, 'created_at': '2021-04-05T12:00:00.000Z', 'updated_at':
+            eeeeeeeeeeee', 'product_item_id': 1, 'product_variant_id': 1, 'ingredient_variant_id': 1, 'quantity': 2,
+            'notes': 'some notes', 'rank': 10000, 'created_at': '2021-04-05T12:00:00.000Z', 'updated_at':
             '2021-04-05T12:00:00.000Z'}]}
     """
 

@@ -35,7 +35,6 @@ from .create_manufacturing_order_recipe_row_request_batch_transactions_item impo
 )
 from .create_manufacturing_order_request import CreateManufacturingOrderRequest
 from .create_material_request import CreateMaterialRequest
-from .create_material_request_configs_item import CreateMaterialRequestConfigsItem
 from .create_outsourced_purchase_order_recipe_row_body import (
     CreateOutsourcedPurchaseOrderRecipeRowBody,
 )
@@ -188,6 +187,8 @@ from .get_sales_return_row_unassigned_batch_transactions_response_200_data_item 
 )
 from .get_variant_extend_item import GetVariantExtendItem
 from .inventory import Inventory
+from .inventory_item import InventoryItem
+from .inventory_item_type import InventoryItemType
 from .inventory_list_response import InventoryListResponse
 from .inventory_movement import InventoryMovement
 from .inventory_movement_list_response import InventoryMovementListResponse
@@ -196,6 +197,7 @@ from .inventory_reorder_point import InventoryReorderPoint
 from .inventory_reorder_point_response import InventoryReorderPointResponse
 from .inventory_safety_stock_level import InventorySafetyStockLevel
 from .inventory_safety_stock_level_response import InventorySafetyStockLevelResponse
+from .item_config import ItemConfig
 from .location_address import LocationAddress
 from .location_type_0 import LocationType0
 from .make_to_order_manufacturing_order_request import (
@@ -232,8 +234,9 @@ from .manufacturing_order_recipe_row_list_response import (
 )
 from .manufacturing_order_status import ManufacturingOrderStatus
 from .material import Material
-from .material_configs_item import MaterialConfigsItem
+from .material_config import MaterialConfig
 from .material_list_response import MaterialListResponse
+from .material_type import MaterialType
 from .negative_stock import NegativeStock
 from .negative_stock_list_response import NegativeStockListResponse
 from .operator import Operator
@@ -255,10 +258,10 @@ from .price_list_list_response import PriceListListResponse
 from .price_list_row import PriceListRow
 from .price_list_row_list_response import PriceListRowListResponse
 from .product import Product
-from .product_configs_item import ProductConfigsItem
 from .product_list_response import ProductListResponse
 from .product_operation_rerank import ProductOperationRerank
 from .product_operation_rerank_request import ProductOperationRerankRequest
+from .product_type import ProductType
 from .purchase_order_accounting_metadata import PurchaseOrderAccountingMetadata
 from .purchase_order_accounting_metadata_list_response import (
     PurchaseOrderAccountingMetadataListResponse,
@@ -455,11 +458,8 @@ from .variant_list_response import VariantListResponse
 from .variant_response import VariantResponse
 from .variant_response_config_attributes_item import VariantResponseConfigAttributesItem
 from .variant_response_custom_fields_item import VariantResponseCustomFieldsItem
-from .variant_response_product_or_material import VariantResponseProductOrMaterial
-from .variant_response_product_or_material_configs_item import (
-    VariantResponseProductOrMaterialConfigsItem,
-)
 from .variant_response_type import VariantResponseType
+from .variant_type import VariantType
 from .webhook import Webhook
 from .webhook_event import WebhookEvent
 from .webhook_event_payload import WebhookEventPayload
@@ -498,7 +498,6 @@ __all__ = (
     "CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem",
     "CreateManufacturingOrderRequest",
     "CreateMaterialRequest",
-    "CreateMaterialRequestConfigsItem",
     "CreateOutsourcedPurchaseOrderRecipeRowBody",
     "CreatePriceListCustomerRequest",
     "CreatePriceListRequest",
@@ -595,6 +594,8 @@ __all__ = (
     "GetSalesReturnRowUnassignedBatchTransactionsResponse200DataItem",
     "GetVariantExtendItem",
     "Inventory",
+    "InventoryItem",
+    "InventoryItemType",
     "InventoryListResponse",
     "InventoryMovement",
     "InventoryMovementListResponse",
@@ -603,6 +604,7 @@ __all__ = (
     "InventoryReorderPointResponse",
     "InventorySafetyStockLevel",
     "InventorySafetyStockLevelResponse",
+    "ItemConfig",
     "LocationAddress",
     "LocationType0",
     "MakeToOrderManufacturingOrderRequest",
@@ -621,8 +623,9 @@ __all__ = (
     "ManufacturingOrderRecipeRowListResponse",
     "ManufacturingOrderStatus",
     "Material",
-    "MaterialConfigsItem",
+    "MaterialConfig",
     "MaterialListResponse",
+    "MaterialType",
     "NegativeStock",
     "NegativeStockListResponse",
     "Operator",
@@ -638,10 +641,10 @@ __all__ = (
     "PriceListRow",
     "PriceListRowListResponse",
     "Product",
-    "ProductConfigsItem",
     "ProductListResponse",
     "ProductOperationRerank",
     "ProductOperationRerankRequest",
+    "ProductType",
     "PurchaseOrderAccountingMetadata",
     "PurchaseOrderAccountingMetadataListResponse",
     "PurchaseOrderAdditionalCostRow",
@@ -788,9 +791,8 @@ __all__ = (
     "VariantResponse",
     "VariantResponseConfigAttributesItem",
     "VariantResponseCustomFieldsItem",
-    "VariantResponseProductOrMaterial",
-    "VariantResponseProductOrMaterialConfigsItem",
     "VariantResponseType",
+    "VariantType",
     "Webhook",
     "WebhookEvent",
     "WebhookEventPayload",

@@ -15,7 +15,8 @@ T = TypeVar("T", bound="UpdatableEntity")
 
 @_attrs_define
 class UpdatableEntity:
-    """
+    """Common fields for entities that can be updated
+
     Example:
         {'id': 12345, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z'}
     """
