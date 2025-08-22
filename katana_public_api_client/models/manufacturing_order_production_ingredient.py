@@ -17,10 +17,10 @@ T = TypeVar("T", bound="ManufacturingOrderProductionIngredient")
 class ManufacturingOrderProductionIngredient:
     """Record of actual ingredient consumption during manufacturing order production, tracking quantities and costs"""
 
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | str = UNSET
-    id: Unset | int = UNSET
     location_id: Unset | int = UNSET
     variant_id: Unset | int = UNSET
     manufacturing_order_id: Unset | int = UNSET
@@ -32,6 +32,8 @@ class ManufacturingOrderProductionIngredient:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -45,8 +47,6 @@ class ManufacturingOrderProductionIngredient:
             deleted_at = UNSET
         else:
             deleted_at = self.deleted_at
-
-        id = self.id
 
         location_id = self.location_id
 
@@ -68,15 +68,17 @@ class ManufacturingOrderProductionIngredient:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if location_id is not UNSET:
             field_dict["location_id"] = location_id
         if variant_id is not UNSET:
@@ -101,6 +103,8 @@ class ManufacturingOrderProductionIngredient:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -123,8 +127,6 @@ class ManufacturingOrderProductionIngredient:
             return cast(None | Unset | str, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
-
-        id = d.pop("id", UNSET)
 
         location_id = d.pop("location_id", UNSET)
 
@@ -150,10 +152,10 @@ class ManufacturingOrderProductionIngredient:
         cost = d.pop("cost", UNSET)
 
         manufacturing_order_production_ingredient = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            id=id,
             location_id=location_id,
             variant_id=variant_id,
             manufacturing_order_id=manufacturing_order_id,

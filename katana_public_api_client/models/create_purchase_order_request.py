@@ -24,11 +24,11 @@ class CreatePurchaseOrderRequest:
 
     Example:
         {'order_no': 'PO-2024-0156', 'entity_type': 'regular', 'supplier_id': 4001, 'currency': 'USD', 'status':
-            'NOT_RECEIVED', 'expected_arrival_date': '2024-02-15', 'order_created_date': '2024-01-28', 'location_id': 1,
-            'additional_info': "Rush order - needed for Valentine's Day production run", 'purchase_order_rows':
-            [{'quantity': 250, 'price_per_unit': 2.85, 'variant_id': 501, 'tax_rate_id': 1, 'purchase_uom': 'kg',
-            'purchase_uom_conversion_rate': 1.0}, {'quantity': 100, 'price_per_unit': 12.5, 'variant_id': 502,
-            'tax_rate_id': 1, 'purchase_uom': 'pieces', 'purchase_uom_conversion_rate': 1.0}]}
+            'NOT_RECEIVED', 'order_created_date': '2024-01-15T09:30:00Z', 'location_id': 1, 'additional_info': "Rush order -
+            needed for Valentine's Day production run", 'purchase_order_rows': [{'quantity': 250, 'price_per_unit': 2.85,
+            'variant_id': 501, 'tax_rate_id': 1, 'purchase_uom': 'kg', 'purchase_uom_conversion_rate': 1.0, 'arrival_date':
+            '2024-08-20T14:45:00Z'}, {'quantity': 100, 'price_per_unit': 12.5, 'variant_id': 502, 'tax_rate_id': 1,
+            'purchase_uom': 'pieces', 'purchase_uom_conversion_rate': 1.0, 'arrival_date': '2024-08-20T14:45:00Z'}]}
 
     Attributes:
         order_no (str): Unique purchase order number for tracking and reference
@@ -40,9 +40,7 @@ class CreatePurchaseOrderRequest:
             or outsourced for subcontracted work
         currency (Union[Unset, str]): Active ISO 4217 currency code (e.g. USD, EUR).
         status (Union[Unset, CreatePurchaseOrderRequestStatus]): Initial status of the purchase order when created
-        expected_arrival_date (Union[Unset, str]): Expected date when the purchased items will arrive at the facility
         order_created_date (Union[Unset, str]): Date when the purchase order was created
-        tracking_location_id (Union[Unset, int]): Submittable only when entity_type is outsourced
         additional_info (Union[Unset, str]): Optional notes or special instructions for the supplier
     """
 
@@ -53,9 +51,7 @@ class CreatePurchaseOrderRequest:
     entity_type: Unset | CreatePurchaseOrderRequestEntityType = UNSET
     currency: Unset | str = UNSET
     status: Unset | CreatePurchaseOrderRequestStatus = UNSET
-    expected_arrival_date: Unset | str = UNSET
     order_created_date: Unset | str = UNSET
-    tracking_location_id: Unset | int = UNSET
     additional_info: Unset | str = UNSET
 
     def to_dict(self) -> dict[str, Any]:
@@ -80,11 +76,7 @@ class CreatePurchaseOrderRequest:
         if not isinstance(self.status, Unset):
             status = self.status.value
 
-        expected_arrival_date = self.expected_arrival_date
-
         order_created_date = self.order_created_date
-
-        tracking_location_id = self.tracking_location_id
 
         additional_info = self.additional_info
 
@@ -104,12 +96,8 @@ class CreatePurchaseOrderRequest:
             field_dict["currency"] = currency
         if status is not UNSET:
             field_dict["status"] = status
-        if expected_arrival_date is not UNSET:
-            field_dict["expected_arrival_date"] = expected_arrival_date
         if order_created_date is not UNSET:
             field_dict["order_created_date"] = order_created_date
-        if tracking_location_id is not UNSET:
-            field_dict["tracking_location_id"] = tracking_location_id
         if additional_info is not UNSET:
             field_dict["additional_info"] = additional_info
 
@@ -151,11 +139,7 @@ class CreatePurchaseOrderRequest:
         else:
             status = CreatePurchaseOrderRequestStatus(_status)
 
-        expected_arrival_date = d.pop("expected_arrival_date", UNSET)
-
         order_created_date = d.pop("order_created_date", UNSET)
-
-        tracking_location_id = d.pop("tracking_location_id", UNSET)
 
         additional_info = d.pop("additional_info", UNSET)
 
@@ -167,9 +151,7 @@ class CreatePurchaseOrderRequest:
             entity_type=entity_type,
             currency=currency,
             status=status,
-            expected_arrival_date=expected_arrival_date,
             order_created_date=order_created_date,
-            tracking_location_id=tracking_location_id,
             additional_info=additional_info,
         )
 

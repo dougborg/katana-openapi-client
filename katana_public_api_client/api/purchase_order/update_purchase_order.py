@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Union
 
 import httpx
 
@@ -8,7 +8,8 @@ from ...client import AuthenticatedClient, Client
 from ...client_types import Response
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
-from ...models.purchase_order import PurchaseOrder
+from ...models.outsourced_purchase_order import OutsourcedPurchaseOrder
+from ...models.regular_purchase_order import RegularPurchaseOrder
 from ...models.update_purchase_order_request import UpdatePurchaseOrderRequest
 
 
@@ -34,9 +35,36 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | PurchaseOrder | None:
+) -> (
+    DetailedErrorResponse
+    | ErrorResponse
+    | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]
+    | None
+):
     if response.status_code == 200:
-        response_200 = PurchaseOrder.from_dict(response.json())
+
+        def _parse_response_200(
+            data: object,
+        ) -> Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]:
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                componentsschemas_purchase_order_type_0 = (
+                    RegularPurchaseOrder.from_dict(data)
+                )
+
+                return componentsschemas_purchase_order_type_0
+            except:  # noqa: E722
+                pass
+            if not isinstance(data, dict):
+                raise TypeError()
+            componentsschemas_purchase_order_type_1 = OutsourcedPurchaseOrder.from_dict(
+                data
+            )
+
+            return componentsschemas_purchase_order_type_1
+
+        response_200 = _parse_response_200(response.json())
 
         return response_200
     if response.status_code == 401:
@@ -63,7 +91,11 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrder]:
+) -> Response[
+    DetailedErrorResponse
+    | ErrorResponse
+    | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]
+]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -77,7 +109,11 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrder]:
+) -> Response[
+    DetailedErrorResponse
+    | ErrorResponse
+    | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]
+]:
     """Update a purchase order
 
      Updates the specified purchase order by setting the values of the parameters passed.
@@ -96,7 +132,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, Union['OutsourcedPurchaseOrder', 'RegularPurchaseOrder']]]
     """
 
     kwargs = _get_kwargs(
@@ -116,7 +152,12 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRequest,
-) -> DetailedErrorResponse | ErrorResponse | PurchaseOrder | None:
+) -> (
+    DetailedErrorResponse
+    | ErrorResponse
+    | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]
+    | None
+):
     """Update a purchase order
 
      Updates the specified purchase order by setting the values of the parameters passed.
@@ -135,7 +176,7 @@ def sync(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]
+        Union[DetailedErrorResponse, ErrorResponse, Union['OutsourcedPurchaseOrder', 'RegularPurchaseOrder']]
     """
 
     return sync_detailed(
@@ -150,7 +191,11 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | PurchaseOrder]:
+) -> Response[
+    DetailedErrorResponse
+    | ErrorResponse
+    | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]
+]:
     """Update a purchase order
 
      Updates the specified purchase order by setting the values of the parameters passed.
@@ -169,7 +214,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, Union['OutsourcedPurchaseOrder', 'RegularPurchaseOrder']]]
     """
 
     kwargs = _get_kwargs(
@@ -187,7 +232,12 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: UpdatePurchaseOrderRequest,
-) -> DetailedErrorResponse | ErrorResponse | PurchaseOrder | None:
+) -> (
+    DetailedErrorResponse
+    | ErrorResponse
+    | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]
+    | None
+):
     """Update a purchase order
 
      Updates the specified purchase order by setting the values of the parameters passed.
@@ -206,7 +256,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, PurchaseOrder]
+        Union[DetailedErrorResponse, ErrorResponse, Union['OutsourcedPurchaseOrder', 'RegularPurchaseOrder']]
     """
 
     return (

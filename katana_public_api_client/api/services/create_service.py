@@ -6,14 +6,15 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
+from ...models.create_service_request import CreateServiceRequest
+from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.service import Service
-from ...models.service_request import ServiceRequest
 
 
 def _get_kwargs(
     *,
-    body: ServiceRequest,
+    body: CreateServiceRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -32,7 +33,7 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | Service | None:
+) -> DetailedErrorResponse | ErrorResponse | Service | None:
     if response.status_code == 200:
         response_200 = Service.from_dict(response.json())
 
@@ -41,6 +42,10 @@ def _parse_response(
         response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
+    if response.status_code == 422:
+        response_422 = DetailedErrorResponse.from_dict(response.json())
+
+        return response_422
     if response.status_code == 429:
         response_429 = ErrorResponse.from_dict(response.json())
 
@@ -57,7 +62,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | Service]:
+) -> Response[DetailedErrorResponse | ErrorResponse | Service]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -69,19 +74,20 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: ServiceRequest,
-) -> Response[ErrorResponse | Service]:
+    body: CreateServiceRequest,
+) -> Response[DetailedErrorResponse | ErrorResponse | Service]:
     """Create Service
 
      Create a new Service. (See: [Create
     Service](https://developer.katanamrp.com/reference/createservice))
 
     Args:
-        body (ServiceRequest): Request payload for creating or updating service records with
-            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
-            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
-            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
+        body (CreateServiceRequest): Request payload for creating a new service with variants and
+            specifications Example: {'name': 'Assembly Service', 'uom': 'hours', 'category_name':
+            'Manufacturing Services', 'additional_info': 'Professional product assembly service',
+            'is_sellable': True, 'custom_field_collection_id': 1, 'variants': [{'sku': 'ASSM-001',
+            'sales_price': 75.0, 'default_cost': 50.0, 'custom_fields': [{'field_name': 'Skill Level',
+            'field_value': 'Expert'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -89,7 +95,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, Service]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, Service]]
     """
 
     kwargs = _get_kwargs(
@@ -106,19 +112,20 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    body: ServiceRequest,
-) -> ErrorResponse | Service | None:
+    body: CreateServiceRequest,
+) -> DetailedErrorResponse | ErrorResponse | Service | None:
     """Create Service
 
      Create a new Service. (See: [Create
     Service](https://developer.katanamrp.com/reference/createservice))
 
     Args:
-        body (ServiceRequest): Request payload for creating or updating service records with
-            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
-            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
-            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
+        body (CreateServiceRequest): Request payload for creating a new service with variants and
+            specifications Example: {'name': 'Assembly Service', 'uom': 'hours', 'category_name':
+            'Manufacturing Services', 'additional_info': 'Professional product assembly service',
+            'is_sellable': True, 'custom_field_collection_id': 1, 'variants': [{'sku': 'ASSM-001',
+            'sales_price': 75.0, 'default_cost': 50.0, 'custom_fields': [{'field_name': 'Skill Level',
+            'field_value': 'Expert'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -126,7 +133,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, Service]
+        Union[DetailedErrorResponse, ErrorResponse, Service]
     """
 
     return sync_detailed(
@@ -138,19 +145,20 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: ServiceRequest,
-) -> Response[ErrorResponse | Service]:
+    body: CreateServiceRequest,
+) -> Response[DetailedErrorResponse | ErrorResponse | Service]:
     """Create Service
 
      Create a new Service. (See: [Create
     Service](https://developer.katanamrp.com/reference/createservice))
 
     Args:
-        body (ServiceRequest): Request payload for creating or updating service records with
-            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
-            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
-            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
+        body (CreateServiceRequest): Request payload for creating a new service with variants and
+            specifications Example: {'name': 'Assembly Service', 'uom': 'hours', 'category_name':
+            'Manufacturing Services', 'additional_info': 'Professional product assembly service',
+            'is_sellable': True, 'custom_field_collection_id': 1, 'variants': [{'sku': 'ASSM-001',
+            'sales_price': 75.0, 'default_cost': 50.0, 'custom_fields': [{'field_name': 'Skill Level',
+            'field_value': 'Expert'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -158,7 +166,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, Service]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, Service]]
     """
 
     kwargs = _get_kwargs(
@@ -173,19 +181,20 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    body: ServiceRequest,
-) -> ErrorResponse | Service | None:
+    body: CreateServiceRequest,
+) -> DetailedErrorResponse | ErrorResponse | Service | None:
     """Create Service
 
      Create a new Service. (See: [Create
     Service](https://developer.katanamrp.com/reference/createservice))
 
     Args:
-        body (ServiceRequest): Request payload for creating or updating service records with
-            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
-            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
-            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
+        body (CreateServiceRequest): Request payload for creating a new service with variants and
+            specifications Example: {'name': 'Assembly Service', 'uom': 'hours', 'category_name':
+            'Manufacturing Services', 'additional_info': 'Professional product assembly service',
+            'is_sellable': True, 'custom_field_collection_id': 1, 'variants': [{'sku': 'ASSM-001',
+            'sales_price': 75.0, 'default_cost': 50.0, 'custom_fields': [{'field_name': 'Skill Level',
+            'field_value': 'Expert'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -193,7 +202,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, Service]
+        Union[DetailedErrorResponse, ErrorResponse, Service]
     """
 
     return (

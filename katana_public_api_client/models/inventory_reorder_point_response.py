@@ -20,6 +20,7 @@ class InventoryReorderPointResponse:
     location_id: int
     variant_id: int
     value: float
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | str = UNSET
@@ -31,6 +32,8 @@ class InventoryReorderPointResponse:
         variant_id = self.variant_id
 
         value = self.value
+
+        id = self.id
 
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
@@ -53,6 +56,7 @@ class InventoryReorderPointResponse:
                 "location_id": location_id,
                 "variant_id": variant_id,
                 "value": value,
+                "id": id,
             }
         )
         if created_at is not UNSET:
@@ -72,6 +76,8 @@ class InventoryReorderPointResponse:
         variant_id = d.pop("variant_id")
 
         value = d.pop("value")
+
+        id = d.pop("id")
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -100,6 +106,7 @@ class InventoryReorderPointResponse:
             location_id=location_id,
             variant_id=variant_id,
             value=value,
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,

@@ -9,13 +9,13 @@ from ...client_types import Response
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.service import Service
-from ...models.service_request import ServiceRequest
+from ...models.update_service_request import UpdateServiceRequest
 
 
 def _get_kwargs(
     id: int,
     *,
-    body: ServiceRequest,
+    body: UpdateServiceRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -76,7 +76,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: ServiceRequest,
+    body: UpdateServiceRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Service]:
     """Update Service
 
@@ -85,11 +85,11 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (ServiceRequest): Request payload for creating or updating service records with
-            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
-            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
-            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
+        body (UpdateServiceRequest): Request payload for updating an existing service's properties
+            and specifications Example: {'name': 'Updated Assembly Service', 'uom': 'hours',
+            'category_name': 'Professional Services', 'is_sellable': True, 'is_archived': False,
+            'sales_price': 85.0, 'default_cost': 55.0, 'sku': 'ASSM-001-UPD', 'additional_info':
+            'Updated professional product assembly service', 'custom_field_collection_id': 1}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -116,7 +116,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: ServiceRequest,
+    body: UpdateServiceRequest,
 ) -> DetailedErrorResponse | ErrorResponse | Service | None:
     """Update Service
 
@@ -125,11 +125,11 @@ def sync(
 
     Args:
         id (int):
-        body (ServiceRequest): Request payload for creating or updating service records with
-            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
-            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
-            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
+        body (UpdateServiceRequest): Request payload for updating an existing service's properties
+            and specifications Example: {'name': 'Updated Assembly Service', 'uom': 'hours',
+            'category_name': 'Professional Services', 'is_sellable': True, 'is_archived': False,
+            'sales_price': 85.0, 'default_cost': 55.0, 'sku': 'ASSM-001-UPD', 'additional_info':
+            'Updated professional product assembly service', 'custom_field_collection_id': 1}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -151,7 +151,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: ServiceRequest,
+    body: UpdateServiceRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | Service]:
     """Update Service
 
@@ -160,11 +160,11 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (ServiceRequest): Request payload for creating or updating service records with
-            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
-            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
-            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
+        body (UpdateServiceRequest): Request payload for updating an existing service's properties
+            and specifications Example: {'name': 'Updated Assembly Service', 'uom': 'hours',
+            'category_name': 'Professional Services', 'is_sellable': True, 'is_archived': False,
+            'sales_price': 85.0, 'default_cost': 55.0, 'sku': 'ASSM-001-UPD', 'additional_info':
+            'Updated professional product assembly service', 'custom_field_collection_id': 1}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -189,7 +189,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: ServiceRequest,
+    body: UpdateServiceRequest,
 ) -> DetailedErrorResponse | ErrorResponse | Service | None:
     """Update Service
 
@@ -198,11 +198,11 @@ async def asyncio(
 
     Args:
         id (int):
-        body (ServiceRequest): Request payload for creating or updating service records with
-            pricing and operational details Example: {'data': {'type': 'services', 'attributes':
-            {'name': 'Assembly Service', 'description': 'Professional product assembly service',
-            'price': 150.0, 'currency': 'USD'}}, 'uom': 'pcs', 'category_name': 'Printing Services',
-            'is_sellable': True, 'additional_info': 'Professional quality guaranteed'}.
+        body (UpdateServiceRequest): Request payload for updating an existing service's properties
+            and specifications Example: {'name': 'Updated Assembly Service', 'uom': 'hours',
+            'category_name': 'Professional Services', 'is_sellable': True, 'is_archived': False,
+            'sales_price': 85.0, 'default_cost': 55.0, 'sku': 'ASSM-001-UPD', 'additional_info':
+            'Updated professional product assembly service', 'custom_field_collection_id': 1}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

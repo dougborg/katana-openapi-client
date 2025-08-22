@@ -15,18 +15,20 @@ T = TypeVar("T", bound="ArchivableEntity")
 
 @_attrs_define
 class ArchivableEntity:
-    """Common fields for entities that can be archived
-
+    """
     Example:
         {'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'archived_at': None}
     """
 
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     archived_at: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -43,7 +45,11 @@ class ArchivableEntity:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
@@ -56,6 +62,8 @@ class ArchivableEntity:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -80,6 +88,7 @@ class ArchivableEntity:
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
         archivable_entity = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             archived_at=archived_at,

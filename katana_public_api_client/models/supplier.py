@@ -31,10 +31,10 @@ class Supplier:
             'deleted_at': None}]}
     """
 
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | str = UNSET
-    id: Unset | int = UNSET
     name: Unset | str = UNSET
     email: Unset | str = UNSET
     phone: Unset | str = UNSET
@@ -45,6 +45,8 @@ class Supplier:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -58,8 +60,6 @@ class Supplier:
             deleted_at = UNSET
         else:
             deleted_at = self.deleted_at
-
-        id = self.id
 
         name = self.name
 
@@ -82,15 +82,17 @@ class Supplier:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if name is not UNSET:
             field_dict["name"] = name
         if email is not UNSET:
@@ -113,6 +115,8 @@ class Supplier:
         from ..models.supplier_address import SupplierAddress
 
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -136,8 +140,6 @@ class Supplier:
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        id = d.pop("id", UNSET)
-
         name = d.pop("name", UNSET)
 
         email = d.pop("email", UNSET)
@@ -158,10 +160,10 @@ class Supplier:
             addresses.append(addresses_item)
 
         supplier = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            id=id,
             name=name,
             email=email,
             phone=phone,
