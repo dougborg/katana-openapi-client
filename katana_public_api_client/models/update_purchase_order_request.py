@@ -1,7 +1,9 @@
+import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.update_purchase_order_request_status import (
@@ -26,7 +28,7 @@ class UpdatePurchaseOrderRequest:
     tracking_location_id: Unset | int = UNSET
     status: Unset | UpdatePurchaseOrderRequestStatus = UNSET
     expected_arrival_date: Unset | str = UNSET
-    order_created_date: Unset | str = UNSET
+    order_created_date: Unset | datetime.datetime = UNSET
     location_id: Unset | int = UNSET
     additional_info: Unset | str = UNSET
 
@@ -45,7 +47,9 @@ class UpdatePurchaseOrderRequest:
 
         expected_arrival_date = self.expected_arrival_date
 
-        order_created_date = self.order_created_date
+        order_created_date: Unset | str = UNSET
+        if not isinstance(self.order_created_date, Unset):
+            order_created_date = self.order_created_date.isoformat()
 
         location_id = self.location_id
 
@@ -95,7 +99,12 @@ class UpdatePurchaseOrderRequest:
 
         expected_arrival_date = d.pop("expected_arrival_date", UNSET)
 
-        order_created_date = d.pop("order_created_date", UNSET)
+        _order_created_date = d.pop("order_created_date", UNSET)
+        order_created_date: Unset | datetime.datetime
+        if isinstance(_order_created_date, Unset):
+            order_created_date = UNSET
+        else:
+            order_created_date = isoparse(_order_created_date)
 
         location_id = d.pop("location_id", UNSET)
 

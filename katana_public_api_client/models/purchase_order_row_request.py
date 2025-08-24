@@ -1,7 +1,9 @@
+import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -23,7 +25,7 @@ class PurchaseOrderRowRequest:
     tax_rate_id: Unset | int = UNSET
     purchase_uom_conversion_rate: Unset | float = UNSET
     purchase_uom: Unset | str = UNSET
-    arrival_date: Unset | str = UNSET
+    arrival_date: Unset | datetime.datetime = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         quantity = self.quantity
@@ -38,7 +40,9 @@ class PurchaseOrderRowRequest:
 
         purchase_uom = self.purchase_uom
 
-        arrival_date = self.arrival_date
+        arrival_date: Unset | str = UNSET
+        if not isinstance(self.arrival_date, Unset):
+            arrival_date = self.arrival_date.isoformat()
 
         field_dict: dict[str, Any] = {}
 
@@ -75,7 +79,12 @@ class PurchaseOrderRowRequest:
 
         purchase_uom = d.pop("purchase_uom", UNSET)
 
-        arrival_date = d.pop("arrival_date", UNSET)
+        _arrival_date = d.pop("arrival_date", UNSET)
+        arrival_date: Unset | datetime.datetime
+        if isinstance(_arrival_date, Unset):
+            arrival_date = UNSET
+        else:
+            arrival_date = isoparse(_arrival_date)
 
         purchase_order_row_request = cls(
             quantity=quantity,
