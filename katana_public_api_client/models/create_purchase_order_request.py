@@ -1,7 +1,9 @@
+import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.create_purchase_order_request_entity_type import (
@@ -40,7 +42,7 @@ class CreatePurchaseOrderRequest:
             or outsourced for subcontracted work
         currency (Union[Unset, str]): Active ISO 4217 currency code (e.g. USD, EUR).
         status (Union[Unset, CreatePurchaseOrderRequestStatus]): Initial status of the purchase order when created
-        order_created_date (Union[Unset, str]): Date when the purchase order was created
+        order_created_date (Union[Unset, datetime.datetime]): Date when the purchase order was created
         additional_info (Union[Unset, str]): Optional notes or special instructions for the supplier
     """
 
@@ -51,7 +53,7 @@ class CreatePurchaseOrderRequest:
     entity_type: Unset | CreatePurchaseOrderRequestEntityType = UNSET
     currency: Unset | str = UNSET
     status: Unset | CreatePurchaseOrderRequestStatus = UNSET
-    order_created_date: Unset | str = UNSET
+    order_created_date: Unset | datetime.datetime = UNSET
     additional_info: Unset | str = UNSET
 
     def to_dict(self) -> dict[str, Any]:
@@ -76,7 +78,9 @@ class CreatePurchaseOrderRequest:
         if not isinstance(self.status, Unset):
             status = self.status.value
 
-        order_created_date = self.order_created_date
+        order_created_date: Unset | str = UNSET
+        if not isinstance(self.order_created_date, Unset):
+            order_created_date = self.order_created_date.isoformat()
 
         additional_info = self.additional_info
 
@@ -139,7 +143,12 @@ class CreatePurchaseOrderRequest:
         else:
             status = CreatePurchaseOrderRequestStatus(_status)
 
-        order_created_date = d.pop("order_created_date", UNSET)
+        _order_created_date = d.pop("order_created_date", UNSET)
+        order_created_date: Unset | datetime.datetime
+        if isinstance(_order_created_date, Unset):
+            order_created_date = UNSET
+        else:
+            order_created_date = isoparse(_order_created_date)
 
         additional_info = d.pop("additional_info", UNSET)
 

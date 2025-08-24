@@ -43,7 +43,7 @@ class Material:
     type_: MaterialType
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    archived_at: None | Unset | str = UNSET
+    archived_at: None | Unset | datetime.datetime = UNSET
     uom: Unset | str = UNSET
     category_name: Unset | str = UNSET
     is_sellable: Unset | bool = UNSET
@@ -78,6 +78,8 @@ class Material:
         archived_at: None | Unset | str
         if isinstance(self.archived_at, Unset):
             archived_at = UNSET
+        elif isinstance(self.archived_at, datetime.datetime):
+            archived_at = self.archived_at.isoformat()
         else:
             archived_at = self.archived_at
 
@@ -206,12 +208,20 @@ class Material:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_archived_at(data: object) -> None | Unset | str:
+        def _parse_archived_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                archived_at_type_0 = isoparse(data)
+
+                return archived_at_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 

@@ -1154,6 +1154,7 @@ components:
               type:
                 - string
                 - "null"
+              format: date-time
               description: Nullable archive timestamp
       example:
         created_at: "2020-10-23T10:37:05.085Z"
@@ -1177,6 +1178,7 @@ components:
               type:
                 - string
                 - "null"
+              format: date-time
               description: Nullable deletion timestamp
       example:
         created_at: "2020-10-23T10:37:05.085Z"
@@ -3890,6 +3892,7 @@ components:
           description: Initial status of the purchase order when created
         order_created_date:
           type: string
+          format: date-time
           description: Date when the purchase order was created
         location_id:
           type: integer
@@ -3973,6 +3976,7 @@ components:
           description: Unit of measure for purchasing this item (e.g., kg, pieces, liters)
         arrival_date:
           type: string
+          format: date-time
           description: Expected arrival date for this line item
       example:
         quantity: 250
@@ -4433,6 +4437,7 @@ components:
             on purchase order rows
         order_created_date:
           type: string
+          format: date-time
           description: Date when the purchase order was originally created
         location_id:
           type: integer
@@ -4627,6 +4632,7 @@ components:
           description: Quantity of items being received for this row
         received_date:
           type: string
+          format: date-time
           description: Optional received date in ISO 8601 format.
         batch_transactions:
           type: array
@@ -4706,6 +4712,7 @@ components:
           description: Unit of measure for purchasing this item
         arrival_date:
           type: string
+          format: date-time
           description: Optional arrival date in ISO 8601 format.
       example:
         purchase_order_id: 156
@@ -15581,12 +15588,15 @@ paths:
                   maximum: 2147483647
                 order_created_date:
                   type: string
+                  format: date-time
                   description: Date when the order was originally created
                 delivery_date:
                   type: string
+                  format: date-time
                   description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
                 picked_date:
                   type: string
+                  format: date-time
                   description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
                 location_id:
                   type: integer
