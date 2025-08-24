@@ -1,39 +1,45 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
 
-from ..models.service_request_data_type import ServiceRequestDataType
-
-if TYPE_CHECKING:
-    from ..models.service_input_attributes import ServiceInputAttributes
-
-
-T = TypeVar("T", bound="ServiceRequestData")
+T = TypeVar("T", bound="MaterialConfig")
 
 
 @_attrs_define
-class ServiceRequestData:
-    """Service data wrapper following JSON:API conventions"""
+class MaterialConfig:
+    """Configuration option for a material that defines variant attributes
 
-    type_: ServiceRequestDataType
-    attributes: "ServiceInputAttributes"
+    Example:
+        {'id': 101, 'name': 'Grade', 'values': ['Premium', 'Standard', 'Economy'], 'material_id': 1}
+    """
+
+    id: int
+    name: str
+    values: list[str]
+    material_id: int
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        type_ = self.type_.value
+        id = self.id
 
-        attributes = self.attributes.to_dict()
+        name = self.name
+
+        values = self.values
+
+        material_id = self.material_id
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "type": type_,
-                "attributes": attributes,
+                "id": id,
+                "name": name,
+                "values": values,
+                "material_id": material_id,
             }
         )
 
@@ -41,20 +47,24 @@ class ServiceRequestData:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.service_input_attributes import ServiceInputAttributes
-
         d = dict(src_dict)
-        type_ = ServiceRequestDataType(d.pop("type"))
+        id = d.pop("id")
 
-        attributes = ServiceInputAttributes.from_dict(d.pop("attributes"))
+        name = d.pop("name")
 
-        service_request_data = cls(
-            type_=type_,
-            attributes=attributes,
+        values = cast(list[str], d.pop("values"))
+
+        material_id = d.pop("material_id")
+
+        material_config = cls(
+            id=id,
+            name=name,
+            values=values,
+            material_id=material_id,
         )
 
-        service_request_data.additional_properties = d
-        return service_request_data
+        material_config.additional_properties = d
+        return material_config
 
     @property
     def additional_keys(self) -> list[str]:

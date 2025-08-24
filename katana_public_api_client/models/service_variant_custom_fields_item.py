@@ -6,26 +6,46 @@ from attrs import (
     field as _attrs_field,
 )
 
-T = TypeVar("T", bound="VariantResponseProductOrMaterialConfigsItem")
+from ..client_types import UNSET, Unset
+
+T = TypeVar("T", bound="ServiceVariantCustomFieldsItem")
 
 
 @_attrs_define
-class VariantResponseProductOrMaterialConfigsItem:
+class ServiceVariantCustomFieldsItem:
+    field_name: Unset | str = UNSET
+    field_value: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        field_name = self.field_name
+
+        field_value = self.field_value
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
+        field_dict.update({})
+        if field_name is not UNSET:
+            field_dict["field_name"] = field_name
+        if field_value is not UNSET:
+            field_dict["field_value"] = field_value
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        variant_response_product_or_material_configs_item = cls()
+        field_name = d.pop("field_name", UNSET)
 
-        variant_response_product_or_material_configs_item.additional_properties = d
-        return variant_response_product_or_material_configs_item
+        field_value = d.pop("field_value", UNSET)
+
+        service_variant_custom_fields_item = cls(
+            field_name=field_name,
+            field_value=field_value,
+        )
+
+        service_variant_custom_fields_item.additional_properties = d
+        return service_variant_custom_fields_item
 
     @property
     def additional_keys(self) -> list[str]:

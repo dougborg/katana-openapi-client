@@ -87,7 +87,10 @@ def sync_detailed(
             grade stainless steel, 1.5mm thickness', 'batch_tracked': True, 'is_sellable': False,
             'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'name':
             'Grade', 'values': ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm',
-            '3.0mm']}], 'variants': []}.
+            '3.0mm']}], 'variants': [{'sku': 'STEEL-304-1.5MM', 'sales_price': None, 'purchase_price':
+            45.0, 'lead_time': 5, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name':
+            'Grade', 'config_value': '304'}, {'config_name': 'Thickness', 'config_value':
+            '1.5mm'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -125,7 +128,10 @@ def sync(
             grade stainless steel, 1.5mm thickness', 'batch_tracked': True, 'is_sellable': False,
             'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'name':
             'Grade', 'values': ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm',
-            '3.0mm']}], 'variants': []}.
+            '3.0mm']}], 'variants': [{'sku': 'STEEL-304-1.5MM', 'sales_price': None, 'purchase_price':
+            45.0, 'lead_time': 5, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name':
+            'Grade', 'config_value': '304'}, {'config_name': 'Thickness', 'config_value':
+            '1.5mm'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -158,7 +164,10 @@ async def asyncio_detailed(
             grade stainless steel, 1.5mm thickness', 'batch_tracked': True, 'is_sellable': False,
             'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'name':
             'Grade', 'values': ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm',
-            '3.0mm']}], 'variants': []}.
+            '3.0mm']}], 'variants': [{'sku': 'STEEL-304-1.5MM', 'sales_price': None, 'purchase_price':
+            45.0, 'lead_time': 5, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name':
+            'Grade', 'config_value': '304'}, {'config_name': 'Thickness', 'config_value':
+            '1.5mm'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -194,7 +203,10 @@ async def asyncio(
             grade stainless steel, 1.5mm thickness', 'batch_tracked': True, 'is_sellable': False,
             'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'name':
             'Grade', 'values': ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm',
-            '3.0mm']}], 'variants': []}.
+            '3.0mm']}], 'variants': [{'sku': 'STEEL-304-1.5MM', 'sales_price': None, 'purchase_price':
+            45.0, 'lead_time': 5, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name':
+            'Grade', 'config_value': '304'}, {'config_name': 'Thickness', 'config_value':
+            '1.5mm'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

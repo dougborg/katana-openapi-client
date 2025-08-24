@@ -12,14 +12,13 @@ from ..client_types import UNSET, Unset
 from ..models.variant_response_type import VariantResponseType
 
 if TYPE_CHECKING:
+    from ..models.material import Material
+    from ..models.product import Product
     from ..models.variant_response_config_attributes_item import (
         VariantResponseConfigAttributesItem,
     )
     from ..models.variant_response_custom_fields_item import (
         VariantResponseCustomFieldsItem,
-    )
-    from ..models.variant_response_product_or_material import (
-        VariantResponseProductOrMaterial,
     )
 
 
@@ -37,14 +36,15 @@ class VariantResponse:
             [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
             'Steel'}], 'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '5 years'}],
             'product_or_material': {'id': 101, 'name': 'Professional Kitchen Knife Set', 'uom': 'set', 'category_name':
-            'Kitchenware', 'type': 'product'}, 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at':
-            '2024-08-20T14:45:00.000Z', 'deleted_at': None}
+            'Kitchenware', 'is_sellable': True, 'is_producible': True, 'is_purchasable': False, 'type': 'product',
+            'created_at': '2024-01-15T08:00:00.000Z', 'updated_at': '2024-08-20T14:45:00.000Z', 'archived_at': None},
+            'created_at': '2024-01-15T08:00:00.000Z', 'updated_at': '2024-08-20T14:45:00.000Z', 'deleted_at': None}
     """
 
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | str = UNSET
-    id: Unset | int = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
     sku: Unset | str = UNSET
     sales_price: Unset | float = UNSET
     purchase_price: Unset | float = UNSET
@@ -58,10 +58,14 @@ class VariantResponse:
     minimum_order_quantity: None | Unset | float = UNSET
     config_attributes: Unset | list["VariantResponseConfigAttributesItem"] = UNSET
     custom_fields: Unset | list["VariantResponseCustomFieldsItem"] = UNSET
-    product_or_material: Union[Unset, "VariantResponseProductOrMaterial"] = UNSET
+    product_or_material: Union["Material", "Product", Unset] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.product import Product
+
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -73,10 +77,10 @@ class VariantResponse:
         deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
-
-        id = self.id
 
         sku = self.sku
 
@@ -134,21 +138,27 @@ class VariantResponse:
                 custom_fields_item = custom_fields_item_data.to_dict()
                 custom_fields.append(custom_fields_item)
 
-        product_or_material: Unset | dict[str, Any] = UNSET
-        if not isinstance(self.product_or_material, Unset):
+        product_or_material: Unset | dict[str, Any]
+        if isinstance(self.product_or_material, Unset):
+            product_or_material = UNSET
+        elif isinstance(self.product_or_material, Product):
+            product_or_material = self.product_or_material.to_dict()
+        else:
             product_or_material = self.product_or_material.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if sku is not UNSET:
             field_dict["sku"] = sku
         if sales_price is not UNSET:
@@ -182,17 +192,18 @@ class VariantResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.material import Material
+        from ..models.product import Product
         from ..models.variant_response_config_attributes_item import (
             VariantResponseConfigAttributesItem,
         )
         from ..models.variant_response_custom_fields_item import (
             VariantResponseCustomFieldsItem,
         )
-        from ..models.variant_response_product_or_material import (
-            VariantResponseProductOrMaterial,
-        )
 
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -207,16 +218,22 @@ class VariantResponse:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | str:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
-
-        id = d.pop("id", UNSET)
 
         sku = d.pop("sku", UNSET)
 
@@ -293,20 +310,34 @@ class VariantResponse:
 
             custom_fields.append(custom_fields_item)
 
-        _product_or_material = d.pop("product_or_material", UNSET)
-        product_or_material: Unset | VariantResponseProductOrMaterial
-        if isinstance(_product_or_material, Unset):
-            product_or_material = UNSET
-        else:
-            product_or_material = VariantResponseProductOrMaterial.from_dict(
-                _product_or_material
-            )
+        def _parse_product_or_material(
+            data: object,
+        ) -> Union["Material", "Product", Unset]:
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                product_or_material_type_0 = Product.from_dict(data)
+
+                return product_or_material_type_0
+            except:  # noqa: E722
+                pass
+            if not isinstance(data, dict):
+                raise TypeError()
+            product_or_material_type_1 = Material.from_dict(data)
+
+            return product_or_material_type_1
+
+        product_or_material = _parse_product_or_material(
+            d.pop("product_or_material", UNSET)
+        )
 
         variant_response = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            id=id,
             sku=sku,
             sales_price=sales_price,
             purchase_price=purchase_price,

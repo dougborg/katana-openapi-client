@@ -90,8 +90,9 @@ def sync_detailed(
             'lead_time': 14, 'minimum_order_quantity': 1, 'configs': [{'name': 'Piece Count',
             'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values':
             ['Steel', 'Wooden', 'Composite']}], 'variants': [{'sku': 'KNF-PRO-8PC-STL', 'sales_price':
-            299.99, 'purchase_price': 150.0, 'config_attributes': [{'config_name': 'Piece Count',
-            'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            299.99, 'purchase_price': 150.0, 'supplier_item_codes': ['KNF-8PC-STEEL-001'],
+            'lead_time': 14, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece
+            Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
             'Steel'}]}]}.
 
     Raises:
@@ -133,8 +134,9 @@ def sync(
             'lead_time': 14, 'minimum_order_quantity': 1, 'configs': [{'name': 'Piece Count',
             'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values':
             ['Steel', 'Wooden', 'Composite']}], 'variants': [{'sku': 'KNF-PRO-8PC-STL', 'sales_price':
-            299.99, 'purchase_price': 150.0, 'config_attributes': [{'config_name': 'Piece Count',
-            'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            299.99, 'purchase_price': 150.0, 'supplier_item_codes': ['KNF-8PC-STEEL-001'],
+            'lead_time': 14, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece
+            Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
             'Steel'}]}]}.
 
     Raises:
@@ -171,8 +173,9 @@ async def asyncio_detailed(
             'lead_time': 14, 'minimum_order_quantity': 1, 'configs': [{'name': 'Piece Count',
             'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values':
             ['Steel', 'Wooden', 'Composite']}], 'variants': [{'sku': 'KNF-PRO-8PC-STL', 'sales_price':
-            299.99, 'purchase_price': 150.0, 'config_attributes': [{'config_name': 'Piece Count',
-            'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            299.99, 'purchase_price': 150.0, 'supplier_item_codes': ['KNF-8PC-STEEL-001'],
+            'lead_time': 14, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece
+            Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
             'Steel'}]}]}.
 
     Raises:
@@ -212,8 +215,9 @@ async def asyncio(
             'lead_time': 14, 'minimum_order_quantity': 1, 'configs': [{'name': 'Piece Count',
             'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values':
             ['Steel', 'Wooden', 'Composite']}], 'variants': [{'sku': 'KNF-PRO-8PC-STL', 'sales_price':
-            299.99, 'purchase_price': 150.0, 'config_attributes': [{'config_name': 'Piece Count',
-            'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            299.99, 'purchase_price': 150.0, 'supplier_item_codes': ['KNF-8PC-STEEL-001'],
+            'lead_time': 14, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece
+            Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
             'Steel'}]}]}.
 
     Raises:

@@ -1,7 +1,9 @@
+import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
+from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -20,7 +22,7 @@ class PurchaseOrderReceiveRow:
 
     purchase_order_row_id: int
     quantity: float
-    received_date: Unset | str = UNSET
+    received_date: Unset | datetime.datetime = UNSET
     batch_transactions: Unset | list["PurchaseOrderReceiveRowBatchTransactionsItem"] = (
         UNSET
     )
@@ -30,7 +32,9 @@ class PurchaseOrderReceiveRow:
 
         quantity = self.quantity
 
-        received_date = self.received_date
+        received_date: Unset | str = UNSET
+        if not isinstance(self.received_date, Unset):
+            received_date = self.received_date.isoformat()
 
         batch_transactions: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.batch_transactions, Unset):
@@ -65,7 +69,12 @@ class PurchaseOrderReceiveRow:
 
         quantity = d.pop("quantity")
 
-        received_date = d.pop("received_date", UNSET)
+        _received_date = d.pop("received_date", UNSET)
+        received_date: Unset | datetime.datetime
+        if isinstance(_received_date, Unset):
+            received_date = UNSET
+        else:
+            received_date = isoparse(_received_date)
 
         batch_transactions = []
         _batch_transactions = d.pop("batch_transactions", UNSET)

@@ -20,9 +20,13 @@ class ServiceListResponse:
     """Response containing a list of services available for purchase orders and operations
 
     Example:
-        {'data': [{'id': 401, 'name': 'Assembly Service', 'price': 150.0, 'currency': 'USD', 'tax_rate_id': 1,
-            'description': 'Professional product assembly service', 'created_at': '2023-10-01T09:00:00Z', 'updated_at':
-            '2023-10-01T09:00:00Z'}]}
+        {'data': [{'id': 401, 'name': 'Assembly Service', 'uom': 'hours', 'category_name': 'Manufacturing Services',
+            'is_sellable': True, 'type': 'service', 'additional_info': 'Professional product assembly service',
+            'custom_field_collection_id': 1, 'variants': [{'id': 4001, 'sku': 'ASSM-001', 'sales_price': 75.0,
+            'default_cost': 50.0, 'service_id': 401, 'type': 'service', 'custom_fields': [{'field_name': 'Skill Level',
+            'field_value': 'Expert'}], 'created_at': '2023-10-01T09:00:00Z', 'updated_at': '2023-10-01T09:00:00Z',
+            'deleted_at': None}], 'created_at': '2023-10-01T09:00:00Z', 'updated_at': '2023-10-01T09:00:00Z', 'archived_at':
+            None, 'deleted_at': None}]}
     """
 
     data: Unset | list["Service"] = UNSET

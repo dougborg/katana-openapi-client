@@ -3,7 +3,11 @@
   "info": {
     "title": "RESOURCES",
     "version": "1.0.0",
-    "description": "public api"
+    "description": "public api",
+    "license": {
+      "name": "UNKNOWN",
+      "url": "https://opensource.org/license/unknown/"
+    }
   },
   "servers": [
     {
@@ -1569,7 +1573,7 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "rows"
+                  "data"
                 ],
                 "properties": {
                   "data": {
@@ -4825,8 +4829,10 @@
                 "properties": {
                   "bin_name": {
                     "type": "string"
-                  }
-                }
+                  },
+                  "location_id": {
+                    "type": "integer"
+                  }                }
               }
             }
           }
@@ -10634,6 +10640,9 @@
                   "status"
                 ],
                 "properties": {
+                  "manufacturing_order_id": {
+                    "type": "number"
+                  },
                   "operation_id": {
                     "type": "number",
                     "description": "If operation ID is used to map the operation, then operation_name is ignored."
@@ -16256,7 +16265,7 @@
                           "description": "ID of the variant"
                         },
                         "adjustment_method": {
-                          "type": "number",
+                          "type": "string",
                           "description": "Adjustment method for the price list row",
                           "enum": [
                             "fixed",
@@ -16770,7 +16779,7 @@
                     "description": "ID of the variant"
                   },
                   "adjustment_method": {
-                    "type": "number",
+                    "type": "string",
                     "description": "Adjustment method for the price list row",
                     "enum": [
                       "fixed",
@@ -36200,8 +36209,7 @@
                 "additionalProperties": false,
                 "required": [
                   "resource_type",
-                  "resource_id",
-                  "serial_numbers"
+                  "resource_id"
                 ],
                 "properties": {
                   "resource_type": {
@@ -48136,6 +48144,5 @@
   ],
   "x-readme": {
     "proxy-enabled": true
-  },
-  "_id": "5fcc231615545200325d6e93"
+  }
 }

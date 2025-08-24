@@ -1,8 +1,8 @@
 from enum import Enum
 
 
-class ServiceRequestDataType(str, Enum):
-    SERVICES = "services"
+class ProductType(str, Enum):
+    PRODUCT = "product"
 
     def __str__(self) -> str:
         return str(self.value)

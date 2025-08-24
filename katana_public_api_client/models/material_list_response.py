@@ -22,10 +22,17 @@ class MaterialListResponse:
     Example:
         {'data': [{'id': 3201, 'name': 'Stainless Steel Sheet 304', 'uom': 'm²', 'category_name': 'Raw Materials',
             'default_supplier_id': 1501, 'additional_info': 'Food-grade stainless steel, 1.5mm thickness', 'batch_tracked':
-            True, 'is_sellable': False, 'type': 'Raw Material', 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate':
-            2.0, 'variants': [], 'configs': [{'id': 101, 'name': 'Grade', 'values': ['304', '316'], 'product_id': 3201}],
-            'custom_field_collection_id': 201, 'supplier': None, 'created_at': '2024-01-10T10:00:00Z', 'updated_at':
-            '2024-01-15T14:30:00Z', 'archived_at': None}]}
+            True, 'is_sellable': False, 'type': 'material', 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0,
+            'variants': [{'id': 5001, 'sku': 'STEEL-304-1.5MM', 'sales_price': None, 'purchase_price': 45.0, 'type':
+            'material', 'lead_time': 5, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Grade',
+            'config_value': '304'}, {'config_name': 'Thickness', 'config_value': '1.5mm'}], 'created_at':
+            '2024-01-10T10:00:00Z', 'updated_at': '2024-01-15T14:30:00Z'}, {'id': 5002, 'sku': 'STEEL-316-1.5MM',
+            'sales_price': None, 'purchase_price': 52.0, 'type': 'material', 'lead_time': 7, 'minimum_order_quantity': 1,
+            'config_attributes': [{'config_name': 'Grade', 'config_value': '316'}, {'config_name': 'Thickness',
+            'config_value': '1.5mm'}], 'created_at': '2024-01-10T10:00:00Z', 'updated_at': '2024-01-15T14:30:00Z'}],
+            'configs': [{'id': 101, 'name': 'Grade', 'values': ['304', '316']}, {'id': 102, 'name': 'Thickness', 'values':
+            ['1.5mm', '2.0mm']}], 'custom_field_collection_id': 201, 'supplier': None, 'created_at': '2024-01-10T10:00:00Z',
+            'updated_at': '2024-01-15T14:30:00Z', 'archived_at': None}]}
     """
 
     data: Unset | list["Material"] = UNSET

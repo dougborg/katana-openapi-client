@@ -1,7 +1,9 @@
+import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
+from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.update_sales_order_body_status import UpdateSalesOrderBodyStatus
@@ -13,9 +15,9 @@ T = TypeVar("T", bound="UpdateSalesOrderBody")
 class UpdateSalesOrderBody:
     order_no: Unset | str = UNSET
     customer_id: Unset | int = UNSET
-    order_created_date: Unset | str = UNSET
-    delivery_date: Unset | str = UNSET
-    picked_date: Unset | str = UNSET
+    order_created_date: Unset | datetime.datetime = UNSET
+    delivery_date: Unset | datetime.datetime = UNSET
+    picked_date: Unset | datetime.datetime = UNSET
     location_id: Unset | int = UNSET
     status: Unset | UpdateSalesOrderBodyStatus = UNSET
     currency: Unset | str = UNSET
@@ -31,11 +33,17 @@ class UpdateSalesOrderBody:
 
         customer_id = self.customer_id
 
-        order_created_date = self.order_created_date
+        order_created_date: Unset | str = UNSET
+        if not isinstance(self.order_created_date, Unset):
+            order_created_date = self.order_created_date.isoformat()
 
-        delivery_date = self.delivery_date
+        delivery_date: Unset | str = UNSET
+        if not isinstance(self.delivery_date, Unset):
+            delivery_date = self.delivery_date.isoformat()
 
-        picked_date = self.picked_date
+        picked_date: Unset | str = UNSET
+        if not isinstance(self.picked_date, Unset):
+            picked_date = self.picked_date.isoformat()
 
         location_id = self.location_id
 
@@ -114,11 +122,26 @@ class UpdateSalesOrderBody:
 
         customer_id = d.pop("customer_id", UNSET)
 
-        order_created_date = d.pop("order_created_date", UNSET)
+        _order_created_date = d.pop("order_created_date", UNSET)
+        order_created_date: Unset | datetime.datetime
+        if isinstance(_order_created_date, Unset):
+            order_created_date = UNSET
+        else:
+            order_created_date = isoparse(_order_created_date)
 
-        delivery_date = d.pop("delivery_date", UNSET)
+        _delivery_date = d.pop("delivery_date", UNSET)
+        delivery_date: Unset | datetime.datetime
+        if isinstance(_delivery_date, Unset):
+            delivery_date = UNSET
+        else:
+            delivery_date = isoparse(_delivery_date)
 
-        picked_date = d.pop("picked_date", UNSET)
+        _picked_date = d.pop("picked_date", UNSET)
+        picked_date: Unset | datetime.datetime
+        if isinstance(_picked_date, Unset):
+            picked_date = UNSET
+        else:
+            picked_date = isoparse(_picked_date)
 
         location_id = d.pop("location_id", UNSET)
 

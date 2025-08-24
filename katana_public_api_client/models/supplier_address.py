@@ -23,10 +23,10 @@ class SupplierAddress:
             '2023-06-15T08:30:00Z', 'deleted_at': None}
     """
 
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | str = UNSET
-    id: Unset | int = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
     supplier_id: Unset | int = UNSET
     line_1: Unset | str = UNSET
     line_2: None | Unset | str = UNSET
@@ -37,6 +37,8 @@ class SupplierAddress:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -48,10 +50,10 @@ class SupplierAddress:
         deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
-
-        id = self.id
 
         supplier_id = self.supplier_id
 
@@ -89,15 +91,17 @@ class SupplierAddress:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if supplier_id is not UNSET:
             field_dict["supplier_id"] = supplier_id
         if line_1 is not UNSET:
@@ -118,6 +122,8 @@ class SupplierAddress:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -132,16 +138,22 @@ class SupplierAddress:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | str:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
-
-        id = d.pop("id", UNSET)
 
         supplier_id = d.pop("supplier_id", UNSET)
 
@@ -193,10 +205,10 @@ class SupplierAddress:
         country = _parse_country(d.pop("country", UNSET))
 
         supplier_address = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
-            id=id,
             supplier_id=supplier_id,
             line_1=line_1,
             line_2=line_2,

@@ -20,9 +20,10 @@ class InventoryReorderPointResponse:
     location_id: int
     variant_id: int
     value: float
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | str = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -31,6 +32,8 @@ class InventoryReorderPointResponse:
         variant_id = self.variant_id
 
         value = self.value
+
+        id = self.id
 
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
@@ -43,6 +46,8 @@ class InventoryReorderPointResponse:
         deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
 
@@ -53,6 +58,7 @@ class InventoryReorderPointResponse:
                 "location_id": location_id,
                 "variant_id": variant_id,
                 "value": value,
+                "id": id,
             }
         )
         if created_at is not UNSET:
@@ -73,6 +79,8 @@ class InventoryReorderPointResponse:
 
         value = d.pop("value")
 
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -87,12 +95,20 @@ class InventoryReorderPointResponse:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | str:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -100,6 +116,7 @@ class InventoryReorderPointResponse:
             location_id=location_id,
             variant_id=variant_id,
             value=value,
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,

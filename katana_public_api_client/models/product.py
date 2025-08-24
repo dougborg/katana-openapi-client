@@ -9,9 +9,10 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+from ..models.product_type import ProductType
 
 if TYPE_CHECKING:
-    from ..models.product_configs_item import ProductConfigsItem
+    from ..models.item_config import ItemConfig
     from ..models.supplier import Supplier
     from ..models.variant import Variant
 
@@ -25,44 +26,55 @@ class Product:
     configurations
 
         Example:
-            {'id': 101, 'name': 'Professional Kitchen Knife Set', 'uom': 'set', 'category_name': 'Kitchenware',
-                'is_sellable': True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly': False,
-                'default_supplier_id': None, 'additional_info': 'High-carbon stainless steel with ergonomic handles',
-                'batch_tracked': False, 'serial_tracked': True, 'operations_in_sequence': True, 'type': 'product',
-                'purchase_uom': 'set', 'purchase_uom_conversion_rate': 1.0, 'custom_field_collection_id': 5, 'created_at':
-                '2024-01-15T09:30:00Z', 'updated_at': '2024-08-20T14:45:00Z', 'archived_at': None, 'variants': [{'id': 301,
-                'sku': 'KNF-PRO-8PC', 'name': '8-Piece Professional Set', 'sales_price': 299.99, 'purchase_price': 150.0}],
-                'configs': [{'id': 1, 'name': 'Piece Count', 'values': ['6-piece', '8-piece', '12-piece'], 'product_id': 101},
-                {'id': 2, 'name': 'Handle Material', 'values': ['Wood', 'Steel', 'Composite'], 'product_id': 101}]}
+            {'id': 1, 'name': 'Standard-hilt lightsaber', 'uom': 'pcs', 'category_name': 'lightsaber', 'is_sellable': True,
+                'is_producible': True, 'is_purchasable': True, 'is_auto_assembly': True, 'default_supplier_id': 1,
+                'additional_info': 'additional info', 'batch_tracked': True, 'serial_tracked': False, 'operations_in_sequence':
+                False, 'type': 'product', 'purchase_uom': 'pcs', 'purchase_uom_conversion_rate': 1, 'lead_time': 1,
+                'minimum_order_quantity': 3, 'custom_field_collection_id': 1, 'created_at': '2020-10-23T10:37:05.085Z',
+                'updated_at': '2020-10-23T10:37:05.085Z', 'archived_at': None, 'variants': [{'id': 1, 'sku': 'EM',
+                'sales_price': 40, 'purchase_price': 0, 'type': 'product', 'created_at': '2020-10-23T10:37:05.085Z',
+                'updated_at': '2020-10-23T10:37:05.085Z', 'lead_time': 1, 'minimum_order_quantity': 3, 'config_attributes':
+                [{'config_name': 'Type', 'config_value': 'Standard'}], 'internal_barcode': 'internalcode', 'registered_barcode':
+                'registeredcode', 'supplier_item_codes': ['code'], 'custom_fields': [{'field_name': 'Power level',
+                'field_value': 'Strong'}]}], 'configs': [{'id': 1, 'name': 'Type', 'values': ['Standard', 'Double-bladed'],
+                'product_id': 1}], 'supplier': None}
     """
 
     id: int
+    name: str
+    type_: ProductType
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    archived_at: None | Unset | str = UNSET
-    name: Unset | str = UNSET
+    archived_at: None | Unset | datetime.datetime = UNSET
     uom: Unset | str = UNSET
     category_name: Unset | str = UNSET
     is_sellable: Unset | bool = UNSET
+    default_supplier_id: None | Unset | int = UNSET
+    additional_info: Unset | str = UNSET
+    batch_tracked: Unset | bool = UNSET
+    purchase_uom: None | Unset | str = UNSET
+    purchase_uom_conversion_rate: None | Unset | float = UNSET
+    custom_field_collection_id: None | Unset | int = UNSET
+    variants: Unset | list["Variant"] = UNSET
+    configs: Unset | list["ItemConfig"] = UNSET
+    supplier: Union["Supplier", None, Unset] = UNSET
     is_producible: Unset | bool = UNSET
     is_purchasable: Unset | bool = UNSET
     is_auto_assembly: Unset | bool = UNSET
-    default_supplier_id: Unset | int = UNSET
-    additional_info: Unset | str = UNSET
-    batch_tracked: Unset | bool = UNSET
     serial_tracked: Unset | bool = UNSET
     operations_in_sequence: Unset | bool = UNSET
-    type_: Unset | str = UNSET
-    purchase_uom: Unset | str = UNSET
-    purchase_uom_conversion_rate: Unset | float = UNSET
-    variants: Unset | list["Variant"] = UNSET
-    configs: Unset | list["ProductConfigsItem"] = UNSET
-    custom_field_collection_id: Unset | int = UNSET
-    supplier: Union[Unset, "Supplier"] = UNSET
+    lead_time: None | Unset | int = UNSET
+    minimum_order_quantity: None | Unset | float = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.supplier import Supplier
+
         id = self.id
+
+        name = self.name
+
+        type_ = self.type_.value
 
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
@@ -75,10 +87,10 @@ class Product:
         archived_at: None | Unset | str
         if isinstance(self.archived_at, Unset):
             archived_at = UNSET
+        elif isinstance(self.archived_at, datetime.datetime):
+            archived_at = self.archived_at.isoformat()
         else:
             archived_at = self.archived_at
-
-        name = self.name
 
         uom = self.uom
 
@@ -86,27 +98,33 @@ class Product:
 
         is_sellable = self.is_sellable
 
-        is_producible = self.is_producible
-
-        is_purchasable = self.is_purchasable
-
-        is_auto_assembly = self.is_auto_assembly
-
-        default_supplier_id = self.default_supplier_id
+        default_supplier_id: None | Unset | int
+        if isinstance(self.default_supplier_id, Unset):
+            default_supplier_id = UNSET
+        else:
+            default_supplier_id = self.default_supplier_id
 
         additional_info = self.additional_info
 
         batch_tracked = self.batch_tracked
 
-        serial_tracked = self.serial_tracked
+        purchase_uom: None | Unset | str
+        if isinstance(self.purchase_uom, Unset):
+            purchase_uom = UNSET
+        else:
+            purchase_uom = self.purchase_uom
 
-        operations_in_sequence = self.operations_in_sequence
+        purchase_uom_conversion_rate: None | Unset | float
+        if isinstance(self.purchase_uom_conversion_rate, Unset):
+            purchase_uom_conversion_rate = UNSET
+        else:
+            purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
-        type_ = self.type_
-
-        purchase_uom = self.purchase_uom
-
-        purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
+        custom_field_collection_id: None | Unset | int
+        if isinstance(self.custom_field_collection_id, Unset):
+            custom_field_collection_id = UNSET
+        else:
+            custom_field_collection_id = self.custom_field_collection_id
 
         variants: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.variants, Unset):
@@ -122,17 +140,43 @@ class Product:
                 configs_item = configs_item_data.to_dict()
                 configs.append(configs_item)
 
-        custom_field_collection_id = self.custom_field_collection_id
-
-        supplier: Unset | dict[str, Any] = UNSET
-        if not isinstance(self.supplier, Unset):
+        supplier: None | Unset | dict[str, Any]
+        if isinstance(self.supplier, Unset):
+            supplier = UNSET
+        elif isinstance(self.supplier, Supplier):
             supplier = self.supplier.to_dict()
+        else:
+            supplier = self.supplier
+
+        is_producible = self.is_producible
+
+        is_purchasable = self.is_purchasable
+
+        is_auto_assembly = self.is_auto_assembly
+
+        serial_tracked = self.serial_tracked
+
+        operations_in_sequence = self.operations_in_sequence
+
+        lead_time: None | Unset | int
+        if isinstance(self.lead_time, Unset):
+            lead_time = UNSET
+        else:
+            lead_time = self.lead_time
+
+        minimum_order_quantity: None | Unset | float
+        if isinstance(self.minimum_order_quantity, Unset):
+            minimum_order_quantity = UNSET
+        else:
+            minimum_order_quantity = self.minimum_order_quantity
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
                 "id": id,
+                "name": name,
+                "type": type_,
             }
         )
         if created_at is not UNSET:
@@ -141,55 +185,59 @@ class Product:
             field_dict["updated_at"] = updated_at
         if archived_at is not UNSET:
             field_dict["archived_at"] = archived_at
-        if name is not UNSET:
-            field_dict["name"] = name
         if uom is not UNSET:
             field_dict["uom"] = uom
         if category_name is not UNSET:
             field_dict["category_name"] = category_name
         if is_sellable is not UNSET:
             field_dict["is_sellable"] = is_sellable
-        if is_producible is not UNSET:
-            field_dict["is_producible"] = is_producible
-        if is_purchasable is not UNSET:
-            field_dict["is_purchasable"] = is_purchasable
-        if is_auto_assembly is not UNSET:
-            field_dict["is_auto_assembly"] = is_auto_assembly
         if default_supplier_id is not UNSET:
             field_dict["default_supplier_id"] = default_supplier_id
         if additional_info is not UNSET:
             field_dict["additional_info"] = additional_info
         if batch_tracked is not UNSET:
             field_dict["batch_tracked"] = batch_tracked
-        if serial_tracked is not UNSET:
-            field_dict["serial_tracked"] = serial_tracked
-        if operations_in_sequence is not UNSET:
-            field_dict["operations_in_sequence"] = operations_in_sequence
-        if type_ is not UNSET:
-            field_dict["type"] = type_
         if purchase_uom is not UNSET:
             field_dict["purchase_uom"] = purchase_uom
         if purchase_uom_conversion_rate is not UNSET:
             field_dict["purchase_uom_conversion_rate"] = purchase_uom_conversion_rate
+        if custom_field_collection_id is not UNSET:
+            field_dict["custom_field_collection_id"] = custom_field_collection_id
         if variants is not UNSET:
             field_dict["variants"] = variants
         if configs is not UNSET:
             field_dict["configs"] = configs
-        if custom_field_collection_id is not UNSET:
-            field_dict["custom_field_collection_id"] = custom_field_collection_id
         if supplier is not UNSET:
             field_dict["supplier"] = supplier
+        if is_producible is not UNSET:
+            field_dict["is_producible"] = is_producible
+        if is_purchasable is not UNSET:
+            field_dict["is_purchasable"] = is_purchasable
+        if is_auto_assembly is not UNSET:
+            field_dict["is_auto_assembly"] = is_auto_assembly
+        if serial_tracked is not UNSET:
+            field_dict["serial_tracked"] = serial_tracked
+        if operations_in_sequence is not UNSET:
+            field_dict["operations_in_sequence"] = operations_in_sequence
+        if lead_time is not UNSET:
+            field_dict["lead_time"] = lead_time
+        if minimum_order_quantity is not UNSET:
+            field_dict["minimum_order_quantity"] = minimum_order_quantity
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.product_configs_item import ProductConfigsItem
+        from ..models.item_config import ItemConfig
         from ..models.supplier import Supplier
         from ..models.variant import Variant
 
         d = dict(src_dict)
         id = d.pop("id")
+
+        name = d.pop("name")
+
+        type_ = ProductType(d.pop("type"))
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -205,16 +253,22 @@ class Product:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_archived_at(data: object) -> None | Unset | str:
+        def _parse_archived_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                archived_at_type_0 = isoparse(data)
+
+                return archived_at_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
-
-        name = d.pop("name", UNSET)
 
         uom = d.pop("uom", UNSET)
 
@@ -222,27 +276,51 @@ class Product:
 
         is_sellable = d.pop("is_sellable", UNSET)
 
-        is_producible = d.pop("is_producible", UNSET)
+        def _parse_default_supplier_id(data: object) -> None | Unset | int:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | int, data)
 
-        is_purchasable = d.pop("is_purchasable", UNSET)
-
-        is_auto_assembly = d.pop("is_auto_assembly", UNSET)
-
-        default_supplier_id = d.pop("default_supplier_id", UNSET)
+        default_supplier_id = _parse_default_supplier_id(
+            d.pop("default_supplier_id", UNSET)
+        )
 
         additional_info = d.pop("additional_info", UNSET)
 
         batch_tracked = d.pop("batch_tracked", UNSET)
 
-        serial_tracked = d.pop("serial_tracked", UNSET)
+        def _parse_purchase_uom(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
 
-        operations_in_sequence = d.pop("operations_in_sequence", UNSET)
+        purchase_uom = _parse_purchase_uom(d.pop("purchase_uom", UNSET))
 
-        type_ = d.pop("type", UNSET)
+        def _parse_purchase_uom_conversion_rate(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
 
-        purchase_uom = d.pop("purchase_uom", UNSET)
+        purchase_uom_conversion_rate = _parse_purchase_uom_conversion_rate(
+            d.pop("purchase_uom_conversion_rate", UNSET)
+        )
 
-        purchase_uom_conversion_rate = d.pop("purchase_uom_conversion_rate", UNSET)
+        def _parse_custom_field_collection_id(data: object) -> None | Unset | int:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | int, data)
+
+        custom_field_collection_id = _parse_custom_field_collection_id(
+            d.pop("custom_field_collection_id", UNSET)
+        )
 
         variants = []
         _variants = d.pop("variants", UNSET)
@@ -254,43 +332,83 @@ class Product:
         configs = []
         _configs = d.pop("configs", UNSET)
         for configs_item_data in _configs or []:
-            configs_item = ProductConfigsItem.from_dict(configs_item_data)
+            configs_item = ItemConfig.from_dict(configs_item_data)
 
             configs.append(configs_item)
 
-        custom_field_collection_id = d.pop("custom_field_collection_id", UNSET)
+        def _parse_supplier(data: object) -> Union["Supplier", None, Unset]:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                supplier_type_0 = Supplier.from_dict(data)
 
-        _supplier = d.pop("supplier", UNSET)
-        supplier: Unset | Supplier
-        if isinstance(_supplier, Unset):
-            supplier = UNSET
-        else:
-            supplier = Supplier.from_dict(_supplier)
+                return supplier_type_0
+            except:  # noqa: E722
+                pass
+            return cast(Union["Supplier", None, Unset], data)
+
+        supplier = _parse_supplier(d.pop("supplier", UNSET))
+
+        is_producible = d.pop("is_producible", UNSET)
+
+        is_purchasable = d.pop("is_purchasable", UNSET)
+
+        is_auto_assembly = d.pop("is_auto_assembly", UNSET)
+
+        serial_tracked = d.pop("serial_tracked", UNSET)
+
+        operations_in_sequence = d.pop("operations_in_sequence", UNSET)
+
+        def _parse_lead_time(data: object) -> None | Unset | int:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | int, data)
+
+        lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
+
+        def _parse_minimum_order_quantity(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
+
+        minimum_order_quantity = _parse_minimum_order_quantity(
+            d.pop("minimum_order_quantity", UNSET)
+        )
 
         product = cls(
             id=id,
+            name=name,
+            type_=type_,
             created_at=created_at,
             updated_at=updated_at,
             archived_at=archived_at,
-            name=name,
             uom=uom,
             category_name=category_name,
             is_sellable=is_sellable,
-            is_producible=is_producible,
-            is_purchasable=is_purchasable,
-            is_auto_assembly=is_auto_assembly,
             default_supplier_id=default_supplier_id,
             additional_info=additional_info,
             batch_tracked=batch_tracked,
-            serial_tracked=serial_tracked,
-            operations_in_sequence=operations_in_sequence,
-            type_=type_,
             purchase_uom=purchase_uom,
             purchase_uom_conversion_rate=purchase_uom_conversion_rate,
+            custom_field_collection_id=custom_field_collection_id,
             variants=variants,
             configs=configs,
-            custom_field_collection_id=custom_field_collection_id,
             supplier=supplier,
+            is_producible=is_producible,
+            is_purchasable=is_purchasable,
+            is_auto_assembly=is_auto_assembly,
+            serial_tracked=serial_tracked,
+            operations_in_sequence=operations_in_sequence,
+            lead_time=lead_time,
+            minimum_order_quantity=minimum_order_quantity,
         )
 
         product.additional_properties = d

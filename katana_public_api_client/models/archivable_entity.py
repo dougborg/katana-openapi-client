@@ -21,12 +21,15 @@ class ArchivableEntity:
         {'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'archived_at': None}
     """
 
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    archived_at: None | Unset | str = UNSET
+    archived_at: None | Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -38,12 +41,18 @@ class ArchivableEntity:
         archived_at: None | Unset | str
         if isinstance(self.archived_at, Unset):
             archived_at = UNSET
+        elif isinstance(self.archived_at, datetime.datetime):
+            archived_at = self.archived_at.isoformat()
         else:
             archived_at = self.archived_at
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
@@ -56,6 +65,8 @@ class ArchivableEntity:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -70,16 +81,25 @@ class ArchivableEntity:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_archived_at(data: object) -> None | Unset | str:
+        def _parse_archived_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                archived_at_type_0 = isoparse(data)
+
+                return archived_at_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
         archivable_entity = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
             archived_at=archived_at,

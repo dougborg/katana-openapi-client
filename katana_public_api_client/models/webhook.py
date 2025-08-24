@@ -24,9 +24,9 @@ class Webhook:
             '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T11:30:00Z'}
     """
 
+    id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    id: Unset | int = UNSET
     url: Unset | str = UNSET
     token: Unset | str = UNSET
     enabled: Unset | bool = UNSET
@@ -35,6 +35,8 @@ class Webhook:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -42,8 +44,6 @@ class Webhook:
         updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
-
-        id = self.id
 
         url = self.url
 
@@ -63,13 +63,15 @@ class Webhook:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
+        field_dict.update(
+            {
+                "id": id,
+            }
+        )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
-        if id is not UNSET:
-            field_dict["id"] = id
         if url is not UNSET:
             field_dict["url"] = url
         if token is not UNSET:
@@ -86,6 +88,8 @@ class Webhook:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id")
+
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
         if isinstance(_created_at, Unset):
@@ -99,8 +103,6 @@ class Webhook:
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
-
-        id = d.pop("id", UNSET)
 
         url = d.pop("url", UNSET)
 
@@ -120,9 +122,9 @@ class Webhook:
         subscribed_events = cast(list[str], d.pop("subscribed_events", UNSET))
 
         webhook = cls(
+            id=id,
             created_at=created_at,
             updated_at=updated_at,
-            id=id,
             url=url,
             token=token,
             enabled=enabled,

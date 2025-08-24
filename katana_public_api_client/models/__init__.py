@@ -2,6 +2,7 @@
 
 from .additional_cost import AdditionalCost
 from .additional_cost_list_response import AdditionalCostListResponse
+from .archivable_deletable_entity import ArchivableDeletableEntity
 from .archivable_entity import ArchivableEntity
 from .base_entity import BaseEntity
 from .batch import Batch
@@ -34,7 +35,6 @@ from .create_manufacturing_order_recipe_row_request_batch_transactions_item impo
 )
 from .create_manufacturing_order_request import CreateManufacturingOrderRequest
 from .create_material_request import CreateMaterialRequest
-from .create_material_request_configs_item import CreateMaterialRequestConfigsItem
 from .create_outsourced_purchase_order_recipe_row_body import (
     CreateOutsourcedPurchaseOrderRecipeRowBody,
 )
@@ -85,6 +85,11 @@ from .create_sales_return_row_request import CreateSalesReturnRowRequest
 from .create_serial_numbers_body import CreateSerialNumbersBody
 from .create_serial_numbers_body_resource_type import (
     CreateSerialNumbersBodyResourceType,
+)
+from .create_service_request import CreateServiceRequest
+from .create_service_variant_request import CreateServiceVariantRequest
+from .create_service_variant_request_custom_fields_item import (
+    CreateServiceVariantRequestCustomFieldsItem,
 )
 from .create_stock_adjustment_request import CreateStockAdjustmentRequest
 from .create_stock_adjustment_request_status import CreateStockAdjustmentRequestStatus
@@ -182,6 +187,8 @@ from .get_sales_return_row_unassigned_batch_transactions_response_200_data_item 
 )
 from .get_variant_extend_item import GetVariantExtendItem
 from .inventory import Inventory
+from .inventory_item import InventoryItem
+from .inventory_item_type import InventoryItemType
 from .inventory_list_response import InventoryListResponse
 from .inventory_movement import InventoryMovement
 from .inventory_movement_list_response import InventoryMovementListResponse
@@ -190,6 +197,7 @@ from .inventory_reorder_point import InventoryReorderPoint
 from .inventory_reorder_point_response import InventoryReorderPointResponse
 from .inventory_safety_stock_level import InventorySafetyStockLevel
 from .inventory_safety_stock_level_response import InventorySafetyStockLevelResponse
+from .item_config import ItemConfig
 from .location_address import LocationAddress
 from .location_type_0 import LocationType0
 from .make_to_order_manufacturing_order_request import (
@@ -226,8 +234,9 @@ from .manufacturing_order_recipe_row_list_response import (
 )
 from .manufacturing_order_status import ManufacturingOrderStatus
 from .material import Material
-from .material_configs_item import MaterialConfigsItem
+from .material_config import MaterialConfig
 from .material_list_response import MaterialListResponse
+from .material_type import MaterialType
 from .negative_stock import NegativeStock
 from .negative_stock_list_response import NegativeStockListResponse
 from .operator import Operator
@@ -249,11 +258,10 @@ from .price_list_list_response import PriceListListResponse
 from .price_list_row import PriceListRow
 from .price_list_row_list_response import PriceListRowListResponse
 from .product import Product
-from .product_configs_item import ProductConfigsItem
 from .product_list_response import ProductListResponse
 from .product_operation_rerank import ProductOperationRerank
 from .product_operation_rerank_request import ProductOperationRerankRequest
-from .purchase_order import PurchaseOrder
+from .product_type import ProductType
 from .purchase_order_accounting_metadata import PurchaseOrderAccountingMetadata
 from .purchase_order_accounting_metadata_list_response import (
     PurchaseOrderAccountingMetadataListResponse,
@@ -262,6 +270,13 @@ from .purchase_order_additional_cost_row import PurchaseOrderAdditionalCostRow
 from .purchase_order_additional_cost_row_list_response import (
     PurchaseOrderAdditionalCostRowListResponse,
 )
+from .purchase_order_base import PurchaseOrderBase
+from .purchase_order_base_billing_status import PurchaseOrderBaseBillingStatus
+from .purchase_order_base_entity_type import PurchaseOrderBaseEntityType
+from .purchase_order_base_last_document_status import (
+    PurchaseOrderBaseLastDocumentStatus,
+)
+from .purchase_order_base_status import PurchaseOrderBaseStatus
 from .purchase_order_list_response import PurchaseOrderListResponse
 from .purchase_order_receive_row import PurchaseOrderReceiveRow
 from .purchase_order_receive_row_batch_transactions_item import (
@@ -316,13 +331,11 @@ from .serial_number_stock import SerialNumberStock
 from .serial_number_stock_list_response import SerialNumberStockListResponse
 from .serial_number_stock_status import SerialNumberStockStatus
 from .service import Service
-from .service_attributes import ServiceAttributes
-from .service_input_attributes import ServiceInputAttributes
 from .service_list_response import ServiceListResponse
-from .service_request import ServiceRequest
-from .service_request_data import ServiceRequestData
-from .service_request_data_type import ServiceRequestDataType
 from .service_type import ServiceType
+from .service_variant import ServiceVariant
+from .service_variant_custom_fields_item import ServiceVariantCustomFieldsItem
+from .service_variant_type import ServiceVariantType
 from .stock_adjustment import StockAdjustment
 from .stock_adjustment_list_response import StockAdjustmentListResponse
 from .stock_adjustment_status import StockAdjustmentStatus
@@ -406,6 +419,7 @@ from .update_sales_order_shipping_fee_body import UpdateSalesOrderShippingFeeBod
 from .update_sales_return_request import UpdateSalesReturnRequest
 from .update_sales_return_request_status import UpdateSalesReturnRequestStatus
 from .update_sales_return_row_body import UpdateSalesReturnRowBody
+from .update_service_request import UpdateServiceRequest
 from .update_stock_adjustment_request import UpdateStockAdjustmentRequest
 from .update_stock_adjustment_request_status import UpdateStockAdjustmentRequestStatus
 from .update_stock_transfer_body import UpdateStockTransferBody
@@ -444,11 +458,8 @@ from .variant_list_response import VariantListResponse
 from .variant_response import VariantResponse
 from .variant_response_config_attributes_item import VariantResponseConfigAttributesItem
 from .variant_response_custom_fields_item import VariantResponseCustomFieldsItem
-from .variant_response_product_or_material import VariantResponseProductOrMaterial
-from .variant_response_product_or_material_configs_item import (
-    VariantResponseProductOrMaterialConfigsItem,
-)
 from .variant_response_type import VariantResponseType
+from .variant_type import VariantType
 from .webhook import Webhook
 from .webhook_event import WebhookEvent
 from .webhook_event_payload import WebhookEventPayload
@@ -464,6 +475,7 @@ from .webhook_logs_export_request_status_filter_item import (
 __all__ = (
     "AdditionalCost",
     "AdditionalCostListResponse",
+    "ArchivableDeletableEntity",
     "ArchivableEntity",
     "BaseEntity",
     "Batch",
@@ -486,7 +498,6 @@ __all__ = (
     "CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem",
     "CreateManufacturingOrderRequest",
     "CreateMaterialRequest",
-    "CreateMaterialRequestConfigsItem",
     "CreateOutsourcedPurchaseOrderRecipeRowBody",
     "CreatePriceListCustomerRequest",
     "CreatePriceListRequest",
@@ -518,6 +529,9 @@ __all__ = (
     "CreateSalesReturnRowRequest",
     "CreateSerialNumbersBody",
     "CreateSerialNumbersBodyResourceType",
+    "CreateServiceRequest",
+    "CreateServiceVariantRequest",
+    "CreateServiceVariantRequestCustomFieldsItem",
     "CreateStockAdjustmentRequest",
     "CreateStockAdjustmentRequestStatus",
     "CreateStockTransferBody",
@@ -580,6 +594,8 @@ __all__ = (
     "GetSalesReturnRowUnassignedBatchTransactionsResponse200DataItem",
     "GetVariantExtendItem",
     "Inventory",
+    "InventoryItem",
+    "InventoryItemType",
     "InventoryListResponse",
     "InventoryMovement",
     "InventoryMovementListResponse",
@@ -588,6 +604,7 @@ __all__ = (
     "InventoryReorderPointResponse",
     "InventorySafetyStockLevel",
     "InventorySafetyStockLevelResponse",
+    "ItemConfig",
     "LocationAddress",
     "LocationType0",
     "MakeToOrderManufacturingOrderRequest",
@@ -606,8 +623,9 @@ __all__ = (
     "ManufacturingOrderRecipeRowListResponse",
     "ManufacturingOrderStatus",
     "Material",
-    "MaterialConfigsItem",
+    "MaterialConfig",
     "MaterialListResponse",
+    "MaterialType",
     "NegativeStock",
     "NegativeStockListResponse",
     "Operator",
@@ -623,15 +641,19 @@ __all__ = (
     "PriceListRow",
     "PriceListRowListResponse",
     "Product",
-    "ProductConfigsItem",
     "ProductListResponse",
     "ProductOperationRerank",
     "ProductOperationRerankRequest",
-    "PurchaseOrder",
+    "ProductType",
     "PurchaseOrderAccountingMetadata",
     "PurchaseOrderAccountingMetadataListResponse",
     "PurchaseOrderAdditionalCostRow",
     "PurchaseOrderAdditionalCostRowListResponse",
+    "PurchaseOrderBase",
+    "PurchaseOrderBaseBillingStatus",
+    "PurchaseOrderBaseEntityType",
+    "PurchaseOrderBaseLastDocumentStatus",
+    "PurchaseOrderBaseStatus",
     "PurchaseOrderListResponse",
     "PurchaseOrderReceiveRow",
     "PurchaseOrderReceiveRowBatchTransactionsItem",
@@ -674,13 +696,11 @@ __all__ = (
     "SerialNumberStockListResponse",
     "SerialNumberStockStatus",
     "Service",
-    "ServiceAttributes",
-    "ServiceInputAttributes",
     "ServiceListResponse",
-    "ServiceRequest",
-    "ServiceRequestData",
-    "ServiceRequestDataType",
     "ServiceType",
+    "ServiceVariant",
+    "ServiceVariantCustomFieldsItem",
+    "ServiceVariantType",
     "StockAdjustment",
     "StockAdjustmentListResponse",
     "StockAdjustmentStatus",
@@ -742,6 +762,7 @@ __all__ = (
     "UpdateSalesReturnRequest",
     "UpdateSalesReturnRequestStatus",
     "UpdateSalesReturnRowBody",
+    "UpdateServiceRequest",
     "UpdateStockAdjustmentRequest",
     "UpdateStockAdjustmentRequestStatus",
     "UpdateStockTransferBody",
@@ -770,9 +791,8 @@ __all__ = (
     "VariantResponse",
     "VariantResponseConfigAttributesItem",
     "VariantResponseCustomFieldsItem",
-    "VariantResponseProductOrMaterial",
-    "VariantResponseProductOrMaterialConfigsItem",
     "VariantResponseType",
+    "VariantType",
     "Webhook",
     "WebhookEvent",
     "WebhookEventPayload",

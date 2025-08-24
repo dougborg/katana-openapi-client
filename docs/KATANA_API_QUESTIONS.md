@@ -148,6 +148,87 @@ excessive API calls for common workflows.
   management
 - **Atomic Operations**: Ensure BOM modifications can be done transactionally
 
+### Documentation Accuracy Issues in Material Endpoints
+
+**Issue**: Several inconsistencies and errors found in official API documentation during
+comprehensive validation against OpenAPI specification.
+
+**Source**: Comprehensive cross-validation of material endpoints against 245+ pages from
+developer.katanamrp.com, completed August 2025.
+
+**Documentation Errors Identified**:
+
+1. **Copy-Paste Errors in Material Configuration Examples**:
+
+   - **Location**: Material object documentation and config examples
+   - **Error**: Shows `"product_id": 1` in material configuration objects
+   - **Correct**: Should be `"material_id": 1` for material configurations
+   - **Impact**: Developer confusion when implementing material management features
+
+1. **Inconsistent Purchase UOM Examples**:
+
+   - **Location**: Material creation and update endpoint documentation
+   - **Error**: Examples show redundant purchase UOM conversion rates (e.g.,
+     `purchase_uom: "kg"` with `purchase_uom_conversion_rate: 1.0`)
+   - **Issue**: When purchase UOM equals inventory UOM, conversion rate should be
+     null/omitted
+   - **Correct Pattern**: `purchase_uom: null, purchase_uom_conversion_rate: null` when
+     no conversion needed
+   - **Impact**: Developers may implement unnecessary conversion logic
+
+1. **Missing Conditional Requirements Documentation**:
+
+   - **Location**: Material creation request documentation
+   - **Gap**: Purchase UOM fields interdependency not clearly documented
+   - **Business Rule**: `purchase_uom` and `purchase_uom_conversion_rate` must be
+     provided together or both omitted
+   - **Impact**: API integration errors due to incomplete validation requirements
+
+1. **Field Constraint Inconsistencies**:
+
+   - **Location**: Various material and variant endpoint examples
+   - **Issue**: Documentation examples don't reflect actual field validation constraints
+   - **Examples**:
+     - `supplier_item_codes` constraints (1-40 characters per item) not documented
+     - `registered_barcode` constraints (3-40 characters) not reflected in examples
+     - `config_attributes` minimum requirements not specified
+   - **Impact**: Client validation implementations may be too permissive or restrictive
+
+**Validation Findings**:
+
+- **OpenAPI Specification Accuracy**: Client's OpenAPI spec is more accurate than
+  official documentation
+- **Better Examples**: OpenAPI spec contains corrected examples that reflect actual API
+  behavior
+- **Proper Constraints**: OpenAPI spec includes comprehensive field validation that
+  matches actual API requirements
+- **Conditional Logic**: OpenAPI spec properly implements dependentRequired patterns for
+  business rules
+
+**Impact on Development**:
+
+- **Integration Issues**: Developers following documentation examples may encounter API
+  validation errors
+- **Inconsistent Implementation**: Different teams may implement different
+  interpretations
+- **Support Burden**: Increased support requests due to documentation-reality mismatches
+- **Development Velocity**: Slower development due to trial-and-error API integration
+
+**Recommendation**:
+
+- **Documentation Review**: Comprehensive audit of material endpoint documentation for
+  accuracy
+- **Example Correction**: Update all material configuration examples to use correct
+  field names
+- **Purchase UOM Clarity**: Clarify when purchase UOM conversion is needed vs. when to
+  omit fields
+- **Constraint Documentation**: Add comprehensive field validation documentation with
+  examples
+- **Cross-Validation**: Implement systematic validation between API implementation and
+  documentation
+- **Living Documentation**: Consider generating documentation from OpenAPI specification
+  to ensure consistency
+
 ### Missing CREATE Endpoint - Storage Bins
 
 **Issue**: No `POST /storage_bins` endpoint exists despite having update/delete

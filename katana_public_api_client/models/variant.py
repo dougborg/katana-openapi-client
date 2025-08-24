@@ -9,6 +9,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+from ..models.variant_type import VariantType
 
 if TYPE_CHECKING:
     from ..models.variant_config_attributes_item import VariantConfigAttributesItem
@@ -36,13 +37,13 @@ class Variant:
     sku: str
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | str = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
     sales_price: None | Unset | float = UNSET
     product_id: None | Unset | int = UNSET
     material_id: None | Unset | int = UNSET
     purchase_price: Unset | float = UNSET
     product_or_material_name: Unset | str = UNSET
-    type_: Unset | str = UNSET
+    type_: Unset | VariantType = UNSET
     internal_barcode: Unset | str = UNSET
     registered_barcode: Unset | str = UNSET
     supplier_item_codes: Unset | list[str] = UNSET
@@ -68,6 +69,8 @@ class Variant:
         deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
 
@@ -93,7 +96,9 @@ class Variant:
 
         product_or_material_name = self.product_or_material_name
 
-        type_ = self.type_
+        type_: Unset | str = UNSET
+        if not isinstance(self.type_, Unset):
+            type_ = self.type_.value
 
         internal_barcode = self.internal_barcode
 
@@ -196,12 +201,20 @@ class Variant:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | str:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -236,7 +249,12 @@ class Variant:
 
         product_or_material_name = d.pop("product_or_material_name", UNSET)
 
-        type_ = d.pop("type", UNSET)
+        _type_ = d.pop("type", UNSET)
+        type_: Unset | VariantType
+        if isinstance(_type_, Unset):
+            type_ = UNSET
+        else:
+            type_ = VariantType(_type_)
 
         internal_barcode = d.pop("internal_barcode", UNSET)
 
