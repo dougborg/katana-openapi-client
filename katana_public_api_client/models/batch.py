@@ -2,7 +2,10 @@ import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
@@ -24,6 +27,7 @@ class Batch:
     expiration_date: Unset | datetime.datetime = UNSET
     batch_created_date: Unset | datetime.datetime = UNSET
     batch_barcode: None | Unset | str = UNSET
+    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         batch_number = self.batch_number
@@ -45,7 +49,7 @@ class Batch:
             batch_barcode = self.batch_barcode
 
         field_dict: dict[str, Any] = {}
-
+        field_dict.update(self.additional_properties)
         field_dict.update(
             {
                 "batch_number": batch_number,
@@ -99,4 +103,21 @@ class Batch:
             batch_barcode=batch_barcode,
         )
 
+        batch.additional_properties = d
         return batch
+
+    @property
+    def additional_keys(self) -> list[str]:
+        return list(self.additional_properties.keys())
+
+    def __getitem__(self, key: str) -> Any:
+        return self.additional_properties[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.additional_properties[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self.additional_properties[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.additional_properties

@@ -9,9 +9,13 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+from ..models.manufacturing_order_ingredient_availability_type_0 import (
+    ManufacturingOrderIngredientAvailabilityType0,
+)
 from ..models.manufacturing_order_status import ManufacturingOrderStatus
 
 if TYPE_CHECKING:
+    from ..models.batch_transaction import BatchTransaction
     from ..models.serial_number import SerialNumber
 
 
@@ -43,12 +47,16 @@ class ManufacturingOrder:
     variant_id: Unset | int = UNSET
     planned_quantity: Unset | float = UNSET
     actual_quantity: None | Unset | float = UNSET
+    batch_transactions: Unset | list["BatchTransaction"] = UNSET
     location_id: Unset | int = UNSET
     order_created_date: Unset | datetime.datetime = UNSET
     production_deadline_date: Unset | datetime.datetime = UNSET
+    done_date: None | Unset | datetime.datetime = UNSET
     additional_info: Unset | str = UNSET
     is_linked_to_sales_order: Unset | bool = UNSET
-    ingredient_availability: Unset | str = UNSET
+    ingredient_availability: (
+        ManufacturingOrderIngredientAvailabilityType0 | None | Unset
+    ) = UNSET
     total_cost: Unset | float = UNSET
     total_actual_time: Unset | float = UNSET
     total_planned_time: Unset | float = UNSET
@@ -96,6 +104,13 @@ class ManufacturingOrder:
         else:
             actual_quantity = self.actual_quantity
 
+        batch_transactions: Unset | list[dict[str, Any]] = UNSET
+        if not isinstance(self.batch_transactions, Unset):
+            batch_transactions = []
+            for batch_transactions_item_data in self.batch_transactions:
+                batch_transactions_item = batch_transactions_item_data.to_dict()
+                batch_transactions.append(batch_transactions_item)
+
         location_id = self.location_id
 
         order_created_date: Unset | str = UNSET
@@ -106,11 +121,27 @@ class ManufacturingOrder:
         if not isinstance(self.production_deadline_date, Unset):
             production_deadline_date = self.production_deadline_date.isoformat()
 
+        done_date: None | Unset | str
+        if isinstance(self.done_date, Unset):
+            done_date = UNSET
+        elif isinstance(self.done_date, datetime.datetime):
+            done_date = self.done_date.isoformat()
+        else:
+            done_date = self.done_date
+
         additional_info = self.additional_info
 
         is_linked_to_sales_order = self.is_linked_to_sales_order
 
-        ingredient_availability = self.ingredient_availability
+        ingredient_availability: None | Unset | str
+        if isinstance(self.ingredient_availability, Unset):
+            ingredient_availability = UNSET
+        elif isinstance(
+            self.ingredient_availability, ManufacturingOrderIngredientAvailabilityType0
+        ):
+            ingredient_availability = self.ingredient_availability.value
+        else:
+            ingredient_availability = self.ingredient_availability
 
         total_cost = self.total_cost
 
@@ -164,12 +195,16 @@ class ManufacturingOrder:
             field_dict["planned_quantity"] = planned_quantity
         if actual_quantity is not UNSET:
             field_dict["actual_quantity"] = actual_quantity
+        if batch_transactions is not UNSET:
+            field_dict["batch_transactions"] = batch_transactions
         if location_id is not UNSET:
             field_dict["location_id"] = location_id
         if order_created_date is not UNSET:
             field_dict["order_created_date"] = order_created_date
         if production_deadline_date is not UNSET:
             field_dict["production_deadline_date"] = production_deadline_date
+        if done_date is not UNSET:
+            field_dict["done_date"] = done_date
         if additional_info is not UNSET:
             field_dict["additional_info"] = additional_info
         if is_linked_to_sales_order is not UNSET:
@@ -201,6 +236,7 @@ class ManufacturingOrder:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.batch_transaction import BatchTransaction
         from ..models.serial_number import SerialNumber
 
         d = dict(src_dict)
@@ -259,6 +295,15 @@ class ManufacturingOrder:
 
         actual_quantity = _parse_actual_quantity(d.pop("actual_quantity", UNSET))
 
+        batch_transactions = []
+        _batch_transactions = d.pop("batch_transactions", UNSET)
+        for batch_transactions_item_data in _batch_transactions or []:
+            batch_transactions_item = BatchTransaction.from_dict(
+                batch_transactions_item_data
+            )
+
+            batch_transactions.append(batch_transactions_item)
+
         location_id = d.pop("location_id", UNSET)
 
         _order_created_date = d.pop("order_created_date", UNSET)
@@ -275,11 +320,51 @@ class ManufacturingOrder:
         else:
             production_deadline_date = isoparse(_production_deadline_date)
 
+        def _parse_done_date(data: object) -> None | Unset | datetime.datetime:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                done_date_type_0 = isoparse(data)
+
+                return done_date_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
+
+        done_date = _parse_done_date(d.pop("done_date", UNSET))
+
         additional_info = d.pop("additional_info", UNSET)
 
         is_linked_to_sales_order = d.pop("is_linked_to_sales_order", UNSET)
 
-        ingredient_availability = d.pop("ingredient_availability", UNSET)
+        def _parse_ingredient_availability(
+            data: object,
+        ) -> ManufacturingOrderIngredientAvailabilityType0 | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                ingredient_availability_type_0 = (
+                    ManufacturingOrderIngredientAvailabilityType0(data)
+                )
+
+                return ingredient_availability_type_0
+            except:  # noqa: E722
+                pass
+            return cast(
+                ManufacturingOrderIngredientAvailabilityType0 | None | Unset, data
+            )
+
+        ingredient_availability = _parse_ingredient_availability(
+            d.pop("ingredient_availability", UNSET)
+        )
 
         total_cost = d.pop("total_cost", UNSET)
 
@@ -321,9 +406,11 @@ class ManufacturingOrder:
             variant_id=variant_id,
             planned_quantity=planned_quantity,
             actual_quantity=actual_quantity,
+            batch_transactions=batch_transactions,
             location_id=location_id,
             order_created_date=order_created_date,
             production_deadline_date=production_deadline_date,
+            done_date=done_date,
             additional_info=additional_info,
             is_linked_to_sales_order=is_linked_to_sales_order,
             ingredient_availability=ingredient_availability,

@@ -1,0 +1,273 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in
+this repository.
+
+## Essential Commands
+
+### Development Workflow
+
+- **Setup**: `poetry install --extras "dev docs"`
+- **Format code**: `poetry run poe format`
+- **Lint code**: `poetry run poe lint` (11 seconds, NEVER CANCEL)
+- **Run tests**: `poetry run poe test` (27 seconds, NEVER CANCEL)
+- **Quick check**: `poetry run poe check` (40 seconds - runs format-check + lint + test)
+- **Auto-fix issues**: `poetry run poe fix`
+
+### Testing Commands
+
+- **Basic tests**: `poetry run poe test`
+- **With coverage**: `poetry run poe test-coverage` (39 seconds, NEVER CANCEL)
+- **Unit tests only**: `poetry run poe test-unit`
+- **Integration tests**: `poetry run poe test-integration` (requires KATANA_API_KEY in
+  .env)
+
+### OpenAPI and Client Management
+
+- **Validate schema**: `poetry run poe validate-openapi`
+- **Regenerate client**: `poetry run poe regenerate-client` (2+ minutes, NEVER CANCEL)
+- **Validate with Redocly**: `poetry run poe validate-openapi-redocly`
+
+### Documentation
+
+- **Build docs**: `poetry run poe docs-build` (2.5 minutes, NEVER CANCEL)
+- **Serve locally**: `poetry run poe docs-serve`
+- **Clean docs**: `poetry run poe docs-clean`
+
+### Task Runner
+
+- **List all tasks**: `poetry run poe help`
+- **Combined workflows**: `poetry run poe ci`, `poetry run poe prepare`
+
+## Architecture Overview
+
+This is a Python client for the Katana Manufacturing ERP API built with
+**transport-layer resilience**.
+
+### Core Components
+
+**Main Client Classes:**
+
+- `katana_public_api_client/katana_client.py` - Enhanced client with
+  `ResilientAsyncTransport` providing automatic retries, rate limiting, and pagination
+- `katana_public_api_client/client.py` - Generated base client classes
+  (AuthenticatedClient, Client)
+
+**Generated API Structure:**
+
+- `katana_public_api_client/api/` - 76+ generated API endpoint modules organized by
+  resource (DO NOT EDIT)
+- `katana_public_api_client/models/` - 150+ generated data models (DO NOT EDIT)
+- `katana_public_api_client/client_types.py` - Type definitions (renamed from types.py
+  to avoid stdlib conflicts)
+
+**Key Architecture Pattern - Transport-Layer Resilience:** Instead of wrapping API
+methods, resilience is implemented at the httpx transport layer. This means ALL API
+calls through `KatanaClient` automatically get retries, rate limiting, and pagination
+without any code changes needed in the generated client.
+
+### Usage Patterns
+
+**Recommended Pattern (KatanaClient):**
+
+```python
+from katana_public_api_client import KatanaClient
+from katana_public_api_client.api.product import get_all_products
+
+async with KatanaClient() as client:
+    response = await get_all_products.asyncio_detailed(
+        client=client, limit=50  # Auto-pagination if needed
+    )
+```
+
+**Direct Pattern (AuthenticatedClient):**
+
+```python
+from katana_public_api_client import AuthenticatedClient
+from katana_public_api_client.api.product import get_all_products
+
+client = AuthenticatedClient(base_url="...", token="...")
+async with client:
+    response = await get_all_products.asyncio_detailed(client=client)
+```
+
+### File Organization Rules
+
+**DO NOT EDIT (Generated Files):**
+
+- `katana_public_api_client/api/**/*.py`
+- `katana_public_api_client/models/**/*.py`
+- `katana_public_api_client/client.py`
+- `katana_public_api_client/client_types.py`
+- `katana_public_api_client/errors.py`
+- `katana_public_api_client/py.typed`
+
+**EDIT THESE FILES:**
+
+- `katana_public_api_client/katana_client.py` - Main resilient client
+- `katana_public_api_client/log_setup.py` - Logging configuration
+- `tests/` - Test files
+- `scripts/` - Development scripts
+- `docs/` - Documentation
+
+## Development Environment
+
+### Tool Configuration
+
+All tools are configured in `pyproject.toml` (no separate config files):
+
+- **Poetry**: Package metadata and dependencies
+- **Ruff**: Code formatting and linting (replaces Black, isort, flake8)
+- **MyPy**: Type checking
+- **Pytest**: Test discovery and execution
+- **Coverage**: Code coverage reporting
+- **Poe**: Task automation
+- **Semantic Release**: Automated versioning
+
+### Python and Dependencies
+
+- **Python versions**: 3.11, 3.12, 3.13 supported
+- **Package manager**: Poetry (required - manages virtual environments automatically)
+- **Task runner**: poethepoet (poe) - all tasks run via `poetry run poe <task>`
+
+### Command Timeouts (CRITICAL)
+
+**NEVER CANCEL** these commands before timeout:
+
+- `poetry install`: ~26 seconds (timeout: 30+ minutes)
+- `poetry run poe lint`: ~11 seconds (timeout: 15+ minutes)
+- `poetry run poe test`: ~27 seconds (timeout: 30+ minutes)
+- `poetry run poe test-coverage`: ~39 seconds (timeout: 45+ minutes)
+- `poetry run poe check`: ~40 seconds (timeout: 60+ minutes)
+- `poetry run poe docs-build`: ~2.5 minutes (timeout: 60+ minutes)
+- `poetry run poe regenerate-client`: ~2+ minutes (timeout: 60+ minutes)
+
+## Client Generation Process
+
+### Automated Regeneration
+
+The client is generated from `docs/katana-openapi.yaml` using
+`scripts/regenerate_client.py`:
+
+1. **Validates** OpenAPI spec with openapi-spec-validator and Redocly
+1. **Generates** client using openapi-python-client (npx)
+1. **Auto-fixes** code quality with `ruff check --fix --unsafe-fixes`
+1. **Moves** generated code to main package location
+1. **Runs** final tests and formatting
+
+### Code Quality Automation
+
+The regeneration process uses `ruff --unsafe-fixes` to automatically fix 6,589+ lint
+issues including:
+
+- Import sorting and unused imports
+- Code style consistency
+- Unicode character fixes (×→\* multiplication signs)
+
+No manual patches are required - all fixes are automated.
+
+## API Coverage
+
+The client provides access to all major Katana functionality:
+
+- **Products & Inventory** (25+ endpoints): Products, variants, materials, stock levels
+- **Orders** (20+ endpoints): Sales orders, purchase orders, fulfillment
+- **Manufacturing** (15+ endpoints): BOMs, manufacturing orders, operations
+- **Business Relations** (10+ endpoints): Customers, suppliers, addresses
+- **Configuration** (6+ endpoints): Locations, webhooks, custom fields
+
+**Total**: 76+ endpoints with 150+ fully-typed data models
+
+## Testing Strategy
+
+### Test Categories
+
+- **Unit tests** (`-m unit`): Fast tests of individual components
+- **Integration tests** (`-m integration`): API integration tests (requires
+  KATANA_API_KEY)
+- **Documentation tests** (`-m docs`): Slow documentation build tests (CI only)
+
+### Environment Variables
+
+Create `.env` file for credentials:
+
+```
+KATANA_API_KEY=your-api-key-here
+KATANA_BASE_URL=https://api.katanamrp.com/v1  # Optional
+```
+
+### Error Patterns
+
+Network/auth errors are expected in tests - use this pattern:
+
+```python
+try:
+    response = await api_method.asyncio_detailed(client=client)
+    assert response.status_code in [200, 404]  # 404 OK for empty test data
+except Exception as e:
+    error_msg = str(e).lower()
+    assert any(word in error_msg for word in ["connection", "network", "auth"])
+```
+
+## Commit Standards
+
+This project uses **semantic-release** with conventional commits:
+
+- **`feat:`** - New features (MINOR version bump)
+- **`fix:`** - Bug fixes (PATCH version bump)
+- **`chore:`** - Development/tooling (NO version bump)
+- **`docs:`** - Documentation only (NO version bump)
+- **`test:`** - Test changes (NO version bump)
+- **`refactor:`** - Code refactoring (NO version bump)
+
+**Breaking changes**: Use `!` after type (e.g., `feat!:`) for MAJOR version bump
+
+## Common Pitfalls
+
+1. **Never cancel long-running commands** - Set generous timeouts (30-60+ minutes)
+1. **Always use `poetry run`** - Don't run commands outside Poetry environment
+1. **Generated code is read-only** - Use regeneration script instead of editing
+1. **Integration tests need credentials** - Set `KATANA_API_KEY` in `.env`
+1. **Import paths are flattened** - Use direct imports from
+   `katana_public_api_client.api` (no `.generated` subdirectory)
+1. **Client types import** - Use `from katana_public_api_client.client_types import`
+   instead of `types`
+1. **Pre-commit may fail** - Network restrictions can cause PyPI timeouts
+
+## OpenAPI Specification
+
+The OpenAPI spec is located at `docs/katana-openapi.yaml` and represents the
+comprehensive Katana Manufacturing ERP API. Key features:
+
+- **OpenAPI 3.1.0** specification
+- **100% endpoint coverage** of Katana API
+- **Inheritance patterns** with BaseEntity, InventoryItem base schemas
+- **Comprehensive validation** with detailed error responses
+- **Recent improvements** include date-time formats and schema restructuring for
+  inheritance
+
+## Development Workflow
+
+### Before Making Changes
+
+```bash
+poetry run poe check          # Full validation (~40 seconds)
+poetry run poe fix             # Auto-fix issues if found
+```
+
+### After Making Changes
+
+```bash
+poetry run poe format          # Format code
+poetry run poe lint            # Run linting
+poetry run poe test            # Run tests
+poetry run poe check           # Final validation
+```
+
+### Client Regeneration (when needed)
+
+```bash
+poetry run poe validate-openapi          # Validate spec first
+poetry run poe regenerate-client         # Regenerate (~2+ minutes)
+poetry run poe test                      # Verify client works
+```

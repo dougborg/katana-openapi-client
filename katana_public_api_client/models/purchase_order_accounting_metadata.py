@@ -24,8 +24,8 @@ class PurchaseOrderAccountingMetadata:
     """
 
     id: int
-    purchase_order_id: int
-    purchaseOrderId: Unset | int = UNSET
+    purchaseOrderId: int
+    purchase_order_id: Unset | int = UNSET
     por_received_group_id: Unset | int = UNSET
     integration_type: Unset | str = UNSET
     bill_id: Unset | str = UNSET
@@ -35,9 +35,9 @@ class PurchaseOrderAccountingMetadata:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        purchase_order_id = self.purchase_order_id
-
         purchaseOrderId = self.purchaseOrderId
+
+        purchase_order_id = self.purchase_order_id
 
         por_received_group_id = self.por_received_group_id
 
@@ -54,11 +54,11 @@ class PurchaseOrderAccountingMetadata:
         field_dict.update(
             {
                 "id": id,
-                "purchase_order_id": purchase_order_id,
+                "purchaseOrderId": purchaseOrderId,
             }
         )
-        if purchaseOrderId is not UNSET:
-            field_dict["purchaseOrderId"] = purchaseOrderId
+        if purchase_order_id is not UNSET:
+            field_dict["purchase_order_id"] = purchase_order_id
         if por_received_group_id is not UNSET:
             field_dict["porReceivedGroupId"] = por_received_group_id
         if integration_type is not UNSET:
@@ -75,9 +75,9 @@ class PurchaseOrderAccountingMetadata:
         d = dict(src_dict)
         id = d.pop("id")
 
-        purchase_order_id = d.pop("purchase_order_id")
+        purchaseOrderId = d.pop("purchaseOrderId")
 
-        purchaseOrderId = d.pop("purchaseOrderId", UNSET)
+        purchase_order_id = d.pop("purchase_order_id", UNSET)
 
         por_received_group_id = d.pop("porReceivedGroupId", UNSET)
 
@@ -94,8 +94,8 @@ class PurchaseOrderAccountingMetadata:
 
         purchase_order_accounting_metadata = cls(
             id=id,
-            purchase_order_id=purchase_order_id,
             purchaseOrderId=purchaseOrderId,
+            purchase_order_id=purchase_order_id,
             por_received_group_id=por_received_group_id,
             integration_type=integration_type,
             bill_id=bill_id,

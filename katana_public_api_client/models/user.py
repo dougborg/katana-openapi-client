@@ -18,7 +18,7 @@ class User:
     """System user account with authentication credentials and role-based permissions
 
     Example:
-        {'id': 42, 'first_name': 'Sarah', 'last_name': 'Johnson', 'email': 'sarah.johnson@company.com', 'role':
+        {'id': 42, 'firstName': 'Sarah', 'lastName': 'Johnson', 'email': 'sarah.johnson@company.com', 'role':
             'production_manager', 'status': 'active', 'last_login_at': '2024-01-15T14:30:00Z', 'created_at':
             '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T14:30:00Z'}
     """
@@ -27,9 +27,9 @@ class User:
     first_name: str
     last_name: str
     email: str
-    role: str
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
+    role: Unset | str = UNSET
     status: Unset | str = UNSET
     last_login_at: None | Unset | datetime.datetime = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -43,8 +43,6 @@ class User:
 
         email = self.email
 
-        role = self.role
-
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -52,6 +50,8 @@ class User:
         updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
+
+        role = self.role
 
         status = self.status
 
@@ -68,16 +68,17 @@ class User:
         field_dict.update(
             {
                 "id": id,
-                "first_name": first_name,
-                "last_name": last_name,
+                "firstName": first_name,
+                "lastName": last_name,
                 "email": email,
-                "role": role,
             }
         )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
+        if role is not UNSET:
+            field_dict["role"] = role
         if status is not UNSET:
             field_dict["status"] = status
         if last_login_at is not UNSET:
@@ -90,13 +91,11 @@ class User:
         d = dict(src_dict)
         id = d.pop("id")
 
-        first_name = d.pop("first_name")
+        first_name = d.pop("firstName")
 
-        last_name = d.pop("last_name")
+        last_name = d.pop("lastName")
 
         email = d.pop("email")
-
-        role = d.pop("role")
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -111,6 +110,8 @@ class User:
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
+
+        role = d.pop("role", UNSET)
 
         status = d.pop("status", UNSET)
 
@@ -136,9 +137,9 @@ class User:
             first_name=first_name,
             last_name=last_name,
             email=email,
-            role=role,
             created_at=created_at,
             updated_at=updated_at,
+            role=role,
             status=status,
             last_login_at=last_login_at,
         )

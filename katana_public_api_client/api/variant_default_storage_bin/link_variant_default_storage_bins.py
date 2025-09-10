@@ -9,8 +9,8 @@ from ...client_types import Response
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.variant_default_storage_bin_link import VariantDefaultStorageBinLink
-from ...models.variant_default_storage_bin_link_list_response import (
-    VariantDefaultStorageBinLinkListResponse,
+from ...models.variant_default_storage_bin_link_response import (
+    VariantDefaultStorageBinLinkResponse,
 )
 
 
@@ -38,13 +38,18 @@ def _parse_response(
 ) -> (
     DetailedErrorResponse
     | ErrorResponse
-    | VariantDefaultStorageBinLinkListResponse
+    | list["VariantDefaultStorageBinLinkResponse"]
     | None
 ):
     if response.status_code == 200:
-        response_200 = VariantDefaultStorageBinLinkListResponse.from_dict(
-            response.json()
-        )
+        response_200 = []
+        _response_200 = response.json()
+        for response_200_item_data in _response_200:
+            response_200_item = VariantDefaultStorageBinLinkResponse.from_dict(
+                response_200_item_data
+            )
+
+            response_200.append(response_200_item)
 
         return response_200
     if response.status_code == 401:
@@ -72,7 +77,7 @@ def _parse_response(
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Response[
-    DetailedErrorResponse | ErrorResponse | VariantDefaultStorageBinLinkListResponse
+    DetailedErrorResponse | ErrorResponse | list["VariantDefaultStorageBinLinkResponse"]
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -87,7 +92,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: VariantDefaultStorageBinLink,
 ) -> Response[
-    DetailedErrorResponse | ErrorResponse | VariantDefaultStorageBinLinkListResponse
+    DetailedErrorResponse | ErrorResponse | list["VariantDefaultStorageBinLinkResponse"]
 ]:
     """Link variant default storage bins
 
@@ -109,7 +114,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, VariantDefaultStorageBinLinkListResponse]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, list['VariantDefaultStorageBinLinkResponse']]]
     """
 
     kwargs = _get_kwargs(
@@ -130,7 +135,7 @@ def sync(
 ) -> (
     DetailedErrorResponse
     | ErrorResponse
-    | VariantDefaultStorageBinLinkListResponse
+    | list["VariantDefaultStorageBinLinkResponse"]
     | None
 ):
     """Link variant default storage bins
@@ -153,7 +158,7 @@ def sync(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, VariantDefaultStorageBinLinkListResponse]
+        Union[DetailedErrorResponse, ErrorResponse, list['VariantDefaultStorageBinLinkResponse']]
     """
 
     return sync_detailed(
@@ -167,7 +172,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: VariantDefaultStorageBinLink,
 ) -> Response[
-    DetailedErrorResponse | ErrorResponse | VariantDefaultStorageBinLinkListResponse
+    DetailedErrorResponse | ErrorResponse | list["VariantDefaultStorageBinLinkResponse"]
 ]:
     """Link variant default storage bins
 
@@ -189,7 +194,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, VariantDefaultStorageBinLinkListResponse]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, list['VariantDefaultStorageBinLinkResponse']]]
     """
 
     kwargs = _get_kwargs(
@@ -208,7 +213,7 @@ async def asyncio(
 ) -> (
     DetailedErrorResponse
     | ErrorResponse
-    | VariantDefaultStorageBinLinkListResponse
+    | list["VariantDefaultStorageBinLinkResponse"]
     | None
 ):
     """Link variant default storage bins
@@ -231,7 +236,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, VariantDefaultStorageBinLinkListResponse]
+        Union[DetailedErrorResponse, ErrorResponse, list['VariantDefaultStorageBinLinkResponse']]
     """
 
     return (

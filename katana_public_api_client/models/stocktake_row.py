@@ -20,12 +20,12 @@ class StocktakeRow:
     id: int
     stocktake_id: int
     variant_id: int
-    system_quantity: float
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     batch_id: None | Unset | int = UNSET
-    actual_quantity: None | Unset | float = UNSET
-    variance_quantity: None | Unset | float = UNSET
+    in_stock_quantity: None | Unset | float = UNSET
+    counted_quantity: None | Unset | float = UNSET
+    discrepancy_quantity: None | Unset | float = UNSET
     notes: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -35,8 +35,6 @@ class StocktakeRow:
         stocktake_id = self.stocktake_id
 
         variant_id = self.variant_id
-
-        system_quantity = self.system_quantity
 
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
@@ -52,17 +50,23 @@ class StocktakeRow:
         else:
             batch_id = self.batch_id
 
-        actual_quantity: None | Unset | float
-        if isinstance(self.actual_quantity, Unset):
-            actual_quantity = UNSET
+        in_stock_quantity: None | Unset | float
+        if isinstance(self.in_stock_quantity, Unset):
+            in_stock_quantity = UNSET
         else:
-            actual_quantity = self.actual_quantity
+            in_stock_quantity = self.in_stock_quantity
 
-        variance_quantity: None | Unset | float
-        if isinstance(self.variance_quantity, Unset):
-            variance_quantity = UNSET
+        counted_quantity: None | Unset | float
+        if isinstance(self.counted_quantity, Unset):
+            counted_quantity = UNSET
         else:
-            variance_quantity = self.variance_quantity
+            counted_quantity = self.counted_quantity
+
+        discrepancy_quantity: None | Unset | float
+        if isinstance(self.discrepancy_quantity, Unset):
+            discrepancy_quantity = UNSET
+        else:
+            discrepancy_quantity = self.discrepancy_quantity
 
         notes: None | Unset | str
         if isinstance(self.notes, Unset):
@@ -77,7 +81,6 @@ class StocktakeRow:
                 "id": id,
                 "stocktake_id": stocktake_id,
                 "variant_id": variant_id,
-                "system_quantity": system_quantity,
             }
         )
         if created_at is not UNSET:
@@ -86,10 +89,12 @@ class StocktakeRow:
             field_dict["updated_at"] = updated_at
         if batch_id is not UNSET:
             field_dict["batch_id"] = batch_id
-        if actual_quantity is not UNSET:
-            field_dict["actual_quantity"] = actual_quantity
-        if variance_quantity is not UNSET:
-            field_dict["variance_quantity"] = variance_quantity
+        if in_stock_quantity is not UNSET:
+            field_dict["in_stock_quantity"] = in_stock_quantity
+        if counted_quantity is not UNSET:
+            field_dict["counted_quantity"] = counted_quantity
+        if discrepancy_quantity is not UNSET:
+            field_dict["discrepancy_quantity"] = discrepancy_quantity
         if notes is not UNSET:
             field_dict["notes"] = notes
 
@@ -103,8 +108,6 @@ class StocktakeRow:
         stocktake_id = d.pop("stocktake_id")
 
         variant_id = d.pop("variant_id")
-
-        system_quantity = d.pop("system_quantity")
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -129,23 +132,34 @@ class StocktakeRow:
 
         batch_id = _parse_batch_id(d.pop("batch_id", UNSET))
 
-        def _parse_actual_quantity(data: object) -> None | Unset | float:
+        def _parse_in_stock_quantity(data: object) -> None | Unset | float:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
             return cast(None | Unset | float, data)
 
-        actual_quantity = _parse_actual_quantity(d.pop("actual_quantity", UNSET))
+        in_stock_quantity = _parse_in_stock_quantity(d.pop("in_stock_quantity", UNSET))
 
-        def _parse_variance_quantity(data: object) -> None | Unset | float:
+        def _parse_counted_quantity(data: object) -> None | Unset | float:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
             return cast(None | Unset | float, data)
 
-        variance_quantity = _parse_variance_quantity(d.pop("variance_quantity", UNSET))
+        counted_quantity = _parse_counted_quantity(d.pop("counted_quantity", UNSET))
+
+        def _parse_discrepancy_quantity(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
+
+        discrepancy_quantity = _parse_discrepancy_quantity(
+            d.pop("discrepancy_quantity", UNSET)
+        )
 
         def _parse_notes(data: object) -> None | Unset | str:
             if data is None:
@@ -160,12 +174,12 @@ class StocktakeRow:
             id=id,
             stocktake_id=stocktake_id,
             variant_id=variant_id,
-            system_quantity=system_quantity,
             created_at=created_at,
             updated_at=updated_at,
             batch_id=batch_id,
-            actual_quantity=actual_quantity,
-            variance_quantity=variance_quantity,
+            in_stock_quantity=in_stock_quantity,
+            counted_quantity=counted_quantity,
+            discrepancy_quantity=discrepancy_quantity,
             notes=notes,
         )
 

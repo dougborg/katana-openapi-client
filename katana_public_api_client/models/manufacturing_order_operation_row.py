@@ -14,7 +14,7 @@ from ..models.manufacturing_order_operation_row_status import (
 )
 
 if TYPE_CHECKING:
-    from ..models.operator import Operator
+    from ..models.assigned_operator import AssignedOperator
 
 
 T = TypeVar("T", bound="ManufacturingOrderOperationRow")
@@ -48,8 +48,8 @@ class ManufacturingOrderOperationRow:
     operation_name: Unset | str = UNSET
     resource_id: Unset | int = UNSET
     resource_name: Unset | str = UNSET
-    assigned_operators: Unset | list["Operator"] = UNSET
-    completed_by_operators: Unset | list["Operator"] = UNSET
+    assigned_operators: Unset | list["AssignedOperator"] = UNSET
+    completed_by_operators: Unset | list["AssignedOperator"] = UNSET
     active_operator_id: Unset | float = UNSET
     planned_time_per_unit: Unset | float = UNSET
     planned_time_parameter: Unset | float = UNSET
@@ -202,7 +202,7 @@ class ManufacturingOrderOperationRow:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.operator import Operator
+        from ..models.assigned_operator import AssignedOperator
 
         d = dict(src_dict)
         id = d.pop("id")
@@ -262,14 +262,16 @@ class ManufacturingOrderOperationRow:
         assigned_operators = []
         _assigned_operators = d.pop("assigned_operators", UNSET)
         for assigned_operators_item_data in _assigned_operators or []:
-            assigned_operators_item = Operator.from_dict(assigned_operators_item_data)
+            assigned_operators_item = AssignedOperator.from_dict(
+                assigned_operators_item_data
+            )
 
             assigned_operators.append(assigned_operators_item)
 
         completed_by_operators = []
         _completed_by_operators = d.pop("completed_by_operators", UNSET)
         for completed_by_operators_item_data in _completed_by_operators or []:
-            completed_by_operators_item = Operator.from_dict(
+            completed_by_operators_item = AssignedOperator.from_dict(
                 completed_by_operators_item_data
             )
 

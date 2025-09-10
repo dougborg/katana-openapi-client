@@ -1,104 +1,82 @@
-import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
-from ..client_types import UNSET, Unset
-from ..models.serial_number_stock_status import SerialNumberStockStatus
+if TYPE_CHECKING:
+    from ..models.serial_number_stock_transactions_item import (
+        SerialNumberStockTransactionsItem,
+    )
+
 
 T = TypeVar("T", bound="SerialNumberStock")
 
 
 @_attrs_define
 class SerialNumberStock:
-    """Current stock status and location of individual serialized inventory items"""
+    """Current stock status and transaction history of individual serialized inventory items"""
 
-    id: int
-    variant_id: int
-    location_id: int
+    id: str
     serial_number: str
-    status: SerialNumberStockStatus
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
+    in_stock: bool
+    transactions: list["SerialNumberStockTransactionsItem"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        variant_id = self.variant_id
-
-        location_id = self.location_id
-
         serial_number = self.serial_number
 
-        status = self.status.value
+        in_stock = self.in_stock
 
-        created_at: Unset | str = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: Unset | str = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
+        transactions = []
+        for transactions_item_data in self.transactions:
+            transactions_item = transactions_item_data.to_dict()
+            transactions.append(transactions_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
                 "id": id,
-                "variant_id": variant_id,
-                "location_id": location_id,
                 "serial_number": serial_number,
-                "status": status,
+                "in_stock": in_stock,
+                "transactions": transactions,
             }
         )
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.serial_number_stock_transactions_item import (
+            SerialNumberStockTransactionsItem,
+        )
+
         d = dict(src_dict)
         id = d.pop("id")
 
-        variant_id = d.pop("variant_id")
-
-        location_id = d.pop("location_id")
-
         serial_number = d.pop("serial_number")
 
-        status = SerialNumberStockStatus(d.pop("status"))
+        in_stock = d.pop("in_stock")
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
+        transactions = []
+        _transactions = d.pop("transactions")
+        for transactions_item_data in _transactions:
+            transactions_item = SerialNumberStockTransactionsItem.from_dict(
+                transactions_item_data
+            )
 
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
+            transactions.append(transactions_item)
 
         serial_number_stock = cls(
             id=id,
-            variant_id=variant_id,
-            location_id=location_id,
             serial_number=serial_number,
-            status=status,
-            created_at=created_at,
-            updated_at=updated_at,
+            in_stock=in_stock,
+            transactions=transactions,
         )
 
         serial_number_stock.additional_properties = d

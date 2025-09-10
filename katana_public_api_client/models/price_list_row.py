@@ -9,6 +9,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+from ..models.price_list_row_adjustment_method import PriceListRowAdjustmentMethod
 
 T = TypeVar("T", bound="PriceListRow")
 
@@ -19,17 +20,17 @@ class PriceListRow:
     management
 
         Example:
-            {'id': 5001, 'price_list_id': 1001, 'variant_id': 201, 'price': 249.99, 'currency': 'USD', 'created_at':
-                '2024-01-15T10:00:00Z', 'updated_at': '2024-01-15T10:00:00Z'}
+            {'id': 5001, 'price_list_id': 1001, 'variant_id': 201, 'adjustment_method': 'fixed', 'amount': 249.99,
+                'created_at': '2024-01-15T10:00:00Z', 'updated_at': '2024-01-15T10:00:00Z'}
     """
 
     id: int
     price_list_id: int
     variant_id: int
-    price: float
+    adjustment_method: PriceListRowAdjustmentMethod
+    amount: float
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    currency: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,7 +40,9 @@ class PriceListRow:
 
         variant_id = self.variant_id
 
-        price = self.price
+        adjustment_method = self.adjustment_method.value
+
+        amount = self.amount
 
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
@@ -49,8 +52,6 @@ class PriceListRow:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        currency = self.currency
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -58,15 +59,14 @@ class PriceListRow:
                 "id": id,
                 "price_list_id": price_list_id,
                 "variant_id": variant_id,
-                "price": price,
+                "adjustment_method": adjustment_method,
+                "amount": amount,
             }
         )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
-        if currency is not UNSET:
-            field_dict["currency"] = currency
 
         return field_dict
 
@@ -79,7 +79,9 @@ class PriceListRow:
 
         variant_id = d.pop("variant_id")
 
-        price = d.pop("price")
+        adjustment_method = PriceListRowAdjustmentMethod(d.pop("adjustment_method"))
+
+        amount = d.pop("amount")
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -95,16 +97,14 @@ class PriceListRow:
         else:
             updated_at = isoparse(_updated_at)
 
-        currency = d.pop("currency", UNSET)
-
         price_list_row = cls(
             id=id,
             price_list_id=price_list_id,
             variant_id=variant_id,
-            price=price,
+            adjustment_method=adjustment_method,
+            amount=amount,
             created_at=created_at,
             updated_at=updated_at,
-            currency=currency,
         )
 
         price_list_row.additional_properties = d

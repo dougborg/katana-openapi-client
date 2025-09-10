@@ -1,6 +1,6 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -11,6 +11,10 @@ from dateutil.parser import isoparse
 from ..client_types import UNSET, Unset
 from ..models.stock_transfer_status import StockTransferStatus
 
+if TYPE_CHECKING:
+    from ..models.stock_transfer_row import StockTransferRow
+
+
 T = TypeVar("T", bound="StockTransfer")
 
 
@@ -19,31 +23,34 @@ class StockTransfer:
     """Inventory transfer record for moving stock between different warehouse locations or facilities
 
     Example:
-        {'id': 3001, 'reference_no': 'ST-2024-001', 'from_location_id': 1, 'to_location_id': 2, 'status': 'COMPLETED',
-            'transfer_date': '2024-01-15T16:00:00.000Z', 'additional_info': 'Rebalancing inventory between warehouses',
-            'created_at': '2024-01-15T16:00:00.000Z', 'updated_at': '2024-01-15T16:00:00.000Z', 'deleted_at': None}
+        {'id': 3001, 'stock_transfer_number': 'ST-2024-001', 'source_location_id': 1, 'target_location_id': 2, 'status':
+            'COMPLETED', 'transfer_date': '2024-01-15T16:00:00.000Z', 'additional_info': 'Rebalancing inventory between
+            warehouses', 'stock_transfer_rows': [{'id': 4001, 'variant_id': 2001, 'quantity': 50, 'batch_transactions':
+            [{'batch_id': 5001, 'quantity': 30}, {'batch_id': 5002, 'quantity': 20}]}], 'created_at':
+            '2024-01-15T16:00:00.000Z', 'updated_at': '2024-01-15T16:00:00.000Z', 'deleted_at': None}
     """
 
     id: int
-    reference_no: str
-    from_location_id: int
-    to_location_id: int
+    stock_transfer_number: str
+    source_location_id: int
+    target_location_id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | datetime.datetime = UNSET
     status: Unset | StockTransferStatus = UNSET
     transfer_date: Unset | datetime.datetime = UNSET
     additional_info: None | Unset | str = UNSET
+    stock_transfer_rows: Unset | list["StockTransferRow"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        reference_no = self.reference_no
+        stock_transfer_number = self.stock_transfer_number
 
-        from_location_id = self.from_location_id
+        source_location_id = self.source_location_id
 
-        to_location_id = self.to_location_id
+        target_location_id = self.target_location_id
 
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
@@ -75,14 +82,21 @@ class StockTransfer:
         else:
             additional_info = self.additional_info
 
+        stock_transfer_rows: Unset | list[dict[str, Any]] = UNSET
+        if not isinstance(self.stock_transfer_rows, Unset):
+            stock_transfer_rows = []
+            for stock_transfer_rows_item_data in self.stock_transfer_rows:
+                stock_transfer_rows_item = stock_transfer_rows_item_data.to_dict()
+                stock_transfer_rows.append(stock_transfer_rows_item)
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
                 "id": id,
-                "reference_no": reference_no,
-                "from_location_id": from_location_id,
-                "to_location_id": to_location_id,
+                "stock_transfer_number": stock_transfer_number,
+                "source_location_id": source_location_id,
+                "target_location_id": target_location_id,
             }
         )
         if created_at is not UNSET:
@@ -97,19 +111,23 @@ class StockTransfer:
             field_dict["transfer_date"] = transfer_date
         if additional_info is not UNSET:
             field_dict["additional_info"] = additional_info
+        if stock_transfer_rows is not UNSET:
+            field_dict["stock_transfer_rows"] = stock_transfer_rows
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.stock_transfer_row import StockTransferRow
+
         d = dict(src_dict)
         id = d.pop("id")
 
-        reference_no = d.pop("reference_no")
+        stock_transfer_number = d.pop("stock_transfer_number")
 
-        from_location_id = d.pop("from_location_id")
+        source_location_id = d.pop("source_location_id")
 
-        to_location_id = d.pop("to_location_id")
+        target_location_id = d.pop("target_location_id")
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -165,17 +183,27 @@ class StockTransfer:
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
+        stock_transfer_rows = []
+        _stock_transfer_rows = d.pop("stock_transfer_rows", UNSET)
+        for stock_transfer_rows_item_data in _stock_transfer_rows or []:
+            stock_transfer_rows_item = StockTransferRow.from_dict(
+                stock_transfer_rows_item_data
+            )
+
+            stock_transfer_rows.append(stock_transfer_rows_item)
+
         stock_transfer = cls(
             id=id,
-            reference_no=reference_no,
-            from_location_id=from_location_id,
-            to_location_id=to_location_id,
+            stock_transfer_number=stock_transfer_number,
+            source_location_id=source_location_id,
+            target_location_id=target_location_id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
             status=status,
             transfer_date=transfer_date,
             additional_info=additional_info,
+            stock_transfer_rows=stock_transfer_rows,
         )
 
         stock_transfer.additional_properties = d

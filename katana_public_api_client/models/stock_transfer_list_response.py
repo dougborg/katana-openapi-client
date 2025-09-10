@@ -20,12 +20,13 @@ class StockTransferListResponse:
     """List of stock transfer records showing all inventory movements between locations and their transfer status
 
     Example:
-        {'data': [{'id': 3001, 'reference_no': 'ST-2024-001', 'from_location_id': 1, 'to_location_id': 2, 'status':
-            'COMPLETED', 'transfer_date': '2024-01-15T16:00:00.000Z', 'additional_info': 'Rebalancing inventory between
-            warehouses', 'created_at': '2024-01-15T16:00:00.000Z', 'updated_at': '2024-01-15T16:00:00.000Z', 'deleted_at':
-            None}, {'id': 3002, 'reference_no': 'ST-2024-002', 'from_location_id': 2, 'to_location_id': 3, 'status':
-            'DRAFT', 'transfer_date': '2024-01-16T11:30:00.000Z', 'additional_info': 'Seasonal stock redistribution',
-            'created_at': '2024-01-16T11:30:00.000Z', 'updated_at': '2024-01-16T11:30:00.000Z', 'deleted_at': None}]}
+        {'data': [{'id': 3001, 'stock_transfer_number': 'ST-2024-001', 'source_location_id': 1, 'target_location_id': 2,
+            'status': 'COMPLETED', 'transfer_date': '2024-01-15T16:00:00.000Z', 'additional_info': 'Rebalancing inventory
+            between warehouses', 'created_at': '2024-01-15T16:00:00.000Z', 'updated_at': '2024-01-15T16:00:00.000Z',
+            'deleted_at': None}, {'id': 3002, 'stock_transfer_number': 'ST-2024-002', 'source_location_id': 2,
+            'target_location_id': 3, 'status': 'DRAFT', 'transfer_date': '2024-01-16T11:30:00.000Z', 'additional_info':
+            'Seasonal stock redistribution', 'created_at': '2024-01-16T11:30:00.000Z', 'updated_at':
+            '2024-01-16T11:30:00.000Z', 'deleted_at': None}]}
     """
 
     data: Unset | list["StockTransfer"] = UNSET

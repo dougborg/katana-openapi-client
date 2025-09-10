@@ -33,9 +33,14 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | PriceListRow | None:
+) -> DetailedErrorResponse | ErrorResponse | list["PriceListRow"] | None:
     if response.status_code == 200:
-        response_200 = PriceListRow.from_dict(response.json())
+        response_200 = []
+        _response_200 = response.json()
+        for response_200_item_data in _response_200:
+            response_200_item = PriceListRow.from_dict(response_200_item_data)
+
+            response_200.append(response_200_item)
 
         return response_200
     if response.status_code == 400:
@@ -66,7 +71,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | PriceListRow]:
+) -> Response[DetailedErrorResponse | ErrorResponse | list["PriceListRow"]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -79,7 +84,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePriceListRowRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | PriceListRow]:
+) -> Response[DetailedErrorResponse | ErrorResponse | list["PriceListRow"]]:
     """Create a price list row
 
      Creates a new price list row.
@@ -95,7 +100,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, PriceListRow]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, list['PriceListRow']]]
     """
 
     kwargs = _get_kwargs(
@@ -113,7 +118,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePriceListRowRequest,
-) -> DetailedErrorResponse | ErrorResponse | PriceListRow | None:
+) -> DetailedErrorResponse | ErrorResponse | list["PriceListRow"] | None:
     """Create a price list row
 
      Creates a new price list row.
@@ -129,7 +134,7 @@ def sync(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, PriceListRow]
+        Union[DetailedErrorResponse, ErrorResponse, list['PriceListRow']]
     """
 
     return sync_detailed(
@@ -142,7 +147,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePriceListRowRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | PriceListRow]:
+) -> Response[DetailedErrorResponse | ErrorResponse | list["PriceListRow"]]:
     """Create a price list row
 
      Creates a new price list row.
@@ -158,7 +163,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, PriceListRow]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, list['PriceListRow']]]
     """
 
     kwargs = _get_kwargs(
@@ -174,7 +179,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreatePriceListRowRequest,
-) -> DetailedErrorResponse | ErrorResponse | PriceListRow | None:
+) -> DetailedErrorResponse | ErrorResponse | list["PriceListRow"] | None:
     """Create a price list row
 
      Creates a new price list row.
@@ -190,7 +195,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, PriceListRow]
+        Union[DetailedErrorResponse, ErrorResponse, list['PriceListRow']]
     """
 
     return (
