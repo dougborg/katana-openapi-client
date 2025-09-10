@@ -26,10 +26,10 @@ class PriceList:
 
     id: int
     name: str
-    currency: str
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | datetime.datetime = UNSET
+    currency: Unset | str = UNSET
     is_default: Unset | bool = UNSET
     markup_percentage: None | Unset | float = UNSET
     start_date: None | Unset | datetime.datetime = UNSET
@@ -40,8 +40,6 @@ class PriceList:
         id = self.id
 
         name = self.name
-
-        currency = self.currency
 
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
@@ -58,6 +56,8 @@ class PriceList:
             deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
+
+        currency = self.currency
 
         is_default = self.is_default
 
@@ -89,7 +89,6 @@ class PriceList:
             {
                 "id": id,
                 "name": name,
-                "currency": currency,
             }
         )
         if created_at is not UNSET:
@@ -98,6 +97,8 @@ class PriceList:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
+        if currency is not UNSET:
+            field_dict["currency"] = currency
         if is_default is not UNSET:
             field_dict["is_default"] = is_default
         if markup_percentage is not UNSET:
@@ -115,8 +116,6 @@ class PriceList:
         id = d.pop("id")
 
         name = d.pop("name")
-
-        currency = d.pop("currency")
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -148,6 +147,8 @@ class PriceList:
             return cast(None | Unset | datetime.datetime, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
+
+        currency = d.pop("currency", UNSET)
 
         is_default = d.pop("is_default", UNSET)
 
@@ -197,10 +198,10 @@ class PriceList:
         price_list = cls(
             id=id,
             name=name,
-            currency=currency,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
+            currency=currency,
             is_default=is_default,
             markup_percentage=markup_percentage,
             start_date=start_date,

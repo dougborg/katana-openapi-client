@@ -33,9 +33,14 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | StocktakeRow | None:
+) -> DetailedErrorResponse | ErrorResponse | list["StocktakeRow"] | None:
     if response.status_code == 200:
-        response_200 = StocktakeRow.from_dict(response.json())
+        response_200 = []
+        _response_200 = response.json()
+        for response_200_item_data in _response_200:
+            response_200_item = StocktakeRow.from_dict(response_200_item_data)
+
+            response_200.append(response_200_item)
 
         return response_200
     if response.status_code == 401:
@@ -62,7 +67,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | StocktakeRow]:
+) -> Response[DetailedErrorResponse | ErrorResponse | list["StocktakeRow"]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -75,7 +80,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateStocktakeRowRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | StocktakeRow]:
+) -> Response[DetailedErrorResponse | ErrorResponse | list["StocktakeRow"]]:
     """Create a stocktake row
 
      Creates a new stocktake row for counting specific variants.
@@ -92,7 +97,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, StocktakeRow]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, list['StocktakeRow']]]
     """
 
     kwargs = _get_kwargs(
@@ -110,7 +115,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateStocktakeRowRequest,
-) -> DetailedErrorResponse | ErrorResponse | StocktakeRow | None:
+) -> DetailedErrorResponse | ErrorResponse | list["StocktakeRow"] | None:
     """Create a stocktake row
 
      Creates a new stocktake row for counting specific variants.
@@ -127,7 +132,7 @@ def sync(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, StocktakeRow]
+        Union[DetailedErrorResponse, ErrorResponse, list['StocktakeRow']]
     """
 
     return sync_detailed(
@@ -140,7 +145,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateStocktakeRowRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | StocktakeRow]:
+) -> Response[DetailedErrorResponse | ErrorResponse | list["StocktakeRow"]]:
     """Create a stocktake row
 
      Creates a new stocktake row for counting specific variants.
@@ -157,7 +162,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, StocktakeRow]]
+        Response[Union[DetailedErrorResponse, ErrorResponse, list['StocktakeRow']]]
     """
 
     kwargs = _get_kwargs(
@@ -173,7 +178,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateStocktakeRowRequest,
-) -> DetailedErrorResponse | ErrorResponse | StocktakeRow | None:
+) -> DetailedErrorResponse | ErrorResponse | list["StocktakeRow"] | None:
     """Create a stocktake row
 
      Creates a new stocktake row for counting specific variants.
@@ -190,7 +195,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, StocktakeRow]
+        Union[DetailedErrorResponse, ErrorResponse, list['StocktakeRow']]
     """
 
     return (

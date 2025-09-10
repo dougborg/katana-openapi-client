@@ -1,6 +1,6 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -9,6 +9,10 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.customer_address import CustomerAddress
+
 
 T = TypeVar("T", bound="Customer")
 
@@ -42,6 +46,7 @@ class Customer:
     discount_rate: None | Unset | float = UNSET
     default_billing_id: None | Unset | int = UNSET
     default_shipping_id: None | Unset | int = UNSET
+    addresses: Unset | list["CustomerAddress"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -133,6 +138,13 @@ class Customer:
         else:
             default_shipping_id = self.default_shipping_id
 
+        addresses: Unset | list[dict[str, Any]] = UNSET
+        if not isinstance(self.addresses, Unset):
+            addresses = []
+            for addresses_item_data in self.addresses:
+                addresses_item = addresses_item_data.to_dict()
+                addresses.append(addresses_item)
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -171,11 +183,15 @@ class Customer:
             field_dict["default_billing_id"] = default_billing_id
         if default_shipping_id is not UNSET:
             field_dict["default_shipping_id"] = default_shipping_id
+        if addresses is not UNSET:
+            field_dict["addresses"] = addresses
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.customer_address import CustomerAddress
+
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -317,6 +333,13 @@ class Customer:
             d.pop("default_shipping_id", UNSET)
         )
 
+        addresses = []
+        _addresses = d.pop("addresses", UNSET)
+        for addresses_item_data in _addresses or []:
+            addresses_item = CustomerAddress.from_dict(addresses_item_data)
+
+            addresses.append(addresses_item)
+
         customer = cls(
             id=id,
             name=name,
@@ -335,6 +358,7 @@ class Customer:
             discount_rate=discount_rate,
             default_billing_id=default_billing_id,
             default_shipping_id=default_shipping_id,
+            addresses=addresses,
         )
 
         customer.additional_properties = d

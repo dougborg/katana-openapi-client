@@ -20,7 +20,7 @@ class SalesReturnRow:
     id: int
     sales_return_id: int
     variant_id: int
-    quantity: float
+    quantity: str
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     return_reason_id: None | Unset | int = UNSET

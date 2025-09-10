@@ -29,7 +29,7 @@ class OutsourcedPurchaseOrderRecipeRow:
     id: int
     purchase_order_row_id: int
     ingredient_variant_id: int
-    planned_quantity_per_unit: int
+    planned_quantity_per_unit: float
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | datetime.datetime = UNSET
@@ -37,12 +37,12 @@ class OutsourcedPurchaseOrderRecipeRow:
     ingredient_availability: (
         Unset | OutsourcedPurchaseOrderRecipeRowIngredientAvailability
     ) = UNSET
-    ingredient_expected_date: Unset | datetime.datetime = UNSET
+    ingredient_expected_date: None | Unset | datetime.datetime = UNSET
     notes: None | Unset | str = UNSET
     batch_transactions: (
         Unset | list["OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem"]
     ) = UNSET
-    cost: Unset | float = UNSET
+    cost: None | Unset | float = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -76,9 +76,13 @@ class OutsourcedPurchaseOrderRecipeRow:
         if not isinstance(self.ingredient_availability, Unset):
             ingredient_availability = self.ingredient_availability.value
 
-        ingredient_expected_date: Unset | str = UNSET
-        if not isinstance(self.ingredient_expected_date, Unset):
+        ingredient_expected_date: None | Unset | str
+        if isinstance(self.ingredient_expected_date, Unset):
+            ingredient_expected_date = UNSET
+        elif isinstance(self.ingredient_expected_date, datetime.datetime):
             ingredient_expected_date = self.ingredient_expected_date.isoformat()
+        else:
+            ingredient_expected_date = self.ingredient_expected_date
 
         notes: None | Unset | str
         if isinstance(self.notes, Unset):
@@ -93,7 +97,11 @@ class OutsourcedPurchaseOrderRecipeRow:
                 batch_transactions_item = batch_transactions_item_data.to_dict()
                 batch_transactions.append(batch_transactions_item)
 
-        cost = self.cost
+        cost: None | Unset | float
+        if isinstance(self.cost, Unset):
+            cost = UNSET
+        else:
+            cost = self.cost
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -187,12 +195,26 @@ class OutsourcedPurchaseOrderRecipeRow:
                 )
             )
 
-        _ingredient_expected_date = d.pop("ingredient_expected_date", UNSET)
-        ingredient_expected_date: Unset | datetime.datetime
-        if isinstance(_ingredient_expected_date, Unset):
-            ingredient_expected_date = UNSET
-        else:
-            ingredient_expected_date = isoparse(_ingredient_expected_date)
+        def _parse_ingredient_expected_date(
+            data: object,
+        ) -> None | Unset | datetime.datetime:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                ingredient_expected_date_type_0 = isoparse(data)
+
+                return ingredient_expected_date_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
+
+        ingredient_expected_date = _parse_ingredient_expected_date(
+            d.pop("ingredient_expected_date", UNSET)
+        )
 
         def _parse_notes(data: object) -> None | Unset | str:
             if data is None:
@@ -214,7 +236,14 @@ class OutsourcedPurchaseOrderRecipeRow:
 
             batch_transactions.append(batch_transactions_item)
 
-        cost = d.pop("cost", UNSET)
+        def _parse_cost(data: object) -> None | Unset | float:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | float, data)
+
+        cost = _parse_cost(d.pop("cost", UNSET))
 
         outsourced_purchase_order_recipe_row = cls(
             id=id,

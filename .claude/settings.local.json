@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python scripts/validate_schema_consistency.py:*)",
+      "Bash(poetry run:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

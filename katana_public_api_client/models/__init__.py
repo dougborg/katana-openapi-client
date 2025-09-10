@@ -4,6 +4,7 @@ from .additional_cost import AdditionalCost
 from .additional_cost_list_response import AdditionalCostListResponse
 from .archivable_deletable_entity import ArchivableDeletableEntity
 from .archivable_entity import ArchivableEntity
+from .assigned_operator import AssignedOperator
 from .base_entity import BaseEntity
 from .batch import Batch
 from .batch_create_bom_rows_request import BatchCreateBomRowsRequest
@@ -11,6 +12,7 @@ from .batch_response import BatchResponse
 from .batch_stock import BatchStock
 from .batch_stock_list_response import BatchStockListResponse
 from .batch_stock_update import BatchStockUpdate
+from .batch_transaction import BatchTransaction
 from .bom_row import BomRow
 from .bom_row_list_response import BomRowListResponse
 from .coded_error_response import CodedErrorResponse
@@ -121,6 +123,7 @@ from .deletable_entity import DeletableEntity
 from .detailed_error_response import DetailedErrorResponse
 from .error_response import ErrorResponse
 from .factory import Factory
+from .factory_legal_address import FactoryLegalAddress
 from .find_purchase_orders_billing_status import FindPurchaseOrdersBillingStatus
 from .find_purchase_orders_entity_type import FindPurchaseOrdersEntityType
 from .find_purchase_orders_extend_item import FindPurchaseOrdersExtendItem
@@ -168,16 +171,12 @@ from .get_purchase_order_additional_cost_rows_distribution_method import (
     GetPurchaseOrderAdditionalCostRowsDistributionMethod,
 )
 from .get_purchase_order_extend_item import GetPurchaseOrderExtendItem
-from .get_sales_order_returnable_items_response_200 import (
-    GetSalesOrderReturnableItemsResponse200,
-)
-from .get_sales_order_returnable_items_response_200_data_item import (
-    GetSalesOrderReturnableItemsResponse200DataItem,
+from .get_sales_order_returnable_items_response_200_item import (
+    GetSalesOrderReturnableItemsResponse200Item,
 )
 from .get_sales_order_row_extend_item import GetSalesOrderRowExtendItem
-from .get_sales_return_reasons_response_200 import GetSalesReturnReasonsResponse200
-from .get_sales_return_reasons_response_200_data_item import (
-    GetSalesReturnReasonsResponse200DataItem,
+from .get_sales_return_reasons_response_200_item import (
+    GetSalesReturnReasonsResponse200Item,
 )
 from .get_sales_return_row_unassigned_batch_transactions_response_200 import (
     GetSalesReturnRowUnassignedBatchTransactionsResponse200,
@@ -204,6 +203,9 @@ from .make_to_order_manufacturing_order_request import (
     MakeToOrderManufacturingOrderRequest,
 )
 from .manufacturing_order import ManufacturingOrder
+from .manufacturing_order_ingredient_availability_type_0 import (
+    ManufacturingOrderIngredientAvailabilityType0,
+)
 from .manufacturing_order_list_response import ManufacturingOrderListResponse
 from .manufacturing_order_operation_production import (
     ManufacturingOrderOperationProduction,
@@ -256,6 +258,7 @@ from .price_list_customer import PriceListCustomer
 from .price_list_customer_list_response import PriceListCustomerListResponse
 from .price_list_list_response import PriceListListResponse
 from .price_list_row import PriceListRow
+from .price_list_row_adjustment_method import PriceListRowAdjustmentMethod
 from .price_list_row_list_response import PriceListRowListResponse
 from .product import Product
 from .product_list_response import ProductListResponse
@@ -329,7 +332,7 @@ from .serial_number_list_response import SerialNumberListResponse
 from .serial_number_resource_type import SerialNumberResourceType
 from .serial_number_stock import SerialNumberStock
 from .serial_number_stock_list_response import SerialNumberStockListResponse
-from .serial_number_stock_status import SerialNumberStockStatus
+from .serial_number_stock_transactions_item import SerialNumberStockTransactionsItem
 from .service import Service
 from .service_list_response import ServiceListResponse
 from .service_type import ServiceType
@@ -341,6 +344,10 @@ from .stock_adjustment_list_response import StockAdjustmentListResponse
 from .stock_adjustment_status import StockAdjustmentStatus
 from .stock_transfer import StockTransfer
 from .stock_transfer_list_response import StockTransferListResponse
+from .stock_transfer_row import StockTransferRow
+from .stock_transfer_row_batch_transactions_item import (
+    StockTransferRowBatchTransactionsItem,
+)
 from .stock_transfer_status import StockTransferStatus
 from .stocktake import Stocktake
 from .stocktake_list_response import StocktakeListResponse
@@ -477,6 +484,7 @@ __all__ = (
     "AdditionalCostListResponse",
     "ArchivableDeletableEntity",
     "ArchivableEntity",
+    "AssignedOperator",
     "BaseEntity",
     "Batch",
     "BatchCreateBomRowsRequest",
@@ -484,6 +492,7 @@ __all__ = (
     "BatchStock",
     "BatchStockListResponse",
     "BatchStockUpdate",
+    "BatchTransaction",
     "BomRow",
     "BomRowListResponse",
     "CodedErrorResponse",
@@ -558,6 +567,7 @@ __all__ = (
     "DetailedErrorResponse",
     "ErrorResponse",
     "Factory",
+    "FactoryLegalAddress",
     "FindPurchaseOrdersBillingStatus",
     "FindPurchaseOrdersEntityType",
     "FindPurchaseOrdersExtendItem",
@@ -585,11 +595,9 @@ __all__ = (
     "GetProductExtendItem",
     "GetPurchaseOrderAdditionalCostRowsDistributionMethod",
     "GetPurchaseOrderExtendItem",
-    "GetSalesOrderReturnableItemsResponse200",
-    "GetSalesOrderReturnableItemsResponse200DataItem",
+    "GetSalesOrderReturnableItemsResponse200Item",
     "GetSalesOrderRowExtendItem",
-    "GetSalesReturnReasonsResponse200",
-    "GetSalesReturnReasonsResponse200DataItem",
+    "GetSalesReturnReasonsResponse200Item",
     "GetSalesReturnRowUnassignedBatchTransactionsResponse200",
     "GetSalesReturnRowUnassignedBatchTransactionsResponse200DataItem",
     "GetVariantExtendItem",
@@ -609,6 +617,7 @@ __all__ = (
     "LocationType0",
     "MakeToOrderManufacturingOrderRequest",
     "ManufacturingOrder",
+    "ManufacturingOrderIngredientAvailabilityType0",
     "ManufacturingOrderListResponse",
     "ManufacturingOrderOperationProduction",
     "ManufacturingOrderOperationRow",
@@ -639,6 +648,7 @@ __all__ = (
     "PriceListCustomerListResponse",
     "PriceListListResponse",
     "PriceListRow",
+    "PriceListRowAdjustmentMethod",
     "PriceListRowListResponse",
     "Product",
     "ProductListResponse",
@@ -694,7 +704,7 @@ __all__ = (
     "SerialNumberResourceType",
     "SerialNumberStock",
     "SerialNumberStockListResponse",
-    "SerialNumberStockStatus",
+    "SerialNumberStockTransactionsItem",
     "Service",
     "ServiceListResponse",
     "ServiceType",
@@ -706,6 +716,8 @@ __all__ = (
     "StockAdjustmentStatus",
     "StockTransfer",
     "StockTransferListResponse",
+    "StockTransferRow",
+    "StockTransferRowBatchTransactionsItem",
     "StockTransferStatus",
     "Stocktake",
     "StocktakeListResponse",

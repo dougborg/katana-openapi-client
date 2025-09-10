@@ -7,7 +7,7 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
-from ...models.operator_list_response import OperatorListResponse
+from ...models.operator import Operator
 
 
 def _get_kwargs(
@@ -40,9 +40,14 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | OperatorListResponse | None:
+) -> ErrorResponse | list["Operator"] | None:
     if response.status_code == 200:
-        response_200 = OperatorListResponse.from_dict(response.json())
+        response_200 = []
+        _response_200 = response.json()
+        for response_200_item_data in _response_200:
+            response_200_item = Operator.from_dict(response_200_item_data)
+
+            response_200.append(response_200_item)
 
         return response_200
     if response.status_code == 401:
@@ -65,7 +70,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | OperatorListResponse]:
+) -> Response[ErrorResponse | list["Operator"]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -81,7 +86,7 @@ def sync_detailed(
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[ErrorResponse | OperatorListResponse]:
+) -> Response[ErrorResponse | list["Operator"]]:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
@@ -99,7 +104,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, OperatorListResponse]]
+        Response[Union[ErrorResponse, list['Operator']]]
     """
 
     kwargs = _get_kwargs(
@@ -123,7 +128,7 @@ def sync(
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> ErrorResponse | OperatorListResponse | None:
+) -> ErrorResponse | list["Operator"] | None:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
@@ -141,7 +146,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, OperatorListResponse]
+        Union[ErrorResponse, list['Operator']]
     """
 
     return sync_detailed(
@@ -160,7 +165,7 @@ async def asyncio_detailed(
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[ErrorResponse | OperatorListResponse]:
+) -> Response[ErrorResponse | list["Operator"]]:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
@@ -178,7 +183,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, OperatorListResponse]]
+        Response[Union[ErrorResponse, list['Operator']]]
     """
 
     kwargs = _get_kwargs(
@@ -200,7 +205,7 @@ async def asyncio(
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> ErrorResponse | OperatorListResponse | None:
+) -> ErrorResponse | list["Operator"] | None:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
@@ -218,7 +223,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, OperatorListResponse]
+        Union[ErrorResponse, list['Operator']]
     """
 
     return (

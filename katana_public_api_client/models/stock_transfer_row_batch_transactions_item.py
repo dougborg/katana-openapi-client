@@ -6,54 +6,45 @@ from attrs import (
     field as _attrs_field,
 )
 
-from ..client_types import UNSET, Unset
-
-T = TypeVar("T", bound="GetSalesReturnReasonsResponse200DataItem")
+T = TypeVar("T", bound="StockTransferRowBatchTransactionsItem")
 
 
 @_attrs_define
-class GetSalesReturnReasonsResponse200DataItem:
-    id: Unset | str = UNSET
-    name: Unset | str = UNSET
-    description: Unset | str = UNSET
+class StockTransferRowBatchTransactionsItem:
+    batch_id: int
+    quantity: float
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        id = self.id
+        batch_id = self.batch_id
 
-        name = self.name
-
-        description = self.description
+        quantity = self.quantity
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
-        if id is not UNSET:
-            field_dict["id"] = id
-        if name is not UNSET:
-            field_dict["name"] = name
-        if description is not UNSET:
-            field_dict["description"] = description
+        field_dict.update(
+            {
+                "batch_id": batch_id,
+                "quantity": quantity,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        id = d.pop("id", UNSET)
+        batch_id = d.pop("batch_id")
 
-        name = d.pop("name", UNSET)
+        quantity = d.pop("quantity")
 
-        description = d.pop("description", UNSET)
-
-        get_sales_return_reasons_response_200_data_item = cls(
-            id=id,
-            name=name,
-            description=description,
+        stock_transfer_row_batch_transactions_item = cls(
+            batch_id=batch_id,
+            quantity=quantity,
         )
 
-        get_sales_return_reasons_response_200_data_item.additional_properties = d
-        return get_sales_return_reasons_response_200_data_item
+        stock_transfer_row_batch_transactions_item.additional_properties = d
+        return stock_transfer_row_batch_transactions_item
 
     @property
     def additional_keys(self) -> list[str]:

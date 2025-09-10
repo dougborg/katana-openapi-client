@@ -6,32 +6,26 @@ from attrs import (
     field as _attrs_field,
 )
 
-T = TypeVar("T", bound="StorageBin")
+T = TypeVar("T", bound="GetSalesReturnReasonsResponse200Item")
 
 
 @_attrs_define
-class StorageBin:
-    """Core storage bin business properties
-
-    Example:
-        {'bin_name': 'A-01-SHELF-1', 'location_id': 1}
-    """
-
-    bin_name: str
-    location_id: int
+class GetSalesReturnReasonsResponse200Item:
+    id: int
+    name: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        bin_name = self.bin_name
+        id = self.id
 
-        location_id = self.location_id
+        name = self.name
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "bin_name": bin_name,
-                "location_id": location_id,
+                "id": id,
+                "name": name,
             }
         )
 
@@ -40,17 +34,17 @@ class StorageBin:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        bin_name = d.pop("bin_name")
+        id = d.pop("id")
 
-        location_id = d.pop("location_id")
+        name = d.pop("name")
 
-        storage_bin = cls(
-            bin_name=bin_name,
-            location_id=location_id,
+        get_sales_return_reasons_response_200_item = cls(
+            id=id,
+            name=name,
         )
 
-        storage_bin.additional_properties = d
-        return storage_bin
+        get_sales_return_reasons_response_200_item.additional_properties = d
+        return get_sales_return_reasons_response_200_item
 
     @property
     def additional_keys(self) -> list[str]:

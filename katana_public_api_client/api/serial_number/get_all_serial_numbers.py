@@ -10,7 +10,7 @@ from ...models.error_response import ErrorResponse
 from ...models.get_all_serial_numbers_resource_type import (
     GetAllSerialNumbersResourceType,
 )
-from ...models.serial_number_list_response import SerialNumberListResponse
+from ...models.serial_number import SerialNumber
 
 
 def _get_kwargs(
@@ -47,9 +47,14 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | SerialNumberListResponse | None:
+) -> ErrorResponse | list["SerialNumber"] | None:
     if response.status_code == 200:
-        response_200 = SerialNumberListResponse.from_dict(response.json())
+        response_200 = []
+        _response_200 = response.json()
+        for response_200_item_data in _response_200:
+            response_200_item = SerialNumber.from_dict(response_200_item_data)
+
+            response_200.append(response_200_item)
 
         return response_200
     if response.status_code == 401:
@@ -72,7 +77,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | SerialNumberListResponse]:
+) -> Response[ErrorResponse | list["SerialNumber"]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -88,7 +93,7 @@ def sync_detailed(
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[ErrorResponse | SerialNumberListResponse]:
+) -> Response[ErrorResponse | list["SerialNumber"]]:
     """List serial numbers
 
      Returns a list of serial numbers.
@@ -106,7 +111,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, SerialNumberListResponse]]
+        Response[Union[ErrorResponse, list['SerialNumber']]]
     """
 
     kwargs = _get_kwargs(
@@ -130,7 +135,7 @@ def sync(
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> ErrorResponse | SerialNumberListResponse | None:
+) -> ErrorResponse | list["SerialNumber"] | None:
     """List serial numbers
 
      Returns a list of serial numbers.
@@ -148,7 +153,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, SerialNumberListResponse]
+        Union[ErrorResponse, list['SerialNumber']]
     """
 
     return sync_detailed(
@@ -167,7 +172,7 @@ async def asyncio_detailed(
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> Response[ErrorResponse | SerialNumberListResponse]:
+) -> Response[ErrorResponse | list["SerialNumber"]]:
     """List serial numbers
 
      Returns a list of serial numbers.
@@ -185,7 +190,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, SerialNumberListResponse]]
+        Response[Union[ErrorResponse, list['SerialNumber']]]
     """
 
     kwargs = _get_kwargs(
@@ -207,7 +212,7 @@ async def asyncio(
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
     page: Unset | int = 1,
-) -> ErrorResponse | SerialNumberListResponse | None:
+) -> ErrorResponse | list["SerialNumber"] | None:
     """List serial numbers
 
      Returns a list of serial numbers.
@@ -225,7 +230,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, SerialNumberListResponse]
+        Union[ErrorResponse, list['SerialNumber']]
     """
 
     return (

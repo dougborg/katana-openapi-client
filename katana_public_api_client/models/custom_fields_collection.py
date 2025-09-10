@@ -33,9 +33,9 @@ class CustomFieldsCollection:
 
     id: int
     name: str
-    resource_type: CustomFieldsCollectionResourceType
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
+    resource_type: Unset | CustomFieldsCollectionResourceType = UNSET
     custom_fields: Unset | list["CustomField"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -44,8 +44,6 @@ class CustomFieldsCollection:
 
         name = self.name
 
-        resource_type = self.resource_type.value
-
         created_at: Unset | str = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -53,6 +51,10 @@ class CustomFieldsCollection:
         updated_at: Unset | str = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
+
+        resource_type: Unset | str = UNSET
+        if not isinstance(self.resource_type, Unset):
+            resource_type = self.resource_type.value
 
         custom_fields: Unset | list[dict[str, Any]] = UNSET
         if not isinstance(self.custom_fields, Unset):
@@ -67,13 +69,14 @@ class CustomFieldsCollection:
             {
                 "id": id,
                 "name": name,
-                "resource_type": resource_type,
             }
         )
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
+        if resource_type is not UNSET:
+            field_dict["resource_type"] = resource_type
         if custom_fields is not UNSET:
             field_dict["custom_fields"] = custom_fields
 
@@ -87,8 +90,6 @@ class CustomFieldsCollection:
         id = d.pop("id")
 
         name = d.pop("name")
-
-        resource_type = CustomFieldsCollectionResourceType(d.pop("resource_type"))
 
         _created_at = d.pop("created_at", UNSET)
         created_at: Unset | datetime.datetime
@@ -104,6 +105,13 @@ class CustomFieldsCollection:
         else:
             updated_at = isoparse(_updated_at)
 
+        _resource_type = d.pop("resource_type", UNSET)
+        resource_type: Unset | CustomFieldsCollectionResourceType
+        if isinstance(_resource_type, Unset):
+            resource_type = UNSET
+        else:
+            resource_type = CustomFieldsCollectionResourceType(_resource_type)
+
         custom_fields = []
         _custom_fields = d.pop("custom_fields", UNSET)
         for custom_fields_item_data in _custom_fields or []:
@@ -114,9 +122,9 @@ class CustomFieldsCollection:
         custom_fields_collection = cls(
             id=id,
             name=name,
-            resource_type=resource_type,
             created_at=created_at,
             updated_at=updated_at,
+            resource_type=resource_type,
             custom_fields=custom_fields,
         )
 

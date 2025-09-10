@@ -7,8 +7,8 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
 from ...models.error_response import ErrorResponse
-from ...models.get_sales_order_returnable_items_response_200 import (
-    GetSalesOrderReturnableItemsResponse200,
+from ...models.get_sales_order_returnable_items_response_200_item import (
+    GetSalesOrderReturnableItemsResponse200Item,
 )
 
 
@@ -25,11 +25,16 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | GetSalesOrderReturnableItemsResponse200 | None:
+) -> ErrorResponse | list["GetSalesOrderReturnableItemsResponse200Item"] | None:
     if response.status_code == 200:
-        response_200 = GetSalesOrderReturnableItemsResponse200.from_dict(
-            response.json()
-        )
+        response_200 = []
+        _response_200 = response.json()
+        for response_200_item_data in _response_200:
+            response_200_item = GetSalesOrderReturnableItemsResponse200Item.from_dict(
+                response_200_item_data
+            )
+
+            response_200.append(response_200_item)
 
         return response_200
     if response.status_code == 401:
@@ -56,7 +61,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | GetSalesOrderReturnableItemsResponse200]:
+) -> Response[ErrorResponse | list["GetSalesOrderReturnableItemsResponse200Item"]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -69,7 +74,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse | GetSalesOrderReturnableItemsResponse200]:
+) -> Response[ErrorResponse | list["GetSalesOrderReturnableItemsResponse200Item"]]:
     """Get returnable items for a sales order
 
      Retrieves a list of items that can be returned from a sales order.
@@ -83,7 +88,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, GetSalesOrderReturnableItemsResponse200]]
+        Response[Union[ErrorResponse, list['GetSalesOrderReturnableItemsResponse200Item']]]
     """
 
     kwargs = _get_kwargs(
@@ -101,7 +106,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> ErrorResponse | GetSalesOrderReturnableItemsResponse200 | None:
+) -> ErrorResponse | list["GetSalesOrderReturnableItemsResponse200Item"] | None:
     """Get returnable items for a sales order
 
      Retrieves a list of items that can be returned from a sales order.
@@ -115,7 +120,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, GetSalesOrderReturnableItemsResponse200]
+        Union[ErrorResponse, list['GetSalesOrderReturnableItemsResponse200Item']]
     """
 
     return sync_detailed(
@@ -128,7 +133,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse | GetSalesOrderReturnableItemsResponse200]:
+) -> Response[ErrorResponse | list["GetSalesOrderReturnableItemsResponse200Item"]]:
     """Get returnable items for a sales order
 
      Retrieves a list of items that can be returned from a sales order.
@@ -142,7 +147,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, GetSalesOrderReturnableItemsResponse200]]
+        Response[Union[ErrorResponse, list['GetSalesOrderReturnableItemsResponse200Item']]]
     """
 
     kwargs = _get_kwargs(
@@ -158,7 +163,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> ErrorResponse | GetSalesOrderReturnableItemsResponse200 | None:
+) -> ErrorResponse | list["GetSalesOrderReturnableItemsResponse200Item"] | None:
     """Get returnable items for a sales order
 
      Retrieves a list of items that can be returned from a sales order.
@@ -172,7 +177,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, GetSalesOrderReturnableItemsResponse200]
+        Union[ErrorResponse, list['GetSalesOrderReturnableItemsResponse200Item']]
     """
 
     return (

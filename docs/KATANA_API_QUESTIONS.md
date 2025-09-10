@@ -5,9 +5,13 @@ client development, validation testing, and real-world usage patterns. These ins
 come from building a production-ready Python client with comprehensive OpenAPI
 specification analysis.
 
-**Last Updated**: August 13, 2025 **Client Version**: v0.7.0 **API Endpoints Analyzed**:
-76+ endpoints **Data Models Analyzed**: 150+ schemas **Documentation Pages Analyzed**:
+**Last Updated**: August 29, 2025 **Client Version**: v0.9.0 **API Endpoints Analyzed**:
+76+ endpoints **Data Models Analyzed**: 207 schemas **Documentation Pages Analyzed**:
 245 comprehensive pages from developer.katanamrp.com
+
+**Validation Status**: OpenAPI schema validation completed with 6 remaining
+discrepancies between external validation examples and actual API behavior (documented
+below).
 
 ______________________________________________________________________
 
@@ -298,6 +302,64 @@ object names for each endpoint are not documented.
 - **API Reference**: Include extend options in endpoint documentation consistently
 
 ______________________________________________________________________
+
+### Inconsistent Quantity Field Data Types
+
+**Issue**: Quantity fields have inconsistent data types across different parts of the
+API, mixing strings and numbers for similar concepts.
+
+**Examples Found**:
+
+**SalesReturnRow API Pattern**:
+
+- **Main quantity field**: Returns string `"2.00"` (JSON string)
+- **Batch transaction quantity**: Returns number `1` (JSON number)
+- **Request schema**: Explicitly defines quantity as `type: "string"` in creation
+  endpoints
+
+**Evidence from API Documentation**:
+
+- `POST /sales_return_rows` request schema: `"quantity": {"type": "string"}`
+- `GET /sales_return_rows` response: `"quantity": "2.00"` (string)
+- Same response, batch_transactions: `"quantity": 1` (number)
+
+**Current Implementation Decision**:
+
+- **Temporary Fix**: Updated OpenAPI schema to match API behavior (string type for main
+  quantities)
+- **Schema Updated**: SalesReturnRow.quantity changed to `type: string` with precision
+  note
+
+**Questions for Katana Team**:
+
+1. **Design Intent**: Is the string format for main quantity fields intentional for
+   decimal precision handling?
+
+1. **Consistency Strategy**: Should all quantity fields across the API use consistent
+   data types?
+
+1. **Financial Precision**: Are string quantities specifically for financial/accounting
+   precision vs. operational quantities?
+
+1. **Future Direction**: Is this pattern expected to be standardized across other
+   quantity fields in the API?
+
+**Business Impact**:
+
+- **Client Complexity**: Developers must handle mixed data types for similar concepts
+- **Type Safety**: Generated clients may have inconsistent type definitions
+- **Integration Confusion**: Unclear when to expect strings vs numbers for quantities
+
+**Recommendation Options**:
+
+1. **Standardize on Strings**: Use string format for all quantity fields (best for
+   precision)
+1. **Standardize on Numbers**: Use number format for all quantity fields (most common in
+   APIs)
+1. **Document Pattern**: Clearly document when to use strings vs numbers for different
+   quantity types
+1. **Hybrid Approach**: Use strings for financial quantities, numbers for operational
+   quantities
 
 ## 🔵 API Design & Consistency Improvements
 
@@ -655,3 +717,157 @@ factory per account), but the pattern inconsistency should be documented.
 - **API Guidelines**: Document when singleton vs. collection patterns are appropriate
 - **Client Examples**: Provide specific examples for singleton resource usage
 - **Future Planning**: Consider how pattern would evolve for multi-factory scenarios
+
+______________________________________________________________________
+
+## 🟠 Schema Validation Discrepancies
+
+### Mixed Amount Field Data Types Across API
+
+**Issue**: The Katana API uses inconsistent data types for monetary amount fields,
+mixing strings and numbers across different endpoints and contexts.
+
+**Validation Source**: Comprehensive schema validation performed August 29, 2025,
+comparing external API examples against actual API responses and our OpenAPI 3.1
+specification.
+
+#### Confirmed Actual API Behavior (From Real Response Data)
+
+**Shipping Fee Amounts - Always Strings**:
+
+```json
+// Actual API Response - shipping_fee objects
+"shipping_fee": {
+  "id": 4933554,
+  "sales_order_id": 33066353,
+  "description": "Shipping",
+  "amount": "7.8500000000",    // STRING with 10 decimal places
+  "tax_rate_id": 402909
+}
+```
+
+**Sales Order Row Amounts - Always Strings**:
+
+```json
+// Actual API Response - sales_order_rows objects
+"sales_order_rows": [{
+  "price_per_unit": "4599.0000000000",      // STRING with 10 decimal places
+  "total_discount": "0.0000000000",         // STRING with 10 decimal places
+  "price_per_unit_in_base_currency": 4599,  // NUMBER (integer)
+  "total": 4599,                           // NUMBER (integer)
+  "total_in_base_currency": 4599           // NUMBER (integer)
+}]
+```
+
+**Sales Order Main Amounts - Always Numbers**:
+
+```json
+// Actual API Response - sales order object
+{
+  "total": 4943.925,                    // NUMBER (decimal)
+  "total_in_base_currency": 4943.925,   // NUMBER (decimal)
+  "conversion_rate": 1                  // NUMBER (integer)
+}
+```
+
+#### External Validation Example Discrepancies
+
+**Problem**: External validation examples (from downloaded API spec) show **numeric
+values** (`3.14`, `0`) for shipping fee amounts, but **actual API consistently returns
+string values** like `"7.8500000000"`.
+
+**Schema Decision**: Our OpenAPI specification correctly uses `type: string` for
+`SalesOrderShippingFee.amount` to match actual API behavior.
+
+#### Current Validation Errors (6 remaining)
+
+These validation errors occur because external validation examples don't match actual
+API format:
+
+1. **bin_locations** - External data uses `name` vs our schema expects `bin_name` ✅
+   **Our schema correct**
+1. **manufacturing_order_operation_rows** - External data wrapped in response objects vs
+   direct objects ✅ **Our schema correct**
+1. **sales_order_shipping_fee endpoints** - External examples show numbers (`3.14`) vs
+   actual API strings (`"7.8500000000"`) ✅ **Our schema correct**
+1. **stock_transfers status** - External data wrapped in response objects vs direct
+   objects ✅ **Our schema correct**
+
+#### Impact on Client Development
+
+**Positive**: Our OpenAPI schema accurately reflects actual API behavior
+
+- ✅ Generated clients correctly handle string amounts for shipping fees
+- ✅ Generated clients correctly handle number amounts for order totals
+- ✅ Type safety matches real API responses
+
+**Complexity**: Developers must handle mixed data types
+
+- Mixed string/number amounts require careful client-side handling
+- Financial calculations need decimal precision considerations
+- Different serialization patterns across related endpoints
+
+#### Questions for Katana Team
+
+1. **Design Rationale**: Is the string format intentional for high-precision monetary
+   fields (`price_per_unit`, `amount`)?
+
+1. **Precision Requirements**: Are 10-decimal-place strings needed for accounting
+   precision vs standard 2-decimal currency handling?
+
+1. **Consistency Strategy**: Would standardizing on either all-string or all-number
+   amounts be considered for future API versions?
+
+1. **External Examples**: Can the external validation examples be updated to match
+   actual API behavior?
+
+#### Recommendations
+
+**For Katana API Team**:
+
+- **Documentation**: Clearly document the mixed data type strategy and precision
+  requirements
+- **Validation Examples**: Update external API examples to match actual API response
+  formats
+- **Consistency**: Consider long-term strategy for amount field data types across all
+  endpoints
+
+**For Client Developers**:
+
+- Our OpenAPI specification correctly handles the actual API behavior
+- Use string-based decimal libraries for financial calculations involving
+  `price_per_unit` and shipping `amount` fields
+- Handle mixed types appropriately in client applications
+
+### Storage Bin Field Name Discrepancy
+
+**Issue**: External validation examples use `name` field while actual API specification
+expects `bin_name`.
+
+**Status**: ✅ **Our schema is correct** - this is an external example data issue, not a
+schema problem.
+
+**Details**: Our StorageBin schema correctly requires `bin_name` field, matching the
+actual API specification and business logic.
+
+### Manufacturing Order Operation Response Structure
+
+**Issue**: External validation examples wrap response data in container objects while
+our schema expects direct object responses.
+
+**Status**: ✅ **Our schema is correct** - this reflects proper REST API response
+structure expectations.
+
+**Details**: Our ManufacturingOrderOperationRow schema correctly expects direct object
+responses with `id` as a required property, not wrapped in additional container objects.
+
+### Stock Transfer Status Response Structure
+
+**Issue**: External validation examples wrap response data in `example` container
+objects while our schema expects direct StockTransfer objects.
+
+**Status**: ✅ **Our schema is correct** - this matches standard REST API response
+patterns.
+
+**Details**: Our StockTransfer schema correctly expects direct object responses with
+proper required fields, not wrapped in additional container structures.

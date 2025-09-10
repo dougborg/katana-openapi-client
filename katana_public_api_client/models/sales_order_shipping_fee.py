@@ -21,7 +21,7 @@ class SalesOrderShippingFee:
 
     id: int
     sales_order_id: int
-    amount: float
+    amount: str
     tax_rate_id: Unset | int = UNSET
     description: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

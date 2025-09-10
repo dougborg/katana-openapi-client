@@ -19,17 +19,18 @@ class StockAdjustment:
     """Manual inventory adjustment record for correcting stock discrepancies and maintaining accurate inventory levels
 
     Example:
-        {'id': 2001, 'reference_no': 'SA-2024-001', 'location_id': 1, 'status': 'COMPLETED', 'adjustment_date':
-            '2024-01-15T14:30:00.000Z', 'additional_info': 'Physical count discrepancy correction', 'created_at':
-            '2024-01-15T14:30:00.000Z', 'updated_at': '2024-01-15T14:30:00.000Z', 'deleted_at': None}
+        {'id': 2001, 'stock_adjustment_number': 'SA-2024-001', 'location_id': 1, 'status': 'COMPLETED',
+            'adjustment_date': '2024-01-15T14:30:00.000Z', 'additional_info': 'Physical count discrepancy correction',
+            'created_at': '2024-01-15T14:30:00.000Z', 'updated_at': '2024-01-15T14:30:00.000Z', 'deleted_at': None}
     """
 
     id: int
-    reference_no: str
+    stock_adjustment_number: str
     location_id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
     deleted_at: None | Unset | datetime.datetime = UNSET
+    reference_no: None | Unset | str = UNSET
     status: Unset | StockAdjustmentStatus = UNSET
     adjustment_date: Unset | datetime.datetime = UNSET
     additional_info: None | Unset | str = UNSET
@@ -38,7 +39,7 @@ class StockAdjustment:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        reference_no = self.reference_no
+        stock_adjustment_number = self.stock_adjustment_number
 
         location_id = self.location_id
 
@@ -57,6 +58,12 @@ class StockAdjustment:
             deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
+
+        reference_no: None | Unset | str
+        if isinstance(self.reference_no, Unset):
+            reference_no = UNSET
+        else:
+            reference_no = self.reference_no
 
         status: Unset | str = UNSET
         if not isinstance(self.status, Unset):
@@ -77,7 +84,7 @@ class StockAdjustment:
         field_dict.update(
             {
                 "id": id,
-                "reference_no": reference_no,
+                "stock_adjustment_number": stock_adjustment_number,
                 "location_id": location_id,
             }
         )
@@ -87,6 +94,8 @@ class StockAdjustment:
             field_dict["updated_at"] = updated_at
         if deleted_at is not UNSET:
             field_dict["deleted_at"] = deleted_at
+        if reference_no is not UNSET:
+            field_dict["reference_no"] = reference_no
         if status is not UNSET:
             field_dict["status"] = status
         if adjustment_date is not UNSET:
@@ -101,7 +110,7 @@ class StockAdjustment:
         d = dict(src_dict)
         id = d.pop("id")
 
-        reference_no = d.pop("reference_no")
+        stock_adjustment_number = d.pop("stock_adjustment_number")
 
         location_id = d.pop("location_id")
 
@@ -136,6 +145,15 @@ class StockAdjustment:
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
+        def _parse_reference_no(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)
+
+        reference_no = _parse_reference_no(d.pop("reference_no", UNSET))
+
         _status = d.pop("status", UNSET)
         status: Unset | StockAdjustmentStatus
         if isinstance(_status, Unset):
@@ -161,11 +179,12 @@ class StockAdjustment:
 
         stock_adjustment = cls(
             id=id,
-            reference_no=reference_no,
+            stock_adjustment_number=stock_adjustment_number,
             location_id=location_id,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,
+            reference_no=reference_no,
             status=status,
             adjustment_date=adjustment_date,
             additional_info=additional_info,

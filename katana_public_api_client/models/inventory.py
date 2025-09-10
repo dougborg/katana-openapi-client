@@ -23,9 +23,9 @@ class Inventory:
     Includes stock levels, commitments, expectations, and financial information.
 
         Example:
-            {'variant_id': 3001, 'location_id': 1, 'reorder_point': '25.0', 'average_cost': '15.50', 'value_in_stock':
-                '2325.00', 'quantity_in_stock': '150.0', 'quantity_committed': '25.0', 'quantity_expected': '50.0',
-                'quantity_missing_or_excess': '0.0', 'quantity_potential': '175.0'}
+            {'variant_id': 3001, 'location_id': 1, 'safety_stock_level': '25.0', 'reorder_point': '25.0', 'average_cost':
+                '15.50', 'value_in_stock': '2325.00', 'quantity_in_stock': '150.0', 'quantity_committed': '25.0',
+                'quantity_expected': '50.0', 'quantity_missing_or_excess': '0.0', 'quantity_potential': '175.0'}
     """
 
     variant_id: int
@@ -38,6 +38,7 @@ class Inventory:
     quantity_expected: str
     quantity_missing_or_excess: str
     quantity_potential: str
+    safety_stock_level: Unset | str = UNSET
     variant: Union[Unset, "Variant"] = UNSET
     location: Union["DeletableEntity", "LocationType0", Unset] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -64,6 +65,8 @@ class Inventory:
         quantity_missing_or_excess = self.quantity_missing_or_excess
 
         quantity_potential = self.quantity_potential
+
+        safety_stock_level = self.safety_stock_level
 
         variant: Unset | dict[str, Any] = UNSET
         if not isinstance(self.variant, Unset):
@@ -93,6 +96,8 @@ class Inventory:
                 "quantity_potential": quantity_potential,
             }
         )
+        if safety_stock_level is not UNSET:
+            field_dict["safety_stock_level"] = safety_stock_level
         if variant is not UNSET:
             field_dict["variant"] = variant
         if location is not UNSET:
@@ -126,6 +131,8 @@ class Inventory:
         quantity_missing_or_excess = d.pop("quantity_missing_or_excess")
 
         quantity_potential = d.pop("quantity_potential")
+
+        safety_stock_level = d.pop("safety_stock_level", UNSET)
 
         _variant = d.pop("variant", UNSET)
         variant: Unset | Variant
@@ -166,6 +173,7 @@ class Inventory:
             quantity_expected=quantity_expected,
             quantity_missing_or_excess=quantity_missing_or_excess,
             quantity_potential=quantity_potential,
+            safety_stock_level=safety_stock_level,
             variant=variant,
             location=location,
         )

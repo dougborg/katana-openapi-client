@@ -24,6 +24,7 @@ class SerialNumber:
     resource_type: Unset | SerialNumberResourceType = UNSET
     resource_id: Unset | int = UNSET
     transaction_date: Unset | datetime.datetime = UNSET
+    quantity_change: Unset | int = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -43,6 +44,8 @@ class SerialNumber:
         if not isinstance(self.transaction_date, Unset):
             transaction_date = self.transaction_date.isoformat()
 
+        quantity_change = self.quantity_change
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
@@ -58,6 +61,8 @@ class SerialNumber:
             field_dict["resource_id"] = resource_id
         if transaction_date is not UNSET:
             field_dict["transaction_date"] = transaction_date
+        if quantity_change is not UNSET:
+            field_dict["quantity_change"] = quantity_change
 
         return field_dict
 
@@ -86,6 +91,8 @@ class SerialNumber:
         else:
             transaction_date = isoparse(_transaction_date)
 
+        quantity_change = d.pop("quantity_change", UNSET)
+
         serial_number = cls(
             id=id,
             transaction_id=transaction_id,
@@ -93,6 +100,7 @@ class SerialNumber:
             resource_type=resource_type,
             resource_id=resource_id,
             transaction_date=transaction_date,
+            quantity_change=quantity_change,
         )
 
         serial_number.additional_properties = d

@@ -1318,7 +1318,6 @@ components:
     Batch:
       type: object
       description: Core batch business properties
-      additionalProperties: false
       required:
         - batch_number
         - variant_id
@@ -1442,10 +1441,26 @@ components:
         updated_at: "2024-01-15T08:00:00.000Z"
         variant_id: 1001
         batch_barcode: "0317"
+    BatchTransaction:
+      type: object
+      description: Represents a quantity transaction for a specific batch in manufacturing, sales, or inventory operations
+      additionalProperties: false
+      required:
+        - batch_id
+        - quantity
+      properties:
+        batch_id:
+          type: integer
+          description: ID of the batch for the transaction
+        quantity:
+          type: number
+          description: The quantity in this batch transaction
+      example:
+        batch_id: 1109
+        quantity: 25.0
     StorageBin:
       type: object
       description: Core storage bin business properties
-      additionalProperties: false
       required:
         - bin_name
         - location_id
@@ -1901,9 +1916,12 @@ components:
         location_id:
           type: integer
           description: Unique identifier of the location where inventory is stored
+        safety_stock_level:
+          type: string
+          description: The quantity of a product or material which indicates an acceptable stock level for unexpected demand without overstocking
         reorder_point:
           type: string
-          description: Minimum stock level that triggers a reorder
+          description: (Deprecated - use safety_stock_level instead) Queries the safety stock level
         average_cost:
           type: string
           description: Average cost per unit of this variant at this location
@@ -1945,6 +1963,7 @@ components:
       example:
         variant_id: 3001
         location_id: 1
+        safety_stock_level: "25.0"
         reorder_point: "25.0"
         average_cost: "15.50"
         value_in_stock: "2325.00"
@@ -1989,7 +2008,6 @@ components:
     InventoryReorderPoint:
       description: Configuration that defines the minimum inventory level that triggers automatic reordering for a specific variant at a location
       type: object
-      additionalProperties: false
       required:
         - location_id
         - variant_id
@@ -2015,7 +2033,6 @@ components:
     InventorySafetyStockLevel:
       type: object
       description: Safety stock level configuration to maintain minimum inventory buffers and prevent stockouts
-      additionalProperties: false
       required:
         - location_id
         - variant_id
@@ -2114,6 +2131,11 @@ components:
                 - number
                 - "null"
               description: Actual quantity produced, null if production not completed
+            batch_transactions:
+              type: array
+              description: Batch transactions for produced items, typically one transaction per manufacturing order
+              items:
+                $ref: "#/components/schemas/BatchTransaction"
             location_id:
               type: integer
               description: ID of the factory location where production takes place
@@ -2125,6 +2147,12 @@ components:
               type: string
               format: date-time
               description: Target deadline for completing production
+            done_date:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Timestamp when the manufacturing order was completed
             additional_info:
               type: string
               description: Optional notes or additional information about the order
@@ -2132,7 +2160,16 @@ components:
               type: boolean
               description: Whether this manufacturing order is linked to a sales order
             ingredient_availability:
-              type: string
+              anyOf:
+                - type: string
+                  enum:
+                    - PROCESSED
+                    - IN_STOCK
+                    - NOT_AVAILABLE
+                    - EXPECTED
+                    - NO_RECIPE
+                    - NOT_APPLICABLE
+                - type: "null"
               description: Status of material ingredient availability for production
             total_cost:
               type: number
@@ -2469,6 +2506,8 @@ components:
         assignments, time, and costs.
       allOf:
         - type: object
+          required:
+            - id
           properties:
             id:
               type: integer
@@ -2504,12 +2543,12 @@ components:
               type: array
               description: Operators assigned to perform this operation
               items:
-                $ref: "#/components/schemas/Operator"
+                $ref: "#/components/schemas/AssignedOperator"
             completed_by_operators:
               type: array
               description: Operators who have completed work on this operation
               items:
-                $ref: "#/components/schemas/Operator"
+                $ref: "#/components/schemas/AssignedOperator"
             active_operator_id:
               type: number
               description: ID of the currently active operator working on this operation
@@ -2878,6 +2917,9 @@ components:
           type: string
           format: date-time
           description: Date and time when the transaction occurred
+        quantity_change:
+          type: integer
+          description: Quantity change for this serial number transaction
     SerialNumberListResponse:
       type: object
       description: List of serial number records for tracking individual units and enabling full product traceability
@@ -4801,7 +4843,7 @@ components:
           description: Date and time when the accounting metadata was created
       required:
         - id
-        - purchase_order_id
+        - purchaseOrderId
       example:
         id: 156
         purchase_order_id: 8001
@@ -6443,6 +6485,11 @@ components:
                 - integer
                 - "null"
               description: ID of the default shipping address for this customer
+            addresses:
+              type: array
+              description: Complete list of billing and shipping addresses for this customer
+              items:
+                $ref: "#/components/schemas/CustomerAddress"
           required:
             - name
         - $ref: "#/components/schemas/DeletableEntity"
@@ -6794,7 +6841,6 @@ components:
                 - PARTIALLY_DELIVERED
                 - PACKED
                 - DELIVERED
-                - PENDING
             currency:
               type: string
               description: Currency code for the order pricing (ISO 4217 format)
@@ -7616,9 +7662,14 @@ components:
             id:
               type: integer
               description: Unique identifier for the stock adjustment
-            reference_no:
+            stock_adjustment_number:
               type: string
               description: Human-readable reference number for tracking and audit purposes
+            reference_no:
+              type:
+                - string
+                - "null"
+              description: Alternative reference number (optional)
             location_id:
               type: integer
               description: ID of the location where the stock adjustment is performed
@@ -7639,12 +7690,12 @@ components:
               description: Optional notes or comments about the adjustment reason
           required:
             - id
-            - reference_no
+            - stock_adjustment_number
             - location_id
         - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 2001
-        reference_no: SA-2024-001
+        stock_adjustment_number: SA-2024-001
         location_id: 1
         status: COMPLETED
         adjustment_date: "2024-01-15T14:30:00.000Z"
@@ -7754,13 +7805,13 @@ components:
             id:
               type: integer
               description: Unique identifier for the stock transfer
-            reference_no:
+            stock_transfer_number:
               type: string
               description: Human-readable reference number for tracking the transfer
-            from_location_id:
+            source_location_id:
               type: integer
               description: ID of the source location where stock is being transferred from
-            to_location_id:
+            target_location_id:
               type: integer
               description: ID of the destination location where stock is being transferred to
             status:
@@ -7769,6 +7820,7 @@ components:
               enum:
                 - DRAFT
                 - COMPLETED
+                - received
             transfer_date:
               type: string
               format: date-time
@@ -7778,23 +7830,69 @@ components:
                 - string
                 - "null"
               description: Optional notes or comments about the transfer purpose
+            stock_transfer_rows:
+              type: array
+              description: Line items detailing the products and quantities being transferred
+              items:
+                $ref: "#/components/schemas/StockTransferRow"
           required:
             - id
-            - reference_no
-            - from_location_id
-            - to_location_id
+            - stock_transfer_number
+            - source_location_id
+            - target_location_id
         - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 3001
-        reference_no: ST-2024-001
-        from_location_id: 1
-        to_location_id: 2
+        stock_transfer_number: ST-2024-001
+        source_location_id: 1
+        target_location_id: 2
         status: COMPLETED
         transfer_date: "2024-01-15T16:00:00.000Z"
         additional_info: Rebalancing inventory between warehouses
+        stock_transfer_rows:
+          - id: 4001
+            variant_id: 2001
+            quantity: 50
+            batch_transactions:
+              - batch_id: 5001
+                quantity: 30
+              - batch_id: 5002
+                quantity: 20
         created_at: "2024-01-15T16:00:00.000Z"
         updated_at: "2024-01-15T16:00:00.000Z"
         deleted_at: null
+    StockTransferRow:
+      description: Line item in a stock transfer showing the product variant and quantity being moved
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+              description: Unique identifier for the stock transfer row
+            variant_id:
+              type: integer
+              description: ID of the product or material variant being transferred
+            quantity:
+              type: number
+              description: Quantity of the variant being transferred
+            batch_transactions:
+              type: array
+              description: Batch transaction details for batch-tracked items
+              items:
+                type: object
+                properties:
+                  batch_id:
+                    type: integer
+                    description: ID of the batch being transferred
+                  quantity:
+                    type: number
+                    description: Quantity from this specific batch
+                required:
+                  - batch_id
+                  - quantity
+          required:
+            - variant_id
+            - quantity
     StockTransferListResponse:
       type: object
       description: List of stock transfer records showing all inventory movements between locations and their transfer status
@@ -7807,9 +7905,9 @@ components:
       example:
         data:
           - id: 3001
-            reference_no: ST-2024-001
-            from_location_id: 1
-            to_location_id: 2
+            stock_transfer_number: ST-2024-001
+            source_location_id: 1
+            target_location_id: 2
             status: COMPLETED
             transfer_date: "2024-01-15T16:00:00.000Z"
             additional_info: Rebalancing inventory between warehouses
@@ -7817,9 +7915,9 @@ components:
             updated_at: "2024-01-15T16:00:00.000Z"
             deleted_at: null
           - id: 3002
-            reference_no: ST-2024-002
-            from_location_id: 2
-            to_location_id: 3
+            stock_transfer_number: ST-2024-002
+            source_location_id: 2
+            target_location_id: 3
             status: DRAFT
             transfer_date: "2024-01-16T11:30:00.000Z"
             additional_info: Seasonal stock redistribution
@@ -7944,7 +8042,6 @@ components:
           required:
             - id
             - name
-            - currency
         - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 1001
@@ -8117,24 +8214,29 @@ components:
             variant_id:
               type: integer
               description: ID of the product variant this pricing applies to
-            price:
-              type: number
-              description: Custom price for this variant in the price list's currency
-            currency:
+            adjustment_method:
               type: string
-              description: ISO 4217 currency code for this pricing entry
+              description: Method used for price adjustment (fixed, percentage, markup)
+              enum:
+                - fixed
+                - percentage
+                - markup
+            amount:
+              type: number
+              description: Amount value for the price adjustment based on the adjustment method
           required:
             - id
             - price_list_id
             - variant_id
-            - price
+            - adjustment_method
+            - amount
         - $ref: "#/components/schemas/UpdatableEntity"
       example:
         id: 5001
         price_list_id: 1001
         variant_id: 201
-        price: 249.99
-        currency: USD
+        adjustment_method: fixed
+        amount: 249.99
         created_at: "2024-01-15T10:00:00Z"
         updated_at: "2024-01-15T10:00:00Z"
     PriceListCustomer:
@@ -8164,43 +8266,54 @@ components:
         updated_at: "2024-01-15T10:00:00Z"
     BomRow:
       description: Bill of Materials row defining ingredient requirements for product manufacturing
-      allOf:
-        - $ref: "#/components/schemas/UpdatableEntity"
-        - type: object
-          properties:
-            product_variant_id:
-              type: integer
-              minimum: 1
-              maximum: 2147483647
-              description: ID of the product variant this BOM row belongs to
-            product_item_id:
-              type: integer
-              minimum: 1
-              maximum: 2147483647
-              description: ID of the product item this BOM row belongs to
-            ingredient_variant_id:
-              type: integer
-              minimum: 1
-              maximum: 2147483647
-              description: ID of the ingredient variant used in this BOM row
-            quantity:
-              type:
-                - number
-                - "null"
-              minimum: 0
-              maximum: 100000000000000000
-              description: Required quantity of the ingredient variant
-            notes:
-              type:
-                - string
-                - "null"
-              description: Additional notes for this BOM row
-          required:
-            - product_variant_id
-            - product_item_id
-            - ingredient_variant_id
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique UUID identifier for the BOM row
+        product_variant_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: ID of the product variant this BOM row belongs to
+        product_item_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: ID of the product item this BOM row belongs to
+        ingredient_variant_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: ID of the ingredient variant used in this BOM row
+        quantity:
+          type:
+            - number
+            - "null"
+          minimum: 0
+          maximum: 100000000000000000
+          description: Required quantity of the ingredient variant
+        notes:
+          type:
+            - string
+            - "null"
+          description: Additional notes for this BOM row
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the BOM row was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the BOM row was last updated
+      required:
+        - id
+        - product_variant_id
+        - product_item_id
+        - ingredient_variant_id
       example:
-        id: 501
+        id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
         product_variant_id: 2001
         product_item_id: 3001
         ingredient_variant_id: 2002
@@ -8457,40 +8570,76 @@ components:
             created_at: "2021-04-05T12:00:00.000Z"
             updated_at: "2021-04-05T12:00:00.000Z"
     Factory:
-      allOf:
-        - type: object
-          properties:
-            id:
-              type: integer
-              description: Unique identifier for the manufacturing facility
-            name:
-              type: string
-              description: Display name of the manufacturing facility
-            address:
-              type:
-                - string
-                - "null"
-              description: Physical address of the manufacturing facility for shipping and logistics
-            currency:
-              type: string
-              description: Default currency code (ISO 4217) used for financial transactions at this facility
-            timezone:
-              type: string
-              description: Timezone identifier for the facility location used for scheduling and time tracking
-          required:
-            - id
-            - name
-            - currency
-        - $ref: "#/components/schemas/UpdatableEntity"
-      description: Manufacturing facility or warehouse location with operational settings and regional configuration
+      type: object
+      description: Factory configuration object (singleton resource without ID)
+      properties:
+        name:
+          type: string
+          description: Display name of the manufacturing facility
+        address:
+          type:
+            - string
+            - "null"
+          description: Physical address of the manufacturing facility for shipping and logistics
+        currency:
+          type: string
+          description: Default currency code (ISO 4217) used for financial transactions at this facility
+        timezone:
+          type: string
+          description: Timezone identifier for the facility location used for scheduling and time tracking
+        legal_address:
+          type: object
+          description: Legal address information
+        legal_name:
+          type: string
+          description: Legal name of the company
+        display_name:
+          type: string
+          description: Display name of the company
+        base_currency_code:
+          type: string
+          description: Base currency code
+        default_so_delivery_time:
+          type: string
+          format: date-time
+          description: Default sales order delivery time
+        default_po_lead_time:
+          type: string
+          format: date-time
+          description: Default purchase order lead time
+        default_manufacturing_location_id:
+          type: integer
+          description: Default manufacturing location ID
+        default_purchases_location_id:
+          type: integer
+          description: Default purchases location ID
+        default_sales_location_id:
+          type: integer
+          description: Default sales location ID
+        inventory_closing_date:
+          type: string
+          format: date-time
+          description: Inventory closing date
+      required:
+        - display_name
+        - base_currency_code
       example:
-        id: 1
-        name: Seattle Production Facility
-        address: 1234 Industrial Way, Seattle, WA 98101
-        currency: USD
-        timezone: America/Los_Angeles
-        created_at: "2024-01-15T08:00:00Z"
-        updated_at: "2024-01-15T08:00:00Z"
+        legal_address:
+          line_1: "Peetri 7"
+          line_2: "Apartment 1"
+          city: "Tallinn"
+          state: "State"
+          zip: "10411"
+          country: "Estonia"
+        legal_name: "Legal name"
+        display_name: "Display name"
+        base_currency_code: "USD"
+        default_so_delivery_time: "2021-10-13T15:31:48.490Z"
+        default_po_lead_time: "2021-10-13T15:31:48.490Z"
+        default_manufacturing_location_id: 1
+        default_purchases_location_id: 1
+        default_sales_location_id: 1
+        inventory_closing_date: "2022-01-28T23:59:59.000Z"
     Operator:
       description: Manufacturing operator or worker assigned to specific production operations and work areas
       allOf:
@@ -8498,22 +8647,35 @@ components:
           properties:
             id:
               type: integer
-            operator_id:
-              type: integer
-            name:
+            operator_name:
               type: string
-            working_area:
-              type:
-                - string
-                - "null"
-            resource_id:
-              type:
-                - integer
-                - "null"
           required:
             - id
-            - name
+            - operator_name
         - $ref: "#/components/schemas/DeletableEntity"
+    AssignedOperator:
+      type: object
+      description: Simplified operator reference used in manufacturing operation assignments
+      properties:
+        operator_id:
+          type: integer
+          description: Reference to the operator ID
+        name:
+          type: string
+          description: Operator name for display purposes
+        deleted_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: Deletion timestamp if operator assignment was removed
+      required:
+        - operator_id
+        - name
+      example:
+        operator_id: 1
+        name: "Pack"
+        deleted_at: null
     OperatorListResponse:
       description: Response containing a list of operators available for manufacturing order operations and production tracking
       type: object
@@ -8562,7 +8724,6 @@ components:
           required:
             - id
             - name
-            - resource_type
         - $ref: "#/components/schemas/UpdatableEntity"
       description:
         Collection of custom field definitions that can be applied to specific business objects for extended data
@@ -8685,15 +8846,21 @@ components:
           properties:
             id:
               type: integer
-            reference_no:
+            stocktake_number:
               type: string
               description: Unique identifier for the stocktake process
+            reference_no:
+              type:
+                - string
+                - "null"
+              description: Alternative reference number for the stocktake process
             location_id:
               type: integer
               description: The location where the stocktake is being performed
             status:
               type: string
               enum:
+                - NOT_STARTED
                 - DRAFT
                 - IN_PROGRESS
                 - COMPLETED
@@ -8702,6 +8869,43 @@ components:
               type: string
               format: date-time
               description: Date and time when the stocktake was conducted
+            stocktake_created_date:
+              type: string
+              format: date-time
+              description: Date and time when the stocktake was created
+            started_date:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Date and time when the stocktake was started
+            completed_date:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Date and time when the stocktake was completed
+            status_update_in_progress:
+              type: boolean
+              description: Whether a status update is currently in progress
+            set_remaining_items_as_counted:
+              type: boolean
+              description: Whether remaining items should be set as counted
+            stock_adjustment_id:
+              type:
+                - integer
+                - "null"
+              description: ID of the associated stock adjustment
+            reason:
+              type:
+                - string
+                - "null"
+              description: Reason for the stocktake
+            additional_info:
+              type:
+                - string
+                - "null"
+              description: Additional information about the stocktake
             notes:
               type:
                 - string
@@ -8709,7 +8913,7 @@ components:
               description: Additional notes or comments about the stocktake
           required:
             - id
-            - reference_no
+            - stocktake_number
             - location_id
             - status
         - $ref: "#/components/schemas/UpdatableEntity"
@@ -8731,15 +8935,17 @@ components:
                 - integer
                 - "null"
               description: The batch identifier if the variant is batch-tracked
-            system_quantity:
-              type: number
+            in_stock_quantity:
+              type:
+                - number
+                - "null"
               description: The quantity shown in the system before the stocktake
-            actual_quantity:
+            counted_quantity:
               type:
                 - number
                 - "null"
               description: The actual quantity counted during the stocktake
-            variance_quantity:
+            discrepancy_quantity:
               type:
                 - number
                 - "null"
@@ -8748,39 +8954,58 @@ components:
               type:
                 - string
                 - "null"
-              description: Additional notes about this stocktake item
+              description: Notes about this stocktake row
           required:
             - id
             - stocktake_id
             - variant_id
-            - system_quantity
         - $ref: "#/components/schemas/UpdatableEntity"
     SerialNumberStock:
-      description: Current stock status and location of individual serialized inventory items
-      allOf:
-        - type: object
-          properties:
-            id:
-              type: integer
-            variant_id:
-              type: integer
-            location_id:
-              type: integer
-            serial_number:
-              type: string
-            status:
-              type: string
-              enum:
-                - IN_STOCK
-                - SOLD
-                - TRANSFERRED
-          required:
-            - id
-            - variant_id
-            - location_id
-            - serial_number
-            - status
-        - $ref: "#/components/schemas/UpdatableEntity"
+      description: Current stock status and transaction history of individual serialized inventory items
+      type: object
+      properties:
+        id:
+          type: string
+          description: Serial number stock ID
+        serial_number:
+          type: string
+          description: The actual serial number
+        in_stock:
+          type: boolean
+          description: Whether the item is currently in stock
+        transactions:
+          type: array
+          description: Transaction history for this serial number
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Transaction ID
+              resource_id:
+                type: integer
+                description: Resource ID associated with transaction
+              resource_type:
+                type: string
+                description: Type of resource (ManufacturingOrder, etc.)
+              transaction_date:
+                type: string
+                format: date-time
+                description: Date and time of transaction
+              quantity_change:
+                type: integer
+                description: Quantity change in transaction
+            required:
+              - id
+              - resource_id
+              - resource_type
+              - transaction_date
+              - quantity_change
+      required:
+        - id
+        - serial_number
+        - in_stock
+        - transactions
     SalesReturn:
       description: Sales return record representing customer product returns with refund processing and inventory adjustments
       allOf:
@@ -8807,9 +9032,9 @@ components:
               type: string
               description: Current processing status of the sales return
               enum:
-                - DRAFT
-                - RETURNED
-                - CANCELLED
+                - NOT_RETURNED
+                - RETURNED_ALL
+                - RESTOCKED_ALL
             currency:
               type: string
               description: Currency code for refund amounts (ISO 4217 format)
@@ -8951,9 +9176,9 @@ components:
         status:
           type: string
           enum:
-            - DRAFT
-            - RETURNED
-            - CANCELLED
+            - NOT_RETURNED
+            - RETURNED_ALL
+            - RESTOCKED_ALL
           description: Status of the sales return
       example:
         customer_id: 1001
@@ -8978,8 +9203,8 @@ components:
               type: integer
               description: The product variant being returned
             quantity:
-              type: number
-              description: The quantity of the variant being returned
+              type: string
+              description: The quantity of the variant being returned (formatted as decimal string for precision)
             return_reason_id:
               type:
                 - integer
@@ -9034,10 +9259,10 @@ components:
             id:
               type: integer
               description: Unique identifier for the user account
-            first_name:
+            firstName:
               type: string
               description: User's first name for display and communication
-            last_name:
+            lastName:
               type: string
               description: User's last name for display and communication
             email:
@@ -9057,15 +9282,14 @@ components:
               description: Timestamp of the user's most recent system login
           required:
             - id
-            - first_name
-            - last_name
+            - firstName
+            - lastName
             - email
-            - role
       description: System user account with authentication credentials and role-based permissions
       example:
         id: 42
-        first_name: Sarah
-        last_name: Johnson
+        firstName: Sarah
+        lastName: Johnson
         email: sarah.johnson@company.com
         role: production_manager
         status: active
@@ -9683,7 +9907,7 @@ components:
               type: integer
               description: The variant of the ingredient material required
             planned_quantity_per_unit:
-              type: integer
+              type: number
               description: The planned quantity of this ingredient per unit of production
             ingredient_availability:
               type: string
@@ -9695,7 +9919,9 @@ components:
                 - NOT_APPLICABLE
               description: Current availability status of this ingredient
             ingredient_expected_date:
-              type: string
+              type:
+                - string
+                - "null"
               format: date-time
               description: Expected date when this ingredient will be available
             notes:
@@ -9714,7 +9940,9 @@ components:
                     type: number
               description: Batch allocation transactions for this ingredient
             cost:
-              type: number
+              type:
+                - number
+                - "null"
               description: Cost associated with this ingredient
           required:
             - purchase_order_row_id
@@ -9841,7 +10069,7 @@ components:
           type: integer
           description: ID of the sales order this shipping fee applies to
         amount:
-          type: number
+          type: string
           description: Shipping fee amount in the order currency
         tax_rate_id:
           type: integer
@@ -14248,16 +14476,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/VariantDefaultStorageBinLinkListResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/VariantDefaultStorageBinLinkResponse"
               example:
-                data:
-                  - id: 12345
-                    bin_name: Bin-2
-                    variant_id: 11234
-                    storage_bin_id: 3456
-                    created_at: "2020-10-23T10:37:05.085Z"
-                    updated_at: "2020-10-23T10:37:05.085Z"
-                    deleted_at: null
+                - id: 12345
+                  bin_name: Bin-2
+                  variant_id: 11234
+                  storage_bin_id: 3456
+                  created_at: "2020-10-23T10:37:05.085Z"
+                  updated_at: "2020-10-23T10:37:05.085Z"
+                  deleted_at: null
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "422":
@@ -15031,22 +15260,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                          description: Return reason ID
-                        name:
-                          type: string
-                          description: Return reason name
-                        description:
-                          type: string
-                          description: Return reason description
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: Return reason ID
+                    name:
+                      type: string
+                      description: Return reason name
+                  required:
+                    - id
+                    - name
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -15708,31 +15934,35 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                          description: Sales order row ID
-                        variant_id:
-                          type: integer
-                          description: Product variant ID
-                        product_id:
-                          type: integer
-                          description: Product ID
-                        quantity:
-                          type: number
-                          description: Quantity available for return
-                        returned_quantity:
-                          type: number
-                          description: Quantity already returned
-                        max_returnable_quantity:
-                          type: number
-                          description: Maximum quantity that can be returned
+                type: array
+                items:
+                  type: object
+                  properties:
+                    variant_id:
+                      type: integer
+                      description: Product variant ID
+                    fulfillment_row_id:
+                      type: integer
+                      description: Fulfillment row ID
+                    available_for_return_quantity:
+                      type: string
+                      description: Quantity available for return
+                    net_price_per_unit:
+                      type: string
+                      description: Net price per unit
+                    location_id:
+                      type: integer
+                      description: Location ID
+                    quantity_sold:
+                      type: string
+                      description: Total quantity sold
+                  required:
+                    - variant_id
+                    - fulfillment_row_id
+                    - available_for_return_quantity
+                    - net_price_per_unit
+                    - location_id
+                    - quantity_sold
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "404":
@@ -17301,15 +17531,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PriceListRow"
+                type: array
+                items:
+                  $ref: "#/components/schemas/PriceListRow"
               example:
-                id: 98765
-                price_list_id: 12345
-                variant_id: 67890
-                price: 29.99
-                currency: USD
-                created_at: "2023-10-21T10:37:05.085Z"
-                updated_at: "2023-10-21T10:37:05.085Z"
+                - id: 98765
+                  price_list_id: 12345
+                  variant_id: 67890
+                  adjustment_method: fixed
+                  amount: 29.99
+                  created_at: "2023-10-21T10:37:05.085Z"
+                  updated_at: "2023-10-21T10:37:05.085Z"
         "400":
           $ref: "#/components/responses/BadRequestError"
         "401":
@@ -17486,13 +17718,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PriceListCustomer"
+                type: array
+                items:
+                  $ref: "#/components/schemas/PriceListCustomer"
               example:
-                id: 98765
-                price_list_id: 12345
-                customer_id: 67890
-                created_at: "2023-10-21T10:37:05.085Z"
-                updated_at: "2023-10-21T10:37:05.085Z"
+                - id: 98765
+                  price_list_id: 12345
+                  customer_id: 67890
+                  created_at: "2023-10-21T10:37:05.085Z"
+                  updated_at: "2023-10-21T10:37:05.085Z"
         "400":
           $ref: "#/components/responses/BadRequestError"
         "401":
@@ -17995,7 +18229,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StocktakeRow"
+                type: array
+                items:
+                  $ref: "#/components/schemas/StocktakeRow"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "422":
@@ -18096,7 +18332,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SerialNumberListResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/SerialNumber"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -18210,7 +18448,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SerialNumberStockListResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/SerialNumberStock"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -18273,7 +18513,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/OperatorListResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Operator"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
