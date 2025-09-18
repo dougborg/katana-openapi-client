@@ -242,7 +242,11 @@ from .material_type import MaterialType
 from .negative_stock import NegativeStock
 from .negative_stock_list_response import NegativeStockListResponse
 from .operator import Operator
-from .operator_list_response import OperatorListResponse
+from .outsourced_purchase_order import OutsourcedPurchaseOrder
+from .outsourced_purchase_order_entity_type import OutsourcedPurchaseOrderEntityType
+from .outsourced_purchase_order_ingredient_availability import (
+    OutsourcedPurchaseOrderIngredientAvailability,
+)
 from .outsourced_purchase_order_recipe_row import OutsourcedPurchaseOrderRecipeRow
 from .outsourced_purchase_order_recipe_row_batch_transactions_item import (
     OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem,
@@ -293,6 +297,8 @@ from .purchase_order_row_list_response import PurchaseOrderRowListResponse
 from .purchase_order_row_request import PurchaseOrderRowRequest
 from .recipe import Recipe
 from .recipe_list_response import RecipeListResponse
+from .regular_purchase_order import RegularPurchaseOrder
+from .regular_purchase_order_entity_type import RegularPurchaseOrderEntityType
 from .sales_order import SalesOrder
 from .sales_order_accounting_metadata import SalesOrderAccountingMetadata
 from .sales_order_accounting_metadata_integration_type import (
@@ -331,7 +337,6 @@ from .serial_number import SerialNumber
 from .serial_number_list_response import SerialNumberListResponse
 from .serial_number_resource_type import SerialNumberResourceType
 from .serial_number_stock import SerialNumberStock
-from .serial_number_stock_list_response import SerialNumberStockListResponse
 from .serial_number_stock_transactions_item import SerialNumberStockTransactionsItem
 from .service import Service
 from .service_list_response import ServiceListResponse
@@ -455,9 +460,6 @@ from .variant import Variant
 from .variant_config_attributes_item import VariantConfigAttributesItem
 from .variant_custom_fields_item import VariantCustomFieldsItem
 from .variant_default_storage_bin_link import VariantDefaultStorageBinLink
-from .variant_default_storage_bin_link_list_response import (
-    VariantDefaultStorageBinLinkListResponse,
-)
 from .variant_default_storage_bin_link_response import (
     VariantDefaultStorageBinLinkResponse,
 )
@@ -638,7 +640,9 @@ __all__ = (
     "NegativeStock",
     "NegativeStockListResponse",
     "Operator",
-    "OperatorListResponse",
+    "OutsourcedPurchaseOrder",
+    "OutsourcedPurchaseOrderEntityType",
+    "OutsourcedPurchaseOrderIngredientAvailability",
     "OutsourcedPurchaseOrderRecipeRow",
     "OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem",
     "OutsourcedPurchaseOrderRecipeRowIngredientAvailability",
@@ -673,6 +677,8 @@ __all__ = (
     "PurchaseOrderRowRequest",
     "Recipe",
     "RecipeListResponse",
+    "RegularPurchaseOrder",
+    "RegularPurchaseOrderEntityType",
     "SalesOrder",
     "SalesOrderAccountingMetadata",
     "SalesOrderAccountingMetadataIntegrationType",
@@ -703,7 +709,6 @@ __all__ = (
     "SerialNumberListResponse",
     "SerialNumberResourceType",
     "SerialNumberStock",
-    "SerialNumberStockListResponse",
     "SerialNumberStockTransactionsItem",
     "Service",
     "ServiceListResponse",
@@ -797,7 +802,6 @@ __all__ = (
     "VariantConfigAttributesItem",
     "VariantCustomFieldsItem",
     "VariantDefaultStorageBinLink",
-    "VariantDefaultStorageBinLinkListResponse",
     "VariantDefaultStorageBinLinkResponse",
     "VariantListResponse",
     "VariantResponse",
