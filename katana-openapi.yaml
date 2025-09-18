@@ -1107,6 +1107,17 @@ components:
       required:
         - path
         - code
+
+    OutsourcedPurchaseOrderIngredientAvailability:
+      type: string
+      enum:
+        - "PROCESSED"
+        - "IN_STOCK"
+        - "NOT_AVAILABLE"
+        - "EXPECTED"
+        - "NO_RECIPE"
+      description: Status of ingredients required for outsourced purchase order production
+
     BaseEntity:
       type: object
       description: Base entity with unique identifier
@@ -1119,66 +1130,168 @@ components:
       example:
         id: 12345
     UpdatableEntity:
-      type: object
       description: Common fields for entities that can be updated
-      properties:
-        created_at:
-          type: string
-          format: date-time
-          description: Timestamp when the entity was first created
-        updated_at:
-          type: string
-          format: date-time
-          description: Timestamp when the entity was last updated
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - type: object
+          properties:
+            created_at:
+              type: string
+              format: date-time
+              description: Timestamp when the entity was first created
+            updated_at:
+              type: string
+              format: date-time
+              description: Timestamp when the entity was last updated
       example:
+        id: 12345
         created_at: "2020-10-23T10:37:05.085Z"
         updated_at: "2020-10-23T10:37:05.085Z"
     ArchivableEntity:
-      type: object
       description: Common fields for entities that can be archived
-      properties:
-        created_at:
-          type: string
-          format: date-time
-          description: Timestamp when the entity was first created
-        updated_at:
-          type: string
-          format: date-time
-          description: Timestamp when the entity was last updated
-        archived_at:
-          type:
-            - string
-            - "null"
-          description: Nullable archive timestamp
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - type: object
+          properties:
+            created_at:
+              type: string
+              format: date-time
+              description: Timestamp when the entity was first created
+            updated_at:
+              type: string
+              format: date-time
+              description: Timestamp when the entity was last updated
+            archived_at:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Nullable archive timestamp
       example:
         created_at: "2020-10-23T10:37:05.085Z"
         updated_at: "2020-10-23T10:37:05.085Z"
         archived_at: null
     DeletableEntity:
-      type: object
       description: Common fields for entities that can be deleted
-      properties:
-        created_at:
-          type: string
-          format: date-time
-          description: Timestamp when the entity was first created
-        updated_at:
-          type: string
-          format: date-time
-          description: Timestamp when the entity was last updated
-        deleted_at:
-          type:
-            - string
-            - "null"
-          description: Nullable deletion timestamp
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - type: object
+          properties:
+            created_at:
+              type: string
+              format: date-time
+              description: Timestamp when the entity was first created
+            updated_at:
+              type: string
+              format: date-time
+              description: Timestamp when the entity was last updated
+            deleted_at:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Nullable deletion timestamp
       example:
         created_at: "2020-10-23T10:37:05.085Z"
         updated_at: "2020-10-23T10:37:05.085Z"
         deleted_at: null
+    ArchivableDeletableEntity:
+      description: Common fields for entities that can be both archived and deleted
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - type: object
+          properties:
+            created_at:
+              type: string
+              format: date-time
+              description: Timestamp when the entity was first created
+            updated_at:
+              type: string
+              format: date-time
+              description: Timestamp when the entity was last updated
+            archived_at:
+              type:
+                - string
+                - "null"
+              description: Nullable archive timestamp
+            deleted_at:
+              type:
+                - string
+                - "null"
+              description: Nullable deletion timestamp
+      example:
+        id: 12345
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2020-10-23T10:37:05.085Z"
+        archived_at: null
+        deleted_at: null
+    MaterialConfig:
+      description: Configuration option for a material that defines variant attributes
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - type: object
+          properties:
+            name:
+              type: string
+              description: Configuration attribute name (e.g., Grade, Thickness, Color)
+            values:
+              type: array
+              description: Array of possible values for this configuration attribute
+              items:
+                type: string
+            material_id:
+              type: integer
+              description: ID of the material this configuration belongs to
+          required:
+            - name
+            - values
+            - material_id
+      example:
+        id: 101
+        name: Grade
+        values:
+          - "Premium"
+          - "Standard"
+          - "Economy"
+        material_id: 1
+    ItemConfig:
+      description: Configuration option for products and materials that defines variant attributes
+      allOf:
+        - $ref: "#/components/schemas/BaseEntity"
+        - type: object
+          properties:
+            name:
+              type: string
+              description: Configuration attribute name (e.g., Size, Color, Style, Grade)
+            values:
+              type: array
+              description: Array of possible values for this configuration attribute
+              items:
+                type: string
+            product_id:
+              type:
+                - integer
+                - "null"
+              description: ID of the product this configuration belongs to (null for materials)
+            material_id:
+              type:
+                - integer
+                - "null"
+              description: ID of the material this configuration belongs to (null for products)
+          required:
+            - name
+            - values
+      example:
+        id: 201
+        name: Type
+        values:
+          - "Standard"
+          - "Double-bladed"
+        product_id: 1
+        material_id: null
     AdditionalCost:
       description: Additional cost types that can be applied to purchase orders and manufacturing orders (e.g., shipping, taxes, duties)
       allOf:
-        - $ref: "#/components/schemas/BaseEntity"
         - type: object
           properties:
             name:
@@ -1216,7 +1329,6 @@ components:
     Batch:
       type: object
       description: Core batch business properties
-      additionalProperties: false
       required:
         - batch_number
         - variant_id
@@ -1330,7 +1442,6 @@ components:
       description: Complete batch record with system metadata for inventory tracking and traceability
       allOf:
         - $ref: "#/components/schemas/Batch"
-        - $ref: "#/components/schemas/BaseEntity"
         - $ref: "#/components/schemas/UpdatableEntity"
       example:
         id: 1109
@@ -1341,10 +1452,26 @@ components:
         updated_at: "2024-01-15T08:00:00.000Z"
         variant_id: 1001
         batch_barcode: "0317"
+    BatchTransaction:
+      type: object
+      description: Represents a quantity transaction for a specific batch in manufacturing, sales, or inventory operations
+      additionalProperties: false
+      required:
+        - batch_id
+        - quantity
+      properties:
+        batch_id:
+          type: integer
+          description: ID of the batch for the transaction
+        quantity:
+          type: number
+          description: The quantity in this batch transaction
+      example:
+        batch_id: 1109
+        quantity: 25.0
     StorageBin:
       type: object
       description: Core storage bin business properties
-      additionalProperties: false
       required:
         - bin_name
         - location_id
@@ -1362,7 +1489,6 @@ components:
       description: Complete storage bin record with location details and system metadata for warehouse organization
       allOf:
         - $ref: "#/components/schemas/StorageBin"
-        - $ref: "#/components/schemas/BaseEntity"
         - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 12345
@@ -1522,7 +1648,7 @@ components:
     Variant:
       description: Specific SKU of a product or material with unique pricing, configuration, and inventory tracking
       allOf:
-        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
         - type: object
           properties:
             sku:
@@ -1552,6 +1678,9 @@ components:
               description: Display name combining the parent product/material name with variant attributes
             type:
               type: string
+              enum:
+                - product
+                - material
               description: |-
                 Type classification - either 'product' or 'material'
             internal_barcode:
@@ -1625,6 +1754,64 @@ components:
             config_value: 8-piece
           - config_name: Handle Material
             config_value: Steel
+        created_at: "2024-01-15T08:00:00.000Z"
+        updated_at: "2024-08-20T14:45:00.000Z"
+        deleted_at: null
+    ServiceVariant:
+      description: Service variant with unique pricing and configuration for external services
+      allOf:
+        - $ref: "#/components/schemas/UpdatableEntity"
+        - type: object
+          properties:
+            sku:
+              type: string
+              description: A unique service code
+            sales_price:
+              type:
+                - number
+                - "null"
+              description: Default sales price (excluding tax), which is automatically assigned to the service when creating sales orders
+            default_cost:
+              type:
+                - number
+                - "null"
+              description: Default cost which is used to calculate profit
+            service_id:
+              type: integer
+              description: ID of the service this variant belongs to
+            type:
+              type: string
+              enum:
+                - service
+              description: Type classification - always 'service' for service variants
+            custom_fields:
+              type: array
+              description: Custom field values specific to this service variant
+              items:
+                type: object
+                properties:
+                  field_name:
+                    type: string
+                    description: Name of the custom field
+                  field_value:
+                    type: string
+                    description: Value for the custom field
+          required:
+            - sku
+            - service_id
+        - $ref: "#/components/schemas/DeletableEntity"
+      example:
+        id: 4001
+        sku: ASSM-001
+        sales_price: 75.0
+        default_cost: 50.0
+        service_id: 401
+        type: service
+        custom_fields:
+          - field_name: Skill Level
+            field_value: Expert
+          - field_name: Duration
+            field_value: 2 hours
         created_at: "2024-01-15T08:00:00.000Z"
         updated_at: "2024-08-20T14:45:00.000Z"
         deleted_at: null
@@ -1740,9 +1927,12 @@ components:
         location_id:
           type: integer
           description: Unique identifier of the location where inventory is stored
+        safety_stock_level:
+          type: string
+          description: The quantity of a product or material which indicates an acceptable stock level for unexpected demand without overstocking
         reorder_point:
           type: string
-          description: Minimum stock level that triggers a reorder
+          description: (Deprecated - use safety_stock_level instead) Queries the safety stock level
         average_cost:
           type: string
           description: Average cost per unit of this variant at this location
@@ -1784,6 +1974,7 @@ components:
       example:
         variant_id: 3001
         location_id: 1
+        safety_stock_level: "25.0"
         reorder_point: "25.0"
         average_cost: "15.50"
         value_in_stock: "2325.00"
@@ -1828,7 +2019,6 @@ components:
     InventoryReorderPoint:
       description: Configuration that defines the minimum inventory level that triggers automatic reordering for a specific variant at a location
       type: object
-      additionalProperties: false
       required:
         - location_id
         - variant_id
@@ -1854,7 +2044,6 @@ components:
     InventorySafetyStockLevel:
       type: object
       description: Safety stock level configuration to maintain minimum inventory buffers and prevent stockouts
-      additionalProperties: false
       required:
         - location_id
         - variant_id
@@ -1953,6 +2142,11 @@ components:
                 - number
                 - "null"
               description: Actual quantity produced, null if production not completed
+            batch_transactions:
+              type: array
+              description: Batch transactions for produced items, typically one transaction per manufacturing order
+              items:
+                $ref: "#/components/schemas/BatchTransaction"
             location_id:
               type: integer
               description: ID of the factory location where production takes place
@@ -1964,6 +2158,12 @@ components:
               type: string
               format: date-time
               description: Target deadline for completing production
+            done_date:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Timestamp when the manufacturing order was completed
             additional_info:
               type: string
               description: Optional notes or additional information about the order
@@ -1971,7 +2171,16 @@ components:
               type: boolean
               description: Whether this manufacturing order is linked to a sales order
             ingredient_availability:
-              type: string
+              anyOf:
+                - type: string
+                  enum:
+                    - PROCESSED
+                    - IN_STOCK
+                    - NOT_AVAILABLE
+                    - EXPECTED
+                    - NO_RECIPE
+                    - NOT_APPLICABLE
+                - type: "null"
               description: Status of material ingredient availability for production
             total_cost:
               type: number
@@ -2308,6 +2517,8 @@ components:
         assignments, time, and costs.
       allOf:
         - type: object
+          required:
+            - id
           properties:
             id:
               type: integer
@@ -2343,12 +2554,12 @@ components:
               type: array
               description: Operators assigned to perform this operation
               items:
-                $ref: "#/components/schemas/Operator"
+                $ref: "#/components/schemas/AssignedOperator"
             completed_by_operators:
               type: array
               description: Operators who have completed work on this operation
               items:
-                $ref: "#/components/schemas/Operator"
+                $ref: "#/components/schemas/AssignedOperator"
             active_operator_id:
               type: number
               description: ID of the currently active operator working on this operation
@@ -2717,6 +2928,9 @@ components:
           type: string
           format: date-time
           description: Date and time when the transaction occurred
+        quantity_change:
+          type: integer
+          description: Quantity change for this serial number transaction
     SerialNumberListResponse:
       type: object
       description: List of serial number records for tracking individual units and enabling full product traceability
@@ -2865,6 +3079,9 @@ components:
       required:
         - name
         - variants
+      dependentRequired:
+        purchase_uom: [purchase_uom_conversion_rate]
+        purchase_uom_conversion_rate: [purchase_uom]
       properties:
         name:
           type: string
@@ -2892,36 +3109,27 @@ components:
         purchase_uom:
           type: string
           maxLength: 7
-          description: Unit of measure used when purchasing from suppliers
+          description: |-
+            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
+            for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
+            of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
         purchase_uom_conversion_rate:
           type: number
           maximum: 1000000000000
-          description: Conversion rate from purchase UOM to base UOM
+          description: |-
+            The conversion rate between the purchase and material UoMs. If used, material must have a purchase_uom
+            that is different from uom.
         configs:
           type: array
-          minItems: 1
           description: Material configuration options for creating variants
           items:
-            type: object
-            additionalProperties: false
-            required:
-              - name
-              - values
-            properties:
-              name:
-                type: string
-                description: Configuration attribute name (e.g., Grade, Thickness)
-              values:
-                type: array
-                description: Available values for this configuration attribute
-                items:
-                  type: string
+            $ref: "#/components/schemas/MaterialConfig"
         variants:
           type: array
           minItems: 1
           description: Material variants with specific configurations and properties
           items:
-            $ref: "#/components/schemas/Variant"
+            $ref: "#/components/schemas/CreateVariantRequest"
       example:
         name: Stainless Steel Sheet 304
         uom: m²
@@ -2942,77 +3150,109 @@ components:
               - 1.5mm
               - 2.0mm
               - 3.0mm
-        variants: []
+        variants:
+          - sku: STEEL-304-1.5MM
+            sales_price: null
+            purchase_price: 45.00
+            lead_time: 5
+            minimum_order_quantity: 1
+            config_attributes:
+              - config_name: Grade
+                config_value: "304"
+              - config_name: Thickness
+                config_value: "1.5mm"
+    InventoryItem:
+      description: Base schema for products and materials with common inventory management features including tracking, supplier relationships, and variant configurations
+      allOf:
+        - $ref: "#/components/schemas/ArchivableEntity"
+        - type: object
+          properties:
+            name:
+              type: string
+              description: Display name for the item used in sales, manufacturing, and purchasing contexts
+            uom:
+              type: string
+              description: Unit of measurement for the item (e.g., pcs, kg, m)
+            category_name:
+              type: string
+              description: Category for organizational grouping and reporting
+            is_sellable:
+              type: boolean
+              description: Whether this item can be sold to customers
+            default_supplier_id:
+              type:
+                - integer
+                - "null"
+              maximum: 2147483647
+              description: Primary supplier ID for purchasing this item
+            additional_info:
+              type: string
+              description: Additional notes, specifications, or internal comments
+            batch_tracked:
+              type: boolean
+              description: Whether inventory movements are tracked by batch numbers
+            purchase_uom:
+              type:
+                - string
+                - "null"
+              maxLength: 7
+              description: |-
+                If purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
+                for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
+                of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
+            purchase_uom_conversion_rate:
+              type:
+                - number
+                - "null"
+              maximum: 1000000000000
+              description: |-
+                The conversion rate between the purchase and default UoMs. If used, item must have a purchase_uom
+                that is different from uom.
+            custom_field_collection_id:
+              type:
+                - integer
+                - "null"
+              maximum: 2147483647
+              description: ID of the custom field collection associated with this item
+            variants:
+              type: array
+              description: Item variants with different SKUs, pricing, and configurations
+              items:
+                $ref: "#/components/schemas/Variant"
+            configs:
+              type: array
+              description: Configuration attributes that define variant combinations (size, color, etc.)
+              items:
+                $ref: "#/components/schemas/ItemConfig"
+            supplier:
+              anyOf:
+                - $ref: "#/components/schemas/Supplier"
+                - type: "null"
+              description: Primary supplier information for this item
+            type:
+              type: string
+              enum:
+                - product
+                - material
+              description: Item type discriminator - either 'product' or 'material'
+          required:
+            - name
+            - type
     Material:
       description:
         Represents raw materials and components used in manufacturing, including inventory tracking, supplier information,
         and batch management.
       allOf:
-        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/InventoryItem"
         - type: object
           properties:
-            name:
-              type: string
-              description: Name of the material
-            uom:
-              type: string
-              description: Primary unit of measure for the material (e.g., kg, pcs, m)
-            category_name:
-              type: string
-              description: Category classification for organizing materials
-            default_supplier_id:
-              type: integer
-              description: ID of the default supplier for this material
-            additional_info:
-              type: string
-              description: Optional notes or additional information about the material
-            batch_tracked:
-              type: boolean
-              description: Whether this material requires batch tracking for traceability
-            is_sellable:
-              type: boolean
-              description: Whether this material can be sold directly as a finished product
             type:
               type: string
-              description: Type classification of the material
-            purchase_uom:
-              type: string
-              description: Unit of measure used when purchasing this material from suppliers
-            purchase_uom_conversion_rate:
-              type: number
-              description: Conversion rate between purchase UoM and primary UoM
-            variants:
-              type: array
-              description: Different variants or configurations of this material
-              items:
-                $ref: "#/components/schemas/Variant"
-            configs:
-              type: array
-              description: Configuration options and attributes for the material
-              items:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                    description: Configuration option ID
-                  name:
-                    type: string
-                    description: Name of the configuration option
-                  values:
-                    type: array
-                    description: Available values for this configuration
-                    items:
-                      type: string
-                  product_id:
-                    type: integer
-                    description: Associated product ID for this configuration
-            custom_field_collection_id:
-              type: integer
-              description: ID of custom field collection for additional data
-            supplier:
-              $ref: "#/components/schemas/Supplier"
-              description: Default supplier information for this material
-        - $ref: "#/components/schemas/ArchivableEntity"
+              enum:
+                - material
+              description: Item type discriminator. Material objects are of type "material"
+          required:
+            - type
       example:
         id: 3201
         name: Stainless Steel Sheet 304
@@ -3022,24 +3262,36 @@ components:
         additional_info: Food-grade stainless steel, 1.5mm thickness
         batch_tracked: true
         is_sellable: false
-        type: Raw Material
+        type: material
         purchase_uom: sheet
         purchase_uom_conversion_rate: 2.0
-        variants: []
+        variants:
+          - id: 5001
+            sku: STEEL-304-1.5MM
+            sales_price: null
+            purchase_price: 45.00
+            type: material
+            lead_time: 5
+            minimum_order_quantity: 1
+            config_attributes:
+              - config_name: Grade
+                config_value: "304"
+              - config_name: Thickness
+                config_value: "1.5mm"
+            created_at: "2024-01-10T10:00:00Z"
+            updated_at: "2024-01-15T14:30:00Z"
         configs:
           - id: 101
             name: Grade
             values:
               - "304"
               - "316"
-            product_id: 3201
           - id: 102
             name: Thickness
             values:
               - 1.5mm
               - 2.0mm
               - 3.0mm
-            product_id: 3201
         custom_field_collection_id: 201
         supplier: null
         created_at: "2024-01-10T10:00:00Z"
@@ -3064,17 +3316,49 @@ components:
             additional_info: Food-grade stainless steel, 1.5mm thickness
             batch_tracked: true
             is_sellable: false
-            type: Raw Material
+            type: material
             purchase_uom: sheet
             purchase_uom_conversion_rate: 2.0
-            variants: []
+            variants:
+              - id: 5001
+                sku: STEEL-304-1.5MM
+                sales_price: null
+                purchase_price: 45.00
+                type: material
+                lead_time: 5
+                minimum_order_quantity: 1
+                config_attributes:
+                  - config_name: Grade
+                    config_value: "304"
+                  - config_name: Thickness
+                    config_value: "1.5mm"
+                created_at: "2024-01-10T10:00:00Z"
+                updated_at: "2024-01-15T14:30:00Z"
+              - id: 5002
+                sku: STEEL-316-1.5MM
+                sales_price: null
+                purchase_price: 52.00
+                type: material
+                lead_time: 7
+                minimum_order_quantity: 1
+                config_attributes:
+                  - config_name: Grade
+                    config_value: "316"
+                  - config_name: Thickness
+                    config_value: "1.5mm"
+                created_at: "2024-01-10T10:00:00Z"
+                updated_at: "2024-01-15T14:30:00Z"
             configs:
               - id: 101
                 name: Grade
                 values:
                   - "304"
                   - "316"
-                product_id: 3201
+              - id: 102
+                name: Thickness
+                values:
+                  - "1.5mm"
+                  - "2.0mm"
             custom_field_collection_id: 201
             supplier: null
             created_at: "2024-01-10T10:00:00Z"
@@ -3084,6 +3368,9 @@ components:
       description: Request payload for updating an existing raw material's properties and specifications
       type: object
       additionalProperties: false
+      dependentRequired:
+        purchase_uom: [purchase_uom_conversion_rate]
+        purchase_uom_conversion_rate: [purchase_uom]
       properties:
         name:
           type: string
@@ -3114,10 +3401,15 @@ components:
         purchase_uom:
           type: string
           maxLength: 7
-          description: If used, then purchase_uom_conversion_rate must have a value as well.
+          description: |-
+            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
+            for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
+            of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
         purchase_uom_conversion_rate:
           type: number
-          description: If used, then purchase_uom must have a value as well.
+          description: |-
+            The conversion rate between the purchase and material UoMs. If used, material must have a purchase_uom
+            that is different from uom.
           maximum: 1000000000000
         configs:
           type: array
@@ -3239,6 +3531,9 @@ components:
       required:
         - name
         - variants
+      dependentRequired:
+        purchase_uom: [purchase_uom_conversion_rate]
+        purchase_uom_conversion_rate: [purchase_uom]
       properties:
         name:
           type: string
@@ -3281,11 +3576,16 @@ components:
         purchase_uom:
           type: string
           maxLength: 7
-          description: Unit of measure used when purchasing from suppliers
+          description: |-
+            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
+            for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
+            of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
         purchase_uom_conversion_rate:
           type: number
           maximum: 1000000000000
-          description: Conversion rate from purchase UOM to base UOM
+          description: |-
+            The conversion rate between the purchase and product UoMs. If used, product must have a purchase_uom
+            that is different from uom.
         lead_time:
           type:
             - integer
@@ -3327,7 +3627,7 @@ components:
           minItems: 1
           description: Product variants with specific configurations and properties
           items:
-            $ref: "#/components/schemas/Variant"
+            $ref: "#/components/schemas/CreateVariantRequest"
       example:
         name: Professional Kitchen Knife Set
         uom: set
@@ -3357,6 +3657,10 @@ components:
           - sku: KNF-PRO-8PC-STL
             sales_price: 299.99
             purchase_price: 150.0
+            supplier_item_codes:
+              - "KNF-8PC-STEEL-001"
+            lead_time: 14
+            minimum_order_quantity: 1
             config_attributes:
               - config_name: Piece Count
                 config_value: 8-piece
@@ -3368,6 +3672,9 @@ components:
         specifications
       type: object
       additionalProperties: false
+      dependentRequired:
+        purchase_uom: [purchase_uom_conversion_rate]
+        purchase_uom_conversion_rate: [purchase_uom]
       properties:
         name:
           type: string
@@ -3410,11 +3717,16 @@ components:
         purchase_uom:
           type: string
           maxLength: 7
-          description: Unit of measurement used when purchasing from suppliers
+          description: |-
+            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
+            for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
+            of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
         purchase_uom_conversion_rate:
           type: number
           maximum: 1000000000000
-          description: Conversion rate between base UOM and purchase UOM
+          description: |-
+            The conversion rate between the purchase and product UoMs. If used, product must have a purchase_uom
+            that is different from uom.
         configs:
           type: array
           description: Configuration attributes that define variant combinations (size, color, etc.)
@@ -3468,21 +3780,14 @@ components:
         A finished good or component that can be sold, manufactured, or purchased, with support for variants and
         configurations
       allOf:
-        - $ref: "#/components/schemas/BaseEntity"
+        - $ref: "#/components/schemas/InventoryItem"
         - type: object
           properties:
-            name:
+            type:
               type: string
-              description: Display name for the product used in sales and manufacturing contexts
-            uom:
-              type: string
-              description: Unit of measurement for the product (e.g., pcs, kg, m)
-            category_name:
-              type: string
-              description: Product category for organizational grouping and reporting
-            is_sellable:
-              type: boolean
-              description: Whether this product can be sold to customers
+              enum:
+                - product
+              description: Item type discriminator. Product objects are of type "product"
             is_producible:
               type: boolean
               description: Whether this product can be manufactured in-house
@@ -3492,103 +3797,83 @@ components:
             is_auto_assembly:
               type: boolean
               description: Whether the product should be automatically assembled when components are available
-            default_supplier_id:
-              type: integer
-              description: Primary supplier ID for purchasing this product
-            additional_info:
-              type: string
-              description: Additional notes or specifications for the product
-            batch_tracked:
-              type: boolean
-              description: Whether inventory movements are tracked by batch numbers
             serial_tracked:
               type: boolean
               description: Whether inventory movements are tracked by individual serial numbers
             operations_in_sequence:
               type: boolean
               description: Whether manufacturing operations must be completed in a specific sequence
-            type:
-              type: string
-              description: Product classification type (product, material, etc.)
-            purchase_uom:
-              type: string
-              description: Unit of measurement used when purchasing from suppliers
-            purchase_uom_conversion_rate:
-              type: number
-              description: Conversion rate between base UOM and purchase UOM
-            variants:
-              type: array
-              description: Product variants with different SKUs, pricing, and configurations
-              items:
-                $ref: "#/components/schemas/Variant"
+            lead_time:
+              type:
+                - integer
+                - "null"
+              maximum: 999
+              description: Expected lead time for procurement or production
+            minimum_order_quantity:
+              type:
+                - number
+                - "null"
+              maximum: 999999999
+              minimum: 0
+              description: Minimum quantity that must be ordered
             configs:
               type: array
               description: Configuration attributes that define variant combinations (size, color, etc.)
               items:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                    description: Unique identifier for the configuration attribute
-                  name:
-                    type: string
-                    description: Name of the configuration attribute (e.g., Size, Color)
-                  values:
-                    type: array
-                    description: Available values for this configuration attribute
-                    items:
-                      type: string
-                  product_id:
-                    type: integer
-                    description: ID of the product this configuration belongs to
-            custom_field_collection_id:
-              type: integer
-              description: ID of the custom field collection associated with this product
-            supplier:
-              $ref: "#/components/schemas/Supplier"
-        - $ref: "#/components/schemas/ArchivableEntity"
+                $ref: "#/components/schemas/ItemConfig"
+          required:
+            - type
       example:
-        id: 101
-        name: Professional Kitchen Knife Set
-        uom: set
-        category_name: Kitchenware
+        id: 1
+        name: Standard-hilt lightsaber
+        uom: pcs
+        category_name: lightsaber
         is_sellable: true
         is_producible: true
-        is_purchasable: false
-        is_auto_assembly: false
-        default_supplier_id: null
-        additional_info: High-carbon stainless steel with ergonomic handles
-        batch_tracked: false
-        serial_tracked: true
-        operations_in_sequence: true
+        is_purchasable: true
+        is_auto_assembly: true
+        default_supplier_id: 1
+        additional_info: additional info
+        batch_tracked: true
+        serial_tracked: false
+        operations_in_sequence: false
         type: product
-        purchase_uom: set
-        purchase_uom_conversion_rate: 1.0
-        custom_field_collection_id: 5
-        created_at: "2024-01-15T09:30:00Z"
-        updated_at: "2024-08-20T14:45:00Z"
+        purchase_uom: pcs
+        purchase_uom_conversion_rate: 1
+        lead_time: 1
+        minimum_order_quantity: 3
+        custom_field_collection_id: 1
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2020-10-23T10:37:05.085Z"
         archived_at: null
         variants:
-          - id: 301
-            sku: KNF-PRO-8PC
-            name: 8-Piece Professional Set
-            sales_price: 299.99
-            purchase_price: 150.0
+          - id: 1
+            sku: EM
+            sales_price: 40
+            purchase_price: 0
+            type: product
+            created_at: "2020-10-23T10:37:05.085Z"
+            updated_at: "2020-10-23T10:37:05.085Z"
+            lead_time: 1
+            minimum_order_quantity: 3
+            config_attributes:
+              - config_name: Type
+                config_value: Standard
+            internal_barcode: internalcode
+            registered_barcode: registeredcode
+            supplier_item_codes:
+              - code
+            custom_fields:
+              - field_name: Power level
+                field_value: Strong
         configs:
           - id: 1
-            name: Piece Count
+            name: Type
             values:
-              - 6-piece
-              - 8-piece
-              - 12-piece
-            product_id: 101
-          - id: 2
-            name: Handle Material
-            values:
-              - Wood
-              - Steel
-              - Composite
-            product_id: 101
+              - Standard
+              - Double-bladed
+            product_id: 1
+        supplier: null
     ProductListResponse:
       description: Response containing a paginated list of products with their variants and configurations
       type: object
@@ -3658,20 +3943,14 @@ components:
           enum:
             - NOT_RECEIVED
           description: Initial status of the purchase order when created
-        expected_arrival_date:
-          type: string
-          description: Expected date when the purchased items will arrive at the facility
         order_created_date:
           type: string
+          format: date-time
           description: Date when the purchase order was created
         location_id:
           type: integer
           maximum: 2147483647
           description: Primary location where the purchased items will be received and stored
-        tracking_location_id:
-          type: integer
-          maximum: 2147483647
-          description: Submittable only when entity_type is outsourced
         additional_info:
           type: string
           description: Optional notes or special instructions for the supplier
@@ -3681,14 +3960,29 @@ components:
           items:
             $ref: "#/components/schemas/PurchaseOrderRowRequest"
           description: List of line items being ordered, including quantities and pricing
+      # Business rule validations for outsourced orders
+      if:
+        properties:
+          entity_type:
+            const: "outsourced"
+      then:
+        # Outsourced orders require tracking_location_id
+        required: ["tracking_location_id"]
+        properties:
+          tracking_location_id:
+            type: integer
+            maximum: 2147483647
+      else:
+        properties:
+          tracking_location_id:
+            type: "null"
       example:
         order_no: PO-2024-0156
         entity_type: regular
         supplier_id: 4001
         currency: USD
         status: NOT_RECEIVED
-        expected_arrival_date: "2024-02-15"
-        order_created_date: "2024-01-28"
+        order_created_date: "2024-01-15T09:30:00Z"
         location_id: 1
         additional_info: Rush order - needed for Valentine's Day production run
         purchase_order_rows:
@@ -3698,12 +3992,14 @@ components:
             tax_rate_id: 1
             purchase_uom: kg
             purchase_uom_conversion_rate: 1.0
+            arrival_date: "2024-08-20T14:45:00Z"
           - quantity: 100
             price_per_unit: 12.5
             variant_id: 502
             tax_rate_id: 1
             purchase_uom: pieces
             purchase_uom_conversion_rate: 1.0
+            arrival_date: "2024-08-20T14:45:00Z"
     PurchaseOrderRowRequest:
       description: Request payload for creating a line item within a purchase order
       type: object
@@ -3731,6 +4027,10 @@ components:
         purchase_uom:
           type: string
           description: Unit of measure for purchasing this item (e.g., kg, pieces, liters)
+        arrival_date:
+          type: string
+          format: date-time
+          description: Expected arrival date for this line item
       example:
         quantity: 250
         price_per_unit: 2.85
@@ -3738,74 +4038,75 @@ components:
         tax_rate_id: 1
         purchase_uom: kg
         purchase_uom_conversion_rate: 1.0
-    PurchaseOrder:
-      description:
-        Complete purchase order for procuring materials or products from suppliers, including order details, line
-        items, and supplier information
+        arrival_date: "2024-08-20T14:45:00Z"
+
+    # Base schema for common purchase order properties
+    PurchaseOrderBase:
+      description: Base properties shared by all purchase order types
       allOf:
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
-              description: Unique identifier for the purchase order
             status:
               type: string
-              description: Current status of the purchase order (e.g., OPEN, RECEIVED, CLOSED)
+              enum:
+                - "NOT_RECEIVED"
+                - "PARTIALLY_RECEIVED"
+                - "RECEIVED"
+              description: Status of the order.
             order_no:
               type: string
-              description: Unique purchase order number for tracking and reference
+              description: A unique, identifying string used in the UI and controlled by the user.
             entity_type:
               type: string
-              description: |-
-                Type of purchase order - regular for materials or outsourced for subcontracted work
+              enum:
+                - "regular"
+                - "outsourced"
+              description: Either "regular" or "outsourced", depending on the purchase order type.
             default_group_id:
               type: integer
               description: Default grouping identifier for organizational purposes
             supplier_id:
               type: integer
-              description: Unique identifier of the supplier providing the materials or services
+              description: ID of the supplier who this order belongs to.
             currency:
               type: string
-              description: Currency used for this purchase order (ISO 4217 format)
+              description: Currency of the purchase order. Filled with supplier currency by default.
             expected_arrival_date:
               type: string
-              description: Expected date when the purchased items will arrive at the facility
+              format: date-time
+              description: The timestamp when the items are expected to arrive (in full) in your warehouse.
             order_created_date:
               type: string
-              description: Date when the purchase order was created
+              format: date-time
+              description: The timestamp of creating the document.
             additional_info:
               type: string
-              description: Optional notes or special instructions for the supplier
+              description: A string attached to the object to add any internal comments, links to external files, additional instructions, etc.
             location_id:
               type: integer
-              description: Primary location where the purchased items will be received and stored
-            tracking_location_id:
-              type:
-                - integer
-                - "null"
-              description: Optional tracking location for outsourced operations
+              description: The ID of the location to which items are received.
             total:
               type: number
-              description: Total amount of the purchase order in the order currency
+              description: The total value of the order (including taxes) in purchase order currency.
             total_in_base_currency:
               type: number
-              description: Total amount converted to the base currency
+              description: The total value of the order (including taxes) in base currency.
             billing_status:
               type: string
-              description: Current billing/payment status of the purchase order
+              enum:
+                - "BILLED"
+                - "NOT_BILLED"
+                - "PARTIALLY_BILLED"
+              description: Indicating the status of generating the bill through accounting integration to either Xero or QuickBooks Online. "PARTIALLY_BILLED" does not apply to Xero integration.
             last_document_status:
               type: string
-              description: Status of the last document processed for this order
-            ingredient_availability:
-              type:
-                - string
-                - "null"
-              description: Availability status of ingredients/materials in this order
-            ingredient_expected_date:
-              type:
-                - string
-                - "null"
-              description: Expected date when all ingredients/materials will be available
+              enum:
+                - "NOT_SENT"
+                - "SENDING"
+                - "FAILED"
+                - "SENT"
+              description: Status of the last e-mail sent from (O)PO card.
             purchase_order_rows:
               type: array
               items:
@@ -3814,7 +4115,77 @@ components:
             supplier:
               $ref: "#/components/schemas/Supplier"
               description: Complete supplier information for this purchase order
-        - $ref: "#/components/schemas/DeletableEntity"
+
+    # Regular purchase order schema
+    RegularPurchaseOrder:
+      description: Regular purchase order for standard procurement from suppliers
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/PurchaseOrderBase"
+        - type: object
+          properties:
+            entity_type:
+              type: string
+              enum: ["regular"]
+              description: Purchase order type identifier
+            tracking_location_id:
+              type: "null"
+              description: Regular orders do not have tracking locations
+
+    # Outsourced purchase order schema
+    OutsourcedPurchaseOrder:
+      description: Outsourced purchase order for subcontracted manufacturing
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/PurchaseOrderBase"
+        - type: object
+          required:
+            - tracking_location_id
+          properties:
+            entity_type:
+              type: string
+              enum: ["outsourced"]
+              description: Purchase order type identifier
+            tracking_location_id:
+              type: integer
+              description: The ID location where the ingredients on the outsourced purchase order are processed
+            ingredient_availability:
+              $ref: "#/components/schemas/OutsourcedPurchaseOrderIngredientAvailability"
+            ingredient_expected_date:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: The latest date of a manufacturing order production deadline or a purchasing order expected arrival date that relates to the required ingredient
+        # Conditional validation for ingredient_expected_date based on ingredient_availability
+        - if:
+            properties:
+              ingredient_availability:
+                const: "EXPECTED"
+          then:
+            properties:
+              ingredient_expected_date:
+                type: string
+                format: date-time
+          else:
+            properties:
+              ingredient_expected_date:
+                type: "null"
+
+    # Main purchase order schema using discriminator
+    PurchaseOrder:
+      description:
+        Complete purchase order for procuring materials or products from suppliers, including order details, line
+        items, and supplier information
+      type: object
+      discriminator:
+        propertyName: entity_type
+        mapping:
+          regular: "#/components/schemas/RegularPurchaseOrder"
+          outsourced: "#/components/schemas/OutsourcedPurchaseOrder"
+      oneOf:
+        - $ref: "#/components/schemas/RegularPurchaseOrder"
+        - $ref: "#/components/schemas/OutsourcedPurchaseOrder"
       example:
         id: 156
         status: OPEN
@@ -3903,22 +4274,26 @@ components:
             total: 1962.5
             total_in_base_currency: 1962.5
             billing_status: UNBILLED
+            tracking_location_id: null
             created_at: "2024-01-28T09:15:00Z"
             updated_at: "2024-01-28T09:15:00Z"
             deleted_at: null
-          - id: 157
-            status: RECEIVED
-            order_no: PO-2024-0157
-            entity_type: regular
-            supplier_id: 4002
+          - id: 158
+            status: OPEN
+            order_no: PO-2024-0158
+            entity_type: outsourced
+            supplier_id: 4003
             currency: USD
-            expected_arrival_date: "2024-02-10"
-            order_created_date: "2024-01-25"
-            total: 875.0
-            total_in_base_currency: 875.0
-            billing_status: BILLED
-            created_at: "2024-01-25T14:30:00Z"
-            updated_at: "2024-02-10T11:45:00Z"
+            expected_arrival_date: "2024-02-20"
+            order_created_date: "2024-01-30"
+            total: 2450.0
+            total_in_base_currency: 2450.0
+            billing_status: UNBILLED
+            tracking_location_id: 2
+            ingredient_availability: EXPECTED
+            ingredient_expected_date: "2024-02-18T10:00:00Z"
+            created_at: "2024-01-30T11:20:00Z"
+            updated_at: "2024-01-30T11:20:00Z"
             deleted_at: null
     PurchaseOrderRow:
       description:
@@ -3932,25 +4307,25 @@ components:
               description: Unique identifier for this purchase order line item
             quantity:
               type: number
-              description: Quantity of items ordered for this line
+              description: The quantity of items for the order line.
             variant_id:
               type: integer
-              description: Unique identifier of the product variant being ordered
+              description: ID of product or material variant added to the order line.
             tax_rate_id:
               type: integer
-              description: Tax rate identifier applied to this line item
+              description: ID of tax added to price per unit.
             price_per_unit:
               type: number
-              description: Unit price for each item in the order currency
+              description: The sales price of one unit (excluding taxes) in sales order currency.
             price_per_unit_in_base_currency:
               type: number
               description: Unit price converted to the base currency
             purchase_uom_conversion_rate:
               type: number
-              description: Conversion rate between purchase unit of measure and base unit
+              description: The conversion rate between the purchase and stock tracking UoMs.
             purchase_uom:
               type: string
-              description: Unit of measure for purchasing this item (e.g., kg, pieces, liters)
+              description: The unit used to measure the quantity of the items (e.g. pcs, kg, m) you purchase. It can be different from the unit used to track stock.
             currency:
               type: string
               description: Currency used for this line item pricing
@@ -3958,31 +4333,31 @@ components:
               type:
                 - number
                 - "null"
-              description: Exchange rate used for currency conversion
+              description: Currency rate used to convert from purchase order currency into factory base currency.
             total:
               type: number
-              description: Total amount for this line item in order currency
+              description: The total value of the purchase order row (excluding taxes) in purchase order currency.
             total_in_base_currency:
               type: number
-              description: Total amount for this line item in base currency
+              description: The total value of the purchase order row (excluding taxes) in base currency.
             conversion_date:
               type:
                 - string
                 - "null"
               format: date-time
-              description: Date when currency conversion was performed
+              description: The date of the conversion rate used.
             received_date:
               type:
                 - string
                 - "null"
               format: date-time
-              description: Date when this line item was received
+              description: The date when the items on the purchase order row were received to your stock.
             arrival_date:
               type:
                 - string
                 - "null"
               format: date-time
-              description: Date when this line item arrived at the facility
+              description: The timestamp when the item on the row is expected to arrive (in full) in your warehouse. ISO 8601 format with time and timezone must be used.
             batch_transactions:
               type: array
               items:
@@ -3990,11 +4365,11 @@ components:
                 properties:
                   quantity:
                     type: number
-                    description: Quantity associated with the batch transaction
+                    description: The quantity received in a particular batch.
                   batch_id:
                     type: integer
-                    description: Unique identifier of the batch for tracking
-              description: List of batch transactions associated with this line item
+                    description: ID of the batch for the received item.
+              description: An array of batch transactions and their quantities. You can receive stock for the same item in multiple batches.
             purchase_order_id:
               type: integer
               description: Unique identifier of the parent purchase order
@@ -4006,7 +4381,7 @@ components:
             group_id:
               type: integer
               description: Grouping identifier for organizational purposes
-        - $ref: "#/components/schemas/DeletableEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
       example:
         id: 501
         quantity: 250
@@ -4107,6 +4482,7 @@ components:
             on purchase order rows
         order_created_date:
           type: string
+          format: date-time
           description: Date when the purchase order was originally created
         location_id:
           type: integer
@@ -4301,6 +4677,7 @@ components:
           description: Quantity of items being received for this row
         received_date:
           type: string
+          format: date-time
           description: Optional received date in ISO 8601 format.
         batch_transactions:
           type: array
@@ -4380,6 +4757,7 @@ components:
           description: Unit of measure for purchasing this item
         arrival_date:
           type: string
+          format: date-time
           description: Optional arrival date in ISO 8601 format.
       example:
         purchase_order_id: 156
@@ -4468,7 +4846,7 @@ components:
           description: Date and time when the accounting metadata was created
       required:
         - id
-        - purchase_order_id
+        - purchaseOrderId
       example:
         id: 156
         purchase_order_id: 8001
@@ -4954,7 +5332,6 @@ components:
       additionalProperties: false
       required:
         - sku
-        - supplier_item_codes
       properties:
         sku:
           type: string
@@ -4983,10 +5360,11 @@ components:
           description: ID of the parent material if this variant belongs to a raw material
         supplier_item_codes:
           type: array
-          minItems: 1
           description: Supplier-specific part numbers or SKUs for purchasing this variant
           items:
             type: string
+            minLength: 1
+            maxLength: 40
         internal_barcode:
           type: string
           minLength: 3
@@ -4994,7 +5372,8 @@ components:
           description: Internal barcode for warehouse scanning and tracking
         registered_barcode:
           type: string
-          maxLength: 120
+          minLength: 3
+          maxLength: 40
           description: Official registered barcode (UPC, EAN, etc.) for retail use
         lead_time:
           type:
@@ -5009,6 +5388,7 @@ components:
           description: Minimum quantity that must be ordered from suppliers
         config_attributes:
           type: array
+          minItems: 1
           description: Configuration attribute values that define this variant (color, size, etc.)
           items:
             type: object
@@ -5025,6 +5405,7 @@ components:
                 description: Value for this configuration attribute (e.g., Blue, Large)
         custom_fields:
           type: array
+          maxItems: 3
           description: Custom field values specific to this variant
           items:
             type: object
@@ -5141,63 +5522,15 @@ components:
                     type: string
                     description: Value stored in the custom field
             product_or_material:
-              type: object
+              oneOf:
+                - $ref: "#/components/schemas/Product"
+                - $ref: "#/components/schemas/Material"
+              discriminator:
+                propertyName: type
+                mapping:
+                  product: "#/components/schemas/Product"
+                  material: "#/components/schemas/Material"
               description: Details of the parent product or material this variant belongs to
-              properties:
-                id:
-                  type: integer
-                  description: Unique identifier of the parent product or material
-                name:
-                  type: string
-                  description: Name of the parent product or material
-                uom:
-                  type: string
-                  description: Unit of measurement
-                category_name:
-                  type: string
-                  description: Category classification
-                is_producible:
-                  type: boolean
-                  description: Whether the parent can be manufactured
-                default_supplier_id:
-                  type: integer
-                  description: Primary supplier ID
-                is_purchasable:
-                  type: boolean
-                  description: Whether the parent can be purchased
-                type:
-                  type: string
-                  description: Type classification (product/material)
-                purchase_uom:
-                  type: string
-                  description: Purchase unit of measurement
-                purchase_uom_conversion_rate:
-                  type: number
-                  description: Conversion rate for purchase UOM
-                batch_tracked:
-                  type: boolean
-                  description: Whether batch tracking is enabled
-                configs:
-                  type: array
-                  description: Configuration definitions for variants
-                  items:
-                    type: object
-                additional_info:
-                  type: string
-                  description: Additional notes or specifications
-                created_at:
-                  type: string
-                  format: date-time
-                  description: Creation timestamp
-                updated_at:
-                  type: string
-                  format: date-time
-                  description: Last update timestamp
-                variants:
-                  type: array
-                  description: All variants of this product or material
-                  items:
-                    $ref: "#/components/schemas/Variant"
         - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 3001
@@ -5226,7 +5559,13 @@ components:
           name: Professional Kitchen Knife Set
           uom: set
           category_name: Kitchenware
+          is_sellable: true
+          is_producible: true
+          is_purchasable: false
           type: product
+          created_at: "2024-01-15T08:00:00.000Z"
+          updated_at: "2024-08-20T14:45:00.000Z"
+          archived_at: null
         created_at: "2024-01-15T08:00:00.000Z"
         updated_at: "2024-08-20T14:45:00.000Z"
         deleted_at: null
@@ -5360,6 +5699,30 @@ components:
                 config_value: 12-piece
               - config_name: Handle Material
                 config_value: Wood
+          - id: 5001
+            sku: STEEL-304-1.5MM
+            sales_price: null
+            purchase_price: 45.00
+            type: material
+            lead_time: 5
+            minimum_order_quantity: 1
+            config_attributes:
+              - config_name: Grade
+                config_value: "304"
+              - config_name: Thickness
+                config_value: "1.5mm"
+          - id: 5003
+            sku: ALU-6061-2.0MM
+            sales_price: null
+            purchase_price: 38.50
+            type: material
+            lead_time: 3
+            minimum_order_quantity: 2
+            config_attributes:
+              - config_name: Alloy
+                config_value: "6061"
+              - config_name: Thickness
+                config_value: "2.0mm"
     VariantDefaultStorageBinLink:
       type: object
       description:
@@ -5413,31 +5776,6 @@ components:
         created_at: "2024-01-15T08:00:00.000Z"
         updated_at: "2024-01-15T08:00:00.000Z"
         deleted_at: null
-    VariantDefaultStorageBinLinkListResponse:
-      type: object
-      description: List of variant storage bin assignments showing default storage locations for efficient warehouse operations
-      properties:
-        data:
-          type: array
-          description: Array of variant-storage bin links with location assignments
-          items:
-            $ref: "#/components/schemas/VariantDefaultStorageBinLinkResponse"
-      example:
-        data:
-          - id: 501
-            bin_name: A-01-SHELF-1
-            variant_id: 3001
-            storage_bin_id: 12345
-            created_at: "2024-01-15T08:00:00.000Z"
-            updated_at: "2024-01-15T08:00:00.000Z"
-            deleted_at: null
-          - id: 502
-            bin_name: A-02-SHELF-1
-            variant_id: 3002
-            storage_bin_id: 12346
-            created_at: "2024-01-16T09:00:00.000Z"
-            updated_at: "2024-01-16T09:00:00.000Z"
-            deleted_at: null
     UnlinkVariantBinLocationRequest:
       type: object
       description: Request to remove a variant's default storage bin assignment for a specific location
@@ -5800,55 +6138,68 @@ components:
       example:
         sales_order_row_id: 2501
         create_subassemblies: true
-    ServiceAttributes:
-      description: Service definition attributes including name, price, and status for configuring external services
+    Service:
+      description: External service that can be used as part of manufacturing operations or business processes
       allOf:
+        - $ref: "#/components/schemas/ArchivableDeletableEntity"
         - type: object
           properties:
             name:
               type: string
-              description: Name of the Service.
-              example: Screen Printing
-            description:
+              description: The service's unique name
+            uom:
               type: string
-              description: A detailed description of the Service.
-              example: High quality screen printing service for apparel and accessories.
-            price:
-              type: number
-              description: Price of the Service.
-              example: 150.0
-            currency:
+              description: The unit used to measure the quantity of the service (e.g. pcs, hours)
+            category_name:
               type: string
-              description: Currency code (e.g., USD).
-              example: USD
-            active:
+              description: A string used to group similar items for better organization and analysis
+            is_sellable:
               type: boolean
-              description: Indicates if the Service is active.
-              example: true
-        - $ref: "#/components/schemas/UpdatableEntity"
-    Service:
-      description: External service that can be used as part of manufacturing operations or business processes
-      type: object
-      properties:
-        id:
-          type: string
-          description: Unique identifier of the Service.
-        type:
-          type: string
-          description: |-
-            Resource type - always 'services'.
-          enum:
-            - services
-        attributes:
-          $ref: "#/components/schemas/ServiceAttributes"
-          description: Service-specific attributes including name, pricing, and configuration details
+              description: Sellable services can be added to Quotes and Sales orders
+            type:
+              type: string
+              enum:
+                - service
+              description: Indicating the item type. Service objects are of type "service"
+            additional_info:
+              type: string
+              description: A string attached to the object to add any internal comments, links to external files, additional instructions, etc.
+            custom_field_collection_id:
+              type:
+                - integer
+                - "null"
+              description: ID of the custom field collection associated with this service
+            variants:
+              type: array
+              description: An array of service variant objects
+              items:
+                $ref: "#/components/schemas/ServiceVariant"
       example:
-        id: srv_abc123
-        type: services
-        attributes:
-          name: CNC Machining Service
-          description: Precision CNC machining for metal components
-          active: true
+        id: 1
+        name: Service name
+        uom: pcs
+        category_name: Service
+        is_sellable: true
+        type: service
+        custom_field_collection_id: 1
+        additional_info: additional info
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2020-10-23T10:37:05.085Z"
+        deleted_at: null
+        archived_at: "2020-10-20T10:37:05.085Z"
+        variants:
+          - id: 1
+            sku: S-2486
+            sales_price: null
+            default_cost: null
+            service_id: 1
+            type: service
+            created_at: "2020-10-23T10:37:05.085Z"
+            updated_at: "2020-10-23T10:37:05.085Z"
+            deleted_at: null
+            custom_fields:
+              - field_name: Power level
+                field_value: Strong
     ServiceListResponse:
       description: Response containing a list of services available for purchase orders and operations
       type: object
@@ -5862,69 +6213,189 @@ components:
         data:
           - id: 401
             name: Assembly Service
-            price: 150.0
-            currency: USD
-            tax_rate_id: 1
-            description: Professional product assembly service
+            uom: hours
+            category_name: Manufacturing Services
+            is_sellable: true
+            type: service
+            additional_info: Professional product assembly service
+            custom_field_collection_id: 1
+            variants:
+              - id: 4001
+                sku: ASSM-001
+                sales_price: 75.0
+                default_cost: 50.0
+                service_id: 401
+                type: service
+                custom_fields:
+                  - field_name: Skill Level
+                    field_value: Expert
+                created_at: "2023-10-01T09:00:00Z"
+                updated_at: "2023-10-01T09:00:00Z"
+                deleted_at: null
             created_at: "2023-10-01T09:00:00Z"
             updated_at: "2023-10-01T09:00:00Z"
-    ServiceInputAttributes:
-      description: Input attributes for creating or updating service definitions with pricing and descriptive information
+            archived_at: null
+            deleted_at: null
+    CreateServiceRequest:
+      description: Request payload for creating a new service with variants and specifications
       type: object
+      additionalProperties: false
+      required:
+        - name
+        - variants
       properties:
         name:
           type: string
-          description: Name of the Service.
-        description:
+          description: The service's unique name
+        uom:
           type: string
-          description: A brief description of the Service.
-        price:
-          type: number
-          description: Price of the Service.
-        currency:
+          maxLength: 7
+          description: The unit used to measure the quantity of the service (e.g. pcs, hours)
+        category_name:
           type: string
-          description: Currency code for the price.
-      required:
-        - name
-        - price
-        - currency
+          description: A string used to group similar items for better organization and analysis
+        additional_info:
+          type: string
+          description: A string attached to the object to add any internal comments, links to external files, additional instructions, etc.
+        is_sellable:
+          type: boolean
+          description: Sellable services can be added to Quotes and Sales orders
+        custom_field_collection_id:
+          type:
+            - integer
+            - "null"
+          maximum: 2147483647
+          description: ID of the custom field collection to associate with this service
+        variants:
+          type: array
+          minItems: 1
+          maxItems: 1
+          description: Array containing exactly one service variant object to create
+          items:
+            $ref: "#/components/schemas/CreateServiceVariantRequest"
       example:
-        name: Screen Printing
-        description: High quality screen printing service.
-        price: 150.0
-        currency: USD
-    ServiceRequest:
-      description: Request payload for creating or updating service records with pricing and operational details
-      type: object
-      properties:
-        data:
-          type: object
-          description: Service data wrapper following JSON:API conventions
-          properties:
-            type:
-              type: string
-              description: Resource type must be 'services'.
-              enum:
-                - services
-            attributes:
-              $ref: "#/components/schemas/ServiceInputAttributes"
-          required:
-            - type
-            - attributes
-      required:
-        - data
-      example:
-        data:
-          type: services
-          attributes:
-            name: Assembly Service
-            description: Professional product assembly service
-            price: 150.0
-            currency: USD
-        uom: pcs
-        category_name: Printing Services
+        name: Assembly Service
+        uom: hours
+        category_name: Manufacturing Services
+        additional_info: Professional product assembly service
         is_sellable: true
-        additional_info: Professional quality guaranteed
+        custom_field_collection_id: 1
+        variants:
+          - sku: ASSM-001
+            sales_price: 75.0
+            default_cost: 50.0
+            custom_fields:
+              - field_name: Skill Level
+                field_value: Expert
+    CreateServiceVariantRequest:
+      description: Request payload for creating a service variant with pricing and custom fields
+      type: object
+      additionalProperties: false
+      required:
+        - sku
+      properties:
+        sku:
+          type: string
+          description: A unique service code
+        sales_price:
+          type:
+            - number
+            - "null"
+          maximum: 100000000000
+          minimum: 0
+          description: Default sales price (excluding tax)
+        default_cost:
+          type:
+            - number
+            - "null"
+          maximum: 100000000000
+          minimum: 0
+          description: Default cost which is used to calculate profit
+        custom_fields:
+          type: array
+          maxItems: 3
+          description: Custom field values for this variant
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - field_name
+              - field_value
+            properties:
+              field_name:
+                type: string
+                maxLength: 40
+                description: Custom field name
+              field_value:
+                type: string
+                maxLength: 100
+                description: Custom field value
+      example:
+        sku: ASSM-001
+        sales_price: 75.0
+        default_cost: 50.0
+        custom_fields:
+          - field_name: Skill Level
+            field_value: Expert
+
+    UpdateServiceRequest:
+      description: Request payload for updating an existing service's properties and specifications
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: The service's unique name
+        uom:
+          type: string
+          maxLength: 7
+          description: The unit used to measure the quantity of the service (e.g. pcs, hours)
+        category_name:
+          type: string
+          description: A string used to group similar items for better organization and analysis
+        additional_info:
+          type: string
+          description: A string attached to the object to add any internal comments, links to external files, additional instructions, etc.
+        is_sellable:
+          type: boolean
+          description: Sellable services can be added to Quotes and Sales orders
+        is_archived:
+          type: boolean
+          description: Whether the service is archived or not
+        sales_price:
+          type:
+            - number
+            - "null"
+          maximum: 100000000000
+          minimum: 0
+          description: Default sales price (excluding tax)
+        default_cost:
+          type:
+            - number
+            - "null"
+          maximum: 100000000000
+          minimum: 0
+          description: Default cost which is used to calculate profit
+        sku:
+          type: string
+          description: A unique service code for the primary variant
+        custom_field_collection_id:
+          type:
+            - integer
+            - "null"
+          maximum: 2147483647
+          description: ID of the custom field collection to associate with this service
+      example:
+        name: Updated Assembly Service
+        uom: hours
+        category_name: Professional Services
+        is_sellable: true
+        is_archived: false
+        sales_price: 85.0
+        default_cost: 55.0
+        sku: ASSM-001-UPD
+        additional_info: Updated professional product assembly service
+        custom_field_collection_id: 1
     Customer:
       description: Customer entity representing individuals or companies that purchase products or services
       allOf:
@@ -5992,6 +6463,11 @@ components:
                 - integer
                 - "null"
               description: ID of the default shipping address for this customer
+            addresses:
+              type: array
+              description: Complete list of billing and shipping addresses for this customer
+              items:
+                $ref: "#/components/schemas/CustomerAddress"
           required:
             - name
         - $ref: "#/components/schemas/DeletableEntity"
@@ -6343,7 +6819,6 @@ components:
                 - PARTIALLY_DELIVERED
                 - PACKED
                 - DELIVERED
-                - PENDING
             currency:
               type: string
               description: Currency code for the order pricing (ISO 4217 format)
@@ -7165,9 +7640,14 @@ components:
             id:
               type: integer
               description: Unique identifier for the stock adjustment
-            reference_no:
+            stock_adjustment_number:
               type: string
               description: Human-readable reference number for tracking and audit purposes
+            reference_no:
+              type:
+                - string
+                - "null"
+              description: Alternative reference number (optional)
             location_id:
               type: integer
               description: ID of the location where the stock adjustment is performed
@@ -7188,12 +7668,12 @@ components:
               description: Optional notes or comments about the adjustment reason
           required:
             - id
-            - reference_no
+            - stock_adjustment_number
             - location_id
         - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 2001
-        reference_no: SA-2024-001
+        stock_adjustment_number: SA-2024-001
         location_id: 1
         status: COMPLETED
         adjustment_date: "2024-01-15T14:30:00.000Z"
@@ -7303,13 +7783,13 @@ components:
             id:
               type: integer
               description: Unique identifier for the stock transfer
-            reference_no:
+            stock_transfer_number:
               type: string
               description: Human-readable reference number for tracking the transfer
-            from_location_id:
+            source_location_id:
               type: integer
               description: ID of the source location where stock is being transferred from
-            to_location_id:
+            target_location_id:
               type: integer
               description: ID of the destination location where stock is being transferred to
             status:
@@ -7318,6 +7798,7 @@ components:
               enum:
                 - DRAFT
                 - COMPLETED
+                - received
             transfer_date:
               type: string
               format: date-time
@@ -7327,23 +7808,69 @@ components:
                 - string
                 - "null"
               description: Optional notes or comments about the transfer purpose
+            stock_transfer_rows:
+              type: array
+              description: Line items detailing the products and quantities being transferred
+              items:
+                $ref: "#/components/schemas/StockTransferRow"
           required:
             - id
-            - reference_no
-            - from_location_id
-            - to_location_id
+            - stock_transfer_number
+            - source_location_id
+            - target_location_id
         - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 3001
-        reference_no: ST-2024-001
-        from_location_id: 1
-        to_location_id: 2
+        stock_transfer_number: ST-2024-001
+        source_location_id: 1
+        target_location_id: 2
         status: COMPLETED
         transfer_date: "2024-01-15T16:00:00.000Z"
         additional_info: Rebalancing inventory between warehouses
+        stock_transfer_rows:
+          - id: 4001
+            variant_id: 2001
+            quantity: 50
+            batch_transactions:
+              - batch_id: 5001
+                quantity: 30
+              - batch_id: 5002
+                quantity: 20
         created_at: "2024-01-15T16:00:00.000Z"
         updated_at: "2024-01-15T16:00:00.000Z"
         deleted_at: null
+    StockTransferRow:
+      description: Line item in a stock transfer showing the product variant and quantity being moved
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+              description: Unique identifier for the stock transfer row
+            variant_id:
+              type: integer
+              description: ID of the product or material variant being transferred
+            quantity:
+              type: number
+              description: Quantity of the variant being transferred
+            batch_transactions:
+              type: array
+              description: Batch transaction details for batch-tracked items
+              items:
+                type: object
+                properties:
+                  batch_id:
+                    type: integer
+                    description: ID of the batch being transferred
+                  quantity:
+                    type: number
+                    description: Quantity from this specific batch
+                required:
+                  - batch_id
+                  - quantity
+          required:
+            - variant_id
+            - quantity
     StockTransferListResponse:
       type: object
       description: List of stock transfer records showing all inventory movements between locations and their transfer status
@@ -7356,9 +7883,9 @@ components:
       example:
         data:
           - id: 3001
-            reference_no: ST-2024-001
-            from_location_id: 1
-            to_location_id: 2
+            stock_transfer_number: ST-2024-001
+            source_location_id: 1
+            target_location_id: 2
             status: COMPLETED
             transfer_date: "2024-01-15T16:00:00.000Z"
             additional_info: Rebalancing inventory between warehouses
@@ -7366,9 +7893,9 @@ components:
             updated_at: "2024-01-15T16:00:00.000Z"
             deleted_at: null
           - id: 3002
-            reference_no: ST-2024-002
-            from_location_id: 2
-            to_location_id: 3
+            stock_transfer_number: ST-2024-002
+            source_location_id: 2
+            target_location_id: 3
             status: DRAFT
             transfer_date: "2024-01-16T11:30:00.000Z"
             additional_info: Seasonal stock redistribution
@@ -7493,7 +8020,6 @@ components:
           required:
             - id
             - name
-            - currency
         - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 1001
@@ -7666,24 +8192,29 @@ components:
             variant_id:
               type: integer
               description: ID of the product variant this pricing applies to
-            price:
-              type: number
-              description: Custom price for this variant in the price list's currency
-            currency:
+            adjustment_method:
               type: string
-              description: ISO 4217 currency code for this pricing entry
+              description: Method used for price adjustment (fixed, percentage, markup)
+              enum:
+                - fixed
+                - percentage
+                - markup
+            amount:
+              type: number
+              description: Amount value for the price adjustment based on the adjustment method
           required:
             - id
             - price_list_id
             - variant_id
-            - price
+            - adjustment_method
+            - amount
         - $ref: "#/components/schemas/UpdatableEntity"
       example:
         id: 5001
         price_list_id: 1001
         variant_id: 201
-        price: 249.99
-        currency: USD
+        adjustment_method: fixed
+        amount: 249.99
         created_at: "2024-01-15T10:00:00Z"
         updated_at: "2024-01-15T10:00:00Z"
     PriceListCustomer:
@@ -7713,44 +8244,54 @@ components:
         updated_at: "2024-01-15T10:00:00Z"
     BomRow:
       description: Bill of Materials row defining ingredient requirements for product manufacturing
-      allOf:
-        - $ref: "#/components/schemas/BaseEntity"
-        - $ref: "#/components/schemas/UpdatableEntity"
-        - type: object
-          properties:
-            product_variant_id:
-              type: integer
-              minimum: 1
-              maximum: 2147483647
-              description: ID of the product variant this BOM row belongs to
-            product_item_id:
-              type: integer
-              minimum: 1
-              maximum: 2147483647
-              description: ID of the product item this BOM row belongs to
-            ingredient_variant_id:
-              type: integer
-              minimum: 1
-              maximum: 2147483647
-              description: ID of the ingredient variant used in this BOM row
-            quantity:
-              type:
-                - number
-                - "null"
-              minimum: 0
-              maximum: 100000000000000000
-              description: Required quantity of the ingredient variant
-            notes:
-              type:
-                - string
-                - "null"
-              description: Additional notes for this BOM row
-          required:
-            - product_variant_id
-            - product_item_id
-            - ingredient_variant_id
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique UUID identifier for the BOM row
+        product_variant_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: ID of the product variant this BOM row belongs to
+        product_item_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: ID of the product item this BOM row belongs to
+        ingredient_variant_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: ID of the ingredient variant used in this BOM row
+        quantity:
+          type:
+            - number
+            - "null"
+          minimum: 0
+          maximum: 100000000000000000
+          description: Required quantity of the ingredient variant
+        notes:
+          type:
+            - string
+            - "null"
+          description: Additional notes for this BOM row
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the BOM row was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the BOM row was last updated
+      required:
+        - id
+        - product_variant_id
+        - product_item_id
+        - ingredient_variant_id
       example:
-        id: 501
+        id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
         product_variant_id: 2001
         product_item_id: 3001
         ingredient_variant_id: 2002
@@ -7923,7 +8464,6 @@ components:
       example:
         id: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
         recipe_row_id: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
-        product_id: 1
         product_item_id: 1
         product_variant_id: 1
         ingredient_variant_id: 1
@@ -7999,7 +8539,6 @@ components:
         data:
           - id: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
             recipe_row_id: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
-            product_id: 1
             product_item_id: 1
             product_variant_id: 1
             ingredient_variant_id: 1
@@ -8009,40 +8548,76 @@ components:
             created_at: "2021-04-05T12:00:00.000Z"
             updated_at: "2021-04-05T12:00:00.000Z"
     Factory:
-      allOf:
-        - type: object
-          properties:
-            id:
-              type: integer
-              description: Unique identifier for the manufacturing facility
-            name:
-              type: string
-              description: Display name of the manufacturing facility
-            address:
-              type:
-                - string
-                - "null"
-              description: Physical address of the manufacturing facility for shipping and logistics
-            currency:
-              type: string
-              description: Default currency code (ISO 4217) used for financial transactions at this facility
-            timezone:
-              type: string
-              description: Timezone identifier for the facility location used for scheduling and time tracking
-          required:
-            - id
-            - name
-            - currency
-        - $ref: "#/components/schemas/UpdatableEntity"
-      description: Manufacturing facility or warehouse location with operational settings and regional configuration
+      type: object
+      description: Factory configuration object (singleton resource without ID)
+      properties:
+        name:
+          type: string
+          description: Display name of the manufacturing facility
+        address:
+          type:
+            - string
+            - "null"
+          description: Physical address of the manufacturing facility for shipping and logistics
+        currency:
+          type: string
+          description: Default currency code (ISO 4217) used for financial transactions at this facility
+        timezone:
+          type: string
+          description: Timezone identifier for the facility location used for scheduling and time tracking
+        legal_address:
+          type: object
+          description: Legal address information
+        legal_name:
+          type: string
+          description: Legal name of the company
+        display_name:
+          type: string
+          description: Display name of the company
+        base_currency_code:
+          type: string
+          description: Base currency code
+        default_so_delivery_time:
+          type: string
+          format: date-time
+          description: Default sales order delivery time
+        default_po_lead_time:
+          type: string
+          format: date-time
+          description: Default purchase order lead time
+        default_manufacturing_location_id:
+          type: integer
+          description: Default manufacturing location ID
+        default_purchases_location_id:
+          type: integer
+          description: Default purchases location ID
+        default_sales_location_id:
+          type: integer
+          description: Default sales location ID
+        inventory_closing_date:
+          type: string
+          format: date-time
+          description: Inventory closing date
+      required:
+        - display_name
+        - base_currency_code
       example:
-        id: 1
-        name: Seattle Production Facility
-        address: 1234 Industrial Way, Seattle, WA 98101
-        currency: USD
-        timezone: America/Los_Angeles
-        created_at: "2024-01-15T08:00:00Z"
-        updated_at: "2024-01-15T08:00:00Z"
+        legal_address:
+          line_1: "Peetri 7"
+          line_2: "Apartment 1"
+          city: "Tallinn"
+          state: "State"
+          zip: "10411"
+          country: "Estonia"
+        legal_name: "Legal name"
+        display_name: "Display name"
+        base_currency_code: "USD"
+        default_so_delivery_time: "2021-10-13T15:31:48.490Z"
+        default_po_lead_time: "2021-10-13T15:31:48.490Z"
+        default_manufacturing_location_id: 1
+        default_purchases_location_id: 1
+        default_sales_location_id: 1
+        inventory_closing_date: "2022-01-28T23:59:59.000Z"
     Operator:
       description: Manufacturing operator or worker assigned to specific production operations and work areas
       allOf:
@@ -8050,41 +8625,35 @@ components:
           properties:
             id:
               type: integer
-            operator_id:
-              type: integer
-            name:
+            operator_name:
               type: string
-            working_area:
-              type:
-                - string
-                - "null"
-            resource_id:
-              type:
-                - integer
-                - "null"
           required:
             - id
-            - name
+            - operator_name
         - $ref: "#/components/schemas/DeletableEntity"
-    OperatorListResponse:
-      description: Response containing a list of operators available for manufacturing order operations and production tracking
+    AssignedOperator:
       type: object
+      description: Simplified operator reference used in manufacturing operation assignments
       properties:
-        data:
-          type: array
-          description: List of operator records
-          items:
-            $ref: "#/components/schemas/Operator"
+        operator_id:
+          type: integer
+          description: Reference to the operator ID
+        name:
+          type: string
+          description: Operator name for display purposes
+        deleted_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: Deletion timestamp if operator assignment was removed
+      required:
+        - operator_id
+        - name
       example:
-        data:
-          - id: 101
-            operator_id: 101
-            name: John Smith
-            working_area: Assembly Line 1
-          - id: 102
-            operator_id: 102
-            name: Maria Garcia
-            working_area: Quality Control
+        operator_id: 1
+        name: "Pack"
+        deleted_at: null
     CustomFieldsCollection:
       allOf:
         - type: object
@@ -8114,7 +8683,6 @@ components:
           required:
             - id
             - name
-            - resource_type
         - $ref: "#/components/schemas/UpdatableEntity"
       description:
         Collection of custom field definitions that can be applied to specific business objects for extended data
@@ -8237,15 +8805,21 @@ components:
           properties:
             id:
               type: integer
-            reference_no:
+            stocktake_number:
               type: string
               description: Unique identifier for the stocktake process
+            reference_no:
+              type:
+                - string
+                - "null"
+              description: Alternative reference number for the stocktake process
             location_id:
               type: integer
               description: The location where the stocktake is being performed
             status:
               type: string
               enum:
+                - NOT_STARTED
                 - DRAFT
                 - IN_PROGRESS
                 - COMPLETED
@@ -8254,6 +8828,43 @@ components:
               type: string
               format: date-time
               description: Date and time when the stocktake was conducted
+            stocktake_created_date:
+              type: string
+              format: date-time
+              description: Date and time when the stocktake was created
+            started_date:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Date and time when the stocktake was started
+            completed_date:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Date and time when the stocktake was completed
+            status_update_in_progress:
+              type: boolean
+              description: Whether a status update is currently in progress
+            set_remaining_items_as_counted:
+              type: boolean
+              description: Whether remaining items should be set as counted
+            stock_adjustment_id:
+              type:
+                - integer
+                - "null"
+              description: ID of the associated stock adjustment
+            reason:
+              type:
+                - string
+                - "null"
+              description: Reason for the stocktake
+            additional_info:
+              type:
+                - string
+                - "null"
+              description: Additional information about the stocktake
             notes:
               type:
                 - string
@@ -8261,7 +8872,7 @@ components:
               description: Additional notes or comments about the stocktake
           required:
             - id
-            - reference_no
+            - stocktake_number
             - location_id
             - status
         - $ref: "#/components/schemas/UpdatableEntity"
@@ -8283,15 +8894,17 @@ components:
                 - integer
                 - "null"
               description: The batch identifier if the variant is batch-tracked
-            system_quantity:
-              type: number
+            in_stock_quantity:
+              type:
+                - number
+                - "null"
               description: The quantity shown in the system before the stocktake
-            actual_quantity:
+            counted_quantity:
               type:
                 - number
                 - "null"
               description: The actual quantity counted during the stocktake
-            variance_quantity:
+            discrepancy_quantity:
               type:
                 - number
                 - "null"
@@ -8300,39 +8913,58 @@ components:
               type:
                 - string
                 - "null"
-              description: Additional notes about this stocktake item
+              description: Notes about this stocktake row
           required:
             - id
             - stocktake_id
             - variant_id
-            - system_quantity
         - $ref: "#/components/schemas/UpdatableEntity"
     SerialNumberStock:
-      description: Current stock status and location of individual serialized inventory items
-      allOf:
-        - type: object
-          properties:
-            id:
-              type: integer
-            variant_id:
-              type: integer
-            location_id:
-              type: integer
-            serial_number:
-              type: string
-            status:
-              type: string
-              enum:
-                - IN_STOCK
-                - SOLD
-                - TRANSFERRED
-          required:
-            - id
-            - variant_id
-            - location_id
-            - serial_number
-            - status
-        - $ref: "#/components/schemas/UpdatableEntity"
+      description: Current stock status and transaction history of individual serialized inventory items
+      type: object
+      properties:
+        id:
+          type: string
+          description: Serial number stock ID
+        serial_number:
+          type: string
+          description: The actual serial number
+        in_stock:
+          type: boolean
+          description: Whether the item is currently in stock
+        transactions:
+          type: array
+          description: Transaction history for this serial number
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Transaction ID
+              resource_id:
+                type: integer
+                description: Resource ID associated with transaction
+              resource_type:
+                type: string
+                description: Type of resource (ManufacturingOrder, etc.)
+              transaction_date:
+                type: string
+                format: date-time
+                description: Date and time of transaction
+              quantity_change:
+                type: integer
+                description: Quantity change in transaction
+            required:
+              - id
+              - resource_id
+              - resource_type
+              - transaction_date
+              - quantity_change
+      required:
+        - id
+        - serial_number
+        - in_stock
+        - transactions
     SalesReturn:
       description: Sales return record representing customer product returns with refund processing and inventory adjustments
       allOf:
@@ -8359,9 +8991,9 @@ components:
               type: string
               description: Current processing status of the sales return
               enum:
-                - DRAFT
-                - RETURNED
-                - CANCELLED
+                - NOT_RETURNED
+                - RETURNED_ALL
+                - RESTOCKED_ALL
             currency:
               type: string
               description: Currency code for refund amounts (ISO 4217 format)
@@ -8503,9 +9135,9 @@ components:
         status:
           type: string
           enum:
-            - DRAFT
-            - RETURNED
-            - CANCELLED
+            - NOT_RETURNED
+            - RETURNED_ALL
+            - RESTOCKED_ALL
           description: Status of the sales return
       example:
         customer_id: 1001
@@ -8530,8 +9162,8 @@ components:
               type: integer
               description: The product variant being returned
             quantity:
-              type: number
-              description: The quantity of the variant being returned
+              type: string
+              description: The quantity of the variant being returned (formatted as decimal string for precision)
             return_reason_id:
               type:
                 - integer
@@ -8586,10 +9218,10 @@ components:
             id:
               type: integer
               description: Unique identifier for the user account
-            first_name:
+            firstName:
               type: string
               description: User's first name for display and communication
-            last_name:
+            lastName:
               type: string
               description: User's last name for display and communication
             email:
@@ -8609,15 +9241,14 @@ components:
               description: Timestamp of the user's most recent system login
           required:
             - id
-            - first_name
-            - last_name
+            - firstName
+            - lastName
             - email
-            - role
       description: System user account with authentication credentials and role-based permissions
       example:
         id: 42
-        first_name: Sarah
-        last_name: Johnson
+        firstName: Sarah
+        lastName: Johnson
         email: sarah.johnson@company.com
         role: production_manager
         status: active
@@ -9103,33 +9734,6 @@ components:
         actual_quantity: 148.0
         variance_quantity: -2.0
         notes: Recount confirmed minor variance
-    SerialNumberStockListResponse:
-      type: object
-      description: List of serial number stock records showing current inventory status for individually tracked units
-      properties:
-        data:
-          type: array
-          description: Array of serial number stock records with location and status details
-          items:
-            $ref: "#/components/schemas/SerialNumberStock"
-      example:
-        data:
-          - id: 6001
-            serial_number: KNF001234567
-            variant_id: 3001
-            location_id: 1
-            quantity_on_hand: 1.0
-            status: AVAILABLE
-            created_at: "2024-01-15T08:00:00.000Z"
-            updated_at: "2024-01-15T08:00:00.000Z"
-          - id: 6002
-            serial_number: KNF001234568
-            variant_id: 3001
-            location_id: 1
-            quantity_on_hand: 1.0
-            status: ALLOCATED
-            created_at: "2024-01-15T08:30:00.000Z"
-            updated_at: "2024-01-16T10:15:00.000Z"
     SalesReturnListResponse:
       description: Response containing a list of sales returns with customer refund and return processing information
       type: object
@@ -9235,7 +9839,7 @@ components:
               type: integer
               description: The variant of the ingredient material required
             planned_quantity_per_unit:
-              type: integer
+              type: number
               description: The planned quantity of this ingredient per unit of production
             ingredient_availability:
               type: string
@@ -9247,7 +9851,9 @@ components:
                 - NOT_APPLICABLE
               description: Current availability status of this ingredient
             ingredient_expected_date:
-              type: string
+              type:
+                - string
+                - "null"
               format: date-time
               description: Expected date when this ingredient will be available
             notes:
@@ -9266,7 +9872,9 @@ components:
                     type: number
               description: Batch allocation transactions for this ingredient
             cost:
-              type: number
+              type:
+                - number
+                - "null"
               description: Cost associated with this ingredient
           required:
             - purchase_order_row_id
@@ -9393,7 +10001,7 @@ components:
           type: integer
           description: ID of the sales order this shipping fee applies to
         amount:
-          type: number
+          type: string
           description: Shipping fee amount in the order currency
         tax_rate_id:
           type: integer
@@ -10693,8 +11301,7 @@ paths:
                 resource_id: 1
                 resource_name: Table
                 assigned_operators:
-                  - id: 1
-                    operator_id: 1
+                  - operator_id: 1
                     name: Pack
                     deleted_at: null
                 completed_by_operators: []
@@ -10766,8 +11373,7 @@ paths:
                     resource_id: 1
                     resource_name: Table
                     assigned_operators:
-                      - id: 1
-                        operator_id: 1
+                      - operator_id: 1
                         name: Pack
                         deleted_at: null
                     completed_by_operators: []
@@ -10825,7 +11431,7 @@ paths:
                 resource_id: 1
                 resource_name: Table
                 assigned_operators:
-                  - id: 1
+                  - operator_id: 1
                     name: Pack
                     deleted_at: null
                 completed_by_operators: []
@@ -10892,7 +11498,7 @@ paths:
                 resource_id: 1
                 resource_name: Table
                 assigned_operators:
-                  - id: 1
+                  - operator_id: 1
                     name: Pack
                     deleted_at: null
                 completed_by_operators: []
@@ -11207,15 +11813,14 @@ paths:
                 category_name: Lightsaber components
                 default_supplier_id: 1
                 type: material
-                purchase_uom: pcs
-                purchase_uom_conversion_rate: 1
+                purchase_uom: null
+                purchase_uom_conversion_rate: null
                 batch_tracked: false
                 is_sellable: false
                 variants:
                   - id: 1
                     sku: KC
                     sales_price: null
-                    product_id: 1
                     purchase_price: 45
                     type: material
                     created_at: "2020-10-23T10:37:05.085Z"
@@ -11238,7 +11843,6 @@ paths:
                     values:
                       - Standard
                       - Double-bladed
-                    product_id: 1
                 additional_info: additional info
                 custom_field_collection_id: 1
                 created_at: "2020-10-23T10:37:05.085Z"
@@ -11301,8 +11905,8 @@ paths:
                     category_name: Lightsaber components
                     default_supplier_id: 1
                     type: material
-                    purchase_uom: pcs
-                    purchase_uom_conversion_rate: 1
+                    purchase_uom: null
+                    purchase_uom_conversion_rate: null
                     batch_tracked: false
                     is_sellable: false
                     archived_at: "2020-10-20T10:37:05.085Z"
@@ -11335,7 +11939,6 @@ paths:
                         values:
                           - Standard
                           - Double-bladed
-                        product_id: 1
                     additional_info: additional info
                     custom_field_collection_id: 1
                     created_at: "2020-10-23T10:37:05.085Z"
@@ -11388,8 +11991,8 @@ paths:
                 category_name: Lightsaber components
                 default_supplier_id: 1
                 type: material
-                purchase_uom: pcs
-                purchase_uom_conversion_rate: 1
+                purchase_uom: null
+                purchase_uom_conversion_rate: null
                 batch_tracked: false
                 is_sellable: false
                 archived_at: "2020-10-20T10:37:05.085Z"
@@ -11422,7 +12025,6 @@ paths:
                     values:
                       - Standard
                       - Double-bladed
-                    product_id: 1
                 additional_info: additional info
                 custom_field_collection_id: 1
                 created_at: "2020-10-23T10:37:05.085Z"
@@ -11482,8 +12084,8 @@ paths:
                 category_name: Lightsaber components
                 default_supplier_id: 1
                 type: material
-                purchase_uom: pcs
-                purchase_uom_conversion_rate: 1
+                purchase_uom: null
+                purchase_uom_conversion_rate: null
                 batch_tracked: false
                 is_sellable: false
                 archived_at: "2020-10-20T10:37:05.085Z"
@@ -11491,7 +12093,6 @@ paths:
                   - id: 1
                     sku: KC
                     sales_price: null
-                    product_id: 1
                     purchase_price: 45
                     type: material
                     created_at: "2020-10-23T10:37:05.085Z"
@@ -11514,7 +12115,6 @@ paths:
                     values:
                       - Standard
                       - Double-bladed
-                    product_id: 1
                 additional_info: additional info
                 custom_field_collection_id: 1
                 created_at: "2020-10-23T10:37:05.085Z"
@@ -11653,7 +12253,6 @@ paths:
                   - id: 1
                     sku: EM
                     sales_price: 40
-                    product_id: 1
                     purchase_price: 0
                     type: product
                     created_at: "2020-10-23T10:37:05.085Z"
@@ -11758,7 +12357,6 @@ paths:
                       - id: 1
                         sku: EM
                         sales_price: 40
-                        product_id: 1
                         purchase_price: 0
                         type: product
                         created_at: "2020-10-23T10:37:05.085Z"
@@ -11775,12 +12373,12 @@ paths:
                         custom_fields:
                           - field_name: Power level
                             field_value: Strong
-                    configs:
-                      - id: 1
-                        name: Type
-                        values:
-                          - Standard
-                          - Double-bladed
+                        configs:
+                          - id: 1
+                            name: Type
+                            values:
+                              - Standard
+                              - Double-bladed
                         product_id: 1
                     additional_info: additional info
                     custom_field_collection_id: 1
@@ -11847,7 +12445,6 @@ paths:
                   - id: 1
                     sku: EM
                     sales_price: 40
-                    product_id: 1
                     purchase_price: 0
                     type: product
                     created_at: "2020-10-23T10:37:05.085Z"
@@ -11944,7 +12541,6 @@ paths:
                   - id: 1
                     sku: EM
                     sales_price: 40
-                    product_id: 1
                     purchase_price: 0
                     type: product
                     created_at: "2020-10-23T10:37:05.085Z"
@@ -12137,8 +12733,6 @@ paths:
                     order_created_date: "2021-10-13T15:31:48.490Z"
                     additional_info: Please unpack
                     location_id: 1
-                    ingredient_availability: null
-                    ingredient_expected_date: null
                     tracking_location_id: null
                     total: 1
                     total_in_base_currency: 1
@@ -12223,8 +12817,6 @@ paths:
                 order_created_date: "2021-10-13T15:31:48.490Z"
                 additional_info: Please unpack
                 location_id: 1
-                ingredient_availability: null
-                ingredient_expected_date: null
                 tracking_location_id: null
                 total: 1
                 total_in_base_currency: 1
@@ -13468,7 +14060,6 @@ paths:
                 id: 1
                 sku: EM
                 sales_price: 40
-                product_id: 1
                 material_id: null
                 purchase_price: 0
                 type: product
@@ -13543,7 +14134,6 @@ paths:
                   - id: 1
                     sku: EM
                     sales_price: 40
-                    product_id: 1
                     material_id: null
                     purchase_price: 0
                     type: product
@@ -13574,7 +14164,6 @@ paths:
                         - id: 1
                           sku: EM
                           sales_price: 40
-                          product_id: 1
                           purchase_price: 0
                           type: product
                           created_at: "2020-10-23T10:37:05.085Z"
@@ -13593,14 +14182,11 @@ paths:
                               field_value: Strong
                       configs:
                         - id: 1
+                          product_id: 1
                           name: Type
                           values:
                             - Standard
                             - Double-bladed
-                          product_id: 1
-                      additional_info: additional info
-                      created_at: "2020-10-23T10:37:05.085Z"
-                      updated_at: "2020-10-23T10:37:05.085Z"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -13635,7 +14221,6 @@ paths:
                 id: 1
                 sku: EM
                 sales_price: 40
-                product_id: 1
                 material_id: null
                 purchase_price: 0
                 type: product
@@ -13666,7 +14251,6 @@ paths:
                     - id: 1
                       sku: EM
                       sales_price: 40
-                      product_id: 1
                       purchase_price: 0
                       type: product
                       created_at: "2020-10-23T10:37:05.085Z"
@@ -13734,7 +14318,6 @@ paths:
                 id: 1
                 sku: EM
                 sales_price: 40
-                product_id: 1
                 material_id: null
                 purchase_price: 0
                 type: product
@@ -13819,16 +14402,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/VariantDefaultStorageBinLinkListResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/VariantDefaultStorageBinLinkResponse"
               example:
-                data:
-                  - id: 12345
-                    bin_name: Bin-2
-                    variant_id: 11234
-                    storage_bin_id: 3456
-                    created_at: "2020-10-23T10:37:05.085Z"
-                    updated_at: "2020-10-23T10:37:05.085Z"
-                    deleted_at: null
+                - id: 12345
+                  bin_name: Bin-2
+                  variant_id: 11234
+                  storage_bin_id: 3456
+                  created_at: "2020-10-23T10:37:05.085Z"
+                  updated_at: "2020-10-23T10:37:05.085Z"
+                  deleted_at: null
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "422":
@@ -14602,22 +15186,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                          description: Return reason ID
-                        name:
-                          type: string
-                          description: Return reason name
-                        description:
-                          type: string
-                          description: Return reason description
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: Return reason ID
+                    name:
+                      type: string
+                      description: Return reason name
+                  required:
+                    - id
+                    - name
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -14882,12 +15463,12 @@ paths:
         - Services
       description: "Create a new Service. (See: [Create Service](https://developer.katanamrp.com/reference/createservice))"
       requestBody:
-        description: A Service object to be created (wrapped in a JSON:API document).
+        description: Service data for creating a new service record
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ServiceRequest"
+              $ref: "#/components/schemas/CreateServiceRequest"
       operationId: createService
       responses:
         "200":
@@ -14898,6 +15479,8 @@ paths:
                 $ref: "#/components/schemas/Service"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -14935,12 +15518,12 @@ paths:
       parameters:
         - $ref: "#/components/parameters/id"
       requestBody:
-        description: A Service object with updated values (wrapped in a JSON:API document).
+        description: Service data for updating an existing service record
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ServiceRequest"
+              $ref: "#/components/schemas/UpdateServiceRequest"
       responses:
         "200":
           description: Service updated successfully.
@@ -15157,12 +15740,15 @@ paths:
                   maximum: 2147483647
                 order_created_date:
                   type: string
+                  format: date-time
                   description: Date when the order was originally created
                 delivery_date:
                   type: string
+                  format: date-time
                   description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
                 picked_date:
                   type: string
+                  format: date-time
                   description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
                 location_id:
                   type: integer
@@ -15274,31 +15860,35 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                          description: Sales order row ID
-                        variant_id:
-                          type: integer
-                          description: Product variant ID
-                        product_id:
-                          type: integer
-                          description: Product ID
-                        quantity:
-                          type: number
-                          description: Quantity available for return
-                        returned_quantity:
-                          type: number
-                          description: Quantity already returned
-                        max_returnable_quantity:
-                          type: number
-                          description: Maximum quantity that can be returned
+                type: array
+                items:
+                  type: object
+                  properties:
+                    variant_id:
+                      type: integer
+                      description: Product variant ID
+                    fulfillment_row_id:
+                      type: integer
+                      description: Fulfillment row ID
+                    available_for_return_quantity:
+                      type: string
+                      description: Quantity available for return
+                    net_price_per_unit:
+                      type: string
+                      description: Net price per unit
+                    location_id:
+                      type: integer
+                      description: Location ID
+                    quantity_sold:
+                      type: string
+                      description: Total quantity sold
+                  required:
+                    - variant_id
+                    - fulfillment_row_id
+                    - available_for_return_quantity
+                    - net_price_per_unit
+                    - location_id
+                    - quantity_sold
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "404":
@@ -16867,15 +17457,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PriceListRow"
+                type: array
+                items:
+                  $ref: "#/components/schemas/PriceListRow"
               example:
-                id: 98765
-                price_list_id: 12345
-                variant_id: 67890
-                price: 29.99
-                currency: USD
-                created_at: "2023-10-21T10:37:05.085Z"
-                updated_at: "2023-10-21T10:37:05.085Z"
+                - id: 98765
+                  price_list_id: 12345
+                  variant_id: 67890
+                  adjustment_method: fixed
+                  amount: 29.99
+                  created_at: "2023-10-21T10:37:05.085Z"
+                  updated_at: "2023-10-21T10:37:05.085Z"
         "400":
           $ref: "#/components/responses/BadRequestError"
         "401":
@@ -17052,13 +17644,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PriceListCustomer"
+                type: array
+                items:
+                  $ref: "#/components/schemas/PriceListCustomer"
               example:
-                id: 98765
-                price_list_id: 12345
-                customer_id: 67890
-                created_at: "2023-10-21T10:37:05.085Z"
-                updated_at: "2023-10-21T10:37:05.085Z"
+                - id: 98765
+                  price_list_id: 12345
+                  customer_id: 67890
+                  created_at: "2023-10-21T10:37:05.085Z"
+                  updated_at: "2023-10-21T10:37:05.085Z"
         "400":
           $ref: "#/components/responses/BadRequestError"
         "401":
@@ -17561,7 +18155,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StocktakeRow"
+                type: array
+                items:
+                  $ref: "#/components/schemas/StocktakeRow"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "422":
@@ -17662,7 +18258,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SerialNumberListResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/SerialNumber"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -17776,7 +18374,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SerialNumberStockListResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/SerialNumberStock"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -17839,7 +18439,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/OperatorListResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Operator"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -18560,7 +19162,7 @@ paths:
               example:
                 id: 67890
                 sales_order_id: 12345
-                amount: 15.99
+                amount: "15.99"
                 description: Standard shipping
         "400":
           $ref: "#/components/responses/BadRequestError"
