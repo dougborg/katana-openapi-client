@@ -2,6 +2,31 @@
 
 <!-- version list -->
 
+## v0.10.0 (2025-09-18)
+
+### Bug Fixes
+
+- Add missing format: date-time specifications to date fields in OpenAPI schema
+  ([`d8d335c`](https://github.com/dougborg/katana-openapi-client/commit/d8d335c3c856a3b7821753719b210a959ac616cf))
+
+- Remove unused schema components and fix validation warnings
+  ([`eea4e33`](https://github.com/dougborg/katana-openapi-client/commit/eea4e3322726577032e7f828e49ec5b50c82e6c7))
+
+### Features
+
+- Comprehensive OpenAPI schema validation and fixes
+  ([`95784ef`](https://github.com/dougborg/katana-openapi-client/commit/95784ef5d5527f6ff561d7b47d48678920841042))
+
+- Comprehensive schema restructuring for POs, BaseEntity inheritance and updated service
+  endpoints and schemas to match documentation
+  ([`1c79b18`](https://github.com/dougborg/katana-openapi-client/commit/1c79b1801e060277387689030469ea2157bc317a))
+
+- Implement InventoryItem base schema with Product/Material inheritance
+  ([`7d2237a`](https://github.com/dougborg/katana-openapi-client/commit/7d2237aa9b9eb3fc3762a14e6d66af553c037778))
+
+- Improve documentation extraction and update comprehensive API docs
+  ([`dec9725`](https://github.com/dougborg/katana-openapi-client/commit/dec9725c579db7114ca0b8b1d38d74774c710724))
+
 ## v0.9.0 (2025-08-21)
 
 ### Chores
