@@ -24,13 +24,12 @@ class PurchaseOrderListResponse:
         {'data': [{'id': 156, 'status': 'OPEN', 'order_no': 'PO-2024-0156', 'entity_type': 'regular', 'supplier_id':
             4001, 'currency': 'USD', 'expected_arrival_date': '2024-02-15', 'order_created_date': '2024-01-28', 'total':
             1962.5, 'total_in_base_currency': 1962.5, 'billing_status': 'UNBILLED', 'tracking_location_id': None,
-            'ingredient_availability': None, 'ingredient_expected_date': None, 'created_at': '2024-01-28T09:15:00Z',
-            'updated_at': '2024-01-28T09:15:00Z', 'deleted_at': None}, {'id': 158, 'status': 'OPEN', 'order_no':
-            'PO-2024-0158', 'entity_type': 'outsourced', 'supplier_id': 4003, 'currency': 'USD', 'expected_arrival_date':
-            '2024-02-20', 'order_created_date': '2024-01-30', 'total': 2450.0, 'total_in_base_currency': 2450.0,
-            'billing_status': 'UNBILLED', 'tracking_location_id': 2, 'ingredient_availability': 'EXPECTED',
-            'ingredient_expected_date': '2024-02-18T10:00:00Z', 'created_at': '2024-01-30T11:20:00Z', 'updated_at':
-            '2024-01-30T11:20:00Z', 'deleted_at': None}]}
+            'created_at': '2024-01-28T09:15:00Z', 'updated_at': '2024-01-28T09:15:00Z', 'deleted_at': None}, {'id': 158,
+            'status': 'OPEN', 'order_no': 'PO-2024-0158', 'entity_type': 'outsourced', 'supplier_id': 4003, 'currency':
+            'USD', 'expected_arrival_date': '2024-02-20', 'order_created_date': '2024-01-30', 'total': 2450.0,
+            'total_in_base_currency': 2450.0, 'billing_status': 'UNBILLED', 'tracking_location_id': 2,
+            'ingredient_availability': 'EXPECTED', 'ingredient_expected_date': '2024-02-18T10:00:00Z', 'created_at':
+            '2024-01-30T11:20:00Z', 'updated_at': '2024-01-30T11:20:00Z', 'deleted_at': None}]}
     """
 
     data: Unset | list[Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]] = UNSET

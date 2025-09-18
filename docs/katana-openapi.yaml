@@ -1107,6 +1107,17 @@ components:
       required:
         - path
         - code
+
+    OutsourcedPurchaseOrderIngredientAvailability:
+      type: string
+      enum:
+        - "PROCESSED"
+        - "IN_STOCK"
+        - "NOT_AVAILABLE"
+        - "EXPECTED"
+        - "NO_RECIPE"
+      description: Status of ingredients required for outsourced purchase order production
+
     BaseEntity:
       type: object
       description: Base entity with unique identifier
@@ -4108,30 +4119,23 @@ components:
     # Regular purchase order schema
     RegularPurchaseOrder:
       description: Regular purchase order for standard procurement from suppliers
+      type: object
       allOf:
         - $ref: "#/components/schemas/PurchaseOrderBase"
         - type: object
           properties:
             entity_type:
-              const: "regular"
+              type: string
+              enum: ["regular"]
+              description: Purchase order type identifier
             tracking_location_id:
               type: "null"
               description: Regular orders do not have tracking locations
-            ingredient_availability:
-              type:
-                - string
-                - "null"
-              enum:
-                - "NOT_APPLICABLE"
-                - null
-              description: Regular orders have no ingredient processing requirements
-            ingredient_expected_date:
-              type: "null"
-              description: Regular orders do not track ingredient expected dates
 
     # Outsourced purchase order schema
     OutsourcedPurchaseOrder:
       description: Outsourced purchase order for subcontracted manufacturing
+      type: object
       allOf:
         - $ref: "#/components/schemas/PurchaseOrderBase"
         - type: object
@@ -4139,19 +4143,14 @@ components:
             - tracking_location_id
           properties:
             entity_type:
-              const: "outsourced"
+              type: string
+              enum: ["outsourced"]
+              description: Purchase order type identifier
             tracking_location_id:
               type: integer
               description: The ID location where the ingredients on the outsourced purchase order are processed
             ingredient_availability:
-              type: string
-              enum:
-                - "PROCESSED"
-                - "IN_STOCK"
-                - "NOT_AVAILABLE"
-                - "EXPECTED"
-                - "NO_RECIPE"
-              description: Status of the ingredients required to produce products on an outsourced purchase order
+              $ref: "#/components/schemas/OutsourcedPurchaseOrderIngredientAvailability"
             ingredient_expected_date:
               type:
                 - string
@@ -4173,11 +4172,17 @@ components:
               ingredient_expected_date:
                 type: "null"
 
-    # Main purchase order schema using oneOf to select between regular and outsourced
+    # Main purchase order schema using discriminator
     PurchaseOrder:
       description:
         Complete purchase order for procuring materials or products from suppliers, including order details, line
         items, and supplier information
+      type: object
+      discriminator:
+        propertyName: entity_type
+        mapping:
+          regular: "#/components/schemas/RegularPurchaseOrder"
+          outsourced: "#/components/schemas/OutsourcedPurchaseOrder"
       oneOf:
         - $ref: "#/components/schemas/RegularPurchaseOrder"
         - $ref: "#/components/schemas/OutsourcedPurchaseOrder"
@@ -4270,8 +4275,6 @@ components:
             total_in_base_currency: 1962.5
             billing_status: UNBILLED
             tracking_location_id: null
-            ingredient_availability: null
-            ingredient_expected_date: null
             created_at: "2024-01-28T09:15:00Z"
             updated_at: "2024-01-28T09:15:00Z"
             deleted_at: null
@@ -5773,31 +5776,6 @@ components:
         created_at: "2024-01-15T08:00:00.000Z"
         updated_at: "2024-01-15T08:00:00.000Z"
         deleted_at: null
-    VariantDefaultStorageBinLinkListResponse:
-      type: object
-      description: List of variant storage bin assignments showing default storage locations for efficient warehouse operations
-      properties:
-        data:
-          type: array
-          description: Array of variant-storage bin links with location assignments
-          items:
-            $ref: "#/components/schemas/VariantDefaultStorageBinLinkResponse"
-      example:
-        data:
-          - id: 501
-            bin_name: A-01-SHELF-1
-            variant_id: 3001
-            storage_bin_id: 12345
-            created_at: "2024-01-15T08:00:00.000Z"
-            updated_at: "2024-01-15T08:00:00.000Z"
-            deleted_at: null
-          - id: 502
-            bin_name: A-02-SHELF-1
-            variant_id: 3002
-            storage_bin_id: 12346
-            created_at: "2024-01-16T09:00:00.000Z"
-            updated_at: "2024-01-16T09:00:00.000Z"
-            deleted_at: null
     UnlinkVariantBinLocationRequest:
       type: object
       description: Request to remove a variant's default storage bin assignment for a specific location
@@ -8676,25 +8654,6 @@ components:
         operator_id: 1
         name: "Pack"
         deleted_at: null
-    OperatorListResponse:
-      description: Response containing a list of operators available for manufacturing order operations and production tracking
-      type: object
-      properties:
-        data:
-          type: array
-          description: List of operator records
-          items:
-            $ref: "#/components/schemas/Operator"
-      example:
-        data:
-          - id: 101
-            operator_id: 101
-            name: John Smith
-            working_area: Assembly Line 1
-          - id: 102
-            operator_id: 102
-            name: Maria Garcia
-            working_area: Quality Control
     CustomFieldsCollection:
       allOf:
         - type: object
@@ -9775,33 +9734,6 @@ components:
         actual_quantity: 148.0
         variance_quantity: -2.0
         notes: Recount confirmed minor variance
-    SerialNumberStockListResponse:
-      type: object
-      description: List of serial number stock records showing current inventory status for individually tracked units
-      properties:
-        data:
-          type: array
-          description: Array of serial number stock records with location and status details
-          items:
-            $ref: "#/components/schemas/SerialNumberStock"
-      example:
-        data:
-          - id: 6001
-            serial_number: KNF001234567
-            variant_id: 3001
-            location_id: 1
-            quantity_on_hand: 1.0
-            status: AVAILABLE
-            created_at: "2024-01-15T08:00:00.000Z"
-            updated_at: "2024-01-15T08:00:00.000Z"
-          - id: 6002
-            serial_number: KNF001234568
-            variant_id: 3001
-            location_id: 1
-            quantity_on_hand: 1.0
-            status: ALLOCATED
-            created_at: "2024-01-15T08:30:00.000Z"
-            updated_at: "2024-01-16T10:15:00.000Z"
     SalesReturnListResponse:
       description: Response containing a list of sales returns with customer refund and return processing information
       type: object
@@ -11369,8 +11301,7 @@ paths:
                 resource_id: 1
                 resource_name: Table
                 assigned_operators:
-                  - id: 1
-                    operator_id: 1
+                  - operator_id: 1
                     name: Pack
                     deleted_at: null
                 completed_by_operators: []
@@ -11442,8 +11373,7 @@ paths:
                     resource_id: 1
                     resource_name: Table
                     assigned_operators:
-                      - id: 1
-                        operator_id: 1
+                      - operator_id: 1
                         name: Pack
                         deleted_at: null
                     completed_by_operators: []
@@ -11501,7 +11431,7 @@ paths:
                 resource_id: 1
                 resource_name: Table
                 assigned_operators:
-                  - id: 1
+                  - operator_id: 1
                     name: Pack
                     deleted_at: null
                 completed_by_operators: []
@@ -11568,7 +11498,7 @@ paths:
                 resource_id: 1
                 resource_name: Table
                 assigned_operators:
-                  - id: 1
+                  - operator_id: 1
                     name: Pack
                     deleted_at: null
                 completed_by_operators: []
@@ -12803,8 +12733,6 @@ paths:
                     order_created_date: "2021-10-13T15:31:48.490Z"
                     additional_info: Please unpack
                     location_id: 1
-                    ingredient_availability: NOT_APPLICABLE
-                    ingredient_expected_date: null
                     tracking_location_id: null
                     total: 1
                     total_in_base_currency: 1
@@ -12889,8 +12817,6 @@ paths:
                 order_created_date: "2021-10-13T15:31:48.490Z"
                 additional_info: Please unpack
                 location_id: 1
-                ingredient_availability: NOT_APPLICABLE
-                ingredient_expected_date: null
                 tracking_location_id: null
                 total: 1
                 total_in_base_currency: 1
@@ -19236,7 +19162,7 @@ paths:
               example:
                 id: 67890
                 sales_order_id: 12345
-                amount: 15.99
+                amount: "15.99"
                 description: Standard shipping
         "400":
           $ref: "#/components/responses/BadRequestError"
