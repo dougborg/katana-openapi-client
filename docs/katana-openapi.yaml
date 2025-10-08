@@ -57,11 +57,11 @@ components:
         type: array
         items:
           type: integer
-    extend:
+    extend_inventory:
       name: extend
       in: query
       required: false
-      description: Array of objects to extend the response.
+      description: Array of objects to extend the response for inventory endpoints.
       schema:
         type: array
         items:
@@ -69,6 +69,61 @@ components:
           enum:
             - variant
             - location
+    extend_material:
+      name: extend
+      in: query
+      required: false
+      description: Array of objects to extend the response for material endpoints.
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - supplier
+    extend_product:
+      name: extend
+      in: query
+      required: false
+      description: Array of objects to extend the response for product endpoints.
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - supplier
+    extend_purchase_order:
+      name: extend
+      in: query
+      required: false
+      description: Array of objects to extend the response for purchase order endpoints.
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - supplier
+    extend_sales_order_row:
+      name: extend
+      in: query
+      required: false
+      description: Array of objects to extend the response for sales order row endpoints.
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - variant
+    extend_variant:
+      name: extend
+      in: query
+      required: false
+      description: Array of objects to extend the response for variant endpoints.
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - product_or_material
     location_id:
       name: location_id
       in: query
@@ -10318,7 +10373,7 @@ paths:
         - $ref: "#/components/parameters/location_id"
         - $ref: "#/components/parameters/variant_id"
         - $ref: "#/components/parameters/include_archived"
-        - $ref: "#/components/parameters/extend"
+        - $ref: "#/components/parameters/extend_inventory"
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
       responses:
@@ -11872,7 +11927,7 @@ paths:
         - $ref: "#/components/parameters/batch_tracked"
         - $ref: "#/components/parameters/purchase_uom"
         - $ref: "#/components/parameters/purchase_uom_conversion_rate"
-        - $ref: "#/components/parameters/extend"
+        - $ref: "#/components/parameters/extend_material"
         - $ref: "#/components/parameters/include_archived"
         - $ref: "#/components/parameters/include_deleted"
         - $ref: "#/components/parameters/limit"
@@ -11969,7 +12024,7 @@ paths:
       operationId: getMaterial
       parameters:
         - $ref: "#/components/parameters/id"
-        - $ref: "#/components/parameters/extend"
+        - $ref: "#/components/parameters/extend_material"
       responses:
         "200":
           description: Details of an existing material
@@ -12310,7 +12365,7 @@ paths:
         - $ref: "#/components/parameters/operations_in_sequence"
         - $ref: "#/components/parameters/purchase_uom"
         - $ref: "#/components/parameters/purchase_uom_conversion_rate"
-        - $ref: "#/components/parameters/extend"
+        - $ref: "#/components/parameters/extend_product"
         - $ref: "#/components/parameters/include_deleted"
         - $ref: "#/components/parameters/include_archived"
         - $ref: "#/components/parameters/limit"
@@ -12410,7 +12465,7 @@ paths:
       operationId: getProduct
       parameters:
         - $ref: "#/components/parameters/id"
-        - $ref: "#/components/parameters/extend"
+        - $ref: "#/components/parameters/extend_product"
       responses:
         "200":
           description: Details of an existing product
@@ -12696,7 +12751,7 @@ paths:
         - $ref: "#/components/parameters/location_id"
         - $ref: "#/components/parameters/tracking_location_id"
         - $ref: "#/components/parameters/supplier_id"
-        - $ref: "#/components/parameters/extend"
+        - $ref: "#/components/parameters/extend_purchase_order"
         - $ref: "#/components/parameters/include_deleted"
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"
@@ -12790,7 +12845,7 @@ paths:
       operationId: getPurchaseOrder
       parameters:
         - $ref: "#/components/parameters/id"
-        - $ref: "#/components/parameters/extend"
+        - $ref: "#/components/parameters/extend_purchase_order"
       responses:
         "200":
           description: Purchase order
@@ -14104,7 +14159,7 @@ paths:
         - $ref: "#/components/parameters/internal_barcode"
         - $ref: "#/components/parameters/registered_barcode"
         - $ref: "#/components/parameters/supplier_item_codes"
-        - $ref: "#/components/parameters/extend"
+        - $ref: "#/components/parameters/extend_variant"
         - $ref: "#/components/parameters/include_deleted"
         - $ref: "#/components/parameters/include_archived"
         - $ref: "#/components/parameters/limit"
@@ -14202,7 +14257,7 @@ paths:
       operationId: getVariant
       parameters:
         - $ref: "#/components/parameters/id"
-        - $ref: "#/components/parameters/extend"
+        - $ref: "#/components/parameters/extend_variant"
       responses:
         "200":
           description: Details of an existing variant
@@ -16473,7 +16528,7 @@ paths:
               - PICKED
               - NOT_AVAILABLE
               - NOT_APPLICABLE
-        - $ref: "#/components/parameters/extend"
+        - $ref: "#/components/parameters/extend_sales_order_row"
         - $ref: "#/components/parameters/include_deleted"
         - $ref: "#/components/parameters/created_at_min"
         - $ref: "#/components/parameters/created_at_max"
@@ -16543,7 +16598,7 @@ paths:
       operationId: getSalesOrderRow
       parameters:
         - $ref: "#/components/parameters/id"
-        - $ref: "#/components/parameters/extend"
+        - $ref: "#/components/parameters/extend_sales_order_row"
       responses:
         "200":
           description: Sales order row details
