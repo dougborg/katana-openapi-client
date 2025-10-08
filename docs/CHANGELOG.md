@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.11.0 (2025-10-08)
+
+### Features
+
+- **openapi**: Standardize per-resource extend query parameters and regenerate client
+  ([`b5a6c35`](https://github.com/dougborg/katana-openapi-client/commit/b5a6c35e07ccf7318b150d18a03769a93ba2997d))
+
 ## v0.10.0 (2025-09-18)
 
 ### Bug Fixes
