@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.12.0 (2025-10-10)
+
+### Features
+
+- Refactor to layered transport architecture with httpx-retries
+  ([`9f11717`](https://github.com/dougborg/katana-openapi-client/commit/9f11717cfeaba61f0ad42467a01559f0c82780d7))
+
 ## v0.11.0 (2025-10-08)
 
 ### Features
