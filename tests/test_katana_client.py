@@ -12,6 +12,7 @@ from katana_public_api_client import KatanaClient
 from katana_public_api_client.katana_client import (
     ErrorLoggingTransport,
     PaginationTransport,
+    RateLimitAwareRetry,
     ResilientAsyncTransport,
 )
 
@@ -40,6 +41,96 @@ class TestTransportChaining:
         """Test that factory configures exponential backoff."""
         transport = ResilientAsyncTransport()
         assert transport.retry.backoff_factor == 1.0
+
+    def test_factory_uses_rate_limit_aware_retry(self):
+        """Test that factory uses RateLimitAwareRetry."""
+        transport = ResilientAsyncTransport()
+        assert isinstance(transport.retry, RateLimitAwareRetry)
+
+
+@pytest.mark.unit
+class TestRateLimitAwareRetry:
+    """Test the RateLimitAwareRetry class."""
+
+    def test_idempotent_method_retryable_for_429(self):
+        """Test that idempotent methods (GET) are retryable for 429."""
+        retry = RateLimitAwareRetry(total=5, allowed_methods=["GET", "POST"])
+
+        assert retry.is_retryable_method("GET")
+        assert retry.is_retryable_status_code(429)
+
+    def test_non_idempotent_method_retryable_for_429(self):
+        """Test that non-idempotent methods (POST, PATCH) are retryable for 429."""
+        retry = RateLimitAwareRetry(total=5, allowed_methods=["GET", "POST", "PATCH"])
+
+        # POST should be allowed for 429
+        assert retry.is_retryable_method("POST")
+        assert retry.is_retryable_status_code(429)
+
+        # PATCH should be allowed for 429
+        assert retry.is_retryable_method("PATCH")
+        assert retry.is_retryable_status_code(429)
+
+    def test_idempotent_method_retryable_for_server_errors(self):
+        """Test that idempotent methods are retryable for server errors (502, 503, 504)."""
+        retry = RateLimitAwareRetry(total=5, allowed_methods=["GET", "POST"])
+
+        # GET should pass initial check
+        assert retry.is_retryable_method("GET")
+
+        # GET should be retryable for server errors
+        assert retry.is_retryable_status_code(502)
+        assert retry.is_retryable_status_code(503)
+        assert retry.is_retryable_status_code(504)
+
+    def test_non_idempotent_method_not_retryable_for_server_errors(self):
+        """Test that non-idempotent methods (POST, PATCH) are NOT retryable for server errors."""
+        retry = RateLimitAwareRetry(total=5, allowed_methods=["GET", "POST", "PATCH"])
+
+        # POST should pass initial check
+        assert retry.is_retryable_method("POST")
+
+        # But POST should NOT be retryable for server errors (not safe to retry)
+        assert not retry.is_retryable_status_code(502)
+        assert not retry.is_retryable_status_code(503)
+        assert not retry.is_retryable_status_code(504)
+
+        # Same for PATCH
+        assert retry.is_retryable_method("PATCH")
+        assert not retry.is_retryable_status_code(502)
+
+    def test_method_state_preserved_across_increment(self):
+        """Test that current method is preserved when retry is incremented."""
+        retry = RateLimitAwareRetry(total=5, allowed_methods=["POST"])
+
+        # Set the method
+        retry.is_retryable_method("POST")
+        assert retry._current_method == "POST"
+
+        # Increment should preserve the method
+        new_retry = retry.increment()
+        assert new_retry._current_method == "POST"
+        assert new_retry.attempts_made == 1
+
+    def test_all_methods_in_allowed_list(self):
+        """Test that the factory configures all necessary methods."""
+        transport = ResilientAsyncTransport()
+        retry = transport.retry
+
+        # Should have all idempotent methods plus POST and PATCH
+        expected_methods = {
+            "HEAD",
+            "GET",
+            "PUT",
+            "DELETE",
+            "OPTIONS",
+            "TRACE",
+            "POST",
+            "PATCH",
+        }
+        actual_methods = {str(m) for m in retry.allowed_methods}
+
+        assert expected_methods == actual_methods
 
 
 @pytest.mark.unit

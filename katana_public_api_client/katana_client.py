@@ -11,6 +11,7 @@ import json
 import logging
 import os
 from collections.abc import Awaitable, Callable
+from http import HTTPStatus
 from typing import Any, cast
 
 import httpx
@@ -22,6 +23,67 @@ from .client import AuthenticatedClient
 from .client_types import Unset
 from .models.detailed_error_response import DetailedErrorResponse
 from .models.error_response import ErrorResponse
+
+
+class RateLimitAwareRetry(Retry):
+    """
+    Custom Retry class that allows non-idempotent methods (POST, PATCH) to be
+    retried ONLY when receiving a 429 (Too Many Requests) status code.
+
+    For all other retryable status codes (502, 503, 504), only idempotent methods
+    (HEAD, GET, PUT, DELETE, OPTIONS, TRACE) will be retried.
+
+    This ensures we don't accidentally retry non-idempotent operations after
+    server errors, but we DO retry them when we're being rate-limited.
+    """
+
+    # Idempotent methods that are always safe to retry
+    IDEMPOTENT_METHODS = frozenset(["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "TRACE"])
+
+    def __init__(self, *args: Any, **kwargs: Any):
+        """Initialize and track the current request method."""
+        super().__init__(*args, **kwargs)
+        self._current_method: str | None = None
+
+    def is_retryable_method(self, method: str) -> bool:
+        """
+        Allow all methods to pass through the initial check.
+
+        Store the method for later use in is_retryable_status_code.
+        """
+        self._current_method = method.upper()
+        # Accept all methods - we'll filter in is_retryable_status_code
+        return self._current_method in self.allowed_methods
+
+    def is_retryable_status_code(self, status_code: int) -> bool:
+        """
+        Check if a status code is retryable for the current method.
+
+        For 429 (rate limiting), allow all methods.
+        For other errors (502, 503, 504), only allow idempotent methods.
+        """
+        # First check if the status code is in the allowed list at all
+        if status_code not in self.status_forcelist:
+            return False
+
+        # If we don't know the method, fall back to default behavior
+        if self._current_method is None:
+            return True
+
+        # Rate limiting (429) - retry all methods
+        if status_code == HTTPStatus.TOO_MANY_REQUESTS:
+            return True
+
+        # Other retryable errors - only retry idempotent methods
+        return self._current_method in self.IDEMPOTENT_METHODS
+
+    def increment(self) -> "RateLimitAwareRetry":
+        """Return a new retry instance with the attempt count incremented."""
+        # Call parent's increment which creates a new instance of our class
+        new_retry = cast(RateLimitAwareRetry, super().increment())
+        # Preserve the current method across retry attempts
+        new_retry._current_method = self._current_method
+        return new_retry
 
 
 class ErrorLoggingTransport(AsyncHTTPTransport):
@@ -496,8 +558,10 @@ def ResilientAsyncTransport(
     )
 
     # Finally wrap with retry logic (outermost layer)
-    # Include POST and PATCH in allowed methods since we need to retry rate-limited writes
-    retry = Retry(
+    # Use RateLimitAwareRetry which:
+    # - Retries ALL methods (including POST/PATCH) for 429 rate limiting
+    # - Retries ONLY idempotent methods for server errors (502, 503, 504)
+    retry = RateLimitAwareRetry(
         total=max_retries,
         backoff_factor=1.0,  # Exponential backoff: 1, 2, 4, 8, 16 seconds
         respect_retry_after_header=True,  # Honor server's Retry-After header
