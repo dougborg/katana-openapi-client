@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.13.0 (2025-10-10)
+
+### Features
+
+- Add smart retry logic for non-idempotent operations
+  ([`64de3e6`](https://github.com/dougborg/katana-openapi-client/commit/64de3e63c76025f3a5b58e8c85bccb1b60e83911))
+
 ## v0.12.1 (2025-10-10)
 
 ### Bug Fixes
