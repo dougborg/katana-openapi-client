@@ -16,14 +16,7 @@ from typing import Any, cast
 import httpx
 from dotenv import load_dotenv
 from httpx import AsyncHTTPTransport
-from tenacity import (
-    RetryError,
-    retry,
-    retry_if_exception_type,
-    retry_if_result,
-    stop_after_attempt,
-    wait_exponential,
-)
+from httpx_retries import Retry, RetryTransport
 
 from .client import AuthenticatedClient
 from .client_types import Unset
@@ -31,47 +24,43 @@ from .models.detailed_error_response import DetailedErrorResponse
 from .models.error_response import ErrorResponse
 
 
-class ResilientAsyncTransport(AsyncHTTPTransport):
+class ErrorLoggingTransport(AsyncHTTPTransport):
     """
-    Custom async transport that adds retry logic, rate limiting, and automatic
-    pagination directly at the HTTP transport layer.
+    Transport layer that adds detailed error logging for 4xx client errors.
 
-    This makes ALL requests through the client automatically resilient and
-    automatically handles pagination without any wrapper methods or decorators.
-
-    Features:
-    - Automatic retries with exponential backoff using tenacity
-    - Rate limiting detection and handling
-    - Smart pagination based on response headers and request parameters
-    - Request/response logging and metrics
+    This transport wraps another AsyncHTTPTransport and intercepts responses
+    to log detailed error information using the generated error models.
     """
 
     def __init__(
         self,
-        max_retries: int = 5,
-        max_pages: int = 100,
+        wrapped_transport: AsyncHTTPTransport | None = None,
         logger: logging.Logger | None = None,
         **kwargs: Any,
     ):
         """
-        Initialize the resilient HTTP transport with automatic retry and pagination.
+        Initialize the error logging transport.
 
         Args:
-            max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
-            max_pages: Maximum number of pages to collect during auto-pagination. Defaults to 100.
-            logger: Logger instance for capturing transport operations. If None, creates a default logger.
-            **kwargs: Additional arguments passed to the underlying httpx AsyncHTTPTransport.
-
-        Note:
-            This transport automatically handles:
-            - Retries on network errors and 5xx server errors
-            - Rate limiting with Retry-After header support
-            - Auto-pagination for GET requests with 'page' or 'limit' parameters
+            wrapped_transport: The transport to wrap. If None, creates a new AsyncHTTPTransport.
+            logger: Logger instance for capturing error details. If None, creates a default logger.
+            **kwargs: Additional arguments passed to AsyncHTTPTransport if wrapped_transport is None.
         """
-        super().__init__(**kwargs)
-        self.max_retries = max_retries
-        self.max_pages = max_pages
+        super().__init__()
+        if wrapped_transport is None:
+            wrapped_transport = AsyncHTTPTransport(**kwargs)
+        self._wrapped_transport = wrapped_transport
         self.logger = logger or logging.getLogger(__name__)
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        """Handle request and log detailed error information for 4xx responses."""
+        response = await self._wrapped_transport.handle_async_request(request)
+
+        # Log detailed information for 400-level client errors
+        if 400 <= response.status_code < 500:
+            await self._log_client_error(response, request)
+
+        return response
 
     async def _log_client_error(
         self, response: httpx.Response, request: httpx.Request
@@ -129,9 +118,37 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             log_message = f"Validation error 422 for {method} {url}"
         else:
             log_message = f"Detailed error {status_code} for {method} {url}"
-        log_message += f"\n  Error: {error.name} - {error.message}"
-        if error.code is not None:
-            log_message += f"\n  Code: {error.code}"
+
+        # Check for Unset values before logging
+        error_name = error.name if not isinstance(error.name, Unset) else None
+        error_message = error.message if not isinstance(error.message, Unset) else None
+        error_code = error.code if not isinstance(error.code, Unset) else None
+
+        # If main fields are Unset, check additional_properties for nested error data
+        if (
+            error_name is None
+            and error_message is None
+            and hasattr(error, "additional_properties")
+        ):
+            nested = error.additional_properties
+            if isinstance(nested, dict) and "error" in nested:
+                nested_error = nested["error"]
+                if isinstance(nested_error, dict):
+                    error_name = nested_error.get("name", "(not provided)")
+                    error_message = nested_error.get("message", "(not provided)")
+                    if "statusCode" in nested_error and error_code is None:
+                        error_code = nested_error.get("statusCode")
+
+        # Use fallback if still not found
+        if error_name is None:
+            error_name = "(not provided)"
+        if error_message is None:
+            error_message = "(not provided)"
+
+        log_message += f"\n  Error: {error_name} - {error_message}"
+
+        if error_code is not None:
+            log_message += f"\n  Code: {error_code}"
         if error.details:
             log_message += f"\n  Validation details ({len(error.details)} errors):"
             for i, detail in enumerate(error.details, 1):
@@ -166,34 +183,45 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             log_message += f"\n  Additional info: {formatted}"
         self.logger.error(log_message)
 
-    # _format_typed_validation_info and _log_error_fallback are no longer needed
 
-    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+class PaginationTransport(AsyncHTTPTransport):
+    """
+    Transport layer that adds automatic pagination for GET requests.
+
+    This transport wraps another transport and automatically collects all pages
+    for requests that use 'page' or 'limit' parameters.
+    """
+
+    def __init__(
+        self,
+        wrapped_transport: AsyncHTTPTransport | None = None,
+        max_pages: int = 100,
+        logger: logging.Logger | None = None,
+        **kwargs: Any,
+    ):
         """
-        Handle HTTP requests with automatic retries, rate limiting, and pagination.
-
-        This method is called for every HTTP request made through the client and provides
-        the core resilience functionality of the transport layer.
+        Initialize the pagination transport.
 
         Args:
-            request: The HTTP request to handle.
-
-        Returns:
-            The HTTP response, potentially with combined data from multiple pages
-            if auto-pagination was triggered.
-
-        Note:
-            - GET requests with 'page' or 'limit' parameters trigger auto-pagination
-            - Requests with explicit 'page' parameter disable auto-pagination
-            - All requests get automatic retry logic for network and server errors
-            - Rate limiting is handled automatically with Retry-After header support
+            wrapped_transport: The transport to wrap. If None, creates a new AsyncHTTPTransport.
+            max_pages: Maximum number of pages to collect during auto-pagination. Defaults to 100.
+            logger: Logger instance for capturing pagination operations. If None, creates a default logger.
+            **kwargs: Additional arguments passed to AsyncHTTPTransport if wrapped_transport is None.
         """
-        return await self._handle_request_with_span(request)
+        # If no wrapped transport provided, create a base one
+        if wrapped_transport is None:
+            wrapped_transport = AsyncHTTPTransport(**kwargs)
+            super().__init__()
+        else:
+            super().__init__()
 
-    async def _handle_request_with_span(self, request: httpx.Request) -> httpx.Response:
-        """Handle the request with optional span context."""
-        # Check if this is a paginated request (has 'page' or 'limit' param)
-        # Smart pagination: automatically detect based on request parameters
+        self._wrapped_transport = wrapped_transport
+        self.max_pages = max_pages
+        self.logger = logger or logging.getLogger(__name__)
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        """Handle request with automatic pagination for GET requests with page/limit params."""
+        # Check if this is a paginated request
         should_paginate = (
             request.method == "GET"
             and hasattr(request, "url")
@@ -205,117 +233,8 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
         if should_paginate:
             return await self._handle_paginated_request(request)
         else:
-            return await self._handle_single_request(request)
-
-    async def _handle_single_request(self, request: httpx.Request) -> httpx.Response:
-        """
-        Handle a single request with retries using tenacity.
-
-        Args:
-            request: The HTTP request to handle.
-
-        Returns:
-            The HTTP response from the server.
-
-        Raises:
-            RetryError: If all retry attempts are exhausted.
-            httpx.HTTPError: For unrecoverable HTTP errors.
-        """
-
-        # Define a properly typed retry decorator
-        def _make_retry_decorator() -> Callable[
-            [Callable[[], Awaitable[httpx.Response]]],
-            Callable[[], Awaitable[httpx.Response]],
-        ]:
-            return retry(
-                stop=stop_after_attempt(self.max_retries + 1),
-                wait=wait_exponential(multiplier=1, min=1, max=60),
-                retry=(
-                    retry_if_result(
-                        lambda response: response.status_code == 429
-                        or (500 <= response.status_code < 600)
-                    )
-                    | retry_if_exception_type(
-                        (httpx.ConnectError, httpx.TimeoutException, httpx.ReadError)
-                    )
-                ),
-                reraise=True,
-            )
-
-        @_make_retry_decorator()
-        async def _make_request_with_retry() -> httpx.Response:
-            """Make the actual HTTP request with retry logic."""
-            response = await super(ResilientAsyncTransport, self).handle_async_request(
-                request
-            )
-
-            if response.status_code == 429:
-                retry_after = self._get_retry_after(response)
-                self.logger.warning(
-                    "Rate limited, retrying after exponential backoff (server suggested %ds)",
-                    retry_after,
-                )
-
-            elif 500 <= response.status_code < 600:
-                self.logger.warning(
-                    "Server error %d, retrying with exponential backoff",
-                    response.status_code,
-                )
-
-            return response
-
-        # Execute the request with retries
-        try:
-            response = await _make_request_with_retry()
-
-            # Log detailed information for 400-level client errors
-            if 400 <= response.status_code < 500:
-                await self._log_client_error(response, request)
-
-            return response
-        except RetryError as e:
-            # For retry errors (when server keeps returning 4xx/5xx), return the last response
-            self.logger.error(
-                "Request failed after %d retries, extracting last response",
-                self.max_retries,
-            )
-
-            # Extract the last response - tenacity stores it in the last_attempt
-            try:
-                if hasattr(e, "last_attempt"):
-                    last_response = e.last_attempt.result()
-                    response_type = type(last_response).__name__
-                    self.logger.debug("Got last response: %s", response_type)
-                    if isinstance(last_response, httpx.Response) or (
-                        hasattr(last_response, "status_code")
-                    ):
-                        # Handle both real responses and mocks (for testing)
-                        self.logger.debug(
-                            "Returning last response with status %d",
-                            last_response.status_code,
-                        )
-                        return last_response
-                    self.logger.debug(
-                        "Last response is not httpx.Response, it's %s",
-                        response_type,
-                    )
-                self.logger.debug("No last_attempt found in retry error")
-            except (ValueError, AttributeError, TypeError) as extract_error:
-                self.logger.debug("Error extracting last response: %s", extract_error)
-
-            # If we can't extract the response, re-raise
-            self.logger.error("Could not extract last response from retry error")
-            raise
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.ReadError) as e:
-            # For network errors, we want to re-raise the exception
-            self.logger.error("Network error after %d retries: %s", self.max_retries, e)
-            raise
-        except Exception as e:
-            # For other unexpected errors, re-raise
-            self.logger.error(
-                "Unexpected error after %d retries: %s", self.max_retries, e
-            )
-            raise
+            # For non-paginated requests, just pass through to wrapped transport
+            return await self._wrapped_transport.handle_async_request(request)
 
     async def _handle_paginated_request(self, request: httpx.Request) -> httpx.Response:
         """
@@ -346,7 +265,6 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
 
         # Parse initial parameters
         url_params = dict(request.url.params)
-        limit = int(url_params.get("limit", 50))
 
         self.logger.info("Auto-paginating request: %s", request.url)
 
@@ -363,8 +281,10 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
                 extensions=request.extensions,
             )
 
-            # Make the request
-            response = await self._handle_single_request(paginated_request)
+            # Make the request using the wrapped transport
+            response = await self._wrapped_transport.handle_async_request(
+                paginated_request
+            )
 
             if response.status_code != 200:
                 # If we get an error, return the original response
@@ -392,9 +312,8 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
                     all_data.extend(items)
 
                     # Check if we're done
-                    if (total_pages and current_page >= total_pages) or len(
-                        items
-                    ) < limit:
+                    # Break if we've reached the last known page or got an empty page
+                    if (total_pages and current_page >= total_pages) or len(items) == 0:
                         break
 
                     self.logger.debug(
@@ -487,18 +406,82 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
 
         return pagination_info if pagination_info else None
 
-    def _get_retry_after(self, response: httpx.Response) -> float:
-        """Extract retry-after value from response headers."""
-        retry_after = response.headers.get("Retry-After")
-        if retry_after:
-            try:
-                return float(retry_after)
-            except ValueError:
-                # Sometimes it's a date string, but let's use default
-                pass
 
-        # Default retry after
-        return 60.0
+def ResilientAsyncTransport(
+    max_retries: int = 5,
+    max_pages: int = 100,
+    logger: logging.Logger | None = None,
+    **kwargs: Any,
+) -> RetryTransport:
+    """
+    Factory function that creates a chained transport with error logging,
+    pagination, and retry capabilities.
+
+    This function chains multiple transport layers:
+    1. AsyncHTTPTransport (base HTTP transport)
+    2. ErrorLoggingTransport (logs detailed 4xx errors)
+    3. PaginationTransport (auto-collects paginated responses)
+    4. RetryTransport (handles retries with Retry-After header support)
+
+    Args:
+        max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
+        max_pages: Maximum number of pages to collect during auto-pagination. Defaults to 100.
+        logger: Logger instance for capturing operations. If None, creates a default logger.
+        **kwargs: Additional arguments passed to the base AsyncHTTPTransport.
+            Common parameters include:
+            - http2 (bool): Enable HTTP/2 support
+            - limits (httpx.Limits): Connection pool limits
+            - verify (bool | str | ssl.SSLContext): SSL certificate verification
+            - cert (str | tuple): Client-side certificates
+            - trust_env (bool): Trust environment variables for proxy configuration
+
+    Returns:
+        A RetryTransport instance wrapping all the layered transports.
+
+    Note:
+        When using a custom transport, parameters like http2, limits, and verify
+        must be passed to this factory function (which passes them to the base
+        AsyncHTTPTransport), not to the httpx.Client/AsyncClient constructor.
+
+    Example:
+        ```python
+        transport = ResilientAsyncTransport(max_retries=3, max_pages=50)
+        async with httpx.AsyncClient(transport=transport) as client:
+            response = await client.get("https://api.example.com/items")
+        ```
+    """
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
+    # Build the transport chain from inside out:
+    # 1. Base AsyncHTTPTransport
+    base_transport = AsyncHTTPTransport(**kwargs)
+
+    # 2. Wrap with error logging
+    error_logging_transport = ErrorLoggingTransport(
+        wrapped_transport=base_transport,
+        logger=logger,
+    )
+
+    # 3. Wrap with pagination
+    pagination_transport = PaginationTransport(
+        wrapped_transport=error_logging_transport,
+        max_pages=max_pages,
+        logger=logger,
+    )
+
+    # Finally wrap with retry logic (outermost layer)
+    retry = Retry(
+        total=max_retries,
+        backoff_factor=1.0,  # Exponential backoff: 1, 2, 4, 8, 16 seconds
+        respect_retry_after_header=True,  # Honor server's Retry-After header
+    )
+    retry_transport = RetryTransport(
+        transport=pagination_transport,
+        retry=retry,
+    )
+
+    return retry_transport
 
 
 class KatanaClient(AuthenticatedClient):
@@ -557,10 +540,22 @@ class KatanaClient(AuthenticatedClient):
             max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
             max_pages: Maximum number of pages to collect during auto-pagination. Defaults to 100.
             logger: Logger instance for capturing client operations. If None, creates a default logger.
-            **httpx_kwargs: Additional arguments passed to the underlying httpx client.
+            **httpx_kwargs: Additional arguments passed to the base AsyncHTTPTransport.
+                Common parameters include:
+                - http2 (bool): Enable HTTP/2 support
+                - limits (httpx.Limits): Connection pool limits
+                - verify (bool | str | ssl.SSLContext): SSL certificate verification
+                - cert (str | tuple): Client-side certificates
+                - trust_env (bool): Trust environment variables for proxy configuration
+                - event_hooks (dict): Custom event hooks (will be merged with built-in hooks)
 
         Raises:
             ValueError: If no API key is provided and KATANA_API_KEY env var is not set.
+
+        Note:
+            Transport-related parameters (http2, limits, verify, etc.) are correctly
+            passed to the innermost AsyncHTTPTransport layer, ensuring they take effect
+            even with the layered transport architecture.
 
         Example:
             >>> async with KatanaClient() as client:
@@ -568,6 +563,12 @@ class KatanaClient(AuthenticatedClient):
             ...     response = await some_api_method.asyncio_detailed(client=client)
         """
         load_dotenv()
+
+        # Handle backwards compatibility: accept 'token' kwarg as alias for 'api_key'
+        if "token" in httpx_kwargs:
+            if api_key is not None:
+                raise ValueError("Cannot specify both 'api_key' and 'token' parameters")
+            api_key = httpx_kwargs.pop("token")
 
         # Setup credentials
         api_key = api_key or os.getenv("KATANA_API_KEY")
@@ -583,13 +584,7 @@ class KatanaClient(AuthenticatedClient):
         self.logger = logger or logging.getLogger(__name__)
         self.max_pages = max_pages
 
-        # Create resilient transport with observability hooks
-        transport = ResilientAsyncTransport(
-            max_retries=max_retries,
-            max_pages=max_pages,
-            logger=self.logger,
-        )
-
+        # Extract client-level parameters that shouldn't go to the transport
         # Event hooks for observability - start with our defaults
         event_hooks: dict[str, list[Callable[[httpx.Response], Awaitable[None]]]] = {
             "response": [
@@ -598,7 +593,7 @@ class KatanaClient(AuthenticatedClient):
             ]
         }
 
-        # Simply extend with user hooks if provided
+        # Extract and merge user hooks
         user_hooks = httpx_kwargs.pop("event_hooks", {})
         for event, hooks in user_hooks.items():
             # Normalize to list and add to existing or create new event
@@ -611,6 +606,36 @@ class KatanaClient(AuthenticatedClient):
             else:
                 event_hooks[event] = hook_list
 
+        # Check if user wants to override the transport entirely
+        custom_transport = httpx_kwargs.pop("transport", None) or httpx_kwargs.pop(
+            "async_transport", None
+        )
+
+        if custom_transport:
+            # User provided a custom transport, use it as-is
+            transport = custom_transport
+        else:
+            # Separate transport-specific kwargs from client-specific kwargs
+            # Client-specific params that should NOT go to the transport
+            client_only_params = ["headers", "cookies", "params", "auth"]
+            client_kwargs = {
+                k: httpx_kwargs.pop(k)
+                for k in list(httpx_kwargs.keys())
+                if k in client_only_params
+            }
+
+            # Create resilient transport with remaining transport-specific httpx_kwargs
+            # These will be passed to the base AsyncHTTPTransport (http2, limits, verify, etc.)
+            transport = ResilientAsyncTransport(
+                max_retries=max_retries,
+                max_pages=max_pages,
+                logger=self.logger,
+                **httpx_kwargs,  # Pass through http2, limits, verify, cert, trust_env, etc.
+            )
+
+            # Put client-specific params back into httpx_kwargs for the parent class
+            httpx_kwargs.update(client_kwargs)
+
         # Initialize the parent AuthenticatedClient
         super().__init__(
             base_url=base_url,
@@ -619,7 +644,7 @@ class KatanaClient(AuthenticatedClient):
             httpx_args={
                 "transport": transport,
                 "event_hooks": event_hooks,
-                **httpx_kwargs,
+                **httpx_kwargs,  # Include any remaining client-level kwargs
             },
         )
 

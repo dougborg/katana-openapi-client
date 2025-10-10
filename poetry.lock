@@ -623,6 +623,21 @@ socks = ["socksio (==1.*)"]
 zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
+name = "httpx-retries"
+version = "0.4.3"
+description = "A retry layer for HTTPX."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "httpx_retries-0.4.3-py3-none-any.whl", hash = "sha256:eb0ffd0dd713ece7652cf32780956c780139e5434974df6e8b17746ef0e4b650"},
+    {file = "httpx_retries-0.4.3.tar.gz", hash = "sha256:7c3c9c7b0b6d630a0f01423d7aca8e539bee963bfdf2f1acbe9826e8698b39fc"},
+]
+
+[package.dependencies]
+httpx = ">=0.20.0"
+
+[[package]]
 name = "identify"
 version = "2.6.13"
 description = "File identification library for Python"
@@ -2787,4 +2802,4 @@ docs = ["mkdocs", "mkdocs-gen-files", "mkdocs-literate-nav", "mkdocs-material", 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "bf2f43426e7aa4e10daa819fcb891a5220918fa1df3ddac4fa3e3b363c3c6cac"
+content-hash = "7a9fd92b2fc2ffa90717eafe606dc100427de0d7da2adf3b55637df086e699b0"

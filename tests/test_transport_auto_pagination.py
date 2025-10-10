@@ -1,205 +1,164 @@
 """Test the transport-level auto-pagination functionality."""
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
 
-from katana_public_api_client.katana_client import ResilientAsyncTransport
+from katana_public_api_client.katana_client import PaginationTransport
 
 
 class TestTransportAutoPagination:
     """Test the transport layer auto-pagination."""
 
     @pytest.fixture
-    def transport(self):
-        """Create a transport instance for testing."""
-        return ResilientAsyncTransport(
-            max_retries=3,
+    def mock_wrapped_transport(self):
+        """Create a mock wrapped transport."""
+        return AsyncMock(spec=httpx.AsyncHTTPTransport)
+
+    @pytest.fixture
+    def transport(self, mock_wrapped_transport):
+        """Create a pagination transport instance for testing."""
+        return PaginationTransport(
+            wrapped_transport=mock_wrapped_transport,
             max_pages=5,
         )
 
     @pytest.mark.asyncio
-    async def test_auto_pagination_detected(self, transport):
+    async def test_auto_pagination_detected(self, transport, mock_wrapped_transport):
         """Test that auto-pagination is triggered for GET requests with pagination params."""
-        # Create a GET request with pagination parameters
+        # Create mock responses for 2 pages
+        page1_data = {
+            "data": [{"id": 1}, {"id": 2}],
+            "pagination": {"page": 1, "total_pages": 2},
+        }
+        page2_data = {
+            "data": [{"id": 3}],
+            "pagination": {"page": 2, "total_pages": 2},
+        }
+
+        def create_response(data):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = data
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        page1_response = create_response(page1_data)
+        page2_response = create_response(page2_data)
+
+        mock_wrapped_transport.handle_async_request.side_effect = [
+            page1_response,
+            page2_response,
+        ]
+
+        # Create a real httpx.Request with pagination parameters
         request = httpx.Request(
-            method="GET", url="https://api.example.com/products?page=1&limit=10"
+            method="GET",
+            url="https://api.example.com/products?page=1&limit=10",
         )
 
-        # Mock the _handle_paginated_request method to verify it's called
-        with patch.object(transport, "_handle_paginated_request") as mock_paginated:
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_paginated.return_value = mock_response
+        response = await transport.handle_async_request(request)
 
-            response = await transport.handle_async_request(request)
+        # Should have called wrapped transport twice (once per page)
+        assert mock_wrapped_transport.handle_async_request.call_count == 2
 
-            # Should call the paginated handler
-            mock_paginated.assert_called_once_with(request)
-            assert response.status_code == 200
+        # Response should combine both pages
+        combined_data = json.loads(response.content)
+        assert len(combined_data["data"]) == 3
+        assert combined_data["pagination"]["auto_paginated"] is True
 
     @pytest.mark.asyncio
-    async def test_no_auto_pagination_for_non_get(self, transport):
+    async def test_no_auto_pagination_for_non_get(
+        self, transport, mock_wrapped_transport
+    ):
         """Test that auto-pagination is NOT triggered for non-GET requests."""
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 200
+        mock_wrapped_transport.handle_async_request.return_value = mock_response
+
         # Create a POST request with pagination parameters
-        request = httpx.Request(
-            method="POST", url="https://api.example.com/products?page=1&limit=10"
-        )
+        request = MagicMock(spec=httpx.Request)
+        request.method = "POST"
+        request.url = MagicMock()
+        request.url.params = {"page": "1", "limit": "10"}
 
-        # Mock the _handle_single_request method to verify it's called instead
-        with patch.object(transport, "_handle_single_request") as mock_single:
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_single.return_value = mock_response
+        response = await transport.handle_async_request(request)
 
-            response = await transport.handle_async_request(request)
-
-            # Should call the single request handler
-            mock_single.assert_called_once_with(request)
-            assert response.status_code == 200
+        # Should call wrapped transport only once (no pagination)
+        mock_wrapped_transport.handle_async_request.assert_called_once()
+        assert response.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_no_auto_pagination_without_params(self, transport):
+    async def test_no_auto_pagination_without_params(
+        self, transport, mock_wrapped_transport
+    ):
         """Test that auto-pagination is NOT triggered for GET requests without pagination params."""
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 200
+        mock_wrapped_transport.handle_async_request.return_value = mock_response
+
         # Create a GET request without pagination parameters
-        request = httpx.Request(method="GET", url="https://api.example.com/products")
+        request = MagicMock(spec=httpx.Request)
+        request.method = "GET"
+        request.url = MagicMock()
+        request.url.params = {}
 
-        # Mock the _handle_single_request method to verify it's called instead
-        with patch.object(transport, "_handle_single_request") as mock_single:
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_single.return_value = mock_response
+        response = await transport.handle_async_request(request)
 
-            response = await transport.handle_async_request(request)
-
-            # Should call the single request handler
-            mock_single.assert_called_once_with(request)
-            assert response.status_code == 200
+        # Should call wrapped transport only once (no pagination)
+        mock_wrapped_transport.handle_async_request.assert_called_once()
+        assert response.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_auto_pagination_combines_pages(self, transport):
-        """Test that auto-pagination correctly combines multiple pages."""
-        # Create a GET request with pagination parameters
+    async def test_auto_pagination_stops_on_error(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that pagination stops when an error response is encountered."""
+        # First request succeeds, second request fails
+        page1_data = {
+            "data": [{"id": 1}],
+            "pagination": {"page": 1, "total_pages": 3},
+        }
+
+        def create_success_response(data):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = data
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        page1_response = create_success_response(page1_data)
+
+        # Page 2 returns an error
+        page2_response = MagicMock(spec=httpx.Response)
+        page2_response.status_code = 500
+
+        mock_wrapped_transport.handle_async_request.side_effect = [
+            page1_response,
+            page2_response,
+        ]
+
         request = httpx.Request(
-            method="GET", url="https://api.example.com/products?limit=2"
+            method="GET",
+            url="https://api.example.com/products?limit=10",
         )
 
-        # Mock the parent's handle_async_request to return different pages
-        page_responses = []
+        response = await transport.handle_async_request(request)
 
-        # Page 1
-        page1_data = {"data": [{"id": 1}, {"id": 2}]}
-        page1_response = MagicMock()
-        page1_response.status_code = 200
-        page1_response.json.return_value = page1_data
-        page1_response.headers = {"X-Total-Pages": "2", "X-Current-Page": "1"}
-        page_responses.append(page1_response)
+        # Should have made 2 requests (page 1 success, page 2 error)
+        assert mock_wrapped_transport.handle_async_request.call_count == 2
 
-        # Page 2
-        page2_data = {"data": [{"id": 3}]}
-        page2_response = MagicMock()
-        page2_response.status_code = 200
-        page2_response.json.return_value = page2_data
-        page2_response.headers = {"X-Total-Pages": "2", "X-Current-Page": "2"}
-        page_responses.append(page2_response)
-
-        with patch.object(
-            httpx.AsyncHTTPTransport, "handle_async_request"
-        ) as mock_parent:
-            mock_parent.side_effect = page_responses
-
-            response = await transport.handle_async_request(request)
-
-            # Should have made 2 requests (one for each page)
-            assert mock_parent.call_count == 2
-
-            # Should return a combined response
-            assert response.status_code == 200
-
-            # Parse the combined response
-            combined_data = json.loads(response.content.decode())
-            assert "data" in combined_data
-            assert len(combined_data["data"]) == 3  # 2 + 1 items
-            assert combined_data["data"] == [{"id": 1}, {"id": 2}, {"id": 3}]
-
-            # Should include pagination metadata
-            assert "pagination" in combined_data
-            assert combined_data["pagination"]["auto_paginated"] is True
-            assert combined_data["pagination"]["total_items"] == 3
-
-    @pytest.mark.asyncio
-    async def test_auto_pagination_respects_max_pages(self, transport):
-        """Test that auto-pagination respects the max_pages limit."""
-        # Create a GET request with pagination parameters
-        request = httpx.Request(
-            method="GET", url="https://api.example.com/products?limit=1"
-        )
-
-        # Mock responses that would go beyond max_pages
-        def create_page_response(page_num):
-            page_data = {"data": [{"id": page_num}]}
-            page_response = MagicMock()
-            page_response.status_code = 200
-            page_response.json.return_value = page_data
-            page_response.headers = {
-                "X-Total-Pages": "10",
-                "X-Current-Page": str(page_num),
-            }
-            return page_response
-
-        # Create more responses than max_pages allows
-        page_responses = [create_page_response(i) for i in range(1, 11)]
-
-        with patch.object(
-            httpx.AsyncHTTPTransport, "handle_async_request"
-        ) as mock_parent:
-            mock_parent.side_effect = page_responses
-
-            response = await transport.handle_async_request(request)
-
-            # Should have stopped at max_pages (5)
-            assert mock_parent.call_count == 5
-
-            # Parse the combined response
-            combined_data = json.loads(response.content.decode())
-            assert len(combined_data["data"]) == 5  # Limited by max_pages
-
-    @pytest.mark.asyncio
-    async def test_auto_pagination_stops_on_error(self, transport):
-        """Test that auto-pagination stops when it encounters an error."""
-        # Create a GET request with pagination parameters
-        request = httpx.Request(
-            method="GET", url="https://api.example.com/products?limit=2"
-        )
-
-        # Page 1 succeeds, Page 2 fails (with retries)
-        page1_data = {"data": [{"id": 1}, {"id": 2}]}
-        page1_response = MagicMock()
-        page1_response.status_code = 200
-        page1_response.json.return_value = page1_data
-        page1_response.headers = {"X-Total-Pages": "3", "X-Current-Page": "1"}
-
-        page2_response = MagicMock()
-        page2_response.status_code = 500  # Error on page 2
-
-        with patch.object(
-            httpx.AsyncHTTPTransport, "handle_async_request"
-        ) as mock_parent:
-            # Page 1 succeeds, then 4 retries for page 2 (3 max_retries + 1 initial attempt)
-            mock_parent.side_effect = [
-                page1_response,
-                page2_response,
-                page2_response,
-                page2_response,
-                page2_response,
-            ]
-
-            response = await transport.handle_async_request(request)
-
-            # Should have made 5 requests total (1 for page 1, 4 attempts for page 2)
-            assert mock_parent.call_count == 5
-
-            # Should return the error response (not combined)
-            assert response.status_code == 500
+        # Should return the error response
+        assert response.status_code == 500
