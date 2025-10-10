@@ -216,6 +216,41 @@ class TestErrorLoggingTransport:
         assert "Invalid JSON response from server" in error_message
 
     @pytest.mark.asyncio
+    async def test_429_rate_limit_error_with_unset_fields(self, transport, caplog):
+        """Test that 429 rate limit errors handle Unset fields properly."""
+        # Mock a 429 rate limit response with error nested in additional_properties
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 429
+        mock_response.json.return_value = {
+            "error": {
+                "statusCode": 429,
+                "name": "TooManyRequestsError",
+                "message": "Too Many Requests",
+            }
+        }
+
+        # Mock request
+        mock_request = MagicMock(spec=httpx.Request)
+        mock_request.method = "PATCH"
+        mock_request.url = "https://api.katanamrp.com/v1/products/123"
+
+        # Test the error logging
+        await transport._log_client_error(mock_response, mock_request)
+
+        # Verify error logging extracts from additional_properties
+        error_logs = [
+            record for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert len(error_logs) == 1
+
+        error_message = error_logs[0].message
+        assert "Client error 429" in error_message
+        assert "TooManyRequestsError" in error_message
+        assert "Too Many Requests" in error_message
+        # Should NOT contain <Unset object>
+        assert "Unset" not in error_message
+
+    @pytest.mark.asyncio
     async def test_3xx_and_5xx_not_logged(
         self, transport, mock_wrapped_transport, caplog
     ):

@@ -175,7 +175,32 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
     ) -> None:
         """Log general errors using the typed ErrorResponse model."""
         log_message = f"Client error {status_code} for {method} {url}"
-        log_message += f"\n  Error: {error.name} - {error.message}"
+
+        # Check for Unset values before logging
+        error_name = error.name if not isinstance(error.name, Unset) else None
+        error_message = error.message if not isinstance(error.message, Unset) else None
+
+        # If main fields are Unset, check additional_properties for nested error data
+        if (
+            error_name is None
+            and error_message is None
+            and hasattr(error, "additional_properties")
+        ):
+            nested = error.additional_properties
+            if isinstance(nested, dict) and "error" in nested:
+                nested_error = nested["error"]
+                if isinstance(nested_error, dict):
+                    error_name = nested_error.get("name", "(not provided)")
+                    error_message = nested_error.get("message", "(not provided)")
+
+        # Use fallback values if still None
+        if error_name is None:
+            error_name = "(not provided)"
+        if error_message is None:
+            error_message = "(not provided)"
+
+        log_message += f"\n  Error: {error_name} - {error_message}"
+
         if error.additional_properties:
             formatted = ", ".join(
                 f"{k}: {v!r}" for k, v in error.additional_properties.items()
@@ -471,10 +496,21 @@ def ResilientAsyncTransport(
     )
 
     # Finally wrap with retry logic (outermost layer)
+    # Include POST and PATCH in allowed methods since we need to retry rate-limited writes
     retry = Retry(
         total=max_retries,
         backoff_factor=1.0,  # Exponential backoff: 1, 2, 4, 8, 16 seconds
         respect_retry_after_header=True,  # Honor server's Retry-After header
+        allowed_methods=[
+            "HEAD",
+            "GET",
+            "PUT",
+            "DELETE",
+            "OPTIONS",
+            "TRACE",
+            "POST",
+            "PATCH",
+        ],
     )
     retry_transport = RetryTransport(
         transport=pagination_transport,
