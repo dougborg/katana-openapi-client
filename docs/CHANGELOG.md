@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.12.1 (2025-10-10)
+
+### Bug Fixes
+
+- Handle Unset fields in 429 error logging and enable POST/PATCH retries
+  ([`259692c`](https://github.com/dougborg/katana-openapi-client/commit/259692c3620a19f1ce32433e0a95dc92198d09f5))
+
 ## v0.12.0 (2025-10-10)
 
 ### Features
