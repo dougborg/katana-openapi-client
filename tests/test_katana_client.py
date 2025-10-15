@@ -54,14 +54,22 @@ class TestRateLimitAwareRetry:
 
     def test_idempotent_method_retryable_for_429(self):
         """Test that idempotent methods (GET) are retryable for 429."""
-        retry = RateLimitAwareRetry(total=5, allowed_methods=["GET", "POST"])
+        retry = RateLimitAwareRetry(
+            total=5,
+            allowed_methods=["GET", "POST"],
+            status_forcelist=[429, 502, 503, 504],
+        )
 
         assert retry.is_retryable_method("GET")
         assert retry.is_retryable_status_code(429)
 
     def test_non_idempotent_method_retryable_for_429(self):
         """Test that non-idempotent methods (POST, PATCH) are retryable for 429."""
-        retry = RateLimitAwareRetry(total=5, allowed_methods=["GET", "POST", "PATCH"])
+        retry = RateLimitAwareRetry(
+            total=5,
+            allowed_methods=["GET", "POST", "PATCH"],
+            status_forcelist=[429, 502, 503, 504],
+        )
 
         # POST should be allowed for 429
         assert retry.is_retryable_method("POST")
@@ -73,7 +81,11 @@ class TestRateLimitAwareRetry:
 
     def test_idempotent_method_retryable_for_server_errors(self):
         """Test that idempotent methods are retryable for server errors (502, 503, 504)."""
-        retry = RateLimitAwareRetry(total=5, allowed_methods=["GET", "POST"])
+        retry = RateLimitAwareRetry(
+            total=5,
+            allowed_methods=["GET", "POST"],
+            status_forcelist=[429, 502, 503, 504],
+        )
 
         # GET should pass initial check
         assert retry.is_retryable_method("GET")
@@ -85,7 +97,11 @@ class TestRateLimitAwareRetry:
 
     def test_non_idempotent_method_not_retryable_for_server_errors(self):
         """Test that non-idempotent methods (POST, PATCH) are NOT retryable for server errors."""
-        retry = RateLimitAwareRetry(total=5, allowed_methods=["GET", "POST", "PATCH"])
+        retry = RateLimitAwareRetry(
+            total=5,
+            allowed_methods=["GET", "POST", "PATCH"],
+            status_forcelist=[429, 502, 503, 504],
+        )
 
         # POST should pass initial check
         assert retry.is_retryable_method("POST")
@@ -101,7 +117,11 @@ class TestRateLimitAwareRetry:
 
     def test_method_state_preserved_across_increment(self):
         """Test that current method is preserved when retry is incremented."""
-        retry = RateLimitAwareRetry(total=5, allowed_methods=["POST"])
+        retry = RateLimitAwareRetry(
+            total=5,
+            allowed_methods=["POST"],
+            status_forcelist=[429, 502, 503, 504],
+        )
 
         # Set the method
         retry.is_retryable_method("POST")
@@ -131,6 +151,17 @@ class TestRateLimitAwareRetry:
         actual_methods = {str(m) for m in retry.allowed_methods}
 
         assert expected_methods == actual_methods
+
+    def test_status_forcelist_configured(self):
+        """Test that the factory configures the status codes for retry."""
+        transport = ResilientAsyncTransport()
+        retry = transport.retry
+
+        # Should have 429 (rate limiting) and 5xx server errors
+        expected_statuses = {429, 502, 503, 504}
+        actual_statuses = set(retry.status_forcelist)
+
+        assert expected_statuses == actual_statuses
 
 
 @pytest.mark.unit

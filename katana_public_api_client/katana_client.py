@@ -565,6 +565,12 @@ def ResilientAsyncTransport(
         total=max_retries,
         backoff_factor=1.0,  # Exponential backoff: 1, 2, 4, 8, 16 seconds
         respect_retry_after_header=True,  # Honor server's Retry-After header
+        status_forcelist=[
+            429,
+            502,
+            503,
+            504,
+        ],  # Status codes that should trigger retries
         allowed_methods=[
             "HEAD",
             "GET",
