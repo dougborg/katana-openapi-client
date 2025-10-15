@@ -66,6 +66,16 @@ methods, resilience is implemented at the httpx transport layer. This means ALL 
 calls through `KatanaClient` automatically get retries, rate limiting, and pagination
 without any code changes needed in the generated client.
 
+**Retry Strategy:**
+
+- **429 Rate Limiting**: ALL HTTP methods (including POST/PATCH) are retried
+  automatically with exponential backoff (1s, 2s, 4s, 8s, 16s) and `Retry-After` header
+  support
+- **502/503/504 Server Errors**: Only idempotent methods (GET, PUT, DELETE, HEAD,
+  OPTIONS, TRACE) are retried
+- **Other 4xx Client Errors**: No retries (these indicate client-side issues)
+- **Network Errors**: Automatic retry with exponential backoff
+
 ### Usage Patterns
 
 **Recommended Pattern (KatanaClient):**

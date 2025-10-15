@@ -56,14 +56,18 @@ Every API call through `KatanaClient` automatically includes:
 
 ### Smart Retries
 
-- **Network Errors**: Automatic retry with exponential backoff
-- **Server Errors (5xx)**: Intelligent retry logic
-- **Rate Limits (429)**: Respects `Retry-After` headers
-- **Client Errors (4xx)**: No retries (except 429)
+- **Network Errors**: Automatic retry with exponential backoff (1s, 2s, 4s, 8s, 16s)
+- **Rate Limits (429)**: ALL methods (including POST/PATCH) retry with `Retry-After`
+  header support
+- **Server Errors (502/503/504)**: Only idempotent methods (GET, PUT, DELETE, etc.) are
+  retried
+- **Client Errors (4xx except 429)**: No retries
 
 ```python
 async with KatanaClient(max_retries=5) as client:
     # This call will automatically retry on failures
+    # POST/PATCH requests will retry on 429 but not on 5xx errors
+    # GET/PUT/DELETE requests will retry on both 429 and 5xx errors
     response = await get_all_products.asyncio_detailed(
         client=client,
         limit=100
@@ -293,45 +297,6 @@ async def test_real_api():
         assert hasattr(response.parsed, 'data')
 ```
 
-## 🆚 Migration from EnhancedKatanaClient
-
-### Old Way (Decorators)
-
-```python
-# OLD: EnhancedKatanaClient with decorators
-from katana_public_api_client import EnhancedKatanaClient
-
-async with EnhancedKatanaClient() as client:
-    # Required decorators for resilience
-    resilient_method = client.with_resilience(get_all_products.asyncio_detailed)
-    response = await resilient_method(client=client, limit=50)
-```
-
-### New Way (Transport Layer)
-
-```python
-# NEW: KatanaClient with automatic resilience
-from katana_public_api_client import KatanaClient
-
-async with KatanaClient() as client:
-    # No decorators needed - automatic resilience!
-    response = await get_all_products.asyncio_detailed(
-        client=client,
-        limit=50
-    )
-```
-
-### Key Differences
-
-| Feature          | EnhancedKatanaClient    | KatanaClient                |
-| ---------------- | ----------------------- | --------------------------- |
-| **Resilience**   | Manual decorators       | Automatic (transport-layer) |
-| **API**          | `with_resilience()`     | Direct API calls            |
-| **Pagination**   | `fetch_all_paginated()` | Automatic (transparent)     |
-| **Architecture** | Decorator pattern       | httpx transport             |
-| **Performance**  | Higher overhead         | Minimal overhead            |
-| **Testing**      | Complex mocking         | Simple mocking              |
-
 ## 🔧 Advanced Patterns
 
 ### Custom Transport
@@ -342,12 +307,12 @@ from katana_public_api_client.katana_client import ResilientAsyncTransport
 # Create custom transport with different settings
 custom_transport = ResilientAsyncTransport(
     max_retries=10,
-    base_wait_time=2.0,
-    max_wait_time=120.0
+    max_pages=50,  # Limit automatic pagination
+    logger=custom_logger
 )
 
 async with KatanaClient(
-    httpx_args={"transport": custom_transport}
+    transport=custom_transport
 ) as client:
     # Uses your custom retry logic
     pass
@@ -356,18 +321,19 @@ async with KatanaClient(
 ### Batch Operations
 
 ```python
+import asyncio
+from katana_public_api_client.api.product import get_product
+
 async def process_products_in_batches(product_ids, batch_size=10):
     """Process products in batches with automatic resilience."""
     async with KatanaClient() as client:
-        api = KatanaAPI(client)
-
         results = []
         for i in range(0, len(product_ids), batch_size):
             batch = product_ids[i:i + batch_size]
 
             # Each call automatically has resilience
             batch_results = await asyncio.gather(*[
-                api.get_product_by_id(product_id)
+                get_product.asyncio_detailed(client=client, id=product_id)
                 for product_id in batch
             ])
 
@@ -480,20 +446,19 @@ async with KatanaClient() as client:
         print(f"Unexpected status: {response.status_code}")
 ```
 
-### 5. Use High-Level API for Common Operations
+### 5. Use Direct API Calls
 
 ```python
-# ✅ Good: Use convenience methods
-async with KatanaClient() as client:
-    api = KatanaAPI(client)
-    products = await api.get_all_products(is_sellable=True)
+from katana_public_api_client.api.product import get_all_products
 
-# ❌ Okay but more verbose: Direct API calls
+# ✅ Good: Direct API calls with automatic resilience
 async with KatanaClient() as client:
-    all_products = await get_all_products.asyncio_detailed(
+    response = await get_all_products.asyncio_detailed(
         client=client,
         is_sellable=True
     )
+    if response.status_code == 200:
+        products = response.parsed.data
 ```
 
 ## 🚀 Performance Tips
@@ -501,18 +466,20 @@ async with KatanaClient() as client:
 ### 1. Reuse Client Instances
 
 ```python
+from katana_public_api_client.api.product import get_all_products
+from katana_public_api_client.api.sales_order import get_all_sales_orders
+from katana_public_api_client.api.inventory import get_all_inventory_points
+
 # ✅ Good: One client for multiple operations
 async with KatanaClient() as client:
-    api = KatanaAPI(client)
-
-    products = await api.get_all_products()
-    orders = await api.get_all_sales_orders()
-    inventory = await api.get_all_inventory_points()
+    products = await get_all_products.asyncio_detailed(client=client)
+    orders = await get_all_sales_orders.asyncio_detailed(client=client)
+    inventory = await get_all_inventory_points.asyncio_detailed(client=client)
 
 # ❌ Bad: New client for each operation
-for operation in [get_products, get_orders, get_inventory]:
+for operation in [get_all_products, get_all_sales_orders]:
     async with KatanaClient() as client:
-        await operation(client)
+        await operation.asyncio_detailed(client=client)
 ```
 
 ### 2. Optimize Page Sizes
@@ -541,18 +508,18 @@ products = await get_all_products.asyncio_detailed(
 
 ```python
 import asyncio
+from katana_public_api_client.api.product import get_product
 
 # ✅ Good: Limited concurrency respects rate limits
 async def get_multiple_products(product_ids):
     async with KatanaClient() as client:
-        api = KatanaAPI(client)
-
         # Process in small batches
         results = []
         for i in range(0, len(product_ids), 5):  # 5 concurrent requests
             batch = product_ids[i:i+5]
             batch_results = await asyncio.gather(*[
-                api.get_product_by_id(pid) for pid in batch
+                get_product.asyncio_detailed(client=client, id=pid)
+                for pid in batch
             ])
             results.extend(batch_results)
 
@@ -568,56 +535,43 @@ async def get_multiple_products(product_ids):
 ### KatanaClient
 
 ```python
-class KatanaClient:
+class KatanaClient(AuthenticatedClient):
+    """The pythonic Katana API client with automatic resilience and pagination."""
+
     def __init__(
         self,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         timeout: float = 30.0,
         max_retries: int = 5,
+        max_pages: int = 100,
         logger: Optional[logging.Logger] = None,
         **httpx_kwargs: Any,
     ): ...
 
     async def __aenter__(self) -> "KatanaClient": ...
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None: ...
-
-    @property
-    def client(self) -> AuthenticatedClient: ...
-
-    # All pagination is handled automatically at the transport layer
-    # No manual pagination methods needed
-```
-
-### KatanaAPI
-
-```python
-class KatanaAPI:
-    def __init__(self, client: KatanaClient): ...
-
-    async def get_all_products(self, **filters: Any) -> List[Any]: ...
-    async def get_all_sales_orders(self, **filters: Any) -> List[Any]: ...
-    async def get_all_inventory_points(self, **filters: Any) -> List[Any]: ...
-    async def get_all_manufacturing_orders(self, **filters: Any) -> List[Any]: ...
-
-    async def get_product_by_id(self, product_id: int) -> Any: ...
-    async def get_sales_order_by_id(self, order_id: int) -> Any: ...
 ```
 
 ### ResilientAsyncTransport
 
-```python
-class ResilientAsyncTransport(httpx.AsyncHTTPTransport):
-    def __init__(
-        self,
-        max_retries: int = 5,
-        base_wait_time: float = 1.0,
-        max_wait_time: float = 60.0,
-        logger: Optional[logging.Logger] = None,
-        **kwargs: Any
-    ): ...
+Factory function that creates a layered transport with automatic resilience:
 
-    async def handle_async_request(self, request: httpx.Request) -> httpx.Response: ...
+```python
+def ResilientAsyncTransport(
+    max_retries: int = 5,
+    max_pages: int = 100,
+    logger: Optional[logging.Logger] = None,
+    **kwargs: Any
+) -> RetryTransport:
+    """
+    Creates a chained transport with:
+    1. AsyncHTTPTransport (base HTTP transport)
+    2. ErrorLoggingTransport (logs detailed 4xx errors)
+    3. PaginationTransport (auto-collects paginated responses)
+    4. RetryTransport (handles retries with Retry-After header support)
+    """
+    ...
 ```
 
 ______________________________________________________________________

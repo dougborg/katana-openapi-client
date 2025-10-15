@@ -136,9 +136,13 @@ The client provides access to all major Katana functionality:
 
 Every API call through `KatanaClient` automatically includes:
 
-- **Smart Retries**: Exponential backoff for network errors and 5xx responses
-- **Rate Limit Handling**: Automatic retry with `Retry-After` header support
-- **Error Recovery**: Intelligent retry logic that doesn't retry 4xx client errors
+- **Smart Retries**: Exponential backoff (1s, 2s, 4s, 8s, 16s) for network errors and
+  server errors
+- **Rate Limit Handling**: All HTTP methods (including POST/PATCH) are automatically
+  retried on 429 errors with `Retry-After` header support
+- **Idempotent Server Error Retry**: Only safe methods (GET, PUT, DELETE) are retried on
+  502/503/504 errors
+- **Error Recovery**: Intelligent retry logic that doesn't retry other 4xx client errors
 - **Observability**: Rich logging for debugging and monitoring
 
 ### Pythonic Design
@@ -270,27 +274,6 @@ poetry run poe test-integration    # Integration tests only
 - [**API Reference**](docs/API_REFERENCE.md) - Generated API documentation
 - [**Migration Guide**](docs/MIGRATION_GUIDE.md) - Upgrading from previous versions
 - [**Testing Guide**](docs/TESTING_GUIDE.md) - Testing patterns and examples
-
-## 🔄 Development
-
-### Quick Start
-
-```bash
-# Install dependencies
-poetry install
-
-# Install pre-commit hooks (important!)
-poetry run poe pre-commit-install
-
-# See all available tasks
-poetry run poe help
-
-# Quick development check
-poetry run poe check
-
-# Auto-fix common issues
-poetry run poe fix
-```
 
 ## 🔄 Development Workflow
 
