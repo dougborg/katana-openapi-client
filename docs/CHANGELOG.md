@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.13.1 (2025-10-15)
+
+### Bug Fixes
+
+- Add missing status_forcelist to enable retry logic for 429 errors
+  ([`ad4cbb3`](https://github.com/dougborg/katana-openapi-client/commit/ad4cbb316bd700b6e977167235ef2090e5ac034a))
+
 ## v0.13.0 (2025-10-10)
 
 ### Features
