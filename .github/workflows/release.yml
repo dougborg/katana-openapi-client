@@ -101,7 +101,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./site
-          cname: katana-openapi-client.dougborg.org
+          # cname: katana-openapi-client.dougborg.org  # Disabled until DNS is configured
 
   publish-pypi:
     name: Publish to PyPI

@@ -2,6 +2,7 @@ site_name: Katana OpenAPI Client
 site_description: Production-ready Python client for Katana Manufacturing ERP API
 site_author: Doug Borg
 site_url: https://dougborg.github.io/katana-openapi-client/
+# Note: Custom domain (katana-openapi-client.dougborg.org) available once DNS is configured
 
 repo_name: dougborg/katana-openapi-client
 repo_url: https://github.com/dougborg/katana-openapi-client
