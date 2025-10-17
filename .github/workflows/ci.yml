@@ -25,33 +25,23 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          version: latest
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
-
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v4
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --extras "dev docs" --no-interaction
+        run: uv sync --all-extras
 
       - name: Check code formatting
-        run: poetry run poe format-check
+        run: uv run poe format-check
 
       - name: Run linting and type checking
-        run: poetry run poe lint
+        run: uv run poe lint
 
       - name: Run tests
-        run: poetry run poe test-coverage
+        run: uv run poe test-coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -70,26 +60,24 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          version: latest
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install dependencies
-        run: poetry install --extras "dev docs" --no-interaction
+        run: uv sync --all-extras
 
       - name: Validate OpenAPI specification
-        run: poetry run poe validate-openapi
+        run: uv run poe validate-openapi
 
       - name: Build documentation
-        run: poetry run poe docs-build
+        run: uv run poe docs-build
         env:
           CI_DOCS_BUILD: "true"
 
       - name: Test documentation
-        run: poetry run poe test-docs
+        run: uv run poe test-docs
         env:
           CI_DOCS_BUILD: "true"

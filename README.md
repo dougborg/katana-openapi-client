@@ -6,7 +6,7 @@ comprehensive OpenAPI 3.1.0 specification with 100% endpoint coverage and automa
 resilience.
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Poetry](https://img.shields.io/badge/dependency--management-poetry-blue.svg)](https://python-poetry.org/)
+[![uv](https://img.shields.io/badge/dependency--management-uv-blue.svg)](https://docs.astral.sh/uv/)
 [![OpenAPI 3.1.0](https://img.shields.io/badge/OpenAPI-3.1.0-green.svg)](https://spec.openapis.org/oas/v3.1.0)
 
 ## ✨ Features
@@ -30,8 +30,8 @@ resilience.
 git clone https://github.com/dougborg/katana-openapi-client.git
 cd katana-openapi-client
 
-# Install with Poetry (recommended)
-poetry install
+# Install with uv (recommended)
+uv sync --all-extras
 
 # Or with pip
 pip install -e .
@@ -263,14 +263,14 @@ katana-openapi-client/
 
 ```bash
 # Run all tests
-poetry run poe test
+uv run poe test
 
 # Run with coverage
-poetry run poe test-coverage
+uv run poe test-coverage
 
 # Run specific test categories
-poetry run poe test-unit           # Unit tests only
-poetry run poe test-integration    # Integration tests only
+uv run poe test-unit           # Unit tests only
+uv run poe test-integration    # Integration tests only
 ```
 
 ## 📚 Documentation
@@ -314,78 +314,78 @@ poetry run poe test-integration    # Integration tests only
 
 ```bash
 # Install dependencies
-poetry install
+uv sync --all-extras
 
 # Install pre-commit hooks (important!)
-poetry run poe pre-commit-install
+uv run poe pre-commit-install
 
 # See all available tasks
-poetry run poe help
+uv run poe help
 
 # Quick development check
-poetry run poe check
+uv run poe check
 
 # Auto-fix common issues
-poetry run poe fix
+uv run poe fix
 ```
 
 ### Code Quality Tasks
 
 ```bash
 # Formatting
-poetry run poe format              # Format all code and documentation
-poetry run poe format-check        # Check formatting without changes
-poetry run poe format-python       # Format Python code only
+uv run poe format              # Format all code and documentation
+uv run poe format-check        # Check formatting without changes
+uv run poe format-python       # Format Python code only
 
 # Linting and Type Checking
-poetry run poe lint                 # Run all linters (ruff, mypy, yaml)
-poetry run poe lint-ruff           # Fast linting with ruff
-poetry run poe lint-mypy           # Type checking with mypy
+uv run poe lint                 # Run all linters (ruff, mypy, yaml)
+uv run poe lint-ruff           # Fast linting with ruff
+uv run poe lint-mypy           # Type checking with mypy
 
 # Testing
-poetry run poe test                 # Run all tests
-poetry run poe test-coverage       # Run tests with coverage
-poetry run poe test-unit           # Unit tests only
-poetry run poe test-integration    # Integration tests only
+uv run poe test                 # Run all tests
+uv run poe test-coverage       # Run tests with coverage
+uv run poe test-unit           # Unit tests only
+uv run poe test-integration    # Integration tests only
 ```
 
 ### OpenAPI and Client Generation
 
 ```bash
 # Regenerate client from OpenAPI spec
-poetry run poe regenerate-client
+uv run poe regenerate-client
 
 # Validate OpenAPI specification
-poetry run poe validate-openapi
+uv run poe validate-openapi
 
 # Full preparation workflow
-poetry run poe prepare             # Format + lint + test + validate
+uv run poe prepare             # Format + lint + test + validate
 ```
 
 ### Pre-commit Hooks
 
 ```bash
 # Install pre-commit hooks (run once after clone)
-poetry run poe pre-commit-install
+uv run poe pre-commit-install
 
 # Run pre-commit on all files manually
-poetry run poe pre-commit-run
+uv run poe pre-commit-run
 
 # Update pre-commit hook versions
-poetry run poe pre-commit-update
+uv run poe pre-commit-update
 ```
 
 ### CI/Development Workflows
 
 ```bash
 # Full CI pipeline (what runs in GitHub Actions)
-poetry run poe ci
+uv run poe ci
 
 # Pre-commit preparation
-poetry run poe prepare
+uv run poe prepare
 
 # Clean build artifacts
-poetry run poe clean
+uv run poe clean
 ```
 
 ## Configuration
@@ -393,7 +393,8 @@ poetry run poe clean
 All tool configurations are consolidated in `pyproject.toml` following modern Python
 packaging standards:
 
-- **Poetry**: Package metadata and dependencies
+- **uv**: Fast, modern package and dependency manager
+- **Hatchling**: Build backend for package distribution
 - **Ruff**: Code formatting and linting (replaces Black, isort, flake8)
 - **MyPy**: Type checking configuration
 - **Pytest**: Test discovery and execution settings

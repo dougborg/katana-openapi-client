@@ -24,19 +24,17 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          version: latest
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install dependencies
-        run: poetry install --extras "dev docs" --no-interaction
+        run: uv sync --all-extras
 
       - name: Run full CI pipeline
-        run: poetry run poe ci
+        run: uv run poe ci
 
   release:
     needs: test
@@ -60,16 +58,14 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          version: latest
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install dependencies
-        run: poetry install --extras "dev docs" --no-interaction
+        run: uv sync --all-extras
 
       - name: Python Semantic Release
         id: release
@@ -80,7 +76,7 @@ jobs:
 
       - name: Build package
         if: steps.release.outputs.released == 'true'
-        run: poetry build
+        run: uv build
 
       - name: Upload build artifacts
         if: steps.release.outputs.released == 'true'
@@ -91,7 +87,7 @@ jobs:
 
       - name: Build documentation
         if: steps.release.outputs.released == 'true'
-        run: poetry run poe docs-build
+        run: uv run poe docs-build
         env:
           CI_DOCS_BUILD: "true"
 

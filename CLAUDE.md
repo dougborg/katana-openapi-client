@@ -7,37 +7,36 @@ this repository.
 
 ### Development Workflow
 
-- **Setup**: `poetry install --extras "dev docs"`
-- **Format code**: `poetry run poe format`
-- **Lint code**: `poetry run poe lint` (11 seconds, NEVER CANCEL)
-- **Run tests**: `poetry run poe test` (27 seconds, NEVER CANCEL)
-- **Quick check**: `poetry run poe check` (40 seconds - runs format-check + lint + test)
-- **Auto-fix issues**: `poetry run poe fix`
+- **Setup**: `uv sync --all-extras`
+- **Format code**: `uv run poe format`
+- **Lint code**: `uv run poe lint` (11 seconds, NEVER CANCEL)
+- **Run tests**: `uv run poe test` (27 seconds, NEVER CANCEL)
+- **Quick check**: `uv run poe check` (40 seconds - runs format-check + lint + test)
+- **Auto-fix issues**: `uv run poe fix`
 
 ### Testing Commands
 
-- **Basic tests**: `poetry run poe test`
-- **With coverage**: `poetry run poe test-coverage` (39 seconds, NEVER CANCEL)
-- **Unit tests only**: `poetry run poe test-unit`
-- **Integration tests**: `poetry run poe test-integration` (requires KATANA_API_KEY in
-  .env)
+- **Basic tests**: `uv run poe test`
+- **With coverage**: `uv run poe test-coverage` (39 seconds, NEVER CANCEL)
+- **Unit tests only**: `uv run poe test-unit`
+- **Integration tests**: `uv run poe test-integration` (requires KATANA_API_KEY in .env)
 
 ### OpenAPI and Client Management
 
-- **Validate schema**: `poetry run poe validate-openapi`
-- **Regenerate client**: `poetry run poe regenerate-client` (2+ minutes, NEVER CANCEL)
-- **Validate with Redocly**: `poetry run poe validate-openapi-redocly`
+- **Validate schema**: `uv run poe validate-openapi`
+- **Regenerate client**: `uv run poe regenerate-client` (2+ minutes, NEVER CANCEL)
+- **Validate with Redocly**: `uv run poe validate-openapi-redocly`
 
 ### Documentation
 
-- **Build docs**: `poetry run poe docs-build` (2.5 minutes, NEVER CANCEL)
-- **Serve locally**: `poetry run poe docs-serve`
-- **Clean docs**: `poetry run poe docs-clean`
+- **Build docs**: `uv run poe docs-build` (2.5 minutes, NEVER CANCEL)
+- **Serve locally**: `uv run poe docs-serve`
+- **Clean docs**: `uv run poe docs-clean`
 
 ### Task Runner
 
-- **List all tasks**: `poetry run poe help`
-- **Combined workflows**: `poetry run poe ci`, `poetry run poe prepare`
+- **List all tasks**: `uv run poe help`
+- **Combined workflows**: `uv run poe ci`, `uv run poe prepare`
 
 ## Architecture Overview
 
@@ -181,20 +180,20 @@ All tools are configured in `pyproject.toml` (no separate config files):
 ### Python and Dependencies
 
 - **Python versions**: 3.11, 3.12, 3.13 supported
-- **Package manager**: Poetry (required - manages virtual environments automatically)
-- **Task runner**: poethepoet (poe) - all tasks run via `poetry run poe <task>`
+- **Package manager**: uv (required - manages virtual environments automatically)
+- **Task runner**: poethepoet (poe) - all tasks run via `uv run poe <task>`
 
 ### Command Timeouts (CRITICAL)
 
 **NEVER CANCEL** these commands before timeout:
 
-- `poetry install`: ~26 seconds (timeout: 30+ minutes)
-- `poetry run poe lint`: ~11 seconds (timeout: 15+ minutes)
-- `poetry run poe test`: ~27 seconds (timeout: 30+ minutes)
-- `poetry run poe test-coverage`: ~39 seconds (timeout: 45+ minutes)
-- `poetry run poe check`: ~40 seconds (timeout: 60+ minutes)
-- `poetry run poe docs-build`: ~2.5 minutes (timeout: 60+ minutes)
-- `poetry run poe regenerate-client`: ~2+ minutes (timeout: 60+ minutes)
+- `uv sync --all-extras`: ~5-10 seconds (timeout: 30+ minutes)
+- `uv run poe lint`: ~11 seconds (timeout: 15+ minutes)
+- `uv run poe test`: ~27 seconds (timeout: 30+ minutes)
+- `uv run poe test-coverage`: ~39 seconds (timeout: 45+ minutes)
+- `uv run poe check`: ~40 seconds (timeout: 60+ minutes)
+- `uv run poe docs-build`: ~2.5 minutes (timeout: 60+ minutes)
+- `uv run poe regenerate-client`: ~2+ minutes (timeout: 60+ minutes)
 
 ## Client Generation Process
 
@@ -279,14 +278,14 @@ This project uses **semantic-release** with conventional commits:
 ## Common Pitfalls
 
 1. **Never cancel long-running commands** - Set generous timeouts (30-60+ minutes)
-1. **Always use `poetry run`** - Don't run commands outside Poetry environment
+1. **Always use `uv run`** - Don't run commands outside uv environment
 1. **Generated code is read-only** - Use regeneration script instead of editing
 1. **Integration tests need credentials** - Set `KATANA_API_KEY` in `.env`
 1. **Import paths are flattened** - Use direct imports from
    `katana_public_api_client.api` (no `.generated` subdirectory)
 1. **Client types import** - Use `from katana_public_api_client.client_types import`
    instead of `types`
-1. **Pre-commit may fail** - Network restrictions can cause PyPI timeouts
+1. **Pre-commit may fail** - Network restrictions can cause package download timeouts
 
 ## OpenAPI Specification
 
@@ -305,23 +304,23 @@ comprehensive Katana Manufacturing ERP API. Key features:
 ### Before Making Changes
 
 ```bash
-poetry run poe check          # Full validation (~40 seconds)
-poetry run poe fix             # Auto-fix issues if found
+uv run poe check          # Full validation (~40 seconds)
+uv run poe fix            # Auto-fix issues if found
 ```
 
 ### After Making Changes
 
 ```bash
-poetry run poe format          # Format code
-poetry run poe lint            # Run linting
-poetry run poe test            # Run tests
-poetry run poe check           # Final validation
+uv run poe format         # Format code
+uv run poe lint           # Run linting
+uv run poe test           # Run tests
+uv run poe check          # Final validation
 ```
 
 ### Client Regeneration (when needed)
 
 ```bash
-poetry run poe validate-openapi          # Validate spec first
-poetry run poe regenerate-client         # Regenerate (~2+ minutes)
-poetry run poe test                      # Verify client works
+uv run poe validate-openapi       # Validate spec first
+uv run poe regenerate-client      # Regenerate (~2+ minutes)
+uv run poe test                   # Verify client works
 ```
