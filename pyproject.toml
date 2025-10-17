@@ -399,6 +399,11 @@ validate-all = ["validate-openapi", "validate-openapi-redocly"]
 version-check = "semantic-release version --dry-run"
 release-dry = "semantic-release publish --dry-run"
 
+# Coverage analysis
+[tool.poe.tasks.analyze-coverage]
+help = "Analyze test coverage by file type (generated vs core logic)"
+cmd = "python scripts/analyze_coverage.py"
+
 # Task help
 [tool.poe.tasks.help]
 help = "Show available tasks"
@@ -422,6 +427,7 @@ echo "   poe test                - Run all tests"
 echo "   poe test-coverage       - Run tests with coverage report"
 echo "   poe test-unit           - Run unit tests only"
 echo "   poe test-integration    - Run integration tests only"
+echo "   poe analyze-coverage    - Analyze coverage by file type"
 echo ""
 echo "📁 Documentation:"
 echo "   poe docs-build          - Build MkDocs documentation"
