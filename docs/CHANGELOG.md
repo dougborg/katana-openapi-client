@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.14.1 (2025-10-17)
+
+### Bug Fixes
+
+- Correct unwrap_data type overloads and handle single objects
+  ([`6bb7500`](https://github.com/dougborg/katana-openapi-client/commit/6bb750099c5d5a07e948bfa042c1f95ff732d724))
+
 ## v0.14.0 (2025-10-17)
 
 ### Documentation
