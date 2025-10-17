@@ -49,6 +49,46 @@
          <lastmod>2025-10-17</lastmod>
     </url>
     <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/adr/</loc>
+         <lastmod>2025-10-17</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/adr/0001-transport-layer-resilience/</loc>
+         <lastmod>2025-10-17</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/adr/0002-openapi-code-generation/</loc>
+         <lastmod>2025-10-17</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/adr/0003-transparent-pagination/</loc>
+         <lastmod>2025-10-17</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/adr/0004-defer-observability-to-httpx/</loc>
+         <lastmod>2025-10-17</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/adr/0005-sync-async-apis/</loc>
+         <lastmod>2025-10-17</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/adr/0006-response-unwrapping-utilities/</loc>
+         <lastmod>2025-10-17</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/adr/0007-domain-helper-classes/</loc>
+         <lastmod>2025-10-17</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/adr/0008-avoid-builder-pattern/</loc>
+         <lastmod>2025-10-17</lastmod>
+    </url>
+    <url>
+         <loc>https://dougborg.github.io/katana-openapi-client/adr/template/</loc>
+         <lastmod>2025-10-17</lastmod>
+    </url>
+    <url>
          <loc>https://dougborg.github.io/katana-openapi-client/katana-api-comprehensive/</loc>
          <lastmod>2025-10-17</lastmod>
     </url>

@@ -12,13 +12,9 @@
         <meta name="author" content="Doug Borg">
       
       
-        <link rel="canonical" href="https://dougborg.github.io/katana-openapi-client/TESTING_GUIDE/">
+        <link rel="canonical" href="https://dougborg.github.io/katana-openapi-client/adr/">
       
       
-        <link rel="prev" href="../CONTRIBUTING/">
-      
-      
-        <link rel="next" href="../POETRY_USAGE/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -26,7 +22,7 @@
     
     
       
-        <title>Testing - Katana OpenAPI Client</title>
+        <title>Architecture Decision Records - Katana OpenAPI Client</title>
       
     
     
@@ -82,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#testing-guide" class="md-skip">
+        <a href="#architecture-decision-records" class="md-skip">
           Skip to content
         </a>
       
@@ -122,7 +118,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Testing
+              Architecture Decision Records
             
           </span>
         </div>
@@ -324,12 +320,10 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
+      <li class="md-tabs__item">
         <a href="../CONTRIBUTING/" class="md-tabs__link">
           
   
@@ -16959,31 +16953,28 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -16996,7 +16987,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             Development
@@ -17030,32 +17021,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    Testing
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../TESTING_GUIDE/" class="md-nav__link">
         
   
   
@@ -17066,281 +17035,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#testing-philosophy" class="md-nav__link">
-    <span class="md-ellipsis">
-      Testing Philosophy
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#test-structure" class="md-nav__link">
-    <span class="md-ellipsis">
-      Test Structure
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Test Structure">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#core-api-quality-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Core API Quality Tests
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#specialized-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Specialized Tests
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#running-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Running Tests
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Running Tests">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#development-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      Development Workflow
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#debugging-test-failures" class="md-nav__link">
-    <span class="md-ellipsis">
-      Debugging Test Failures
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#test-categories" class="md-nav__link">
-    <span class="md-ellipsis">
-      Test Categories
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Test Categories">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#quality-assurance-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Quality Assurance Tests
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#integration-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Integration Tests
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#documentation-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Documentation Tests
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-benefits" class="md-nav__link">
-    <span class="md-ellipsis">
-      Key Benefits
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Key Benefits">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#for-contributors" class="md-nav__link">
-    <span class="md-ellipsis">
-      For Contributors
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#for-api-quality" class="md-nav__link">
-    <span class="md-ellipsis">
-      For API Quality
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#for-cicd" class="md-nav__link">
-    <span class="md-ellipsis">
-      For CI/CD
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#schema-composition-handling" class="md-nav__link">
-    <span class="md-ellipsis">
-      Schema Composition Handling
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#adding-new-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Adding New Tests
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#code-coverage-analysis" class="md-nav__link">
-    <span class="md-ellipsis">
-      Code Coverage Analysis
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Code Coverage Analysis">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#understanding-coverage-metrics" class="md-nav__link">
-    <span class="md-ellipsis">
-      Understanding Coverage Metrics
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#why-generated-code-has-low-coverage" class="md-nav__link">
-    <span class="md-ellipsis">
-      Why Generated Code Has Low Coverage
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#core-logic-coverage-breakdown" class="md-nav__link">
-    <span class="md-ellipsis">
-      Core Logic Coverage Breakdown
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#running-coverage-analysis" class="md-nav__link">
-    <span class="md-ellipsis">
-      Running Coverage Analysis
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#coverage-philosophy" class="md-nav__link">
-    <span class="md-ellipsis">
-      Coverage Philosophy
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#improving-coverage" class="md-nav__link">
-    <span class="md-ellipsis">
-      Improving Coverage
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#external-dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      External Dependencies
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -17471,37 +17165,55 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#testing-philosophy" class="md-nav__link">
+  <a href="#what-is-an-adr" class="md-nav__link">
     <span class="md-ellipsis">
-      Testing Philosophy
+      What is an ADR?
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#test-structure" class="md-nav__link">
+  <a href="#format" class="md-nav__link">
     <span class="md-ellipsis">
-      Test Structure
+      Format
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Test Structure">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      ADR Lifecycle
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#index" class="md-nav__link">
+    <span class="md-ellipsis">
+      Index
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Index">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#core-api-quality-tests" class="md-nav__link">
+  <a href="#accepted-architecture-decisions" class="md-nav__link">
     <span class="md-ellipsis">
-      Core API Quality Tests
+      Accepted Architecture Decisions
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#specialized-tests" class="md-nav__link">
+  <a href="#proposed-architecture-decisions" class="md-nav__link">
     <span class="md-ellipsis">
-      Specialized Tests
+      Proposed Architecture Decisions
     </span>
   </a>
   
@@ -17513,213 +17225,27 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#running-tests" class="md-nav__link">
+  <a href="#creating-a-new-adr" class="md-nav__link">
     <span class="md-ellipsis">
-      Running Tests
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Running Tests">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#development-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      Development Workflow
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#debugging-test-failures" class="md-nav__link">
-    <span class="md-ellipsis">
-      Debugging Test Failures
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#test-categories" class="md-nav__link">
-    <span class="md-ellipsis">
-      Test Categories
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Test Categories">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#quality-assurance-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Quality Assurance Tests
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#integration-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Integration Tests
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#documentation-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Documentation Tests
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-benefits" class="md-nav__link">
-    <span class="md-ellipsis">
-      Key Benefits
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Key Benefits">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#for-contributors" class="md-nav__link">
-    <span class="md-ellipsis">
-      For Contributors
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#for-api-quality" class="md-nav__link">
-    <span class="md-ellipsis">
-      For API Quality
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#for-cicd" class="md-nav__link">
-    <span class="md-ellipsis">
-      For CI/CD
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#schema-composition-handling" class="md-nav__link">
-    <span class="md-ellipsis">
-      Schema Composition Handling
+      Creating a New ADR
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#adding-new-tests" class="md-nav__link">
+  <a href="#adr-numbering" class="md-nav__link">
     <span class="md-ellipsis">
-      Adding New Tests
+      ADR Numbering
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#code-coverage-analysis" class="md-nav__link">
+  <a href="#related-documentation" class="md-nav__link">
     <span class="md-ellipsis">
-      Code Coverage Analysis
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Code Coverage Analysis">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#understanding-coverage-metrics" class="md-nav__link">
-    <span class="md-ellipsis">
-      Understanding Coverage Metrics
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#why-generated-code-has-low-coverage" class="md-nav__link">
-    <span class="md-ellipsis">
-      Why Generated Code Has Low Coverage
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#core-logic-coverage-breakdown" class="md-nav__link">
-    <span class="md-ellipsis">
-      Core Logic Coverage Breakdown
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#running-coverage-analysis" class="md-nav__link">
-    <span class="md-ellipsis">
-      Running Coverage Analysis
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#coverage-philosophy" class="md-nav__link">
-    <span class="md-ellipsis">
-      Coverage Philosophy
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#improving-coverage" class="md-nav__link">
-    <span class="md-ellipsis">
-      Improving Coverage
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#external-dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      External Dependencies
+      Related Documentation
     </span>
   </a>
   
@@ -17741,7 +17267,7 @@
 
 
   
-    <a href="https://github.com/dougborg/katana-openapi-client/edit/main/docs/TESTING_GUIDE.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/dougborg/katana-openapi-client/edit/main/docs/adr/README.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -17749,222 +17275,85 @@
   
 
 
-<h1 id="testing-guide">Testing Guide<a class="headerlink" href="#testing-guide" title="Permanent link">&para;</a></h1>
-<p>This guide explains the testing architecture and approach for the Katana OpenAPI Client
-project.</p>
-<h2 id="testing-philosophy">Testing Philosophy<a class="headerlink" href="#testing-philosophy" title="Permanent link">&para;</a></h2>
-<p>Our test suite uses a <strong>zero-tolerance approach</strong> for API quality issues:</p>
+<h1 id="architecture-decision-records">Architecture Decision Records<a class="headerlink" href="#architecture-decision-records" title="Permanent link">&para;</a></h1>
+<p>This directory contains Architecture Decision Records (ADRs) for the Katana OpenAPI
+Client project.</p>
+<h2 id="what-is-an-adr">What is an ADR?<a class="headerlink" href="#what-is-an-adr" title="Permanent link">&para;</a></h2>
+<p>An Architecture Decision Record (ADR) is a document that captures an important
+architectural decision made along with its context and consequences.</p>
+<h2 id="format">Format<a class="headerlink" href="#format" title="Permanent link">&para;</a></h2>
+<p>We use the format proposed by Michael Nygard in his article
+<a href="https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions">Documenting Architecture Decisions</a>:</p>
 <ul>
-<li><strong>Equal treatment</strong>: Every endpoint and schema receives identical validation</li>
-<li><strong>Comprehensive coverage</strong>: All API elements are automatically tested</li>
-<li><strong>Parameterized testing</strong>: Precise failure identification with detailed context</li>
-<li><strong>External consistency</strong>: Validation against official Katana documentation</li>
+<li><strong>Title</strong>: A short noun phrase describing the decision</li>
+<li><strong>Status</strong>: Proposed | Accepted | Deprecated | Superseded</li>
+<li><strong>Context</strong>: What is the issue that we're seeing that is motivating this decision?</li>
+<li><strong>Decision</strong>: What is the change that we're proposing and/or doing?</li>
+<li><strong>Consequences</strong>: What becomes easier or more difficult to do because of this change?</li>
 </ul>
-<h2 id="test-structure">Test Structure<a class="headerlink" href="#test-structure" title="Permanent link">&para;</a></h2>
-<h3 id="core-api-quality-tests">Core API Quality Tests<a class="headerlink" href="#core-api-quality-tests" title="Permanent link">&para;</a></h3>
-<p><strong><code>test_openapi_specification.py</code></strong> - OpenAPI Document Structure</p>
-<ul>
-<li>OpenAPI version compliance and document structure</li>
-<li>Required sections validation (info, paths, components)</li>
-<li>Operation ID uniqueness and YAML syntax validation</li>
-</ul>
-<p><strong><code>test_schema_comprehensive.py</code></strong> - Schema Validation</p>
-<ul>
-<li>Schema descriptions and property descriptions for all schemas</li>
-<li>BaseEntity inheritance patterns and structure standards</li>
-<li>Automatic coverage for new schemas without maintenance</li>
-</ul>
-<p><strong><code>test_endpoint_comprehensive.py</code></strong> - Endpoint Validation</p>
-<ul>
-<li>Operation IDs, documentation, response schemas, parameters</li>
-<li>Collection endpoint pagination validation</li>
-<li>Request body validation and error response coverage</li>
-</ul>
-<p><strong><code>test_external_documentation_comparison.py</code></strong> - External Consistency</p>
-<ul>
-<li>Validates against comprehensive documentation from developer.katanamrp.com</li>
-<li>Endpoint completeness, method coverage, parameter consistency</li>
-<li>Business domain coverage verification</li>
-</ul>
-<h3 id="specialized-tests">Specialized Tests<a class="headerlink" href="#specialized-tests" title="Permanent link">&para;</a></h3>
-<p><strong><code>test_generated_client.py</code></strong> - Generated client structure and imports
-<strong><code>test_katana_client.py</code></strong> - Custom client implementation and transport layer\
-<strong><code>test_real_api.py</code></strong> - Integration tests against real API (requires credentials)
-<strong><code>test_performance.py</code></strong> - Performance, retry behavior, memory usage
-<strong><code>test_transport_auto_pagination.py</code></strong> - Transport layer pagination features
-<strong><code>test_documentation.py</code></strong> - Documentation build and content validation</p>
-<h2 id="running-tests">Running Tests<a class="headerlink" href="#running-tests" title="Permanent link">&para;</a></h2>
-<h3 id="development-workflow">Development Workflow<a class="headerlink" href="#development-workflow" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Run all tests</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>poetry<span class="w"> </span>run<span class="w"> </span>poe<span class="w"> </span><span class="nb">test</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Test specific areas</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>poetry<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/test_schema_comprehensive.py<span class="w">        </span><span class="c1"># Schema issues</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>poetry<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/test_endpoint_comprehensive.py<span class="w">     </span><span class="c1"># Endpoint issues</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>poetry<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/test_openapi_specification.py<span class="w">      </span><span class="c1"># Structure issues</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>poetry<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/test_external_documentation_comparison.py<span class="w">  </span><span class="c1"># External consistency</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Run with coverage</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>poetry<span class="w"> </span>run<span class="w"> </span>poe<span class="w"> </span>test-coverage
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1"># Analyze coverage by category</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>poetry<span class="w"> </span>run<span class="w"> </span>poe<span class="w"> </span>analyze-coverage
-</span></code></pre></div>
-<h3 id="debugging-test-failures">Debugging Test Failures<a class="headerlink" href="#debugging-test-failures" title="Permanent link">&para;</a></h3>
-<p>Parameterized tests provide precise failure identification:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>test_schema_comprehensive.py::test_schema_has_description[schema-Customer] FAILED
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>test_endpoint_comprehensive.py::test_endpoint_has_documentation[GET-customers] FAILED
-</span></code></pre></div>
-<p>Each failure shows exactly which schema or endpoint needs attention.</p>
-<h2 id="test-categories">Test Categories<a class="headerlink" href="#test-categories" title="Permanent link">&para;</a></h2>
-<h3 id="quality-assurance-tests">Quality Assurance Tests<a class="headerlink" href="#quality-assurance-tests" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>Zero tolerance</strong>: All tests must pass for release</li>
-<li><strong>Equal treatment</strong>: No endpoint or schema is more important than another</li>
-<li><strong>Automatic scaling</strong>: New API elements automatically get full validation</li>
-</ul>
-<h3 id="integration-tests">Integration Tests<a class="headerlink" href="#integration-tests" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>Real API tests</strong>: Require <code>KATANA_API_KEY</code> in <code>.env</code> file</li>
-<li><strong>Network resilience</strong>: Test retry behavior and error handling</li>
-<li><strong>Performance validation</strong>: Memory usage and response time testing</li>
-</ul>
-<h3 id="documentation-tests">Documentation Tests<a class="headerlink" href="#documentation-tests" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>Build validation</strong>: Ensure documentation compiles correctly</li>
-<li><strong>Content consistency</strong>: Verify examples and API references are current</li>
-</ul>
-<h2 id="key-benefits">Key Benefits<a class="headerlink" href="#key-benefits" title="Permanent link">&para;</a></h2>
-<h3 id="for-contributors">For Contributors<a class="headerlink" href="#for-contributors" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>Clear failure messages</strong>: Know exactly what needs to be fixed</li>
-<li><strong>No maintenance burden</strong>: Tests automatically cover new API elements</li>
-<li><strong>Consistent standards</strong>: Every addition follows the same quality requirements</li>
-</ul>
-<h3 id="for-api-quality">For API Quality<a class="headerlink" href="#for-api-quality" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>Comprehensive coverage</strong>: Nothing falls through the cracks</li>
-<li><strong>External consistency</strong>: API matches official documentation</li>
-<li><strong>Schema composition</strong>: Proper <code>allOf</code> and <code>$ref</code> usage validation</li>
-</ul>
-<h3 id="for-cicd">For CI/CD<a class="headerlink" href="#for-cicd" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>Fast failure detection</strong>: Issues identified immediately</li>
-<li><strong>Precise debugging</strong>: No need to hunt through multiple test files</li>
-<li><strong>Reliable coverage</strong>: Equal validation for all API elements</li>
-</ul>
-<h2 id="schema-composition-handling">Schema Composition Handling<a class="headerlink" href="#schema-composition-handling" title="Permanent link">&para;</a></h2>
-<p>Our tests properly handle OpenAPI schema composition patterns:</p>
-<ul>
-<li><strong>Direct properties</strong>: Schemas with <code>properties</code> are fully validated</li>
-<li><strong>Composed schemas</strong>: Schemas using <code>allOf</code> with <code>$ref</code> are correctly skipped</li>
-<li><strong>Base schema validation</strong>: Referenced schemas (like <code>BaseEntity</code>, <code>UpdatableEntity</code>)
-  are thoroughly tested</li>
-<li><strong>Inheritance validation</strong>: Property descriptions are inherited through <code>$ref</code>
-  composition</li>
-</ul>
-<p>When tests are skipped for composed schemas, this is expected behavior - the validation
-happens at the base schema level.</p>
-<h2 id="adding-new-tests">Adding New Tests<a class="headerlink" href="#adding-new-tests" title="Permanent link">&para;</a></h2>
-<p>When extending the test suite:</p>
+<h2 id="adr-lifecycle">ADR Lifecycle<a class="headerlink" href="#adr-lifecycle" title="Permanent link">&para;</a></h2>
 <ol>
-<li><strong>Use parameterized tests</strong> for comprehensive coverage</li>
-<li><strong>Avoid hard-coded entity lists</strong> - let tests discover API elements automatically</li>
-<li><strong>Follow the zero-tolerance approach</strong> - no exceptions for specific endpoints or
-   schemas</li>
-<li><strong>Provide clear failure messages</strong> with actionable debugging information</li>
+<li><strong>Proposed</strong>: The ADR is proposed and under discussion</li>
+<li><strong>Accepted</strong>: The ADR has been accepted and is being implemented</li>
+<li><strong>Deprecated</strong>: The ADR is no longer recommended but still in use</li>
+<li><strong>Superseded</strong>: The ADR has been replaced by another ADR</li>
 </ol>
-<h2 id="code-coverage-analysis">Code Coverage Analysis<a class="headerlink" href="#code-coverage-analysis" title="Permanent link">&para;</a></h2>
-<h3 id="understanding-coverage-metrics">Understanding Coverage Metrics<a class="headerlink" href="#understanding-coverage-metrics" title="Permanent link">&para;</a></h3>
-<p><strong>TL;DR</strong>: Overall coverage of 23% is misleading. <strong>Core logic coverage is 74.8%</strong>,
-which is what actually matters.</p>
-<p>The overall coverage includes ~30,000 lines of auto-generated code (API modules and
-models) that don't need comprehensive unit testing.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Overall Coverage: 23.1%
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>├── Generated API (197 files, 10,517 lines): 0.6% ❌ Don&#39;t worry!
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>├── Generated Models (337 files, 19,911 lines): 33.5% ❌ Don&#39;t worry!
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>└── Core Logic (5 files, 524 lines): 74.8% ✅ This is what matters!
-</span></code></pre></div>
-<h3 id="why-generated-code-has-low-coverage">Why Generated Code Has Low Coverage<a class="headerlink" href="#why-generated-code-has-low-coverage" title="Permanent link">&para;</a></h3>
+<h2 id="index">Index<a class="headerlink" href="#index" title="Permanent link">&para;</a></h2>
+<h3 id="accepted-architecture-decisions">Accepted Architecture Decisions<a class="headerlink" href="#accepted-architecture-decisions" title="Permanent link">&para;</a></h3>
+<ul>
+<li><a href="0001-transport-layer-resilience/">ADR-001: Use Transport-Layer Resilience Pattern</a></li>
+<li><a href="0002-openapi-code-generation/">ADR-002: Generate Client from OpenAPI Specification</a></li>
+<li><a href="0003-transparent-pagination/">ADR-003: Transparent Automatic Pagination</a></li>
+<li><a href="0004-defer-observability-to-httpx/">ADR-004: Defer Observability to httpx</a></li>
+<li><a href="0005-sync-async-apis/">ADR-005: Provide Both Sync and Async APIs</a></li>
+<li><a href="0006-response-unwrapping-utilities/">ADR-006: Use Utility Functions for Response Unwrapping</a></li>
+</ul>
+<h3 id="proposed-architecture-decisions">Proposed Architecture Decisions<a class="headerlink" href="#proposed-architecture-decisions" title="Permanent link">&para;</a></h3>
+<ul>
+<li><a href="0007-domain-helper-classes/">ADR-007: Generate Domain Helper Classes</a> -
+  <strong>PROPOSED</strong></li>
+<li><a href="0008-avoid-builder-pattern/">ADR-008: Avoid Traditional Builder Pattern</a> -
+  <strong>PROPOSED</strong></li>
+</ul>
+<h2 id="creating-a-new-adr">Creating a New ADR<a class="headerlink" href="#creating-a-new-adr" title="Permanent link">&para;</a></h2>
 <ol>
-<li><strong>API Modules</strong> - Auto-generated from OpenAPI spec, mostly boilerplate</li>
-<li><strong>Model Classes</strong> - Auto-generated data classes with simple serialization</li>
-<li><strong>Generator is Tested</strong> - The openapi-python-client generator has its own tests</li>
-<li><strong>Integration Testing</strong> - Generated code is tested through real API calls</li>
+<li>Copy the template:</li>
 </ol>
-<h3 id="core-logic-coverage-breakdown">Core Logic Coverage Breakdown<a class="headerlink" href="#core-logic-coverage-breakdown" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>File</th>
-<th>Coverage</th>
-<th>Status</th>
-<th>Priority</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>utils.py</code></td>
-<td>98.1%</td>
-<td>✅ Excellent</td>
-<td>Maintain</td>
-</tr>
-<tr>
-<td><code>katana_client.py</code></td>
-<td>85.3%</td>
-<td>✅ Good</td>
-<td>Maintain, improve to 90%+</td>
-</tr>
-<tr>
-<td><code>__init__.py</code></td>
-<td>100.0%</td>
-<td>✅ Perfect</td>
-<td>Maintain</td>
-</tr>
-<tr>
-<td><code>client.py</code></td>
-<td>51.3%</td>
-<td>⚠️ Moderate</td>
-<td>Improve to 70%+</td>
-</tr>
-<tr>
-<td><code>log_setup.py</code></td>
-<td>0.0%</td>
-<td>❌ None</td>
-<td>Add basic tests</td>
-</tr>
-</tbody>
-</table>
-<h3 id="running-coverage-analysis">Running Coverage Analysis<a class="headerlink" href="#running-coverage-analysis" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Generate coverage data and analyze by category</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>poetry<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>--cov<span class="o">=</span>katana_public_api_client<span class="w"> </span>--cov-report<span class="o">=</span>json<span class="w"> </span>-m<span class="w"> </span><span class="s1">&#39;not docs&#39;</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>poetry<span class="w"> </span>run<span class="w"> </span>poe<span class="w"> </span>analyze-coverage
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Generate HTML report for detailed inspection</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>poetry<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>--cov<span class="o">=</span>katana_public_api_client<span class="w"> </span>--cov-report<span class="o">=</span>html<span class="w"> </span>-m<span class="w"> </span><span class="s1">&#39;not docs&#39;</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>open<span class="w"> </span>htmlcov/index.html
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cp<span class="w"> </span>docs/adr/template.md<span class="w"> </span>docs/adr/NNNN-short-title.md
 </span></code></pre></div>
-<h3 id="coverage-philosophy">Coverage Philosophy<a class="headerlink" href="#coverage-philosophy" title="Permanent link">&para;</a></h3>
-<p><strong>Test what you write, not what's generated.</strong></p>
+<ol>
+<li>
+<p>Update the number (NNNN) to be the next sequential number</p>
+</li>
+<li>
+<p>Fill in the sections:</p>
+</li>
+<li>
+<p>Title</p>
+</li>
+<li>Status (start with "Proposed")</li>
+<li>Context (why is this decision needed?)</li>
+<li>Decision (what are we doing?)</li>
+<li>
+<p>Consequences (what are the tradeoffs?)</p>
+</li>
+<li>
+<p>Create a PR for discussion</p>
+</li>
+<li>
+<p>After acceptance, update status to "Accepted"</p>
+</li>
+</ol>
+<h2 id="adr-numbering">ADR Numbering<a class="headerlink" href="#adr-numbering" title="Permanent link">&para;</a></h2>
+<p>ADRs are numbered sequentially starting from 0001. The number is part of the filename to
+ensure ordering.</p>
+<h2 id="related-documentation">Related Documentation<a class="headerlink" href="#related-documentation" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Generated code (248 API modules, 337 models): Low coverage OK</li>
-<li>Core logic (5 files, 524 lines): High coverage essential (target: 70%+)</li>
-<li>Focus testing effort where bugs are likely to occur</li>
-</ul>
-<h3 id="improving-coverage">Improving Coverage<a class="headerlink" href="#improving-coverage" title="Permanent link">&para;</a></h3>
-<p>See <a href="https://github.com/dougborg/katana-openapi-client/issues/31">Issue #31</a> for
-detailed improvement plan targeting:</p>
-<ul>
-<li><code>katana_client.py</code>: 85% → 90%+ (add edge case tests)</li>
-<li><code>client.py</code>: 51% → 70%+ (test common patterns)</li>
-<li><code>log_setup.py</code>: 0% → 60%+ (add basic smoke tests)</li>
-</ul>
-<h2 id="external-dependencies">External Dependencies<a class="headerlink" href="#external-dependencies" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Official Katana documentation</strong>: Tests validate against <code>developer.katanamrp.com</code>
-  content</li>
-<li><strong>Generated client validation</strong>: Ensures openapi-python-client generates valid code</li>
-<li><strong>Real API integration</strong>: Optional tests with actual Katana API (credentials required)</li>
+<li><a href="../REVISED_ASSESSMENT.md">REVISED_ASSESSMENT.md</a> - Comprehensive codebase assessment</li>
+<li><a href="../BUILDER_PATTERN_ANALYSIS.md">BUILDER_PATTERN_ANALYSIS.md</a> - Builder pattern
+  analysis</li>
+<li><a href="../DOMAIN_HELPERS_DESIGN.md">DOMAIN_HELPERS_DESIGN.md</a> - Domain helpers design</li>
+<li><a href="../COVERAGE_ANALYSIS.md">COVERAGE_ANALYSIS.md</a> - Test coverage analysis</li>
 </ul>
 
 
