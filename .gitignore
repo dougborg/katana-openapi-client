@@ -160,4 +160,8 @@ openapi_docs/
 # Backup files
 *.orig
 *.rej
+
+# Coverage and analysis files
 coverage.json
+api_analysis_results.json
+validation_results.json

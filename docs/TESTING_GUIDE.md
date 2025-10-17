@@ -65,6 +65,9 @@ poetry run pytest tests/test_external_documentation_comparison.py  # External co
 
 # Run with coverage
 poetry run poe test-coverage
+
+# Analyze coverage by category
+poetry run poe analyze-coverage
 ```
 
 ### Debugging Test Failures
@@ -140,6 +143,69 @@ When extending the test suite:
 1. **Follow the zero-tolerance approach** - no exceptions for specific endpoints or
    schemas
 1. **Provide clear failure messages** with actionable debugging information
+
+## Code Coverage Analysis
+
+### Understanding Coverage Metrics
+
+**TL;DR**: Overall coverage of 23% is misleading. **Core logic coverage is 74.8%**,
+which is what actually matters.
+
+The overall coverage includes ~30,000 lines of auto-generated code (API modules and
+models) that don't need comprehensive unit testing.
+
+```text
+Overall Coverage: 23.1%
+├── Generated API (197 files, 10,517 lines): 0.6% ❌ Don't worry!
+├── Generated Models (337 files, 19,911 lines): 33.5% ❌ Don't worry!
+└── Core Logic (5 files, 524 lines): 74.8% ✅ This is what matters!
+```
+
+### Why Generated Code Has Low Coverage
+
+1. **API Modules** - Auto-generated from OpenAPI spec, mostly boilerplate
+1. **Model Classes** - Auto-generated data classes with simple serialization
+1. **Generator is Tested** - The openapi-python-client generator has its own tests
+1. **Integration Testing** - Generated code is tested through real API calls
+
+### Core Logic Coverage Breakdown
+
+| File               | Coverage | Status       | Priority                  |
+| ------------------ | -------- | ------------ | ------------------------- |
+| `utils.py`         | 98.1%    | ✅ Excellent | Maintain                  |
+| `katana_client.py` | 85.3%    | ✅ Good      | Maintain, improve to 90%+ |
+| `__init__.py`      | 100.0%   | ✅ Perfect   | Maintain                  |
+| `client.py`        | 51.3%    | ⚠️ Moderate  | Improve to 70%+           |
+| `log_setup.py`     | 0.0%     | ❌ None      | Add basic tests           |
+
+### Running Coverage Analysis
+
+```bash
+# Generate coverage data and analyze by category
+poetry run pytest --cov=katana_public_api_client --cov-report=json -m 'not docs'
+poetry run poe analyze-coverage
+
+# Generate HTML report for detailed inspection
+poetry run pytest --cov=katana_public_api_client --cov-report=html -m 'not docs'
+open htmlcov/index.html
+```
+
+### Coverage Philosophy
+
+**Test what you write, not what's generated.**
+
+- Generated code (248 API modules, 337 models): Low coverage OK
+- Core logic (5 files, 524 lines): High coverage essential (target: 70%+)
+- Focus testing effort where bugs are likely to occur
+
+### Improving Coverage
+
+See [Issue #31](https://github.com/dougborg/katana-openapi-client/issues/31) for
+detailed improvement plan targeting:
+
+- `katana_client.py`: 85% → 90%+ (add edge case tests)
+- `client.py`: 51% → 70%+ (test common patterns)
+- `log_setup.py`: 0% → 60%+ (add basic smoke tests)
 
 ## External Dependencies
 

@@ -17,7 +17,7 @@ Usage:
 import json
 import sys
 from pathlib import Path
-from typing import TypedDict
+from typing import Any, TypedDict
 
 
 class FileStats(TypedDict):
@@ -70,7 +70,7 @@ def categorize_file(file_path: str) -> str:
         return "other"
 
 
-def load_coverage_data() -> dict | None:
+def load_coverage_data() -> dict[str, Any] | None:
     """Load coverage data from coverage.json if it exists."""
     coverage_file = Path("coverage.json")
     if not coverage_file.exists():
@@ -246,11 +246,11 @@ def print_summary(categories: dict[str, CategoryStats]) -> None:
         # Sort by coverage percentage
         sorted_files = sorted(core_stats["files"], key=lambda x: x[1]["percent"])
 
-        for file_path, stats in sorted_files:
+        for file_path, file_stats in sorted_files:
             filename = file_path.split("/")[-1]
-            percent = stats["percent"]
-            covered = stats["covered"]
-            total = stats["statements"]
+            percent = file_stats["percent"]
+            covered = file_stats["covered"]
+            total = file_stats["statements"]
 
             # Status indicator
             if percent >= 70:
@@ -284,11 +284,11 @@ def print_summary(categories: dict[str, CategoryStats]) -> None:
 
     if low_coverage_files:
         print("\n📋 Files needing better coverage (< 70%):")
-        for file_path, stats in sorted(
+        for file_path, file_stats in sorted(
             low_coverage_files, key=lambda x: x[1]["percent"]
         ):
             filename = file_path.split("/")[-1]
-            print(f"   • {filename:30} {stats['percent']:5.1f}%")
+            print(f"   • {filename:30} {file_stats['percent']:5.1f}%")
 
     print("\n💡 Tips:")
     print("   • Generated code (api/, models/) doesn't need high coverage")
