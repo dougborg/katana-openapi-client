@@ -2,6 +2,21 @@
 
 <!-- version list -->
 
+## v0.14.0 (2025-10-17)
+
+### Documentation
+
+- Improve documentation deployment configuration
+  ([`82477bc`](https://github.com/dougborg/katana-openapi-client/commit/82477bc0e4ba1b4efe6a302a2c924b58a3747449))
+
+- Update documentation to reflect current retry logic and remove outdated content
+  ([`5ba4b48`](https://github.com/dougborg/katana-openapi-client/commit/5ba4b485e62fc4e3d1eeed27b783e814c8a1a99d))
+
+### Features
+
+- Add response unwrapping and error handling utilities
+  ([`a237907`](https://github.com/dougborg/katana-openapi-client/commit/a2379071e0561e19129467583dae189c46fe2da1))
+
 ## v0.13.1 (2025-10-15)
 
 ### Bug Fixes
