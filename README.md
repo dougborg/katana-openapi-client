@@ -275,11 +275,38 @@ poetry run poe test-integration    # Integration tests only
 
 ## 📚 Documentation
 
+### User Guides
+
 - [**KatanaClient Guide**](docs/KATANA_CLIENT_GUIDE.md) - Complete KatanaClient usage
   guide
 - [**API Reference**](docs/API_REFERENCE.md) - Generated API documentation
 - [**Migration Guide**](docs/MIGRATION_GUIDE.md) - Upgrading from previous versions
 - [**Testing Guide**](docs/TESTING_GUIDE.md) - Testing patterns and examples
+
+### Architecture & Design
+
+- [**Architecture Decision Records (ADRs)**](docs/adr/README.md) - Key architectural
+  decisions
+  - [ADR-001: Transport-Layer Resilience](docs/adr/0001-transport-layer-resilience.md)
+  - [ADR-002: OpenAPI Code Generation](docs/adr/0002-openapi-code-generation.md)
+  - [ADR-003: Transparent Pagination](docs/adr/0003-transparent-pagination.md)
+  - [ADR-004: Defer Observability to httpx](docs/adr/0004-defer-observability-to-httpx.md)
+  - [ADR-005: Sync and Async APIs](docs/adr/0005-sync-async-apis.md)
+  - [ADR-006: Response Unwrapping Utilities](docs/adr/0006-response-unwrapping-utilities.md)
+  - [ADR-007: Domain Helper Classes](docs/adr/0007-domain-helper-classes.md)
+    (**PROPOSED**)
+  - [ADR-008: Avoid Builder Pattern](docs/adr/0008-avoid-builder-pattern.md)
+    (**PROPOSED**)
+
+### Project Analysis
+
+- [**Revised Assessment**](docs/REVISED_ASSESSMENT.md) - Comprehensive review (Grade: A,
+  95/100)
+- [**Coverage Analysis**](docs/COVERAGE_ANALYSIS.md) - Test coverage breakdown (74.8%
+  core logic)
+- [**Builder Pattern Analysis**](docs/BUILDER_PATTERN_ANALYSIS.md) - Builder vs domain
+  helpers
+- [**Domain Helpers Design**](docs/DOMAIN_HELPERS_DESIGN.md) - Complete helper design
 
 ## 🔄 Development Workflow
 
