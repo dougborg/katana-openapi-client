@@ -204,38 +204,44 @@ async with KatanaClient() as client:
     print(f"Found {len(sellable_products)} sellable products")
 ```
 
-### Direct API Usage
+### Response Unwrapping Utilities
+
+Convenient helpers to unwrap responses and handle errors:
 
 ```python
-from katana_public_api_client import KatanaClient
-from katana_public_api_client.api.inventory import get_all_inventory_points
-from katana_public_api_client.api.manufacturing_order import get_all_manufacturing_orders
-from katana_public_api_client.api.product import get_all_products, get_product
-from katana_public_api_client.api.sales_order import get_all_sales_orders, get_sales_order
+from katana_public_api_client import (
+    KatanaClient,
+    unwrap,
+    unwrap_data,
+    APIError,
+    AuthenticationError,
+    ValidationError,
+)
+from katana_public_api_client.api.product import get_all_products
 
 async with KatanaClient() as client:
-    # Direct API methods with automatic pagination and resilience
-    products = await get_all_products.asyncio_detailed(
-        client=client, is_sellable=True
-    )
-    orders = await get_all_sales_orders.asyncio_detailed(
-        client=client, status="open"
-    )
-    inventory = await get_all_inventory_points.asyncio_detailed(
-        client=client
-    )
-    manufacturing = await get_all_manufacturing_orders.asyncio_detailed(
-        client=client, status="planned"
-    )
+    # unwrap() extracts parsed data and raises typed exceptions on errors
+    response = await get_all_products.asyncio_detailed(client=client)
+    product_list = unwrap(response)  # Raises APIError on failure
 
-    # Individual item lookup
-    product = await get_product.asyncio_detailed(
-        client=client, id=123
-    )
-    order = await get_sales_order.asyncio_detailed(
-        client=client, id=456
-    )
+    # unwrap_data() directly extracts the .data field from list responses
+    products = unwrap_data(response)  # Returns list of Product objects
+    for product in products:
+        print(f"Product: {product.name}")
+
+    # Handle errors with typed exceptions
+    try:
+        response = await get_all_products.asyncio_detailed(client=client)
+        products = unwrap(response)
+    except AuthenticationError as e:
+        print(f"Auth failed: {e}")
+    except ValidationError as e:
+        print(f"Validation error: {e.validation_errors}")
+    except APIError as e:
+        print(f"API error {e.status_code}: {e}")
 ```
+
+See [examples/using_utils.py](examples/using_utils.py) for more examples.
 
 ## � Project Structure
 
