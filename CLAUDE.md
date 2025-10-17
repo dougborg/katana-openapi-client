@@ -120,6 +120,50 @@ async with client:
 - `scripts/` - Development scripts
 - `docs/` - Documentation
 
+## Documentation Structure
+
+### Key Documentation Files
+
+- **[README.md](README.md)** - Project overview and quick start
+- **[CLAUDE.md](CLAUDE.md)** - This file - guidance for Claude Code
+- **[docs/KATANA_CLIENT_GUIDE.md](docs/KATANA_CLIENT_GUIDE.md)** - User guide for the
+  client
+- **[docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)** - Testing strategy and coverage
+  analysis
+- **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Contribution guidelines
+- **[docs/adr/](docs/adr/)** - Architecture Decision Records (ADRs)
+
+### Architecture Decision Records (ADRs)
+
+**Location**: [docs/adr/](docs/adr/)
+
+ADRs document key architectural decisions with their context and consequences. See
+[docs/adr/README.md](docs/adr/README.md) for the full index.
+
+**Accepted ADRs** (Core Architecture):
+
+- **[ADR-001](docs/adr/0001-transport-layer-resilience.md)**: Transport-Layer Resilience
+  Pattern
+- **[ADR-002](docs/adr/0002-openapi-code-generation.md)**: Generate Client from OpenAPI
+  Specification
+- **[ADR-003](docs/adr/0003-transparent-pagination.md)**: Transparent Automatic
+  Pagination
+- **[ADR-004](docs/adr/0004-defer-observability-to-httpx.md)**: Defer Observability to
+  httpx
+- **[ADR-005](docs/adr/0005-sync-async-apis.md)**: Provide Both Sync and Async APIs
+- **[ADR-006](docs/adr/0006-response-unwrapping-utilities.md)**: Response Unwrapping
+  Utilities
+
+**Proposed ADRs** (Under Consideration):
+
+- **[ADR-007](docs/adr/0007-domain-helper-classes.md)**: Generate Domain Helper Classes
+  (PROPOSED)
+- **[ADR-008](docs/adr/0008-avoid-builder-pattern.md)**: Avoid Traditional Builder
+  Pattern (PROPOSED)
+
+When making architectural decisions or understanding design choices, **consult the ADRs
+first** - they explain the "why" behind the codebase structure.
+
 ## Development Environment
 
 ### Tool Configuration

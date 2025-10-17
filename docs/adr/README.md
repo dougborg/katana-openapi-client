@@ -73,8 +73,7 @@ ensure ordering.
 
 ## Related Documentation
 
-- [REVISED_ASSESSMENT.md](../REVISED_ASSESSMENT.md) - Comprehensive codebase assessment
-- [BUILDER_PATTERN_ANALYSIS.md](../BUILDER_PATTERN_ANALYSIS.md) - Builder pattern
-  analysis
-- [DOMAIN_HELPERS_DESIGN.md](../DOMAIN_HELPERS_DESIGN.md) - Domain helpers design
-- [COVERAGE_ANALYSIS.md](../COVERAGE_ANALYSIS.md) - Test coverage analysis
+- [TESTING_GUIDE.md](../TESTING_GUIDE.md) - Test coverage analysis and testing strategy
+- [KATANA_CLIENT_GUIDE.md](../KATANA_CLIENT_GUIDE.md) - User guide for the client
+- [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
+- [README.md](../../README.md) - Project overview and quick start
