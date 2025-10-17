@@ -29,46 +29,37 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.12"
-
-      - name: Install Poetry
-        run: |
-          echo "📦 Installing Poetry (Python package manager)..."
-          pip install poetry
-          echo "✅ Poetry installed successfully"
-
-      - name: Configure Poetry
-        run: |
-          poetry config virtualenvs.create true
-          poetry config virtualenvs.in-project false
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.13"
 
       - name: Install dependencies
         run: |
-          echo "🔧 Installing project dependencies with Poetry..."
-          echo "⏱️  This may take several minutes, please be patient..."
-          poetry install --extras "dev docs"
+          echo "🔧 Installing project dependencies with uv..."
+          echo "⏱️  This should only take a few seconds..."
+          uv sync --all-extras
           echo "✅ Dependencies installed successfully"
 
       - name: Install pre-commit hooks
         run: |
           echo "🪝 Installing pre-commit hooks..."
-          poetry run poe pre-commit-install || echo "⚠️  Pre-commit installation may fail in restricted environments"
+          uv run poe pre-commit-install || echo "⚠️  Pre-commit installation may fail in restricted environments"
           echo "✅ Pre-commit hooks installation attempted"
 
       - name: Verify installation
         run: |
-          echo "🔍 Verifying Poetry virtual environment..."
-          poetry env info
+          echo "🔍 Verifying uv environment..."
+          uv --version
 
           echo "🎯 Verifying poethepoet (poe) task runner..."
-          poetry run poe --help > /dev/null
+          uv run poe --help > /dev/null
           echo "✅ Poe task runner available"
 
           echo "🧪 Testing package imports..."
-          poetry run python -c "
+          uv run python -c "
           import katana_public_api_client
           from katana_public_api_client import KatanaClient
           print('✅ Package imports successful')
@@ -80,6 +71,6 @@ jobs:
 
           # Format check (fastest validation)
           echo "🎨 Checking code formatting..."
-          poetry run poe format-check
+          uv run poe format-check
 
           echo "✅ Environment setup complete and validated"
