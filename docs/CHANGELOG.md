@@ -2,6 +2,32 @@
 
 <!-- version list -->
 
+## v0.16.0 (2025-10-17)
+
+### Continuous Integration
+
+- Complete migration to uv across all workflows and add optimizations
+  ([`f856a1c`](https://github.com/dougborg/katana-openapi-client/commit/f856a1cd44ff9fd72fe3079693e2cc5100b2decd))
+
+- Upgrade to setup-uv@v7 and consolidate Python setup
+  ([`ac2851f`](https://github.com/dougborg/katana-openapi-client/commit/ac2851f0d21a378f0097549ce7fa392bde592934))
+
+### Documentation
+
+- Accept ADR-009 for Poetry to uv migration
+  ([`9dafbbb`](https://github.com/dougborg/katana-openapi-client/commit/9dafbbb7707a70a04e3824378ba084ab21765416))
+
+- Add ADR-009 for Poetry to uv package manager migration
+  ([`7a29915`](https://github.com/dougborg/katana-openapi-client/commit/7a29915be99ca49c58a5ed1ce3937bae952ff5c1))
+
+- Update CLAUDE.md and ADR docs to reflect consolidation changes
+  ([`49cef79`](https://github.com/dougborg/katana-openapi-client/commit/49cef79ac47e7ec2eb16b5a05732d7839b2d7939))
+
+### Features
+
+- Migrate from Poetry to uv package manager (ADR-009)
+  ([`570ab88`](https://github.com/dougborg/katana-openapi-client/commit/570ab88ecf1b3728a47f3ada69a9bbc46c1c1b7d))
+
 ## v0.15.0 (2025-10-17)
 
 ### Documentation
