@@ -2,6 +2,21 @@
 
 <!-- version list -->
 
+## v0.15.0 (2025-10-17)
+
+### Documentation
+
+- Add Architecture Decision Records (ADRs) infrastructure
+  ([`41eacdd`](https://github.com/dougborg/katana-openapi-client/commit/41eacddd479ead808d8285beee20126230b00869))
+
+- Clean up temporary analysis files and consolidate documentation
+  ([`dc0fcd9`](https://github.com/dougborg/katana-openapi-client/commit/dc0fcd948be733a136fd0e2723e87fe526511030))
+
+### Features
+
+- Add comprehensive codebase assessment and coverage analysis
+  ([`c7befd7`](https://github.com/dougborg/katana-openapi-client/commit/c7befd7882730c7738bc8eb3cc4e1f61263ae09c))
+
 ## v0.14.1 (2025-10-17)
 
 ### Bug Fixes
