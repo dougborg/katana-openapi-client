@@ -176,6 +176,15 @@ def unwrap_data(
     *,
     raise_on_error: bool = True,
     default: None = None,
+) -> list[Any]: ...
+
+
+@overload
+def unwrap_data(
+    response: Response[T],
+    *,
+    raise_on_error: bool = False,
+    default: None = None,
 ) -> list[Any] | None: ...
 
 
@@ -183,7 +192,7 @@ def unwrap_data(
 def unwrap_data(
     response: Response[T],
     *,
-    raise_on_error: bool = True,
+    raise_on_error: bool = False,
     default: list[DataT],
 ) -> list[Any]: ...
 
@@ -236,11 +245,15 @@ def unwrap_data(
         return default
 
     # Extract data field if it exists
-    if hasattr(parsed, "data"):
-        data = parsed.data
-        if isinstance(data, Unset):
-            return default if default is not None else []
-        return data if data is not None else (default if default is not None else [])
+    data = getattr(parsed, "data", None)
+    if isinstance(data, Unset):
+        return default if default is not None else []
+    if data is not None:
+        return data
+
+    # If there's no data field and no default, wrap the object in a list
+    if default is not None:
+        return default
 
     # If it's not a list response, return it as a single-item list
     return [parsed]

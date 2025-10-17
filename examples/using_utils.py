@@ -28,10 +28,9 @@ async def example_unwrap_basic():
     async with KatanaClient() as client:
         response = await get_all_products.asyncio_detailed(client=client, limit=10)
 
-        # Unwrap automatically raises exceptions on errors
-        # and returns the parsed data on success
-        product_list = unwrap(response)
-        print(f"Got product list with {len(product_list.data)} products")
+        # unwrap_data extracts the list and raises exceptions on errors
+        products = unwrap_data(response)
+        print(f"Got {len(products)} products")
 
 
 async def example_unwrap_data():
@@ -51,8 +50,8 @@ async def example_error_handling():
         try:
             # This will raise AuthenticationError if API key is invalid
             response = await get_all_products.asyncio_detailed(client=client)
-            products = unwrap(response)
-            print(f"Success! Got {len(products.data)} products")
+            products = unwrap_data(response)
+            print(f"Success! Got {len(products)} products")
 
         except AuthenticationError as e:
             print(f"Authentication failed: {e}")
@@ -77,14 +76,14 @@ async def example_graceful_error_handling():
         response = await get_all_products.asyncio_detailed(client=client)
 
         # Use raise_on_error=False to get None instead of raising
-        data = unwrap(response, raise_on_error=False)
+        products = unwrap_data(response, raise_on_error=False)
 
-        if data is None:
+        if products is None:
             print("Request failed, but didn't raise exception")
             error_msg = get_error_message(response)
             print(f"Error: {error_msg}")
         else:
-            print(f"Success! Got {len(data.data)} products")
+            print(f"Success! Got {len(products)} products")
 
 
 async def example_checking_status():
@@ -172,7 +171,6 @@ async def example_nested_error_format():
         try:
             # Use unwrap_data to get the list directly
             products = unwrap_data(response)
-            assert products is not None
             print(f"Got {len(products)} products")
         except ValidationError as e:
             print(f"Validation failed: {e}")
