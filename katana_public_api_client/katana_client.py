@@ -155,17 +155,21 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                 detailed_error = DetailedErrorResponse.from_dict(error_data)
                 self._log_detailed_error(detailed_error, method, url, status_code)
                 return
-            except (TypeError, ValueError, AttributeError):
-                pass
+            except (TypeError, ValueError, AttributeError) as e:
+                self.logger.debug(
+                    f"Failed to parse as DetailedErrorResponse: {type(e).__name__}: {e}"
+                )
 
         try:
             error_response = ErrorResponse.from_dict(error_data)
             self._log_error(error_response, method, url, status_code)
             return
-        except (TypeError, ValueError, AttributeError):
-            pass
+        except (TypeError, ValueError, AttributeError) as e:
+            self.logger.debug(
+                f"Failed to parse as ErrorResponse: {type(e).__name__}: {e}"
+            )
 
-        # Fallback: log raw error data
+        # Fallback: log raw error data if parsing failed
         self.logger.error(
             f"Client error {status_code} for {method} {url} - Raw error: {error_data}"
         )

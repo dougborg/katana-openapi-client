@@ -152,6 +152,39 @@ def unwrap(
 
         message = f"{error_name}: {error_message}"
 
+        # For validation errors, include detailed error information
+        if (
+            response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+            and isinstance(response.parsed, DetailedErrorResponse)
+            and not isinstance(response.parsed.details, Unset)
+            and response.parsed.details
+        ):
+            details_str = "\n".join(
+                f"  - {detail.message}"
+                + (
+                    f" (path: {detail.path})"
+                    if not isinstance(detail.path, Unset)
+                    else ""
+                )
+                for detail in response.parsed.details
+            )
+            message = f"{message}\nValidation errors:\n{details_str}"
+
+        # Include any additional properties that might contain useful error info
+        if (
+            hasattr(response.parsed, "additional_properties")
+            and response.parsed.additional_properties
+        ):
+            # Filter out the nested error format we already handled
+            extra_props = {
+                k: v
+                for k, v in response.parsed.additional_properties.items()
+                if k != "error"
+            }
+            if extra_props:
+                props_str = "\n".join(f"  {k}: {v}" for k, v in extra_props.items())
+                message = f"{message}\nAdditional context:\n{props_str}"
+
         if response.status_code == HTTPStatus.UNAUTHORIZED:
             raise AuthenticationError(message, response.status_code, response.parsed)
         elif response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY:
