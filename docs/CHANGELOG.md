@@ -2,6 +2,26 @@
 
 <!-- version list -->
 
+## v0.17.0 (2025-10-20)
+
+### Chores
+
+- Ignore Claude local settings file
+  ([`53243c2`](https://github.com/dougborg/katana-openapi-client/commit/53243c2e6c13e9d9d7c98f02209432cdd2baab0f))
+
+### Documentation
+
+- Simplify README to focus on KatanaClient only
+  ([`eaf43f4`](https://github.com/dougborg/katana-openapi-client/commit/eaf43f4be1ce8e1763b30f7f47b31c2156462d49))
+
+- Update CLAUDE.md to focus on KatanaClient only
+  ([`ec2915b`](https://github.com/dougborg/katana-openapi-client/commit/ec2915ba3e18e963200ab271137a2a9bdbae0e92))
+
+### Features
+
+- Comprehensive error logging improvements
+  ([`5958927`](https://github.com/dougborg/katana-openapi-client/commit/595892783c391f41cfbd34cdf1a0c08c714eea4c))
+
 ## v0.16.1 (2025-10-20)
 
 ### Bug Fixes
