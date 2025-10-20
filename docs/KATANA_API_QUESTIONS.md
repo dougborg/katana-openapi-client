@@ -871,3 +871,99 @@ patterns.
 
 **Details**: Our StockTransfer schema correctly expects direct object responses with
 proper required fields, not wrapped in additional container structures.
+
+### Empty Array Rejection on Update Operations
+
+**Issue**: Some update operations reject empty arrays and require fields to be omitted
+entirely if no values are being set.
+
+**Affected Fields**:
+
+- **UpdateProductRequest.configs**: Cannot send `configs: []` - must omit field entirely
+  or send array with `minItems: 1`
+- **UpdateMaterialRequest.configs**: Cannot send `configs: []` - must omit field
+  entirely or send array with `minItems: 1`
+- Potentially other array fields in update operations (not yet fully cataloged)
+
+**Current Behavior**:
+
+```json
+// ❌ REJECTED - Empty array not allowed
+{
+  "name": "Updated Product",
+  "configs": []
+}
+
+// ✅ ACCEPTED - Field omitted
+{
+  "name": "Updated Product"
+}
+
+// ✅ ACCEPTED - Non-empty array
+{
+  "name": "Updated Product",
+  "configs": [
+    {
+      "name": "Size",
+      "values": ["Small", "Medium", "Large"]
+    }
+  ]
+}
+```
+
+**API Behavior**:
+
+- Sending empty array results in validation error (422 Unprocessable Entity)
+- API requires either:
+  1. Omit the field entirely (preserves existing values)
+  1. Send non-empty array with at least 1 item (updates/replaces values)
+
+**OpenAPI Specification Fix**:
+
+- Added `minItems: 1` constraint to UpdateProductRequest.configs
+- Added `minItems: 1` constraint to UpdateMaterialRequest.configs
+- Added documentation explaining the "omit vs empty" requirement
+
+**Client Impact**:
+
+- Developers must filter out empty arrays before sending requests
+- Cannot use empty array to "clear all" - must delete related resources first
+- Pattern example:
+  ```python
+  # Filter out empty configs array - API requires at least 1 item if configs is sent
+  updates = {"name": "Product", "configs": []}
+  filtered = {k: v for k, v in updates.items()
+              if not (k == "configs" and isinstance(v, list) and len(v) == 0)}
+  ```
+
+**Business Logic**:
+
+- **configs field semantic**: "When updating configs, all configs and values must be
+  provided. Existing ones are matched, new ones are created, and configs not provided in
+  the update are deleted."
+- To remove all configs: Delete all variants first, then omit configs field from update
+- Empty array would be ambiguous: "delete all" vs "no change intended"
+
+**Questions for Katana Team**:
+
+1. **Design Intent**: Is the "omit vs empty array" pattern intentional to prevent
+   accidental deletion?
+
+1. **Other Fields**: Are there other array fields in update operations that follow this
+   pattern?
+
+1. **Consistency**: Should all update operation array fields follow this pattern, or
+   only some?
+
+1. **Documentation**: Can this requirement be added to API documentation for affected
+   endpoints?
+
+**Recommendation**:
+
+- **Document Pattern**: Clearly document which array fields reject empty arrays in
+  update operations
+- **Error Messages**: Provide clear validation error messages when empty arrays are sent
+- **API Guidelines**: Establish consistent pattern for handling empty arrays across all
+  update operations
+- **Consider Alternative**: Add explicit "delete all" operations for fields where
+  clearing is a valid use case
