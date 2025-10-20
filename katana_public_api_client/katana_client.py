@@ -153,6 +153,14 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         if status_code == 422:
             try:
                 detailed_error = DetailedErrorResponse.from_dict(error_data)
+                # Debug log the parsed error structure
+                self.logger.debug(
+                    f"Parsed DetailedErrorResponse - "
+                    f"details type: {type(detailed_error.details)}, "
+                    f"details value: {detailed_error.details}, "
+                    f"is Unset: {isinstance(detailed_error.details, Unset)}, "
+                    f"raw error_data: {error_data}"
+                )
                 self._log_detailed_error(detailed_error, method, url, status_code)
                 return
             except (TypeError, ValueError, AttributeError) as e:
@@ -215,7 +223,9 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
 
         if error_code is not None:
             log_message += f"\n  Code: {error_code}"
-        if error.details:
+
+        # Log validation details if present
+        if not isinstance(error.details, Unset) and error.details:
             log_message += f"\n  Validation details ({len(error.details)} errors):"
             for i, detail in enumerate(error.details, 1):
                 log_message += f"\n    {i}. Path: {detail.path}"
@@ -234,6 +244,27 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                     if info:
                         formatted = ", ".join(f"{k}: {v!r}" for k, v in info.items())
                         log_message += f"\n       Details: {formatted}"
+
+        # Also check additional_properties for nested error details
+        # The API might return details in a nested structure
+        if hasattr(error, "additional_properties") and error.additional_properties:
+            nested_error = error.additional_properties.get("error")
+            if isinstance(nested_error, dict):
+                nested_details = nested_error.get("details")
+                if nested_details and isinstance(nested_details, list):
+                    log_message += (
+                        f"\n  Nested validation details ({len(nested_details)} errors):"
+                    )
+                    for i, detail in enumerate(nested_details, 1):
+                        if isinstance(detail, dict):
+                            log_message += (
+                                f"\n    {i}. Path: {detail.get('path', 'unknown')}"
+                            )
+                            if "code" in detail:
+                                log_message += f"\n       Code: {detail['code']}"
+                            if "message" in detail:
+                                log_message += f"\n       Message: {detail['message']}"
+
         self.logger.error(log_message)
 
     def _log_error(

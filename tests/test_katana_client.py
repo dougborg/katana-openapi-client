@@ -279,6 +279,51 @@ class TestErrorLoggingTransport:
         assert "ValidationError" in error_message or "(not provided)" in error_message
 
     @pytest.mark.asyncio
+    async def test_422_with_nested_validation_details_in_additional_properties(
+        self, transport, caplog
+    ):
+        """Test that nested validation details in additional_properties are logged."""
+        # Mock a 422 response with details nested in additional_properties
+        # This matches the actual API response structure seen in production
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 422
+        mock_response.json.return_value = {
+            "error": {
+                "statusCode": 422,
+                "name": "UnprocessableEntityError",
+                "message": "The request body is invalid. See error object `details` property for more info.",
+                "code": "422",
+                "details": [
+                    {
+                        "path": "body.default_supplier_id",
+                        "code": "invalid_type",
+                        "message": "Expected number, received string",
+                    },
+                ],
+            }
+        }
+
+        mock_request = MagicMock(spec=httpx.Request)
+        mock_request.method = "PATCH"
+        mock_request.url = "https://api.katanamrp.com/v1/products/13461128"
+
+        await transport._log_client_error(mock_response, mock_request)
+
+        error_logs = [
+            record for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert len(error_logs) == 1
+
+        error_message = error_logs[0].message
+        # Should extract from nested error object
+        assert "Validation error 422" in error_message
+        assert "UnprocessableEntityError" in error_message
+        assert "Nested validation details (1 errors)" in error_message
+        assert "Path: body.default_supplier_id" in error_message
+        assert "Code: invalid_type" in error_message
+        assert "Message: Expected number, received string" in error_message
+
+    @pytest.mark.asyncio
     async def test_400_general_error_logging(self, transport, caplog):
         """Test logging for general 400-level errors."""
         # Mock a 400 bad request error response
