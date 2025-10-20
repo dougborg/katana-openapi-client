@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.18.0 (2025-10-20)
+
+### Features
+
+- Enhanced validation error logging with nested details support
+  ([`66ee086`](https://github.com/dougborg/katana-openapi-client/commit/66ee08637323df83723c08447f2f9fdb6857db6b))
+
 ## v0.17.0 (2025-10-20)
 
 ### Chores
