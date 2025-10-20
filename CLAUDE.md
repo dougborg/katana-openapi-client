@@ -77,7 +77,7 @@ without any code changes needed in the generated client.
 
 ### Usage Patterns
 
-**Recommended Pattern (KatanaClient):**
+**Use KatanaClient** (provides automatic retries, rate limiting, and pagination):
 
 ```python
 from katana_public_api_client import KatanaClient
@@ -89,16 +89,9 @@ async with KatanaClient() as client:
     )
 ```
 
-**Direct Pattern (AuthenticatedClient):**
-
-```python
-from katana_public_api_client import AuthenticatedClient
-from katana_public_api_client.api.product import get_all_products
-
-client = AuthenticatedClient(base_url="...", token="...")
-async with client:
-    response = await get_all_products.asyncio_detailed(client=client)
-```
+**Note**: All Katana API endpoints require authentication. The `KatanaClient` handles
+authentication automatically via `KATANA_API_KEY` environment variable or constructor
+parameter.
 
 ### File Organization Rules
 
@@ -244,7 +237,7 @@ The client provides access to all major Katana functionality:
 
 Create `.env` file for credentials:
 
-```
+```bash
 KATANA_API_KEY=your-api-key-here
 KATANA_BASE_URL=https://api.katanamrp.com/v1  # Optional
 ```
