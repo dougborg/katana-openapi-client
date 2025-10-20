@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.19.1 (2025-10-20)
+
+### Bug Fixes
+
+- Add minItems constraint to UpdateProductRequest configs field
+  ([`ed1f7b3`](https://github.com/dougborg/katana-openapi-client/commit/ed1f7b370088c76baa5331bf9fb93a206dc639c9))
+
 ## v0.19.0 (2025-10-20)
 
 ### Features
