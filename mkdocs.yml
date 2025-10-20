@@ -133,9 +133,20 @@ nav:
   - Development:
       - Contributing: CONTRIBUTING.md
       - Testing: TESTING_GUIDE.md
-      - Poetry Usage: POETRY_USAGE.md
+      - uv Package Manager: UV_USAGE.md
       - Semantic Release: SEMANTIC_RELEASE_GUIDE.md
       - PyPI Setup: PYPI_SETUP.md
+  - Architecture (ADRs):
+      - Overview: adr/README.md
+      - ADR-001 Transport-Layer Resilience: adr/0001-transport-layer-resilience.md
+      - ADR-002 OpenAPI Code Generation: adr/0002-openapi-code-generation.md
+      - ADR-003 Transparent Pagination: adr/0003-transparent-pagination.md
+      - ADR-004 Defer Observability to httpx: adr/0004-defer-observability-to-httpx.md
+      - ADR-005 Sync and Async APIs: adr/0005-sync-async-apis.md
+      - ADR-006 Response Unwrapping Utilities: adr/0006-response-unwrapping-utilities.md
+      - ADR-007 Domain Helper Classes (Proposed): adr/0007-domain-helper-classes.md
+      - ADR-008 Avoid Builder Pattern (Proposed): adr/0008-avoid-builder-pattern.md
+      - ADR-009 Migrate to uv: adr/0009-migrate-from-poetry-to-uv.md
   - Changelog: CHANGELOG.md
 
 extra:

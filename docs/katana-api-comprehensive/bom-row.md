@@ -1,3 +1,0 @@
-# BOM row
-
-BOM row
