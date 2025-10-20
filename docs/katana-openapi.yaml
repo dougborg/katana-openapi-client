@@ -18313,9 +18313,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/SerialNumber"
+                $ref: "#/components/schemas/SerialNumberListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -18360,7 +18358,7 @@ paths:
                   items:
                     type: string
       responses:
-        "201":
+        "200":
           description: Serial numbers created successfully
           headers:
             X-Ratelimit-Limit:

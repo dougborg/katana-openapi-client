@@ -27,26 +27,32 @@ def _parse_response(
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
+
     if response.status_code == 401:
         response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
+
     if response.status_code == 404:
         response_404 = ErrorResponse.from_dict(response.json())
 
         return response_404
+
     if response.status_code == 422:
         response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
+
     if response.status_code == 429:
         response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
+
     if response.status_code == 500:
         response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:

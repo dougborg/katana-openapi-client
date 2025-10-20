@@ -2,7 +2,18 @@
   "permissions": {
     "allow": [
       "Bash(uv run:*)",
-      "Bash(gh run list:*)"
+      "Bash(gh run list:*)",
+      "Bash(git push:*)",
+      "Bash(uv build:*)",
+      "Bash(unzip:*)",
+      "Bash(gh run view:*)",
+      "Bash(pip download:*)",
+      "Bash(python3:*)",
+      "Bash(/tmp/test-env/bin/pip install:*)",
+      "Bash(/dev/null)",
+      "Bash(/tmp/test-env/bin/python:*)",
+      "Bash(curl:*)",
+      "Read(//tmp/**)"
     ],
     "deny": [],
     "ask": []

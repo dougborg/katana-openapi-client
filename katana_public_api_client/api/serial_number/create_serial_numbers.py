@@ -34,30 +34,36 @@ def _get_kwargs(
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> DetailedErrorResponse | ErrorResponse | SerialNumberListResponse | None:
-    if response.status_code == 201:
-        response_201 = SerialNumberListResponse.from_dict(response.json())
+    if response.status_code == 200:
+        response_200 = SerialNumberListResponse.from_dict(response.json())
 
-        return response_201
+        return response_200
+
     if response.status_code == 400:
         response_400 = ErrorResponse.from_dict(response.json())
 
         return response_400
+
     if response.status_code == 401:
         response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
+
     if response.status_code == 422:
         response_422 = DetailedErrorResponse.from_dict(response.json())
 
         return response_422
+
     if response.status_code == 429:
         response_429 = ErrorResponse.from_dict(response.json())
 
         return response_429
+
     if response.status_code == 500:
         response_500 = ErrorResponse.from_dict(response.json())
 
         return response_500
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
