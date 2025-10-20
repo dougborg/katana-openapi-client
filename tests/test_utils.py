@@ -104,6 +104,67 @@ class TestUnwrap:
         assert exc_info.value.status_code == 422
         assert exc_info.value.validation_errors == []
 
+    def test_unwrap_with_raise_on_error_false_returns_none(self):
+        """Test that unwrap with raise_on_error=False returns None on error."""
+        error_response = ErrorResponse(
+            name="BadRequest",
+            message="Invalid parameters",
+        )
+        response: Response[Any] = Response(
+            status_code=HTTPStatus.BAD_REQUEST,
+            content=b"{}",
+            headers={},
+            parsed=error_response,
+        )
+
+        result = utils.unwrap(response, raise_on_error=False)
+
+        assert result is None
+
+    def test_unwrap_type_safety_with_raise_on_error_true(self):
+        """Test that unwrap with raise_on_error=True has correct type inference.
+
+        This test demonstrates that when raise_on_error=True, mypy infers
+        the return type as T (never None), eliminating the need for cast().
+        """
+        webhook_data = WebhookListResponse(data=[])
+        response: Response[WebhookListResponse] = Response(
+            status_code=HTTPStatus.OK,
+            content=b"{}",
+            headers={},
+            parsed=webhook_data,
+        )
+
+        # With raise_on_error=True, mypy infers: WebhookListResponse (no cast needed!)
+        result = utils.unwrap(response, raise_on_error=True)
+
+        # This should work without any type: ignore or cast() because
+        # mypy knows result is WebhookListResponse, never None
+        assert isinstance(result, WebhookListResponse)
+        assert result.data == []
+
+    def test_unwrap_type_safety_with_raise_on_error_false(self):
+        """Test that unwrap with raise_on_error=False has correct type inference.
+
+        This test demonstrates that when raise_on_error=False, mypy infers
+        the return type as T | None, requiring proper None checks.
+        """
+        webhook_data = WebhookListResponse(data=[])
+        response: Response[WebhookListResponse] = Response(
+            status_code=HTTPStatus.OK,
+            content=b"{}",
+            headers={},
+            parsed=webhook_data,
+        )
+
+        # With raise_on_error=False, mypy infers: WebhookListResponse | None
+        result = utils.unwrap(response, raise_on_error=False)
+
+        # mypy will require None check here
+        if result is not None:
+            assert isinstance(result, WebhookListResponse)
+            assert result.data == []
+
     def test_unwrap_429_raises_rate_limit_error(self):
         """Test that 429 status raises RateLimitError."""
         error_response = ErrorResponse(

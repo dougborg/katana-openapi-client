@@ -77,11 +77,27 @@ class ServerError(APIError):
     pass
 
 
+@overload
 def unwrap(
     response: Response[T],
     *,
     raise_on_error: bool = True,
-) -> T:
+) -> T: ...
+
+
+@overload
+def unwrap(
+    response: Response[T],
+    *,
+    raise_on_error: bool = False,
+) -> T | None: ...
+
+
+def unwrap(
+    response: Response[T],
+    *,
+    raise_on_error: bool = True,
+) -> T | None:
     """Unwrap a Response object and return the parsed data or raise an error.
 
     This is the main utility function for handling API responses. It automatically
@@ -123,12 +139,12 @@ def unwrap(
                 f"No parsed response data for status {response.status_code}",
                 response.status_code,
             )
-        return None  # type: ignore
+        return None
 
     # Check if it's an error response
     if isinstance(response.parsed, ErrorResponse | DetailedErrorResponse):
         if not raise_on_error:
-            return None  # type: ignore
+            return None
 
         error_name = (
             response.parsed.name
@@ -155,10 +171,16 @@ def unwrap(
         if response.status_code == HTTPStatus.UNAUTHORIZED:
             raise AuthenticationError(message, response.status_code, response.parsed)
         elif response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY:
+            # ValidationError expects DetailedErrorResponse, but response.parsed could be ErrorResponse
+            detailed_error = (
+                response.parsed
+                if isinstance(response.parsed, DetailedErrorResponse)
+                else None
+            )
             raise ValidationError(
                 message,
                 response.status_code,
-                response.parsed,  # type: ignore
+                detailed_error,
             )
         elif response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
             raise RateLimitError(message, response.status_code, response.parsed)
