@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.19.0 (2025-10-20)
+
+### Features
+
+- Add type overloads for unwrap() to improve type safety
+  ([`9e6c656`](https://github.com/dougborg/katana-openapi-client/commit/9e6c6568838418d818a29b7f423ba231eee9289c))
+
 ## v0.18.0 (2025-10-20)
 
 ### Features
