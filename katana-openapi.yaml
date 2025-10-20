@@ -3784,7 +3784,12 @@ components:
             that is different from uom.
         configs:
           type: array
-          description: Configuration attributes that define variant combinations (size, color, etc.)
+          minItems: 1
+          description: |-
+            Configuration attributes that define variant combinations (size, color, etc.).
+            When updating configs, all configs and values must be provided. Existing ones are matched,
+            new ones are created, and configs not provided in the update are deleted.
+            If you want to remove all configs, delete variants first, then you can omit this field.
           items:
             type: object
             additionalProperties: false

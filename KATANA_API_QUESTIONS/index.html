@@ -17818,6 +17818,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#empty-array-rejection-on-update-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Empty Array Rejection on Update Operations
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -18663,6 +18672,101 @@ objects while our schema expects direct StockTransfer objects.</p>
 patterns.</p>
 <p><strong>Details</strong>: Our StockTransfer schema correctly expects direct object responses with
 proper required fields, not wrapped in additional container structures.</p>
+<h3 id="empty-array-rejection-on-update-operations">Empty Array Rejection on Update Operations<a class="headerlink" href="#empty-array-rejection-on-update-operations" title="Permanent link">&para;</a></h3>
+<p><strong>Issue</strong>: Some update operations reject empty arrays and require fields to be omitted
+entirely if no values are being set.</p>
+<p><strong>Affected Fields</strong>:</p>
+<ul>
+<li><strong>UpdateProductRequest.configs</strong>: Cannot send <code>configs: []</code> - must omit field entirely
+  or send array with <code>minItems: 1</code></li>
+<li><strong>UpdateMaterialRequest.configs</strong>: Cannot send <code>configs: []</code> - must omit field
+  entirely or send array with <code>minItems: 1</code></li>
+<li>Potentially other array fields in update operations (not yet fully cataloged)</li>
+</ul>
+<p><strong>Current Behavior</strong>:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">// ❌ REJECTED - Empty array not allowed</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="p">{</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Updated Product&quot;</span><span class="p">,</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nt">&quot;configs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">}</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="c1">// ✅ ACCEPTED - Field omitted</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="p">{</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Updated Product&quot;</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="p">}</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="c1">// ✅ ACCEPTED - Non-empty array</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="p">{</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Updated Product&quot;</span><span class="p">,</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="w">  </span><span class="nt">&quot;configs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="w">      </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Size&quot;</span><span class="p">,</span>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="w">      </span><span class="nt">&quot;values&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;Small&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Medium&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Large&quot;</span><span class="p">]</span>
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>API Behavior</strong>:</p>
+<ul>
+<li>Sending empty array results in validation error (422 Unprocessable Entity)</li>
+<li>API requires either:</li>
+<li>Omit the field entirely (preserves existing values)</li>
+<li>Send non-empty array with at least 1 item (updates/replaces values)</li>
+</ul>
+<p><strong>OpenAPI Specification Fix</strong>:</p>
+<ul>
+<li>Added <code>minItems: 1</code> constraint to UpdateProductRequest.configs</li>
+<li>Added <code>minItems: 1</code> constraint to UpdateMaterialRequest.configs</li>
+<li>Added documentation explaining the "omit vs empty" requirement</li>
+</ul>
+<p><strong>Client Impact</strong>:</p>
+<ul>
+<li>Developers must filter out empty arrays before sending requests</li>
+<li>Cannot use empty array to "clear all" - must delete related resources first</li>
+<li>Pattern example:
+  <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Filter out empty configs array - API requires at least 1 item if configs is sent</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">updates</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Product&quot;</span><span class="p">,</span> <span class="s2">&quot;configs&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">filtered</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">updates</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">k</span> <span class="o">==</span> <span class="s2">&quot;configs&quot;</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)}</span>
+</span></code></pre></div></li>
+</ul>
+<p><strong>Business Logic</strong>:</p>
+<ul>
+<li><strong>configs field semantic</strong>: "When updating configs, all configs and values must be
+  provided. Existing ones are matched, new ones are created, and configs not provided in
+  the update are deleted."</li>
+<li>To remove all configs: Delete all variants first, then omit configs field from update</li>
+<li>Empty array would be ambiguous: "delete all" vs "no change intended"</li>
+</ul>
+<p><strong>Questions for Katana Team</strong>:</p>
+<ol>
+<li>
+<p><strong>Design Intent</strong>: Is the "omit vs empty array" pattern intentional to prevent
+   accidental deletion?</p>
+</li>
+<li>
+<p><strong>Other Fields</strong>: Are there other array fields in update operations that follow this
+   pattern?</p>
+</li>
+<li>
+<p><strong>Consistency</strong>: Should all update operation array fields follow this pattern, or
+   only some?</p>
+</li>
+<li>
+<p><strong>Documentation</strong>: Can this requirement be added to API documentation for affected
+   endpoints?</p>
+</li>
+</ol>
+<p><strong>Recommendation</strong>:</p>
+<ul>
+<li><strong>Document Pattern</strong>: Clearly document which array fields reject empty arrays in
+  update operations</li>
+<li><strong>Error Messages</strong>: Provide clear validation error messages when empty arrays are sent</li>
+<li><strong>API Guidelines</strong>: Establish consistent pattern for handling empty arrays across all
+  update operations</li>
+<li><strong>Consider Alternative</strong>: Add explicit "delete all" operations for fields where
+  clearing is a valid use case</li>
+</ul>
 
 
 
