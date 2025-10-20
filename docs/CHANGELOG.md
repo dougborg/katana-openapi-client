@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## v0.16.1 (2025-10-20)
+
+### Bug Fixes
+
+- Correct SerialNumber endpoint response schemas to match actual API
+  ([`5a3ce74`](https://github.com/dougborg/katana-openapi-client/commit/5a3ce74f23bfcd89e1d36ef0115ce381af19fb78))
+
+### Documentation
+
+- Optimize documentation build (112x size reduction, 2x speed improvement)
+  ([`88a7baf`](https://github.com/dougborg/katana-openapi-client/commit/88a7baf8465a74e8336d2e39b4fbbcb090461aa0))
+
 ## v0.16.0 (2025-10-17)
 
 ### Continuous Integration
