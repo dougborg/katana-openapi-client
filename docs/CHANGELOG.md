@@ -2,6 +2,29 @@
 
 <!-- version list -->
 
+## v0.21.0 (2025-10-21)
+
+### Chores
+
+- Regenerate client with improved docstring formatting
+  ([`4b66b20`](https://github.com/dougborg/katana-openapi-client/commit/4b66b203c4544d82e6719dabdd6e74cf6ec5d818))
+
+### Features
+
+- Add comprehensive cookbook documentation and examples
+  ([`59ebc5e`](https://github.com/dougborg/katana-openapi-client/commit/59ebc5e22101afefe1a559b83b53c86b263aba66))
+
+### Testing
+
+- Add comprehensive edge case tests for transport layer
+  ([`5dadd7a`](https://github.com/dougborg/katana-openapi-client/commit/5dadd7adb5472c8c52e8c28d1369f0bf55289cfe))
+
+- Add comprehensive KatanaClient init and integration tests
+  ([`1602409`](https://github.com/dougborg/katana-openapi-client/commit/1602409d0ceb437324594c31f114be962d75adbf))
+
+- Add comprehensive tests for RateLimitAwareRetry class
+  ([`f566057`](https://github.com/dougborg/katana-openapi-client/commit/f5660570fe05d4a2df516d01fe64e093c95f8a33))
+
 ## v0.20.0 (2025-10-21)
 
 ### Chores
