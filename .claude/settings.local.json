@@ -4,7 +4,8 @@
       "Bash(git commit:*)",
       "Bash(gh issue list:*)",
       "Bash(gh issue view:*)",
-      "Bash(uv run pytest:*)"
+      "Bash(uv run pytest:*)",
+      "Bash(uv run ruff check:*)"
     ],
     "deny": [],
     "ask": []

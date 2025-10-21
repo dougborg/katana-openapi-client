@@ -10,7 +10,7 @@ Before running any examples, make sure you have:
 1. **Installed the client**:
 
    ```bash
-   poetry install
+   uv sync --all-extras
    ```
 
 1. **Set up your API key**:
@@ -41,7 +41,7 @@ Demonstrates the core features of KatanaClient including:
 **Run:**
 
 ```bash
-poetry run python examples/basic_usage.py
+uv run python examples/basic_usage.py
 ```
 
 **Key Features Shown:**
@@ -50,6 +50,76 @@ poetry run python examples/basic_usage.py
 - Disable auto-pagination by adding explicit `page` parameter
 - Configure maximum pages to collect with `max_pages`
 - All requests get automatic retries and error handling
+
+### Inventory Synchronization (`inventory_sync.py`)
+
+Compare inventory levels between an external warehouse management system and Katana to
+identify discrepancies.
+
+**Run:**
+
+```bash
+uv run python examples/inventory_sync.py
+```
+
+**Key Features Shown:**
+
+- Building SKU lookup maps for efficient data matching
+- Comparing inventory across systems
+- Tracking matched, mismatched, and skipped items
+- Real-world inventory monitoring workflow
+
+### Low Stock Monitoring (`low_stock_monitoring.py`)
+
+Monitor inventory levels and identify products that need reordering.
+
+**Run:**
+
+```bash
+uv run python examples/low_stock_monitoring.py
+```
+
+**Key Features Shown:**
+
+- Checking inventory against thresholds
+- Fetching variant details with inventory data
+- Generating low stock alerts
+- Production-ready monitoring pattern
+
+### Concurrent Requests (`concurrent_requests.py`)
+
+Make multiple API requests concurrently using `asyncio.gather` for better performance.
+
+**Run:**
+
+```bash
+uv run python examples/concurrent_requests.py
+```
+
+**Key Features Shown:**
+
+- Parallel API requests with asyncio
+- Error handling for concurrent operations
+- Performance benchmarking
+- Efficient bulk data retrieval
+
+### Error Handling (`error_handling.py`)
+
+Implement custom error handling and retry logic on top of the client's built-in
+resilience.
+
+**Run:**
+
+```bash
+uv run python examples/error_handling.py
+```
+
+**Key Features Shown:**
+
+- Custom retry logic with exponential backoff
+- Application-level error handling
+- Combining with KatanaClient's built-in resilience
+- Production error handling patterns
 
 ## Error Handling
 
@@ -103,9 +173,11 @@ async with KatanaClient() as client:
 
 ## Additional Resources
 
+- [**Cookbook**](../docs/COOKBOOK.md) - Practical recipes for common integration
+  scenarios
 - [Main Documentation](../docs/KATANA_CLIENT_GUIDE.md)
 - [Testing Guide](../docs/TESTING_GUIDE.md)
-- [Poetry Usage](../docs/POETRY_USAGE.md)
+- [uv Package Manager](../docs/UV_USAGE.md)
 
 ## Contributing Examples
 

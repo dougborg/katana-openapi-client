@@ -128,6 +128,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - User Guide: KATANA_CLIENT_GUIDE.md
+  - Cookbook: COOKBOOK.md
   - API Reference: reference/
   - OpenAPI Documentation: openapi-docs.md
   - Development:

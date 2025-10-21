@@ -39,7 +39,6 @@ jobs:
     permissions:
       id-token: write
       contents: write
-      pages: write
     outputs:
       released: ${{ steps.release.outputs.released }}
       version: ${{ steps.release.outputs.version }}
@@ -76,20 +75,6 @@ jobs:
         with:
           name: dist
           path: dist/
-
-      - name: Build documentation
-        if: steps.release.outputs.released == 'true'
-        run: uv run poe docs-build
-        env:
-          CI_DOCS_BUILD: "true"
-
-      - name: Deploy to GitHub Pages
-        if: steps.release.outputs.released == 'true'
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
-          # cname: katana-openapi-client.dougborg.org  # Disabled until DNS is configured
 
   publish-pypi:
     name: Publish to PyPI

@@ -88,6 +88,9 @@ async def main():
 asyncio.run(main())
 ```
 
+See the [**Cookbook**](docs/COOKBOOK.md) for more practical examples including inventory
+management, order processing, webhook handlers, and performance optimization.
+
 ## 📊 API Coverage
 
 The client provides access to all major Katana functionality:
@@ -249,6 +252,7 @@ uv run poe test-integration    # Integration tests only
 
 ### User Guides
 
+- [**Cookbook**](docs/COOKBOOK.md) - Practical recipes for common integration scenarios
 - [**KatanaClient Guide**](docs/KATANA_CLIENT_GUIDE.md) - Complete KatanaClient usage
   guide
 - [**API Reference**](docs/API_REFERENCE.md) - Generated API documentation
