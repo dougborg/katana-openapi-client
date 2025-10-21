@@ -44,6 +44,8 @@ We use the format proposed by Michael Nygard in his article
 - [ADR-008: Avoid Traditional Builder Pattern](0008-avoid-builder-pattern.md) -
   **PROPOSED**
 - [ADR-009: Migrate from Poetry to uv Package Manager](0009-migrate-from-poetry-to-uv.md)
+  \- **ACCEPTED**
+- [ADR-010: Create Katana MCP Server for Claude Code Integration](0010-katana-mcp-server.md)
   \- **PROPOSED**
 
 ## Creating a New ADR
