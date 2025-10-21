@@ -25,10 +25,6 @@ class SalesOrderFulfillmentListResponse:
             'estimated_delivery_date': '2024-01-22T14:00:00Z', 'actual_delivery_date': None, 'shipping_cost': 25.99,
             'shipping_method': 'UPS Ground', 'carrier': 'UPS', 'notes': 'Signature required for delivery', 'created_at':
             '2024-01-20T16:30:00Z', 'updated_at': '2024-01-20T16:30:00Z'}]}
-
-    Attributes:
-        data (Union[Unset, list['SalesOrderFulfillment']]): Array of fulfillment records with tracking and delivery
-            information
     """
 
     data: Unset | list["SalesOrderFulfillment"] = UNSET

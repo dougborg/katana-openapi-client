@@ -16,22 +16,6 @@ T = TypeVar("T", bound="UpdateCustomerAddressBody")
 
 @_attrs_define
 class UpdateCustomerAddressBody:
-    """
-    Attributes:
-        entity_type (Union[Unset, UpdateCustomerAddressBodyEntityType]):
-        first_name (Union[None, Unset, str]):
-        last_name (Union[None, Unset, str]):
-        company (Union[None, Unset, str]):
-        phone (Union[None, Unset, str]):
-        line_1 (Union[None, Unset, str]):
-        line_2 (Union[None, Unset, str]):
-        city (Union[None, Unset, str]):
-        state (Union[None, Unset, str]):
-        zip_ (Union[None, Unset, str]):
-        country (Union[None, Unset, str]):
-        is_default (Union[Unset, bool]):
-    """
-
     entity_type: Unset | UpdateCustomerAddressBodyEntityType = UNSET
     first_name: None | Unset | str = UNSET
     last_name: None | Unset | str = UNSET

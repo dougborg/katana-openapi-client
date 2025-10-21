@@ -11,16 +11,6 @@ T = TypeVar("T", bound="GetSalesOrderReturnableItemsResponse200Item")
 
 @_attrs_define
 class GetSalesOrderReturnableItemsResponse200Item:
-    """
-    Attributes:
-        variant_id (int): Product variant ID
-        fulfillment_row_id (int): Fulfillment row ID
-        available_for_return_quantity (str): Quantity available for return
-        net_price_per_unit (str): Net price per unit
-        location_id (int): Location ID
-        quantity_sold (str): Total quantity sold
-    """
-
     variant_id: int
     fulfillment_row_id: int
     available_for_return_quantity: str

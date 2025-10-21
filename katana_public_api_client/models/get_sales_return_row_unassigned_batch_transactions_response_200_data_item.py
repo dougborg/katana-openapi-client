@@ -15,14 +15,6 @@ T = TypeVar(
 
 @_attrs_define
 class GetSalesReturnRowUnassignedBatchTransactionsResponse200DataItem:
-    """
-    Attributes:
-        id (Union[Unset, int]): Batch transaction ID
-        batch_id (Union[Unset, int]): Batch ID
-        quantity (Union[Unset, float]): Transaction quantity
-        status (Union[Unset, str]): Transaction status
-    """
-
     id: Unset | int = UNSET
     batch_id: Unset | int = UNSET
     quantity: Unset | float = UNSET

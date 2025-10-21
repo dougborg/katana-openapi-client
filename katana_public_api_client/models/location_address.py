@@ -18,15 +18,6 @@ class LocationAddress:
     Example:
         {'id': 5001, 'city': 'Austin', 'country': 'US', 'line_1': '1500 Industrial Blvd', 'line_2': 'Building A',
             'state': 'TX', 'zip': '78745'}
-
-    Attributes:
-        id (int): Unique identifier for the location address
-        city (str): City or locality name where the location is situated
-        country (str): Country name or country code for the location
-        line_1 (str): Primary address line (street address, building number)
-        state (str): State, province, or region designation
-        zip_ (str): Postal code or ZIP code for the location
-        line_2 (Union[Unset, str]): Secondary address line (apartment, suite, floor, building)
     """
 
     id: int

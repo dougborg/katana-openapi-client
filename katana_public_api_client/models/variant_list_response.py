@@ -30,9 +30,6 @@ class VariantListResponse:
             {'id': 5003, 'sku': 'ALU-6061-2.0MM', 'sales_price': None, 'purchase_price': 38.5, 'type': 'material',
             'lead_time': 3, 'minimum_order_quantity': 2, 'config_attributes': [{'config_name': 'Alloy', 'config_value':
             '6061'}, {'config_name': 'Thickness', 'config_value': '2.0mm'}]}]}
-
-    Attributes:
-        data (Union[Unset, list['VariantResponse']]): Array of variant objects returned by the API
     """
 
     data: Unset | list["VariantResponse"] = UNSET

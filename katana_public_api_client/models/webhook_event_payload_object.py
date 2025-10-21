@@ -18,15 +18,6 @@ class WebhookEventPayloadObject:
     Notes:
     - href property doesn't apply to deleted events (e.g., sales_order.deleted, product_recipe_row.deleted)
     - status field appears in examples but is not documented in official Katana API docs
-
-        Attributes:
-            id (str): Unique identifier of the affected resource Example: 12345.
-            status (str): Current status of the affected resource.
-                Note: This field appears in webhook payload examples but is not documented
-                in the official Katana API documentation. The actual values and format
-                may vary by resource type and may not be reliable for programmatic use. Example: DELIVERED.
-            href (Union[Unset, str]): API endpoint URL to retrieve the full resource (not available for deleted events)
-                Example: https://api.katanamrp.com/v1/sales_orders/12345.
     """
 
     id: str

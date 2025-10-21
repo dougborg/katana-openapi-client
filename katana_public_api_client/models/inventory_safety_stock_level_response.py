@@ -20,15 +20,6 @@ class InventorySafetyStockLevelResponse:
     Example:
         {'variant_id': 1, 'location_id': 1, 'value': 10, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at':
             '2020-10-23T10:37:05.085Z'}
-
-    Attributes:
-        location_id (int): ID of the location where the safety stock level applies
-        variant_id (int): ID of the variant for which the safety stock level is set
-        value (float): Minimum quantity to maintain as safety stock buffer
-        id (int): Unique identifier
-        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
-        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
-        deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
     """
 
     location_id: int

@@ -99,9 +99,11 @@ def sync_detailed(
         body (CreatePriceListCustomerRequest): Request payload for assigning a customer to a price
             list for custom pricing Example: {'price_list_id': 1002, 'customer_id': 2002}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, list['PriceListCustomer']]]
@@ -131,9 +133,11 @@ def sync(
         body (CreatePriceListCustomerRequest): Request payload for assigning a customer to a price
             list for custom pricing Example: {'price_list_id': 1002, 'customer_id': 2002}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, list['PriceListCustomer']]
@@ -158,9 +162,11 @@ async def asyncio_detailed(
         body (CreatePriceListCustomerRequest): Request payload for assigning a customer to a price
             list for custom pricing Example: {'price_list_id': 1002, 'customer_id': 2002}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, list['PriceListCustomer']]]
@@ -188,9 +194,11 @@ async def asyncio(
         body (CreatePriceListCustomerRequest): Request payload for assigning a customer to a price
             list for custom pricing Example: {'price_list_id': 1002, 'customer_id': 2002}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, list['PriceListCustomer']]

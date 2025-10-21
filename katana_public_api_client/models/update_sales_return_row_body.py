@@ -10,13 +10,6 @@ T = TypeVar("T", bound="UpdateSalesReturnRowBody")
 
 @_attrs_define
 class UpdateSalesReturnRowBody:
-    """
-    Attributes:
-        quantity (Union[Unset, float]): Quantity being returned
-        reason (Union[Unset, str]): Reason for return
-        notes (Union[Unset, str]): Additional notes
-    """
-
     quantity: Unset | float = UNSET
     reason: Unset | str = UNSET
     notes: Unset | str = UNSET

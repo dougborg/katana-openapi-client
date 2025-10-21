@@ -28,23 +28,6 @@ class CreateVariantRequest:
             Count', 'config_value': '12-piece'}, {'config_name': 'Handle Material', 'config_value': 'Wood'}],
             'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '5 years'}, {'field_name': 'Care
             Instructions', 'field_value': 'Hand wash only'}]}
-
-    Attributes:
-        sku (str): Stock keeping unit code for unique identification of this product variant
-        sales_price (Union[Unset, float]): Default selling price per unit for this product variant
-        purchase_price (Union[Unset, float]): Default purchase cost per unit for this product variant
-        product_id (Union[None, Unset, int]): ID of the parent product if this variant belongs to a finished good
-        material_id (Union[None, Unset, int]): ID of the parent material if this variant belongs to a raw material
-        supplier_item_codes (Union[Unset, list[str]]): Supplier-specific part numbers or SKUs for purchasing this
-            variant
-        internal_barcode (Union[Unset, str]): Internal barcode for warehouse scanning and tracking
-        registered_barcode (Union[Unset, str]): Official registered barcode (UPC, EAN, etc.) for retail use
-        lead_time (Union[None, Unset, int]): Days required to manufacture or procure this variant
-        minimum_order_quantity (Union[Unset, float]): Minimum quantity that must be ordered from suppliers
-        config_attributes (Union[Unset, list['CreateVariantRequestConfigAttributesItem']]): Configuration attribute
-            values that define this variant (color, size, etc.)
-        custom_fields (Union[Unset, list['CreateVariantRequestCustomFieldsItem']]): Custom field values specific to this
-            variant
     """
 
     sku: str

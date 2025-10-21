@@ -17,13 +17,6 @@ class SalesOrderShippingFee:
 
     Example:
         {'id': 2801, 'sales_order_id': 2001, 'amount': 25.99, 'tax_rate_id': 301, 'description': 'UPS Ground Shipping'}
-
-    Attributes:
-        id (int): Unique identifier for the shipping fee record
-        sales_order_id (int): ID of the sales order this shipping fee applies to
-        amount (str): Shipping fee amount in the order currency
-        tax_rate_id (Union[Unset, int]): ID of the tax rate applied to the shipping fee
-        description (Union[None, Unset, str]): Description of the shipping service or fee type
     """
 
     id: int

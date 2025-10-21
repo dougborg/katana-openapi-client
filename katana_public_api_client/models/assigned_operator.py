@@ -19,11 +19,6 @@ class AssignedOperator:
 
     Example:
         {'operator_id': 1, 'name': 'Pack', 'deleted_at': None}
-
-    Attributes:
-        operator_id (int): Reference to the operator ID
-        name (str): Operator name for display purposes
-        deleted_at (Union[None, Unset, datetime.datetime]): Deletion timestamp if operator assignment was removed
     """
 
     operator_id: int

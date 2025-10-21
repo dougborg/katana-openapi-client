@@ -15,15 +15,7 @@ T = TypeVar("T", bound="Operator")
 
 @_attrs_define
 class Operator:
-    """Manufacturing operator or worker assigned to specific production operations and work areas
-
-    Attributes:
-        id (int): Unique identifier
-        operator_name (str):
-        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
-        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
-        deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
-    """
+    """Manufacturing operator or worker assigned to specific production operations and work areas"""
 
     id: int
     operator_name: str

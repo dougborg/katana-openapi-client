@@ -17,14 +17,6 @@ class UpdatePurchaseOrderAdditionalCostRowRequest:
 
     Example:
         {'additional_cost_id': 1, 'tax_rate_id': 1, 'price': 150.0, 'distribution_method': 'BY_VALUE'}
-
-    Attributes:
-        additional_cost_id (Union[Unset, int]): Unique identifier of the additional cost type (e.g., shipping, duty,
-            handling)
-        tax_rate_id (Union[Unset, int]): Tax rate identifier to apply to this additional cost
-        price (Union[Unset, float]): Updated amount of the additional cost in the purchase order currency
-        distribution_method (Union[Unset, UpdatePurchaseOrderAdditionalCostRowRequestDistributionMethod]): Method for
-            distributing this cost across purchase order items
     """
 
     additional_cost_id: Unset | int = UNSET

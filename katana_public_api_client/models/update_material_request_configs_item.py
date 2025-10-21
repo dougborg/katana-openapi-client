@@ -10,13 +10,6 @@ T = TypeVar("T", bound="UpdateMaterialRequestConfigsItem")
 
 @_attrs_define
 class UpdateMaterialRequestConfigsItem:
-    """
-    Attributes:
-        name (str):
-        values (list[str]):
-        id (Union[Unset, int]): If config ID is used to map the config, then name is ignored.
-    """
-
     name: str
     values: list[str]
     id: Unset | int = UNSET

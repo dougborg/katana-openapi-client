@@ -27,9 +27,6 @@ class ServiceListResponse:
             'field_value': 'Expert'}], 'created_at': '2023-10-01T09:00:00Z', 'updated_at': '2023-10-01T09:00:00Z',
             'deleted_at': None}], 'created_at': '2023-10-01T09:00:00Z', 'updated_at': '2023-10-01T09:00:00Z', 'archived_at':
             None, 'deleted_at': None}]}
-
-    Attributes:
-        data (Union[Unset, list['Service']]): List of service records
     """
 
     data: Unset | list["Service"] = UNSET

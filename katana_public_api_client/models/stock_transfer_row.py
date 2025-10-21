@@ -19,15 +19,7 @@ T = TypeVar("T", bound="StockTransferRow")
 
 @_attrs_define
 class StockTransferRow:
-    """Line item in a stock transfer showing the product variant and quantity being moved
-
-    Attributes:
-        variant_id (int): ID of the product or material variant being transferred
-        quantity (float): Quantity of the variant being transferred
-        id (Union[Unset, int]): Unique identifier for the stock transfer row
-        batch_transactions (Union[Unset, list['StockTransferRowBatchTransactionsItem']]): Batch transaction details for
-            batch-tracked items
-    """
+    """Line item in a stock transfer showing the product variant and quantity being moved"""
 
     variant_id: int
     quantity: float

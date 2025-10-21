@@ -10,12 +10,6 @@ T = TypeVar("T", bound="UpdateSalesOrderShippingFeeBody")
 
 @_attrs_define
 class UpdateSalesOrderShippingFeeBody:
-    """
-    Attributes:
-        amount (Union[Unset, float]): Shipping fee amount
-        description (Union[Unset, str]): Shipping fee description
-    """
-
     amount: Unset | float = UNSET
     description: Unset | str = UNSET
 

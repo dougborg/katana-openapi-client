@@ -27,36 +27,6 @@ class UpdateProductRequest:
                 'purchase_uom_conversion_rate': 1.0, 'custom_field_collection_id': 5, 'configs': [{'name': 'Piece Count',
                 'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values': ['Wood', 'Steel',
                 'Composite']}]}
-
-        Attributes:
-            name (Union[Unset, str]): Display name for the finished product used in sales and manufacturing
-            uom (Union[Unset, str]): Unit of measurement for the product (e.g., pcs, kg, m)
-            category_name (Union[Unset, str]): Product category for organizational grouping and reporting
-            is_sellable (Union[Unset, bool]): Whether this product can be sold to customers
-            is_producible (Union[Unset, bool]): Whether this product can be manufactured in-house
-            is_purchasable (Union[Unset, bool]): Whether this product can be purchased from suppliers
-            is_auto_assembly (Union[Unset, bool]): Whether the product should be automatically assembled when components are
-                available
-            default_supplier_id (Union[Unset, int]): Primary supplier ID for purchasing this product
-            additional_info (Union[Unset, str]): Additional notes or specifications for the product
-            batch_tracked (Union[Unset, bool]): Whether inventory movements are tracked by batch numbers
-            serial_tracked (Union[Unset, bool]): Whether inventory movements are tracked by individual serial numbers
-            operations_in_sequence (Union[Unset, bool]): Whether manufacturing operations must be completed in a specific
-                sequence
-            purchase_uom (Union[Unset, str]): If you are purchasing in a different unit of measure than the default unit of
-                measure (used for tracking stock)
-                for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
-                of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
-            purchase_uom_conversion_rate (Union[Unset, float]): The conversion rate between the purchase and product UoMs.
-                If used, product must have a purchase_uom
-                that is different from uom.
-            configs (Union[Unset, list['UpdateProductRequestConfigsItem']]): Configuration attributes that define variant
-                combinations (size, color, etc.).
-                When updating configs, all configs and values must be provided. Existing ones are matched,
-                new ones are created, and configs not provided in the update are deleted.
-                If you want to remove all configs, delete variants first, then you can omit this field.
-            custom_field_collection_id (Union[None, Unset, int]): ID of the custom field collection associated with this
-                product
     """
 
     name: Unset | str = UNSET

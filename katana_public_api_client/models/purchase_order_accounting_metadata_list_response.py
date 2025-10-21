@@ -27,10 +27,6 @@ class PurchaseOrderAccountingMetadataListResponse:
                 'integrationType': 'quickbooks', 'billId': 'BILL-2024-001', 'createdAt': '2024-01-15T11:30:00Z'}, {'id': 157,
                 'purchase_order_id': 8002, 'purchaseOrderId': 8002, 'porReceivedGroupId': 2002, 'integrationType': 'xero',
                 'billId': 'BILL-2024-002', 'createdAt': '2024-01-15T12:00:00Z'}]}
-
-        Attributes:
-            data (Union[Unset, list['PurchaseOrderAccountingMetadata']]): Array of purchase order accounting metadata
-                objects linking to external financial systems
     """
 
     data: Unset | list["PurchaseOrderAccountingMetadata"] = UNSET

@@ -14,15 +14,6 @@ class UpdateStocktakeRowRequest:
 
     Example:
         {'actual_quantity': 148.0, 'variance_quantity': -2.0, 'notes': 'Recount confirmed minor variance'}
-
-    Attributes:
-        stocktake_id (Union[Unset, int]): ID of the stocktake this row belongs to
-        variant_id (Union[Unset, int]): ID of the variant being counted
-        batch_id (Union[Unset, int]): ID of the specific batch being counted (if applicable)
-        system_quantity (Union[Unset, float]): System recorded quantity before counting
-        actual_quantity (Union[Unset, float]): Actual counted quantity
-        variance_quantity (Union[Unset, float]): Calculated variance between system and actual quantity
-        notes (Union[Unset, str]): Optional notes about the count
     """
 
     stocktake_id: Unset | int = UNSET

@@ -25,24 +25,6 @@ class CreateMaterialRequest:
             'STEEL-304-1.5MM', 'sales_price': None, 'purchase_price': 45.0, 'lead_time': 5, 'minimum_order_quantity': 1,
             'config_attributes': [{'config_name': 'Grade', 'config_value': '304'}, {'config_name': 'Thickness',
             'config_value': '1.5mm'}]}]}
-
-    Attributes:
-        name (str): Display name for the material used in inventory and manufacturing
-        variants (list['CreateVariantRequest']): Material variants with specific configurations and properties
-        uom (Union[Unset, str]): Unit of measure for inventory tracking (e.g., kg, lb, pcs)
-        category_name (Union[Unset, str]): Material category for organization and classification
-        default_supplier_id (Union[Unset, int]): Primary supplier for purchasing this material
-        additional_info (Union[Unset, str]): Additional specifications or notes about the material
-        batch_tracked (Union[Unset, bool]): Whether this material uses batch tracking for quality control
-        is_sellable (Union[Unset, bool]): Whether this material can be sold directly to customers
-        purchase_uom (Union[Unset, str]): If you are purchasing in a different unit of measure than the default unit of
-            measure (used for tracking stock)
-            for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
-            of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
-        purchase_uom_conversion_rate (Union[Unset, float]): The conversion rate between the purchase and material UoMs.
-            If used, material must have a purchase_uom
-            that is different from uom.
-        configs (Union[Unset, list['MaterialConfig']]): Material configuration options for creating variants
     """
 
     name: str

@@ -21,9 +21,6 @@ class InventoryMovementListResponse:
         {'data': [{'id': 5001, 'variant_id': 2002, 'location_id': 1, 'movement_type': 'TRANSFER_IN', 'quantity': 10.0,
             'cost_per_unit': 12.5, 'total_cost': 125.0, 'reference_id': 1001, 'movement_date': '2023-10-15T14:30:00Z',
             'notes': 'Received from supplier shipment'}]}
-
-    Attributes:
-        data (list['InventoryMovement']): Array of inventory movement records with transaction details
     """
 
     data: list["InventoryMovement"]

@@ -16,27 +16,7 @@ T = TypeVar("T", bound="Stocktake")
 
 @_attrs_define
 class Stocktake:
-    """Physical inventory count process for reconciling actual stock levels with system records
-
-    Attributes:
-        id (int): Unique identifier
-        stocktake_number (str): Unique identifier for the stocktake process
-        location_id (int): The location where the stocktake is being performed
-        status (StocktakeStatus): Current status of the stocktake process
-        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
-        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
-        reference_no (Union[None, Unset, str]): Alternative reference number for the stocktake process
-        stocktake_date (Union[Unset, datetime.datetime]): Date and time when the stocktake was conducted
-        stocktake_created_date (Union[Unset, datetime.datetime]): Date and time when the stocktake was created
-        started_date (Union[None, Unset, datetime.datetime]): Date and time when the stocktake was started
-        completed_date (Union[None, Unset, datetime.datetime]): Date and time when the stocktake was completed
-        status_update_in_progress (Union[Unset, bool]): Whether a status update is currently in progress
-        set_remaining_items_as_counted (Union[Unset, bool]): Whether remaining items should be set as counted
-        stock_adjustment_id (Union[None, Unset, int]): ID of the associated stock adjustment
-        reason (Union[None, Unset, str]): Reason for the stocktake
-        additional_info (Union[None, Unset, str]): Additional information about the stocktake
-        notes (Union[None, Unset, str]): Additional notes or comments about the stocktake
-    """
+    """Physical inventory count process for reconciling actual stock levels with system records"""
 
     id: int
     stocktake_number: str

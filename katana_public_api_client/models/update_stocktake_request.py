@@ -18,13 +18,6 @@ class UpdateStocktakeRequest:
     Example:
         {'reference_no': 'STK-2024-003', 'location_id': 1, 'stocktake_date': '2024-01-17T09:00:00.000Z', 'notes':
             'Quarterly inventory count - updated', 'status': 'IN_PROGRESS'}
-
-    Attributes:
-        reference_no (Union[Unset, str]): Human-readable reference number for the stocktake
-        location_id (Union[Unset, int]): ID of the location where the stocktake is performed
-        stocktake_date (Union[Unset, datetime.datetime]): Date and time when the stocktake was performed
-        notes (Union[Unset, str]): Optional notes about the stocktake
-        status (Union[Unset, UpdateStocktakeRequestStatus]): Status of the stocktake
     """
 
     reference_no: Unset | str = UNSET

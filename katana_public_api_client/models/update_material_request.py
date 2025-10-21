@@ -24,28 +24,6 @@ class UpdateMaterialRequest:
             specifications', 'batch_tracked': True, 'is_sellable': False, 'is_archived': False, 'purchase_uom': 'sheet',
             'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 101, 'name': 'Grade', 'values': ['304', '316', '430']},
             {'name': 'Finish', 'values': ['Brushed', 'Mirror', 'Matte']}], 'custom_field_collection_id': 201}
-
-    Attributes:
-        name (Union[Unset, str]): Display name for the material used in inventory and manufacturing
-        uom (Union[Unset, str]): Unit of measure for inventory tracking (e.g., kg, lb, pcs)
-        category_name (Union[Unset, str]): Material category for organization and classification
-        default_supplier_id (Union[Unset, int]): Primary supplier for purchasing this material
-        additional_info (Union[Unset, str]): Additional specifications or notes about the material
-        batch_tracked (Union[Unset, bool]): Whether this material uses batch tracking for quality control
-        is_sellable (Union[Unset, bool]): Whether this material can be sold directly to customers
-        is_archived (Union[Unset, bool]): Whether this material is archived and hidden from active use
-        purchase_uom (Union[Unset, str]): If you are purchasing in a different unit of measure than the default unit of
-            measure (used for tracking stock)
-            for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
-            of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
-        purchase_uom_conversion_rate (Union[Unset, float]): The conversion rate between the purchase and material UoMs.
-            If used, material must have a purchase_uom
-            that is different from uom.
-        configs (Union[Unset, list['UpdateMaterialRequestConfigsItem']]): When updating configs, all configs and values
-            must be provided. Existing ones are matched,
-                    new ones are created, and configs not provided in the update are deleted.
-        custom_field_collection_id (Union[None, Unset, int]): Reference to custom field collection for additional
-            material data
     """
 
     name: Unset | str = UNSET

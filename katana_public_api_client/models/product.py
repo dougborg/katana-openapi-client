@@ -38,42 +38,6 @@ class Product:
                 'registeredcode', 'supplier_item_codes': ['code'], 'custom_fields': [{'field_name': 'Power level',
                 'field_value': 'Strong'}]}], 'configs': [{'id': 1, 'name': 'Type', 'values': ['Standard', 'Double-bladed'],
                 'product_id': 1}], 'supplier': None}
-
-        Attributes:
-            id (int): Unique identifier
-            name (str): Display name for the item used in sales, manufacturing, and purchasing contexts
-            type_ (ProductType): Item type discriminator. Product objects are of type "product"
-            created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
-            updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
-            archived_at (Union[None, Unset, datetime.datetime]): Nullable archive timestamp
-            uom (Union[Unset, str]): Unit of measurement for the item (e.g., pcs, kg, m)
-            category_name (Union[Unset, str]): Category for organizational grouping and reporting
-            is_sellable (Union[Unset, bool]): Whether this item can be sold to customers
-            default_supplier_id (Union[None, Unset, int]): Primary supplier ID for purchasing this item
-            additional_info (Union[Unset, str]): Additional notes, specifications, or internal comments
-            batch_tracked (Union[Unset, bool]): Whether inventory movements are tracked by batch numbers
-            purchase_uom (Union[None, Unset, str]): If purchasing in a different unit of measure than the default unit of
-                measure (used for tracking stock)
-                for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
-                of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
-            purchase_uom_conversion_rate (Union[None, Unset, float]): The conversion rate between the purchase and default
-                UoMs. If used, item must have a purchase_uom
-                that is different from uom.
-            custom_field_collection_id (Union[None, Unset, int]): ID of the custom field collection associated with this
-                item
-            variants (Union[Unset, list['Variant']]): Item variants with different SKUs, pricing, and configurations
-            configs (Union[Unset, list['ItemConfig']]): Configuration attributes that define variant combinations (size,
-                color, etc.)
-            supplier (Union['Supplier', None, Unset]): Primary supplier information for this item
-            is_producible (Union[Unset, bool]): Whether this product can be manufactured in-house
-            is_purchasable (Union[Unset, bool]): Whether this product can be purchased from suppliers
-            is_auto_assembly (Union[Unset, bool]): Whether the product should be automatically assembled when components are
-                available
-            serial_tracked (Union[Unset, bool]): Whether inventory movements are tracked by individual serial numbers
-            operations_in_sequence (Union[Unset, bool]): Whether manufacturing operations must be completed in a specific
-                sequence
-            lead_time (Union[None, Unset, int]): Expected lead time for procurement or production
-            minimum_order_quantity (Union[None, Unset, float]): Minimum quantity that must be ordered
     """
 
     id: int

@@ -17,16 +17,6 @@ class CreatePriceListRequest:
     Example:
         {'name': 'Premium Customer Pricing', 'currency': 'USD', 'is_default': False, 'markup_percentage': 25.0,
             'start_date': '2024-01-01T00:00:00Z', 'end_date': '2024-12-31T23:59:59Z'}
-
-    Attributes:
-        name (str): Descriptive name for the price list (e.g., "Premium Customer Pricing", "Wholesale Rates")
-        currency (str): ISO 4217 currency code for all prices in this list (e.g., USD, EUR, GBP)
-        is_default (Union[Unset, bool]): Whether this price list should be the default fallback for customers without
-            specific price lists
-        markup_percentage (Union[Unset, float]): Percentage markup applied to base costs to calculate pricing in this
-            list
-        start_date (Union[Unset, datetime.datetime]): Date and time when this price list becomes active
-        end_date (Union[Unset, datetime.datetime]): Date and time when this price list expires
     """
 
     name: str

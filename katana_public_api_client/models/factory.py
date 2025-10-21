@@ -27,23 +27,6 @@ class Factory:
             'base_currency_code': 'USD', 'default_so_delivery_time': '2021-10-13T15:31:48.490Z', 'default_po_lead_time':
             '2021-10-13T15:31:48.490Z', 'default_manufacturing_location_id': 1, 'default_purchases_location_id': 1,
             'default_sales_location_id': 1, 'inventory_closing_date': '2022-01-28T23:59:59.000Z'}
-
-    Attributes:
-        display_name (str): Display name of the company
-        base_currency_code (str): Base currency code
-        name (Union[Unset, str]): Display name of the manufacturing facility
-        address (Union[None, Unset, str]): Physical address of the manufacturing facility for shipping and logistics
-        currency (Union[Unset, str]): Default currency code (ISO 4217) used for financial transactions at this facility
-        timezone (Union[Unset, str]): Timezone identifier for the facility location used for scheduling and time
-            tracking
-        legal_address (Union[Unset, FactoryLegalAddress]): Legal address information
-        legal_name (Union[Unset, str]): Legal name of the company
-        default_so_delivery_time (Union[Unset, datetime.datetime]): Default sales order delivery time
-        default_po_lead_time (Union[Unset, datetime.datetime]): Default purchase order lead time
-        default_manufacturing_location_id (Union[Unset, int]): Default manufacturing location ID
-        default_purchases_location_id (Union[Unset, int]): Default purchases location ID
-        default_sales_location_id (Union[Unset, int]): Default sales location ID
-        inventory_closing_date (Union[Unset, datetime.datetime]): Inventory closing date
     """
 
     display_name: str

@@ -21,13 +21,6 @@ class CreateServiceVariantRequest:
     Example:
         {'sku': 'ASSM-001', 'sales_price': 75.0, 'default_cost': 50.0, 'custom_fields': [{'field_name': 'Skill Level',
             'field_value': 'Expert'}]}
-
-    Attributes:
-        sku (str): A unique service code
-        sales_price (Union[None, Unset, float]): Default sales price (excluding tax)
-        default_cost (Union[None, Unset, float]): Default cost which is used to calculate profit
-        custom_fields (Union[Unset, list['CreateServiceVariantRequestCustomFieldsItem']]): Custom field values for this
-            variant
     """
 
     sku: str

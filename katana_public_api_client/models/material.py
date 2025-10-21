@@ -36,33 +36,6 @@ class Material:
                 'values': ['304', '316']}, {'id': 102, 'name': 'Thickness', 'values': ['1.5mm', '2.0mm', '3.0mm']}],
                 'custom_field_collection_id': 201, 'supplier': None, 'created_at': '2024-01-10T10:00:00Z', 'updated_at':
                 '2024-01-15T14:30:00Z', 'archived_at': None}
-
-        Attributes:
-            id (int): Unique identifier
-            name (str): Display name for the item used in sales, manufacturing, and purchasing contexts
-            type_ (MaterialType): Item type discriminator. Material objects are of type "material"
-            created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
-            updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
-            archived_at (Union[None, Unset, datetime.datetime]): Nullable archive timestamp
-            uom (Union[Unset, str]): Unit of measurement for the item (e.g., pcs, kg, m)
-            category_name (Union[Unset, str]): Category for organizational grouping and reporting
-            is_sellable (Union[Unset, bool]): Whether this item can be sold to customers
-            default_supplier_id (Union[None, Unset, int]): Primary supplier ID for purchasing this item
-            additional_info (Union[Unset, str]): Additional notes, specifications, or internal comments
-            batch_tracked (Union[Unset, bool]): Whether inventory movements are tracked by batch numbers
-            purchase_uom (Union[None, Unset, str]): If purchasing in a different unit of measure than the default unit of
-                measure (used for tracking stock)
-                for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
-                of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
-            purchase_uom_conversion_rate (Union[None, Unset, float]): The conversion rate between the purchase and default
-                UoMs. If used, item must have a purchase_uom
-                that is different from uom.
-            custom_field_collection_id (Union[None, Unset, int]): ID of the custom field collection associated with this
-                item
-            variants (Union[Unset, list['Variant']]): Item variants with different SKUs, pricing, and configurations
-            configs (Union[Unset, list['ItemConfig']]): Configuration attributes that define variant combinations (size,
-                color, etc.)
-            supplier (Union['Supplier', None, Unset]): Primary supplier information for this item
     """
 
     id: int

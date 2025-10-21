@@ -10,15 +10,6 @@ T = TypeVar("T", bound="CreateStockTransferBody")
 
 @_attrs_define
 class CreateStockTransferBody:
-    """
-    Attributes:
-        from_location_id (int): Source location ID
-        to_location_id (int): Destination location ID
-        variant_id (int): Product variant ID
-        quantity (float): Quantity to transfer
-        notes (Union[Unset, str]): Transfer notes
-    """
-
     from_location_id: int
     to_location_id: int
     variant_id: int

@@ -1,21 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(uv run:*)",
-      "Bash(gh run list:*)",
-      "Bash(git push:*)",
-      "Bash(uv build:*)",
-      "Bash(unzip:*)",
-      "Bash(gh run view:*)",
-      "Bash(pip download:*)",
-      "Bash(python3:*)",
-      "Bash(/tmp/test-env/bin/pip install:*)",
-      "Bash(/dev/null)",
-      "Bash(/tmp/test-env/bin/python:*)",
-      "Bash(curl:*)",
-      "Read(//tmp/**)",
-      "Bash(git add -A)",
-      "Bash(git commit -m \"feat: comprehensive error logging improvements\n\nEnhance error handling and logging throughout the client to provide maximum\ndebugging information when API errors occur.\n\n**1. Validation Error Details (utils.py)**\nWhen 422 validation errors occur, exception messages now include detailed\nvalidation errors with field paths:\n\nBefore:\n  ValidationError: Invalid request data\n\nAfter:\n  ValidationError: Invalid request data\n  Validation errors:\n    - Expected number, received string (path: body.default_supplier_id)\n    - String must contain at least 1 character(s) (path: body.name)\n\n**2. Additional Error Context (utils.py)**\nAll error responses now include additional_properties for extra debugging\ncontext like request IDs, timestamps, etc:\n\n  BadRequest: Invalid parameters\n  Additional context:\n    request_id: abc123\n    timestamp: 2024-01-01T12:00:00Z\n\n**3. Error Parsing Diagnostics (katana_client.py)**\nWhen error response parsing fails, log debug messages to help identify when\nthe API returns unexpected formats:\n\n  DEBUG: Failed to parse as DetailedErrorResponse: TypeError: ...\n\nThis addresses production issues where errors said ''See error object details\nfor more info'' but didn''t show the details. Now all available error\ninformation is automatically included in logs and exceptions.\n\nChanges:\n- Enhanced unwrap() to format validation details and additional properties\n- Added debug logging for error parsing failures in ResilientAsyncTransport\n- Added 2 new comprehensive tests for error message formatting\n- All 60 unit tests passing (33 utils, 27 katana_client)\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")"
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

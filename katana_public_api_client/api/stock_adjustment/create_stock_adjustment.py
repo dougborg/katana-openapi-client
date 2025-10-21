@@ -91,9 +91,11 @@ def sync_detailed(
             'adjustment_date': '2024-01-17T14:30:00.000Z', 'additional_info': 'Cycle count
             correction', 'status': 'DRAFT'}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, StockAdjustment]]
@@ -125,9 +127,11 @@ def sync(
             'adjustment_date': '2024-01-17T14:30:00.000Z', 'additional_info': 'Cycle count
             correction', 'status': 'DRAFT'}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, StockAdjustment]
@@ -154,9 +158,11 @@ async def asyncio_detailed(
             'adjustment_date': '2024-01-17T14:30:00.000Z', 'additional_info': 'Cycle count
             correction', 'status': 'DRAFT'}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, StockAdjustment]]
@@ -186,9 +192,11 @@ async def asyncio(
             'adjustment_date': '2024-01-17T14:30:00.000Z', 'additional_info': 'Cycle count
             correction', 'status': 'DRAFT'}.
 
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
+
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, StockAdjustment]

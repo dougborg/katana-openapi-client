@@ -30,23 +30,6 @@ class Service:
             'service_id': 1, 'type': 'service', 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at':
             '2020-10-23T10:37:05.085Z', 'deleted_at': None, 'custom_fields': [{'field_name': 'Power level', 'field_value':
             'Strong'}]}]}
-
-    Attributes:
-        id (int): Unique identifier
-        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
-        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
-        archived_at (Union[None, Unset, str]): Nullable archive timestamp
-        deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
-        name (Union[Unset, str]): The service's unique name
-        uom (Union[Unset, str]): The unit used to measure the quantity of the service (e.g. pcs, hours)
-        category_name (Union[Unset, str]): A string used to group similar items for better organization and analysis
-        is_sellable (Union[Unset, bool]): Sellable services can be added to Quotes and Sales orders
-        type_ (Union[Unset, ServiceType]): Indicating the item type. Service objects are of type "service"
-        additional_info (Union[Unset, str]): A string attached to the object to add any internal comments, links to
-            external files, additional instructions, etc.
-        custom_field_collection_id (Union[None, Unset, int]): ID of the custom field collection associated with this
-            service
-        variants (Union[Unset, list['ServiceVariant']]): An array of service variant objects
     """
 
     id: int

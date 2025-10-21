@@ -15,20 +15,7 @@ T = TypeVar("T", bound="StocktakeRow")
 
 @_attrs_define
 class StocktakeRow:
-    """Individual item record within a stocktake showing system vs actual quantities and variance
-
-    Attributes:
-        id (int): Unique identifier
-        stocktake_id (int): The stocktake process this row belongs to
-        variant_id (int): The product variant being counted
-        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
-        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
-        batch_id (Union[None, Unset, int]): The batch identifier if the variant is batch-tracked
-        in_stock_quantity (Union[None, Unset, float]): The quantity shown in the system before the stocktake
-        counted_quantity (Union[None, Unset, float]): The actual quantity counted during the stocktake
-        discrepancy_quantity (Union[None, Unset, float]): The difference between system and actual quantities
-        notes (Union[None, Unset, str]): Notes about this stocktake row
-    """
+    """Individual item record within a stocktake showing system vs actual quantities and variance"""
 
     id: int
     stocktake_id: int

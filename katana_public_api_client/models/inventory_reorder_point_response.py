@@ -15,17 +15,7 @@ T = TypeVar("T", bound="InventoryReorderPointResponse")
 
 @_attrs_define
 class InventoryReorderPointResponse:
-    """Complete inventory reorder point configuration including metadata and creation/update timestamps
-
-    Attributes:
-        location_id (int): The location where this reorder point applies
-        variant_id (int): The product variant this reorder point is configured for
-        value (float): The minimum quantity that triggers reordering
-        id (int): Unique identifier
-        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
-        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
-        deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
-    """
+    """Complete inventory reorder point configuration including metadata and creation/update timestamps"""
 
     location_id: int
     variant_id: int

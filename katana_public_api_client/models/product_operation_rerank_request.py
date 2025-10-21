@@ -17,12 +17,6 @@ class ProductOperationRerankRequest:
 
     Example:
         {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group': True}
-
-    Attributes:
-        rank_product_operation_id (int): ID of the product operation to be reordered
-        preceeding_product_operation_id (Union[Unset, int]): ID of the operation that should precede the operation being
-            moved
-        should_group (Union[Unset, bool]): Whether operations should be grouped together in the sequence
     """
 
     rank_product_operation_id: int

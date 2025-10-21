@@ -23,18 +23,6 @@ class WebhookEventPayload:
         Example:
             {'resource_type': 'sales_order', 'action': 'sales_order.delivered', 'webhook_id': 123, 'object': {'id': '12345',
                 'status': 'DELIVERED', 'href': 'https://api.katanamrp.com/v1/sales_orders/12345'}}
-
-        Attributes:
-            resource_type (str): Indicates the resource type affected by this event Example: sales_order.
-            action (WebhookEvent): Available webhook events for real-time notifications.
-                Complete list of all 58 supported events as documented in the Katana API.
-            webhook_id (int): ID of the registered webhook that was used to send the payload Example: 123.
-            object_ (WebhookEventPayloadObject): The object affected by this event. Contains id, status and href to retrieve
-                the resource.
-
-                Notes:
-                - href property doesn't apply to deleted events (e.g., sales_order.deleted, product_recipe_row.deleted)
-                - status field appears in examples but is not documented in official Katana API docs
     """
 
     resource_type: str

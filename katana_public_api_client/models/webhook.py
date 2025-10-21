@@ -22,16 +22,6 @@ class Webhook:
             'description': 'ERP integration webhook for inventory sync', 'subscribed_events': ['sales_order.created',
             'sales_order.updated', 'inventory.stock_adjustment', 'manufacturing_order.completed'], 'created_at':
             '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T11:30:00Z'}
-
-    Attributes:
-        id (int): Unique identifier for the webhook subscription
-        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
-        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
-        url (Union[Unset, str]): HTTPS endpoint URL where webhook events will be sent
-        token (Union[Unset, str]): Authentication token included in webhook request headers for security verification
-        enabled (Union[Unset, bool]): Whether this webhook subscription is active and will receive events
-        description (Union[None, Unset, str]): Optional human-readable description of this webhook's purpose
-        subscribed_events (Union[Unset, list[str]]): List of event types that will trigger this webhook
     """
 
     id: int

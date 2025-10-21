@@ -8,12 +8,6 @@ T = TypeVar("T", bound="CreateProductRequestConfigsItem")
 
 @_attrs_define
 class CreateProductRequestConfigsItem:
-    """
-    Attributes:
-        name (str): Configuration attribute name (e.g., Color, Size)
-        values (list[str]): Available values for this configuration attribute
-    """
-
     name: str
     values: list[str]
 

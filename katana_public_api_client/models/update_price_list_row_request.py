@@ -14,12 +14,6 @@ class UpdatePriceListRowRequest:
 
     Example:
         {'price': 259.99, 'currency': 'USD'}
-
-    Attributes:
-        price_list_id (Union[Unset, int]): ID of the price list to add the variant pricing to
-        variant_id (Union[Unset, int]): ID of the product variant to set custom pricing for
-        price (Union[Unset, float]): Custom price for this variant in the price list's currency
-        currency (Union[Unset, str]): ISO 4217 currency code (must match the price list's currency)
     """
 
     price_list_id: Unset | int = UNSET

@@ -14,10 +14,6 @@ class UpdatePriceListCustomerRequest:
 
     Example:
         {'price_list_id': 1003}
-
-    Attributes:
-        price_list_id (Union[Unset, int]): ID of the price list
-        customer_id (Union[Unset, int]): ID of the customer to assign to price list
     """
 
     price_list_id: Unset | int = UNSET

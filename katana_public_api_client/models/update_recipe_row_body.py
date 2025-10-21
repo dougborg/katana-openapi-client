@@ -10,12 +10,6 @@ T = TypeVar("T", bound="UpdateRecipeRowBody")
 
 @_attrs_define
 class UpdateRecipeRowBody:
-    """
-    Attributes:
-        quantity (Union[Unset, float]): Ingredient quantity required
-        notes (Union[Unset, str]): Additional notes about the recipe row
-    """
-
     quantity: Unset | float = UNSET
     notes: Unset | str = UNSET
 

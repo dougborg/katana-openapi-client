@@ -28,9 +28,6 @@ class CustomerAddressListResponse:
             Restaurants Ltd', 'phone': '+1-555-0126', 'line_1': '456 Delivery Avenue', 'line_2': 'Loading Dock B', 'city':
             'Chicago', 'state': 'IL', 'zip': '60602', 'country': 'US', 'created_at': '2024-01-10T09:20:00Z', 'updated_at':
             '2024-01-10T09:20:00Z'}]}
-
-    Attributes:
-        data (Union[Unset, list['CustomerAddress']]): Array of customer address entities
     """
 
     data: Unset | list["CustomerAddress"] = UNSET

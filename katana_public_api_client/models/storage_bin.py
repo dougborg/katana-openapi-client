@@ -15,10 +15,6 @@ class StorageBin:
 
     Example:
         {'bin_name': 'A-01-SHELF-1', 'location_id': 1}
-
-    Attributes:
-        bin_name (str): Name of the storage bin
-        location_id (int): Unique identifier of the location where storage bin is located
     """
 
     bin_name: str

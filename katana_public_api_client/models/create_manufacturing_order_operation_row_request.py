@@ -16,11 +16,6 @@ class CreateManufacturingOrderOperationRowRequest:
 
         Example:
             {'manufacturing_order_id': 1001, 'operation_id': 201, 'time': 45.5}
-
-        Attributes:
-            manufacturing_order_id (int): ID of the manufacturing order this operation belongs to
-            operation_id (int): ID of the operation being performed
-            time (float): Estimated time in minutes for this operation
     """
 
     manufacturing_order_id: int

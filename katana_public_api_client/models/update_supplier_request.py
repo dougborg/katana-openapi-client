@@ -16,13 +16,6 @@ class UpdateSupplierRequest:
         {'name': 'Premium Kitchen Supplies Ltd', 'email': 'orders@premiumkitchen.com', 'phone': '+1-555-0134',
             'currency': 'USD', 'comment': 'Primary supplier for kitchen equipment and utensils. Excellent customer
             service.'}
-
-    Attributes:
-        name (Union[Unset, str]): Business name of the supplier company or individual
-        email (Union[Unset, str]): Primary email address for supplier communication and order confirmations
-        phone (Union[Unset, str]): Primary phone number for supplier contact and communication
-        currency (Union[Unset, str]): The supplier's currency (ISO 4217).
-        comment (Union[Unset, str]): Optional notes or comments about the supplier relationship
     """
 
     name: Unset | str = UNSET

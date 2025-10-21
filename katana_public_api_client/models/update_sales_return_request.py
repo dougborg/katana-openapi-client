@@ -19,16 +19,6 @@ class UpdateSalesReturnRequest:
         {'customer_id': 1001, 'sales_order_id': 2001, 'order_no': 'SR-2023-001', 'return_location_id': 1, 'currency':
             'USD', 'order_created_date': '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported damaged items during
             shipping', 'status': 'RETURNED'}
-
-    Attributes:
-        customer_id (Union[Unset, int]): ID of the customer initiating the return
-        sales_order_id (Union[Unset, int]): ID of the original sales order being returned
-        order_no (Union[Unset, str]): Return order reference number
-        return_location_id (Union[Unset, int]): ID of the location where items are being returned to
-        currency (Union[Unset, str]): Currency code (e.g., USD, EUR)
-        order_created_date (Union[Unset, datetime.datetime]): Date when the original order was created
-        additional_info (Union[Unset, str]): Optional notes or comments about the return
-        status (Union[Unset, UpdateSalesReturnRequestStatus]): Status of the sales return
     """
 
     customer_id: Unset | int = UNSET

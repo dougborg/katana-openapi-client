@@ -25,9 +25,6 @@ class ManufacturingOrderOperationRowListResponse:
         {'data': [{'id': 1501, 'manufacturing_order_id': 1001, 'operation_id': 201, 'time': 45.5, 'total_actual_time':
             52.3, 'completed_by_operators': [{'id': 101, 'name': 'John Smith'}], 'created_at': '2023-10-15T09:00:00Z',
             'updated_at': '2023-10-15T10:30:00Z'}]}
-
-    Attributes:
-        data (Union[Unset, list['ManufacturingOrderOperationRow']]): List of manufacturing order operation rows
     """
 
     data: Unset | list["ManufacturingOrderOperationRow"] = UNSET

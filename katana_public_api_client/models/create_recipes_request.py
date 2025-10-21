@@ -19,13 +19,6 @@ class CreateRecipesRequest:
     Example:
         {'keep_current_rows': True, 'rows': [{'ingredient_variant_id': 1001, 'product_variant_id': 2001, 'quantity':
             2.5, 'notes': 'Primary ingredient'}]}
-
-    Attributes:
-        rows (list['CreateRecipesRequestRowsItem']): Array of recipe rows to create
-        keep_current_rows (Union[Unset, bool]): Existing ingredient lines are kept by default, and new lines will be
-            added to existing
-            product recipes. Set to false to delete all existing ingredient lines for related
-            products and add the ingredients as new recipes.
     """
 
     rows: list["CreateRecipesRequestRowsItem"]

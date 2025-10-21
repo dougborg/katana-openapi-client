@@ -18,14 +18,6 @@ class CreateStocktakeRequest:
     Example:
         {'reference_no': 'STK-2024-003', 'location_id': 1, 'stocktake_date': '2024-01-17T09:00:00.000Z', 'notes':
             'Quarterly inventory count', 'status': 'DRAFT'}
-
-    Attributes:
-        reference_no (str): Human-readable reference number for the stocktake
-        location_id (int): ID of the location where the stocktake will be performed
-        stocktake_date (datetime.datetime): Date and time when the stocktake was performed
-        notes (Union[Unset, str]): Optional notes about the stocktake
-        status (Union[Unset, CreateStocktakeRequestStatus]): Status of the stocktake Default:
-            CreateStocktakeRequestStatus.DRAFT.
     """
 
     reference_no: str

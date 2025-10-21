@@ -23,16 +23,6 @@ class CreateSalesReturnRequest:
             'USD', 'order_created_date': '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported damaged items during
             shipping', 'sales_return_rows': [{'variant_id': 2002, 'quantity': 2, 'return_reason_id': 1, 'notes': 'Packaging
             was damaged', 'unit_price': 25.0, 'total_price': 50.0}]}
-
-    Attributes:
-        customer_id (int): ID of the customer initiating the return
-        order_no (str): Return order reference number
-        return_location_id (int): ID of the location where items are being returned to
-        sales_return_rows (list['CreateSalesReturnRowRequest']): Array of items being returned
-        sales_order_id (Union[Unset, int]): ID of the original sales order being returned
-        currency (Union[Unset, str]): Currency code (e.g., USD, EUR)
-        order_created_date (Union[Unset, datetime.datetime]): Date when the original order was created
-        additional_info (Union[Unset, str]): Optional notes or comments about the return
     """
 
     customer_id: int

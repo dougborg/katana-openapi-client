@@ -27,22 +27,6 @@ class UpdateVariantRequest:
             '789123456790', 'lead_time': 5, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece
             Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value': 'Premium Steel'}],
             'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '7 years'}]}
-
-    Attributes:
-        sku (Union[Unset, str]): Stock keeping unit code for unique identification of this product variant
-        sales_price (Union[Unset, float]): Default selling price per unit for this product variant
-        purchase_price (Union[Unset, float]): Default purchase cost per unit for this product variant
-        product_id (Union[None, Unset, int]): Reference to the parent product when this is a product variant
-        material_id (Union[None, Unset, int]): Reference to the parent material when this is a material variant
-        supplier_item_codes (Union[Unset, list[str]]): Supplier-specific codes for ordering this variant
-        internal_barcode (Union[Unset, str]): Internal barcode for warehouse operations and tracking
-        registered_barcode (Union[Unset, str]): External barcode registered for retail scanning (UPC, EAN)
-        lead_time (Union[None, Unset, int]): Expected lead time in days for procurement or production
-        minimum_order_quantity (Union[Unset, float]): Minimum quantity that must be ordered from suppliers
-        config_attributes (Union[Unset, list['UpdateVariantRequestConfigAttributesItem']]): Configuration attribute
-            values that define this variant
-        custom_fields (Union[Unset, list['UpdateVariantRequestCustomFieldsItem']]): Additional custom field values
-            associated with this variant
     """
 
     sku: Unset | str = UNSET

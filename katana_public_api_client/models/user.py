@@ -21,17 +21,6 @@ class User:
         {'id': 42, 'firstName': 'Sarah', 'lastName': 'Johnson', 'email': 'sarah.johnson@company.com', 'role':
             'production_manager', 'status': 'active', 'last_login_at': '2024-01-15T14:30:00Z', 'created_at':
             '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T14:30:00Z'}
-
-    Attributes:
-        id (int): Unique identifier for the user account
-        first_name (str): User's first name for display and communication
-        last_name (str): User's last name for display and communication
-        email (str): Email address used for login and system notifications
-        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
-        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
-        role (Union[Unset, str]): User's role determining system permissions and access levels
-        status (Union[Unset, str]): Current account status (active, inactive, suspended)
-        last_login_at (Union[None, Unset, datetime.datetime]): Timestamp of the user's most recent system login
     """
 
     id: int

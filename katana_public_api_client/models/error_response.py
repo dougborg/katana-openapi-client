@@ -13,13 +13,7 @@ T = TypeVar("T", bound="ErrorResponse")
 
 @_attrs_define
 class ErrorResponse:
-    """Base error message schema
-
-    Attributes:
-        status_code (Union[Unset, float]): HTTP status code
-        name (Union[Unset, str]): Error name/type
-        message (Union[Unset, str]): Human-readable error message
-    """
+    """Base error message schema"""
 
     status_code: Unset | float = UNSET
     name: Unset | str = UNSET

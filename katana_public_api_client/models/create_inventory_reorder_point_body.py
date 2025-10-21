@@ -10,14 +10,6 @@ T = TypeVar("T", bound="CreateInventoryReorderPointBody")
 
 @_attrs_define
 class CreateInventoryReorderPointBody:
-    """
-    Attributes:
-        variant_id (int): Product variant ID
-        location_id (int): Location ID
-        reorder_point (float): Minimum stock level that triggers reorder
-        reorder_quantity (Union[Unset, float]): Quantity to reorder when reorder point is reached
-    """
-
     variant_id: int
     location_id: int
     reorder_point: float

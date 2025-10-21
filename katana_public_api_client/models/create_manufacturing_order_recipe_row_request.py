@@ -28,18 +28,6 @@ class CreateManufacturingOrderRecipeRowRequest:
             'planned_quantity_per_unit': 0.25, 'total_actual_quantity': 5.0, 'ingredient_availability': 'AVAILABLE',
             'ingredient_expected_date': '2023-10-15T08:00:00Z', 'batch_transactions': [{'batch_id': 301, 'quantity': 3.0},
             {'batch_id': 302, 'quantity': 2.0}], 'cost': 12.5}
-
-    Attributes:
-        manufacturing_order_id (int): ID of the manufacturing order this ingredient belongs to
-        variant_id (int): ID of the ingredient variant being consumed
-        planned_quantity_per_unit (float): Planned quantity of ingredient per unit of finished product
-        notes (Union[Unset, str]): Additional notes about this ingredient usage
-        total_actual_quantity (Union[Unset, float]): Total actual quantity of ingredient consumed
-        ingredient_availability (Union[Unset, str]): Availability status of the ingredient
-        ingredient_expected_date (Union[Unset, datetime.datetime]): Expected date when ingredient will be available
-        batch_transactions (Union[Unset, list['CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem']]): Batch
-            tracking transactions for this ingredient
-        cost (Union[Unset, float]): Cost of this ingredient in the manufacturing order
     """
 
     manufacturing_order_id: int

@@ -13,12 +13,6 @@ T = TypeVar("T", bound="ServiceVariantCustomFieldsItem")
 
 @_attrs_define
 class ServiceVariantCustomFieldsItem:
-    """
-    Attributes:
-        field_name (Union[Unset, str]): Name of the custom field
-        field_value (Union[Unset, str]): Value for the custom field
-    """
-
     field_name: Unset | str = UNSET
     field_value: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

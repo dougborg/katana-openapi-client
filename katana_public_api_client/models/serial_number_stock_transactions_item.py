@@ -13,15 +13,6 @@ T = TypeVar("T", bound="SerialNumberStockTransactionsItem")
 
 @_attrs_define
 class SerialNumberStockTransactionsItem:
-    """
-    Attributes:
-        id (str): Transaction ID
-        resource_id (int): Resource ID associated with transaction
-        resource_type (str): Type of resource (ManufacturingOrder, etc.)
-        transaction_date (datetime.datetime): Date and time of transaction
-        quantity_change (int): Quantity change in transaction
-    """
-
     id: str
     resource_id: int
     resource_type: str

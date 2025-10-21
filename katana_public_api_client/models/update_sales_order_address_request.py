@@ -17,19 +17,6 @@ class UpdateSalesOrderAddressRequest:
 
     Example:
         {'address_line_1': '456 Oak Avenue', 'phone': '+1-555-0456'}
-
-    Attributes:
-        entity_type (Union[Unset, UpdateSalesOrderAddressRequestEntityType]): Type of address (billing or shipping)
-        first_name (Union[Unset, str]): First name for the address contact
-        last_name (Union[Unset, str]): Last name for the address contact
-        company (Union[Unset, str]): Company name for the address
-        address_line_1 (Union[Unset, str]): Primary address line
-        address_line_2 (Union[Unset, str]): Secondary address line
-        city (Union[Unset, str]): City name
-        state (Union[Unset, str]): State or province
-        zip_ (Union[Unset, str]): Postal code
-        country (Union[Unset, str]): Country code
-        phone (Union[Unset, str]): Contact phone number
     """
 
     entity_type: Unset | UpdateSalesOrderAddressRequestEntityType = UNSET

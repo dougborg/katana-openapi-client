@@ -25,9 +25,6 @@ class UserListResponse:
             '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T14:30:00Z'}, {'id': 43, 'first_name': 'Mike', 'last_name':
             'Chen', 'email': 'mike.chen@company.com', 'role': 'inventory_coordinator', 'status': 'active', 'last_login_at':
             '2024-01-15T10:15:00Z', 'created_at': '2024-01-08T11:00:00Z', 'updated_at': '2024-01-15T10:15:00Z'}]}
-
-    Attributes:
-        data (Union[Unset, list['User']]): Array of user accounts with authentication and permission details
     """
 
     data: Unset | list["User"] = UNSET

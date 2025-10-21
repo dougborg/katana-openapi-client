@@ -10,12 +10,6 @@ T = TypeVar("T", bound="UpdateProductRequestConfigsItem")
 
 @_attrs_define
 class UpdateProductRequestConfigsItem:
-    """
-    Attributes:
-        name (Union[Unset, str]): Name of the configuration attribute (e.g., Size, Color)
-        values (Union[Unset, list[str]]): Available values for this configuration attribute
-    """
-
     name: Unset | str = UNSET
     values: Unset | list[str] = UNSET
 

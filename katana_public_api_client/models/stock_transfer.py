@@ -28,20 +28,6 @@ class StockTransfer:
             warehouses', 'stock_transfer_rows': [{'id': 4001, 'variant_id': 2001, 'quantity': 50, 'batch_transactions':
             [{'batch_id': 5001, 'quantity': 30}, {'batch_id': 5002, 'quantity': 20}]}], 'created_at':
             '2024-01-15T16:00:00.000Z', 'updated_at': '2024-01-15T16:00:00.000Z', 'deleted_at': None}
-
-    Attributes:
-        id (int): Unique identifier for the stock transfer
-        stock_transfer_number (str): Human-readable reference number for tracking the transfer
-        source_location_id (int): ID of the source location where stock is being transferred from
-        target_location_id (int): ID of the destination location where stock is being transferred to
-        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
-        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
-        deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
-        status (Union[Unset, StockTransferStatus]): Current status of the stock transfer workflow
-        transfer_date (Union[Unset, datetime.datetime]): Date and time when the transfer was executed
-        additional_info (Union[None, Unset, str]): Optional notes or comments about the transfer purpose
-        stock_transfer_rows (Union[Unset, list['StockTransferRow']]): Line items detailing the products and quantities
-            being transferred
     """
 
     id: int

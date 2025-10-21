@@ -13,29 +13,6 @@ T = TypeVar("T", bound="UpdateSalesOrderBody")
 
 @_attrs_define
 class UpdateSalesOrderBody:
-    """
-    Attributes:
-        order_no (Union[Unset, str]): Updatable only when sales order status is NOT_SHIPPED or PENDING.
-        customer_id (Union[Unset, int]): Updatable only when sales order status is NOT_SHIPPED or PENDING.
-        order_created_date (Union[Unset, datetime.datetime]): Date when the order was originally created
-        delivery_date (Union[Unset, datetime.datetime]): Updatable only when sales order status is NOT_SHIPPED or
-            PENDING.
-        picked_date (Union[Unset, datetime.datetime]): Updatable only when sales order status is NOT_SHIPPED or PENDING.
-        location_id (Union[Unset, int]): Updatable only when sales order status is NOT_SHIPPED or PENDING.
-        status (Union[Unset, UpdateSalesOrderBodyStatus]): When the status is omitted, NOT_SHIPPED is used as default.
-            Use PENDING when you want to create sales order quotes.
-        currency (Union[Unset, str]): E.g. USD, EUR. All currently active currency codes in ISO 4217 format. Updatable
-            only when sales order status is NOT_SHIPPED or PENDING.
-        conversion_rate (Union[Unset, float]): Updatable only when sales order status is PACKED or DELIVERED, otherwise
-            it will fail with 422.
-        conversion_date (Union[Unset, str]): Updatable only when sales order status is PACKED or DELIVERED, otherwise it
-            will fail with 422.
-        additional_info (Union[None, Unset, str]): Additional notes or instructions for the sales order
-        customer_ref (Union[None, Unset, str]): Customer's reference number or purchase order number
-        tracking_number (Union[None, Unset, str]): Shipping carrier tracking number for package tracking
-        tracking_number_url (Union[None, Unset, str]): URL link to track the shipment on carrier website
-    """
-
     order_no: Unset | str = UNSET
     customer_id: Unset | int = UNSET
     order_created_date: Unset | datetime.datetime = UNSET

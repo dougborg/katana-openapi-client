@@ -10,12 +10,6 @@ T = TypeVar("T", bound="UpdateProductOperationRowBody")
 
 @_attrs_define
 class UpdateProductOperationRowBody:
-    """
-    Attributes:
-        sequence (Union[Unset, int]): Operation sequence
-        notes (Union[Unset, str]): Operation notes
-    """
-
     sequence: Unset | int = UNSET
     notes: Unset | str = UNSET
 

@@ -10,15 +10,6 @@ T = TypeVar("T", bound="CreateSalesReturnRowBody")
 
 @_attrs_define
 class CreateSalesReturnRowBody:
-    """
-    Attributes:
-        sales_return_id (int): Sales return ID
-        variant_id (int): Product variant ID
-        quantity (float): Quantity being returned
-        reason (Union[Unset, str]): Reason for return
-        notes (Union[Unset, str]): Additional notes
-    """
-
     sales_return_id: int
     variant_id: int
     quantity: float

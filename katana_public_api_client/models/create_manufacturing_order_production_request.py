@@ -33,15 +33,6 @@ class CreateManufacturingOrderProductionRequest:
                 'manufacturing_order_recipe_row_id': 3201, 'production_id': 3501, 'quantity': 50.0, 'production_date':
                 '2024-01-20T14:30:00Z', 'cost': 125.0}], 'operations': [{'id': 3801, 'manufacturing_order_id': 3001,
                 'operation_id': 401, 'time': 15.0}]}
-
-        Attributes:
-            manufacturing_order_id (int): ID of the manufacturing order this production run belongs to
-            quantity (float): Quantity produced in this production run
-            production_date (datetime.datetime): Date and time when the production was completed
-            ingredients (Union[Unset, list['ManufacturingOrderProductionIngredient']]): Ingredients consumed during this
-                production run
-            operations (Union[Unset, list['ManufacturingOrderOperationRow']]): Operations performed during this production
-                run
     """
 
     manufacturing_order_id: int

@@ -16,14 +16,6 @@ class UpdatePriceListRequest:
 
     Example:
         {'name': 'Premium Customer Pricing - Updated', 'markup_percentage': 30.0, 'end_date': '2025-12-31T23:59:59Z'}
-
-    Attributes:
-        name (Union[Unset, str]): Descriptive name for the price list
-        currency (Union[Unset, str]): ISO 4217 currency code for all prices in this list
-        is_default (Union[Unset, bool]): Whether this price list should be the default fallback
-        markup_percentage (Union[Unset, float]): Percentage markup applied to base costs
-        start_date (Union[Unset, datetime.datetime]): Date and time when this price list becomes active
-        end_date (Union[Unset, datetime.datetime]): Date and time when this price list expires
     """
 
     name: Unset | str = UNSET

@@ -10,11 +10,6 @@ T = TypeVar("T", bound="UpdateOutsourcedPurchaseOrderRecipeRowBody")
 
 @_attrs_define
 class UpdateOutsourcedPurchaseOrderRecipeRowBody:
-    """
-    Attributes:
-        quantity (Union[Unset, float]): Quantity required
-    """
-
     quantity: Unset | float = UNSET
 
     def to_dict(self) -> dict[str, Any]:
