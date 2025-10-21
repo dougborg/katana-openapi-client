@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## v0.20.0 (2025-10-21)
+
+### Chores
+
+- Update uv.lock and CLIENT_README from regeneration
+  ([`9d4f781`](https://github.com/dougborg/katana-openapi-client/commit/9d4f7810b47f5ba81a4eca2870d2b3550577ebbb))
+
+### Features
+
+- Add comprehensive validation constraints for ISO standards and data formats
+  ([`241ba05`](https://github.com/dougborg/katana-openapi-client/commit/241ba055a2eed725fdc5b05a03495d2a002c89eb))
+
 ## v0.19.1 (2025-10-20)
 
 ### Bug Fixes
