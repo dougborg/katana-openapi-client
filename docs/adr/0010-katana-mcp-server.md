@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 Date: 2025-10-21
 
@@ -54,34 +54,99 @@ interface. By creating a Katana MCP server, we can:
 
 ## Decision
 
-We will create a `katana-mcp-server` as a **separate package** that depends on
-`katana-openapi-client`, implementing the Model Context Protocol to expose Katana
-functionality to Claude Code and other MCP clients.
+We will create a `katana-mcp-server` as a **separate package within this repository**
+(monorepo with uv workspace), implementing the Model Context Protocol to expose Katana
+functionality to Claude Code and other MCP clients. The MCP server will depend on
+`katana-openapi-client` and serve as both a production-ready tool and a reference
+implementation for building MCP servers with our client library.
+
+### Repository Strategy: Monorepo with uv Workspace
+
+**Decision**: Implement the MCP server as a **separate package within the same
+repository**, using uv's workspace feature for multi-package management.
+
+**Rationale**:
+
+1. **Reference Implementation**: The MCP server demonstrates best practices for using
+   the client library, making it valuable to have alongside the client code
+1. **Version Synchronization**: Guaranteed compatibility between client and MCP server
+   versions
+1. **Unified Development**: Can test changes across both packages simultaneously
+1. **Shared Documentation**: Cookbook and examples naturally live alongside both
+   packages
+1. **Modern Tooling**: uv workspace support makes monorepo management seamless
+1. **Flexible Installation**: Users can install just the client or both packages as
+   needed
+
+**Installation Options**:
+
+```bash
+# Install only the client library
+pip install katana-openapi-client
+
+# Install the MCP server (automatically includes client)
+pip install katana-mcp-server
+uvx katana-mcp-server
+
+# Development: Install both in editable mode
+uv sync --all-extras
+```
 
 ### Architecture
 
-**Package Structure:**
+**Repository Structure (Monorepo with uv Workspace):**
 
 ```
-katana-mcp-server/
-├── pyproject.toml          # Depends on katana-openapi-client + mcp
-├── src/
-│   └── katana_mcp/
-│       ├── __init__.py
-│       ├── server.py       # FastMCP server implementation
-│       ├── tools/          # Tool implementations
-│       │   ├── inventory.py
-│       │   ├── sales_orders.py
-│       │   ├── purchase_orders.py
-│       │   └── manufacturing.py
-│       ├── resources/      # Resource endpoints
-│       │   ├── inventory.py
-│       │   ├── orders.py
-│       │   └── manufacturing.py
-│       └── prompts/        # Reusable prompts
-│           └── workflows.py
-├── tests/
-└── README.md
+katana-openapi-client/                  # Repository root
+├── pyproject.toml                      # Workspace configuration
+├── uv.lock                             # Unified lockfile
+├── katana_public_api_client/           # Client library package
+│   └── ...                             # (existing structure)
+├── katana_mcp_server/                  # MCP server package
+│   ├── pyproject.toml                  # Package config, depends on client
+│   ├── src/
+│   │   └── katana_mcp/
+│   │       ├── __init__.py
+│   │       ├── server.py               # FastMCP server implementation
+│   │       ├── tools/                  # Tool implementations
+│   │       │   ├── inventory.py
+│   │       │   ├── sales_orders.py
+│   │       │   ├── purchase_orders.py
+│   │       │   └── manufacturing.py
+│   │       ├── resources/              # Resource endpoints
+│   │       │   ├── inventory.py
+│   │       │   ├── orders.py
+│   │       │   └── manufacturing.py
+│   │       └── prompts/                # Reusable prompts
+│   │           └── workflows.py
+│   ├── tests/                          # MCP server unit tests
+│   └── README.md                       # MCP server documentation
+├── tests/                              # Shared integration tests
+├── docs/
+│   ├── client/                         # Client-specific docs
+│   ├── mcp-server/                     # MCP server docs
+│   └── COOKBOOK.md                     # Shared by both packages
+└── examples/
+    ├── client_examples/
+    └── mcp_examples/
+```
+
+**Workspace Configuration:**
+
+```toml
+# Root pyproject.toml
+[tool.uv.workspace]
+members = ["katana_public_api_client", "katana_mcp_server"]
+
+# katana_mcp_server/pyproject.toml
+[project]
+name = "katana-mcp-server"
+version = "0.1.0"
+dependencies = [
+    "katana-openapi-client",  # Uses workspace version automatically
+    "mcp>=1.0.0",
+    "pydantic>=2.0.0",
+]
 ```
 
 **Core Components:**
@@ -274,7 +339,36 @@ Support multiple authentication methods:
 
 ## Alternatives Considered
 
-### Alternative 1: Build as Claude Code Skill Instead
+### Alternative 1: Separate Repository
+
+**Description:**
+
+Create `katana-mcp-server` as a completely separate repository that depends on
+`katana-openapi-client` from PyPI.
+
+**Pros:**
+
+- Clear separation of concerns (library vs application)
+- Independent versioning and release cadence
+- Focused CI/CD (faster builds, tests only what changed)
+- No dependency bloat for client-only users
+
+**Cons:**
+
+- Version compatibility management across repos
+- Duplicate CI/CD setup and maintenance
+- Harder to test changes that span both packages
+- Documentation split across repositories
+- Less obvious as a reference implementation
+
+**Why Rejected:**
+
+The MCP server serves as both a production tool AND a reference implementation showing
+how to use the client library. Keeping it in the same repo emphasizes this dual purpose,
+simplifies development, and leverages uv's excellent workspace support. If separation
+becomes necessary later, extracting to a new repo is straightforward.
+
+### Alternative 2: Build as Claude Code Skill Instead
 
 **Description:**
 
@@ -300,7 +394,7 @@ Skills are simpler to set up and don't require running a separate server process
 MCP provides better type safety, reusability, and works across multiple clients. The
 skill approach is too limited for a production-ready integration.
 
-### Alternative 2: Extend Client Library with MCP Support
+### Alternative 3: Extend Client Library with MCP Support
 
 **Description:**
 
@@ -326,7 +420,7 @@ activated with `pip install katana-openapi-client[mcp]`.
 Separation of concerns is clearer with separate packages. Not all client users need MCP,
 and mixing concerns would complicate both packages.
 
-### Alternative 3: Direct API Integration (No Client)
+### Alternative 4: Direct API Integration (No Client)
 
 **Description:**
 
@@ -523,9 +617,12 @@ common requirement.
 
 ## Next Steps
 
-1. Create GitHub issue to track implementation
-1. Set up repository: `katana-mcp-server`
-1. Create initial package structure with pyproject.toml
-1. Implement 1-2 proof-of-concept tools
+1. Accept this ADR and commit to repository
+1. Set up uv workspace in root `pyproject.toml`
+1. Create `katana_mcp_server/` directory structure
+1. Create initial `katana_mcp_server/pyproject.toml` with dependencies
+1. Implement basic FastMCP server with environment-based authentication
+1. Create 1-2 proof-of-concept tools (`check_inventory`, `list_products`)
 1. Test integration with Claude Code
+1. Create GitHub issue to track remaining implementation work
 1. Gather feedback and iterate on design
