@@ -162,7 +162,7 @@ first** - they explain the "why" behind the codebase structure.
 
 All tools are configured in `pyproject.toml` (no separate config files):
 
-- **Poetry**: Package metadata and dependencies
+- **uv**: Package metadata and dependencies
 - **Ruff**: Code formatting and linting (replaces Black, isort, flake8)
 - **MyPy**: Type checking
 - **Pytest**: Test discovery and execution

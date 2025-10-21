@@ -6,7 +6,7 @@ This example demonstrates the simplified KatanaClient usage with automatic
 pagination and resilience features, showcasing the generated OpenAPI models.
 
 Run with:
-    poetry run python examples/basic_usage.py
+    uv run python examples/basic_usage.py
 
 Make sure you have KATANA_API_KEY set in your environment or .env file.
 """

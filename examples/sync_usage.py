@@ -6,7 +6,7 @@ This example demonstrates the synchronous KatanaClient usage with automatic
 pagination and resilience features, showcasing the generated OpenAPI models.
 
 Run with:
-    poetry run python examples/sync_usage.py
+    uv run python examples/sync_usage.py
 
 Make sure you have KATANA_API_KEY set in your environment or .env file.
 """

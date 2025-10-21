@@ -16,9 +16,9 @@ The script will fail if any validation errors are found.
 Validation warnings will be displayed but won't cause failure.
 
 Usage:
-    poetry run python regenerate_client.py
+    uv run python regenerate_client.py
 
-The script should be run with 'poetry run python' to ensure all dependencies
+The script should be run with 'uv run python' to ensure all dependencies
 (including PyYAML and openapi-spec-validator) are available.
 Node.js and npx are required for Redocly validation.
 """
@@ -147,7 +147,7 @@ def _validate_with_openapi_spec_validator(spec_path: Path) -> bool:
     except ImportError as e:
         print("   ❌ Required validation dependencies missing:")
         print(f"      Missing: {e.name}")
-        print("      Run: poetry add --group dev pyyaml openapi-spec-validator")
+        print("      Run: uv add --dev pyyaml openapi-spec-validator")
         return False
 
     # Load and validate the spec
@@ -392,7 +392,7 @@ def run_tests(workspace_path: Path) -> bool:
 
     # Run the full test suite with streaming output
     returncode = run_command_streaming(
-        ["poetry", "run", "poe", "test"], cwd=workspace_path, check=False
+        ["uv", "run", "poe", "test"], cwd=workspace_path, check=False
     )
 
     if returncode != 0:
@@ -415,7 +415,7 @@ def format_generated_code(workspace_path: Path) -> bool:
     # Run the full format command (this handles all files consistently)
     print("🎨 Formatting all Python files...")
     result = run_command(
-        ["poetry", "run", "poe", "format-python"], cwd=workspace_path, check=False
+        ["uv", "run", "poe", "format-python"], cwd=workspace_path, check=False
     )
 
     if result.returncode != 0:
@@ -557,7 +557,7 @@ def run_lint_check(workspace_path: Path) -> bool:
     # First, run ruff with --fix and --unsafe-fixes to auto-fix as much as possible
     print("🔧 Auto-fixing linting issues with ruff (including unsafe fixes)...")
     run_command(
-        ["poetry", "run", "ruff", "check", "--fix", "--unsafe-fixes", "."],
+        ["uv", "run", "ruff", "check", "--fix", "--unsafe-fixes", "."],
         cwd=workspace_path,
         check=False,
     )
@@ -570,7 +570,7 @@ def run_lint_check(workspace_path: Path) -> bool:
     # Then run the lint command to check for any remaining issues
     print("🔍 Checking for remaining linting issues...")
     check_result = run_command(
-        ["poetry", "run", "poe", "lint-ruff"], cwd=workspace_path, check=False
+        ["uv", "run", "poe", "lint-ruff"], cwd=workspace_path, check=False
     )
 
     if check_result.returncode != 0:

@@ -7,11 +7,11 @@ categorizing files into generated (which don't need high coverage) and
 core logic (which should have high coverage).
 
 Usage:
-    poetry run python scripts/analyze_coverage.py
+    uv run python scripts/analyze_coverage.py
 
     # Or with coverage report:
-    poetry run pytest --cov=katana_public_api_client --cov-report=json -m 'not docs' -q
-    poetry run python scripts/analyze_coverage.py
+    uv run pytest --cov=katana_public_api_client --cov-report=json -m 'not docs' -q
+    uv run python scripts/analyze_coverage.py
 """
 
 import json
@@ -91,7 +91,7 @@ def analyze_coverage() -> dict[str, CategoryStats]:
     if not coverage_data:
         print("❌ No coverage.json found. Run tests with --cov-report=json first:")
         print(
-            "   poetry run pytest --cov=katana_public_api_client"
+            "   uv run pytest --cov=katana_public_api_client"
             " --cov-report=json -m 'not docs'"
         )
         sys.exit(1)

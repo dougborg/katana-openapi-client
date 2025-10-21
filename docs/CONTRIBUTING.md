@@ -12,16 +12,16 @@ provides guidelines and instructions for contributing.
    cd katana-openapi-client
    ```
 
-1. **Install Poetry** (if not already installed)
+1. **Install uv** (if not already installed)
 
    ```bash
-   curl -sSL https://install.python-poetry.org | python3 -
+   curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
 
 1. **Install dependencies**
 
    ```bash
-   poetry install
+   uv sync --all-extras
    ```
 
 1. **Set up environment variables**
@@ -39,32 +39,32 @@ We maintain high code quality standards. Before submitting changes:
 
 ```bash
 # Format code
-poetry run poe format
+uv run poe format
 
 # Check formatting
-poetry run poe format-check
+uv run poe format-check
 
 # Run type checking
-poetry run poe lint
+uv run poe lint
 
 # Run tests
-poetry run poe test
+uv run poe test
 ```
 
 ### Running Tests
 
 ```bash
 # Run all tests
-poetry run poe test
+uv run poe test
 
 # Run with coverage
-poetry run poe test-coverage
+uv run poe test-coverage
 
 # Run specific test file
-poetry run poe test tests/test_katana_client.py
+uv run poe test tests/test_katana_client.py
 
 # Run integration tests (requires API credentials)
-poetry run poe test-integration
+uv run poe test-integration
 ```
 
 ### Code Style
@@ -73,7 +73,7 @@ poetry run poe test-integration
 - [mypy](https://mypy.readthedocs.io/) for type checking
 - [mdformat](https://mdformat.readthedocs.io/) for Markdown formatting
 
-All formatting is automated via `poetry run poe format`.
+All formatting is automated via `uv run poe format`.
 
 ## Submitting Changes
 
@@ -94,9 +94,9 @@ All formatting is automated via `poetry run poe format`.
 1. **Run the full test suite**
 
    ```bash
-   poetry run poe format
-   poetry run poe lint
-   poetry run poe test
+   uv run poe format
+   uv run poe lint
+   uv run poe test
    ```
 
 1. **Commit your changes** with a clear commit message
@@ -208,7 +208,7 @@ The OpenAPI client is automatically generated from `katana-openapi.yaml` using
 
 ```bash
 # Regenerate client from OpenAPI spec
-poetry run python scripts/regenerate_client.py
+uv run python scripts/regenerate_client.py
 ```
 
 ### What Gets Regenerated

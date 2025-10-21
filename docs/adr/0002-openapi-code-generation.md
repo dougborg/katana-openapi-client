@@ -148,7 +148,7 @@ Use alternative OpenAPI generator (e.g., `openapi-generator`, custom generator).
 ### Regeneration Process
 
 ```bash
-poetry run poe regenerate-client
+uv run poe regenerate-client
 ```
 
 The `scripts/regenerate_client.py` script:

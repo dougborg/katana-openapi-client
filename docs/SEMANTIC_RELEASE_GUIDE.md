@@ -69,8 +69,8 @@ Before pushing commits, test what the next version would be:
 # Check configuration and see what would happen
 ./scripts/check_release.sh
 
-# Or use poetry directly
-poetry run semantic-release version --dry-run
+# Or use uv directly
+uv run semantic-release version --dry-run
 ```
 
 ## Release Process
@@ -91,10 +91,10 @@ poetry run semantic-release version --dry-run
 
 ```bash
 # Generate new version and changelog
-poetry run semantic-release version
+uv run semantic-release version
 
 # Publish to PyPI (if not done by CI)
-poetry run semantic-release publish
+uv run semantic-release publish
 ```
 
 ## Configuration
@@ -103,7 +103,7 @@ Semantic release is configured in `pyproject.toml`:
 
 - Version files: `pyproject.toml`, `katana_public_api_client/__init__.py`
 - Changelog: `CHANGELOG.md`
-- Build command: `poetry build`
+- Build command: `uv build`
 - Commit author: `github-actions[bot]`
 
 ## Troubleshooting
@@ -118,7 +118,7 @@ Semantic release is configured in `pyproject.toml`:
 
 - Check GitHub Actions logs
 - Ensure `PYPI_TOKEN` secret is set
-- Verify package builds successfully: `poetry build`
+- Verify package builds successfully: `uv build`
 
 ## Best Practices
 

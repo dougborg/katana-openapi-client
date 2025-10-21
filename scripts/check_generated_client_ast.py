@@ -49,12 +49,12 @@ def main():
         copy_dir(src, old)
         # Regenerate client via poe task
         subprocess.run(
-            ["poetry", "run", "poe", "regenerate-client"],
+            ["uv", "run", "poe", "regenerate-client"],
             check=True,
         )
         # Format generated code via poe task
         subprocess.run(
-            ["poetry", "run", "poe", "format-python"],
+            ["uv", "run", "poe", "format-python"],
             check=True,
         )
         if not compare_ast(old, src):

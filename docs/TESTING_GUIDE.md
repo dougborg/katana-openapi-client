@@ -55,19 +55,19 @@ Our test suite uses a **zero-tolerance approach** for API quality issues:
 
 ```bash
 # Run all tests
-poetry run poe test
+uv run poe test
 
 # Test specific areas
-poetry run pytest tests/test_schema_comprehensive.py        # Schema issues
-poetry run pytest tests/test_endpoint_comprehensive.py     # Endpoint issues
-poetry run pytest tests/test_openapi_specification.py      # Structure issues
-poetry run pytest tests/test_external_documentation_comparison.py  # External consistency
+uv run pytest tests/test_schema_comprehensive.py        # Schema issues
+uv run pytest tests/test_endpoint_comprehensive.py     # Endpoint issues
+uv run pytest tests/test_openapi_specification.py      # Structure issues
+uv run pytest tests/test_external_documentation_comparison.py  # External consistency
 
 # Run with coverage
-poetry run poe test-coverage
+uv run poe test-coverage
 
 # Analyze coverage by category
-poetry run poe analyze-coverage
+uv run poe analyze-coverage
 ```
 
 ### Debugging Test Failures
@@ -182,11 +182,11 @@ Overall Coverage: 23.1%
 
 ```bash
 # Generate coverage data and analyze by category
-poetry run pytest --cov=katana_public_api_client --cov-report=json -m 'not docs'
-poetry run poe analyze-coverage
+uv run pytest --cov=katana_public_api_client --cov-report=json -m 'not docs'
+uv run poe analyze-coverage
 
 # Generate HTML report for detailed inspection
-poetry run pytest --cov=katana_public_api_client --cov-report=html -m 'not docs'
+uv run pytest --cov=katana_public_api_client --cov-report=html -m 'not docs'
 open htmlcov/index.html
 ```
 

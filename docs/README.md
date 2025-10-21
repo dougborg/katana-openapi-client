@@ -16,10 +16,10 @@ Actions.
 
 ```bash
 # Build documentation (outputs to ./site)
-poetry run poe docs-build
+uv run poe docs-build
 
 # Serve documentation locally with live reload
-poetry run poe docs-serve
+uv run poe docs-serve
 ```
 
 The docs will be available at http://127.0.0.1:8000/
@@ -27,7 +27,7 @@ The docs will be available at http://127.0.0.1:8000/
 ### Clean Build Artifacts
 
 ```bash
-poetry run poe docs-clean
+uv run poe docs-clean
 ```
 
 ## Documentation Structure
@@ -57,7 +57,7 @@ docs/
 Documentation is deployed automatically via `.github/workflows/release.yml`:
 
 1. Triggered on release (semantic-release creates tags)
-1. Builds docs with `poetry run poe docs-build`
+1. Builds docs with `uv run poe docs-build`
 1. Deploys to `gh-pages` branch using peaceiris/actions-gh-pages
 1. Available at GitHub Pages URL
 
@@ -67,10 +67,10 @@ If needed, you can manually deploy docs:
 
 ```bash
 # Build the docs
-poetry run poe docs-build
+uv run poe docs-build
 
 # Deploy to gh-pages branch (requires push access)
-poetry run mkdocs gh-deploy
+uv run mkdocs gh-deploy
 ```
 
 ## Improvements Needed

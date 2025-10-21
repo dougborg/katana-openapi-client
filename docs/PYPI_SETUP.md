@@ -125,13 +125,13 @@ Test package building locally:
 
 ```bash
 # Build package
-poetry build
+uv build
 
 # Check package
-poetry run twine check dist/*
+uv run twine check dist/*
 
 # Test upload to Test PyPI (optional)
-poetry run twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+uv run twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 ```
 
 ## Security Best Practices
@@ -158,4 +158,4 @@ For issues with:
 - **PyPI publishing**: Check [PyPI Help](https://pypi.org/help/)
 - **GitHub Actions**: See
   [GitHub Actions documentation](https://docs.github.com/en/actions)
-- **Package building**: Review [Poetry documentation](https://python-poetry.org/docs/)
+- **Package building**: Review [uv documentation](https://docs.astral.sh/uv/)
