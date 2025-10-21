@@ -71,12 +71,13 @@ katana-mcp-server/
 │       ├── server.py       # FastMCP server implementation
 │       ├── tools/          # Tool implementations
 │       │   ├── inventory.py
-│       │   ├── orders.py
-│       │   ├── manufacturing.py
-│       │   └── products.py
+│       │   ├── sales_orders.py
+│       │   ├── purchase_orders.py
+│       │   └── manufacturing.py
 │       ├── resources/      # Resource endpoints
 │       │   ├── inventory.py
-│       │   └── orders.py
+│       │   ├── orders.py
+│       │   └── manufacturing.py
 │       └── prompts/        # Reusable prompts
 │           └── workflows.py
 ├── tests/
@@ -87,17 +88,36 @@ katana-mcp-server/
 
 1. **Tools** (Actions with side effects):
 
-   - `create_sales_order` - Create new sales orders
-   - `check_inventory` - Check stock levels for SKUs
-   - `create_manufacturing_order` - Create MOs from sales orders
-   - `update_order_status` - Update order statuses
-   - `sync_inventory` - Compare with external warehouse data
+   **Inventory (3 tools):**
+
+   - `check_inventory` - Check stock levels for specific SKU
+   - `list_low_stock_items` - Find products below reorder point
+   - `search_products` - Search products by name/SKU
+
+   **Sales Orders (3 tools):**
+
+   - `create_sales_order` - Create new sales order
+   - `get_sales_order_status` - Get order details and status
+   - `list_recent_sales_orders` - List recent sales orders
+
+   **Purchase Orders (3 tools):**
+
+   - `create_purchase_order` - Create new purchase order
+   - `get_purchase_order_status` - Get PO details and status
+   - `receive_purchase_order` - Mark PO as received
+
+   **Manufacturing (3 tools):**
+
+   - `create_manufacturing_order` - Create manufacturing order
+   - `get_manufacturing_order_status` - Get MO details and status
+   - `list_active_manufacturing_orders` - List in-progress MOs
 
 1. **Resources** (Read-only data):
 
    - `inventory://products` - List all products
    - `inventory://stock/{sku}` - Get stock for specific SKU
    - `orders://sales` - Recent sales orders
+   - `orders://purchase` - Recent purchase orders
    - `manufacturing://status` - Manufacturing capacity overview
 
 1. **Prompts** (Workflow templates):
@@ -176,8 +196,8 @@ Support multiple authentication methods:
 
 **Phase 1 (MVP):**
 
-- 5-10 core tools covering inventory, orders, and manufacturing
-- 3-5 resources for read-only data access
+- 12 core tools covering inventory, sales orders, purchase orders, and manufacturing
+- 5 resources for read-only data access
 - 2-3 workflow prompts for common scenarios
 - Basic error handling and progress reporting
 - Comprehensive documentation and examples
@@ -357,10 +377,14 @@ behavior.
 
 **Week 2: Essential Tools**
 
-- Implement 5 core tools (inventory, orders, manufacturing)
-- Add 3 resources for read-only data
+- Implement remaining 9-10 tools across all domains:
+  - Inventory tools (list_low_stock_items, search_products)
+  - Sales order tools (create, get_status, list_recent)
+  - Purchase order tools (create, get_status, receive)
+  - Manufacturing tools (create, get_status, list_active)
+- Add 5 resources for read-only data
 - Implement progress reporting for long operations
-- Add integration tests
+- Add integration tests for each tool
 - Document tool signatures and usage
 
 **Week 3: Polish and Documentation**
@@ -383,7 +407,8 @@ behavior.
 
 The MCP server will be considered successful if it achieves:
 
-1. **Functionality**: Implements 5+ tools covering core Katana operations
+1. **Functionality**: Implements 12 tools covering inventory, sales orders, purchase
+   orders, and manufacturing
 1. **Reliability**: Handles errors gracefully with proper retry logic
 1. **Usability**: Clear documentation enables setup in < 5 minutes
 1. **Type Safety**: All tools have proper type hints and return structured data
@@ -391,14 +416,110 @@ The MCP server will be considered successful if it achieves:
 1. **Performance**: Responses within acceptable timeframes (< 5s for most operations)
 1. **Adoption**: Used by at least 3 external projects/users within first quarter
 
-## Open Questions
+## Decisions on Open Questions
 
-1. **Naming**: `katana-mcp-server` vs `mcp-katana` vs `katana-mcp`?
-1. **Granularity**: How many tools is too many? Should we group operations?
-1. **State Management**: Should the server cache data between requests?
-1. **Versioning**: How to handle MCP server + client version compatibility?
-1. **Distribution**: PyPI + uvx, or also Docker image?
-1. **Multi-tenancy**: Support multiple Katana instances in same server?
+### 1. Naming: `katana-mcp-server`
+
+**Decision**: Use `katana-mcp-server` as the package name.
+
+**Rationale**:
+
+- Follows standard pattern: `{service}-mcp-server` (e.g., `postgres-mcp-server`)
+- Clear that it's a server, not just an integration
+- Sorts well in package listings (katana prefix keeps it near `katana-openapi-client`)
+- Distinguishable from potential future packages
+
+### 2. Granularity: 12 tools grouped by domain
+
+**Decision**: Implement 12 focused tools organized into 4 domain groups (inventory,
+sales orders, purchase orders, manufacturing).
+
+**Rationale**:
+
+- Covers 80% of common use cases without overwhelming users
+- Domain grouping aids discoverability
+- Balanced between too few (< 5, limiting) and too many (> 20, overwhelming)
+- Easy to extend with additional tools in Phase 2 based on user feedback
+
+### 3. State Management: No caching in Phase 1
+
+**Decision**: Start without caching, add TTL-based caching in Phase 2 for static data
+only.
+
+**Rationale**:
+
+- **Phase 1**: Simpler implementation, always fresh data, no staleness issues
+- **Phase 2**: Add optional TTL cache for static resources (products, locations)
+- Never cache mutable data (inventory levels, order statuses) - too risky for incorrect
+  business decisions
+
+### 4. Versioning: Independent semantic versioning
+
+**Decision**: Use independent semantic versioning with compatible range dependencies on
+the client library.
+
+**Strategy**:
+
+```toml
+[project]
+name = "katana-mcp-server"
+version = "0.1.0"  # Independent versioning
+dependencies = [
+    "katana-openapi-client>=0.21.0,<0.23.0",  # Compatible minor versions
+    "mcp>=1.0.0",
+]
+```
+
+**Version Policy**:
+
+- **MAJOR**: Breaking changes in tool signatures or behavior
+- **MINOR**: New tools, new features (backward compatible)
+- **PATCH**: Bug fixes, documentation updates
+
+Compatibility matrix will be documented in README.
+
+### 5. Distribution: PyPI + uvx (Phase 1), Docker optional (Phase 2)
+
+**Decision**: Distribute via PyPI with uvx as the primary installation method. Docker
+image is optional for Phase 2 if demand exists.
+
+**Installation Methods**:
+
+```bash
+# Primary method (uvx - recommended in Claude Code docs)
+uvx katana-mcp-server
+
+# Alternative (pip install)
+pip install katana-mcp-server
+python -m katana_mcp
+```
+
+### 6. Multi-tenancy: Single instance (Phase 1)
+
+**Decision**: Single Katana instance per server process in Phase 1. Users run multiple
+server instances for multiple Katana environments.
+
+**Configuration**:
+
+```json
+{
+  "mcpServers": {
+    "katana-production": {
+      "command": "uvx",
+      "args": ["katana-mcp-server"],
+      "env": {"KATANA_API_KEY": "prod-key"}
+    },
+    "katana-staging": {
+      "command": "uvx",
+      "args": ["katana-mcp-server"],
+      "env": {"KATANA_API_KEY": "staging-key"}
+    }
+  }
+}
+```
+
+**Phase 2**: Consider adding instance parameter to tools if multi-tenancy becomes a
+common requirement.
 
 ## Next Steps
 
