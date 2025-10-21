@@ -17677,6 +17677,15 @@ management</p>
 <div class="language-text highlight"><pre><span></span><code>Example:
     {&#39;id&#39;: 5001, &#39;price_list_id&#39;: 1001, &#39;variant_id&#39;: 201, &#39;adjustment_method&#39;: &#39;fixed&#39;, &#39;amount&#39;: 249.99,
         &#39;created_at&#39;: &#39;2024-01-15T10:00:00Z&#39;, &#39;updated_at&#39;: &#39;2024-01-15T10:00:00Z&#39;}
+
+Attributes:
+    id (int): Unique identifier for the price list row entry
+    price_list_id (int): ID of the price list this pricing entry belongs to
+    variant_id (int): ID of the product variant this pricing applies to
+    adjustment_method (PriceListRowAdjustmentMethod): Method used for price adjustment (fixed, percentage, markup)
+    amount (float): Amount value for the price adjustment based on the adjustment method
+    created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+    updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
 </code></pre></div>
 
 

@@ -17681,6 +17681,68 @@
     'purchase_uom_conversion_rate': 1.0, 'arrival_date': '2024-08-20T14:45:00Z'}</p>
 </details>
 
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.purchase_order_row_request.PurchaseOrderRowRequest.quantity">quantity</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Quantity of items to order for this purchase order line</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.purchase_order_row_request.PurchaseOrderRowRequest.price_per_unit">price_per_unit</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Unit price for each item in this purchase order line</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.purchase_order_row_request.PurchaseOrderRowRequest.variant_id">variant_id</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Unique identifier of the product variant being ordered</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.purchase_order_row_request.PurchaseOrderRowRequest.tax_rate_id">tax_rate_id</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Tax rate identifier to apply to this line item</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.purchase_order_row_request.PurchaseOrderRowRequest.purchase_uom_conversion_rate">purchase_uom_conversion_rate</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Conversion rate between purchase unit of measure and base
+unit</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.purchase_order_row_request.PurchaseOrderRowRequest.purchase_uom">purchase_uom</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Unit of measure for purchasing this item (e.g., kg, pieces, liters)</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.purchase_order_row_request.PurchaseOrderRowRequest.arrival_date">arrival_date</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Expected arrival date for this line item</p>
+          </div>
+        </li>
+    </ul>
+
+
 
 
 

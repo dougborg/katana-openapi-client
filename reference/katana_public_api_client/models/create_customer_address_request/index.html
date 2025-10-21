@@ -17679,8 +17679,118 @@
   <summary>Example</summary>
   <p>{'customer_id': 2003, 'entity_type': 'shipping', 'first_name': 'Maria', 'last_name': 'Garcia', 'company': 'Cafe
     Central', 'phone': '+1-555-0127', 'line_1': '789 Main Street', 'line_2': 'Unit 5', 'city': 'San Francisco',
-    'state': 'CA', 'zip': '94102', 'country': 'USA', 'is_default': True}</p>
+    'state': 'CA', 'zip': '94102', 'country': 'US', 'is_default': True}</p>
 </details>
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_customer_address_request.CreateCustomerAddressRequest.customer_id">customer_id</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>ID of the customer this address belongs to</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_customer_address_request.CreateCustomerAddressRequest.entity_type">entity_type</span></code></b>
+              (<code><span title="katana_public_api_client.models.create_customer_address_request_entity_type.CreateCustomerAddressRequestEntityType">CreateCustomerAddressRequestEntityType</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>Address type - billing for invoicing, shipping for
+delivery</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_customer_address_request.CreateCustomerAddressRequest.first_name">first_name</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>First name for the contact person at this address</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_customer_address_request.CreateCustomerAddressRequest.last_name">last_name</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Last name for the contact person at this address</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_customer_address_request.CreateCustomerAddressRequest.company">company</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Company name for business addresses</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_customer_address_request.CreateCustomerAddressRequest.phone">phone</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Phone number for this address location</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_customer_address_request.CreateCustomerAddressRequest.line_1">line_1</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Primary address line (street address, building number)</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_customer_address_request.CreateCustomerAddressRequest.line_2">line_2</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Secondary address line (apartment, suite, floor)</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_customer_address_request.CreateCustomerAddressRequest.city">city</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>City or locality name</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_customer_address_request.CreateCustomerAddressRequest.state">state</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>State, province, or region</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_customer_address_request.CreateCustomerAddressRequest.zip_">zip_</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Postal code or ZIP code</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_customer_address_request.CreateCustomerAddressRequest.country">country</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Country name or country code</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_customer_address_request.CreateCustomerAddressRequest.is_default">is_default</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Whether this should be set as the default address for the specified entity type</p>
+          </div>
+        </li>
+    </ul>
+
 
 
 

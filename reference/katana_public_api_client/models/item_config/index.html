@@ -17680,6 +17680,51 @@
   <p>{'id': 201, 'name': 'Type', 'values': ['Standard', 'Double-bladed'], 'product_id': 1, 'material_id': None}</p>
 </details>
 
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.item_config.ItemConfig.id">id</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Unique identifier</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.item_config.ItemConfig.name">name</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Configuration attribute name (e.g., Size, Color, Style, Grade)</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.item_config.ItemConfig.values">values</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Array of possible values for this configuration attribute</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.item_config.ItemConfig.product_id">product_id</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>ID of the product this configuration belongs to (null for materials)</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.item_config.ItemConfig.material_id">material_id</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>ID of the material this configuration belongs to (null for products)</p>
+          </div>
+        </li>
+    </ul>
+
+
 
 
 

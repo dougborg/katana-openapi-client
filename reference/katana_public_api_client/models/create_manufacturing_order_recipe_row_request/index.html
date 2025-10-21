@@ -17683,6 +17683,84 @@
     {'batch_id': 302, 'quantity': 2.0}], 'cost': 12.5}</p>
 </details>
 
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_manufacturing_order_recipe_row_request.CreateManufacturingOrderRecipeRowRequest.manufacturing_order_id">manufacturing_order_id</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>ID of the manufacturing order this ingredient belongs to</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_manufacturing_order_recipe_row_request.CreateManufacturingOrderRecipeRowRequest.variant_id">variant_id</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>ID of the ingredient variant being consumed</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_manufacturing_order_recipe_row_request.CreateManufacturingOrderRecipeRowRequest.planned_quantity_per_unit">planned_quantity_per_unit</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Planned quantity of ingredient per unit of finished product</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_manufacturing_order_recipe_row_request.CreateManufacturingOrderRecipeRowRequest.notes">notes</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Additional notes about this ingredient usage</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_manufacturing_order_recipe_row_request.CreateManufacturingOrderRecipeRowRequest.total_actual_quantity">total_actual_quantity</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Total actual quantity of ingredient consumed</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_manufacturing_order_recipe_row_request.CreateManufacturingOrderRecipeRowRequest.ingredient_availability">ingredient_availability</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Availability status of the ingredient</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_manufacturing_order_recipe_row_request.CreateManufacturingOrderRecipeRowRequest.ingredient_expected_date">ingredient_expected_date</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Expected date when ingredient will be available</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_manufacturing_order_recipe_row_request.CreateManufacturingOrderRecipeRowRequest.batch_transactions">batch_transactions</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem (katana_public_api_client.models.create_manufacturing_order_recipe_row_request_batch_transactions_item.CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem)" href="../create_manufacturing_order_recipe_row_request_batch_transactions_item/#katana_public_api_client.models.create_manufacturing_order_recipe_row_request_batch_transactions_item.CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem">CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem</a>]]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Batch
+tracking transactions for this ingredient</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_manufacturing_order_recipe_row_request.CreateManufacturingOrderRecipeRowRequest.cost">cost</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Cost of this ingredient in the manufacturing order</p>
+          </div>
+        </li>
+    </ul>
+
+
 
 
 

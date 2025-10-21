@@ -17684,6 +17684,20 @@ resources consumed during manufacturing.</p>
         &#39;2024-01-20T14:30:00Z&#39;, &#39;updated_at&#39;: &#39;2024-01-20T14:30:00Z&#39;, &#39;deleted_at&#39;: None}], &#39;serial_numbers&#39;:
         [&#39;PKS-001-240120&#39;, &#39;PKS-002-240120&#39;], &#39;created_at&#39;: &#39;2024-01-20T14:30:00Z&#39;, &#39;updated_at&#39;:
         &#39;2024-01-20T14:30:00Z&#39;, &#39;deleted_at&#39;: None}
+
+Attributes:
+    id (int): Unique identifier
+    created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+    updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+    deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
+    manufacturing_order_id (Union[Unset, int]): ID of the manufacturing order this production run belongs to
+    quantity (Union[Unset, float]): Actual quantity produced in this production run
+    production_date (Union[Unset, datetime.datetime]): Date and time when the production was completed
+    ingredients (Union[Unset, list[&#39;ManufacturingOrderProductionIngredient&#39;]]): Ingredients consumed during this
+        production run
+    operations (Union[Unset, list[&#39;ManufacturingOrderOperationProduction&#39;]]): Operations performed during this
+        production run
+    serial_numbers (Union[Unset, list[&#39;SerialNumber&#39;]]): Serial numbers assigned during this production run
 </code></pre></div>
 
 

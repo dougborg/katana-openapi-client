@@ -17675,6 +17675,191 @@
         <p>Regular purchase order for standard procurement from suppliers</p>
 
 
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.id">id</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Unique identifier</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.created_at">created_at</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Timestamp when the entity was first created</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.updated_at">updated_at</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Timestamp when the entity was last updated</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.deleted_at">deleted_at</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Nullable deletion timestamp</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.status">status</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <span title="katana_public_api_client.models.purchase_order_base_status.PurchaseOrderBaseStatus">PurchaseOrderBaseStatus</span>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Status of the order.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.order_no">order_no</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>A unique, identifying string used in the UI and controlled by the user.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.entity_type">entity_type</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <span title="katana_public_api_client.models.regular_purchase_order_entity_type.RegularPurchaseOrderEntityType">RegularPurchaseOrderEntityType</span>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Purchase order type identifier</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.default_group_id">default_group_id</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Default grouping identifier for organizational purposes</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.supplier_id">supplier_id</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>ID of the supplier who this order belongs to.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.currency">currency</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Currency of the purchase order. Filled with supplier currency by default.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.expected_arrival_date">expected_arrival_date</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>The timestamp when the items are expected to arrive (in
+full) in your warehouse.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.order_created_date">order_created_date</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>The timestamp of creating the document.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.additional_info">additional_info</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>A string attached to the object to add any internal comments, links to
+external files, additional instructions, etc.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.location_id">location_id</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>The ID of the location to which items are received.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.total">total</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>The total value of the order (including taxes) in purchase order currency.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.total_in_base_currency">total_in_base_currency</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>The total value of the order (including taxes) in base currency.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.billing_status">billing_status</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <span title="katana_public_api_client.models.purchase_order_base_billing_status.PurchaseOrderBaseBillingStatus">PurchaseOrderBaseBillingStatus</span>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Indicating the status of generating the bill
+through accounting integration to either Xero or QuickBooks Online. "PARTIALLY_BILLED" does not apply to Xero
+integration.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.last_document_status">last_document_status</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <span title="katana_public_api_client.models.purchase_order_base_last_document_status.PurchaseOrderBaseLastDocumentStatus">PurchaseOrderBaseLastDocumentStatus</span>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Status of the last e-mail sent from
+(O)PO card.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.purchase_order_rows">purchase_order_rows</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="PurchaseOrderRow (katana_public_api_client.models.purchase_order_row.PurchaseOrderRow)" href="../purchase_order_row/#katana_public_api_client.models.purchase_order_row.PurchaseOrderRow">PurchaseOrderRow</a>]]</code>)
+          –
+          <div class="doc-md-description">
+            <p>List of line items in this purchase order</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.supplier">supplier</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-internal" title="Supplier (katana_public_api_client.models.supplier.Supplier)" href="../supplier/#katana_public_api_client.models.supplier.Supplier">Supplier</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Supplier company or individual providing materials, products, or services for
+procurement operations Example: {'id': 4001, 'name': 'Premium Kitchen Supplies Ltd', 'email':
+'<a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#111;&#114;&#100;&#101;&#114;&#115;&#64;&#112;&#114;&#101;&#109;&#105;&#117;&#109;&#107;&#105;&#116;&#99;&#104;&#101;&#110;&#46;&#99;&#111;&#109;">&#111;&#114;&#100;&#101;&#114;&#115;&#64;&#112;&#114;&#101;&#109;&#105;&#117;&#109;&#107;&#105;&#116;&#99;&#104;&#101;&#110;&#46;&#99;&#111;&#109;</a>', 'phone': '+1-555-0134', 'currency': 'USD', 'comment': 'Primary supplier for kitchen
+equipment and utensils. Reliable delivery times.', 'default_address_id': 4001, 'created_at':
+'2023-06-15T08:30:00Z', 'updated_at': '2024-01-15T14:20:00Z', 'deleted_at': None, 'addresses': [{'id': 4001,
+'company': 'Premium Kitchen Supplies Ltd', 'street': '1250 Industrial Blvd', 'street2': 'Suite 200', 'city':
+'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'US', 'created_at': '2023-06-15T08:30:00Z', 'updated_at':
+'2023-06-15T08:30:00Z', 'deleted_at': None}]}.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.regular_purchase_order.RegularPurchaseOrder.tracking_location_id">tracking_location_id</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="typing.Union" href="https://docs.python.org/3/library/typing.html#typing.Union">Union</a>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, None]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Regular orders do not have tracking locations</p>
+          </div>
+        </li>
+    </ul>
+
+
 
 
 

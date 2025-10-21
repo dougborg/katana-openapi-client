@@ -17681,6 +17681,52 @@
     'Quarterly inventory count', 'status': 'DRAFT'}</p>
 </details>
 
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_stocktake_request.CreateStocktakeRequest.reference_no">reference_no</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Human-readable reference number for the stocktake</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_stocktake_request.CreateStocktakeRequest.location_id">location_id</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>ID of the location where the stocktake will be performed</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_stocktake_request.CreateStocktakeRequest.stocktake_date">stocktake_date</span></code></b>
+              (<code><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Date and time when the stocktake was performed</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_stocktake_request.CreateStocktakeRequest.notes">notes</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Optional notes about the stocktake</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_stocktake_request.CreateStocktakeRequest.status">status</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <span title="katana_public_api_client.models.create_stocktake_request_status.CreateStocktakeRequestStatus">CreateStocktakeRequestStatus</span>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Status of the stocktake Default:
+CreateStocktakeRequestStatus.DRAFT.</p>
+          </div>
+        </li>
+    </ul>
+
+
 
 
 

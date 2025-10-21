@@ -17675,6 +17675,44 @@
         <p>Row-level data for receiving items against a purchase order, including quantity and batch details</p>
 
 
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.purchase_order_receive_row.PurchaseOrderReceiveRow.purchase_order_row_id">purchase_order_row_id</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Unique identifier of the purchase order row being received</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.purchase_order_receive_row.PurchaseOrderReceiveRow.quantity">quantity</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Quantity of items being received for this row</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.purchase_order_receive_row.PurchaseOrderReceiveRow.received_date">received_date</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Optional received date in ISO 8601 format.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.purchase_order_receive_row.PurchaseOrderReceiveRow.batch_transactions">batch_transactions</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="PurchaseOrderReceiveRowBatchTransactionsItem (katana_public_api_client.models.purchase_order_receive_row_batch_transactions_item.PurchaseOrderReceiveRowBatchTransactionsItem)" href="../purchase_order_receive_row_batch_transactions_item/#katana_public_api_client.models.purchase_order_receive_row_batch_transactions_item.PurchaseOrderReceiveRowBatchTransactionsItem">PurchaseOrderReceiveRowBatchTransactionsItem</a>]]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Array of batch-specific
+transactions for this received quantity</p>
+          </div>
+        </li>
+    </ul>
+
+
 
 
 

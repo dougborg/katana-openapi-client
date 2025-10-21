@@ -17684,6 +17684,109 @@
     'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '7 years'}]}</p>
 </details>
 
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_variant_request.UpdateVariantRequest.sku">sku</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Stock keeping unit code for unique identification of this product variant</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_variant_request.UpdateVariantRequest.sales_price">sales_price</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Default selling price per unit for this product variant</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_variant_request.UpdateVariantRequest.purchase_price">purchase_price</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Default purchase cost per unit for this product variant</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_variant_request.UpdateVariantRequest.product_id">product_id</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Reference to the parent product when this is a product variant</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_variant_request.UpdateVariantRequest.material_id">material_id</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Reference to the parent material when this is a material variant</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_variant_request.UpdateVariantRequest.supplier_item_codes">supplier_item_codes</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Supplier-specific codes for ordering this variant</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_variant_request.UpdateVariantRequest.internal_barcode">internal_barcode</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Internal barcode for warehouse operations and tracking</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_variant_request.UpdateVariantRequest.registered_barcode">registered_barcode</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>External barcode registered for retail scanning (UPC, EAN)</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_variant_request.UpdateVariantRequest.lead_time">lead_time</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Expected lead time in days for procurement or production</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_variant_request.UpdateVariantRequest.minimum_order_quantity">minimum_order_quantity</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Minimum quantity that must be ordered from suppliers</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_variant_request.UpdateVariantRequest.config_attributes">config_attributes</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="UpdateVariantRequestConfigAttributesItem (katana_public_api_client.models.update_variant_request_config_attributes_item.UpdateVariantRequestConfigAttributesItem)" href="../update_variant_request_config_attributes_item/#katana_public_api_client.models.update_variant_request_config_attributes_item.UpdateVariantRequestConfigAttributesItem">UpdateVariantRequestConfigAttributesItem</a>]]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Configuration attribute
+values that define this variant</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_variant_request.UpdateVariantRequest.custom_fields">custom_fields</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="UpdateVariantRequestCustomFieldsItem (katana_public_api_client.models.update_variant_request_custom_fields_item.UpdateVariantRequestCustomFieldsItem)" href="../update_variant_request_custom_fields_item/#katana_public_api_client.models.update_variant_request_custom_fields_item.UpdateVariantRequestCustomFieldsItem">UpdateVariantRequestCustomFieldsItem</a>]]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Additional custom field values
+associated with this variant</p>
+          </div>
+        </li>
+    </ul>
+
+
 
 
 

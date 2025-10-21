@@ -1905,7 +1905,7 @@ components:
       example:
         id: 5001
         city: Austin
-        country: USA
+        country: US
         line_1: 1500 Industrial Blvd
         line_2: Building A
         state: TX
@@ -1946,7 +1946,7 @@ components:
             address:
               id: 1
               city: New York
-              country: United States
+              country: US
               line_1: 10 East 20th Example St
               line_2: ""
               state: New York
@@ -3997,6 +3997,7 @@ components:
           description: Unique identifier of the supplier providing the materials or services
         currency:
           type: string
+          pattern: ^[A-Z]{3}$
           description: Active ISO 4217 currency code (e.g. USD, EUR).
         status:
           type: string
@@ -4537,6 +4538,7 @@ components:
             - PARTIALLY_RECEIVED
         expected_arrival_date:
           type: string
+          format: date-time
           description:
             Updatable only when status is in NOT_RECEIVED or PARTIALLY_RECEIVED. Update will override arrival_date
             on purchase order rows
@@ -4866,9 +4868,11 @@ components:
           description: Updatable only when received_date is null
         received_date:
           type: string
+          format: date-time
           description: Updatable only when already set
         arrival_date:
           type: string
+          format: date-time
           description: Updatable only when received_date is not null
       example:
         quantity: 275
@@ -4957,6 +4961,7 @@ components:
           description: Default currency code for transactions with this supplier (e.g., USD, EUR)
         email:
           type: string
+          format: email
           description: Primary email address for supplier communication and order confirmations
         phone:
           type: string
@@ -5036,6 +5041,7 @@ components:
               description: Primary phone number for supplier contact and communication
             currency:
               type: string
+              pattern: ^[A-Z]{3}$
               description: Default currency used for transactions with this supplier (ISO 4217 format)
             comment:
               type: string
@@ -5113,12 +5119,14 @@ components:
           description: Business name of the supplier company or individual
         email:
           type: string
+          format: email
           description: Primary email address for supplier communication and order confirmations
         phone:
           type: string
           description: Primary phone number for supplier contact and communication
         currency:
           type: string
+          pattern: ^[A-Z]{3}$
           description: The supplier's currency (ISO 4217).
         comment:
           type: string
@@ -6639,7 +6647,7 @@ components:
         city: Chicago
         state: IL
         zip: "60601"
-        country: USA
+        country: US
         created_at: "2024-01-10T09:15:00Z"
         updated_at: "2024-01-10T09:15:00Z"
     CustomerListResponse:
@@ -6713,6 +6721,7 @@ components:
           type:
             - string
             - "null"
+          format: email
           description: Primary email address for communication and order notifications
         phone:
           type:
@@ -6785,6 +6794,7 @@ components:
           type:
             - string
             - "null"
+          format: email
           description: Primary email address for communication and order notifications
         phone:
           type:
@@ -6881,6 +6891,7 @@ components:
                 - DELIVERED
             currency:
               type: string
+              pattern: ^[A-Z]{3}$
               description: Currency code for the order pricing (ISO 4217 format)
             conversion_rate:
               type:
@@ -7529,6 +7540,7 @@ components:
           description: ID of the customer placing the order
         sales_order_rows:
           type: array
+          minItems: 1
           description: List of products and quantities being ordered
           items:
             type: object
@@ -7583,6 +7595,7 @@ components:
           type:
             - string
             - "null"
+          format: uri
           description: URL for tracking shipment status
         addresses:
           type: array
@@ -7595,11 +7608,13 @@ components:
           type:
             - string
             - "null"
+          format: date-time
           description: Date when the order was originally created (defaults to current time)
         delivery_date:
           type:
             - string
             - "null"
+          format: date-time
           description: Requested delivery date
         currency:
           type:
@@ -8056,6 +8071,7 @@ components:
               description: Descriptive name for the price list (e.g., "Premium Customer Pricing", "Wholesale Rates")
             currency:
               type: string
+              pattern: ^[A-Z]{3}$
               description: ISO 4217 currency code for all prices in this list (e.g., USD, EUR, GBP)
             is_default:
               type: boolean
@@ -8107,6 +8123,7 @@ components:
           description: Descriptive name for the price list (e.g., "Premium Customer Pricing", "Wholesale Rates")
         currency:
           type: string
+          pattern: ^[A-Z]{3}$
           description: ISO 4217 currency code for all prices in this list (e.g., USD, EUR, GBP)
         is_default:
           type: boolean
@@ -8151,6 +8168,7 @@ components:
           description: Custom price for this variant in the price list's currency
         currency:
           type: string
+          pattern: ^[A-Z]{3}$
           description: ISO 4217 currency code (must match the price list's currency)
       example:
         price_list_id: 1001
@@ -8184,6 +8202,7 @@ components:
           description: Descriptive name for the price list
         currency:
           type: string
+          pattern: ^[A-Z]{3}$
           description: ISO 4217 currency code for all prices in this list
         is_default:
           type: boolean
@@ -8219,6 +8238,7 @@ components:
           description: Custom price for this variant in the price list's currency
         currency:
           type: string
+          pattern: ^[A-Z]{3}$
           description: ISO 4217 currency code (must match the price list's currency)
       example:
         price: 259.99
@@ -9056,6 +9076,7 @@ components:
                 - RESTOCKED_ALL
             currency:
               type: string
+              pattern: ^[A-Z]{3}$
               description: Currency code for refund amounts (ISO 4217 format)
             return_date:
               type:
@@ -9147,6 +9168,7 @@ components:
           description: Optional notes or comments about the return
         sales_return_rows:
           type: array
+          minItems: 1
           items:
             $ref: "#/components/schemas/CreateSalesReturnRowRequest"
           description: Array of items being returned
@@ -9426,7 +9448,7 @@ components:
             city: Chicago
             state: IL
             zip: "60601"
-            country: USA
+            country: US
             created_at: "2024-01-10T09:15:00Z"
             updated_at: "2024-01-10T09:15:00Z"
           - id: 3002
@@ -9442,7 +9464,7 @@ components:
             city: Chicago
             state: IL
             zip: "60602"
-            country: USA
+            country: US
             created_at: "2024-01-10T09:20:00Z"
             updated_at: "2024-01-10T09:20:00Z"
     CreateCustomerAddressRequest:
@@ -9527,7 +9549,7 @@ components:
         city: San Francisco
         state: CA
         zip: "94102"
-        country: USA
+        country: US
         is_default: true
     PriceListListResponse:
       description:

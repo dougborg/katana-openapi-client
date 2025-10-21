@@ -17683,6 +17683,44 @@
     expanded event coverage'}</p>
 </details>
 
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_webhook_request.UpdateWebhookRequest.url">url</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>HTTPS endpoint URL where webhook events will be sent (must use HTTPS for security)</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_webhook_request.UpdateWebhookRequest.subscribed_events">subscribed_events</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<span title="katana_public_api_client.models.webhook_event.WebhookEvent">WebhookEvent</span>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>List of event types to subscribe to (at least one event type required)</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_webhook_request.UpdateWebhookRequest.enabled">enabled</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Whether this webhook subscription should be active and receive events</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.update_webhook_request.UpdateWebhookRequest.description">description</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Optional human-readable description of this webhook's purpose for management
+and documentation</p>
+          </div>
+        </li>
+    </ul>
+
+
 
 
 

@@ -17686,6 +17686,104 @@
     'config_value': '1.5mm'}]}]}</p>
 </details>
 
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_material_request.CreateMaterialRequest.name">name</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Display name for the material used in inventory and manufacturing</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_material_request.CreateMaterialRequest.variants">variants</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="CreateVariantRequest (katana_public_api_client.models.create_variant_request.CreateVariantRequest)" href="../create_variant_request/#katana_public_api_client.models.create_variant_request.CreateVariantRequest">CreateVariantRequest</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Material variants with specific configurations and properties</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_material_request.CreateMaterialRequest.uom">uom</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Unit of measure for inventory tracking (e.g., kg, lb, pcs)</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_material_request.CreateMaterialRequest.category_name">category_name</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Material category for organization and classification</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_material_request.CreateMaterialRequest.default_supplier_id">default_supplier_id</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Primary supplier for purchasing this material</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_material_request.CreateMaterialRequest.additional_info">additional_info</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Additional specifications or notes about the material</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_material_request.CreateMaterialRequest.batch_tracked">batch_tracked</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Whether this material uses batch tracking for quality control</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_material_request.CreateMaterialRequest.is_sellable">is_sellable</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Whether this material can be sold directly to customers</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_material_request.CreateMaterialRequest.purchase_uom">purchase_uom</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>If you are purchasing in a different unit of measure than the default unit of
+measure (used for tracking stock)
+for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
+of measure. If value is not null, purchase_uom_conversion_rate must also be populated.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_material_request.CreateMaterialRequest.purchase_uom_conversion_rate">purchase_uom_conversion_rate</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>The conversion rate between the purchase and material UoMs.
+If used, material must have a purchase_uom
+that is different from uom.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_material_request.CreateMaterialRequest.configs">configs</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="MaterialConfig (katana_public_api_client.models.material_config.MaterialConfig)" href="../material_config/#katana_public_api_client.models.material_config.MaterialConfig">MaterialConfig</a>]]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Material configuration options for creating variants</p>
+          </div>
+        </li>
+    </ul>
+
+
 
 
 

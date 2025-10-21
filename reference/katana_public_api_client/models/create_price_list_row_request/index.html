@@ -17676,6 +17676,12 @@
 management</p>
 <div class="language-text highlight"><pre><span></span><code>Example:
     {&#39;price_list_id&#39;: 1001, &#39;variant_id&#39;: 201, &#39;price&#39;: 249.99, &#39;currency&#39;: &#39;USD&#39;}
+
+Attributes:
+    price_list_id (int): ID of the price list to add the variant pricing to
+    variant_id (int): ID of the product variant to set custom pricing for
+    price (float): Custom price for this variant in the price list&#39;s currency
+    currency (Union[Unset, str]): ISO 4217 currency code (must match the price list&#39;s currency)
 </code></pre></div>
 
 

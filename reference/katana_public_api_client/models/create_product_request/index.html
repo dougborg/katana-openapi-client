@@ -17688,6 +17688,171 @@
     'Steel'}]}]}</p>
 </details>
 
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.name">name</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Display name for the finished product used in sales and manufacturing</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.variants">variants</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="CreateVariantRequest (katana_public_api_client.models.create_variant_request.CreateVariantRequest)" href="../create_variant_request/#katana_public_api_client.models.create_variant_request.CreateVariantRequest">CreateVariantRequest</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Product variants with specific configurations and properties</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.uom">uom</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Base unit of measure for the product (e.g., pcs, kg, m)</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.category_name">category_name</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Product category for organization and reporting purposes</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.is_sellable">is_sellable</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Whether this product can be included in sales orders</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.is_producible">is_producible</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Whether this product can be manufactured using recipes</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.is_purchasable">is_purchasable</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Whether this product can be purchased from suppliers</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.is_auto_assembly">is_auto_assembly</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Whether assembly operations are automatically performed when stock is
+available</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.default_supplier_id">default_supplier_id</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Primary supplier for purchasing this product</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.additional_info">additional_info</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Additional notes or specifications for the product</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.batch_tracked">batch_tracked</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Whether this product uses batch tracking for inventory management</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.serial_tracked">serial_tracked</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Whether this product uses serial number tracking for individual units</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.operations_in_sequence">operations_in_sequence</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Whether manufacturing operations must be completed in sequence</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.purchase_uom">purchase_uom</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>If you are purchasing in a different unit of measure than the default unit of
+measure (used for tracking stock)
+for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
+of measure. If value is not null, purchase_uom_conversion_rate must also be populated.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.purchase_uom_conversion_rate">purchase_uom_conversion_rate</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>The conversion rate between the purchase and product UoMs.
+If used, product must have a purchase_uom
+that is different from uom.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.lead_time">lead_time</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Expected lead time in days for procurement or production</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.minimum_order_quantity">minimum_order_quantity</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Minimum quantity that must be ordered from suppliers</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.configs">configs</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="CreateProductRequestConfigsItem (katana_public_api_client.models.create_product_request_configs_item.CreateProductRequestConfigsItem)" href="../create_product_request_configs_item/#katana_public_api_client.models.create_product_request_configs_item.CreateProductRequestConfigsItem">CreateProductRequestConfigsItem</a>]]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Product configuration options for creating
+variants</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_product_request.CreateProductRequest.custom_field_collection_id">custom_field_collection_id</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Reference to custom field collection for additional
+product data</p>
+          </div>
+        </li>
+    </ul>
+
+
 
 
 

@@ -17681,6 +17681,30 @@
     2.5, 'notes': 'Primary ingredient'}]}</p>
 </details>
 
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_recipes_request.CreateRecipesRequest.rows">rows</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="CreateRecipesRequestRowsItem (katana_public_api_client.models.create_recipes_request_rows_item.CreateRecipesRequestRowsItem)" href="../create_recipes_request_rows_item/#katana_public_api_client.models.create_recipes_request_rows_item.CreateRecipesRequestRowsItem">CreateRecipesRequestRowsItem</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Array of recipe rows to create</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.create_recipes_request.CreateRecipesRequest.keep_current_rows">keep_current_rows</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Existing ingredient lines are kept by default, and new lines will be
+added to existing
+product recipes. Set to false to delete all existing ingredient lines for related
+products and add the ingredients as new recipes.</p>
+          </div>
+        </li>
+    </ul>
+
+
 
 
 

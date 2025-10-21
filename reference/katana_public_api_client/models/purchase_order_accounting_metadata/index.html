@@ -17677,6 +17677,15 @@ financial record synchronization</p>
 <div class="language-text highlight"><pre><span></span><code>Example:
     {&#39;id&#39;: 156, &#39;purchase_order_id&#39;: 8001, &#39;purchaseOrderId&#39;: 8001, &#39;porReceivedGroupId&#39;: 2001, &#39;integrationType&#39;:
         &#39;quickbooks&#39;, &#39;billId&#39;: &#39;BILL-2024-001&#39;, &#39;createdAt&#39;: &#39;2024-01-15T11:30:00Z&#39;}
+
+Attributes:
+    id (int): Unique identifier for the accounting metadata record
+    purchaseOrderId (int): Alternative purchase order ID field for accounting system compatibility
+    purchase_order_id (Union[Unset, int]): ID of the purchase order linked to the accounting system
+    por_received_group_id (Union[Unset, int]): ID of the received items group for accounting cost allocation
+    integration_type (Union[Unset, str]): Type of accounting system integration (e.g., quickbooks, xero, sage)
+    bill_id (Union[Unset, str]): Bill identifier in the external accounting system
+    created_at (Union[Unset, datetime.datetime]): Date and time when the accounting metadata was created
 </code></pre></div>
 
 

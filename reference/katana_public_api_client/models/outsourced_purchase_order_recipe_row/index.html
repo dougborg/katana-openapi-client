@@ -17675,6 +17675,118 @@
         <p>Recipe ingredient row for outsourced purchase orders defining material requirements and availability</p>
 
 
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.outsourced_purchase_order_recipe_row.OutsourcedPurchaseOrderRecipeRow.id">id</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Unique identifier</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.outsourced_purchase_order_recipe_row.OutsourcedPurchaseOrderRecipeRow.purchase_order_row_id">purchase_order_row_id</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>The purchase order row this recipe ingredient is linked to</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.outsourced_purchase_order_recipe_row.OutsourcedPurchaseOrderRecipeRow.ingredient_variant_id">ingredient_variant_id</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>The variant of the ingredient material required</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.outsourced_purchase_order_recipe_row.OutsourcedPurchaseOrderRecipeRow.planned_quantity_per_unit">planned_quantity_per_unit</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>The planned quantity of this ingredient per unit of production</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.outsourced_purchase_order_recipe_row.OutsourcedPurchaseOrderRecipeRow.created_at">created_at</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Timestamp when the entity was first created</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.outsourced_purchase_order_recipe_row.OutsourcedPurchaseOrderRecipeRow.updated_at">updated_at</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Timestamp when the entity was last updated</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.outsourced_purchase_order_recipe_row.OutsourcedPurchaseOrderRecipeRow.deleted_at">deleted_at</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Nullable deletion timestamp</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.outsourced_purchase_order_recipe_row.OutsourcedPurchaseOrderRecipeRow.purchase_order_id">purchase_order_id</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>The purchase order this recipe row belongs to</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.outsourced_purchase_order_recipe_row.OutsourcedPurchaseOrderRecipeRow.ingredient_availability">ingredient_availability</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <span title="katana_public_api_client.models.outsourced_purchase_order_recipe_row_ingredient_availability.OutsourcedPurchaseOrderRecipeRowIngredientAvailability">OutsourcedPurchaseOrderRecipeRowIngredientAvailability</span>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Current
+availability status of this ingredient</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.outsourced_purchase_order_recipe_row.OutsourcedPurchaseOrderRecipeRow.ingredient_expected_date">ingredient_expected_date</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Expected date when this ingredient will be
+available</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.outsourced_purchase_order_recipe_row.OutsourcedPurchaseOrderRecipeRow.notes">notes</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Additional notes about this ingredient requirement</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.outsourced_purchase_order_recipe_row.OutsourcedPurchaseOrderRecipeRow.batch_transactions">batch_transactions</span></code></b>
+              (<code><span title="Union">Union</span>[<span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem (katana_public_api_client.models.outsourced_purchase_order_recipe_row_batch_transactions_item.OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem)" href="../outsourced_purchase_order_recipe_row_batch_transactions_item/#katana_public_api_client.models.outsourced_purchase_order_recipe_row_batch_transactions_item.OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem">OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem</a>]]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Batch
+allocation transactions for this ingredient</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="katana_public_api_client.models.outsourced_purchase_order_recipe_row.OutsourcedPurchaseOrderRecipeRow.cost">cost</span></code></b>
+              (<code><span title="Union">Union</span>[None, <span title="katana_public_api_client.client_types.Unset">Unset</span>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Cost associated with this ingredient</p>
+          </div>
+        </li>
+    </ul>
+
+
 
 
 

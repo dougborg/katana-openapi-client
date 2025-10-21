@@ -17679,6 +17679,14 @@ quantities and material usage.</p>
         &#39;variant_id&#39;: 3102, &#39;manufacturing_order_id&#39;: 3001, &#39;manufacturing_order_recipe_row_id&#39;: 3202, &#39;production_id&#39;:
         3502, &#39;quantity&#39;: 60.0, &#39;production_date&#39;: &#39;2024-01-21T16:00:00Z&#39;, &#39;cost&#39;: 150.0}], &#39;operations&#39;: [{&#39;id&#39;: 3802,
         &#39;manufacturing_order_id&#39;: 3001, &#39;operation_id&#39;: 402, &#39;time&#39;: 18.0}]}
+
+Attributes:
+    quantity (Union[Unset, float]): Updated quantity produced in this production run
+    production_date (Union[Unset, datetime.datetime]): Updated date and time when the production was completed
+    ingredients (Union[Unset, list[&#39;UpdateManufacturingOrderProductionIngredientRequest&#39;]]): Updated ingredients
+        consumed during this production run
+    operations (Union[Unset, list[&#39;UpdateManufacturingOrderOperationRowRequest&#39;]]): Updated operations performed
+        during this production run
 </code></pre></div>
 
 

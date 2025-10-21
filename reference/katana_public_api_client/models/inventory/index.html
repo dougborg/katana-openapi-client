@@ -17678,6 +17678,39 @@ Includes stock levels, commitments, expectations, and financial information.</p>
     {&#39;variant_id&#39;: 3001, &#39;location_id&#39;: 1, &#39;safety_stock_level&#39;: &#39;25.0&#39;, &#39;reorder_point&#39;: &#39;25.0&#39;, &#39;average_cost&#39;:
         &#39;15.50&#39;, &#39;value_in_stock&#39;: &#39;2325.00&#39;, &#39;quantity_in_stock&#39;: &#39;150.0&#39;, &#39;quantity_committed&#39;: &#39;25.0&#39;,
         &#39;quantity_expected&#39;: &#39;50.0&#39;, &#39;quantity_missing_or_excess&#39;: &#39;0.0&#39;, &#39;quantity_potential&#39;: &#39;175.0&#39;}
+
+Attributes:
+    variant_id (int): Unique identifier of the product variant
+    location_id (int): Unique identifier of the location where inventory is stored
+    reorder_point (str): (Deprecated - use safety_stock_level instead) Queries the safety stock level
+    average_cost (str): Average cost per unit of this variant at this location
+    value_in_stock (str): Total monetary value of current stock
+    quantity_in_stock (str): Current physical quantity available at this location
+    quantity_committed (str): Quantity already allocated to orders but not yet shipped
+    quantity_expected (str): Quantity expected to arrive from pending purchase orders
+    quantity_missing_or_excess (str): Difference between expected and actual stock (negative means missing, positive
+        means excess)
+    quantity_potential (str): Total quantity that could be available (in stock + expected)
+    safety_stock_level (Union[Unset, str]): The quantity of a product or material which indicates an acceptable
+        stock level for unexpected demand without overstocking
+    variant (Union[Unset, Variant]): Specific SKU of a product or material with unique pricing, configuration, and
+        inventory tracking Example: {&#39;id&#39;: 3001, &#39;sku&#39;: &#39;KNF-PRO-8PC-STL&#39;, &#39;sales_price&#39;: 299.99, &#39;product_id&#39;: 101,
+        &#39;material_id&#39;: None, &#39;purchase_price&#39;: 150.0, &#39;product_or_material_name&#39;: &#39;Professional Kitchen Knife Set -
+        8-Piece - Steel Handles&#39;, &#39;type&#39;: &#39;product&#39;, &#39;internal_barcode&#39;: &#39;INT-KNF-001&#39;, &#39;registered_barcode&#39;:
+        &#39;789123456789&#39;, &#39;supplier_item_codes&#39;: [&#39;SUP-KNF-8PC-001&#39;], &#39;lead_time&#39;: 7, &#39;minimum_order_quantity&#39;: 1,
+        &#39;custom_fields&#39;: [{&#39;field_name&#39;: &#39;Warranty Period&#39;, &#39;field_value&#39;: &#39;5 years&#39;}], &#39;config_attributes&#39;:
+        [{&#39;config_name&#39;: &#39;Piece Count&#39;, &#39;config_value&#39;: &#39;8-piece&#39;}, {&#39;config_name&#39;: &#39;Handle Material&#39;, &#39;config_value&#39;:
+        &#39;Steel&#39;}], &#39;created_at&#39;: &#39;2024-01-15T08:00:00.000Z&#39;, &#39;updated_at&#39;: &#39;2024-08-20T14:45:00.000Z&#39;, &#39;deleted_at&#39;:
+        None}.
+    location (Union[&#39;DeletableEntity&#39;, &#39;LocationType0&#39;, Unset]): Manufacturing location or warehouse facility where
+        inventory is managed and operations are performed Example: {&#39;data&#39;: [{&#39;id&#39;: 1, &#39;name&#39;: &#39;Main location&#39;,
+        &#39;legal_name&#39;: &#39;Amazon&#39;, &#39;address_id&#39;: 1, &#39;address&#39;: {&#39;id&#39;: 1, &#39;city&#39;: &#39;New York&#39;, &#39;country&#39;: &#39;US&#39;, &#39;line_1&#39;: &#39;10
+        East 20th Example St&#39;, &#39;line_2&#39;: &#39;&#39;, &#39;state&#39;: &#39;New York&#39;, &#39;zip&#39;: &#39;10000&#39;}, &#39;is_primary&#39;: True, &#39;sales_allowed&#39;:
+        True, &#39;purchase_allowed&#39;: True, &#39;manufacturing_allowed&#39;: True, &#39;created_at&#39;: &#39;2020-10-23T10:37:05.085Z&#39;,
+        &#39;updated_at&#39;: &#39;2020-10-23T10:37:05.085Z&#39;, &#39;deleted_at&#39;: None}, {&#39;id&#39;: 2, &#39;name&#39;: &#39;Secondary location&#39;,
+        &#39;legal_name&#39;: &#39;Amazon&#39;, &#39;address_id&#39;: None, &#39;address&#39;: None, &#39;is_primary&#39;: False, &#39;sales_allowed&#39;: False,
+        &#39;purchase_allowed&#39;: True, &#39;manufacturing_allowed&#39;: False, &#39;created_at&#39;: &#39;2020-10-23T10:37:05.085Z&#39;,
+        &#39;updated_at&#39;: &#39;2020-10-23T10:37:05.085Z&#39;, &#39;deleted_at&#39;: None}]}.
 </code></pre></div>
 
 

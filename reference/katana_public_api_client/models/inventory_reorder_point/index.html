@@ -17674,6 +17674,11 @@
 
         <p>Configuration that defines the minimum inventory level that triggers automatic reordering for a specific variant at
 a location</p>
+<div class="language-text highlight"><pre><span></span><code>Attributes:
+    location_id (int): The location where this reorder point applies
+    variant_id (int): The product variant this reorder point is configured for
+    value (float): The minimum quantity that triggers reordering
+</code></pre></div>
 
 
 

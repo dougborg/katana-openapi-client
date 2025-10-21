@@ -17680,6 +17680,15 @@ and material consumption.</p>
         &#39;manufacturing_order_recipe_row_id&#39;: 3201, &#39;production_id&#39;: 3501, &#39;quantity&#39;: 50.0, &#39;production_date&#39;:
         &#39;2024-01-20T14:30:00Z&#39;, &#39;cost&#39;: 125.0}], &#39;operations&#39;: [{&#39;id&#39;: 3801, &#39;manufacturing_order_id&#39;: 3001,
         &#39;operation_id&#39;: 401, &#39;time&#39;: 15.0}]}
+
+Attributes:
+    manufacturing_order_id (int): ID of the manufacturing order this production run belongs to
+    quantity (float): Quantity produced in this production run
+    production_date (datetime.datetime): Date and time when the production was completed
+    ingredients (Union[Unset, list[&#39;ManufacturingOrderProductionIngredient&#39;]]): Ingredients consumed during this
+        production run
+    operations (Union[Unset, list[&#39;ManufacturingOrderOperationRow&#39;]]): Operations performed during this production
+        run
 </code></pre></div>
 
 

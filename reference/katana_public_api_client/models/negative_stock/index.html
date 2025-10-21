@@ -17678,6 +17678,16 @@ attention</p>
     {&#39;variant_id&#39;: 3001, &#39;location_id&#39;: 1, &#39;latest_negative_stock_date&#39;: &#39;2024-01-15T16:30:00.000Z&#39;, &#39;name&#39;:
         &#39;Professional Kitchen Knife Set - 8-Piece - Steel Handles&#39;, &#39;sku&#39;: &#39;KNF-PRO-8PC-STL&#39;, &#39;category&#39;: &#39;Kitchen
         Equipment&#39;, &#39;quantity_on_hand&#39;: -15.0, &#39;quantity_allocated&#39;: 25.0}
+
+Attributes:
+    variant_id (Union[Unset, int]): ID of the variant with negative stock levels
+    location_id (Union[Unset, int]): ID of the location where the negative stock occurred
+    latest_negative_stock_date (Union[Unset, datetime.datetime]): Most recent date when the stock went negative
+    name (Union[Unset, str]): Display name of the variant with negative stock
+    sku (Union[Unset, str]): Stock keeping unit (SKU) of the variant
+    category (Union[Unset, str]): Category classification of the variant
+    quantity_on_hand (Union[Unset, float]): Current negative quantity showing the deficit amount
+    quantity_allocated (Union[Unset, float]): Quantity allocated to orders despite negative stock
 </code></pre></div>
 
 

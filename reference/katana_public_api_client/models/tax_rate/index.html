@@ -17677,6 +17677,16 @@ requirements</p>
 <div class="language-text highlight"><pre><span></span><code>Example:
     {&#39;id&#39;: 301, &#39;name&#39;: &#39;VAT 20%&#39;, &#39;rate&#39;: 20.0, &#39;is_default_sales&#39;: True, &#39;is_default_purchases&#39;: False,
         &#39;display_name&#39;: &#39;VAT (20.0%)&#39;, &#39;created_at&#39;: &#39;2024-01-15T09:30:00Z&#39;, &#39;updated_at&#39;: &#39;2024-01-15T09:30:00Z&#39;}
+
+Attributes:
+    id (int): Unique identifier for the tax rate
+    created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+    updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+    name (Union[Unset, str]): Descriptive name for the tax rate (e.g., &quot;VAT 20%&quot;, &quot;Sales Tax&quot;, &quot;GST&quot;)
+    rate (Union[Unset, float]): Tax rate as a percentage (e.g., 20.5 for 20.5% tax)
+    is_default_sales (Union[Unset, bool]): Whether this tax rate is the default for sales transactions
+    is_default_purchases (Union[Unset, bool]): Whether this tax rate is the default for purchase transactions
+    display_name (Union[Unset, str]): Formatted display name for user interface presentation
 </code></pre></div>
 
 
