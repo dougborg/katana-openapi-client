@@ -6,7 +6,8 @@
       "Bash(gh issue view:*)",
       "Bash(uv run pytest:*)",
       "Bash(uv run ruff check:*)",
-      "Bash(uv run:*)"
+      "Bash(uv run:*)",
+      "Bash(gh:*)"
     ],
     "deny": [],
     "ask": []
