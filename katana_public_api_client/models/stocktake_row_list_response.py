@@ -25,6 +25,10 @@ class StocktakeRowListResponse:
             'updated_at': '2024-01-15T09:30:00.000Z'}, {'id': 4102, 'stocktake_id': 4001, 'variant_id': 3002,
             'expected_quantity': 75.0, 'counted_quantity': 75.0, 'variance': 0.0, 'notes': 'Count matches expected',
             'created_at': '2024-01-15T10:15:00.000Z', 'updated_at': '2024-01-15T10:15:00.000Z'}]}
+
+    Attributes:
+        data (Union[Unset, list['StocktakeRow']]): Array of stocktake row records with variant counts and variance
+            details
     """
 
     data: Unset | list["StocktakeRow"] = UNSET

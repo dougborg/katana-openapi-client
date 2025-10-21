@@ -22,6 +22,16 @@ class NegativeStock:
             {'variant_id': 3001, 'location_id': 1, 'latest_negative_stock_date': '2024-01-15T16:30:00.000Z', 'name':
                 'Professional Kitchen Knife Set - 8-Piece - Steel Handles', 'sku': 'KNF-PRO-8PC-STL', 'category': 'Kitchen
                 Equipment', 'quantity_on_hand': -15.0, 'quantity_allocated': 25.0}
+
+        Attributes:
+            variant_id (Union[Unset, int]): ID of the variant with negative stock levels
+            location_id (Union[Unset, int]): ID of the location where the negative stock occurred
+            latest_negative_stock_date (Union[Unset, datetime.datetime]): Most recent date when the stock went negative
+            name (Union[Unset, str]): Display name of the variant with negative stock
+            sku (Union[Unset, str]): Stock keeping unit (SKU) of the variant
+            category (Union[Unset, str]): Category classification of the variant
+            quantity_on_hand (Union[Unset, float]): Current negative quantity showing the deficit amount
+            quantity_allocated (Union[Unset, float]): Quantity allocated to orders despite negative stock
     """
 
     variant_id: Unset | int = UNSET

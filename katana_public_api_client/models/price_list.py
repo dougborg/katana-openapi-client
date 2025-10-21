@@ -22,6 +22,20 @@ class PriceList:
             {'id': 1001, 'name': 'Premium Customer Pricing', 'currency': 'USD', 'is_default': False, 'markup_percentage':
                 25.0, 'start_date': '2024-01-01T00:00:00Z', 'end_date': '2024-12-31T23:59:59Z', 'created_at':
                 '2024-01-01T10:00:00Z', 'updated_at': '2024-01-15T14:30:00Z', 'deleted_at': None}
+
+        Attributes:
+            id (int): Unique identifier for the price list
+            name (str): Descriptive name for the price list (e.g., "Premium Customer Pricing", "Wholesale Rates")
+            created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+            updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+            deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
+            currency (Union[Unset, str]): ISO 4217 currency code for all prices in this list (e.g., USD, EUR, GBP)
+            is_default (Union[Unset, bool]): Whether this price list is the default fallback for customers without specific
+                price lists
+            markup_percentage (Union[None, Unset, float]): Percentage markup applied to base costs to calculate pricing in
+                this list
+            start_date (Union[None, Unset, datetime.datetime]): Date and time when this price list becomes active
+            end_date (Union[None, Unset, datetime.datetime]): Date and time when this price list expires
     """
 
     id: int

@@ -20,6 +20,15 @@ class VariantDefaultStorageBinLinkResponse:
     Example:
         {'id': 501, 'bin_name': 'A-01-SHELF-1', 'variant_id': 3001, 'storage_bin_id': 12345, 'created_at':
             '2024-01-15T08:00:00.000Z', 'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}
+
+    Attributes:
+        id (int): Unique identifier for the variant-storage bin link
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
+        bin_name (Union[Unset, str]): Name of the storage bin linked to this variant
+        variant_id (Union[Unset, int]): ID of the variant linked to the storage bin
+        storage_bin_id (Union[Unset, int]): ID of the storage bin assigned as default for this variant
     """
 
     id: int

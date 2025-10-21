@@ -15,7 +15,22 @@ T = TypeVar("T", bound="ManufacturingOrderProductionIngredient")
 
 @_attrs_define
 class ManufacturingOrderProductionIngredient:
-    """Record of actual ingredient consumption during manufacturing order production, tracking quantities and costs"""
+    """Record of actual ingredient consumption during manufacturing order production, tracking quantities and costs
+
+    Attributes:
+        id (int): Unique identifier
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
+        location_id (Union[Unset, int]):
+        variant_id (Union[Unset, int]):
+        manufacturing_order_id (Union[Unset, int]):
+        manufacturing_order_recipe_row_id (Union[Unset, int]):
+        production_id (Union[Unset, int]):
+        quantity (Union[Unset, float]):
+        production_date (Union[Unset, datetime.datetime]):
+        cost (Union[Unset, float]):
+    """
 
     id: int
     created_at: Unset | datetime.datetime = UNSET

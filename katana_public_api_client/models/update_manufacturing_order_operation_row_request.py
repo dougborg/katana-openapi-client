@@ -21,6 +21,10 @@ class UpdateManufacturingOrderOperationRowRequest:
 
     Example:
         {'completed_by_operators': [{'id': 101, 'name': 'John Smith'}], 'total_actual_time': 52.3}
+
+    Attributes:
+        completed_by_operators (Union[Unset, list['Operator']]): List of operators who completed this operation
+        total_actual_time (Union[Unset, float]): Actual time taken in minutes for this operation
     """
 
     completed_by_operators: Unset | list["Operator"] = UNSET

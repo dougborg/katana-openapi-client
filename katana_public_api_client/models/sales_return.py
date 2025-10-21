@@ -29,6 +29,23 @@ class SalesReturn:
             'PROCESSED', 'sales_return_rows': [{'id': 3501, 'sales_return_id': 3001, 'variant_id': 2002, 'quantity': 2,
             'return_reason_id': 1, 'notes': 'Packaging was damaged', 'unit_price': 25.0, 'total_price': 50.0}],
             'created_at': '2023-10-15T14:00:00Z', 'updated_at': '2023-10-15T15:00:00Z', 'deleted_at': None}
+
+    Attributes:
+        id (int): Unique identifier for the sales return record
+        customer_id (int): Unique identifier of the customer making the return
+        order_no (str): Unique return order number for tracking and reference
+        return_location_id (int): Location where returned items will be received and processed
+        status (SalesReturnStatus): Current processing status of the sales return
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
+        sales_order_id (Union[None, Unset, int]): Reference to the original sales order being returned (if applicable)
+        currency (Union[Unset, str]): Currency code for refund amounts (ISO 4217 format)
+        return_date (Union[None, Unset, datetime.datetime]): Date when the return was processed and items received
+        order_created_date (Union[Unset, datetime.datetime]): Date and time when the return request was created
+        additional_info (Union[None, Unset, str]): Additional notes or comments about the return
+        refund_status (Union[None, Unset, str]): Current status of the refund processing
+        sales_return_rows (Union[Unset, list['SalesReturnRow']]): Line items being returned with quantities and reasons
     """
 
     id: int

@@ -27,6 +27,10 @@ class StockTransferListResponse:
             'target_location_id': 3, 'status': 'DRAFT', 'transfer_date': '2024-01-16T11:30:00.000Z', 'additional_info':
             'Seasonal stock redistribution', 'created_at': '2024-01-16T11:30:00.000Z', 'updated_at':
             '2024-01-16T11:30:00.000Z', 'deleted_at': None}]}
+
+    Attributes:
+        data (Union[Unset, list['StockTransfer']]): Array of stock transfer records with source, destination, and status
+            details
     """
 
     data: Unset | list["StockTransfer"] = UNSET

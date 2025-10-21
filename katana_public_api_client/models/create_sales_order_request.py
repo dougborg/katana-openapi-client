@@ -1,3 +1,4 @@
+import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
@@ -5,6 +6,7 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
+from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.create_sales_order_request_status import CreateSalesOrderRequestStatus
@@ -44,9 +46,9 @@ class CreateSalesOrderRequest:
         tracking_number (Union[None, Unset, str]): Shipping tracking number if already known
         tracking_number_url (Union[None, Unset, str]): URL for tracking shipment status
         addresses (Union[Unset, list['SalesOrderAddress']]): Billing and shipping addresses for the order
-        order_created_date (Union[None, Unset, str]): Date when the order was originally created (defaults to current
-            time)
-        delivery_date (Union[None, Unset, str]): Requested delivery date
+        order_created_date (Union[None, Unset, datetime.datetime]): Date when the order was originally created (defaults
+            to current time)
+        delivery_date (Union[None, Unset, datetime.datetime]): Requested delivery date
         currency (Union[None, Unset, str]): Currency code for the order (defaults to company base currency)
         location_id (Union[Unset, int]): Primary fulfillment location for the order
         status (Union[Unset, CreateSalesOrderRequestStatus]): Initial status of the order
@@ -63,8 +65,8 @@ class CreateSalesOrderRequest:
     tracking_number: None | Unset | str = UNSET
     tracking_number_url: None | Unset | str = UNSET
     addresses: Unset | list["SalesOrderAddress"] = UNSET
-    order_created_date: None | Unset | str = UNSET
-    delivery_date: None | Unset | str = UNSET
+    order_created_date: None | Unset | datetime.datetime = UNSET
+    delivery_date: None | Unset | datetime.datetime = UNSET
     currency: None | Unset | str = UNSET
     location_id: Unset | int = UNSET
     status: Unset | CreateSalesOrderRequestStatus = UNSET
@@ -107,12 +109,16 @@ class CreateSalesOrderRequest:
         order_created_date: None | Unset | str
         if isinstance(self.order_created_date, Unset):
             order_created_date = UNSET
+        elif isinstance(self.order_created_date, datetime.datetime):
+            order_created_date = self.order_created_date.isoformat()
         else:
             order_created_date = self.order_created_date
 
         delivery_date: None | Unset | str
         if isinstance(self.delivery_date, Unset):
             delivery_date = UNSET
+        elif isinstance(self.delivery_date, datetime.datetime):
+            delivery_date = self.delivery_date.isoformat()
         else:
             delivery_date = self.delivery_date
 
@@ -244,23 +250,39 @@ class CreateSalesOrderRequest:
 
             addresses.append(addresses_item)
 
-        def _parse_order_created_date(data: object) -> None | Unset | str:
+        def _parse_order_created_date(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                order_created_date_type_0 = isoparse(data)
+
+                return order_created_date_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         order_created_date = _parse_order_created_date(
             d.pop("order_created_date", UNSET)
         )
 
-        def _parse_delivery_date(data: object) -> None | Unset | str:
+        def _parse_delivery_date(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                delivery_date_type_0 = isoparse(data)
+
+                return delivery_date_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)
 
         delivery_date = _parse_delivery_date(d.pop("delivery_date", UNSET))
 

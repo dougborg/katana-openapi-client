@@ -98,11 +98,9 @@ def sync_detailed(
         body (UpdatePriceListRowRequest): Request payload for updating an existing price list row
             Example: {'price': 259.99, 'currency': 'USD'}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, PriceListRow]]
@@ -136,11 +134,9 @@ def sync(
         body (UpdatePriceListRowRequest): Request payload for updating an existing price list row
             Example: {'price': 259.99, 'currency': 'USD'}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, PriceListRow]
@@ -169,11 +165,9 @@ async def asyncio_detailed(
         body (UpdatePriceListRowRequest): Request payload for updating an existing price list row
             Example: {'price': 259.99, 'currency': 'USD'}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, PriceListRow]]
@@ -205,11 +199,9 @@ async def asyncio(
         body (UpdatePriceListRowRequest): Request payload for updating an existing price list row
             Example: {'price': 259.99, 'currency': 'USD'}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, PriceListRow]

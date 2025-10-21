@@ -967,3 +967,726 @@ entirely if no values are being set.
   update operations
 - **Consider Alternative**: Add explicit "delete all" operations for fields where
   clearing is a valid use case
+
+### Comprehensive Array Field Validation Analysis
+
+**Issue**: Systematic review of all array field validation constraints across Create and
+Update request schemas to ensure consistency and correctness.
+
+**Analysis Date**: December 2024 **Total Create/Update Request Schemas Analyzed**: 58
+**Total Array Fields Found**: 29
+
+#### Summary of Findings
+
+We conducted a comprehensive analysis of all array fields in Create and Update request
+schemas to understand validation patterns and identify inconsistencies. Array fields
+were categorized by two dimensions:
+
+1. **Required vs Optional** (at schema level)
+1. **With minItems vs Without minItems** constraint
+
+This creates four distinct patterns, each with different semantics and use cases.
+
+______________________________________________________________________
+
+#### Category 1: ✅ Required Fields WITH minItems (Correct Pattern)
+
+**Count**: 9 fields **Status**: ✅ **CORRECT** - This is the ideal pattern
+
+These fields are REQUIRED at the schema level AND have minItems constraint. This is the
+**correct pattern** because:
+
+- The field MUST be sent (cannot be omitted)
+- The field MUST contain at least one item
+- Empty array would be logically invalid (entity doesn't make sense without items)
+
+**Examples**:
+
+- **CreateSalesOrderRequest.sales_order_rows** (minItems: 1) - Sales order without line
+  items is meaningless
+- **CreateSalesReturnRequest.sales_return_rows** (minItems: 1) - Return without items is
+  meaningless
+- **CreatePurchaseOrderRequest.purchase_order_rows** (minItems: 1) - Purchase order
+  without line items is invalid
+- **CreateMaterialRequest.variants** (minItems: 1) - Material must have at least one
+  variant
+- **CreateProductRequest.variants** (minItems: 1) - Product must have at least one
+  variant
+- **CreateWebhookRequest.subscribed_events** (minItems: 1) - Webhook without events is
+  pointless
+- **UpdateWebhookRequest.subscribed_events** (minItems: 1) - Webhook must always have
+  events
+- **CreateRecipesRequest.rows** (minItems: 1) - Recipe without rows is invalid
+- **CreateServiceRequest.variants** (minItems: 1) - Service must have exactly one
+  variant
+
+**Pattern Characteristics**:
+
+- Represents core business data essential to the entity
+- Without these items, the entity has no purpose or meaning
+- Enforces business rules at schema level
+
+______________________________________________________________________
+
+#### Category 2: ❌ Required Fields WITHOUT minItems (Inconsistency - NOW FIXED)
+
+**Count**: 0 fields (2 fields WERE in this category, now fixed) **Status**: ✅ **FIXED**
+
+- Added minItems: 1 to inconsistent fields
+
+**Previously Inconsistent Fields (Now Fixed)**:
+
+- ~~CreateSalesOrderRequest.sales_order_rows~~ → **FIXED**: Added minItems: 1
+- ~~CreateSalesReturnRequest.sales_return_rows~~ → **FIXED**: Added minItems: 1
+
+**Why This Was Inconsistent**:
+
+- Field is REQUIRED (must be sent)
+- But allowed empty array `[]`
+- Logically invalid: Why require sending an empty array?
+- Creates confusion: Is empty array valid or not?
+
+**Our Fix**:
+
+We added `minItems: 1` to both fields in our OpenAPI specification to align with the
+correct pattern (Category 1).
+
+______________________________________________________________________
+
+#### Category 3: ⚠️ Optional Fields WITH minItems (Special "Omit vs Empty" Pattern)
+
+**Count**: 4 fields **Status**: ⚠️ **INTENTIONAL PATTERN** - Implements "omit vs empty"
+semantics
+
+These fields are OPTIONAL at the schema level BUT have minItems constraint. This
+implements the **"omit vs empty" pattern**:
+
+**Semantics**:
+
+- **Omitting field** = preserve existing values (no change)
+- **Sending empty array `[]`** = REJECTED with 422 validation error
+- **Sending non-empty array** = update/replace values
+
+**Fields Using This Pattern**:
+
+- **CreateProductRequest.configs** (minItems: 1) - Product configs for variant creation
+- **UpdateProductRequest.configs** (minItems: 1) - Update product variant configs
+- **UpdateMaterialRequest.configs** (minItems: 1) - Update material variant configs
+- **CreateVariantRequest.config_attributes** (minItems: 1) - Variant configuration
+  attributes
+
+**Why This Pattern Exists**:
+
+- Prevents accidental data deletion
+- Makes developer intent explicit
+- Clear distinction between "don't change" vs "set to empty"
+- Documented in UpdateMaterialRequest.configs description:
+  > "When updating configs, all configs and values must be provided. Existing ones are
+  > matched, new ones are created, and configs not provided in the update are deleted."
+
+**Client Impact**:
+
+Developers must filter out empty arrays before sending:
+
+```python
+# Filter out empty configs - API rejects empty arrays
+updates = {"name": "Product", "configs": []}
+filtered = {k: v for k, v in updates.items()
+            if not (k == "configs" and isinstance(v, list) and len(v) == 0)}
+```
+
+______________________________________________________________________
+
+#### Category 4: ✅ Optional Fields WITHOUT minItems (Metadata Pattern)
+
+**Count**: 16 fields **Status**: ✅ **CORRECT** - Appropriate for supplementary metadata
+
+These fields are OPTIONAL and lack minItems constraint. This is **appropriate** for
+supplementary metadata fields where empty arrays have clear semantics:
+
+**Semantics**:
+
+- **Empty array `[]`** = explicitly set to "no values" / clear all
+- **Omitted field** = preserve existing values
+- **Non-empty array** = set new values
+
+**Fields Using This Pattern**:
+
+**Manufacturing Data** (6 fields):
+
+- CreateManufacturingOrderProductionRequest.ingredients
+- CreateManufacturingOrderProductionRequest.operations
+- UpdateManufacturingOrderProductionRequest.ingredients
+- UpdateManufacturingOrderProductionRequest.operations
+- CreateManufacturingOrderRecipeRowRequest.batch_transactions
+- UpdateManufacturingOrderRecipeRowRequest.batch_transactions
+
+**Variant Metadata** (6 fields):
+
+- CreateVariantRequest.supplier_item_codes
+- CreateVariantRequest.custom_fields
+- UpdateVariantRequest.supplier_item_codes
+- UpdateVariantRequest.config_attributes
+- UpdateVariantRequest.custom_fields
+- CreateServiceVariantRequest.custom_fields
+
+**Other Optional Data** (4 fields):
+
+- CreateMaterialRequest.configs
+- CreateSalesOrderRequest.addresses
+- CreateSupplierRequest.addresses
+- UpdateManufacturingOrderOperationRowRequest.completed_by_operators
+
+**Why This Pattern Is Correct**:
+
+- These are supplementary fields, not core entity data
+- Empty array has valid business meaning ("no additional data")
+- Allows incremental data addition over time
+- Provides flexibility for different workflows
+
+______________________________________________________________________
+
+#### Questions for Katana Development Team
+
+1. **Pattern Standardization**: Should all required array fields have `minItems: 1`?
+
+   - Our analysis shows this should be the standard pattern
+   - We've aligned our spec to follow this pattern
+
+1. **"Omit vs Empty" Pattern**: Is this pattern (Category 3) intentional for
+   configuration fields?
+
+   - If yes, should it extend to other similar fields?
+   - Should documentation explicitly explain this pattern for all affected endpoints?
+
+1. **Manufacturing Fields**: For optional manufacturing-related arrays (ingredients,
+   operations, batch_transactions):
+
+   - Is empty array `[]` a valid way to "clear all" values?
+   - Or should these follow the "omit vs empty" pattern?
+
+1. **API Documentation**: Can this validation behavior be documented per endpoint?
+
+   - Which fields reject empty arrays
+   - Which fields allow empty arrays
+   - Clear examples showing the difference
+
+1. **Validation Error Messages**: When empty arrays are rejected, can error messages
+   explicitly state:
+
+   - "Field X requires at least 1 item. To preserve existing values, omit this field
+     entirely."
+
+______________________________________________________________________
+
+#### Recommendations for API Consistency
+
+**For Katana API Team**:
+
+1. **Standardize Required Arrays**: All required array fields should have `minItems: 1`
+1. **Document Patterns**: Clearly document the three patterns (required, "omit vs
+   empty", optional metadata)
+1. **Error Messages**: Enhance validation errors to explain empty array rejection
+1. **OpenAPI Spec**: Align official spec with these patterns consistently
+
+**For Client Developers**:
+
+- Our OpenAPI specification correctly implements all four patterns
+- Generated clients will enforce proper validation
+- Understanding these patterns helps avoid integration errors
+
+______________________________________________________________________
+
+## Comprehensive Request Property Constraint Analysis
+
+**Analysis Date**: December 2024 **Analysis Scope**: All 85 request endpoints in the
+OpenAPI specification **Total Properties Analyzed**: 491 **Automated Script**:
+[extract_request_property_descriptions.py](../scripts/extract_request_property_descriptions.py)
+
+### Executive Summary
+
+We performed a comprehensive automated analysis of all request property descriptions
+across the entire Katana API specification, looking for opportunities to add validation
+constraints beyond array minItems. The analysis examined property descriptions for
+keywords indicating potential constraints like string formats, number ranges, pattern
+requirements, and required field semantics.
+
+**Key Findings**:
+
+- **Automated suggestions**: 34 properties flagged
+- **False positives**: 25 properties (74%) - keyword matching errors
+- **Valid opportunities**: 9 properties (26%)
+  - Email format validation: 2 fields ✅ **HIGH PRIORITY**
+  - Date-time format validation: 2 fields ✅ **HIGH PRIORITY**
+  - URL format enhancement: 2 fields ⚠️ (optional)
+  - Description vs schema inconsistencies: 3 fields ❓ **NEEDS CLARIFICATION**
+
+### Actionable Constraint Opportunities
+
+#### 1. Email Format Validation (HIGH PRIORITY)
+
+**Fields Affected**:
+
+- `POST /suppliers` → `CreateSupplierRequest.email`
+- `PATCH /suppliers/{id}` → `UpdateSupplierRequest.email`
+
+**Current State**:
+
+```yaml
+email:
+  type: string
+  description: Primary email address for supplier communication and order confirmations
+```
+
+**Recommendation**:
+
+```yaml
+email:
+  type: string
+  format: email  # ADD THIS
+  description: Primary email address for supplier communication and order confirmations
+```
+
+**Rationale**: These fields explicitly store email addresses for business communication.
+Standard email format validation should be enforced.
+
+**Impact**: Prevents invalid email addresses from being stored, improving data quality
+and reducing failed communications.
+
+#### 2. Date-Time Format Validation (HIGH PRIORITY)
+
+**Fields Affected**:
+
+- `PATCH /purchase_orders/{id}` → `UpdatePurchaseOrderRequest.expected_arrival_date`
+- `PATCH /purchase_order_rows/{id}` → `UpdatePurchaseOrderRowRequest.arrival_date`
+
+**Current State**:
+
+```yaml
+# UpdatePurchaseOrderRequest
+expected_arrival_date:
+  type: string
+  description: Updatable only when status is in NOT_RECEIVED or PARTIALLY_RECEIVED. Update will override arrival_date on purchase order rows
+
+# UpdatePurchaseOrderRowRequest
+arrival_date:
+  type: string
+  description: Updatable only when received_date is not null
+```
+
+**Recommendation**:
+
+```yaml
+# UpdatePurchaseOrderRequest
+expected_arrival_date:
+  type: string
+  format: date-time  # ADD THIS
+  description: Updatable only when status is in NOT_RECEIVED or PARTIALLY_RECEIVED. Update will override arrival_date on purchase order rows
+
+# UpdatePurchaseOrderRowRequest
+arrival_date:
+  type: string
+  format: date-time  # ADD THIS
+  description: Updatable only when received_date is not null
+```
+
+**Rationale**: These fields store date-time values (examples in spec show ISO 8601
+format like "2024-02-15T10:00:00Z"). The corresponding CREATE request schemas already
+have `format: date-time` on these fields. The UPDATE schemas are missing this
+constraint, creating inconsistency.
+
+**Evidence**:
+
+- CreatePurchaseOrderRowRequest.arrival_date: `format: date-time` ✅
+- UpdatePurchaseOrderRowRequest.arrival_date: Missing format ❌
+- Examples in spec show: `"arrival_date": "2024-02-15T10:00:00Z"`
+
+**Impact**: Ensures date-time values are properly validated and formatted consistently
+across CREATE and UPDATE operations.
+
+#### 3. URL Format Enhancement (OPTIONAL)
+
+**Fields Affected**:
+
+- `POST /webhooks` → `CreateWebhookRequest.url`
+- `PATCH /webhooks/{id}` → `UpdateWebhookRequest.url`
+
+**Current State**:
+
+```yaml
+url:
+  type: string
+  pattern: ^https://.*$
+  description: HTTPS endpoint URL where webhook events will be sent (must use HTTPS for security)
+```
+
+**Optional Enhancement**:
+
+```yaml
+url:
+  type: string
+  format: uri  # ADD THIS for semantic clarity
+  pattern: ^https://.*$
+  description: HTTPS endpoint URL where webhook events will be sent (must use HTTPS for security)
+```
+
+**Rationale**: The pattern constraint already enforces HTTPS requirement. Adding
+`format: uri` provides semantic clarity but is not strictly necessary since the pattern
+is sufficient.
+
+**Priority**: Low - Current validation is adequate
+
+### Description vs Schema Inconsistencies (NEEDS CLARIFICATION)
+
+The following fields have descriptions containing the word "required" but are marked as
+optional in the schema. This needs Katana team review to clarify intended semantics.
+
+#### BOM Row Quantity Fields
+
+**POST /bom_rows** → `CreateBomRowRequest.quantity`:
+
+- **Schema**: `type: ['number', 'null']`, `required: false`
+- **Description**: "**Required** quantity of the ingredient variant"
+- **Current constraints**: `minimum: 0`, `maximum: 100000000000000000`
+
+**PATCH /bom_rows/{id}** → `UpdateBomRowRequest.quantity`:
+
+- **Schema**: `type: ['number', 'null']`, `required: false`
+- **Description**: "**Required** quantity of the ingredient variant"
+- **Current constraints**: `minimum: 0`, `maximum: 100000000000000000`
+
+**Question for Katana Team**: Is `quantity` semantically required for BOM rows, or is
+`null`/omitted valid? If required, should schema be `required: true`?
+
+#### Outsourced Purchase Order Recipe Row Quantity
+
+**POST /outsourced_purchase_order_recipe_rows** → `quantity`:
+
+- **Schema**: `type: number`, `required: true` ✅
+- **Description**: "Quantity **required**"
+- **Current constraints**: `minimum: 0`
+
+**PATCH /outsourced_purchase_order_recipe_rows/{id}** → `quantity`:
+
+- **Schema**: `type: number`, `required: false` ❌
+- **Description**: "Quantity **required**"
+- **Current constraints**: `minimum: 0`
+
+**Inconsistency**: POST marks quantity as required, but PATCH marks it optional despite
+identical "required" description.
+
+**Question for Katana Team**: Should PATCH also mark quantity as `required: true` to
+match POST endpoint?
+
+### False Positives (Analysis Artifacts)
+
+The automated analysis flagged 27 properties that appear to need constraints but are
+actually correct as-is. These are documented here to prevent future confusion:
+
+#### Incorrect String Format Suggestions
+
+| Field                       | Wrong Suggestion                | Why It's Wrong                                          |
+| --------------------------- | ------------------------------- | ------------------------------------------------------- |
+| `batch_number`              | `format: date`                  | Batch number is an identifier string, not a date value  |
+| `name` (products/materials) | `format: uri`                   | Names are human-readable display strings, not URIs      |
+| `additional_info`           | `format: uri` or `format: date` | Free-text field for notes/comments, not structured data |
+| `purchase_uom`              | `format: date`                  | Unit of measure abbreviation (max 7 chars), not a date  |
+
+**Root Cause**: Keyword matching in descriptions (e.g., "inventory and manufacturing"
+contains "uri", "batch" contains "date").
+
+#### Already Adequately Constrained Fields
+
+| Field                                     | Suggestion             | Why Not Needed                                                          |
+| ----------------------------------------- | ---------------------- | ----------------------------------------------------------------------- |
+| `received_date`, `start_date`, `end_date` | Add pattern constraint | Already have `format: date-time` which enforces ISO 8601                |
+| `currency` fields                         | Add pattern constraint | ISO 4217 documented in description; pattern would be overly restrictive |
+| `format` (webhook_logs_export)            | Add pattern constraint | Already has `enum: ['csv', 'json']` - exhaustive validation             |
+
+#### Correctly Optional Fields with "Required" Context
+
+These fields mention "required" in their descriptions but are correctly optional in the
+schema:
+
+- **UpdateMaterialRequest.configs**: Description says "all configs and values **must**
+  be provided" - This means IF you provide the configs array, it must be complete. The
+  field itself is correctly optional (omit vs empty pattern).
+
+- **UpdateProductRequest.configs**: Same as above - implements "omit vs empty" pattern
+  documented in our comprehensive array validation analysis.
+
+- **CreateVariantRequest.lead_time**: Description says "Days **required** to
+  manufacture" - This describes what the value represents (required lead time), not that
+  the field itself is required.
+
+- **WebhookRequest.subscribed_events**: Already correctly marked as `required: true`
+  with `minItems: 1`. Description reinforces the schema; no change needed.
+
+### Analysis Methodology
+
+#### Script Implementation
+
+Created automated analysis script
+([extract_request_property_descriptions.py](../scripts/extract_request_property_descriptions.py))
+that:
+
+1. Parses the OpenAPI YAML specification
+1. Extracts all request body schemas across 85 endpoints
+1. Recursively resolves `$ref`, `allOf`, `oneOf`, `anyOf` schema compositions
+1. Analyzes property descriptions for constraint keywords:
+   - **String constraints**: "email", "url", "uuid", "date", "pattern", "format"
+   - **Number constraints**: "minimum", "maximum", "at least", "at most", "between",
+     "positive"
+   - **Array constraints**: "at least one", "cannot be empty", "must contain"
+   - **Required semantics**: "required", "must be provided", "mandatory"
+1. Compares detected patterns against existing constraints
+1. Generates suggestions for missing constraints
+
+#### Outputs Generated
+
+1. **constraint_analysis_report.md** - Full automated report with all 34 flagged
+   properties
+1. **constraint_analysis.csv** - Spreadsheet format for easier filtering and analysis
+1. **constraint_opportunities_refined.md** - Manual review filtering false positives to
+   7 actionable items
+
+#### Limitations of Automated Analysis
+
+- **Keyword matching** generates many false positives (79% in this case)
+- **Context understanding** requires human review (e.g., "required" can mean different
+  things)
+- **Business logic** cannot be inferred from descriptions alone
+- **Existing patterns** (like "omit vs empty") require domain knowledge to recognize
+
+**Conclusion**: Automated analysis is valuable for **discovery** but requires **manual
+review** to separate signal from noise.
+
+### Questions for Katana Development Team
+
+1. **Email Validation**: Should we add `format: email` to supplier email fields?
+   (Recommended: Yes)
+
+1. **Date-Time Validation**: Should we add `format: date-time` to
+   UpdatePurchaseOrderRequest.expected_arrival_date and
+   UpdatePurchaseOrderRowRequest.arrival_date for consistency with CREATE schemas?
+   (Recommended: Yes)
+
+1. **BOM Row Quantities**: Are BOM row quantities semantically required, or is
+   `null`/omitted valid? If required, should schema reflect this?
+
+1. **Outsourced PO Recipe Rows**: Should PATCH endpoint require `quantity` field to
+   match POST endpoint behavior?
+
+1. **Required Field Semantics**: When descriptions say "required," does this mean:
+
+   - Required in schema (must be provided in request)?
+   - Semantically required (has business meaning/purpose)?
+   - Conditionally required (depends on other fields/state)?
+
+1. **Nullable vs Optional Pattern**: Fields with `type: ['number', 'null']` +
+   `required: false` create ambiguity:
+
+   - Should these be `required: true, type: ['number', 'null']` (must provide field, can
+     be null)?
+   - Or `required: false, type: number` (can omit field entirely)?
+   - What's the semantic difference between omitted vs null?
+
+1. **Future Constraint Enhancements**: Are there other validation rules not captured in
+   the OpenAPI spec that should be documented? (e.g., business rules, conditional
+   validations, field interdependencies)
+
+### Recommendations for Specification Maintenance
+
+1. **Standardize Email Fields**: All fields storing email addresses should use
+   `format: email` for consistency
+
+1. **Clarify "Required" Usage**: Distinguish in descriptions between:
+
+   - Schema-required (must be in request)
+   - Semantically required (business meaning)
+   - Conditionally required (depends on context)
+
+1. **Document Nullable Semantics**: For fields that accept null, document what null
+   means vs omitting the field
+
+1. **Pattern Documentation**: When using custom patterns (like webhook HTTPS), document
+   the rationale in field descriptions
+
+1. **Automated Spec Linting**: Consider implementing spec linting rules:
+
+   - All email fields should have `format: email`
+   - Description "required" should match `required: true` in schema
+   - Fields with validation rules should document them consistently
+
+### Related Analysis
+
+This analysis builds on our previous
+[Comprehensive Array Field Validation Analysis](#comprehensive-array-field-validation-analysis)
+which identified and fixed missing `minItems` constraints. Together, these analyses
+provide complete coverage of validation constraint opportunities across the entire API
+specification.
+
+**Previous Fixes**:
+
+- Added `minItems: 1` to CreateSalesOrderRequest.sales_order_rows
+- Added `minItems: 1` to CreateSalesReturnRequest.sales_return_rows
+- Documented "omit vs empty" validation pattern for optional arrays
+
+**Current Findings**:
+
+- 2 email fields need `format: email` (HIGH PRIORITY) → IMPLEMENTED
+- 2 date-time fields need `format: date-time` (HIGH PRIORITY) → IMPLEMENTED
+- 3 quantity fields have description/schema inconsistencies (NEEDS CLARIFICATION)
+- 25 false positives documented to prevent future confusion
+
+______________________________________________________________________
+
+## Deep Constraint Analysis - ISO Standards Implementation
+
+**Analysis Date**: December 2024 **Scope**: Comprehensive analysis of all request
+properties for ISO standard enforcement
+
+### Constraints Implemented
+
+We performed a deep analysis of the OpenAPI spec looking for fields that explicitly
+mention ISO standards in their descriptions. Based on this analysis, we implemented the
+following constraints:
+
+#### Email Format Validation (4 fields implemented)
+
+**Fields**:
+
+- `CreateCustomerRequest.email` → `format: email`
+- `UpdateCustomerRequest.email` → `format: email`
+- `CreateSupplierRequest.email` → `format: email`
+- `UpdateSupplierRequest.email` → `format: email`
+
+**Rationale**: All email fields should use standard email format validation for data
+quality.
+
+#### Date-Time Format Validation (6 additional fields implemented)
+
+**Fields**:
+
+- `CreateSalesOrderRequest.tracking_number_url` → `format: uri`
+- `UpdatePurchaseOrderRequest.expected_arrival_date` → `format: date-time`
+- `UpdatePurchaseOrderRowRequest.arrival_date` → `format: date-time`
+- `UpdatePurchaseOrderRowRequest.received_date` → `format: date-time`
+- `CreateSalesOrderRequest.order_created_date` → `format: date-time`
+- `CreateSalesOrderRequest.delivery_date` → `format: date-time`
+
+**Rationale**: Consistency with other date-time fields. Examples in spec show ISO 8601
+format.
+
+#### ISO 4217 Currency Pattern (10 fields implemented)
+
+**Fields**:
+
+- `CreatePurchaseOrderRequest.currency` → `pattern: ^[A-Z]{3}$`
+- `CreateSupplierRequest.currency` → `pattern: ^[A-Z]{3}$`
+- `UpdateSupplierRequest.currency` → `pattern: ^[A-Z]{3}$`
+- `CreatePriceListRequest.currency` → `pattern: ^[A-Z]{3}$`
+- `UpdatePriceListRequest.currency` → `pattern: ^[A-Z]{3}$`
+- `CreatePriceListRowRequest.currency` → `pattern: ^[A-Z]{3}$`
+- `UpdatePriceListRowRequest.currency` → `pattern: ^[A-Z]{3}$`
+- `CreateSalesOrderRequest.currency` → `pattern: ^[A-Z]{3}$`
+- `CreateSalesReturnRequest.currency` → `pattern: ^[A-Z]{3}$`
+- `Factory.default_currency` → `pattern: ^[A-Z]{3}$`
+
+**Rationale**: All these fields explicitly state "ISO 4217" in their descriptions. All
+examples in the spec use 3-letter uppercase codes (USD, EUR, GBP). Pattern enforces the
+standard format.
+
+**Example**:
+
+```yaml
+currency:
+  type: string
+  pattern: ^[A-Z]{3}$
+  description: Active ISO 4217 currency code (e.g. USD, EUR).
+```
+
+#### Example Value Corrections
+
+Fixed inconsistent country code examples to match ISO 3166-1 alpha-2 format mentioned in
+descriptions:
+
+- Changed `country: USA` → `country: US` (5 occurrences)
+- Changed `country: United States` → `country: US` (1 occurrence)
+
+### Questions for Katana Development Team
+
+#### Country Code Validation - NEEDS CLARIFICATION
+
+**Issue**: Multiple country code fields mention "ISO 3166-1 alpha-2 format" in
+descriptions, but we have concerns about enforcing this with pattern constraints.
+
+**Fields in question** (6 total):
+
+- `SupplierAddressRequest.country` - "Country code (ISO 3166-1 alpha-2 format)"
+- `CreateSupplierAddressRequest.country` - "Country code (ISO 3166-1 alpha-2 format)"
+- `UpdateSupplierAddressRequest.country` - "Country code (ISO 3166-1 alpha-2 format)"
+- `CreateSalesOrderAddressRequest.country` - "Country code"
+- `UpdateSalesOrderAddressRequest.country` - "Country code"
+- `CreateCustomerAddressRequest.country` - "Country name or country code"
+
+**Examples were inconsistent**:
+
+- Some showed `USA` (3-letter, ISO 3166-1 alpha-3)
+- Some showed `US` (2-letter, ISO 3166-1 alpha-2)
+- One showed `United States` (full name)
+
+**We corrected all examples to `US` but did NOT add pattern constraints.**
+
+**Questions**:
+
+1. **Should country code fields enforce ISO 3166-1 alpha-2?**
+
+   - If YES: Add `pattern: ^[A-Z]{2}$` to supplier/sales order address country fields
+   - If NO: Update descriptions to clarify that multiple formats are accepted
+
+1. **Address data flexibility**: Should address fields (supplier addresses, customer
+   addresses, sales order addresses) accept flexible country formats since this data
+   often comes from external systems?
+
+1. **Recommendation**: We suggest NOT enforcing strict patterns on address country
+   fields to allow flexibility for international address data, but would like Katana
+   team's guidance on the intended behavior.
+
+**Current State**:
+
+- ✅ Examples corrected to ISO 3166-1 alpha-2 format
+- ❌ NO pattern constraints added (awaiting clarification)
+- ⚠️ Descriptions still mention "ISO 3166-1 alpha-2 format"
+
+**Potential Pattern** (if approved):
+
+```yaml
+country:
+  type: string
+  pattern: ^[A-Z]{2}$
+  description: Country code (ISO 3166-1 alpha-2 format)
+```
+
+#### Other ISO Standard Questions
+
+4. **Currency code flexibility**: We added `pattern: ^[A-Z]{3}$` to all fields
+   explicitly mentioning ISO 4217. Should test environments be able to use fake currency
+   codes like "XXX" or "TST"?
+
+1. **Date-time format consistency**: Should ALL date-related fields use
+   `format: date-time` even if they only conceptually represent dates (like
+   `delivery_date`), or should some use `format: date`?
+
+### Summary Statistics
+
+**Total constraints added in this session**: 20
+
+- Email format: 4 fields
+- URI format: 1 field
+- Date-time format: 5 fields
+- ISO 4217 currency pattern: 10 fields
+
+**Example corrections**: 6 country code values normalized to ISO 3166-1 alpha-2
+
+**Pending clarification**: Country code pattern enforcement (6 fields)

@@ -98,11 +98,9 @@ def sync_detailed(
         body (UpdateSalesOrderAddressRequest): Request payload for updating an existing sales
             order address Example: {'address_line_1': '456 Oak Avenue', 'phone': '+1-555-0456'}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, SalesOrderAddress]]
@@ -136,11 +134,9 @@ def sync(
         body (UpdateSalesOrderAddressRequest): Request payload for updating an existing sales
             order address Example: {'address_line_1': '456 Oak Avenue', 'phone': '+1-555-0456'}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, SalesOrderAddress]
@@ -169,11 +165,9 @@ async def asyncio_detailed(
         body (UpdateSalesOrderAddressRequest): Request payload for updating an existing sales
             order address Example: {'address_line_1': '456 Oak Avenue', 'phone': '+1-555-0456'}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, SalesOrderAddress]]
@@ -205,11 +199,9 @@ async def asyncio(
         body (UpdateSalesOrderAddressRequest): Request payload for updating an existing sales
             order address Example: {'address_line_1': '456 Oak Avenue', 'phone': '+1-555-0456'}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, SalesOrderAddress]

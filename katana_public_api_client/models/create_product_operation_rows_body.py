@@ -16,6 +16,14 @@ T = TypeVar("T", bound="CreateProductOperationRowsBody")
 
 @_attrs_define
 class CreateProductOperationRowsBody:
+    """
+    Attributes:
+        rows (list['CreateProductOperationRowsBodyRowsItem']):
+        keep_current_rows (Union[Unset, bool]): Existing production operation lines are kept by default,
+            and new lines will be added after the existing product operations.
+            Set to false to delete all existing product operation lines for related products.
+    """
+
     rows: list["CreateProductOperationRowsBodyRowsItem"]
     keep_current_rows: Unset | bool = UNSET
 

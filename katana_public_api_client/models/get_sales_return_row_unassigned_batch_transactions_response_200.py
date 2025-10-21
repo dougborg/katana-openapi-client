@@ -19,6 +19,11 @@ T = TypeVar("T", bound="GetSalesReturnRowUnassignedBatchTransactionsResponse200"
 
 @_attrs_define
 class GetSalesReturnRowUnassignedBatchTransactionsResponse200:
+    """
+    Attributes:
+        data (Union[Unset, list['GetSalesReturnRowUnassignedBatchTransactionsResponse200DataItem']]):
+    """
+
     data: (
         Unset | list["GetSalesReturnRowUnassignedBatchTransactionsResponse200DataItem"]
     ) = UNSET

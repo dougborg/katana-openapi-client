@@ -21,6 +21,16 @@ class WebhookLogsExportRequest:
     Example:
         {'webhook_id': 1, 'start_date': '2024-01-10T00:00:00Z', 'end_date': '2024-01-15T23:59:59Z', 'status_filter':
             ['failure', 'retry'], 'format': 'csv'}
+
+    Attributes:
+        webhook_id (Union[Unset, int]): Filter logs to specific webhook subscription (optional - if not provided,
+            exports all webhook logs)
+        start_date (Union[Unset, datetime.datetime]): Start date for log export range (ISO 8601 format)
+        end_date (Union[Unset, datetime.datetime]): End date for log export range (ISO 8601 format)
+        status_filter (Union[Unset, list[WebhookLogsExportRequestStatusFilterItem]]): Filter logs by delivery status
+            (success, failure, retry)
+        format_ (Union[Unset, WebhookLogsExportRequestFormat]): Export file format preference Default:
+            WebhookLogsExportRequestFormat.CSV.
     """
 
     webhook_id: Unset | int = UNSET

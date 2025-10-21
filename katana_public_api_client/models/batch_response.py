@@ -21,6 +21,16 @@ class BatchResponse:
         {'id': 1109, 'batch_number': 'BAT-2024-001', 'expiration_date': '2025-10-23T10:37:05.085Z',
             'batch_created_date': '2024-01-15T08:00:00.000Z', 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at':
             '2024-01-15T08:00:00.000Z', 'variant_id': 1001, 'batch_barcode': '0317'}
+
+    Attributes:
+        batch_number (str): Unique batch number identifier
+        variant_id (int): ID of the variant this batch belongs to
+        id (int): Unique identifier
+        expiration_date (Union[Unset, datetime.datetime]): Batch expiration date (ISO 8601)
+        batch_created_date (Union[Unset, datetime.datetime]): Batch creation date (ISO 8601)
+        batch_barcode (Union[None, Unset, str]): Optional barcode for the batch
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
     """
 
     batch_number: str

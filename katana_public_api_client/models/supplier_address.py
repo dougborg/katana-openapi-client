@@ -21,6 +21,19 @@ class SupplierAddress:
         {'id': 4001, 'supplier_id': 4001, 'line_1': '1250 Industrial Blvd', 'line_2': 'Suite 200', 'city': 'Chicago',
             'state': 'IL', 'zip': '60601', 'country': 'US', 'created_at': '2023-06-15T08:30:00Z', 'updated_at':
             '2023-06-15T08:30:00Z', 'deleted_at': None}
+
+    Attributes:
+        id (int): Unique identifier for this supplier address
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
+        supplier_id (Union[Unset, int]): Unique identifier of the supplier this address belongs to
+        line_1 (Union[Unset, str]): Primary address line (street number, street name)
+        line_2 (Union[None, Unset, str]): Secondary address line (suite, apartment, building)
+        city (Union[None, Unset, str]): City name
+        state (Union[None, Unset, str]): State, province, or region
+        zip_ (Union[None, Unset, str]): Postal code or ZIP code
+        country (Union[None, Unset, str]): Country code (ISO 3166-1 alpha-2 format)
     """
 
     id: int

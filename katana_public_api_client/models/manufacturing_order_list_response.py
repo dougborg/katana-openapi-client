@@ -28,6 +28,9 @@ class ManufacturingOrderListResponse:
             'sales_order_delivery_deadline': '2024-01-30T12:00:00Z', 'material_cost': 8750.0, 'subassemblies_cost': 2250.0,
             'operations_cost': 1500.0, 'serial_numbers': ['PKS-001-240115', 'PKS-002-240115', 'PKS-003-240115'],
             'created_at': '2024-01-15T08:00:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}]}
+
+    Attributes:
+        data (Union[Unset, list['ManufacturingOrder']]): Array of manufacturing orders
     """
 
     data: Unset | list["ManufacturingOrder"] = UNSET

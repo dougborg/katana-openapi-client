@@ -26,6 +26,10 @@ class StockAdjustmentListResponse:
             2002, 'reference_no': 'SA-2024-002', 'location_id': 2, 'status': 'DRAFT', 'adjustment_date':
             '2024-01-16T10:00:00.000Z', 'additional_info': 'Damaged goods write-off', 'created_at':
             '2024-01-16T10:00:00.000Z', 'updated_at': '2024-01-16T10:00:00.000Z', 'deleted_at': None}]}
+
+    Attributes:
+        data (Union[Unset, list['StockAdjustment']]): Array of stock adjustment records with details and status
+            information
     """
 
     data: Unset | list["StockAdjustment"] = UNSET

@@ -20,6 +20,15 @@ class CreateManufacturingOrderRequest:
     Example:
         {'variant_id': 2101, 'planned_quantity': 50, 'location_id': 1, 'order_created_date': '2024-01-15T08:00:00Z',
             'production_deadline_date': '2024-01-25T17:00:00Z', 'additional_info': 'Priority order for new product launch'}
+
+    Attributes:
+        variant_id (int): ID of the product variant to manufacture
+        planned_quantity (float): Quantity of the variant to produce
+        location_id (int): ID of the factory location where production will take place
+        order_created_date (Union[Unset, datetime.datetime]): Date and time when the manufacturing order should be
+            created (defaults to current time)
+        production_deadline_date (Union[Unset, datetime.datetime]): Target deadline for completing production
+        additional_info (Union[Unset, str]): Optional notes or additional information about the order
     """
 
     variant_id: int

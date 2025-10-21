@@ -13,6 +13,12 @@ T = TypeVar("T", bound="SalesOrderRowBatchTransactionsItem")
 
 @_attrs_define
 class SalesOrderRowBatchTransactionsItem:
+    """
+    Attributes:
+        batch_id (Union[Unset, int]): ID of the batch being allocated
+        quantity (Union[Unset, float]): Quantity allocated from this batch
+    """
+
     batch_id: Unset | int = UNSET
     quantity: Unset | float = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

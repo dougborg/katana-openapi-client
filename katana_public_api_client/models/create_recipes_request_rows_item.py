@@ -10,6 +10,14 @@ T = TypeVar("T", bound="CreateRecipesRequestRowsItem")
 
 @_attrs_define
 class CreateRecipesRequestRowsItem:
+    """
+    Attributes:
+        quantity (float): Required quantity of the ingredient
+        ingredient_variant_id (int): ID of the ingredient variant
+        product_variant_id (float): ID of the product variant
+        notes (Union[Unset, str]): Additional notes for this recipe row
+    """
+
     quantity: float
     ingredient_variant_id: int
     product_variant_id: float

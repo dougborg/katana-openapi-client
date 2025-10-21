@@ -11,6 +11,12 @@ T = TypeVar("T", bound="StockTransferRowBatchTransactionsItem")
 
 @_attrs_define
 class StockTransferRowBatchTransactionsItem:
+    """
+    Attributes:
+        batch_id (int): ID of the batch being transferred
+        quantity (float): Quantity from this specific batch
+    """
+
     batch_id: int
     quantity: float
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

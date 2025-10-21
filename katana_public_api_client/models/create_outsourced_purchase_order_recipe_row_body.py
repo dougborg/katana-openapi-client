@@ -8,6 +8,13 @@ T = TypeVar("T", bound="CreateOutsourcedPurchaseOrderRecipeRowBody")
 
 @_attrs_define
 class CreateOutsourcedPurchaseOrderRecipeRowBody:
+    """
+    Attributes:
+        outsourced_purchase_order_id (int): Outsourced purchase order ID
+        recipe_row_id (int): Recipe row ID
+        quantity (float): Quantity required
+    """
+
     outsourced_purchase_order_id: int
     recipe_row_id: int
     quantity: float

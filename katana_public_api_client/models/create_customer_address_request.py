@@ -21,7 +21,23 @@ class CreateCustomerAddressRequest:
     Example:
         {'customer_id': 2003, 'entity_type': 'shipping', 'first_name': 'Maria', 'last_name': 'Garcia', 'company': 'Cafe
             Central', 'phone': '+1-555-0127', 'line_1': '789 Main Street', 'line_2': 'Unit 5', 'city': 'San Francisco',
-            'state': 'CA', 'zip': '94102', 'country': 'USA', 'is_default': True}
+            'state': 'CA', 'zip': '94102', 'country': 'US', 'is_default': True}
+
+    Attributes:
+        customer_id (int): ID of the customer this address belongs to
+        entity_type (CreateCustomerAddressRequestEntityType): Address type - billing for invoicing, shipping for
+            delivery
+        first_name (Union[None, Unset, str]): First name for the contact person at this address
+        last_name (Union[None, Unset, str]): Last name for the contact person at this address
+        company (Union[None, Unset, str]): Company name for business addresses
+        phone (Union[None, Unset, str]): Phone number for this address location
+        line_1 (Union[None, Unset, str]): Primary address line (street address, building number)
+        line_2 (Union[None, Unset, str]): Secondary address line (apartment, suite, floor)
+        city (Union[None, Unset, str]): City or locality name
+        state (Union[None, Unset, str]): State, province, or region
+        zip_ (Union[None, Unset, str]): Postal code or ZIP code
+        country (Union[None, Unset, str]): Country name or country code
+        is_default (Union[Unset, bool]): Whether this should be set as the default address for the specified entity type
     """
 
     customer_id: int

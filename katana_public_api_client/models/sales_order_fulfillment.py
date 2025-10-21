@@ -23,6 +23,21 @@ class SalesOrderFulfillment:
             'estimated_delivery_date': '2024-01-22T14:00:00Z', 'actual_delivery_date': None, 'shipping_cost': 25.99,
             'shipping_method': 'UPS Ground', 'carrier': 'UPS', 'notes': 'Signature required for delivery', 'created_at':
             '2024-01-20T16:30:00Z', 'updated_at': '2024-01-20T16:30:00Z'}
+
+    Attributes:
+        id (int): Unique identifier for the fulfillment record
+        sales_order_id (int): ID of the sales order being fulfilled
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        tracking_number (Union[None, Unset, str]): Carrier tracking number for shipment monitoring
+        tracking_number_url (Union[None, Unset, str]): URL for online tracking of the shipment
+        shipped_date (Union[None, Unset, datetime.datetime]): Date and time when the order was shipped
+        estimated_delivery_date (Union[None, Unset, datetime.datetime]): Carrier's estimated delivery date and time
+        actual_delivery_date (Union[None, Unset, datetime.datetime]): Actual date and time of delivery confirmation
+        shipping_cost (Union[None, Unset, float]): Total shipping cost charged to the customer
+        shipping_method (Union[None, Unset, str]): Shipping service used (e.g., Ground, Express, Overnight)
+        carrier (Union[None, Unset, str]): Shipping carrier name (e.g., UPS, FedEx, DHL)
+        notes (Union[None, Unset, str]): Additional notes about the shipment or delivery
     """
 
     id: int

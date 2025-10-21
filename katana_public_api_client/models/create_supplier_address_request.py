@@ -15,6 +15,15 @@ class CreateSupplierAddressRequest:
     Example:
         {'supplier_id': 4001, 'line_1': '856 Distribution Center Dr', 'line_2': None, 'city': 'Milwaukee', 'state':
             'WI', 'zip': '53218', 'country': 'US'}
+
+    Attributes:
+        supplier_id (int): Unique identifier of the supplier this address belongs to
+        line_1 (str): Primary address line (street number, street name)
+        line_2 (Union[None, Unset, str]): Secondary address line (suite, apartment, building)
+        city (Union[None, Unset, str]): City name
+        state (Union[None, Unset, str]): State, province, or region
+        zip_ (Union[None, Unset, str]): Postal code or ZIP code
+        country (Union[None, Unset, str]): Country code (ISO 3166-1 alpha-2 format)
     """
 
     supplier_id: int

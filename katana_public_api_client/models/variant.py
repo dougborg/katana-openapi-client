@@ -31,6 +31,28 @@ class Variant:
             [{'field_name': 'Warranty Period', 'field_value': '5 years'}], 'config_attributes': [{'config_name': 'Piece
             Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value': 'Steel'}], 'created_at':
             '2024-01-15T08:00:00.000Z', 'updated_at': '2024-08-20T14:45:00.000Z', 'deleted_at': None}
+
+    Attributes:
+        id (int): Unique identifier
+        sku (str): Stock keeping unit - unique identifier for this variant
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
+        sales_price (Union[None, Unset, float]): Price at which this variant is sold to customers
+        product_id (Union[None, Unset, int]): ID of the parent product if this variant belongs to a finished good
+        material_id (Union[None, Unset, int]): ID of the parent material if this variant belongs to a raw material
+        purchase_price (Union[Unset, float]): Cost to purchase this variant from suppliers
+        product_or_material_name (Union[Unset, str]): Display name combining the parent product/material name with
+            variant attributes
+        type_ (Union[Unset, VariantType]): Type classification - either 'product' or 'material'
+        internal_barcode (Union[Unset, str]): Internal barcode for warehouse scanning and tracking
+        registered_barcode (Union[Unset, str]): Official registered barcode (UPC, EAN, etc.) for retail use
+        supplier_item_codes (Union[Unset, list[str]]): Supplier-specific part numbers or SKUs for purchasing
+        lead_time (Union[None, Unset, int]): Days required to manufacture or procure this variant
+        minimum_order_quantity (Union[None, Unset, float]): Minimum quantity that must be ordered from suppliers
+        custom_fields (Union[Unset, list['VariantCustomFieldsItem']]): Custom field values specific to this variant
+        config_attributes (Union[Unset, list['VariantConfigAttributesItem']]): Configuration attribute values that
+            define this variant (color, size, etc.)
     """
 
     id: int

@@ -17,6 +17,12 @@ class BatchStockUpdate:
     Example:
         {'batch_number': 'BAT-2024-001-UPDATED', 'expiration_date': '2025-12-31T23:59:59.000Z', 'batch_barcode':
             '0317-V2'}
+
+    Attributes:
+        batch_number (Union[Unset, str]): Updated batch number
+        expiration_date (Union[Unset, datetime.datetime]): Updated expiration date (ISO 8601)
+        batch_created_date (Union[Unset, datetime.datetime]): Updated batch creation date (ISO 8601)
+        batch_barcode (Union[None, Unset, str]): Updated barcode for the batch
     """
 
     batch_number: Unset | str = UNSET

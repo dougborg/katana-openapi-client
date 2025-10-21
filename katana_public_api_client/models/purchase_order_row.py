@@ -32,6 +32,37 @@ class PurchaseOrderRow:
                 'purchase_order_id': 156, 'landed_cost': 735.5, 'group_id': 1, 'created_at': '2024-01-28T09:15:00Z',
                 'updated_at': '2024-02-15T14:30:00Z', 'deleted_at': None, 'batch_transactions': [{'quantity': 150, 'batch_id':
                 1001}, {'quantity': 100, 'batch_id': 1002}]}
+
+        Attributes:
+            id (int): Unique identifier for this purchase order line item
+            created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+            updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+            quantity (Union[Unset, float]): The quantity of items for the order line.
+            variant_id (Union[Unset, int]): ID of product or material variant added to the order line.
+            tax_rate_id (Union[Unset, int]): ID of tax added to price per unit.
+            price_per_unit (Union[Unset, float]): The sales price of one unit (excluding taxes) in sales order currency.
+            price_per_unit_in_base_currency (Union[Unset, float]): Unit price converted to the base currency
+            purchase_uom_conversion_rate (Union[Unset, float]): The conversion rate between the purchase and stock tracking
+                UoMs.
+            purchase_uom (Union[Unset, str]): The unit used to measure the quantity of the items (e.g. pcs, kg, m) you
+                purchase. It can be different from the unit used to track stock.
+            currency (Union[Unset, str]): Currency used for this line item pricing
+            conversion_rate (Union[None, Unset, float]): Currency rate used to convert from purchase order currency into
+                factory base currency.
+            total (Union[Unset, float]): The total value of the purchase order row (excluding taxes) in purchase order
+                currency.
+            total_in_base_currency (Union[Unset, float]): The total value of the purchase order row (excluding taxes) in
+                base currency.
+            conversion_date (Union[None, Unset, datetime.datetime]): The date of the conversion rate used.
+            received_date (Union[None, Unset, datetime.datetime]): The date when the items on the purchase order row were
+                received to your stock.
+            arrival_date (Union[None, Unset, datetime.datetime]): The timestamp when the item on the row is expected to
+                arrive (in full) in your warehouse. ISO 8601 format with time and timezone must be used.
+            batch_transactions (Union[Unset, list['PurchaseOrderRowBatchTransactionsItem']]): An array of batch transactions
+                and their quantities. You can receive stock for the same item in multiple batches.
+            purchase_order_id (Union[Unset, int]): Unique identifier of the parent purchase order
+            landed_cost (Union[Unset, float, str]): Total landed cost including shipping, duties, and other charges
+            group_id (Union[Unset, int]): Grouping identifier for organizational purposes
     """
 
     id: int

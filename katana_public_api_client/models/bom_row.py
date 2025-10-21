@@ -22,6 +22,16 @@ class BomRow:
         {'id': 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 'product_variant_id': 2001, 'product_item_id': 3001,
             'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes': 'Handle with care - fragile component', 'created_at':
             '2023-10-15T14:30:00Z', 'updated_at': '2023-10-16T09:15:00Z'}
+
+    Attributes:
+        id (UUID): Unique UUID identifier for the BOM row
+        product_variant_id (int): ID of the product variant this BOM row belongs to
+        product_item_id (int): ID of the product item this BOM row belongs to
+        ingredient_variant_id (int): ID of the ingredient variant used in this BOM row
+        quantity (Union[None, Unset, float]): Required quantity of the ingredient variant
+        notes (Union[None, Unset, str]): Additional notes for this BOM row
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the BOM row was created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the BOM row was last updated
     """
 
     id: UUID

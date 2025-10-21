@@ -29,6 +29,35 @@ class CreateProductRequest:
             'supplier_item_codes': ['KNF-8PC-STEEL-001'], 'lead_time': 14, 'minimum_order_quantity': 1, 'config_attributes':
             [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
             'Steel'}]}]}
+
+    Attributes:
+        name (str): Display name for the finished product used in sales and manufacturing
+        variants (list['CreateVariantRequest']): Product variants with specific configurations and properties
+        uom (Union[Unset, str]): Base unit of measure for the product (e.g., pcs, kg, m)
+        category_name (Union[Unset, str]): Product category for organization and reporting purposes
+        is_sellable (Union[Unset, bool]): Whether this product can be included in sales orders
+        is_producible (Union[Unset, bool]): Whether this product can be manufactured using recipes
+        is_purchasable (Union[Unset, bool]): Whether this product can be purchased from suppliers
+        is_auto_assembly (Union[Unset, bool]): Whether assembly operations are automatically performed when stock is
+            available
+        default_supplier_id (Union[Unset, int]): Primary supplier for purchasing this product
+        additional_info (Union[Unset, str]): Additional notes or specifications for the product
+        batch_tracked (Union[Unset, bool]): Whether this product uses batch tracking for inventory management
+        serial_tracked (Union[Unset, bool]): Whether this product uses serial number tracking for individual units
+        operations_in_sequence (Union[Unset, bool]): Whether manufacturing operations must be completed in sequence
+        purchase_uom (Union[Unset, str]): If you are purchasing in a different unit of measure than the default unit of
+            measure (used for tracking stock)
+            for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
+            of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
+        purchase_uom_conversion_rate (Union[Unset, float]): The conversion rate between the purchase and product UoMs.
+            If used, product must have a purchase_uom
+            that is different from uom.
+        lead_time (Union[None, Unset, int]): Expected lead time in days for procurement or production
+        minimum_order_quantity (Union[Unset, float]): Minimum quantity that must be ordered from suppliers
+        configs (Union[Unset, list['CreateProductRequestConfigsItem']]): Product configuration options for creating
+            variants
+        custom_field_collection_id (Union[None, Unset, int]): Reference to custom field collection for additional
+            product data
     """
 
     name: str

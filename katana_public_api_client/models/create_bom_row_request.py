@@ -18,6 +18,13 @@ class CreateBomRowRequest:
     Example:
         {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes':
             'Handle with care - fragile component'}
+
+    Attributes:
+        product_item_id (int): ID of the product item this BOM row belongs to
+        product_variant_id (int): ID of the product variant this BOM row belongs to
+        ingredient_variant_id (int): ID of the ingredient variant used in this BOM row
+        quantity (Union[None, Unset, float]): Required quantity of the ingredient variant
+        notes (Union[None, Unset, str]): Additional notes for this BOM row
     """
 
     product_item_id: int

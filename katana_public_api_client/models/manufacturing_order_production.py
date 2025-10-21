@@ -38,6 +38,20 @@ class ManufacturingOrderProduction:
                 '2024-01-20T14:30:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}], 'serial_numbers':
                 ['PKS-001-240120', 'PKS-002-240120'], 'created_at': '2024-01-20T14:30:00Z', 'updated_at':
                 '2024-01-20T14:30:00Z', 'deleted_at': None}
+
+        Attributes:
+            id (int): Unique identifier
+            created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+            updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+            deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
+            manufacturing_order_id (Union[Unset, int]): ID of the manufacturing order this production run belongs to
+            quantity (Union[Unset, float]): Actual quantity produced in this production run
+            production_date (Union[Unset, datetime.datetime]): Date and time when the production was completed
+            ingredients (Union[Unset, list['ManufacturingOrderProductionIngredient']]): Ingredients consumed during this
+                production run
+            operations (Union[Unset, list['ManufacturingOrderOperationProduction']]): Operations performed during this
+                production run
+            serial_numbers (Union[Unset, list['SerialNumber']]): Serial numbers assigned during this production run
     """
 
     id: int

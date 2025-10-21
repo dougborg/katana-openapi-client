@@ -27,6 +27,9 @@ class PurchaseOrderRowListResponse:
             'price_per_unit': 12.5, 'price_per_unit_in_base_currency': 12.5, 'purchase_uom': 'pieces', 'currency': 'USD',
             'total': 1250.0, 'total_in_base_currency': 1250.0, 'purchase_order_id': 156, 'created_at':
             '2024-01-28T09:15:00Z', 'updated_at': '2024-02-15T14:30:00Z', 'deleted_at': None}]}
+
+    Attributes:
+        data (Union[Unset, list['PurchaseOrderRow']]): Array of purchase order line item objects
     """
 
     data: Unset | list["PurchaseOrderRow"] = UNSET

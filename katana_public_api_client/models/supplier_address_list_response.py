@@ -25,6 +25,9 @@ class SupplierAddressListResponse:
             '2023-06-15T08:30:00Z', 'deleted_at': None}, {'id': 4002, 'supplier_id': 4001, 'line_1': '856 Distribution
             Center Dr', 'line_2': None, 'city': 'Milwaukee', 'state': 'WI', 'zip': '53218', 'country': 'US', 'created_at':
             '2023-06-15T08:30:00Z', 'updated_at': '2023-06-15T08:30:00Z', 'deleted_at': None}]}
+
+    Attributes:
+        data (Union[Unset, list['SupplierAddress']]): Array of supplier address objects
     """
 
     data: Unset | list["SupplierAddress"] = UNSET

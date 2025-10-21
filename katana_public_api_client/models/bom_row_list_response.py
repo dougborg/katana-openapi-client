@@ -25,6 +25,9 @@ class BomRowListResponse:
             'updated_at': '2023-10-16T09:15:00Z'}, {'id': 502, 'product_variant_id': 2001, 'product_item_id': 3001,
             'ingredient_variant_id': 2003, 'quantity': 1.0, 'notes': 'Standard component', 'created_at':
             '2023-10-15T14:31:00Z', 'updated_at': '2023-10-15T14:31:00Z'}]}
+
+    Attributes:
+        data (Union[Unset, list['BomRow']]): Array of BOM row objects
     """
 
     data: Unset | list["BomRow"] = UNSET

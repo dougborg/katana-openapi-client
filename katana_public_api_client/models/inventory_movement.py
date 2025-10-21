@@ -24,6 +24,24 @@ class InventoryMovement:
             'quantity_change': 100.0, 'balance_after': 500.0, 'value_per_unit': 25.5, 'value_in_stock_after': 12750.0,
             'average_cost_after': 25.5, 'rank': 1, 'created_at': '2024-01-15T10:30:00.000Z', 'updated_at':
             '2024-01-15T10:30:00.000Z'}
+
+    Attributes:
+        id (int): Unique identifier for the inventory movement.
+        variant_id (int): Identifier of the product variant associated with the movement.
+        location_id (int): Identifier of the location where the movement occurred.
+        resource_type (InventoryMovementResourceType): The type of resource that caused the movement.
+        movement_date (datetime.datetime): Date and time when the inventory movement occurred.
+        quantity_change (float): The change in quantity as a result of the movement.
+        balance_after (float): The quantity balance after the movement.
+        value_per_unit (float): The value per unit for the movement.
+        value_in_stock_after (float): The total value in stock after the movement.
+        average_cost_after (float): The average cost per unit after the movement.
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        resource_id (Union[Unset, int]): Identifier of the resource that initiated the movement.
+        caused_by_order_no (Union[Unset, str]): Order number that triggered the movement.
+        caused_by_resource_id (Union[Unset, int]): Identifier for the resource that caused the movement.
+        rank (Union[Unset, int]): A rank or order index for the movement.
     """
 
     id: int

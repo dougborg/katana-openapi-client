@@ -22,6 +22,10 @@ class SalesOrderAccountingMetadataListResponse:
     Example:
         {'data': [{'id': 2901, 'sales_order_id': 2001, 'fulfillment_id': 2701, 'invoice_id': 'INV-2024-001',
             'integration_type': 'xero', 'created_at': '2024-01-20T17:00:00Z'}]}
+
+    Attributes:
+        data (Union[Unset, list['SalesOrderAccountingMetadata']]): Array of accounting metadata records with integration
+            and invoice information
     """
 
     data: Unset | list["SalesOrderAccountingMetadata"] = UNSET

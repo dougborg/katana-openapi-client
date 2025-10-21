@@ -26,7 +26,43 @@ T = TypeVar("T", bound="PurchaseOrderBase")
 
 @_attrs_define
 class PurchaseOrderBase:
-    """Base properties shared by all purchase order types"""
+    """Base properties shared by all purchase order types
+
+    Attributes:
+        id (int): Unique identifier
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
+        status (Union[Unset, PurchaseOrderBaseStatus]): Status of the order.
+        order_no (Union[Unset, str]): A unique, identifying string used in the UI and controlled by the user.
+        entity_type (Union[Unset, PurchaseOrderBaseEntityType]): Either "regular" or "outsourced", depending on the
+            purchase order type.
+        default_group_id (Union[Unset, int]): Default grouping identifier for organizational purposes
+        supplier_id (Union[Unset, int]): ID of the supplier who this order belongs to.
+        currency (Union[Unset, str]): Currency of the purchase order. Filled with supplier currency by default.
+        expected_arrival_date (Union[Unset, datetime.datetime]): The timestamp when the items are expected to arrive (in
+            full) in your warehouse.
+        order_created_date (Union[Unset, datetime.datetime]): The timestamp of creating the document.
+        additional_info (Union[Unset, str]): A string attached to the object to add any internal comments, links to
+            external files, additional instructions, etc.
+        location_id (Union[Unset, int]): The ID of the location to which items are received.
+        total (Union[Unset, float]): The total value of the order (including taxes) in purchase order currency.
+        total_in_base_currency (Union[Unset, float]): The total value of the order (including taxes) in base currency.
+        billing_status (Union[Unset, PurchaseOrderBaseBillingStatus]): Indicating the status of generating the bill
+            through accounting integration to either Xero or QuickBooks Online. "PARTIALLY_BILLED" does not apply to Xero
+            integration.
+        last_document_status (Union[Unset, PurchaseOrderBaseLastDocumentStatus]): Status of the last e-mail sent from
+            (O)PO card.
+        purchase_order_rows (Union[Unset, list['PurchaseOrderRow']]): List of line items in this purchase order
+        supplier (Union[Unset, Supplier]): Supplier company or individual providing materials, products, or services for
+            procurement operations Example: {'id': 4001, 'name': 'Premium Kitchen Supplies Ltd', 'email':
+            'orders@premiumkitchen.com', 'phone': '+1-555-0134', 'currency': 'USD', 'comment': 'Primary supplier for kitchen
+            equipment and utensils. Reliable delivery times.', 'default_address_id': 4001, 'created_at':
+            '2023-06-15T08:30:00Z', 'updated_at': '2024-01-15T14:20:00Z', 'deleted_at': None, 'addresses': [{'id': 4001,
+            'company': 'Premium Kitchen Supplies Ltd', 'street': '1250 Industrial Blvd', 'street2': 'Suite 200', 'city':
+            'Chicago', 'state': 'IL', 'zip': '60601', 'country': 'US', 'created_at': '2023-06-15T08:30:00Z', 'updated_at':
+            '2023-06-15T08:30:00Z', 'deleted_at': None}]}.
+    """
 
     id: int
     created_at: Unset | datetime.datetime = UNSET

@@ -20,6 +20,13 @@ class UpdateStockAdjustmentRequest:
     Example:
         {'reference_no': 'SA-2024-003', 'location_id': 1, 'adjustment_date': '2024-01-17T14:30:00.000Z',
             'additional_info': 'Cycle count correction - updated', 'status': 'COMPLETED'}
+
+    Attributes:
+        reference_no (Union[Unset, str]): Human-readable reference number for tracking and audit purposes
+        location_id (Union[Unset, int]): ID of the location where the stock adjustment is performed
+        adjustment_date (Union[Unset, datetime.datetime]): Date and time when the adjustment was performed
+        additional_info (Union[Unset, str]): Optional notes or comments about the adjustment reason
+        status (Union[Unset, UpdateStockAdjustmentRequestStatus]): Status of the stock adjustment
     """
 
     reference_no: Unset | str = UNSET

@@ -13,6 +13,12 @@ T = TypeVar("T", bound="VariantResponseConfigAttributesItem")
 
 @_attrs_define
 class VariantResponseConfigAttributesItem:
+    """
+    Attributes:
+        config_name (Union[Unset, str]): Name of the configuration attribute (e.g., Color, Size)
+        config_value (Union[Unset, str]): Value for this configuration attribute (e.g., Blue, Large)
+    """
+
     config_name: Unset | str = UNSET
     config_value: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

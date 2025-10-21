@@ -98,11 +98,9 @@ def sync_detailed(
         body (UpdateSalesOrderRowRequest): Request payload for updating an existing sales order
             row Example: {'quantity': 3, 'price_per_unit': 549.99}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, SalesOrderRow]]
@@ -136,11 +134,9 @@ def sync(
         body (UpdateSalesOrderRowRequest): Request payload for updating an existing sales order
             row Example: {'quantity': 3, 'price_per_unit': 549.99}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, SalesOrderRow]
@@ -169,11 +165,9 @@ async def asyncio_detailed(
         body (UpdateSalesOrderRowRequest): Request payload for updating an existing sales order
             row Example: {'quantity': 3, 'price_per_unit': 549.99}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, SalesOrderRow]]
@@ -205,11 +199,9 @@ async def asyncio(
         body (UpdateSalesOrderRowRequest): Request payload for updating an existing sales order
             row Example: {'quantity': 3, 'price_per_unit': 549.99}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, SalesOrderRow]

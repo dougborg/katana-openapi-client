@@ -21,6 +21,16 @@ class TaxRate:
         Example:
             {'id': 301, 'name': 'VAT 20%', 'rate': 20.0, 'is_default_sales': True, 'is_default_purchases': False,
                 'display_name': 'VAT (20.0%)', 'created_at': '2024-01-15T09:30:00Z', 'updated_at': '2024-01-15T09:30:00Z'}
+
+        Attributes:
+            id (int): Unique identifier for the tax rate
+            created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+            updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+            name (Union[Unset, str]): Descriptive name for the tax rate (e.g., "VAT 20%", "Sales Tax", "GST")
+            rate (Union[Unset, float]): Tax rate as a percentage (e.g., 20.5 for 20.5% tax)
+            is_default_sales (Union[Unset, bool]): Whether this tax rate is the default for sales transactions
+            is_default_purchases (Union[Unset, bool]): Whether this tax rate is the default for purchase transactions
+            display_name (Union[Unset, str]): Formatted display name for user interface presentation
     """
 
     id: int

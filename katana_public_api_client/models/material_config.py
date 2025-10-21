@@ -15,6 +15,12 @@ class MaterialConfig:
 
     Example:
         {'id': 101, 'name': 'Grade', 'values': ['Premium', 'Standard', 'Economy'], 'material_id': 1}
+
+    Attributes:
+        id (int): Unique identifier
+        name (str): Configuration attribute name (e.g., Grade, Thickness, Color)
+        values (list[str]): Array of possible values for this configuration attribute
+        material_id (int): ID of the material this configuration belongs to
     """
 
     id: int

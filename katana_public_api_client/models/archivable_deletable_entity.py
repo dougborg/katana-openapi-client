@@ -20,6 +20,13 @@ class ArchivableDeletableEntity:
     Example:
         {'id': 12345, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'archived_at':
             None, 'deleted_at': None}
+
+    Attributes:
+        id (int): Unique identifier
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        archived_at (Union[None, Unset, str]): Nullable archive timestamp
+        deleted_at (Union[None, Unset, str]): Nullable deletion timestamp
     """
 
     id: int

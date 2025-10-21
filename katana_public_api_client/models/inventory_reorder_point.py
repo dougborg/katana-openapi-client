@@ -13,6 +13,11 @@ T = TypeVar("T", bound="InventoryReorderPoint")
 class InventoryReorderPoint:
     """Configuration that defines the minimum inventory level that triggers automatic reordering for a specific variant at
     a location
+
+        Attributes:
+            location_id (int): The location where this reorder point applies
+            variant_id (int): The product variant this reorder point is configured for
+            value (float): The minimum quantity that triggers reordering
     """
 
     location_id: int

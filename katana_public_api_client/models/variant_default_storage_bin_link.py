@@ -14,6 +14,11 @@ class VariantDefaultStorageBinLink:
 
     Example:
         {'location_id': 1, 'variant_id': 3001, 'bin_name': 'A-01-SHELF-1'}
+
+    Attributes:
+        variant_id (int): ID of the variant to link to the storage bin
+        bin_name (str): Name of the storage bin to set as default for this variant
+        location_id (Union[Unset, int]): ID of the location where the storage bin is located
     """
 
     variant_id: int

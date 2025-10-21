@@ -12,6 +12,10 @@ class BatchTransaction:
 
     Example:
         {'batch_id': 1109, 'quantity': 25.0}
+
+    Attributes:
+        batch_id (int): ID of the batch for the transaction
+        quantity (float): The quantity in this batch transaction
     """
 
     batch_id: int

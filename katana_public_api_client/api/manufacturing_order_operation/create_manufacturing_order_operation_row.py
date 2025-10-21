@@ -87,11 +87,9 @@ def sync_detailed(
             manufacturing order operation row to track production operation time and operator
             assignments Example: {'manufacturing_order_id': 1001, 'operation_id': 201, 'time': 45.5}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, ManufacturingOrderOperationRow]]
@@ -123,11 +121,9 @@ def sync(
             manufacturing order operation row to track production operation time and operator
             assignments Example: {'manufacturing_order_id': 1001, 'operation_id': 201, 'time': 45.5}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, ManufacturingOrderOperationRow]
@@ -154,11 +150,9 @@ async def asyncio_detailed(
             manufacturing order operation row to track production operation time and operator
             assignments Example: {'manufacturing_order_id': 1001, 'operation_id': 201, 'time': 45.5}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[ErrorResponse, ManufacturingOrderOperationRow]]
@@ -188,11 +182,9 @@ async def asyncio(
             manufacturing order operation row to track production operation time and operator
             assignments Example: {'manufacturing_order_id': 1001, 'operation_id': 201, 'time': 45.5}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[ErrorResponse, ManufacturingOrderOperationRow]

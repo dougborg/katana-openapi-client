@@ -98,11 +98,9 @@ def sync_detailed(
         body (UpdatePriceListCustomerRequest): Request payload for updating an existing price list
             customer assignment Example: {'price_list_id': 1003}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, PriceListCustomer]]
@@ -136,11 +134,9 @@ def sync(
         body (UpdatePriceListCustomerRequest): Request payload for updating an existing price list
             customer assignment Example: {'price_list_id': 1003}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, PriceListCustomer]
@@ -169,11 +165,9 @@ async def asyncio_detailed(
         body (UpdatePriceListCustomerRequest): Request payload for updating an existing price list
             customer assignment Example: {'price_list_id': 1003}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[DetailedErrorResponse, ErrorResponse, PriceListCustomer]]
@@ -205,11 +199,9 @@ async def asyncio(
         body (UpdatePriceListCustomerRequest): Request payload for updating an existing price list
             customer assignment Example: {'price_list_id': 1003}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[DetailedErrorResponse, ErrorResponse, PriceListCustomer]

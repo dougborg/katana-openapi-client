@@ -22,6 +22,15 @@ class PriceListRow:
         Example:
             {'id': 5001, 'price_list_id': 1001, 'variant_id': 201, 'adjustment_method': 'fixed', 'amount': 249.99,
                 'created_at': '2024-01-15T10:00:00Z', 'updated_at': '2024-01-15T10:00:00Z'}
+
+        Attributes:
+            id (int): Unique identifier for the price list row entry
+            price_list_id (int): ID of the price list this pricing entry belongs to
+            variant_id (int): ID of the product variant this pricing applies to
+            adjustment_method (PriceListRowAdjustmentMethod): Method used for price adjustment (fixed, percentage, markup)
+            amount (float): Amount value for the price adjustment based on the adjustment method
+            created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+            updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
     """
 
     id: int

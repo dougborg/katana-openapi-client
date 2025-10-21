@@ -16,7 +16,18 @@ T = TypeVar("T", bound="SerialNumber")
 
 @_attrs_define
 class SerialNumber:
-    """Individual serial number record for tracking specific units of serialized inventory items through transactions"""
+    """Individual serial number record for tracking specific units of serialized inventory items through transactions
+
+    Attributes:
+        id (Union[Unset, int]): Unique identifier for the serial number record
+        transaction_id (Union[Unset, str]): Identifier of the transaction that affected this serial number
+        serial_number (Union[Unset, str]): The actual serial number string for the tracked item
+        resource_type (Union[Unset, SerialNumberResourceType]): Type of resource/transaction that generated or moved
+            this serial number
+        resource_id (Union[Unset, int]): Unique identifier of the specific resource instance
+        transaction_date (Union[Unset, datetime.datetime]): Date and time when the transaction occurred
+        quantity_change (Union[Unset, int]): Quantity change for this serial number transaction
+    """
 
     id: Unset | int = UNSET
     transaction_id: Unset | str = UNSET

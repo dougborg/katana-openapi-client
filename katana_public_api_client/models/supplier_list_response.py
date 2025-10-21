@@ -27,6 +27,9 @@ class SupplierListResponse:
             'phone': '+1-555-0276', 'currency': 'USD', 'comment': 'Specialized in commercial kitchen appliances',
             'default_address_id': 4002, 'created_at': '2023-08-22T10:15:00Z', 'updated_at': '2023-12-10T16:30:00Z',
             'deleted_at': None}]}
+
+    Attributes:
+        data (Union[Unset, list['Supplier']]): Array of supplier objects
     """
 
     data: Unset | list["Supplier"] = UNSET

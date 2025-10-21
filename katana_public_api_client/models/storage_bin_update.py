@@ -14,6 +14,10 @@ class StorageBinUpdate:
 
     Example:
         {'bin_name': 'A-01-SHELF-2', 'location_id': 2}
+
+    Attributes:
+        bin_name (Union[Unset, str]): Name of the storage bin
+        location_id (Union[Unset, int]): Unique identifier of the location where storage bin is located
     """
 
     bin_name: Unset | str = UNSET

@@ -10,6 +10,12 @@ T = TypeVar("T", bound="UpdateStockTransferBody")
 
 @_attrs_define
 class UpdateStockTransferBody:
+    """
+    Attributes:
+        quantity (Union[Unset, float]): Quantity to transfer
+        notes (Union[Unset, str]): Transfer notes
+    """
+
     quantity: Unset | float = UNSET
     notes: Unset | str = UNSET
 

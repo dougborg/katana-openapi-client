@@ -20,6 +20,11 @@ class UpdateManufacturingOrderRequest:
     Example:
         {'planned_quantity': 75, 'additional_info': 'Increased quantity due to additional customer demand',
             'production_deadline_date': '2024-01-30T17:00:00Z'}
+
+    Attributes:
+        planned_quantity (Union[Unset, float]): Updated quantity of the variant to produce
+        additional_info (Union[Unset, str]): Updated notes or additional information about the order
+        production_deadline_date (Union[Unset, datetime.datetime]): Updated target deadline for completing production
     """
 
     planned_quantity: Unset | float = UNSET

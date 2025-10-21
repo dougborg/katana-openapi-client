@@ -15,7 +15,20 @@ T = TypeVar("T", bound="SalesReturnRow")
 
 @_attrs_define
 class SalesReturnRow:
-    """Individual line item within a sales return specifying returned product, quantity, and refund details"""
+    """Individual line item within a sales return specifying returned product, quantity, and refund details
+
+    Attributes:
+        id (int): Unique identifier
+        sales_return_id (int): The sales return this line item belongs to
+        variant_id (int): The product variant being returned
+        quantity (str): The quantity of the variant being returned (formatted as decimal string for precision)
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        return_reason_id (Union[None, Unset, int]): The reason code for this return
+        notes (Union[None, Unset, str]): Additional notes about this return item
+        unit_price (Union[None, Unset, float]): The price per unit for the returned item
+        total_price (Union[None, Unset, float]): The total refund amount for this line item
+    """
 
     id: int
     sales_return_id: int

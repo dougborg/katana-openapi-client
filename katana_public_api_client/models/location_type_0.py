@@ -17,6 +17,21 @@ T = TypeVar("T", bound="LocationType0")
 
 @_attrs_define
 class LocationType0:
+    """
+    Attributes:
+        id (int):
+        name (str):
+        legal_name (Union[Unset, str]):
+        address_id (Union[Unset, int]):
+        address (Union[Unset, LocationAddress]): Physical address information for manufacturing locations and warehouse
+            facilities Example: {'id': 5001, 'city': 'Austin', 'country': 'US', 'line_1': '1500 Industrial Blvd', 'line_2':
+            'Building A', 'state': 'TX', 'zip': '78745'}.
+        is_primary (Union[Unset, bool]):
+        sales_allowed (Union[Unset, bool]):
+        purchase_allowed (Union[Unset, bool]):
+        manufacturing_allowed (Union[Unset, bool]):
+    """
+
     id: int
     name: str
     legal_name: Unset | str = UNSET

@@ -33,6 +33,9 @@ class MaterialListResponse:
             'configs': [{'id': 101, 'name': 'Grade', 'values': ['304', '316']}, {'id': 102, 'name': 'Thickness', 'values':
             ['1.5mm', '2.0mm']}], 'custom_field_collection_id': 201, 'supplier': None, 'created_at': '2024-01-10T10:00:00Z',
             'updated_at': '2024-01-15T14:30:00Z', 'archived_at': None}]}
+
+    Attributes:
+        data (Union[Unset, list['Material']]): Array of materials including raw materials and components
     """
 
     data: Unset | list["Material"] = UNSET

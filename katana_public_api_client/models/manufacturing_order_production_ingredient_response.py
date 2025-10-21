@@ -21,6 +21,18 @@ class ManufacturingOrderProductionIngredientResponse:
         {'id': 4001, 'location_id': 1, 'variant_id': 2002, 'manufacturing_order_id': 1001,
             'manufacturing_order_recipe_row_id': 1501, 'production_id': 2001, 'quantity': 2.5, 'production_date':
             '2023-10-15T10:30:00Z', 'cost': 12.5}
+
+    Attributes:
+        id (Union[Unset, int]): Unique identifier for this ingredient consumption record
+        location_id (Union[Unset, int]): ID of the location where the ingredient was consumed
+        variant_id (Union[Unset, int]): ID of the ingredient variant consumed
+        manufacturing_order_id (Union[Unset, int]): ID of the manufacturing order this ingredient belongs to
+        manufacturing_order_recipe_row_id (Union[Unset, int]): ID of the recipe row this ingredient consumption relates
+            to
+        production_id (Union[Unset, int]): ID of the production batch where ingredient was used
+        quantity (Union[Unset, float]): Actual quantity of ingredient consumed
+        production_date (Union[Unset, datetime.datetime]): Date when the ingredient was consumed in production
+        cost (Union[Unset, float]): Cost of the ingredient consumed
     """
 
     id: Unset | int = UNSET

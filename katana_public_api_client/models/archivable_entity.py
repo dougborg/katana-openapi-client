@@ -19,6 +19,12 @@ class ArchivableEntity:
 
     Example:
         {'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'archived_at': None}
+
+    Attributes:
+        id (int): Unique identifier
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        archived_at (Union[None, Unset, datetime.datetime]): Nullable archive timestamp
     """
 
     id: int

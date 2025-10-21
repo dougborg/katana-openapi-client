@@ -13,6 +13,47 @@ T = TypeVar("T", bound="CreateProductOperationRowsBodyRowsItem")
 
 @_attrs_define
 class CreateProductOperationRowsBodyRowsItem:
+    """
+    Attributes:
+        product_variant_id (float):
+        operation_id (Union[Unset, int]): If operation ID is used to map the operation, then operation_name is ignored.
+        operation_name (Union[Unset, str]): If operation name is used to map the operation then,
+            we match to the existing operations by name. If a match is not found, a new one is created.
+        resource_id (Union[Unset, int]): If resource ID is used to map the resource, then resource_name is ignored.
+        resource_name (Union[Unset, str]): If resource name is used to map the resource then we match to the existing
+            resources by name.
+            If a match is not found, a new one is created.
+        type_ (Union[Unset, CreateProductOperationRowsBodyRowsItemType]): Different operation types allows you to use
+            different cost calculations depending on the type of product operation
+            Process: The process operation type is best for when products are individually built and time is the main driver
+            of cost.
+            Setup: The setup operation type is best for setting up a machine for production where the production quantity
+            doesn't affect cost.
+            Per unit: The per unit operation type is best when cost of time isn't a factor, but only the quantity of product
+            made.
+            Fixed cost: The fixed cost operation type is useful for adding the expected extra costs that go into producing a
+            product. Default: CreateProductOperationRowsBodyRowsItemType.PROCESS.
+        cost_parameter (Union[Unset, float]): The expected cost of an operation, either total or per hour/unit of
+            product (based on type). Total cost of the operation on a manufacturing order is calculated as follows:
+            process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
+            setup: cost = cost_parameter x planned_time_parameter (in hours)
+            perUnit: cost = cost_parameter x product quantity
+            fixed: cost = cost_parameter
+        cost_per_hour (Union[Unset, float]): (This field is deprecated in favor of cost_parameter) The expected cost of
+            an
+            operation, either total or per hour/unit of product (based on type). Total cost
+            of the operation on a manufacturing order is calculated as follows:
+            process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
+            setup: cost = cost_parameter x planned_time_parameter (in hours)
+            perUnit: cost = cost_parameter x product quantity
+            fixed: cost = cost_parameter
+        planned_time_parameter (Union[Unset, int]): The planned duration of an operation, in seconds, to either
+            manufacture one unit of a product or complete a manufacturing order (based on type).
+        planned_time_per_unit (Union[Unset, int]): (This field is deprecated in favor of planned_time_parameter) The
+            planned duration of an operation, in seconds, to either manufacture one unit of a product or complete a
+            manufacturing order (based on type).
+    """
+
     product_variant_id: float
     operation_id: Unset | int = UNSET
     operation_name: Unset | str = UNSET

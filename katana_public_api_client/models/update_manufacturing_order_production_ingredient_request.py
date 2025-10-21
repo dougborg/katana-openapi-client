@@ -19,6 +19,11 @@ class UpdateManufacturingOrderProductionIngredientRequest:
 
     Example:
         {'quantity': 3.2, 'production_date': '2023-10-15T11:15:00Z', 'cost': 15.75}
+
+    Attributes:
+        quantity (Union[Unset, float]): Updated actual quantity of ingredient consumed
+        production_date (Union[Unset, datetime.datetime]): Updated date when the ingredient was consumed in production
+        cost (Union[Unset, float]): Updated cost of the ingredient consumed
     """
 
     quantity: Unset | float = UNSET

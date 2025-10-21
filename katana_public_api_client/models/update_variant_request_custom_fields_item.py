@@ -13,6 +13,12 @@ T = TypeVar("T", bound="UpdateVariantRequestCustomFieldsItem")
 
 @_attrs_define
 class UpdateVariantRequestCustomFieldsItem:
+    """
+    Attributes:
+        field_name (Union[Unset, str]): Name of the custom field
+        field_value (Union[Unset, str]): Value of the custom field for this variant
+    """
+
     field_name: Unset | str = UNSET
     field_value: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

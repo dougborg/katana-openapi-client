@@ -17,6 +17,10 @@ class ProductOperationRerank:
 
     Example:
         {'message': 'Product operation successfully reordered', 'success': True}
+
+    Attributes:
+        message (Union[Unset, str]): Status message about the reordering operation
+        success (Union[Unset, bool]): Whether the reordering operation was successful
     """
 
     message: Unset | str = UNSET

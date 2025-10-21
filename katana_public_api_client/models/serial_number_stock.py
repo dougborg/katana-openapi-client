@@ -17,7 +17,14 @@ T = TypeVar("T", bound="SerialNumberStock")
 
 @_attrs_define
 class SerialNumberStock:
-    """Current stock status and transaction history of individual serialized inventory items"""
+    """Current stock status and transaction history of individual serialized inventory items
+
+    Attributes:
+        id (str): Serial number stock ID
+        serial_number (str): The actual serial number
+        in_stock (bool): Whether the item is currently in stock
+        transactions (list['SerialNumberStockTransactionsItem']): Transaction history for this serial number
+    """
 
     id: str
     serial_number: str

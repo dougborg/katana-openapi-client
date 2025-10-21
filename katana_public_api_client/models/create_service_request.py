@@ -21,6 +21,17 @@ class CreateServiceRequest:
             'Professional product assembly service', 'is_sellable': True, 'custom_field_collection_id': 1, 'variants':
             [{'sku': 'ASSM-001', 'sales_price': 75.0, 'default_cost': 50.0, 'custom_fields': [{'field_name': 'Skill Level',
             'field_value': 'Expert'}]}]}
+
+    Attributes:
+        name (str): The service's unique name
+        variants (list['CreateServiceVariantRequest']): Array containing exactly one service variant object to create
+        uom (Union[Unset, str]): The unit used to measure the quantity of the service (e.g. pcs, hours)
+        category_name (Union[Unset, str]): A string used to group similar items for better organization and analysis
+        additional_info (Union[Unset, str]): A string attached to the object to add any internal comments, links to
+            external files, additional instructions, etc.
+        is_sellable (Union[Unset, bool]): Sellable services can be added to Quotes and Sales orders
+        custom_field_collection_id (Union[None, Unset, int]): ID of the custom field collection to associate with this
+            service
     """
 
     name: str

@@ -12,6 +12,13 @@ T = TypeVar("T", bound="CreateSerialNumbersBody")
 
 @_attrs_define
 class CreateSerialNumbersBody:
+    """
+    Attributes:
+        resource_type (CreateSerialNumbersBodyResourceType): Resource type
+        resource_id (int): Resource ID
+        serial_numbers (list[str]): List of serial numbers to create
+    """
+
     resource_type: CreateSerialNumbersBodyResourceType
     resource_id: int
     serial_numbers: list[str]

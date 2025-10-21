@@ -20,6 +20,19 @@ class UpdatePurchaseOrderRequest:
     Example:
         {'order_no': 'PO-2024-0156-REVISED', 'expected_arrival_date': '2024-02-20', 'status': 'PARTIALLY_RECEIVED',
             'additional_info': 'Delivery delayed due to weather - updated schedule'}
+
+    Attributes:
+        order_no (Union[Unset, str]): Updatable only when status is in NOT_RECEIVED or PARTIALLY_RECEIVED
+        supplier_id (Union[Unset, int]): Updatable only when status is in NOT_RECEIVED
+        currency (Union[Unset, str]): Updatable only when status is in NOT_RECEIVED
+        tracking_location_id (Union[Unset, int]): Updatable only when status is in NOT_RECEIVED and entity_type is
+            outsourced
+        status (Union[Unset, UpdatePurchaseOrderRequestStatus]): Current status indicating progress of order fulfillment
+        expected_arrival_date (Union[Unset, datetime.datetime]): Updatable only when status is in NOT_RECEIVED or
+            PARTIALLY_RECEIVED. Update will override arrival_date on purchase order rows
+        order_created_date (Union[Unset, datetime.datetime]): Date when the purchase order was originally created
+        location_id (Union[Unset, int]): Updatable only when status is in NOT_RECEIVED
+        additional_info (Union[Unset, str]): Optional notes or special instructions for the supplier
     """
 
     order_no: Unset | str = UNSET
@@ -27,7 +40,7 @@ class UpdatePurchaseOrderRequest:
     currency: Unset | str = UNSET
     tracking_location_id: Unset | int = UNSET
     status: Unset | UpdatePurchaseOrderRequestStatus = UNSET
-    expected_arrival_date: Unset | str = UNSET
+    expected_arrival_date: Unset | datetime.datetime = UNSET
     order_created_date: Unset | datetime.datetime = UNSET
     location_id: Unset | int = UNSET
     additional_info: Unset | str = UNSET
@@ -45,7 +58,9 @@ class UpdatePurchaseOrderRequest:
         if not isinstance(self.status, Unset):
             status = self.status.value
 
-        expected_arrival_date = self.expected_arrival_date
+        expected_arrival_date: Unset | str = UNSET
+        if not isinstance(self.expected_arrival_date, Unset):
+            expected_arrival_date = self.expected_arrival_date.isoformat()
 
         order_created_date: Unset | str = UNSET
         if not isinstance(self.order_created_date, Unset):
@@ -97,7 +112,12 @@ class UpdatePurchaseOrderRequest:
         else:
             status = UpdatePurchaseOrderRequestStatus(_status)
 
-        expected_arrival_date = d.pop("expected_arrival_date", UNSET)
+        _expected_arrival_date = d.pop("expected_arrival_date", UNSET)
+        expected_arrival_date: Unset | datetime.datetime
+        if isinstance(_expected_arrival_date, Unset):
+            expected_arrival_date = UNSET
+        else:
+            expected_arrival_date = isoparse(_expected_arrival_date)
 
         _order_created_date = d.pop("order_created_date", UNSET)
         order_created_date: Unset | datetime.datetime

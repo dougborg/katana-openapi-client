@@ -29,6 +29,20 @@ class ServiceVariant:
             'custom_fields': [{'field_name': 'Skill Level', 'field_value': 'Expert'}, {'field_name': 'Duration',
             'field_value': '2 hours'}], 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at': '2024-08-20T14:45:00.000Z',
             'deleted_at': None}
+
+    Attributes:
+        id (int): Unique identifier
+        sku (str): A unique service code
+        service_id (int): ID of the service this variant belongs to
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
+        sales_price (Union[None, Unset, float]): Default sales price (excluding tax), which is automatically assigned to
+            the service when creating sales orders
+        default_cost (Union[None, Unset, float]): Default cost which is used to calculate profit
+        type_ (Union[Unset, ServiceVariantType]): Type classification - always 'service' for service variants
+        custom_fields (Union[Unset, list['ServiceVariantCustomFieldsItem']]): Custom field values specific to this
+            service variant
     """
 
     id: int

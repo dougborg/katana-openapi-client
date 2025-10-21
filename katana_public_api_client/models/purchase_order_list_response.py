@@ -30,6 +30,10 @@ class PurchaseOrderListResponse:
             'total_in_base_currency': 2450.0, 'billing_status': 'UNBILLED', 'tracking_location_id': 2,
             'ingredient_availability': 'EXPECTED', 'ingredient_expected_date': '2024-02-18T10:00:00Z', 'created_at':
             '2024-01-30T11:20:00Z', 'updated_at': '2024-01-30T11:20:00Z', 'deleted_at': None}]}
+
+    Attributes:
+        data (Union[Unset, list[Union['OutsourcedPurchaseOrder', 'RegularPurchaseOrder']]]): Array of purchase order
+            objects
     """
 
     data: Unset | list[Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]] = UNSET

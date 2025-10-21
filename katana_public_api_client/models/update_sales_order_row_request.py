@@ -14,6 +14,13 @@ class UpdateSalesOrderRowRequest:
 
     Example:
         {'quantity': 3, 'price_per_unit': 549.99}
+
+    Attributes:
+        variant_id (Union[Unset, int]): ID of the product variant being ordered
+        quantity (Union[Unset, float]): Ordered quantity of the product variant
+        price_per_unit (Union[Unset, float]): Selling price per unit in the order currency
+        tax_rate_id (Union[Unset, int]): ID of the tax rate applied to this line item
+        location_id (Union[Unset, int]): Location where the product should be picked from
     """
 
     variant_id: Unset | int = UNSET

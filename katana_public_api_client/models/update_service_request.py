@@ -16,6 +16,20 @@ class UpdateServiceRequest:
         {'name': 'Updated Assembly Service', 'uom': 'hours', 'category_name': 'Professional Services', 'is_sellable':
             True, 'is_archived': False, 'sales_price': 85.0, 'default_cost': 55.0, 'sku': 'ASSM-001-UPD', 'additional_info':
             'Updated professional product assembly service', 'custom_field_collection_id': 1}
+
+    Attributes:
+        name (Union[Unset, str]): The service's unique name
+        uom (Union[Unset, str]): The unit used to measure the quantity of the service (e.g. pcs, hours)
+        category_name (Union[Unset, str]): A string used to group similar items for better organization and analysis
+        additional_info (Union[Unset, str]): A string attached to the object to add any internal comments, links to
+            external files, additional instructions, etc.
+        is_sellable (Union[Unset, bool]): Sellable services can be added to Quotes and Sales orders
+        is_archived (Union[Unset, bool]): Whether the service is archived or not
+        sales_price (Union[None, Unset, float]): Default sales price (excluding tax)
+        default_cost (Union[None, Unset, float]): Default cost which is used to calculate profit
+        sku (Union[Unset, str]): A unique service code for the primary variant
+        custom_field_collection_id (Union[None, Unset, int]): ID of the custom field collection to associate with this
+            service
     """
 
     name: Unset | str = UNSET

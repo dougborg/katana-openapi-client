@@ -15,6 +15,14 @@ class CreateSalesOrderRowRequest:
     Example:
         {'sales_order_id': 2001, 'variant_id': 2101, 'quantity': 2, 'price_per_unit': 599.99, 'tax_rate_id': 301,
             'location_id': 1}
+
+    Attributes:
+        sales_order_id (int): ID of the sales order this row belongs to
+        variant_id (int): ID of the product variant being ordered
+        quantity (float): Ordered quantity of the product variant
+        price_per_unit (Union[Unset, float]): Selling price per unit in the order currency
+        tax_rate_id (Union[Unset, int]): ID of the tax rate applied to this line item
+        location_id (Union[Unset, int]): Location where the product should be picked from
     """
 
     sales_order_id: int

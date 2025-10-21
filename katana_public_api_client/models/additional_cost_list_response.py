@@ -23,6 +23,9 @@ class AdditionalCostListResponse:
         {'data': [{'id': 1, 'name': 'Shipping Cost', 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at':
             '2020-10-23T10:37:05.085Z', 'deleted_at': None}, {'id': 2, 'name': 'Import Duty', 'created_at':
             '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}]}
+
+    Attributes:
+        data (Union[Unset, list['AdditionalCost']]): Array of additional cost types that can be applied to orders
     """
 
     data: Unset | list["AdditionalCost"] = UNSET

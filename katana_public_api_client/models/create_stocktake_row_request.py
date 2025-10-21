@@ -15,6 +15,14 @@ class CreateStocktakeRowRequest:
     Example:
         {'stocktake_id': 4001, 'variant_id': 3001, 'system_quantity': 150.0, 'actual_quantity': 147.0, 'notes': 'Minor
             count difference noted'}
+
+    Attributes:
+        stocktake_id (int): ID of the stocktake this row belongs to
+        variant_id (int): ID of the variant being counted
+        system_quantity (float): System recorded quantity before counting
+        batch_id (Union[Unset, int]): ID of the specific batch being counted (if applicable)
+        actual_quantity (Union[Unset, float]): Actual counted quantity
+        notes (Union[Unset, str]): Optional notes about the count
     """
 
     stocktake_id: int

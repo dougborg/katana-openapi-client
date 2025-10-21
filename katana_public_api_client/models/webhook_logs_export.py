@@ -17,6 +17,9 @@ class WebhookLogsExport:
 
     Example:
         {'url': 'https://katana-exports.s3.amazonaws.com/webhook-logs-2024-01-15.csv?expires=1705392000'}
+
+    Attributes:
+        url (Union[Unset, str]): Pre-signed download URL for the webhook logs export file (CSV or JSON format)
     """
 
     url: Unset | str = UNSET

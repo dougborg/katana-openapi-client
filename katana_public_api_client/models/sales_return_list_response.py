@@ -24,6 +24,9 @@ class SalesReturnListResponse:
             'return_location_id': 1, 'status': 'RETURNED', 'currency': 'USD', 'return_date': '2023-10-15T14:30:00Z',
             'order_created_date': '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported damaged items',
             'refund_status': 'PROCESSED'}]}
+
+    Attributes:
+        data (Union[Unset, list['SalesReturn']]): List of sales return records
     """
 
     data: Unset | list["SalesReturn"] = UNSET

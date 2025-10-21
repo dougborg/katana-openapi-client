@@ -29,6 +29,16 @@ class CustomFieldsCollection:
             'name': 'quality_grade', 'field_type': 'select', 'label': 'Quality Grade', 'required': True, 'options': ['A',
             'B', 'C']}, {'id': 11, 'name': 'certification_date', 'field_type': 'date', 'label': 'Certification Date',
             'required': False}], 'created_at': '2024-01-08T10:00:00Z', 'updated_at': '2024-01-12T15:30:00Z'}
+
+    Attributes:
+        id (int): Unique identifier for the custom fields collection
+        name (str): Display name of the custom fields collection for management and organization
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        resource_type (Union[Unset, CustomFieldsCollectionResourceType]): The type of business object this custom fields
+            collection applies to
+        custom_fields (Union[Unset, list['CustomField']]): Array of custom field definitions with their types,
+            validation rules, and configuration
     """
 
     id: int

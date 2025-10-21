@@ -18,7 +18,15 @@ T = TypeVar("T", bound="PurchaseOrderReceiveRow")
 
 @_attrs_define
 class PurchaseOrderReceiveRow:
-    """Row-level data for receiving items against a purchase order, including quantity and batch details"""
+    """Row-level data for receiving items against a purchase order, including quantity and batch details
+
+    Attributes:
+        purchase_order_row_id (int): Unique identifier of the purchase order row being received
+        quantity (float): Quantity of items being received for this row
+        received_date (Union[Unset, datetime.datetime]): Optional received date in ISO 8601 format.
+        batch_transactions (Union[Unset, list['PurchaseOrderReceiveRowBatchTransactionsItem']]): Array of batch-specific
+            transactions for this received quantity
+    """
 
     purchase_order_row_id: int
     quantity: float

@@ -12,6 +12,11 @@ T = TypeVar("T", bound="UpdateStockTransferStatusBody")
 
 @_attrs_define
 class UpdateStockTransferStatusBody:
+    """
+    Attributes:
+        status (UpdateStockTransferStatusBodyStatus): New status for the stock transfer
+    """
+
     status: UpdateStockTransferStatusBodyStatus
 
     def to_dict(self) -> dict[str, Any]:

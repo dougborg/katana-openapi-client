@@ -24,6 +24,9 @@ class InventoryListResponse:
             'location_id': 1, 'quantity_on_hand': 75.0, 'quantity_allocated': 10.0, 'quantity_available': 65.0,
             'average_cost': 45.0, 'total_value': 3375.0, 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at':
             '2024-01-15T14:15:00.000Z'}]}
+
+    Attributes:
+        data (list['Inventory']): Array of inventory records with current stock levels and location details
     """
 
     data: list["Inventory"]

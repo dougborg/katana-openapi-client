@@ -13,6 +13,15 @@ T = TypeVar("T", bound="GetAllProductOperationRowsResponse200DataItem")
 
 @_attrs_define
 class GetAllProductOperationRowsResponse200DataItem:
+    """
+    Attributes:
+        id (Union[Unset, int]): Product operation row ID
+        product_id (Union[Unset, int]): Product ID
+        operation_id (Union[Unset, int]): Operation ID
+        sequence (Union[Unset, int]): Operation sequence
+        notes (Union[Unset, str]): Operation notes
+    """
+
     id: Unset | int = UNSET
     product_id: Unset | int = UNSET
     operation_id: Unset | int = UNSET

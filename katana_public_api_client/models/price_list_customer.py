@@ -20,6 +20,13 @@ class PriceListCustomer:
     Example:
         {'id': 4001, 'price_list_id': 1001, 'customer_id': 2001, 'created_at': '2024-01-15T10:00:00Z', 'updated_at':
             '2024-01-15T10:00:00Z'}
+
+    Attributes:
+        id (int): Unique identifier for the price list customer assignment
+        price_list_id (int): ID of the price list being assigned to the customer
+        customer_id (int): ID of the customer receiving the custom pricing
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
     """
 
     id: int

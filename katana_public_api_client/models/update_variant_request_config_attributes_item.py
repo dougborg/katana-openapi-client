@@ -13,6 +13,12 @@ T = TypeVar("T", bound="UpdateVariantRequestConfigAttributesItem")
 
 @_attrs_define
 class UpdateVariantRequestConfigAttributesItem:
+    """
+    Attributes:
+        config_name (Union[Unset, str]): Name of the configuration attribute
+        config_value (Union[Unset, str]): Value of the configuration attribute for this variant
+    """
+
     config_name: Unset | str = UNSET
     config_value: Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

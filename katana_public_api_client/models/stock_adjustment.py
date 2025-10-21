@@ -22,6 +22,18 @@ class StockAdjustment:
         {'id': 2001, 'stock_adjustment_number': 'SA-2024-001', 'location_id': 1, 'status': 'COMPLETED',
             'adjustment_date': '2024-01-15T14:30:00.000Z', 'additional_info': 'Physical count discrepancy correction',
             'created_at': '2024-01-15T14:30:00.000Z', 'updated_at': '2024-01-15T14:30:00.000Z', 'deleted_at': None}
+
+    Attributes:
+        id (int): Unique identifier for the stock adjustment
+        stock_adjustment_number (str): Human-readable reference number for tracking and audit purposes
+        location_id (int): ID of the location where the stock adjustment is performed
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
+        reference_no (Union[None, Unset, str]): Alternative reference number (optional)
+        status (Union[Unset, StockAdjustmentStatus]): Current status of the stock adjustment workflow
+        adjustment_date (Union[Unset, datetime.datetime]): Date and time when the adjustment was performed
+        additional_info (Union[None, Unset, str]): Optional notes or comments about the adjustment reason
     """
 
     id: int

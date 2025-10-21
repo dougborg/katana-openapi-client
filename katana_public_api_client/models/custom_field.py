@@ -18,6 +18,14 @@ class CustomField:
     Example:
         {'id': 10, 'name': 'quality_grade', 'field_type': 'select', 'label': 'Quality Grade', 'required': True,
             'options': ['A', 'B', 'C']}
+
+    Attributes:
+        id (int): Unique identifier for the custom field
+        name (str): Internal name/key for the custom field
+        field_type (str): Type of the custom field (text, number, date, select, etc.)
+        label (str): Display label for the custom field in user interfaces
+        required (Union[Unset, bool]): Whether this field is required when filling out the form
+        options (Union[Unset, list[str]]): Available options for select/dropdown field types
     """
 
     id: int

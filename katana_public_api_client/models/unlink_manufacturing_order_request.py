@@ -13,6 +13,9 @@ class UnlinkManufacturingOrderRequest:
 
         Example:
             {'sales_order_row_id': 2501}
+
+        Attributes:
+            sales_order_row_id (float): ID of the sales order row to unlink from the manufacturing order
     """
 
     sales_order_row_id: float

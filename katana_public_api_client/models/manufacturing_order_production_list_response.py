@@ -30,6 +30,9 @@ class ManufacturingOrderProductionListResponse:
                 45.0, 'created_at': '2024-01-20T14:30:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}],
                 'serial_numbers': ['PKS-001-240120', 'PKS-002-240120'], 'created_at': '2024-01-20T14:30:00Z', 'updated_at':
                 '2024-01-20T14:30:00Z', 'deleted_at': None}]}
+
+        Attributes:
+            data (Union[Unset, list['ManufacturingOrderProduction']]): Array of production runs from manufacturing orders
     """
 
     data: Unset | list["ManufacturingOrderProduction"] = UNSET

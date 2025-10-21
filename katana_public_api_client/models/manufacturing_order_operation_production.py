@@ -15,7 +15,21 @@ T = TypeVar("T", bound="ManufacturingOrderOperationProduction")
 
 @_attrs_define
 class ManufacturingOrderOperationProduction:
-    """Record of actual work performed on a specific operation during manufacturing order production"""
+    """Record of actual work performed on a specific operation during manufacturing order production
+
+    Attributes:
+        id (int): Unique identifier
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
+        location_id (Union[Unset, int]):
+        manufacturing_order_id (Union[Unset, int]):
+        manufacturing_order_operation_id (Union[Unset, int]):
+        production_id (Union[Unset, int]):
+        time (Union[Unset, float]):
+        production_date (Union[Unset, datetime.datetime]):
+        cost (Union[Unset, float]):
+    """
 
     id: int
     created_at: Unset | datetime.datetime = UNSET

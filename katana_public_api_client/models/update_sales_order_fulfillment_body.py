@@ -10,6 +10,12 @@ T = TypeVar("T", bound="UpdateSalesOrderFulfillmentBody")
 
 @_attrs_define
 class UpdateSalesOrderFulfillmentBody:
+    """
+    Attributes:
+        tracking_number (Union[Unset, str]): Shipment tracking number
+        notes (Union[Unset, str]): Additional notes for the fulfillment
+    """
+
     tracking_number: Unset | str = UNSET
     notes: Unset | str = UNSET
 

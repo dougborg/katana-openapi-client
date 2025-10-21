@@ -1,7 +1,9 @@
+import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
+from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -15,6 +17,17 @@ class UpdatePurchaseOrderRowRequest:
     Example:
         {'quantity': 275, 'price_per_unit': 2.95, 'purchase_uom': 'kg', 'received_date': '2024-02-15T14:30:00Z',
             'arrival_date': '2024-02-15T10:00:00Z'}
+
+    Attributes:
+        quantity (Union[Unset, float]): Updatable only when received_date is null
+        variant_id (Union[Unset, int]): Updatable only when received_date is null
+        tax_rate_id (Union[Unset, int]): Updatable only when received_date is null
+        group_id (Union[Unset, int]): Updatable only when received_date is null
+        price_per_unit (Union[Unset, float]): Updatable only when received_date is null
+        purchase_uom_conversion_rate (Union[Unset, float]): Updatable only when received_date is null
+        purchase_uom (Union[Unset, str]): Updatable only when received_date is null
+        received_date (Union[Unset, datetime.datetime]): Updatable only when already set
+        arrival_date (Union[Unset, datetime.datetime]): Updatable only when received_date is not null
     """
 
     quantity: Unset | float = UNSET
@@ -24,8 +37,8 @@ class UpdatePurchaseOrderRowRequest:
     price_per_unit: Unset | float = UNSET
     purchase_uom_conversion_rate: Unset | float = UNSET
     purchase_uom: Unset | str = UNSET
-    received_date: Unset | str = UNSET
-    arrival_date: Unset | str = UNSET
+    received_date: Unset | datetime.datetime = UNSET
+    arrival_date: Unset | datetime.datetime = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         quantity = self.quantity
@@ -42,9 +55,13 @@ class UpdatePurchaseOrderRowRequest:
 
         purchase_uom = self.purchase_uom
 
-        received_date = self.received_date
+        received_date: Unset | str = UNSET
+        if not isinstance(self.received_date, Unset):
+            received_date = self.received_date.isoformat()
 
-        arrival_date = self.arrival_date
+        arrival_date: Unset | str = UNSET
+        if not isinstance(self.arrival_date, Unset):
+            arrival_date = self.arrival_date.isoformat()
 
         field_dict: dict[str, Any] = {}
 
@@ -87,9 +104,19 @@ class UpdatePurchaseOrderRowRequest:
 
         purchase_uom = d.pop("purchase_uom", UNSET)
 
-        received_date = d.pop("received_date", UNSET)
+        _received_date = d.pop("received_date", UNSET)
+        received_date: Unset | datetime.datetime
+        if isinstance(_received_date, Unset):
+            received_date = UNSET
+        else:
+            received_date = isoparse(_received_date)
 
-        arrival_date = d.pop("arrival_date", UNSET)
+        _arrival_date = d.pop("arrival_date", UNSET)
+        arrival_date: Unset | datetime.datetime
+        if isinstance(_arrival_date, Unset):
+            arrival_date = UNSET
+        else:
+            arrival_date = isoparse(_arrival_date)
 
         update_purchase_order_row_request = cls(
             quantity=quantity,

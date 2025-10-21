@@ -77,11 +77,9 @@ def sync_detailed(
             associated sales order row, removing the direct connection while preserving both orders.
             Example: {'sales_order_row_id': 2501}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Any, ErrorResponse]]
@@ -112,11 +110,9 @@ def sync(
             associated sales order row, removing the direct connection while preserving both orders.
             Example: {'sales_order_row_id': 2501}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[Any, ErrorResponse]
@@ -142,11 +138,9 @@ async def asyncio_detailed(
             associated sales order row, removing the direct connection while preserving both orders.
             Example: {'sales_order_row_id': 2501}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Response[Union[Any, ErrorResponse]]
@@ -175,11 +169,9 @@ async def asyncio(
             associated sales order row, removing the direct connection while preserving both orders.
             Example: {'sales_order_row_id': 2501}.
 
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
-
 
     Returns:
         Union[Any, ErrorResponse]

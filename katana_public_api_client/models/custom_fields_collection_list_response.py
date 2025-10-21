@@ -29,6 +29,10 @@ class CustomFieldsCollectionListResponse:
             'required': True}, {'id': 13, 'name': 'payment_terms', 'field_type': 'select', 'label': 'Payment Terms',
             'required': True, 'options': ['Net 30', 'Net 60', 'COD']}], 'created_at': '2024-01-10T11:00:00Z', 'updated_at':
             '2024-01-14T09:15:00Z'}]}
+
+    Attributes:
+        data (Union[Unset, list['CustomFieldsCollection']]): Array of custom field collections with their field
+            definitions and configuration
     """
 
     data: Unset | list["CustomFieldsCollection"] = UNSET

@@ -21,6 +21,19 @@ class Recipe:
         {'id': 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 'recipe_row_id': 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
             'product_item_id': 1, 'product_variant_id': 1, 'ingredient_variant_id': 1, 'quantity': 2, 'notes': 'some notes',
             'rank': 10000, 'created_at': '2021-04-05T12:00:00.000Z', 'updated_at': '2021-04-05T12:00:00.000Z'}
+
+    Attributes:
+        id (str): Unique identifier for the recipe row
+        product_variant_id (int): ID of the product variant this recipe belongs to
+        ingredient_variant_id (int): ID of the ingredient variant used in this recipe
+        quantity (float): Required quantity of the ingredient
+        recipe_row_id (Union[Unset, str]): Recipe row UUID identifier
+        product_id (Union[Unset, int]): ID of the product that uses this recipe
+        product_item_id (Union[Unset, int]): ID of the product item
+        notes (Union[None, Unset, str]): Additional notes for this recipe row
+        rank (Union[Unset, int]): Display order rank for recipe rows
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the recipe was created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the recipe was last updated
     """
 
     id: str

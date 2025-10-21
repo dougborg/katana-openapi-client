@@ -26,6 +26,10 @@ class StocktakeListResponse:
             'STK-2024-002', 'location_id': 2, 'status': 'IN_PROGRESS', 'count_date': '2024-01-16T10:00:00.000Z', 'notes':
             'Spot check for high-value items', 'created_at': '2024-01-16T10:00:00.000Z', 'updated_at':
             '2024-01-16T12:00:00.000Z'}]}
+
+    Attributes:
+        data (Union[Unset, list['Stocktake']]): Array of stocktake records with count session details and status
+            information
     """
 
     data: Unset | list["Stocktake"] = UNSET

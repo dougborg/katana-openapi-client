@@ -11,6 +11,12 @@ T = TypeVar("T", bound="GetSalesReturnReasonsResponse200Item")
 
 @_attrs_define
 class GetSalesReturnReasonsResponse200Item:
+    """
+    Attributes:
+        id (int): Return reason ID
+        name (str): Return reason name
+    """
+
     id: int
     name: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

@@ -17,6 +17,11 @@ class UpdateBomRowRequest:
 
     Example:
         {'quantity': 3.0, 'notes': 'Updated quantity based on new specifications'}
+
+    Attributes:
+        ingredient_variant_id (Union[Unset, int]): ID of the ingredient variant used in this BOM row
+        quantity (Union[None, Unset, float]): Required quantity of the ingredient variant
+        notes (Union[None, Unset, str]): Additional notes for this BOM row
     """
 
     ingredient_variant_id: Unset | int = UNSET

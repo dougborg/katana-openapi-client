@@ -39,6 +39,29 @@ class VariantResponse:
             'Kitchenware', 'is_sellable': True, 'is_producible': True, 'is_purchasable': False, 'type': 'product',
             'created_at': '2024-01-15T08:00:00.000Z', 'updated_at': '2024-08-20T14:45:00.000Z', 'archived_at': None},
             'created_at': '2024-01-15T08:00:00.000Z', 'updated_at': '2024-08-20T14:45:00.000Z', 'deleted_at': None}
+
+    Attributes:
+        id (int): Unique identifier for this variant
+        created_at (Union[Unset, datetime.datetime]): Timestamp when the entity was first created
+        updated_at (Union[Unset, datetime.datetime]): Timestamp when the entity was last updated
+        deleted_at (Union[None, Unset, datetime.datetime]): Nullable deletion timestamp
+        sku (Union[Unset, str]): Stock keeping unit code for unique identification
+        sales_price (Union[Unset, float]): Price at which this variant is sold to customers
+        purchase_price (Union[Unset, float]): Cost to purchase this variant from suppliers
+        product_id (Union[None, Unset, int]): ID of the parent product if this variant belongs to a finished good
+        material_id (Union[None, Unset, int]): ID of the parent material if this variant belongs to a raw material
+        type_ (Union[Unset, VariantResponseType]): Type classification of this variant
+        internal_barcode (Union[Unset, str]): Internal barcode for warehouse scanning and tracking
+        registered_barcode (Union[Unset, str]): Official registered barcode (UPC, EAN, etc.) for retail use
+        supplier_item_codes (Union[Unset, list[str]]): Supplier-specific part numbers or SKUs for purchasing
+        lead_time (Union[None, Unset, int]): Days required to manufacture or procure this variant
+        minimum_order_quantity (Union[None, Unset, float]): Minimum quantity that must be ordered from suppliers
+        config_attributes (Union[Unset, list['VariantResponseConfigAttributesItem']]): Configuration attribute values
+            that define this variant
+        custom_fields (Union[Unset, list['VariantResponseCustomFieldsItem']]): Custom field values specific to this
+            variant
+        product_or_material (Union['Material', 'Product', Unset]): Details of the parent product or material this
+            variant belongs to
     """
 
     id: int

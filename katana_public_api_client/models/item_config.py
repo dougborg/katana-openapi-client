@@ -17,6 +17,13 @@ class ItemConfig:
 
     Example:
         {'id': 201, 'name': 'Type', 'values': ['Standard', 'Double-bladed'], 'product_id': 1, 'material_id': None}
+
+    Attributes:
+        id (int): Unique identifier
+        name (str): Configuration attribute name (e.g., Size, Color, Style, Grade)
+        values (list[str]): Array of possible values for this configuration attribute
+        product_id (Union[None, Unset, int]): ID of the product this configuration belongs to (null for materials)
+        material_id (Union[None, Unset, int]): ID of the material this configuration belongs to (null for products)
     """
 
     id: int

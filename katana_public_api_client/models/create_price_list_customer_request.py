@@ -12,6 +12,10 @@ class CreatePriceListCustomerRequest:
 
     Example:
         {'price_list_id': 1002, 'customer_id': 2002}
+
+    Attributes:
+        price_list_id (int): ID of the price list
+        customer_id (int): ID of the customer to assign to price list
     """
 
     price_list_id: int
