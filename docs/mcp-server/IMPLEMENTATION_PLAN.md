@@ -18,6 +18,35 @@ clarity, but the actual GitHub issues are numbered #32-#55.
   [GitHub #34](https://github.com/dougborg/katana-openapi-client/issues/34)
 - **Formula**: GitHub Issue # = Internal # + 31
 
+## ⚠️ IMPORTANT: Domain Helpers Dependency
+
+**NEW REQUIREMENT** (Added 2025-10-22): All MCP tool implementations (#35-46) now depend
+on domain helpers
+([Issue #60](https://github.com/dougborg/katana-openapi-client/issues/60)) being
+implemented first.
+
+**Why**: Domain helpers provide reusable business logic that serves as the foundation
+for MCP tools. This creates a clean 3-layer architecture:
+
+```
+Raw OpenAPI Client → Domain Helpers → MCP Tools
+```
+
+**Impact on Timeline**:
+
+- Domain helpers: 38-54 hours (1-1.5 weeks)
+- MCP tools become 30-50% faster to implement (thin wrappers)
+- **Net result**: Faster overall delivery + better code quality
+
+**Updated Dependency Chain**:
+
+```
+#32 (workspace) → #33 (package) → #60 (domain helpers) → #34 (basic server) → #35-46 (tools)
+```
+
+See [DOMAIN_HELPERS_IMPLEMENTATION_PLAN.md](../DOMAIN_HELPERS_IMPLEMENTATION_PLAN.md)
+for details.
+
 ## Overview
 
 - **Total Issues**: 24 (GitHub #32-#55)
