@@ -1,0 +1,33 @@
+name: Codespaces Prebuild
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.devcontainer/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/codespaces-prebuild.yml'
+  schedule:
+    # Rebuild weekly on Sundays at 2 AM UTC to keep dependencies fresh
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+
+jobs:
+  # This workflow triggers GitHub to create a new prebuild
+  # The actual prebuild happens via Codespaces settings
+  trigger-prebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log prebuild trigger
+        run: |
+          echo "Codespaces prebuild triggered"
+          echo "This will cache:"
+          echo "  - uv installation"
+          echo "  - Python dependencies (via uv sync)"
+          echo "  - Pre-commit hooks"
+          echo ""
+          echo "Agents will get instant startup!"

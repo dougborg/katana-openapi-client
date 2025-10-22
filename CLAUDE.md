@@ -3,6 +3,40 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in
 this repository.
 
+## Quick Start
+
+### Using GitHub Codespaces (Recommended for Agents)
+
+This repository has a fully configured devcontainer with **prebuilds** for instant
+startup:
+
+1. **Open in Codespaces**: Click "Code" → "Codespaces" → "Create codespace on main"
+1. **Wait ~30 seconds**: Prebuild loads cached environment (uv, dependencies, tools)
+1. **Start working**: Everything is ready - no setup needed!
+
+The prebuild includes:
+
+- ✅ uv package manager pre-installed
+- ✅ All Python dependencies cached
+- ✅ Pre-commit hooks installed
+- ✅ VS Code extensions configured
+
+**Configuration**: See `.devcontainer/` directory for details.
+
+### Local Development
+
+```bash
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Setup project
+uv sync --all-extras
+uv run pre-commit install
+
+# Create .env file
+cp .env.example .env  # Add your KATANA_API_KEY
+```
+
 ## Essential Commands
 
 ### Development Workflow
@@ -291,6 +325,50 @@ comprehensive Katana Manufacturing ERP API. Key features:
 - **Comprehensive validation** with detailed error responses
 - **Recent improvements** include date-time formats and schema restructuring for
   inheritance
+
+## MCP Server Implementation (NEW!)
+
+This repository now includes a **Model Context Protocol (MCP) server** being built as a
+separate package in a monorepo using uv workspace.
+
+### Key Resources for MCP Work:
+
+- **ADR-010**: [docs/adr/0010-katana-mcp-server.md](docs/adr/0010-katana-mcp-server.md)
+  \- Architecture decisions
+- **Implementation Plan**:
+  [docs/mcp-server/IMPLEMENTATION_PLAN.md](docs/mcp-server/IMPLEMENTATION_PLAN.md) -
+  Dependency graph
+- **Agent Quick Start**:
+  [docs/mcp-server/AGENT_QUICK_START.md](docs/mcp-server/AGENT_QUICK_START.md) - Guide
+  for copilot agents
+- **GitHub Milestone**:
+  [MCP Server v0.1.0 MVP](https://github.com/dougborg/katana-openapi-client/milestone/1)
+  \- 24 issues (#32-55)
+
+### MCP Server Structure:
+
+```
+katana-openapi-client/          # Repository root (monorepo)
+├── pyproject.toml              # Workspace configuration
+├── katana_public_api_client/   # Existing client library
+└── katana_mcp_server/          # NEW: MCP server package
+    ├── pyproject.toml          # Depends on client
+    ├── src/katana_mcp/
+    │   ├── server.py           # FastMCP server
+    │   ├── tools/              # 12 tools (inventory, orders, manufacturing)
+    │   ├── resources/          # 5 MCP resources
+    │   └── prompts/            # Workflow prompts
+    └── tests/
+```
+
+### Working on MCP Issues:
+
+1. **Check dependencies**: Every issue has clear "Blocked by" markers
+1. **Start with infrastructure**: Issues #32-34 must be done first
+1. **Then parallelize**: After #34, 4 agents can work simultaneously
+1. **Follow acceptance criteria**: Each issue has specific checkboxes
+
+See the [Agent Quick Start Guide](docs/mcp-server/AGENT_QUICK_START.md) for details.
 
 ## Development Workflow
 

@@ -7,7 +7,8 @@
       "Bash(uv run pytest:*)",
       "Bash(uv run ruff check:*)",
       "Bash(uv run:*)",
-      "Bash(gh:*)"
+      "Bash(gh:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []
