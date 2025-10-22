@@ -21,6 +21,11 @@ from httpx_retries import Retry, RetryTransport
 
 from .client import AuthenticatedClient
 from .client_types import Unset
+from .helpers.inventory import Inventory
+from .helpers.materials import Materials
+from .helpers.products import Products
+from .helpers.services import Services
+from .helpers.variants import Variants
 from .models.detailed_error_response import DetailedErrorResponse
 from .models.error_response import ErrorResponse
 
@@ -725,6 +730,13 @@ class KatanaClient(AuthenticatedClient):
         self.logger = logger or logging.getLogger(__name__)
         self.max_pages = max_pages
 
+        # Domain class instances (lazy-loaded)
+        self._products: Products | None = None
+        self._materials: Materials | None = None
+        self._variants: Variants | None = None
+        self._services: Services | None = None
+        self._inventory: Inventory | None = None
+
         # Extract client-level parameters that shouldn't go to the transport
         # Event hooks for observability - start with our defaults
         event_hooks: dict[str, list[Callable[[httpx.Response], Awaitable[None]]]] = {
@@ -791,6 +803,90 @@ class KatanaClient(AuthenticatedClient):
 
     # Remove the client property since we inherit from AuthenticatedClient
     # Users can now pass the KatanaClient instance directly to API methods
+
+    # Domain properties for ergonomic access
+    @property
+    def products(self) -> Products:
+        """Access product catalog operations.
+
+        Returns:
+            Products instance for product CRUD and search operations.
+
+        Example:
+            >>> async with KatanaClient() as client:
+            ...     # Product CRUD
+            ...     products = await client.products.list(is_sellable=True)
+            ...     product = await client.products.get(123)
+            ...     results = await client.products.search("widget")
+        """
+        if self._products is None:
+            self._products = Products(self)
+        return self._products
+
+    @property
+    def materials(self) -> Materials:
+        """Access material catalog operations.
+
+        Returns:
+            Materials instance for material CRUD operations.
+
+        Example:
+            >>> async with KatanaClient() as client:
+            ...     materials = await client.materials.list()
+            ...     material = await client.materials.get(123)
+        """
+        if self._materials is None:
+            self._materials = Materials(self)
+        return self._materials
+
+    @property
+    def variants(self) -> Variants:
+        """Access variant catalog operations.
+
+        Returns:
+            Variants instance for variant CRUD operations.
+
+        Example:
+            >>> async with KatanaClient() as client:
+            ...     variants = await client.variants.list()
+            ...     variant = await client.variants.get(123)
+        """
+        if self._variants is None:
+            self._variants = Variants(self)
+        return self._variants
+
+    @property
+    def services(self) -> Services:
+        """Access service catalog operations.
+
+        Returns:
+            Services instance for service CRUD operations.
+
+        Example:
+            >>> async with KatanaClient() as client:
+            ...     services = await client.services.list()
+            ...     service = await client.services.get(123)
+        """
+        if self._services is None:
+            self._services = Services(self)
+        return self._services
+
+    @property
+    def inventory(self) -> Inventory:
+        """Access inventory and stock operations.
+
+        Returns:
+            Inventory instance for stock levels, movements, and adjustments.
+
+        Example:
+            >>> async with KatanaClient() as client:
+            ...     # Check stock levels
+            ...     stock = await client.inventory.check_stock("WIDGET-001")
+            ...     low_stock = await client.inventory.list_low_stock(threshold=10)
+        """
+        if self._inventory is None:
+            self._inventory = Inventory(self)
+        return self._inventory
 
     # Event hooks for observability
     async def _capture_pagination_metadata(self, response: httpx.Response) -> None:
