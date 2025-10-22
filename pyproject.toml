@@ -119,6 +119,15 @@ dev = [
     "types-jsonschema>=4.25.1.20251009",
 ]
 
+# =============================================================================
+# UV Workspace Configuration
+# =============================================================================
+# Monorepo structure for katana-openapi-client and katana-mcp-server packages.
+# See ADR-010 for architectural decisions and rationale.
+
+[tool.uv.workspace]
+members = [".", "katana_mcp_server"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["katana_public_api_client"]
 
