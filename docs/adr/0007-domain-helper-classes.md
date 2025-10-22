@@ -2,9 +2,15 @@
 
 ## Status
 
-**PROPOSED**
+**ACCEPTED**
 
-Date: 2024-10-17
+Date: 2024-10-17 Accepted: 2025-10-22
+
+**Rationale for Acceptance**: Domain helpers provide a reusable business logic layer
+that serves as the foundation for the MCP Server implementation (see
+[ADR-010](0010-katana-mcp-server.md)). By implementing helpers first, MCP tools become
+thin wrappers around well-tested, reusable business logic, creating a clean 3-layer
+architecture: Raw OpenAPI Client → Domain Helpers → MCP Tools.
 
 ## Context
 
