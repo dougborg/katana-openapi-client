@@ -218,21 +218,36 @@ async with KatanaClient() as client:
 
 See [examples/using_utils.py](examples/using_utils.py) for more examples.
 
-## � Project Structure
+## 📁 Project Structure
+
+This is a **monorepo** managed with **uv workspace**, containing multiple packages:
 
 ```text
-katana-openapi-client/
+katana-openapi-client/           # Repository root (workspace)
+├── pyproject.toml               # Workspace configuration
+├── uv.lock                      # Unified lock file for all packages
 ├── docs/katana-openapi.yaml     # OpenAPI 3.1.0 specification
-├── katana_public_api_client/    # Generated Python client
+├── katana_public_api_client/    # Main package - Generated Python client
 │   ├── katana_client.py         # KatanaClient with transport-layer resilience
 │   ├── client.py                # Base generated client classes
 │   ├── api/                     # 76+ API endpoint modules
 │   ├── models/                  # 150+ data models
 │   └── types.py                 # Type definitions
+├── katana_mcp_server/           # MCP server package (coming soon)
+│   └── pyproject.toml           # Package-specific configuration
 ├── docs/                        # Documentation
 ├── tests/                       # Test suite
 └── scripts/                     # Development utilities
 ```
+
+The workspace configuration enables:
+
+- Unified dependency management across packages
+- Version compatibility guarantees
+- Single lock file for reproducible builds
+- Parallel development of client and server
+
+See [ADR-010](docs/adr/0010-katana-mcp-server.md) for architectural details.
 
 ## 🧪 Testing
 

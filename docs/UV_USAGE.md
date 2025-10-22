@@ -66,6 +66,33 @@ uv sync --extra docs
 uv venv
 ```
 
+### Workspace Management
+
+This project uses uv workspace for monorepo management with multiple packages:
+
+```bash
+# Sync all workspace packages
+uv sync --all-extras
+
+# Check workspace structure
+uv tree
+
+# The workspace includes:
+# - katana-openapi-client (main package, current directory)
+# - katana-mcp-server (MCP server package, separate directory)
+```
+
+**Note**: The workspace is configured in the root `pyproject.toml` with:
+
+```toml
+[tool.uv.workspace]
+members = [".", "katana_mcp_server"]
+```
+
+This allows both packages to share a unified lock file (`uv.lock`) and ensures version
+compatibility. See [ADR-010](../adr/0010-katana-mcp-server.md) for the architectural
+rationale.
+
 ### Package Management
 
 ```bash
