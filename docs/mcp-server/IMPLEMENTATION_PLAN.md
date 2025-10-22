@@ -3,9 +3,24 @@
 This document tracks the implementation of the Katana MCP Server as defined in
 [ADR-010](../adr/0010-katana-mcp-server.md).
 
+## ⚠️ Issue Number Mapping
+
+**IMPORTANT**: This document uses internal sequential issue numbers (#1-#24) for
+clarity, but the actual GitHub issues are numbered #32-#55.
+
+**Quick Reference**:
+
+- Internal #1 →
+  [GitHub #32](https://github.com/dougborg/katana-openapi-client/issues/32)
+- Internal #2 →
+  [GitHub #33](https://github.com/dougborg/katana-openapi-client/issues/33)
+- Internal #3 →
+  [GitHub #34](https://github.com/dougborg/katana-openapi-client/issues/34)
+- **Formula**: GitHub Issue # = Internal # + 31
+
 ## Overview
 
-- **Total Issues**: 24
+- **Total Issues**: 24 (GitHub #32-#55)
 - **Total Estimate**: 110-146 hours (~3 weeks with 2-3 developers)
 - **Architecture**: Monorepo with uv workspace
 - **Target**: v0.1.0 MVP release
