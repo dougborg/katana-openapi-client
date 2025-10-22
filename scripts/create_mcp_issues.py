@@ -362,7 +362,7 @@ class Product(BaseModel):
 ]
 
 
-def create_issue(issue: Issue, dry_run: bool = False) -> dict:
+def create_issue(issue: Issue, dry_run: bool = False) -> dict[str, str | int]:
     """Create a GitHub issue using gh CLI."""
     # Build labels string
     labels = ",".join(issue.labels)

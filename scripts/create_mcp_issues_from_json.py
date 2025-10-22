@@ -12,9 +12,10 @@ import argparse
 import json
 import subprocess
 from pathlib import Path
+from typing import Any
 
 
-def format_issue_body(issue: dict) -> str:
+def format_issue_body(issue: dict[str, Any]) -> str:
     """Format the issue body from JSON data."""
     body_parts = []
 
@@ -52,7 +53,7 @@ def format_issue_body(issue: dict) -> str:
     return "".join(body_parts)
 
 
-def create_issue(issue: dict, dry_run: bool = False) -> dict:
+def create_issue(issue: dict[str, Any], dry_run: bool = False) -> dict[str, str | int]:
     """Create a GitHub issue using gh CLI."""
     title = f"MCP-{issue['number']:02d}: {issue['title']}"
     body = format_issue_body(issue)
