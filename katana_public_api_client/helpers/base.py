@@ -1,5 +1,7 @@
 """Base class for domain classes."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -15,7 +17,7 @@ class Base:
         client: The KatanaClient instance to use for API calls.
     """
 
-    def __init__(self, client: "KatanaClient") -> None:
+    def __init__(self, client: KatanaClient) -> None:
         """Initialize with a client instance.
 
         Args:

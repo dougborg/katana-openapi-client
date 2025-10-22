@@ -1,5 +1,7 @@
 """Product catalog operations."""
 
+from __future__ import annotations
+
 from typing import Any
 
 from katana_public_api_client.api.product import (
