@@ -1,7 +1,6 @@
 """Tests for katana_mcp package structure and imports."""
 
 
-
 def test_package_import():
     """Test that the main package can be imported."""
     import katana_mcp
