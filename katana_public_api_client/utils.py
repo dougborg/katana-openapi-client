@@ -198,7 +198,7 @@ def unwrap_data(
     *,
     raise_on_error: bool = True,
     default: None = None,
-) -> list[Any]: ...
+) -> Any: ...
 
 
 @overload
@@ -207,7 +207,7 @@ def unwrap_data(
     *,
     raise_on_error: bool = False,
     default: None = None,
-) -> list[Any] | None: ...
+) -> Any | None: ...
 
 
 @overload
@@ -216,7 +216,7 @@ def unwrap_data(
     *,
     raise_on_error: bool = False,
     default: list[DataT],
-) -> list[Any]: ...
+) -> Any: ...
 
 
 def unwrap_data(
@@ -224,7 +224,7 @@ def unwrap_data(
     *,
     raise_on_error: bool = True,
     default: list[DataT] | None = None,
-) -> list[Any] | None:
+) -> Any | None:
     """Unwrap a Response and extract the data list from list responses.
 
     This is a convenience function that unwraps the response and extracts

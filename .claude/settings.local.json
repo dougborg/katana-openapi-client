@@ -16,7 +16,15 @@
       "Bash(git push)",
       "Bash(git stash:*)",
       "Bash(git pull:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(git push:*)",
+      "Bash(repos/dougborg/katana-openapi-client/rulesets/6756621 )",
+      "Read(//dev/**)",
+      "Bash(awk:*)",
+      "Bash(git reset:*)",
+      "Bash(echo:*)",
+      "Bash(__NEW_LINE__ sleep 5)",
+      "Bash(gunzip:*)"
     ],
     "deny": [],
     "ask": []

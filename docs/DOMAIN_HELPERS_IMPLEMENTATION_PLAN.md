@@ -45,19 +45,14 @@ Based on the MCP tool requirements (see
 for 12 MCP tools across 4 domains. This implementation focuses on **exactly what the MCP
 tools need** - no more, no less.
 
-### Phase 1: Inventory Helpers (Required by 3 MCP Tools + CRUD)
+### Phase 1: Inventory Helpers (Required by 3 MCP Tools)
 
 **MCP Tools**: check_inventory (#35), list_low_stock_items (#36), search_products (#37)
-
-**Additional Requirement**: Full CRUD support for Products, Materials, Variants, and
-Services
 
 **InventoryHelper Methods**:
 
 ```python
 class InventoryHelper:
-    # === Stock & Search (MCP Tool Support) ===
-
     async def check_stock(self, sku: str) -> ProductStock:
         """Check stock levels for a specific SKU.
 
@@ -75,83 +70,13 @@ class InventoryHelper:
 
         Used by: MCP tool search_products
         """
-
-    # === Product CRUD ===
-
-    async def list_products(self, **filters) -> list[Product]:
-        """List all products with optional filters."""
-
-    async def get_product(self, product_id: int) -> Product:
-        """Get a specific product by ID."""
-
-    async def create_product(self, product_data: dict) -> Product:
-        """Create a new product."""
-
-    async def update_product(self, product_id: int, product_data: dict) -> Product:
-        """Update an existing product."""
-
-    async def delete_product(self, product_id: int) -> None:
-        """Delete a product."""
-
-    # === Material CRUD ===
-
-    async def list_materials(self, **filters) -> list[Material]:
-        """List all materials with optional filters."""
-
-    async def get_material(self, material_id: int) -> Material:
-        """Get a specific material by ID."""
-
-    async def create_material(self, material_data: dict) -> Material:
-        """Create a new material."""
-
-    async def update_material(self, material_id: int, material_data: dict) -> Material:
-        """Update an existing material."""
-
-    async def delete_material(self, material_id: int) -> None:
-        """Delete a material."""
-
-    # === Variant CRUD ===
-
-    async def list_variants(self, **filters) -> list[Variant]:
-        """List all variants with optional filters."""
-
-    async def get_variant(self, variant_id: int) -> Variant:
-        """Get a specific variant by ID."""
-
-    async def create_variant(self, variant_data: dict) -> Variant:
-        """Create a new variant."""
-
-    async def update_variant(self, variant_id: int, variant_data: dict) -> Variant:
-        """Update an existing variant."""
-
-    async def delete_variant(self, variant_id: int) -> None:
-        """Delete a variant."""
-
-    # === Service CRUD ===
-
-    async def list_services(self, **filters) -> list[Service]:
-        """List all services with optional filters."""
-
-    async def get_service(self, service_id: int) -> Service:
-        """Get a specific service by ID."""
-
-    async def create_service(self, service_data: dict) -> Service:
-        """Create a new service."""
-
-    async def update_service(self, service_id: int, service_data: dict) -> Service:
-        """Update an existing service."""
-
-    async def delete_service(self, service_id: int) -> None:
-        """Delete a service."""
 ```
 
-**Estimate**: 20-28 hours
+**Estimate**: 8-12 hours
 
-- 3 MCP tool methods × 2-3 hours each (6-9h)
-- 4 entity types × 5 CRUD operations × 1 hour each (20h)
-- Helper class infrastructure (2-3h)
-- Integration with KatanaClient (2-3h)
-- Comprehensive testing (8-10h)
+- 3 methods × 2-3 hours each (implementation + tests)
+- Helper class infrastructure
+- Integration with KatanaClient
 
 ### Phase 2: Sales Order Helpers (Required by 3 MCP Tools)
 
@@ -254,24 +179,15 @@ class ManufacturingOrderHelper:
 
 ## Total Estimate
 
-**Time**: 50-70 hours (approximately 1.5-2 weeks for 1 developer, or 1 week for 2
+**Time**: 38-54 hours (approximately 1-1.5 weeks for 1 developer, or 3-4 days for 2
 developers working in parallel)
 
 **Breakdown**:
 
-- Phase 1 (Inventory with CRUD): 20-28h
+- Phase 1 (Inventory): 8-12h
 - Phase 2 (Sales Orders): 10-14h
 - Phase 3 (Purchase Orders): 10-14h
 - Phase 4 (Manufacturing): 10-14h
-
-**CRUD Methods Added**:
-
-- Products: 5 methods (list, get, create, update, delete)
-- Materials: 5 methods (list, get, create, update, delete)
-- Variants: 5 methods (list, get, create, update, delete)
-- Services: 5 methods (list, get, create, update, delete)
-- **Total**: 20 additional CRUD methods + 3 MCP-specific methods + 9 order helper
-  methods = **32 helper methods**
 
 ## Implementation Strategy
 
@@ -408,17 +324,12 @@ async def check_inventory(sku: str, ctx: Context) -> InventoryStatus:
 
 - [ ] 4 helper classes implemented (Inventory, Sales Orders, Purchase Orders,
   Manufacturing)
-- [ ] 32 domain methods total:
-  - 3 MCP-specific inventory methods (check_stock, list_low_stock, search_products)
-  - 20 CRUD methods for core entities (Products, Materials, Variants, Services)
-  - 9 order helper methods (Sales/Purchase/Manufacturing Orders)
+- [ ] 12 domain methods across helpers (3 per helper)
 - [ ] 80%+ test coverage for helper code
-- [ ] All helper methods documented with "Used by" MCP tool references where applicable
-- [ ] Helper properties added to KatanaClient (inventory, sales_orders, purchase_orders,
-  manufacturing_orders)
+- [ ] All helper methods documented with "Used by" MCP tool references
+- [ ] Helper properties added to KatanaClient
 - [ ] Integration tests passing with actual Katana API
 - [ ] KATANA_CLIENT_GUIDE.md updated with helper examples
-- [ ] CRUD operations enable full MCP tool coverage for inventory management
 
 ## Next Steps
 
