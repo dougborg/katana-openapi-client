@@ -68,58 +68,50 @@ class Services(Base):
         # unwrap() raises on errors, so cast is safe
         return cast(Service, unwrap(response))
 
-    async def create(
-        self, service_data: dict[str, Any] | CreateServiceRequest
-    ) -> Service:
+    async def create(self, service_data: CreateServiceRequest) -> Service:
         """Create a new service.
 
         Args:
-            service_data: Service data dictionary or CreateServiceRequest model.
+            service_data: CreateServiceRequest model with service details.
 
         Returns:
             Created Service object.
 
         Example:
-            >>> new_service = await client.services.create({"name": "Assembly"})
+            >>> from katana_public_api_client.models import CreateServiceRequest
+            >>> new_service = await client.services.create(
+            ...     CreateServiceRequest(name="Assembly")
+            ... )
         """
-        # Convert dict to model if needed
-        if isinstance(service_data, dict):
-            body = CreateServiceRequest.from_dict(service_data)
-        else:
-            body = service_data
-
         response = await create_service.asyncio_detailed(
             client=self._client,
-            body=body,
+            body=service_data,
         )
         # unwrap() raises on errors, so cast is safe
         return cast(Service, unwrap(response))
 
     async def update(
-        self, service_id: int, service_data: dict[str, Any] | UpdateServiceRequest
+        self, service_id: int, service_data: UpdateServiceRequest
     ) -> Service:
         """Update an existing service.
 
         Args:
             service_id: The service ID to update.
-            service_data: Service data dictionary or UpdateServiceRequest model with fields to update.
+            service_data: UpdateServiceRequest model with fields to update.
 
         Returns:
             Updated Service object.
 
         Example:
-            >>> updated = await client.services.update(123, {"name": "QA Testing"})
+            >>> from katana_public_api_client.models import UpdateServiceRequest
+            >>> updated = await client.services.update(
+            ...     123, UpdateServiceRequest(name="QA Testing")
+            ... )
         """
-        # Convert dict to model if needed
-        if isinstance(service_data, dict):
-            body = UpdateServiceRequest.from_dict(service_data)
-        else:
-            body = service_data
-
         response = await update_service.asyncio_detailed(
             client=self._client,
             id=service_id,
-            body=body,
+            body=service_data,
         )
         # unwrap() raises on errors, so cast is safe
         return cast(Service, unwrap(response))

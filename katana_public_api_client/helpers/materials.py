@@ -72,58 +72,50 @@ class Materials(Base):
         # unwrap() raises on errors, so cast is safe
         return cast(Material, unwrap(response))
 
-    async def create(
-        self, material_data: dict[str, Any] | CreateMaterialRequest
-    ) -> Material:
+    async def create(self, material_data: CreateMaterialRequest) -> Material:
         """Create a new material.
 
         Args:
-            material_data: Material data dictionary or CreateMaterialRequest model.
+            material_data: CreateMaterialRequest model with material details.
 
         Returns:
             Created Material object.
 
         Example:
-            >>> new_material = await client.materials.create({"name": "Steel"})
+            >>> from katana_public_api_client.models import CreateMaterialRequest
+            >>> new_material = await client.materials.create(
+            ...     CreateMaterialRequest(name="Steel")
+            ... )
         """
-        # Convert dict to model if needed
-        if isinstance(material_data, dict):
-            body = CreateMaterialRequest.from_dict(material_data)
-        else:
-            body = material_data
-
         response = await create_material.asyncio_detailed(
             client=self._client,
-            body=body,
+            body=material_data,
         )
         # unwrap() raises on errors, so cast is safe
         return cast(Material, unwrap(response))
 
     async def update(
-        self, material_id: int, material_data: dict[str, Any] | UpdateMaterialRequest
+        self, material_id: int, material_data: UpdateMaterialRequest
     ) -> Material:
         """Update an existing material.
 
         Args:
             material_id: The material ID to update.
-            material_data: Material data dictionary or UpdateMaterialRequest model with fields to update.
+            material_data: UpdateMaterialRequest model with fields to update.
 
         Returns:
             Updated Material object.
 
         Example:
-            >>> updated = await client.materials.update(123, {"name": "Aluminum"})
+            >>> from katana_public_api_client.models import UpdateMaterialRequest
+            >>> updated = await client.materials.update(
+            ...     123, UpdateMaterialRequest(name="Aluminum")
+            ... )
         """
-        # Convert dict to model if needed
-        if isinstance(material_data, dict):
-            body = UpdateMaterialRequest.from_dict(material_data)
-        else:
-            body = material_data
-
         response = await update_material.asyncio_detailed(
             client=self._client,
             id=material_id,
-            body=body,
+            body=material_data,
         )
         # unwrap() raises on errors, so cast is safe
         return cast(Material, unwrap(response))

@@ -72,64 +72,55 @@ class Products(Base):
         # unwrap() raises on errors, so cast is safe
         return cast(Product, unwrap(response))
 
-    async def create(
-        self, product_data: dict[str, Any] | CreateProductRequest
-    ) -> Product:
+    async def create(self, product_data: CreateProductRequest) -> Product:
         """Create a new product.
 
         Args:
-            product_data: Product data dictionary or CreateProductRequest model.
+            product_data: CreateProductRequest model with product details.
 
         Returns:
             Created Product object.
 
         Example:
+            >>> from katana_public_api_client.models import CreateProductRequest
             >>> new_product = await client.products.create(
-            ...     {
-            ...         "name": "New Widget",
-            ...         "sku": "WIDGET-NEW",
-            ...         "is_sellable": True,
-            ...     }
+            ...     CreateProductRequest(
+            ...         name="New Widget",
+            ...         sku="WIDGET-NEW",
+            ...         is_sellable=True,
+            ...         variants=[],
+            ...     )
             ... )
         """
-        # Convert dict to model if needed
-        if isinstance(product_data, dict):
-            body = CreateProductRequest.from_dict(product_data)
-        else:
-            body = product_data
-
         response = await create_product.asyncio_detailed(
             client=self._client,
-            body=body,
+            body=product_data,
         )
         # unwrap() raises on errors, so cast is safe
         return cast(Product, unwrap(response))
 
     async def update(
-        self, product_id: int, product_data: dict[str, Any] | UpdateProductRequest
+        self, product_id: int, product_data: UpdateProductRequest
     ) -> Product:
         """Update an existing product.
 
         Args:
             product_id: The product ID to update.
-            product_data: Product data dictionary or UpdateProductRequest model with fields to update.
+            product_data: UpdateProductRequest model with fields to update.
 
         Returns:
             Updated Product object.
 
         Example:
-            >>> updated = await client.products.update(123, {"name": "Updated Name"})
+            >>> from katana_public_api_client.models import UpdateProductRequest
+            >>> updated = await client.products.update(
+            ...     123, UpdateProductRequest(name="Updated Name")
+            ... )
         """
-        # Convert dict to model if needed
-        if isinstance(product_data, dict):
-            body = UpdateProductRequest.from_dict(product_data)
-        else:
-            body = product_data
-
         response = await update_product.asyncio_detailed(
             client=self._client,
             id=product_id,
-            body=body,
+            body=product_data,
         )
         # unwrap() raises on errors, so cast is safe
         return cast(Product, unwrap(response))

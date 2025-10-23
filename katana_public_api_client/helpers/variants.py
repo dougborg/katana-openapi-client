@@ -68,58 +68,50 @@ class Variants(Base):
         # unwrap() raises on errors, so cast is safe
         return cast(Variant, unwrap(response))
 
-    async def create(
-        self, variant_data: dict[str, Any] | CreateVariantRequest
-    ) -> Variant:
+    async def create(self, variant_data: CreateVariantRequest) -> Variant:
         """Create a new variant.
 
         Args:
-            variant_data: Variant data dictionary or CreateVariantRequest model.
+            variant_data: CreateVariantRequest model with variant details.
 
         Returns:
             Created Variant object.
 
         Example:
-            >>> new_variant = await client.variants.create({"name": "Large"})
+            >>> from katana_public_api_client.models import CreateVariantRequest
+            >>> new_variant = await client.variants.create(
+            ...     CreateVariantRequest(name="Large", product_id=123)
+            ... )
         """
-        # Convert dict to model if needed
-        if isinstance(variant_data, dict):
-            body = CreateVariantRequest.from_dict(variant_data)
-        else:
-            body = variant_data
-
         response = await create_variant.asyncio_detailed(
             client=self._client,
-            body=body,
+            body=variant_data,
         )
         # unwrap() raises on errors, so cast is safe
         return cast(Variant, unwrap(response))
 
     async def update(
-        self, variant_id: int, variant_data: dict[str, Any] | UpdateVariantRequest
+        self, variant_id: int, variant_data: UpdateVariantRequest
     ) -> Variant:
         """Update an existing variant.
 
         Args:
             variant_id: The variant ID to update.
-            variant_data: Variant data dictionary or UpdateVariantRequest model with fields to update.
+            variant_data: UpdateVariantRequest model with fields to update.
 
         Returns:
             Updated Variant object.
 
         Example:
-            >>> updated = await client.variants.update(123, {"name": "XL"})
+            >>> from katana_public_api_client.models import UpdateVariantRequest
+            >>> updated = await client.variants.update(
+            ...     123, UpdateVariantRequest(name="XL")
+            ... )
         """
-        # Convert dict to model if needed
-        if isinstance(variant_data, dict):
-            body = UpdateVariantRequest.from_dict(variant_data)
-        else:
-            body = variant_data
-
         response = await update_variant.asyncio_detailed(
             client=self._client,
             id=variant_id,
-            body=body,
+            body=variant_data,
         )
         # unwrap() raises on errors, so cast is safe
         return cast(Variant, unwrap(response))
