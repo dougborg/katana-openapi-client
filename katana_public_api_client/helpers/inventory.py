@@ -45,15 +45,23 @@ class Inventory(Base):
             >>> stock = await client.inventory.check_stock("WIDGET-001")
             >>> print(f"Available: {stock['available']}, In Stock: {stock['in_stock']}")
         """
+        # Note: The API doesn't support direct SKU filtering yet
+        # We need to fetch products and filter client-side
+        # TODO: When API adds SKU parameter, use that instead
         response = await get_all_products.asyncio_detailed(
             client=self._client,
-            sku=sku,
-            include_stock_information=True,
-            limit=1,
+            limit=100,
         )
         products = unwrap_data(response)
 
-        if not products:
+        # Find product by SKU
+        matching_product = None
+        for product in products:
+            if getattr(product, "sku", None) == sku:
+                matching_product = product
+                break
+
+        if not matching_product:
             return {
                 "sku": sku,
                 "found": False,
@@ -62,14 +70,13 @@ class Inventory(Base):
                 "in_stock": 0,
             }
 
-        product = products[0]
-        stock_info = getattr(product, "stock_information", None)
+        stock_info = getattr(matching_product, "stock_information", None)
 
         return {
             "sku": sku,
             "found": True,
-            "product_id": product.id,
-            "product_name": product.name,
+            "product_id": matching_product.id,
+            "product_name": matching_product.name,
             "available": getattr(stock_info, "available", 0) if stock_info else 0,
             "allocated": getattr(stock_info, "allocated", 0) if stock_info else 0,
             "in_stock": getattr(stock_info, "in_stock", 0) if stock_info else 0,
@@ -94,9 +101,9 @@ class Inventory(Base):
             >>> for item in low_stock:
             ...     print(f"{item['sku']}: {item['in_stock']} units")
         """
+        # Note: Stock information is included in product response by default
         response = await get_all_products.asyncio_detailed(
             client=self._client,
-            include_stock_information=True,
             limit=100,  # KatanaClient handles pagination automatically
         )
         products = unwrap_data(response)

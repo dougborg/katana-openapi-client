@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+import builtins
+from typing import Any, cast
 
 from katana_public_api_client.api.product import (
     create_product,
@@ -12,8 +13,10 @@ from katana_public_api_client.api.product import (
     update_product,
 )
 from katana_public_api_client.helpers.base import Base
+from katana_public_api_client.models.create_product_request import CreateProductRequest
 from katana_public_api_client.models.product import Product
-from katana_public_api_client.utils import unwrap_data
+from katana_public_api_client.models.update_product_request import UpdateProductRequest
+from katana_public_api_client.utils import unwrap, unwrap_data
 
 
 class Products(Base):
@@ -66,13 +69,16 @@ class Products(Base):
             client=self._client,
             id=product_id,
         )
-        return unwrap_data(response)
+        # unwrap() raises on errors, so cast is safe
+        return cast(Product, unwrap(response))
 
-    async def create(self, product_data: dict[str, Any]) -> Product:
+    async def create(
+        self, product_data: dict[str, Any] | CreateProductRequest
+    ) -> Product:
         """Create a new product.
 
         Args:
-            product_data: Product data dictionary.
+            product_data: Product data dictionary or CreateProductRequest model.
 
         Returns:
             Created Product object.
@@ -86,18 +92,27 @@ class Products(Base):
             ...     }
             ... )
         """
+        # Convert dict to model if needed
+        if isinstance(product_data, dict):
+            body = CreateProductRequest.from_dict(product_data)
+        else:
+            body = product_data
+
         response = await create_product.asyncio_detailed(
             client=self._client,
-            body=product_data,
+            body=body,
         )
-        return unwrap_data(response)
+        # unwrap() raises on errors, so cast is safe
+        return cast(Product, unwrap(response))
 
-    async def update(self, product_id: int, product_data: dict[str, Any]) -> Product:
+    async def update(
+        self, product_id: int, product_data: dict[str, Any] | UpdateProductRequest
+    ) -> Product:
         """Update an existing product.
 
         Args:
             product_id: The product ID to update.
-            product_data: Product data dictionary with fields to update.
+            product_data: Product data dictionary or UpdateProductRequest model with fields to update.
 
         Returns:
             Updated Product object.
@@ -105,12 +120,19 @@ class Products(Base):
         Example:
             >>> updated = await client.products.update(123, {"name": "Updated Name"})
         """
+        # Convert dict to model if needed
+        if isinstance(product_data, dict):
+            body = UpdateProductRequest.from_dict(product_data)
+        else:
+            body = product_data
+
         response = await update_product.asyncio_detailed(
             client=self._client,
             id=product_id,
-            body=product_data,
+            body=body,
         )
-        return unwrap_data(response)
+        # unwrap() raises on errors, so cast is safe
+        return cast(Product, unwrap(response))
 
     async def delete(self, product_id: int) -> None:
         """Delete a product.
@@ -126,13 +148,13 @@ class Products(Base):
             id=product_id,
         )
 
-    async def search(self, query: str, limit: int = 50) -> list[Product]:
-        """Search products by name or SKU.
+    async def search(self, query: str, limit: int = 50) -> builtins.list[Product]:
+        """Search products by name.
 
         Used by: MCP tool search_products
 
         Args:
-            query: Search query to match against product names and SKUs.
+            query: Search query to match against product names.
             limit: Maximum number of results to return.
 
         Returns:
@@ -143,21 +165,10 @@ class Products(Base):
             >>> for product in products:
             ...     print(f"{product.sku}: {product.name}")
         """
-        # Search in product names
+        # Search by product name using the 'name' parameter
         response = await get_all_products.asyncio_detailed(
             client=self._client,
-            search=query,
+            name=query,
             limit=limit,
         )
-        products = unwrap_data(response)
-
-        # Could also search by SKU if name search doesn't yield results
-        if not products:
-            response = await get_all_products.asyncio_detailed(
-                client=self._client,
-                sku=query,
-                limit=limit,
-            )
-            products = unwrap_data(response)
-
-        return products[:limit]
+        return unwrap_data(response)

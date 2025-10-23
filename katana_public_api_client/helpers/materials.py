@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from katana_public_api_client.api.material import (
     create_material,
@@ -12,8 +12,14 @@ from katana_public_api_client.api.material import (
     update_material,
 )
 from katana_public_api_client.helpers.base import Base
+from katana_public_api_client.models.create_material_request import (
+    CreateMaterialRequest,
+)
 from katana_public_api_client.models.material import Material
-from katana_public_api_client.utils import unwrap_data
+from katana_public_api_client.models.update_material_request import (
+    UpdateMaterialRequest,
+)
+from katana_public_api_client.utils import unwrap, unwrap_data
 
 
 class Materials(Base):
@@ -63,13 +69,16 @@ class Materials(Base):
             client=self._client,
             id=material_id,
         )
-        return unwrap_data(response)
+        # unwrap() raises on errors, so cast is safe
+        return cast(Material, unwrap(response))
 
-    async def create(self, material_data: dict[str, Any]) -> Material:
+    async def create(
+        self, material_data: dict[str, Any] | CreateMaterialRequest
+    ) -> Material:
         """Create a new material.
 
         Args:
-            material_data: Material data dictionary.
+            material_data: Material data dictionary or CreateMaterialRequest model.
 
         Returns:
             Created Material object.
@@ -77,18 +86,27 @@ class Materials(Base):
         Example:
             >>> new_material = await client.materials.create({"name": "Steel"})
         """
+        # Convert dict to model if needed
+        if isinstance(material_data, dict):
+            body = CreateMaterialRequest.from_dict(material_data)
+        else:
+            body = material_data
+
         response = await create_material.asyncio_detailed(
             client=self._client,
-            body=material_data,
+            body=body,
         )
-        return unwrap_data(response)
+        # unwrap() raises on errors, so cast is safe
+        return cast(Material, unwrap(response))
 
-    async def update(self, material_id: int, material_data: dict[str, Any]) -> Material:
+    async def update(
+        self, material_id: int, material_data: dict[str, Any] | UpdateMaterialRequest
+    ) -> Material:
         """Update an existing material.
 
         Args:
             material_id: The material ID to update.
-            material_data: Material data dictionary with fields to update.
+            material_data: Material data dictionary or UpdateMaterialRequest model with fields to update.
 
         Returns:
             Updated Material object.
@@ -96,12 +114,19 @@ class Materials(Base):
         Example:
             >>> updated = await client.materials.update(123, {"name": "Aluminum"})
         """
+        # Convert dict to model if needed
+        if isinstance(material_data, dict):
+            body = UpdateMaterialRequest.from_dict(material_data)
+        else:
+            body = material_data
+
         response = await update_material.asyncio_detailed(
             client=self._client,
             id=material_id,
-            body=material_data,
+            body=body,
         )
-        return unwrap_data(response)
+        # unwrap() raises on errors, so cast is safe
+        return cast(Material, unwrap(response))
 
     async def delete(self, material_id: int) -> None:
         """Delete a material.

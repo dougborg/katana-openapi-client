@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from katana_public_api_client.api.variant import (
     create_variant,
@@ -12,8 +12,10 @@ from katana_public_api_client.api.variant import (
     update_variant,
 )
 from katana_public_api_client.helpers.base import Base
+from katana_public_api_client.models.create_variant_request import CreateVariantRequest
+from katana_public_api_client.models.update_variant_request import UpdateVariantRequest
 from katana_public_api_client.models.variant import Variant
-from katana_public_api_client.utils import unwrap_data
+from katana_public_api_client.utils import unwrap, unwrap_data
 
 
 class Variants(Base):
@@ -63,13 +65,16 @@ class Variants(Base):
             client=self._client,
             id=variant_id,
         )
-        return unwrap_data(response)
+        # unwrap() raises on errors, so cast is safe
+        return cast(Variant, unwrap(response))
 
-    async def create(self, variant_data: dict[str, Any]) -> Variant:
+    async def create(
+        self, variant_data: dict[str, Any] | CreateVariantRequest
+    ) -> Variant:
         """Create a new variant.
 
         Args:
-            variant_data: Variant data dictionary.
+            variant_data: Variant data dictionary or CreateVariantRequest model.
 
         Returns:
             Created Variant object.
@@ -77,18 +82,27 @@ class Variants(Base):
         Example:
             >>> new_variant = await client.variants.create({"name": "Large"})
         """
+        # Convert dict to model if needed
+        if isinstance(variant_data, dict):
+            body = CreateVariantRequest.from_dict(variant_data)
+        else:
+            body = variant_data
+
         response = await create_variant.asyncio_detailed(
             client=self._client,
-            body=variant_data,
+            body=body,
         )
-        return unwrap_data(response)
+        # unwrap() raises on errors, so cast is safe
+        return cast(Variant, unwrap(response))
 
-    async def update(self, variant_id: int, variant_data: dict[str, Any]) -> Variant:
+    async def update(
+        self, variant_id: int, variant_data: dict[str, Any] | UpdateVariantRequest
+    ) -> Variant:
         """Update an existing variant.
 
         Args:
             variant_id: The variant ID to update.
-            variant_data: Variant data dictionary with fields to update.
+            variant_data: Variant data dictionary or UpdateVariantRequest model with fields to update.
 
         Returns:
             Updated Variant object.
@@ -96,12 +110,19 @@ class Variants(Base):
         Example:
             >>> updated = await client.variants.update(123, {"name": "XL"})
         """
+        # Convert dict to model if needed
+        if isinstance(variant_data, dict):
+            body = UpdateVariantRequest.from_dict(variant_data)
+        else:
+            body = variant_data
+
         response = await update_variant.asyncio_detailed(
             client=self._client,
             id=variant_id,
-            body=variant_data,
+            body=body,
         )
-        return unwrap_data(response)
+        # unwrap() raises on errors, so cast is safe
+        return cast(Variant, unwrap(response))
 
     async def delete(self, variant_id: int) -> None:
         """Delete a variant.
