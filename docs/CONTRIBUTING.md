@@ -245,12 +245,15 @@ uv run python scripts/regenerate_client.py
 
 ## Release Process
 
-Releases are automated via GitHub Actions:
+Releases are fully automated using python-semantic-release. See [RELEASE.md](RELEASE.md)
+for complete documentation.
 
-1. **Version Bump**: Update version in `pyproject.toml`
-1. **Update Changelog**: Add entry to `CHANGELOG.md`
-1. **Create Tag**: `git tag v1.x.x && git push --tags`
-1. **Automated Release**: GitHub Actions handles the rest
+**Quick summary for contributors:**
+
+- Use [Conventional Commits](https://www.conventionalcommits.org/) format
+- `feat:` commits trigger minor version bump (0.x.0)
+- `fix:` commits trigger patch version bump (0.0.x)
+- Releases happen automatically when PR is merged to `main`
 
 ## Getting Help
 
