@@ -63,18 +63,16 @@ class Inventory(Base):
             }
 
         product = products[0]
-        stock_info = (
-            product.stock_information if hasattr(product, "stock_information") else None
-        )
+        stock_info = getattr(product, "stock_information", None)
 
         return {
             "sku": sku,
             "found": True,
             "product_id": product.id,
             "product_name": product.name,
-            "available": stock_info.available if stock_info else 0,
-            "allocated": stock_info.allocated if stock_info else 0,
-            "in_stock": stock_info.in_stock if stock_info else 0,
+            "available": getattr(stock_info, "available", 0) if stock_info else 0,
+            "allocated": getattr(stock_info, "allocated", 0) if stock_info else 0,
+            "in_stock": getattr(stock_info, "in_stock", 0) if stock_info else 0,
         }
 
     async def list_low_stock(
@@ -105,18 +103,12 @@ class Inventory(Base):
 
         low_stock_items = []
         for product in products:
-            stock_info = (
-                product.stock_information
-                if hasattr(product, "stock_information")
-                else None
-            )
+            stock_info = getattr(product, "stock_information", None)
             if not stock_info:
                 continue
 
-            in_stock = stock_info.in_stock or 0
-            reorder_point = (
-                stock_info.reorder_point if hasattr(stock_info, "reorder_point") else 0
-            )
+            in_stock = getattr(stock_info, "in_stock", 0) or 0
+            reorder_point = getattr(stock_info, "reorder_point", 0)
 
             # Determine if this is low stock
             is_low = False
