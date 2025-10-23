@@ -81,9 +81,6 @@ jobs:
     needs: release
     if: needs.release.outputs.released == 'true'
     runs-on: ubuntu-latest
-    environment:
-      name: PyPI Release
-      url: https://pypi.org/p/katana-openapi-client
     permissions:
       id-token: write
     steps:
