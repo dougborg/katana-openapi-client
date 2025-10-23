@@ -2,6 +2,125 @@
 
 <!-- version list -->
 
+## v0.22.0 (2025-10-23)
+
+### Bug Fixes
+
+- Add __future__ annotations import for Python 3.11 compatibility
+  ([#62](https://github.com/dougborg/katana-openapi-client/pull/62),
+  [`ea504d1`](https://github.com/dougborg/katana-openapi-client/commit/ea504d11598e881217e4ec6de0b10e46eeda6ea2))
+
+- Add type parameters to dict return types in MCP scripts
+  ([`3ca82d1`](https://github.com/dougborg/katana-openapi-client/commit/3ca82d11dd5369665bc726e0e6b9eddf542e99d1))
+
+- Resolve mypy type errors in domain helpers
+  ([#62](https://github.com/dougborg/katana-openapi-client/pull/62),
+  [`ea504d1`](https://github.com/dougborg/katana-openapi-client/commit/ea504d11598e881217e4ec6de0b10e46eeda6ea2))
+
+### Chores
+
+- Remove temporary CI cache refresh comment
+  ([#62](https://github.com/dougborg/katana-openapi-client/pull/62),
+  [`ea504d1`](https://github.com/dougborg/katana-openapi-client/commit/ea504d11598e881217e4ec6de0b10e46eeda6ea2))
+
+- Trigger CI re-run after annotations fix
+  ([#62](https://github.com/dougborg/katana-openapi-client/pull/62),
+  [`ea504d1`](https://github.com/dougborg/katana-openapi-client/commit/ea504d11598e881217e4ec6de0b10e46eeda6ea2))
+
+### Continuous Integration
+
+- Force cache refresh for test environment
+  ([#62](https://github.com/dougborg/katana-openapi-client/pull/62),
+  [`ea504d1`](https://github.com/dougborg/katana-openapi-client/commit/ea504d11598e881217e4ec6de0b10e46eeda6ea2))
+
+- Use SEMANTIC_RELEASE_TOKEN for protected branch bypass
+  ([#62](https://github.com/dougborg/katana-openapi-client/pull/62),
+  [`ea504d1`](https://github.com/dougborg/katana-openapi-client/commit/ea504d11598e881217e4ec6de0b10e46eeda6ea2))
+
+### Documentation
+
+- Accept ADR-007 and add domain helpers implementation plan
+  ([#62](https://github.com/dougborg/katana-openapi-client/pull/62),
+  [`ea504d1`](https://github.com/dougborg/katana-openapi-client/commit/ea504d11598e881217e4ec6de0b10e46eeda6ea2))
+
+- Accept ADR-007 and add domain helpers implementation plan
+  ([#61](https://github.com/dougborg/katana-openapi-client/pull/61),
+  [`6fa8526`](https://github.com/dougborg/katana-openapi-client/commit/6fa8526e1890c7063320d48f53ad7cea24e8ad83))
+
+- Accept ADR-010 with monorepo approach using uv workspace
+  ([`8fcdb5c`](https://github.com/dougborg/katana-openapi-client/commit/8fcdb5c342a76f83ad1c3b9f6dfb758ee7cf2e26))
+
+- Add ADR-010 for Katana MCP server implementation
+  ([`eea4b21`](https://github.com/dougborg/katana-openapi-client/commit/eea4b21d06d8bb72244bba2742f89de8c6974d1d))
+
+- Add issue number mapping to MCP implementation plan
+  ([#59](https://github.com/dougborg/katana-openapi-client/pull/59),
+  [`d3e2764`](https://github.com/dougborg/katana-openapi-client/commit/d3e27642e2b217def4b3484fe8c42aee254ca5a6))
+
+- Add MCP server setup completion summary
+  ([`f386182`](https://github.com/dougborg/katana-openapi-client/commit/f386182b919cc72cceb3fa3008e5befd3813d991))
+
+- Add release workflow setup guide with PAT instructions
+  ([#62](https://github.com/dougborg/katana-openapi-client/pull/62),
+  [`ea504d1`](https://github.com/dougborg/katana-openapi-client/commit/ea504d11598e881217e4ec6de0b10e46eeda6ea2))
+
+- Add Repository Rulesets setup guide for automated releases
+  ([#62](https://github.com/dougborg/katana-openapi-client/pull/62),
+  [`ea504d1`](https://github.com/dougborg/katana-openapi-client/commit/ea504d11598e881217e4ec6de0b10e46eeda6ea2))
+
+- Finalize ADR-010 with purchase orders and answer open questions
+  ([`da22985`](https://github.com/dougborg/katana-openapi-client/commit/da2298509bc8f87d87aaadbc69369141bae8bb91))
+
+- Move ADR-009 and ADR-010 to accepted list in README
+  ([`5c9fce7`](https://github.com/dougborg/katana-openapi-client/commit/5c9fce76cdf7e9489ea12fc1503f5fbdf1a37080))
+
+- Split release documentation into separate RELEASE.md
+  ([#62](https://github.com/dougborg/katana-openapi-client/pull/62),
+  [`ea504d1`](https://github.com/dougborg/katana-openapi-client/commit/ea504d11598e881217e4ec6de0b10e46eeda6ea2))
+
+- Update all Poetry references to uv throughout documentation
+  ([`f550972`](https://github.com/dougborg/katana-openapi-client/commit/f550972a3f9b37d6bfc2f89f637f67964d44781a))
+
+### Features
+
+- Add GitHub Codespaces devcontainer with prebuilds for MCP server development
+  ([`1a8da47`](https://github.com/dougborg/katana-openapi-client/commit/1a8da475d9601308ad34e70bde85684eafc42580))
+
+- Add MCP server implementation plan and issue generation
+  ([`ca2779b`](https://github.com/dougborg/katana-openapi-client/commit/ca2779b633b4abaf0e07b65efc972f7730ec4952))
+
+- Create katana_mcp_server package structure
+  ([`4d7da0f`](https://github.com/dougborg/katana-openapi-client/commit/4d7da0ff34d1fd7107b9880e37baa38ff0a0c486))
+
+- Implement Inventory domain class with full CRUD support (Phase 1 of #60)
+  ([#62](https://github.com/dougborg/katana-openapi-client/pull/62),
+  [`ea504d1`](https://github.com/dougborg/katana-openapi-client/commit/ea504d11598e881217e4ec6de0b10e46eeda6ea2))
+
+- Set up uv workspace for monorepo
+  ([`4f31a93`](https://github.com/dougborg/katana-openapi-client/commit/4f31a939a231ceed04a0e5ee1b3f238f60df382a))
+
+- **mcp**: Implement basic FastMCP server with authentication
+  ([#58](https://github.com/dougborg/katana-openapi-client/pull/58),
+  [`9cdfbff`](https://github.com/dougborg/katana-openapi-client/commit/9cdfbff2c3d5c7ed77f31ba240488c379262d697))
+
+- **mcp**: Implement basic FastMCP server with authentication (MCP-03)
+  ([#58](https://github.com/dougborg/katana-openapi-client/pull/58),
+  [`9cdfbff`](https://github.com/dougborg/katana-openapi-client/commit/9cdfbff2c3d5c7ed77f31ba240488c379262d697))
+
+### Refactoring
+
+- Split into 5 domain classes with proper separation
+  ([#62](https://github.com/dougborg/katana-openapi-client/pull/62),
+  [`ea504d1`](https://github.com/dougborg/katana-openapi-client/commit/ea504d11598e881217e4ec6de0b10e46eeda6ea2))
+
+- Use getattr() instead of hasattr() for attribute checking
+  ([#62](https://github.com/dougborg/katana-openapi-client/pull/62),
+  [`ea504d1`](https://github.com/dougborg/katana-openapi-client/commit/ea504d11598e881217e4ec6de0b10e46eeda6ea2))
+
+- Use models-only parameters in domain helpers
+  ([#62](https://github.com/dougborg/katana-openapi-client/pull/62),
+  [`ea504d1`](https://github.com/dougborg/katana-openapi-client/commit/ea504d11598e881217e4ec6de0b10e46eeda6ea2))
+
 ## v0.21.0 (2025-10-21)
 
 ### Chores
