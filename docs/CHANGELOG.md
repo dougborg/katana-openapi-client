@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.23.0 (2025-10-24)
+
+### Features
+
+- Implement MCP Server v0.1.0-alpha with 3 inventory tools, comprehensive tests, and
+  documentation ([#66](https://github.com/dougborg/katana-openapi-client/pull/66),
+  [`ef22a8c`](https://github.com/dougborg/katana-openapi-client/commit/ef22a8c09549824162f1faa5d7cb81394d004d7b))
+
 ## v0.22.0 (2025-10-23)
 
 ### Bug Fixes
