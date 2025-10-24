@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## v0.25.0 (2025-10-24)
+
+### Bug Fixes
+
+- **client**: Remove invalid root_options parameter from workflow
+  ([`8e313f3`](https://github.com/dougborg/katana-openapi-client/commit/8e313f37714af9d7814e088f3e0286c64ca61da9))
+
+### Features
+
+- **mcp**: Add package README for better documentation
+  ([`9f9cebf`](https://github.com/dougborg/katana-openapi-client/commit/9f9cebfe86a739993b147b775cfc87439feb4e0b))
+
 ## v0.24.0 (2025-10-24)
 
 ### Documentation
