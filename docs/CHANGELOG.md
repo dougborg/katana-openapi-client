@@ -2,6 +2,32 @@
 
 <!-- version list -->
 
+## v0.24.0 (2025-10-24)
+
+### Documentation
+
+- Add comprehensive monorepo semantic-release guide
+  ([#67](https://github.com/dougborg/katana-openapi-client/pull/67),
+  [`b10ad4a`](https://github.com/dougborg/katana-openapi-client/commit/b10ad4a980d34433c8d23a49ad64c5863f076283))
+
+- Add MCP deployment summary
+  ([#67](https://github.com/dougborg/katana-openapi-client/pull/67),
+  [`b10ad4a`](https://github.com/dougborg/katana-openapi-client/commit/b10ad4a980d34433c8d23a49ad64c5863f076283))
+
+- Update all documentation for monorepo semantic-release
+  ([#67](https://github.com/dougborg/katana-openapi-client/pull/67),
+  [`b10ad4a`](https://github.com/dougborg/katana-openapi-client/commit/b10ad4a980d34433c8d23a49ad64c5863f076283))
+
+### Features
+
+- Prepare MCP server v0.1.0a1 for PyPI deployment
+  ([#67](https://github.com/dougborg/katana-openapi-client/pull/67),
+  [`b10ad4a`](https://github.com/dougborg/katana-openapi-client/commit/b10ad4a980d34433c8d23a49ad64c5863f076283))
+
+- **mcp**: Configure monorepo semantic-release for independent versioning
+  ([#67](https://github.com/dougborg/katana-openapi-client/pull/67),
+  [`b10ad4a`](https://github.com/dougborg/katana-openapi-client/commit/b10ad4a980d34433c8d23a49ad64c5863f076283))
+
 ## v0.23.0 (2025-10-24)
 
 ### Features
