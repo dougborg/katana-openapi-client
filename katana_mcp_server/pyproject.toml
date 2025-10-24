@@ -65,3 +65,51 @@ markers = [
     "unit: Unit tests with mocks",
     "integration: Integration tests requiring API key",
 ]
+
+[tool.semantic_release]
+version_toml = ["katana_mcp_server/pyproject.toml:project.version"]
+dist_path = "katana_mcp_server/dist/"
+upload_to_pypi = false
+upload_to_repository = false
+remove_dist = false
+commit_author = "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+commit_message = "chore(release): mcp v{version}"
+build_command = "cd katana_mcp_server && uv build"
+major_on_zero = false
+allow_zero_version = true
+tag_format = "mcp-v{version}"
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = [
+  "build",
+  "chore",
+  "ci",
+  "docs",
+  "feat",
+  "fix",
+  "perf",
+  "style",
+  "refactor",
+  "test",
+]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
+# Only process commits with (mcp) scope
+# Commits with (client) scope or no scope are handled by the client config
+default_bump_level = 0
+
+[tool.semantic_release.changelog]
+exclude_commit_patterns = []
+mode = "update"
+
+[tool.semantic_release.changelog.default_templates]
+changelog_file = "katana_mcp_server/CHANGELOG.md"
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease_token = "alpha"
+prerelease = false
+
+[tool.semantic_release.publish]
+dist_glob_patterns = ["katana_mcp_server/dist/*"]
+upload_to_vcs_release = true
