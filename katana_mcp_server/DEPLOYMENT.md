@@ -1,144 +1,92 @@
 # MCP Server Deployment Guide
 
-This document describes how to package and publish the Katana MCP Server to PyPI.
+This document describes how the Katana MCP Server is released and published to PyPI
+using **automated semantic-release**.
 
-## Prerequisites
+## Overview
 
-Before publishing:
+Releases are **fully automated** using monorepo semantic-release. You don't manually
+update version numbers or publish to PyPI - the CI/CD pipeline handles everything based
+on conventional commits.
 
-1. **Ensure all tests pass**:
-   ```bash
-   cd katana_mcp_server
-   uv run pytest tests/ -m "not integration"
-   ```
+## How Releases Work
 
-2. **Update version number** in three places:
-   - `katana_mcp_server/pyproject.toml` - `version = "X.Y.Za#"`
-   - `katana_mcp_server/src/katana_mcp/__init__.py` - `__version__ = "X.Y.Za#"`
-   - `katana_mcp_server/src/katana_mcp/server.py` - `mcp = FastMCP(..., version="X.Y.Za#", ...)`
-   - `katana_mcp_server/tests/test_package.py` - Update version in assertions
-   - `katana_mcp_server/tests/test_server.py` - Update version in assertions
+### Automated Release Process
 
-3. **Update README.md** with release notes and version info
+When a PR is merged to `main` with MCP-related changes:
 
-## Local Build and Test
+1. **CI Tests Run**: All quality checks, tests, and security scans must pass
+1. **Semantic-Release Analysis**: Analyzes commits with `(mcp)` scope since last release
+1. **Version Calculation**: Determines next version based on commit types:
+   - `feat(mcp):` → MINOR bump (0.1.0 → 0.2.0)
+   - `fix(mcp):` → PATCH bump (0.1.0 → 0.1.1)
+   - `feat(mcp)!:` → MAJOR bump (0.1.0 → 1.0.0)
+1. **Automatic Updates**:
+   - Version updated in `pyproject.toml`
+   - Changelog generated/updated
+   - Git commit and tag created (`mcp-v{version}`)
+   - Changes pushed to main
+1. **Build and Publish**:
+   - Package built with `uv build`
+   - Published to PyPI using Trusted Publisher (OIDC, no tokens)
+   - GitHub release created with auto-generated notes
 
-### Step 1: Build the Package
+## For Developers
 
-```bash
-cd katana_mcp_server
-uv build
-```
+### How to Trigger a Release
 
-This creates:
-- `dist/katana_mcp_server-X.Y.Za#-py3-none-any.whl` (wheel)
-- `dist/katana_mcp_server-X.Y.Za#.tar.gz` (source distribution)
-
-**Note**: The dist folder will be created at the repository root, not in `katana_mcp_server/`.
-
-### Step 2: Test Local Installation
-
-Create a fresh virtual environment and test the package:
+**Just write good commit messages with the `(mcp)` scope:**
 
 ```bash
-# Create test environment
-cd /tmp
-python3 -m venv test-mcp-install
-source test-mcp-install/bin/activate
+# Feature (minor version bump)
+git commit -m "feat(mcp): add search_products tool"
 
-# Install from local wheel
-pip install /path/to/katana-openapi-client/dist/katana_mcp_server-X.Y.Za#-py3-none-any.whl
+# Bug fix (patch version bump)
+git commit -m "fix(mcp): correct stock level calculation"
 
-# Verify installation
-pip list | grep katana
+# Breaking change (major version bump)
+git commit -m "feat(mcp)!: redesign tool request models
 
-# Test the command works
-katana-mcp-server --help
+BREAKING CHANGE: Tool request parameters now require explicit types"
 
-# Test it requires API key (expected to fail)
-katana-mcp-server
-# Should show: "KATANA_API_KEY environment variable is required"
-
-# Clean up
-deactivate
-rm -rf /tmp/test-mcp-install
+# No release (documentation only)
+git commit -m "docs(mcp): update README examples"
 ```
 
-### Expected Results
+**That's it!** Merge your PR and the release happens automatically.
 
-- ✅ Package installs without errors
-- ✅ Command `katana-mcp-server` is available
-- ✅ Server requires KATANA_API_KEY (correct behavior)
+### Which Commits Trigger Releases?
 
-## PyPI Publishing
+| Commit Type   | Example                    | Release? | Version Bump        |
+| ------------- | -------------------------- | -------- | ------------------- |
+| `feat(mcp):`  | Add inventory tool         | ✅       | MINOR (0.1.0→0.2.0) |
+| `fix(mcp):`   | Fix auth error             | ✅       | PATCH (0.1.0→0.1.1) |
+| `perf(mcp):`  | Optimize query performance | ✅       | PATCH (0.1.0→0.1.1) |
+| `feat(mcp)!:` | Breaking API change        | ✅       | MAJOR (0.1.0→1.0.0) |
+| `docs(mcp):`  | Update documentation       | ❌       | No release          |
+| `test(mcp):`  | Add unit tests             | ❌       | No release          |
+| `chore(mcp):` | Update dependencies        | ❌       | No release          |
+| `feat:` (no   | Feature without scope      | ❌       | Releases client     |
+| scope)        |                            |          | instead             |
 
-### Option A: Automated via Git Tag (Recommended)
+**IMPORTANT**: Always use the `(mcp)` scope for MCP server changes! Without it, the
+client package will be released instead.
 
-This triggers the GitHub Actions workflow that builds, tests, and publishes automatically.
+## Verify a Release
 
-```bash
-# Tag the release
-git tag mcp-vX.Y.Za#
-git push origin mcp-vX.Y.Za#
-
-# GitHub Actions will automatically:
-# 1. Run tests
-# 2. Build package
-# 3. Publish to PyPI (using trusted publisher)
-```
-
-### Option B: Manual Publish
-
-For manual publishing (requires PyPI API token or trusted publisher setup):
-
-```bash
-cd katana_mcp_server
-
-# Ensure build artifacts exist
-uv build
-
-# Install twine (if not already installed)
-pip install twine
-
-# Upload to PyPI
-# This will use PyPI trusted publisher if configured,
-# or prompt for credentials if not
-twine upload dist/*
-
-# Or use API token:
-# twine upload -u __token__ -p <your-token> dist/*
-```
-
-## PyPI Trusted Publisher Setup
-
-To enable automated publishing via GitHub Actions, configure PyPI trusted publisher:
-
-1. **Go to PyPI**: https://pypi.org/manage/account/publishing/
-
-2. **Add Trusted Publisher**:
-   - **PyPI Project Name**: `katana-mcp-server`
-   - **Owner**: `dougborg`
-   - **Repository name**: `katana-openapi-client`
-   - **Workflow name**: `release-mcp.yml`
-   - **Environment name**: (leave blank)
-
-3. **Save** the configuration
-
-**Note**: The package name will be created on first publish if it doesn't exist yet.
-
-## Verify PyPI Release
-
-After publishing (either method):
+After a release is published (check
+[GitHub Releases](https://github.com/dougborg/katana-openapi-client/releases)):
 
 ### 1. Check PyPI Page
 
 Visit: https://pypi.org/project/katana-mcp-server/
 
 Verify:
-- ✅ Version X.Y.Za# is listed
+
+- ✅ New version is listed
 - ✅ README renders correctly
 - ✅ Project metadata is correct
-- ✅ Installation command shown: `pip install katana-mcp-server==X.Y.Za#`
+- ✅ Installation command works
 
 ### 2. Test Installation from PyPI
 
@@ -149,31 +97,31 @@ python3 -m venv test-pypi-install
 source test-pypi-install/bin/activate
 
 # Install from PyPI
-pip install katana-mcp-server==X.Y.Za#
+pip install katana-mcp-server
 
 # Verify installation
 pip list | grep katana
 
-# Test command
-katana-mcp-server --help
+# Test command (should require API key)
+katana-mcp-server
+# Expected: "KATANA_API_KEY environment variable is required"
 
 # Clean up
 deactivate
 rm -rf /tmp/test-pypi-install
 ```
 
-**Expected**: Package installs from PyPI without errors.
-
 ### 3. Test with Claude Desktop
 
-Update Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+Update Claude Desktop config
+(`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
 ```json
 {
   "mcpServers": {
     "katana": {
       "command": "uvx",
-      "args": ["katana-mcp-server==X.Y.Za#"],
+      "args": ["katana-mcp-server"],
       "env": {
         "KATANA_API_KEY": "your-api-key-here"
       }
@@ -183,156 +131,259 @@ Update Claude Desktop config (`~/Library/Application Support/Claude/claude_deskt
 ```
 
 Restart Claude Desktop and verify:
+
 - ✅ Server starts without errors
-- ✅ 3 inventory tools appear in MCP tools list
+- ✅ Inventory tools appear in MCP tools list
 - ✅ Tools work when invoked
 
-## Create GitHub Release
+## Manual Testing Before Release
 
-After successful PyPI publishing, create a GitHub release:
+Before merging a PR that will trigger a release, test locally:
+
+### Run All Tests
 
 ```bash
-# Create release with notes
-gh release create mcp-vX.Y.Za# \
-  --title "Katana MCP Server vX.Y.Z-alpha#" \
-  --notes "$(cat <<'EOF'
-## Katana MCP Server vX.Y.Z-alpha#
+cd katana_mcp_server
 
-First alpha release of the Katana MCP Server! 🎉
+# Unit tests (fast)
+uv run pytest tests/ -m "not integration"
 
-### Features
+# Integration tests (requires KATANA_API_KEY in .env)
+uv run pytest tests/ -m integration
 
-- **3 Inventory Tools**:
-  - `check_inventory` - Check stock levels for a SKU
-  - `list_low_stock_items` - Find products below threshold
-  - `search_products` - Search by name or SKU
-
-### Installation
-
-\`\`\`bash
-pip install katana-mcp-server==X.Y.Za#
-\`\`\`
-
-### Claude Desktop Setup
-
-Add to your \`claude_desktop_config.json\`:
-
-\`\`\`json
-{
-  "mcpServers": {
-    "katana": {
-      "command": "uvx",
-      "args": ["katana-mcp-server==X.Y.Za#"],
-      "env": {
-        "KATANA_API_KEY": "your-api-key-here"
-      }
-    }
-  }
-}
-\`\`\`
-
-### What's Next
-
-This alpha release focuses on inventory management. Future releases will add:
-- Sales order management tools
-- Purchase order management tools
-- Manufacturing order management tools
-
-### Known Limitations
-
-- Alpha release - API may change
-- Only inventory tools in this version
-- Requires \`katana-openapi-client>=0.22.0\`
-
-### Documentation
-
-See [README](https://github.com/dougborg/katana-openapi-client/blob/main/katana_mcp_server/README.md) for complete documentation.
-EOF
-)" \
-  --prerelease
-
-# Attach build artifacts (optional)
-gh release upload mcp-vX.Y.Za# dist/*
+# All tests
+uv run pytest tests/
 ```
+
+### Test Local Build
+
+```bash
+cd katana_mcp_server
+
+# Build package
+uv build
+
+# Install locally (in a test venv)
+cd /tmp
+python3 -m venv test-local
+source test-local/bin/activate
+pip install /path/to/katana-openapi-client/katana_mcp_server/dist/*.whl
+
+# Test
+katana-mcp-server --help
+
+# Clean up
+deactivate
+rm -rf /tmp/test-local
+```
+
+## Emergency Manual Release
+
+If the automated workflow fails, you can trigger a manual release:
+
+### Option 1: Re-run GitHub Workflow
+
+```bash
+# Re-run the most recent workflow
+gh workflow run release.yml
+
+# Or check workflow runs and re-run a specific one
+gh run list --workflow=release.yml
+gh run rerun <run-id> --failed
+```
+
+### Option 2: Manual Tag (Last Resort)
+
+Only use if semantic-release is completely broken:
+
+```bash
+# WARNING: This bypasses semantic-release and version management!
+# Only use in emergencies after coordinating with maintainers
+
+# Manually update version in pyproject.toml first
+# Then create and push tag
+git tag mcp-v0.1.0
+git push origin mcp-v0.1.0
+
+# This triggers the backup release-mcp.yml workflow
+```
+
+**Note**: Manual tags bypass changelog generation and version file updates. Use
+sparingly.
 
 ## Troubleshooting
 
-### Build Fails
+### Release Not Triggered
 
-**Issue**: `uv build` fails with errors
+**Symptom**: PR merged but no release created
 
-**Solutions**:
-1. Ensure you're in the `katana_mcp_server` directory
-2. Run `uv sync` to install dependencies
-3. Check `pyproject.toml` for syntax errors
-4. Ensure all source files are present in `src/katana_mcp/`
+**Causes**:
 
-### Tests Fail
-
-**Issue**: Tests fail during CI or local testing
+1. No `feat(mcp):` or `fix(mcp):` commits since last release
+1. Forgot the `(mcp)` scope - released client instead
+1. CI tests failed - release only runs after tests pass
 
 **Solutions**:
-1. Run tests locally: `uv run pytest tests/ -v -m "not integration"`
-2. Check version numbers match in all files
-3. Verify imports work: `uv run python -c "import katana_mcp; print(katana_mcp.__version__)"`
 
-### Import Errors After Installation
+- Check commit messages: `git log --oneline main`
+- Verify scope is present: `git log --grep="(mcp)" main`
+- Check GitHub Actions for failures
 
-**Issue**: `ModuleNotFoundError: No module named 'katana_mcp'`
+### Wrong Package Released
 
-**Solutions**:
-1. Check wheel contents: `python -m zipfile -l dist/*.whl`
-2. Verify `[tool.hatch.build.targets.wheel]` in `pyproject.toml` has `packages = ["src/katana_mcp"]`
-3. Ensure source files are in `src/katana_mcp/` not just `katana_mcp/`
+**Symptom**: Client package released instead of MCP server
 
-### PyPI Upload Fails
+**Cause**: Missing `(mcp)` scope in commit message
 
-**Issue**: `twine upload` fails with authentication error
+**Solution**: Use `feat(mcp):` or `fix(mcp):` for all MCP changes
 
-**Solutions**:
-1. Configure PyPI trusted publisher (see above)
-2. Or use API token: `twine upload -u __token__ -p <token> dist/*`
-3. Ensure you have maintainer access to the PyPI project
+### PyPI Publish Failed
 
-### Version Conflicts
+**Symptom**: Release created but PyPI publish failed
 
-**Issue**: PyPI rejects upload because version already exists
+**Causes**:
+
+1. PyPI Trusted Publisher misconfigured
+1. Version already exists on PyPI (can't overwrite)
+1. PyPI service outage
 
 **Solutions**:
-1. PyPI doesn't allow re-uploading the same version
-2. Increment the version number (e.g., `0.1.0a1` → `0.1.0a2`)
-3. Test releases thoroughly before publishing
+
+1. Check PyPI Trusted Publisher configuration (no environment, correct repo/workflow)
+1. Check if version exists: https://pypi.org/project/katana-mcp-server/#history
+1. Check PyPI status: https://status.python.org/
+1. Re-run the workflow: `gh run rerun <run-id> --failed`
+
+### Tests Failed in CI
+
+**Symptom**: PR checks failing, blocking release
+
+**Solutions**:
+
+1. Run tests locally: `uv run pytest tests/`
+1. Check test output in GitHub Actions
+1. Fix the issue and push new commit
+1. Ensure commit uses `(mcp)` scope for release
+
+### Version Conflict
+
+**Symptom**: "Version X.Y.Z already exists on PyPI"
+
+**Cause**: PyPI doesn't allow re-uploading the same version
+
+**Solutions**:
+
+1. This shouldn't happen with semantic-release (it always increments)
+1. If it does, check if someone manually published that version
+1. Force next version with additional commit: `fix(mcp): force version bump`
+
+## Release Workflow Details
+
+### Semantic-Release Configuration
+
+Located in `katana_mcp_server/pyproject.toml`:
+
+```toml
+[tool.semantic_release]
+version_toml = ["katana_mcp_server/pyproject.toml:project.version"]
+tag_format = "mcp-v{version}"
+commit_message = "chore(release): mcp v{version}"
+build_command = "cd katana_mcp_server && uv build"
+# Only processes commits with (mcp) scope
+```
+
+### GitHub Workflow
+
+Located in `.github/workflows/release.yml`:
+
+- **Trigger**: Every push to `main` branch
+- **Jobs**:
+  1. `test` - Runs full CI pipeline
+  1. `release-mcp` - Semantic-release for MCP server
+  1. `publish-mcp-pypi` - Publishes to PyPI if released
+
+### PyPI Trusted Publisher
+
+Configured at: https://pypi.org/manage/project/katana-mcp-server/settings/publishing/
+
+- **Owner**: `dougborg`
+- **Repository**: `katana-openapi-client`
+- **Workflow**: `release.yml`
+- **Job**: `publish-mcp-pypi`
+- **Environment**: (none)
 
 ## Version Numbering
 
-This project uses semantic versioning with alpha/beta markers:
+This project uses semantic versioning with pre-release identifiers:
 
-- **Alpha releases**: `0.1.0a1`, `0.1.0a2`, etc. (unstable, breaking changes expected)
-- **Beta releases**: `0.1.0b1`, `0.1.0b2`, etc. (feature complete, testing)
-- **Release candidates**: `0.1.0rc1`, `0.1.0rc2`, etc. (final testing)
-- **Stable releases**: `0.1.0`, `0.2.0`, `1.0.0`, etc.
+### Version Format: `MAJOR.MINOR.PATCH[-prerelease]`
 
-## Checklist for Release
+- **MAJOR**: Breaking changes (`feat(mcp)!:` or `BREAKING CHANGE:`)
+- **MINOR**: New features (`feat(mcp):`)
+- **PATCH**: Bug fixes (`fix(mcp):`, `perf(mcp):`)
 
-Before publishing:
+### Pre-release Phases:
 
-- [ ] All tests pass: `uv run pytest tests/ -m "not integration"`
-- [ ] Version updated in all 5 files (pyproject.toml, __init__.py, server.py, test_package.py, test_server.py)
-- [ ] README.md updated with release notes
-- [ ] Local build succeeds: `uv build`
-- [ ] Local installation test passes
-- [ ] PyPI trusted publisher configured (first time only)
+- **Alpha** (0.1.0a1, 0.1.0a2): Early development, unstable, breaking changes expected
+- **Beta** (0.1.0b1): Feature complete, testing, API stabilizing
+- **RC** (0.1.0rc1): Release candidate, final testing
+- **Stable** (0.1.0, 1.0.0): Production-ready release
 
-After publishing:
+**Current Phase**: Alpha - API may change between versions
 
-- [ ] PyPI page shows correct version and README
-- [ ] Installation from PyPI works
-- [ ] Works with Claude Desktop via uvx
-- [ ] GitHub release created with notes
+### Example Version Progression:
+
+```
+0.1.0a1  (first alpha - inventory tools)
+  ↓ feat(mcp): add search
+0.2.0a1  (new feature added)
+  ↓ fix(mcp): auth error
+0.2.1a1  (bug fix)
+  ↓ feat(mcp): sales orders
+0.3.0a1  (new feature)
+  ↓ ready for beta
+0.3.0b1  (beta testing)
+  ↓ fix(mcp): critical bug
+0.3.1b1  (bug fix in beta)
+  ↓ ready for release
+0.3.1    (stable release)
+```
+
+## Checklist for Contributors
+
+Before submitting a PR that will trigger a release:
+
+- [ ] All tests pass locally: `uv run pytest tests/`
+- [ ] Commit messages use `(mcp)` scope
+- [ ] Commit messages follow conventional commits
+- [ ] README updated if adding new features
+- [ ] Integration tests added/updated if needed
+- [ ] Breaking changes documented in commit body (if any)
+
+After PR is merged:
+
+- [ ] Check GitHub Actions for successful release
+- [ ] Verify new version on PyPI
+- [ ] Test installation from PyPI
+- [ ] Check GitHub Release notes
+
+## Related Documentation
+
+- **Main Release Guide**: [docs/RELEASE.md](../docs/RELEASE.md) - Monorepo release
+  process
+- **Monorepo Semantic-Release**:
+  [docs/MONOREPO_SEMANTIC_RELEASE.md](../docs/MONOREPO_SEMANTIC_RELEASE.md) -
+  Comprehensive guide
+- **Contributing**: [docs/CONTRIBUTING.md](../docs/CONTRIBUTING.md) - Commit message
+  format
+- **Agent Guide**:
+  [docs/mcp-server/AGENT_QUICK_START.md](../docs/mcp-server/AGENT_QUICK_START.md) -
+  Guide for GitHub Copilot agents
 
 ## Related Links
 
 - **PyPI Project**: https://pypi.org/project/katana-mcp-server/
 - **GitHub Repository**: https://github.com/dougborg/katana-openapi-client
+- **GitHub Releases**:
+  https://github.com/dougborg/katana-openapi-client/releases?q=mcp-v
 - **Main Client**: https://pypi.org/project/katana-openapi-client/
-- **PyPI Publishing Guide**: https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
