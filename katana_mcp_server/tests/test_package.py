@@ -5,7 +5,7 @@ def test_package_import():
     """Test that the main package can be imported."""
     import katana_mcp
 
-    assert katana_mcp.__version__ == "0.1.0"
+    assert katana_mcp.__version__ == "0.1.0a1"
 
 
 def test_submodule_imports():

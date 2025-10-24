@@ -265,7 +265,7 @@ uv run python -m katana_mcp
 
 ## Version
 
-Current version: **0.1.0-alpha1**
+Current version: **0.1.0a1** (alpha release)
 
 This is an alpha release with 3 inventory management tools. Future releases will add:
 - Sales order management

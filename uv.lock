@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11, <3.14"
 
 [manifest]
@@ -723,7 +723,7 @@ wheels = [
 
 [[package]]
 name = "katana-mcp-server"
-version = "0.1.0"
+version = "0.1.0a1"
 source = { editable = "katana_mcp_server" }
 dependencies = [
     { name = "fastmcp" },
@@ -742,7 +742,7 @@ requires-dist = [
 
 [[package]]
 name = "katana-openapi-client"
-version = "0.22.0"
+version = "0.23.0"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },
