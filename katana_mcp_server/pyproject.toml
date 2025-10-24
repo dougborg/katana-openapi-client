@@ -35,8 +35,10 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-    "fastmcp>=0.1.0",
-    "katana-openapi-client>=0.21.0",
+    "fastmcp>=2.12.5",
+    "katana-openapi-client>=0.22.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [tool.uv.sources]
