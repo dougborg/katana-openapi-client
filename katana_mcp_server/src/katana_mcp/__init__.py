@@ -32,6 +32,6 @@ For more information, see the documentation at:
 https://dougborg.github.io/katana-openapi-client/
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.0a1"
 
 __all__ = ["__version__"]

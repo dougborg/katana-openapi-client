@@ -291,16 +291,41 @@ except Exception as e:
 
 ## Commit Standards
 
-This project uses **semantic-release** with conventional commits:
+This project uses **semantic-release** with conventional commits and **scopes** for
+monorepo versioning:
 
-- **`feat:`** - New features (MINOR version bump)
-- **`fix:`** - Bug fixes (PATCH version bump)
-- **`chore:`** - Development/tooling (NO version bump)
-- **`docs:`** - Documentation only (NO version bump)
-- **`test:`** - Test changes (NO version bump)
-- **`refactor:`** - Code refactoring (NO version bump)
+### Commit Scopes for Package Releases
 
-**Breaking changes**: Use `!` after type (e.g., `feat!:`) for MAJOR version bump
+- **`feat(client):`** / **`fix(client):`** - Releases **katana-openapi-client** (MINOR
+  /PATCH)
+- **`feat(mcp):`** / **`fix(mcp):`** - Releases **katana-mcp-server** (MINOR/PATCH)
+- **`feat:`** / **`fix:`** (no scope) - Releases **katana-openapi-client** (default)
+
+### Other Commit Types (No Version Bump)
+
+- **`chore:`** - Development/tooling
+- **`docs:`** - Documentation only
+- **`test:`** - Test changes
+- **`refactor:`** - Code refactoring
+- **`ci:`** - CI/CD changes
+
+**Breaking changes**: Use `!` after type (e.g., `feat(client)!:`) for MAJOR version bump
+
+**Examples**:
+
+```bash
+# Release client package
+git commit -m "feat(client): add Products domain helper"
+
+# Release MCP server package
+git commit -m "feat(mcp): add inventory management tools"
+
+# No release (documentation only)
+git commit -m "docs: update README"
+```
+
+**See**: [docs/MONOREPO_SEMANTIC_RELEASE.md](docs/MONOREPO_SEMANTIC_RELEASE.md) for
+complete guide
 
 ## Common Pitfalls
 

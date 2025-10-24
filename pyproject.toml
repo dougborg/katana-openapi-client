@@ -293,10 +293,11 @@ upload_to_pypi = false
 upload_to_repository = false
 remove_dist = false
 commit_author = "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
-commit_message = "chore(release): {version}"
+commit_message = "chore(release): client v{version}"
 build_command = "pip install mdformat mdformat-gfm mdformat-tables mdformat-toc && mdformat docs/CHANGELOG.md --wrap 88"
 major_on_zero = false
 allow_zero_version = true
+tag_format = "client-v{version}"
 
 [tool.semantic_release.commit_parser_options]
 allowed_tags = [
@@ -313,6 +314,9 @@ allowed_tags = [
 ]
 minor_tags = ["feat"]
 patch_tags = ["fix", "perf"]
+# Only process commits with (client) scope or no scope
+# Commits with (mcp) scope are handled by the MCP server config
+default_bump_level = 0
 
 [tool.semantic_release.changelog]
 exclude_commit_patterns = []

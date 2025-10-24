@@ -99,25 +99,53 @@ All formatting is automated via `uv run poe format`.
    uv run poe test
    ```
 
-1. **Commit your changes** with a clear commit message
+1. **Commit your changes** with a clear commit message **using scopes**
 
    ```bash
-   git commit -m "feat: add new feature"
+   # For client changes
+   git commit -m "feat(client): add new domain helper"
+
+   # For MCP server changes
+   git commit -m "feat(mcp): add inventory tool"
    ```
 
 1. **Push to your fork** and create a pull request
 
 ### Commit Message Format
 
-We follow [Conventional Commits](https://www.conventionalcommits.org/):
+We follow [Conventional Commits](https://www.conventionalcommits.org/) with **scopes**
+for monorepo versioning:
 
-- `feat:` new features
-- `fix:` bug fixes
-- `docs:` documentation changes
-- `style:` formatting changes
-- `refactor:` code refactoring
-- `test:` adding or updating tests
-- `chore:` maintenance tasks
+**Type + Scope:**
+
+- `feat(client):` new features in the client (triggers client release)
+- `feat(mcp):` new features in MCP server (triggers MCP release)
+- `fix(client):` bug fixes in the client (triggers client release)
+- `fix(mcp):` bug fixes in MCP server (triggers MCP release)
+- `docs:` documentation changes (no release)
+- `test:` adding or updating tests (no release)
+- `chore:` maintenance tasks (no release)
+
+**Examples:**
+
+```bash
+# Release client package
+git commit -m "feat(client): add Products domain helper"
+
+# Release MCP server package
+git commit -m "feat(mcp): implement check_inventory tool"
+
+# No release (documentation only)
+git commit -m "docs: update README with new examples"
+```
+
+**Important:** Use the correct scope based on what you're changing:
+
+- Files in `katana_public_api_client/` → use `(client)` scope
+- Files in `katana_mcp_server/` → use `(mcp)` scope
+- Documentation or CI only → use `docs:` or `ci:` (no scope)
+
+See [docs/RELEASE.md](RELEASE.md) for complete release documentation
 
 ### Pull Request Guidelines
 

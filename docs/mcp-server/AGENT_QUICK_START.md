@@ -166,13 +166,23 @@ git checkout -b mcp-32-uv-workspace
 # Make your changes
 # ...
 
-# Commit with conventional commits
+# Commit with conventional commits - ALWAYS USE (mcp) SCOPE
 git commit -m "feat(mcp): set up uv workspace for monorepo (#32)"
 
 # Push and create PR
 git push origin mcp-32-uv-workspace
 gh pr create --title "MCP-32: Set up uv workspace" --body "Closes #32"
 ```
+
+**IMPORTANT:** Always use the `(mcp)` scope for MCP server changes! This ensures the MCP
+package is released when your changes are merged.
+
+Examples:
+
+- ✅ `feat(mcp): add inventory tool` - Correct
+- ✅ `fix(mcp): resolve auth error` - Correct
+- ❌ `feat: add inventory tool` - Wrong (will release client instead)
+- ❌ `feat(inventory): add tool` - Wrong scope
 
 ### 7. Close the Issue
 
