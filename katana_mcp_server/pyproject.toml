@@ -57,3 +57,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/katana_mcp"]
+
+[tool.pytest.ini_options]
+markers = [
+    "unit: Unit tests with mocks",
+    "integration: Integration tests requiring API key",
+]

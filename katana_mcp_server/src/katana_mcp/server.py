@@ -94,7 +94,8 @@ async def lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
             logger.info("KatanaClient initialized successfully")
 
             # Create context with client for tools to access
-            context = ServerContext(client=client)
+            # Note: client is KatanaClient but mypy sees it as AuthenticatedClient
+            context = ServerContext(client=client)  # type: ignore[arg-type]
 
             # Yield context to server - tools can access via lifespan dependency
             logger.info("Katana MCP Server ready")
