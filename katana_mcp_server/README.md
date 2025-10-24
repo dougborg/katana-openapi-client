@@ -1,162 +1,285 @@
 # Katana MCP Server
 
-A Model Context Protocol (MCP) server for Katana Manufacturing ERP, enabling natural
-language interactions with your Katana instance through Claude Code and other MCP
-clients.
+Model Context Protocol (MCP) server for Katana Manufacturing ERP.
 
 ## Features
 
-- **12 Core Tools**: Covering inventory, sales orders, purchase orders, and manufacturing
-  operations
-- **Resource Endpoints**: Read-only access to Katana data
-- **Workflow Prompts**: Pre-built templates for common manufacturing scenarios
-- **Production Ready**: Built on
-  [katana-openapi-client](https://github.com/dougborg/katana-openapi-client) with
-  automatic retries, rate limiting, and smart pagination
+- **Inventory Management**: Check stock levels, find low stock items, search products
+- **Environment-based Authentication**: Secure API key management
+- **Built-in Resilience**: Automatic retries, rate limiting, and pagination
+- **Type Safety**: Pydantic models for all requests and responses
 
 ## Installation
 
-### Using uvx (Recommended)
-
-```bash
-uvx katana-mcp-server
-```
-
-### Using pip
-
 ```bash
 pip install katana-mcp-server
-python -m katana_mcp
 ```
 
-## Configuration
+## Quick Start
 
-### Claude Code
+### 1. Get Your Katana API Key
 
-Add to your Claude Code MCP settings (`.claude/config.json`):
+Obtain your API key from your Katana account settings.
+
+### 2. Configure Environment
+
+Create a `.env` file or set environment variable:
+
+```bash
+export KATANA_API_KEY=your-api-key-here
+```
+
+Or create `.env` file:
+
+```
+KATANA_API_KEY=your-api-key-here
+KATANA_BASE_URL=https://api.katanamrp.com/v1  # Optional, uses default if not set
+```
+
+### 3. Use with Claude Desktop
+
+Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
 ```json
 {
   "mcpServers": {
-    "katana-erp": {
+    "katana": {
       "command": "uvx",
       "args": ["katana-mcp-server"],
       "env": {
-        "KATANA_API_KEY": "your-api-key-here",
-        "KATANA_BASE_URL": "https://api.katanamrp.com/v1"
+        "KATANA_API_KEY": "your-api-key-here"
       }
     }
   }
 }
 ```
 
-### Environment Variables
+Restart Claude Desktop, and you'll see Katana inventory tools available!
 
-- `KATANA_API_KEY` (required): Your Katana API key
-- `KATANA_BASE_URL` (optional): API base URL (defaults to
-  `https://api.katanamrp.com/v1`)
+### 4. Run Standalone (Optional)
 
-## Quick Start
+For testing or development:
 
-Once configured in Claude Code, you can interact with your Katana instance using natural
-language:
-
-```
-Check inventory levels for SKU-12345
-```
-
-```
-Create a sales order for customer ACME Corp with 10 units of SKU-12345
-```
-
-```
-Show me all active manufacturing orders
+```bash
+export KATANA_API_KEY=your-api-key
+katana-mcp-server
 ```
 
 ## Available Tools
 
-### Inventory Management
+### check_inventory
 
-- `check_inventory` - Check stock levels for a specific SKU
-- `list_low_stock_items` - Find products below reorder point
-- `search_products` - Search products by name or SKU
+Check stock levels for a specific product SKU.
 
-### Sales Orders
+**Parameters**:
+- `sku` (string, required): Product SKU to check
 
-- `create_sales_order` - Create a new sales order
-- `get_sales_order_status` - Get order details and status
-- `list_recent_sales_orders` - List recent sales orders
+**Example Request**:
+```json
+{
+  "sku": "WIDGET-001"
+}
+```
 
-### Purchase Orders
+**Example Response**:
+```json
+{
+  "sku": "WIDGET-001",
+  "product_name": "Premium Widget",
+  "available_stock": 150,
+  "in_production": 50,
+  "committed": 75
+}
+```
 
-- `create_purchase_order` - Create a new purchase order
-- `get_purchase_order_status` - Get PO details and status
-- `receive_purchase_order` - Mark PO as received
+**Use Cases**:
+- "What's the current stock level for SKU WIDGET-001?"
+- "Check inventory for my best-selling product"
+- "How much stock do we have available for order fulfillment?"
 
-### Manufacturing
+---
 
-- `create_manufacturing_order` - Create a manufacturing order
-- `get_manufacturing_order_status` - Get MO details and status
-- `list_active_manufacturing_orders` - List in-progress MOs
+### list_low_stock_items
+
+Find products below a specified stock threshold.
+
+**Parameters**:
+- `threshold` (integer, optional, default: 10): Stock level threshold
+- `limit` (integer, optional, default: 50): Maximum items to return
+
+**Example Request**:
+```json
+{
+  "threshold": 5,
+  "limit": 20
+}
+```
+
+**Example Response**:
+```json
+{
+  "items": [
+    {
+      "sku": "PART-123",
+      "product_name": "Component A",
+      "current_stock": 3,
+      "threshold": 5
+    },
+    {
+      "sku": "PART-456",
+      "product_name": "Component B",
+      "current_stock": 2,
+      "threshold": 5
+    }
+  ],
+  "total_count": 15
+}
+```
+
+**Use Cases**:
+- "Show me products with less than 10 units in stock"
+- "What items need reordering?"
+- "Find critical low stock items (below 5 units)"
+
+---
+
+### search_products
+
+Search for products by name or SKU.
+
+**Parameters**:
+- `query` (string, required): Search term (matches name or SKU)
+- `limit` (integer, optional, default: 20): Maximum results to return
+
+**Example Request**:
+```json
+{
+  "query": "widget",
+  "limit": 10
+}
+```
+
+**Example Response**:
+```json
+{
+  "products": [
+    {
+      "id": 12345,
+      "sku": "WIDGET-001",
+      "name": "Premium Widget",
+      "is_sellable": true,
+      "stock_level": 150
+    },
+    {
+      "id": 12346,
+      "sku": "WIDGET-002",
+      "name": "Economy Widget",
+      "is_sellable": true,
+      "stock_level": 200
+    }
+  ],
+  "total_count": 2
+}
+```
+
+**Use Cases**:
+- "Find all products containing 'widget'"
+- "Search for SKU PART-123"
+- "What products do we have in the electronics category?"
+
+## Configuration
+
+### Environment Variables
+
+- `KATANA_API_KEY` (required): Your Katana API key
+- `KATANA_BASE_URL` (optional): API base URL (default: https://api.katanamrp.com/v1)
+
+### Advanced Configuration
+
+The server uses the [katana-openapi-client](https://pypi.org/project/katana-openapi-client/) library with:
+- Automatic retries on rate limits (429) and server errors (5xx)
+- Exponential backoff with jitter
+- Transparent pagination for large result sets
+- 30-second default timeout
+
+## Troubleshooting
+
+### "KATANA_API_KEY environment variable is required"
+
+**Cause**: API key not set in environment.
+
+**Solution**: Set the environment variable or add to `.env` file:
+```bash
+export KATANA_API_KEY=your-api-key-here
+```
+
+### "Authentication error: 401 Unauthorized"
+
+**Cause**: Invalid or expired API key.
+
+**Solution**: Verify your API key in Katana account settings and update the environment variable.
+
+### Tools not showing up in Claude Desktop
+
+**Cause**: Configuration error or server not starting.
+
+**Solutions**:
+1. Check Claude Desktop logs: `~/Library/Logs/Claude/mcp*.log`
+2. Verify configuration file syntax (valid JSON)
+3. Test server standalone: `katana-mcp-server` (should start without errors)
+4. Restart Claude Desktop after configuration changes
+
+### Rate limiting (429 errors)
+
+**Cause**: Too many requests to Katana API.
+
+**Solution**: The server automatically retries with exponential backoff. If you see persistent rate limiting, reduce request frequency.
 
 ## Development
 
-This package is part of the
-[katana-openapi-client](https://github.com/dougborg/katana-openapi-client) monorepo.
-
-### Setup
+### Install from Source
 
 ```bash
-# Clone the repository
-git clone https://github.com/dougborg/katana-openapi-client
-cd katana-openapi-client
-
-# Install dependencies
-uv sync --all-extras
-
-# Run tests
-uv run poe test
+git clone https://github.com/dougborg/katana-openapi-client.git
+cd katana-openapi-client/katana_mcp_server
+uv sync
 ```
 
-### Running Locally
+### Run Tests
 
 ```bash
-# From the repository root
+# Unit tests only (no API key needed)
+uv run pytest tests/ -m "not integration"
+
+# All tests (requires KATANA_API_KEY)
+export KATANA_API_KEY=your-key
+uv run pytest tests/
+```
+
+### Local Development
+
+```bash
+# Run server in development mode
 uv run python -m katana_mcp
 ```
 
-## Documentation
+## Version
 
-- **Main Documentation**:
-  [https://dougborg.github.io/katana-openapi-client/](https://dougborg.github.io/katana-openapi-client/)
-- **Architecture Decision Records**:
-  [docs/adr/0010-katana-mcp-server.md](../docs/adr/0010-katana-mcp-server.md)
-- **Implementation Plan**:
-  [docs/mcp-server/IMPLEMENTATION_PLAN.md](../docs/mcp-server/IMPLEMENTATION_PLAN.md)
-- **Agent Quick Start**:
-  [docs/mcp-server/AGENT_QUICK_START.md](../docs/mcp-server/AGENT_QUICK_START.md)
+Current version: **0.1.0-alpha1**
 
-## Requirements
+This is an alpha release with 3 inventory management tools. Future releases will add:
+- Sales order management
+- Purchase order management
+- Manufacturing order management
+- Custom resources and prompts
 
-- Python 3.11, 3.12, or 3.13
-- Katana Manufacturing ERP API key
-- MCP-compatible client (e.g., Claude Code)
+## Links
 
-## Version Compatibility
-
-This MCP server requires `katana-openapi-client>=0.21.0`. See the
-[compatibility matrix](../README.md#version-compatibility) for details.
+- **Documentation**: https://github.com/dougborg/katana-openapi-client
+- **Issue Tracker**: https://github.com/dougborg/katana-openapi-client/issues
+- **PyPI**: https://pypi.org/project/katana-mcp-server/
+- **Katana API**: https://help.katanamrp.com/api/overview
 
 ## License
 
-MIT License - see [LICENSE](../LICENSE) for details.
-
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/dougborg/katana-openapi-client/issues)
-- **Discussions**:
-  [GitHub Discussions](https://github.com/dougborg/katana-openapi-client/discussions)
-
-## Contributing
-
-Contributions are welcome! See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
+MIT License - see LICENSE file for details
