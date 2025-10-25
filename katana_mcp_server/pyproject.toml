@@ -74,7 +74,7 @@ upload_to_repository = false
 remove_dist = false
 commit_author = "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
 commit_message = "chore(release): mcp v{version}"
-build_command = "cd katana_mcp_server && uv build"
+build_command = "pip install mdformat mdformat-gfm mdformat-tables mdformat-toc && mdformat CHANGELOG.md --wrap 88"
 major_on_zero = false
 allow_zero_version = true
 tag_format = "mcp-v{version}"
@@ -103,7 +103,7 @@ exclude_commit_patterns = []
 mode = "update"
 
 [tool.semantic_release.changelog.default_templates]
-changelog_file = "katana_mcp_server/CHANGELOG.md"
+changelog_file = "CHANGELOG.md"
 
 [tool.semantic_release.branches.main]
 match = "main"
@@ -111,5 +111,5 @@ prerelease_token = "alpha"
 prerelease = false
 
 [tool.semantic_release.publish]
-dist_glob_patterns = ["katana_mcp_server/dist/*"]
+dist_glob_patterns = ["dist/*"]
 upload_to_vcs_release = true

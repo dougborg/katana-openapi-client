@@ -2,6 +2,44 @@
 
 <!-- version list -->
 
+## v0.25.0 (2025-10-24)
+
+### Bug Fixes
+
+- **client**: Remove invalid root_options parameter from workflow
+  ([`8e313f3`](https://github.com/dougborg/katana-openapi-client/commit/8e313f37714af9d7814e088f3e0286c64ca61da9))
+
+### Features
+
+- **mcp**: Add package README for better documentation
+  ([`9f9cebf`](https://github.com/dougborg/katana-openapi-client/commit/9f9cebfe86a739993b147b775cfc87439feb4e0b))
+
+## v0.24.0 (2025-10-24)
+
+### Documentation
+
+- Add comprehensive monorepo semantic-release guide
+  ([#67](https://github.com/dougborg/katana-openapi-client/pull/67),
+  [`b10ad4a`](https://github.com/dougborg/katana-openapi-client/commit/b10ad4a980d34433c8d23a49ad64c5863f076283))
+
+- Add MCP deployment summary
+  ([#67](https://github.com/dougborg/katana-openapi-client/pull/67),
+  [`b10ad4a`](https://github.com/dougborg/katana-openapi-client/commit/b10ad4a980d34433c8d23a49ad64c5863f076283))
+
+- Update all documentation for monorepo semantic-release
+  ([#67](https://github.com/dougborg/katana-openapi-client/pull/67),
+  [`b10ad4a`](https://github.com/dougborg/katana-openapi-client/commit/b10ad4a980d34433c8d23a49ad64c5863f076283))
+
+### Features
+
+- Prepare MCP server v0.1.0a1 for PyPI deployment
+  ([#67](https://github.com/dougborg/katana-openapi-client/pull/67),
+  [`b10ad4a`](https://github.com/dougborg/katana-openapi-client/commit/b10ad4a980d34433c8d23a49ad64c5863f076283))
+
+- **mcp**: Configure monorepo semantic-release for independent versioning
+  ([#67](https://github.com/dougborg/katana-openapi-client/pull/67),
+  [`b10ad4a`](https://github.com/dougborg/katana-openapi-client/commit/b10ad4a980d34433c8d23a49ad64c5863f076283))
+
 ## v0.23.0 (2025-10-24)
 
 ### Features
