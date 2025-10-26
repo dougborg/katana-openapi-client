@@ -2,6 +2,62 @@
 
 <!-- version list -->
 
+## v0.26.0 (2025-10-26)
+
+### Bug Fixes
+
+- **mcp**: Correct semantic-release paths for subdirectory execution
+  ([`7b4119e`](https://github.com/dougborg/katana-openapi-client/commit/7b4119e2a1ae79ecbc966318ea6d0576d74ac796))
+
+- **mcp**: Use python -m build instead of uv build in semantic-release
+  ([`c7071c2`](https://github.com/dougborg/katana-openapi-client/commit/c7071c2d62abe6fb23fad9d4965912501b320419))
+
+- **mcp**: Use same build_command pattern as client - format changelog only
+  ([`7603014`](https://github.com/dougborg/katana-openapi-client/commit/760301487546c0e5e4b41fc8d3e97a4519407f0a))
+
+### Chores
+
+- Remove duplicate Release MCP Server workflow
+  ([`314c591`](https://github.com/dougborg/katana-openapi-client/commit/314c5917c0dddc5b4a13b77422658ab60c5b0c94))
+
+- **release**: Mcp v0.1.0
+  ([`93e2583`](https://github.com/dougborg/katana-openapi-client/commit/93e2583498913d256ded067afab7bc60ebe3c29a))
+
+### Documentation
+
+- Add comprehensive monorepo semantic-release guide
+  ([#68](https://github.com/dougborg/katana-openapi-client/pull/68),
+  [`db1eef3`](https://github.com/dougborg/katana-openapi-client/commit/db1eef33f542e5d0d26291ee8c279f7a62c6b552))
+
+- Add MCP deployment summary
+  ([#68](https://github.com/dougborg/katana-openapi-client/pull/68),
+  [`db1eef3`](https://github.com/dougborg/katana-openapi-client/commit/db1eef33f542e5d0d26291ee8c279f7a62c6b552))
+
+- Update all documentation for monorepo semantic-release
+  ([#68](https://github.com/dougborg/katana-openapi-client/pull/68),
+  [`db1eef3`](https://github.com/dougborg/katana-openapi-client/commit/db1eef33f542e5d0d26291ee8c279f7a62c6b552))
+
+- Update deployment docs and fix release workflow
+  ([#68](https://github.com/dougborg/katana-openapi-client/pull/68),
+  [`db1eef3`](https://github.com/dougborg/katana-openapi-client/commit/db1eef33f542e5d0d26291ee8c279f7a62c6b552))
+
+- **mcp**: Update DEPLOYMENT.md for automated semantic-release
+  ([#68](https://github.com/dougborg/katana-openapi-client/pull/68),
+  [`db1eef3`](https://github.com/dougborg/katana-openapi-client/commit/db1eef33f542e5d0d26291ee8c279f7a62c6b552))
+
+### Features
+
+- Add manual publish triggers for both packages
+  ([`29c1377`](https://github.com/dougborg/katana-openapi-client/commit/29c1377db6d7212e7e069cf35112f9165021f180))
+
+- Prepare MCP server v0.1.0a1 for PyPI deployment
+  ([#68](https://github.com/dougborg/katana-openapi-client/pull/68),
+  [`db1eef3`](https://github.com/dougborg/katana-openapi-client/commit/db1eef33f542e5d0d26291ee8c279f7a62c6b552))
+
+- **mcp**: Configure monorepo semantic-release for independent versioning
+  ([#68](https://github.com/dougborg/katana-openapi-client/pull/68),
+  [`db1eef3`](https://github.com/dougborg/katana-openapi-client/commit/db1eef33f542e5d0d26291ee8c279f7a62c6b552))
+
 ## v0.25.0 (2025-10-24)
 
 ### Bug Fixes
