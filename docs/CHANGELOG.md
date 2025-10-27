@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v0.26.5 (2025-10-27)
+
+### Bug Fixes
+
+- Add Production enum option for InventoryMovement resource_type
+  ([#69](https://github.com/dougborg/katana-openapi-client/pull/69),
+  [`1962398`](https://github.com/dougborg/katana-openapi-client/commit/196239878edf28e4dd6bc4c75f14f3f2aca45990))
+
+### Chores
+
+- Remove and ignore claude settings file
+  ([#69](https://github.com/dougborg/katana-openapi-client/pull/69),
+  [`1962398`](https://github.com/dougborg/katana-openapi-client/commit/196239878edf28e4dd6bc4c75f14f3f2aca45990))
+
 ## v0.26.4 (2025-10-27)
 
 ### Bug Fixes
