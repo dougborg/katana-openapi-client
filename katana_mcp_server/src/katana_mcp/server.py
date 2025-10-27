@@ -131,6 +131,10 @@ mcp = FastMCP(
     """,
 )
 
+# Import tools, resources, and prompts to register them with the mcp instance
+# These imports must come after mcp initialization since they use @mcp decorators
+from katana_mcp import prompts, resources, tools  # noqa: E402, F401
+
 
 def main(**kwargs: Any) -> None:
     """Main entry point for the Katana MCP Server.
