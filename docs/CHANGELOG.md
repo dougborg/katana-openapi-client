@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.26.4 (2025-10-27)
+
+### Bug Fixes
+
+- Correct MCP artifact upload path
+  ([`336fe14`](https://github.com/dougborg/katana-openapi-client/commit/336fe1497c8490e7cefae2d37b5aa9af0968fef4))
+
 ## v0.26.3 (2025-10-27)
 
 ### Bug Fixes
