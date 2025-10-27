@@ -87,11 +87,11 @@ jobs:
           verbosity: 2
 
       - name: Build client package
-        if: steps.release.outputs.released == 'true' || github.event.inputs.force_publish_client == true
+        if: (steps.release.outcome == 'success' && steps.release.outputs.released == 'true') || github.event.inputs.force_publish_client == true
         run: uv build
 
       - name: Upload client build artifacts
-        if: steps.release.outputs.released == 'true' || github.event.inputs.force_publish_client == true
+        if: (steps.release.outcome == 'success' && steps.release.outputs.released == 'true') || github.event.inputs.force_publish_client == true
         uses: actions/upload-artifact@v4
         with:
           name: client-dist
@@ -144,11 +144,11 @@ jobs:
           directory: katana_mcp_server
 
       - name: Build MCP package
-        if: steps.release.outputs.released == 'true' || github.event.inputs.force_publish_mcp == true
+        if: (steps.release.outcome == 'success' && steps.release.outputs.released == 'true') || github.event.inputs.force_publish_mcp == true
         run: cd katana_mcp_server && uv build
 
       - name: Upload MCP build artifacts
-        if: steps.release.outputs.released == 'true' || github.event.inputs.force_publish_mcp == true
+        if: (steps.release.outcome == 'success' && steps.release.outputs.released == 'true') || github.event.inputs.force_publish_mcp == true
         uses: actions/upload-artifact@v4
         with:
           name: mcp-dist
