@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   katana-mcp:
     build:
@@ -17,6 +15,11 @@ services:
     tty: true
     # Security: Run as non-root user
     user: "1000:1000"
+    # Security: Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+    # Security: Read-only filesystem
+    read_only: true
     # Resource limits
     deploy:
       resources:
