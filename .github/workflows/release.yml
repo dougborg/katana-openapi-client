@@ -152,7 +152,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mcp-dist
-          path: katana_mcp_server/dist/
+          path: dist/
 
   publish-client-pypi:
     name: Publish Client to PyPI
