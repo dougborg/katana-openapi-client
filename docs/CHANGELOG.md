@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.26.1 (2025-10-27)
+
+### Bug Fixes
+
+- Correct boolean comparison in workflow_dispatch conditions
+  ([`a4d3c54`](https://github.com/dougborg/katana-openapi-client/commit/a4d3c548a5c5a783ed2e754f09cd4bd67f3df79a))
+
 ## v0.26.0 (2025-10-26)
 
 ### Bug Fixes
