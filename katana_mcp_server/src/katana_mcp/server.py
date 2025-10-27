@@ -133,9 +133,8 @@ mcp = FastMCP(
 
 # Import tools, resources, and prompts to register them with the mcp instance.
 # These imports must come after mcp initialization since they use @mcp decorators.
-# The
-# side effects (decorator registration) and do not appear as used in this file. Do NOT remove
-# these imports—they are critical for registering tools, resources, and prompts with the MCP server.
+# These imports have side effects (decorator registration) and do not appear as used in this file. Do NOT remove
+# them—they are critical for registering tools, resources, and prompts with the MCP server.
 from katana_mcp import prompts, resources, tools  # noqa: E402, F401
 
 
