@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.26.2 (2025-10-27)
+
+### Bug Fixes
+
+- Handle skipped release steps in build conditions
+  ([`f565b7a`](https://github.com/dougborg/katana-openapi-client/commit/f565b7ad0a69dd827065985b1f5c1cdad904444d))
+
 ## v0.26.1 (2025-10-27)
 
 ### Bug Fixes
