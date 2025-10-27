@@ -3,6 +3,19 @@
 This guide covers building, testing, and submitting the Katana MCP Server to the Docker
 MCP Catalog.
 
+## Pre-built Images
+
+Pre-built multi-platform (amd64/arm64) images are automatically published to GitHub
+Container Registry on each release:
+
+```bash
+# Pull the latest version
+docker pull ghcr.io/dougborg/katana-mcp-server:latest
+
+# Or pull a specific version
+docker pull ghcr.io/dougborg/katana-mcp-server:0.1.0
+```
+
 ## Building the Docker Image
 
 ### Local Build

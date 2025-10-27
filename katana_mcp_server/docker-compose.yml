@@ -1,9 +1,11 @@
 services:
   katana-mcp:
+    # Use pre-built image from GHCR, or build locally if not available
+    image: ghcr.io/dougborg/katana-mcp-server:latest
+    pull_policy: missing
     build:
       context: .
       dockerfile: Dockerfile
-    image: katana-mcp-server:latest
     container_name: katana-mcp-server
     environment:
       # Required: Set your Katana API key
