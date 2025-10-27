@@ -146,12 +146,12 @@ Once published to the Docker MCP Catalog, users can configure it in Claude Deskt
 - **Review**: Docker team reviews (typically 1-2 days)
 - **Approval**: Available within 24 hours of approval
 - **Availability**:
-  - Docker MCP Catalog: https://hub.docker.com/mcp
+  - Docker MCP Catalog *(link pending official catalog launch)*
   - Docker Desktop MCP Toolkit
   - One-click connection in Claude Desktop
 
 ## Resources
 
-- [Docker MCP Catalog](https://hub.docker.com/mcp)
 - [MCP Registry GitHub](https://github.com/docker/mcp-registry)
 - [Docker MCP Documentation](https://docs.docker.com/ai/mcp-catalog-and-toolkit/)
+- Docker MCP Catalog *(URL will be provided when officially available)*
