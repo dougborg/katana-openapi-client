@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.26.3 (2025-10-27)
+
+### Bug Fixes
+
+- Use inputs context instead of github.event.inputs
+  ([`78924e5`](https://github.com/dougborg/katana-openapi-client/commit/78924e56e6a6917259992d89129adadaed4ec8f7))
+
 ## v0.26.2 (2025-10-27)
 
 ### Bug Fixes
