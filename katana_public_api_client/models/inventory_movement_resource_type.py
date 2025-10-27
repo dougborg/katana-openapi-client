@@ -4,6 +4,7 @@ from enum import Enum
 class InventoryMovementResourceType(str, Enum):
     MANUFACTURINGORDER = "ManufacturingOrder"
     MANUFACTURINGORDERRECIPEROW = "ManufacturingOrderRecipeRow"
+    PRODUCTION = "Production"
     PURCHASEORDERRECIPEROW = "PurchaseOrderRecipeRow"
     PURCHASEORDERROW = "PurchaseOrderRow"
     SALESORDERROW = "SalesOrderRow"
