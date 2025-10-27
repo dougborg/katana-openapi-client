@@ -116,7 +116,7 @@ async def lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
 # Initialize FastMCP server with lifespan management
 mcp = FastMCP(
     name="katana-erp",
-    version="0.1.0a1",
+    version="0.1.0",
     lifespan=lifespan,
     instructions="""
     Katana MCP Server provides tools for interacting with Katana Manufacturing ERP.
@@ -130,6 +130,10 @@ mcp = FastMCP(
     All tools require KATANA_API_KEY environment variable to be set.
     """,
 )
+
+# Import tools, resources, and prompts to register them with the mcp instance
+# These imports must come after mcp initialization since they use @mcp decorators
+from katana_mcp import prompts, resources, tools  # noqa: E402, F401
 
 
 def main(**kwargs: Any) -> None:
