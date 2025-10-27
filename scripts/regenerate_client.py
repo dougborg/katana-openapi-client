@@ -361,12 +361,8 @@ __all__ = [
         print("🔧 Fixing imports in generated API files...")
         _fix_types_imports(target_client_path)
 
-        # Copy the generated README for reference
-        source_readme = temp_client_dir / "README.md"
-        target_readme = workspace_path / "CLIENT_README.md"
-        if source_readme.exists():
-            shutil.copy2(source_readme, target_readme)
-            print(f"📝 Updated client README: {target_readme}")
+        # Note: We don't copy the generated README.md as it contains Poetry references
+        # The main README.md in the repository root provides documentation instead
 
         # Clean up temporary directory
         print(f"🗑️  Cleaning up temporary directory: {temp_client_dir}")
