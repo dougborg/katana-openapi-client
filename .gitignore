@@ -166,3 +166,6 @@ openapi_docs/
 coverage.json
 api_analysis_results.json
 validation_results.json
+
+# Claude
+.claude/settings.local.json

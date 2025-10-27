@@ -1607,6 +1607,7 @@ components:
               type: string
               description: The type of resource that caused the movement.
               enum:
+                - Production
                 - PurchaseOrderRow
                 - PurchaseOrderRecipeRow
                 - SalesOrderRow
