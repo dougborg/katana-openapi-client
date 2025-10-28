@@ -1,6 +1,6 @@
 [project]
 name = "katana-mcp-server"
-version = "0.1.0"
+version = "0.2.0"
 description = "MCP server for Katana Manufacturing ERP"
 authors = [
     {name = "Doug Borg", email = "dougborg@dougborg.org"},
