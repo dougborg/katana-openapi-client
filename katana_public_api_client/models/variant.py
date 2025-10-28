@@ -25,12 +25,12 @@ class Variant:
 
     Example:
         {'id': 3001, 'sku': 'KNF-PRO-8PC-STL', 'sales_price': 299.99, 'product_id': 101, 'material_id': None,
-            'purchase_price': 150.0, 'product_or_material_name': 'Professional Kitchen Knife Set - 8-Piece - Steel Handles',
-            'type': 'product', 'internal_barcode': 'INT-KNF-001', 'registered_barcode': '789123456789',
-            'supplier_item_codes': ['SUP-KNF-8PC-001'], 'lead_time': 7, 'minimum_order_quantity': 1, 'custom_fields':
-            [{'field_name': 'Warranty Period', 'field_value': '5 years'}], 'config_attributes': [{'config_name': 'Piece
-            Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value': 'Steel'}], 'created_at':
-            '2024-01-15T08:00:00.000Z', 'updated_at': '2024-08-20T14:45:00.000Z', 'deleted_at': None}
+            'purchase_price': 150.0, 'type': 'product', 'internal_barcode': 'INT-KNF-001', 'registered_barcode':
+            '789123456789', 'supplier_item_codes': ['SUP-KNF-8PC-001'], 'lead_time': 7, 'minimum_order_quantity': 1,
+            'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '5 years'}], 'config_attributes':
+            [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            'Steel'}], 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at': '2024-08-20T14:45:00.000Z', 'deleted_at':
+            None}
     """
 
     id: int
@@ -42,7 +42,6 @@ class Variant:
     product_id: None | Unset | int = UNSET
     material_id: None | Unset | int = UNSET
     purchase_price: Unset | float = UNSET
-    product_or_material_name: Unset | str = UNSET
     type_: Unset | VariantType = UNSET
     internal_barcode: Unset | str = UNSET
     registered_barcode: Unset | str = UNSET
@@ -93,8 +92,6 @@ class Variant:
             material_id = self.material_id
 
         purchase_price = self.purchase_price
-
-        product_or_material_name = self.product_or_material_name
 
         type_: Unset | str = UNSET
         if not isinstance(self.type_, Unset):
@@ -156,8 +153,6 @@ class Variant:
             field_dict["material_id"] = material_id
         if purchase_price is not UNSET:
             field_dict["purchase_price"] = purchase_price
-        if product_or_material_name is not UNSET:
-            field_dict["product_or_material_name"] = product_or_material_name
         if type_ is not UNSET:
             field_dict["type"] = type_
         if internal_barcode is not UNSET:
@@ -247,8 +242,6 @@ class Variant:
 
         purchase_price = d.pop("purchase_price", UNSET)
 
-        product_or_material_name = d.pop("product_or_material_name", UNSET)
-
         _type_ = d.pop("type", UNSET)
         type_: Unset | VariantType
         if isinstance(_type_, Unset):
@@ -310,7 +303,6 @@ class Variant:
             product_id=product_id,
             material_id=material_id,
             purchase_price=purchase_price,
-            product_or_material_name=product_or_material_name,
             type_=type_,
             internal_barcode=internal_barcode,
             registered_barcode=registered_barcode,
