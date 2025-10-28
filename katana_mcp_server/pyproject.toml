@@ -67,7 +67,10 @@ markers = [
 ]
 
 [tool.semantic_release]
-version_toml = ["pyproject.toml:project.version"]
+version_toml = [
+    "pyproject.toml:project.version",
+    "src/katana_mcp/__init__.py:__version__"
+]
 dist_path = "dist/"
 upload_to_pypi = false
 upload_to_repository = false
