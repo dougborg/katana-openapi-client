@@ -14,6 +14,9 @@ from katana_public_api_client.api.variant import (
 )
 from katana_public_api_client.helpers.base import Base
 from katana_public_api_client.models.create_variant_request import CreateVariantRequest
+from katana_public_api_client.models.get_all_variants_extend_item import (
+    GetAllVariantsExtendItem,
+)
 from katana_public_api_client.models.update_variant_request import UpdateVariantRequest
 from katana_public_api_client.models.variant import Variant
 from katana_public_api_client.utils import unwrap, unwrap_data
@@ -218,7 +221,7 @@ class Variants(Base):
         # Fetch from API - automatic pagination fetches ALL variants
         response = await get_all_variants.asyncio_detailed(
             client=self._client,
-            extend=["product_or_material"],
+            extend=[GetAllVariantsExtendItem.PRODUCT_OR_MATERIAL],
             # No limit = fetch all pages automatically (up to max_pages in client)
         )
         all_variants = unwrap_data(response)
