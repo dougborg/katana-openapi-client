@@ -46,3 +46,13 @@ repos:
     hooks:
       - id: yamllint
         args: [-c=.yamllint.yml]
+
+  # Run tests
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: bash -c '~/.local/bin/uv run poe test'
+        language: system
+        pass_filenames: false
+        always_run: true
