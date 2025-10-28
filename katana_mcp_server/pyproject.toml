@@ -41,6 +41,10 @@ dependencies = [
     "python-dotenv>=1.0.0",
 ]
 
+# Note: Development dependencies like mcp-hmr require Python >=3.12
+# Install manually for hot-reload development: uv pip install mcp-hmr
+# See docs/mcp-server/DEVELOPMENT.md for setup instructions
+
 [tool.uv.sources]
 katana-openapi-client = { workspace = true }
 
