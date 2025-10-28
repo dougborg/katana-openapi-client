@@ -129,3 +129,51 @@ class Variants(Base):
             client=self._client,
             id=variant_id,
         )
+
+    async def search(self, query: str, limit: int = 50) -> list[Variant]:
+        """Search variants by SKU or parent product/material name (fuzzy search).
+
+        Used by: MCP tool search_products
+
+        This fetches all variants with their parent product/material information
+        and performs client-side fuzzy searching.
+
+        Args:
+            query: Search query to match against SKU or product/material name (case-insensitive).
+            limit: Maximum number of results to return.
+
+        Returns:
+            List of matching Variant objects with product_or_material_name populated.
+
+        Example:
+            >>> variants = await client.variants.search("fox", limit=10)
+            >>> for variant in variants:
+            ...     print(f"{variant.sku}: {variant.product_or_material_name}")
+        """
+        # Fetch all variants with parent product/material info
+        response = await get_all_variants.asyncio_detailed(
+            client=self._client,
+            extend=["product_or_material"],
+            limit=1000,  # Fetch up to 1000 variants for searching
+        )
+        all_variants = unwrap_data(response)
+
+        # Perform case-insensitive fuzzy search on SKU and product/material name
+        query_lower = query.lower()
+        matches = []
+
+        for variant in all_variants:
+            # Check variant SKU
+            if variant.sku and query_lower in variant.sku.lower():
+                matches.append(variant)
+                continue
+
+            # Check parent product/material name
+            if (
+                variant.product_or_material_name
+                and query_lower in variant.product_or_material_name.lower()
+            ):
+                matches.append(variant)
+                continue
+
+        return matches[:limit]

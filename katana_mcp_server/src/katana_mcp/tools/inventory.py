@@ -263,7 +263,7 @@ async def _search_products_impl(
         context: Server context with KatanaClient
 
     Returns:
-        List of matching products with basic info
+        List of matching product variants with extended names
 
     Raises:
         ValueError: If query is empty or limit is invalid
@@ -275,30 +275,38 @@ async def _search_products_impl(
         raise ValueError("Limit must be positive")
 
     logger.info(
-        f"Searching products for query: '{request.query}' (limit={request.limit})"
+        f"Searching variants for query: '{request.query}' (limit={request.limit})"
     )
 
     try:
         # Access KatanaClient from lifespan context
         server_context = context.request_context.lifespan_context  # type: ignore[attr-defined]
         client = server_context.client  # type: ignore[attr-defined]
-        results = await client.products.search(request.query, limit=request.limit)
 
-        # Build response - extract SKU from first variant if available
+        # Search variants (which have SKUs) with parent product/material info
+        variants = await client.variants.search(request.query, limit=request.limit)
+
+        # Build response using API-provided fully expanded variant names
         products_info = []
-        for product in results:
-            # Products have variants with SKUs, not a direct SKU field
-            sku = ""
-            if product.variants and len(product.variants) > 0:
-                sku = product.variants[0].sku or ""
+        for variant in variants:
+            # API provides fully expanded name with variant attributes
+            # e.g., "Professional Kitchen Knife Set - 8-Piece - Steel Handles"
+            name = variant.product_or_material_name or ""
+
+            # Determine if variant is sellable (products are sellable, materials are not)
+            is_sellable = (
+                variant.type_ and variant.type_.value == "product"
+                if variant.type_
+                else False
+            )
 
             products_info.append(
                 ProductInfo(
-                    id=product.id,
-                    sku=sku,
-                    name=product.name or "",
-                    is_sellable=product.is_sellable or False,
-                    stock_level=getattr(product, "stock_level", None),
+                    id=variant.id,
+                    sku=variant.sku or "",
+                    name=name,
+                    is_sellable=is_sellable,
+                    stock_level=None,  # Variants don't have stock_level directly
                 )
             )
 
@@ -307,7 +315,7 @@ async def _search_products_impl(
             total_count=len(products_info),
         )
 
-        logger.info(f"Found {response.total_count} products matching '{request.query}'")
+        logger.info(f"Found {response.total_count} variants matching '{request.query}'")
         return response
 
     except Exception as e:
