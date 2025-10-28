@@ -231,6 +231,33 @@ class Variants(Base):
 
         return all_variants
 
+    def _get_variant_name(self, variant: Variant) -> str:
+        """Extract the product/material name from a variant.
+
+        When using extend=product_or_material, the API returns variants with
+        a nested product_or_material object (Product or Material) instead of
+        a flat product_or_material_name string.
+
+        Args:
+            variant: Variant object
+
+        Returns:
+            Name of the product or material, or empty string
+        """
+        # Check if we have the flat name field (without extend)
+        if hasattr(variant, "product_or_material_name") and isinstance(
+            variant.product_or_material_name, str
+        ):
+            return variant.product_or_material_name
+
+        # Check if we have the nested object (with extend)
+        if hasattr(variant, "product_or_material"):
+            product_or_material = variant.product_or_material
+            if hasattr(product_or_material, "name"):
+                return product_or_material.name or ""
+
+        return ""
+
     def _calculate_relevance(self, variant: Variant, query_tokens: list[str]) -> int:
         """Calculate relevance score for a variant against query tokens.
 
@@ -251,7 +278,7 @@ class Variants(Base):
         """
         query = " ".join(query_tokens)
         sku_lower = (variant.sku or "").lower()
-        name_lower = (variant.product_or_material_name or "").lower()
+        name_lower = self._get_variant_name(variant).lower()
 
         # Check for exact SKU match
         if sku_lower == query:
