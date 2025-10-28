@@ -232,31 +232,40 @@ class Variants(Base):
         return all_variants
 
     def _get_variant_name(self, variant: Variant) -> str:
-        """Extract the product/material name from a variant.
+        """Build the full variant display name matching Katana UI format.
+
+        Format: "{Product/Material Name} / {Config Value 1} / {Config Value 2} / ..."
+
+        Example: "Mayhem 140 / Liquid Black / Large / 5 Star"
 
         When using extend=product_or_material, the API returns variants with
-        a nested product_or_material object (Product or Material) instead of
-        a flat product_or_material_name string.
+        a nested product_or_material object (Product or Material).
 
         Args:
             variant: Variant object
 
         Returns:
-            Name of the product or material, or empty string
+            Formatted variant name with config values, or empty string
         """
-        # Check if we have the flat name field (without extend)
-        if hasattr(variant, "product_or_material_name") and isinstance(
-            variant.product_or_material_name, str
-        ):
-            return variant.product_or_material_name
-
-        # Check if we have the nested object (with extend)
+        # Get base product/material name
+        base_name = ""
         if hasattr(variant, "product_or_material"):
             product_or_material = variant.product_or_material
             if hasattr(product_or_material, "name"):
-                return product_or_material.name or ""
+                base_name = product_or_material.name or ""
 
-        return ""
+        if not base_name:
+            return ""
+
+        # Append config attribute values (just values, not "name: value")
+        parts = [base_name]
+        if hasattr(variant, "config_attributes") and variant.config_attributes:
+            for attr in variant.config_attributes:
+                if attr.config_value:
+                    parts.append(attr.config_value)
+
+        # Join with forward slashes (Katana UI format)
+        return " / ".join(parts)
 
     def _calculate_relevance(self, variant: Variant, query_tokens: list[str]) -> int:
         """Calculate relevance score for a variant against query tokens.
