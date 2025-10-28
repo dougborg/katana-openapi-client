@@ -1729,9 +1729,6 @@ components:
             purchase_price:
               type: number
               description: Cost to purchase this variant from suppliers
-            product_or_material_name:
-              type: string
-              description: Display name combining the parent product/material name with variant attributes
             type:
               type: string
               enum:
@@ -1794,7 +1791,6 @@ components:
         product_id: 101
         material_id: null
         purchase_price: 150.0
-        product_or_material_name: Professional Kitchen Knife Set - 8-Piece - Steel Handles
         type: product
         internal_barcode: INT-KNF-001
         registered_barcode: "789123456789"
