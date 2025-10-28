@@ -286,16 +286,28 @@ async def _search_products_impl(
         # Search variants (which have SKUs) with parent product/material info
         variants = await client.variants.search(request.query, limit=request.limit)
 
-        # Build response - extract names from nested product/material objects
+        # Build response - format names matching Katana UI
         products_info = []
         for variant in variants:
-            # Extract product/material name from nested object
-            # (API returns product_or_material object, not flat product_or_material_name string)
+            # Build variant name: "Product Name / Config1 / Config2 / ..."
+            # This matches how Katana displays variants in the UI
             name = ""
             if hasattr(variant, "product_or_material") and variant.product_or_material:
                 product_or_material = variant.product_or_material
                 if hasattr(product_or_material, "name"):
-                    name = product_or_material.name or ""
+                    parts = [product_or_material.name or ""]
+
+                    # Append config attribute values (just values, not "name: value")
+                    if (
+                        hasattr(variant, "config_attributes")
+                        and variant.config_attributes
+                    ):
+                        for attr in variant.config_attributes:
+                            if hasattr(attr, "config_value") and attr.config_value:
+                                parts.append(attr.config_value)
+
+                    # Join with forward slashes (Katana UI format)
+                    name = " / ".join(parts)
 
             # Determine if variant is sellable (products are sellable, materials are not)
             is_sellable = (
