@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import time
+
+# Import list from builtins to avoid shadowing by our list() method
+from builtins import list as List
 from typing import Any, cast
 
 from katana_public_api_client.api.variant import (
@@ -19,7 +22,7 @@ from katana_public_api_client.models.get_all_variants_extend_item import (
 )
 from katana_public_api_client.models.update_variant_request import UpdateVariantRequest
 from katana_public_api_client.models.variant import Variant
-from katana_public_api_client.utils import unwrap, unwrap_data
+from katana_public_api_client.utils import get_variant_display_name, unwrap, unwrap_data
 
 
 class VariantCache:
@@ -39,7 +42,7 @@ class VariantCache:
             ttl_seconds: Time-to-live in seconds. Default 5 minutes.
         """
         self.ttl_seconds = ttl_seconds
-        self.variants: list[Variant] = []
+        self.variants: List[Variant] = []
         self.by_id: dict[int, Variant] = {}
         self.by_sku: dict[str, Variant] = {}
         self.cached_at: float = 0
@@ -51,7 +54,7 @@ class VariantCache:
         age = time.time() - self.cached_at
         return age < self.ttl_seconds
 
-    def update(self, variants: list[Variant]) -> None:
+    def update(self, variants: List[Variant]) -> None:
         """Update cache with new variant list.
 
         Args:
@@ -97,7 +100,7 @@ class Variants(Base):
         super().__init__(*args, **kwargs)
         self._cache = VariantCache(ttl_seconds=300)  # 5 minute cache
 
-    async def list(self, **filters: Any) -> list[Variant]:
+    async def list(self, **filters: Any) -> List[Variant]:
         """List all variants with optional filters.
 
         Args:
@@ -208,7 +211,7 @@ class Variants(Base):
         # Clear cache since data changed
         self._cache.clear()
 
-    async def _fetch_all_variants(self) -> list[Variant]:
+    async def _fetch_all_variants(self) -> List[Variant]:
         """Fetch all variants with parent info. Uses cache if valid.
 
         Returns:
@@ -238,36 +241,18 @@ class Variants(Base):
 
         Example: "Mayhem 140 / Liquid Black / Large / 5 Star"
 
-        When using extend=product_or_material, the API returns variants with
-        a nested product_or_material object (Product or Material).
-
         Args:
             variant: Variant object
 
         Returns:
             Formatted variant name with config values, or empty string
+
+        Note:
+            This is a convenience wrapper around the get_variant_display_name utility.
         """
-        # Get base product/material name
-        base_name = ""
-        if hasattr(variant, "product_or_material"):
-            product_or_material = variant.product_or_material
-            if hasattr(product_or_material, "name"):
-                base_name = product_or_material.name or ""
+        return get_variant_display_name(variant)
 
-        if not base_name:
-            return ""
-
-        # Append config attribute values (just values, not "name: value")
-        parts = [base_name]
-        if hasattr(variant, "config_attributes") and variant.config_attributes:
-            for attr in variant.config_attributes:
-                if attr.config_value:
-                    parts.append(attr.config_value)
-
-        # Join with forward slashes (Katana UI format)
-        return " / ".join(parts)
-
-    def _calculate_relevance(self, variant: Variant, query_tokens: list[str]) -> int:
+    def _calculate_relevance(self, variant: Variant, query_tokens: List[str]) -> int:
         """Calculate relevance score for a variant against query tokens.
 
         Scoring:
@@ -311,7 +296,7 @@ class Variants(Base):
 
         return 0
 
-    async def search(self, query: str, limit: int = 50) -> list[Variant]:
+    async def search(self, query: str, limit: int = 50) -> List[Variant]:
         """Search variants by SKU or parent product/material name with relevance ranking.
 
         Used by: MCP tool search_products

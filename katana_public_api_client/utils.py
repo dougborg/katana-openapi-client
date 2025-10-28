@@ -1,16 +1,19 @@
 """Utility functions for working with Katana API responses.
 
 This module provides convenient helpers for unwrapping API responses,
-handling errors, and extracting data in a type-safe manner.
+handling errors, extracting data, and formatting display values.
 """
 
 from collections.abc import Callable
 from http import HTTPStatus
-from typing import Any, TypeVar, overload
+from typing import TYPE_CHECKING, Any, TypeVar, overload
 
 from .client_types import Response, Unset
 from .models.detailed_error_response import DetailedErrorResponse
 from .models.error_response import ErrorResponse
+
+if TYPE_CHECKING:
+    from .models.variant import Variant
 
 T = TypeVar("T")
 DataT = TypeVar("DataT")
@@ -406,6 +409,58 @@ def handle_response(
         return None
 
 
+def get_variant_display_name(variant: "Variant") -> str:
+    """Build the full variant display name matching Katana UI format.
+
+    Format: "{Product/Material Name} / {Config Value 1} / {Config Value 2} / ..."
+
+    Example: "Mayhem 140 / Liquid Black / Large / 5 Star"
+
+    When the variant has been fetched with extend=product_or_material, the API
+    returns variants with a nested product_or_material object (Product or Material).
+    This function extracts the base product/material name and appends config attribute
+    values separated by " / ".
+
+    Args:
+        variant: Variant object (ideally with product_or_material populated)
+
+    Returns:
+        Formatted variant name with config values, or empty string if no name available
+
+    Example:
+        ```python
+        from katana_public_api_client import KatanaClient
+        from katana_public_api_client.api.variant import get_variant
+        from katana_public_api_client.utils import get_variant_display_name
+
+        async with KatanaClient() as client:
+            response = await get_variant.asyncio_detailed(client=client, id=123)
+            variant = unwrap(response)
+            display_name = get_variant_display_name(variant)
+            print(display_name)  # "Mayhem 140 / Liquid Black / Large / 5 Star"
+        ```
+    """
+    # Get base product/material name
+    base_name = ""
+    if hasattr(variant, "product_or_material") and variant.product_or_material:
+        product_or_material = variant.product_or_material
+        if hasattr(product_or_material, "name"):
+            base_name = product_or_material.name or ""
+
+    if not base_name:
+        return ""
+
+    # Append config attribute values (just values, not "name: value")
+    parts = [base_name]
+    if hasattr(variant, "config_attributes") and variant.config_attributes:
+        for attr in variant.config_attributes:
+            if hasattr(attr, "config_value") and attr.config_value:
+                parts.append(attr.config_value)
+
+    # Join with forward slashes (Katana UI format)
+    return " / ".join(parts)
+
+
 __all__ = [
     "APIError",
     "AuthenticationError",
@@ -413,6 +468,7 @@ __all__ = [
     "ServerError",
     "ValidationError",
     "get_error_message",
+    "get_variant_display_name",
     "handle_response",
     "is_error",
     "is_success",
