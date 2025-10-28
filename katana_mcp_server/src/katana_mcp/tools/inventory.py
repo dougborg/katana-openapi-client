@@ -40,7 +40,7 @@ async def _check_inventory_impl(
     Returns:
         StockInfo with current stock levels
     """
-    client = context.state.client  # type: ignore[attr-defined]
+    client = context.server_context.client  # type: ignore[attr-defined]
     result = await client.inventory.check_stock(request.sku)
 
     return StockInfo(
@@ -115,7 +115,7 @@ async def _list_low_stock_items_impl(
     Returns:
         List of products below threshold with current levels
     """
-    client = context.state.client  # type: ignore[attr-defined]
+    client = context.server_context.client  # type: ignore[attr-defined]
     items = await client.inventory.list_low_stock(threshold=request.threshold)
 
     # Limit results
@@ -199,7 +199,7 @@ async def _search_products_impl(
     Returns:
         List of matching products with basic info
     """
-    client = context.state.client  # type: ignore[attr-defined]
+    client = context.server_context.client  # type: ignore[attr-defined]
     results = await client.products.search(request.query, limit=request.limit)
 
     return SearchProductsResponse(
