@@ -3,6 +3,21 @@
 This guide explains how to set up a fast, productive development workflow for the Katana
 MCP Server using hot-reload capabilities.
 
+## Prerequisites
+
+1. **Install uv** (if not already installed):
+
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+   Or see
+   [uv installation docs](https://docs.astral.sh/uv/getting-started/installation/)
+
+1. **Python 3.12+** (for hot-reload mode)
+
+1. **Find your uv path**: Run `which uv` (usually `~/.local/bin/uv`)
+
 ## Quick Start
 
 ### Development Mode (Hot Reload)
@@ -66,7 +81,7 @@ You can configure Claude Desktop to support both modes simultaneously.
 {
   "mcpServers": {
     "katana-erp-dev": {
-      "command": "uv",
+      "command": "/Users/YOUR_USERNAME/.local/bin/uv",
       "args": ["run", "mcp-hmr", "src/katana_mcp/server.py:mcp"],
       "cwd": "/absolute/path/to/katana-openapi-client/katana_mcp_server",
       "env": {
@@ -83,7 +98,12 @@ You can configure Claude Desktop to support both modes simultaneously.
 }
 ```
 
-**Important**: Replace `/absolute/path/to/` with your actual repository path.
+**Important**:
+
+- Replace `YOUR_USERNAME` with your actual username
+- Replace `/absolute/path/to/` with your actual repository path
+- On Windows, use the full path to `uv.exe` (e.g.,
+  `C:\\Users\\YourName\\.local\\bin\\uv.exe`)
 
 ### Switching Between Modes
 

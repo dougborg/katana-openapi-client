@@ -256,6 +256,12 @@ persistent rate limiting, reduce request frequency.
 
 ## Development
 
+### Prerequisites
+
+- **uv** package manager -
+  [Install uv](https://docs.astral.sh/uv/getting-started/installation/)
+- **Python 3.12+** (for hot-reload mode)
+
 ### Development Mode with Hot Reload ⚡
 
 For **rapid iteration** during development, use hot-reload mode to see changes instantly
@@ -286,7 +292,8 @@ uv run mcp-hmr src/katana_mcp/server.py:mcp
 {
   "mcpServers": {
     "katana-erp-dev": {
-      "command": "uv",
+      "comment": "Use full path to uv - find with: which uv",
+      "command": "/Users/YOUR_USERNAME/.local/bin/uv",
       "args": ["run", "mcp-hmr", "src/katana_mcp/server.py:mcp"],
       "cwd": "/absolute/path/to/katana-openapi-client/katana_mcp_server",
       "env": {
@@ -297,8 +304,13 @@ uv run mcp-hmr src/katana_mcp/server.py:mcp
 }
 ```
 
-**Note**: Hot reload requires Python >=3.12. For Python 3.11 users, use the production
-install method.
+**Important**:
+
+- Replace `YOUR_USERNAME` with your actual username
+- Run `which uv` to find the correct uv path (usually `~/.local/bin/uv`)
+- Replace `/absolute/path/to/` with your repository path
+- Hot reload requires Python >=3.12. For Python 3.11 users, use the production install
+  method.
 
 See [DEVELOPMENT.md](../docs/mcp-server/DEVELOPMENT.md) for the complete development
 guide.
