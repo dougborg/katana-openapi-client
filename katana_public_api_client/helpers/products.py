@@ -140,26 +140,48 @@ class Products(Base):
         )
 
     async def search(self, query: str, limit: int = 50) -> builtins.list[Product]:
-        """Search products by name.
+        """Search products by name or SKU (fuzzy search).
 
         Used by: MCP tool search_products
 
+        Note: The Katana API 'name' parameter only does exact matches, so we
+        fetch all products and perform client-side fuzzy searching across both
+        product names and variant SKUs.
+
         Args:
-            query: Search query to match against product names.
+            query: Search query to match against product names and SKUs (case-insensitive).
             limit: Maximum number of results to return.
 
         Returns:
-            List of matching Product objects.
+            List of matching Product objects, sorted by relevance.
 
         Example:
-            >>> products = await client.products.search("widget", limit=10)
+            >>> products = await client.products.search("fox", limit=10)
             >>> for product in products:
             ...     print(f"{product.sku}: {product.name}")
         """
-        # Search by product name using the 'name' parameter
+        # Fetch all products (the API doesn't support partial/fuzzy search)
         response = await get_all_products.asyncio_detailed(
             client=self._client,
-            name=query,
-            limit=limit,
+            limit=1000,  # Fetch up to 1000 products for searching
         )
-        return unwrap_data(response)
+        all_products = unwrap_data(response)
+
+        # Perform case-insensitive fuzzy search on product names and variant SKUs
+        query_lower = query.lower()
+        matches = []
+
+        for product in all_products:
+            # Check product name
+            if product.name and query_lower in product.name.lower():
+                matches.append(product)
+                continue
+
+            # Check variant SKUs
+            if product.variants:
+                for variant in product.variants:
+                    if variant.sku and query_lower in variant.sku.lower():
+                        matches.append(product)
+                        break
+
+        return matches[:limit]
