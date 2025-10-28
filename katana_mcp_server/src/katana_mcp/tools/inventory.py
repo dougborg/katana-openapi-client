@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastmcp import Context
 from pydantic import BaseModel, Field
 
 from katana_mcp.server import mcp
+
+logger = logging.getLogger(__name__)
 
 # ============================================================================
 # Tool 1: check_inventory
@@ -39,17 +43,37 @@ async def _check_inventory_impl(
 
     Returns:
         StockInfo with current stock levels
-    """
-    client = context.server_context.client  # type: ignore[attr-defined]
-    result = await client.inventory.check_stock(request.sku)
 
-    return StockInfo(
-        sku=result["sku"],
-        product_name=result.get("product_name", ""),
-        available_stock=result.get("available", 0),
-        in_production=0,  # Not available in current API
-        committed=result.get("allocated", 0),
-    )
+    Raises:
+        ValueError: If SKU is empty or invalid
+        Exception: If API call fails
+    """
+    if not request.sku or not request.sku.strip():
+        raise ValueError("SKU cannot be empty")
+
+    logger.info(f"Checking inventory for SKU: {request.sku}")
+
+    try:
+        client = context.server_context.client  # type: ignore[attr-defined]
+        result = await client.inventory.check_stock(request.sku)
+
+        stock_info = StockInfo(
+            sku=result.get("sku", request.sku),
+            product_name=result.get("product_name", ""),
+            available_stock=result.get("available", 0),
+            in_production=0,  # Not available in current API
+            committed=result.get("allocated", 0),
+        )
+
+        logger.info(
+            f"Stock check complete for {request.sku}: "
+            f"{stock_info.available_stock} available"
+        )
+        return stock_info
+
+    except Exception as e:
+        logger.error(f"Failed to check inventory for SKU {request.sku}: {e}")
+        raise
 
 
 @mcp.tool()
@@ -114,25 +138,48 @@ async def _list_low_stock_items_impl(
 
     Returns:
         List of products below threshold with current levels
+
+    Raises:
+        ValueError: If threshold or limit are invalid
+        Exception: If API call fails
     """
-    client = context.server_context.client  # type: ignore[attr-defined]
-    items = await client.inventory.list_low_stock(threshold=request.threshold)
+    if request.threshold < 0:
+        raise ValueError("Threshold must be non-negative")
+    if request.limit <= 0:
+        raise ValueError("Limit must be positive")
 
-    # Limit results
-    limited_items = items[: request.limit]
-
-    return LowStockResponse(
-        items=[
-            LowStockItem(
-                sku=item["sku"] or "",
-                product_name=item["name"] or "",
-                current_stock=item["in_stock"],
-                threshold=request.threshold,
-            )
-            for item in limited_items
-        ],
-        total_count=len(items),
+    logger.info(
+        f"Listing low stock items (threshold={request.threshold}, limit={request.limit})"
     )
+
+    try:
+        client = context.server_context.client  # type: ignore[attr-defined]
+        items = await client.inventory.list_low_stock(threshold=request.threshold)
+
+        # Limit results
+        limited_items = items[: request.limit]
+
+        response = LowStockResponse(
+            items=[
+                LowStockItem(
+                    sku=item.get("sku") or "",
+                    product_name=item.get("name") or "",
+                    current_stock=item.get("in_stock", 0),
+                    threshold=request.threshold,
+                )
+                for item in limited_items
+            ],
+            total_count=len(items),
+        )
+
+        logger.info(
+            f"Found {response.total_count} low stock items, returning {len(response.items)}"
+        )
+        return response
+
+    except Exception as e:
+        logger.error(f"Failed to list low stock items: {e}")
+        raise
 
 
 @mcp.tool()
@@ -198,23 +245,44 @@ async def _search_products_impl(
 
     Returns:
         List of matching products with basic info
-    """
-    client = context.server_context.client  # type: ignore[attr-defined]
-    results = await client.products.search(request.query, limit=request.limit)
 
-    return SearchProductsResponse(
-        products=[
-            ProductInfo(
-                id=product.id,
-                sku=product.sku or "",
-                name=product.name or "",
-                is_sellable=product.is_sellable or False,
-                stock_level=getattr(product, "stock_level", None),
-            )
-            for product in results
-        ],
-        total_count=len(results),
+    Raises:
+        ValueError: If query is empty or limit is invalid
+        Exception: If API call fails
+    """
+    if not request.query or not request.query.strip():
+        raise ValueError("Search query cannot be empty")
+    if request.limit <= 0:
+        raise ValueError("Limit must be positive")
+
+    logger.info(
+        f"Searching products for query: '{request.query}' (limit={request.limit})"
     )
+
+    try:
+        client = context.server_context.client  # type: ignore[attr-defined]
+        results = await client.products.search(request.query, limit=request.limit)
+
+        response = SearchProductsResponse(
+            products=[
+                ProductInfo(
+                    id=product.id,
+                    sku=product.sku or "",
+                    name=product.name or "",
+                    is_sellable=product.is_sellable or False,
+                    stock_level=getattr(product, "stock_level", None),
+                )
+                for product in results
+            ],
+            total_count=len(results),
+        )
+
+        logger.info(f"Found {response.total_count} products matching '{request.query}'")
+        return response
+
+    except Exception as e:
+        logger.error(f"Failed to search products for query '{request.query}': {e}")
+        raise
 
 
 @mcp.tool()
