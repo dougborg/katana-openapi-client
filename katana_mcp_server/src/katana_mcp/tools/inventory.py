@@ -284,18 +284,27 @@ async def _search_products_impl(
         client = server_context.client  # type: ignore[attr-defined]
         results = await client.products.search(request.query, limit=request.limit)
 
-        response = SearchProductsResponse(
-            products=[
+        # Build response - extract SKU from first variant if available
+        products_info = []
+        for product in results:
+            # Products have variants with SKUs, not a direct SKU field
+            sku = ""
+            if product.variants and len(product.variants) > 0:
+                sku = product.variants[0].sku or ""
+
+            products_info.append(
                 ProductInfo(
                     id=product.id,
-                    sku=product.sku or "",
+                    sku=sku,
                     name=product.name or "",
                     is_sellable=product.is_sellable or False,
                     stock_level=getattr(product, "stock_level", None),
                 )
-                for product in results
-            ],
-            total_count=len(results),
+            )
+
+        response = SearchProductsResponse(
+            products=products_info,
+            total_count=len(products_info),
         )
 
         logger.info(f"Found {response.total_count} products matching '{request.query}'")
