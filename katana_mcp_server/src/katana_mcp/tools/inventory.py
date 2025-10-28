@@ -55,14 +55,28 @@ async def _check_inventory_impl(
 
     try:
         client = context.server_context.client  # type: ignore[attr-defined]
-        result = await client.inventory.check_stock(request.sku)
+        product = await client.inventory.check_stock(request.sku)
 
+        if not product:
+            # Product not found - return zero stock
+            stock_info = StockInfo(
+                sku=request.sku,
+                product_name="",
+                available_stock=0,
+                in_production=0,
+                committed=0,
+            )
+            logger.warning(f"SKU not found: {request.sku}")
+            return stock_info
+
+        # Extract stock information from Product model
+        stock = getattr(product, "stock_information", None)
         stock_info = StockInfo(
-            sku=result.get("sku", request.sku),
-            product_name=result.get("product_name", ""),
-            available_stock=result.get("available", 0),
+            sku=request.sku,
+            product_name=product.name or "",
+            available_stock=getattr(stock, "available", 0) if stock else 0,
             in_production=0,  # Not available in current API
-            committed=result.get("allocated", 0),
+            committed=getattr(stock, "allocated", 0) if stock else 0,
         )
 
         logger.info(
@@ -154,22 +168,27 @@ async def _list_low_stock_items_impl(
 
     try:
         client = context.server_context.client  # type: ignore[attr-defined]
-        items = await client.inventory.list_low_stock(threshold=request.threshold)
+        products = await client.inventory.list_low_stock(threshold=request.threshold)
 
         # Limit results
-        limited_items = items[: request.limit]
+        limited_products = products[: request.limit]
 
         response = LowStockResponse(
             items=[
                 LowStockItem(
-                    sku=item.get("sku") or "",
-                    product_name=item.get("name") or "",
-                    current_stock=item.get("in_stock", 0),
+                    sku=getattr(product, "sku", "") or "",
+                    product_name=product.name or "",
+                    current_stock=(
+                        getattr(product.stock_information, "in_stock", 0)
+                        if hasattr(product, "stock_information")
+                        and product.stock_information
+                        else 0
+                    ),
                     threshold=request.threshold,
                 )
-                for item in limited_items
+                for product in limited_products
             ],
-            total_count=len(items),
+            total_count=len(products),
         )
 
         logger.info(
