@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "katana-erp-dev": {
+      "command": "/Users/YOUR_USERNAME/.local/bin/uv",
+      "args": ["run", "mcp-hmr", "src/katana_mcp/server.py:mcp"],
+      "cwd": "/REPLACE/WITH/YOUR/PATH/TO/katana-openapi-client/katana_mcp_server",
+      "env": {
+        "KATANA_API_KEY": "${KATANA_API_KEY}",
+        "KATANA_BASE_URL": "https://api.katanamrp.com/v1"
+      }
+    },
+    "katana-erp": {
+      "command": "katana-mcp-server",
+      "env": {
+        "KATANA_API_KEY": "${KATANA_API_KEY}",
+        "KATANA_BASE_URL": "https://api.katanamrp.com/v1"
+      }
+    }
+  }
+}

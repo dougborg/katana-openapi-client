@@ -132,11 +132,11 @@ mcp = FastMCP(
     """,
 )
 
-# Import tools, resources, and prompts to register them with the mcp instance.
-# These imports must come after mcp initialization since they use @mcp decorators.
-# These imports have side effects (decorator registration) and do not appear as used in this file. Do NOT remove
-# them—they are critical for registering tools, resources, and prompts with the MCP server.
-from katana_mcp import prompts, resources, tools  # noqa: E402, F401
+# Register all tools, resources, and prompts with the mcp instance
+# This must come after mcp initialization
+from katana_mcp.tools import register_all_tools  # noqa: E402
+
+register_all_tools(mcp)
 
 
 def main(**kwargs: Any) -> None:

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import logging
 
-from fastmcp import Context
+from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
-from katana_mcp.server import mcp
+from katana_public_api_client.utils import get_variant_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,6 @@ async def _check_inventory_impl(
         raise
 
 
-@mcp.tool()
 async def check_inventory(
     request: CheckInventoryRequest, context: Context
 ) -> StockInfo:
@@ -205,7 +204,6 @@ async def _list_low_stock_items_impl(
         raise
 
 
-@mcp.tool()
 async def list_low_stock_items(
     request: LowStockRequest, context: Context
 ) -> LowStockResponse:
@@ -267,7 +265,7 @@ async def _search_products_impl(
         context: Server context with KatanaClient
 
     Returns:
-        List of matching products with basic info
+        List of matching product variants with extended names
 
     Raises:
         ValueError: If query is empty or limit is invalid
@@ -279,30 +277,43 @@ async def _search_products_impl(
         raise ValueError("Limit must be positive")
 
     logger.info(
-        f"Searching products for query: '{request.query}' (limit={request.limit})"
+        f"Searching variants for query: '{request.query}' (limit={request.limit})"
     )
 
     try:
         # Access KatanaClient from lifespan context
         server_context = context.request_context.lifespan_context  # type: ignore[attr-defined]
         client = server_context.client  # type: ignore[attr-defined]
-        results = await client.products.search(request.query, limit=request.limit)
+
+        # Search variants (which have SKUs) with parent product/material info
+        variants = await client.variants.search(request.query, limit=request.limit)
+
+        # Build response - format names matching Katana UI
+        products_info = []
+        for variant in variants:
+            # Build variant name using utility function
+            # Format: "Product Name / Config1 / Config2 / ..."
+            name = get_variant_display_name(variant)
+
+            # Determine if variant is sellable (products are sellable, materials are not)
+            is_sellable = variant.type_.value == "product" if variant.type_ else False
+
+            products_info.append(
+                ProductInfo(
+                    id=variant.id,
+                    sku=variant.sku or "",
+                    name=name,
+                    is_sellable=is_sellable,
+                    stock_level=None,  # Variants don't have stock_level directly
+                )
+            )
 
         response = SearchProductsResponse(
-            products=[
-                ProductInfo(
-                    id=product.id,
-                    sku=product.sku or "",
-                    name=product.name or "",
-                    is_sellable=product.is_sellable or False,
-                    stock_level=getattr(product, "stock_level", None),
-                )
-                for product in results
-            ],
-            total_count=len(results),
+            products=products_info,
+            total_count=len(products_info),
         )
 
-        logger.info(f"Found {response.total_count} products matching '{request.query}'")
+        logger.info(f"Found {response.total_count} variants matching '{request.query}'")
         return response
 
     except Exception as e:
@@ -310,7 +321,6 @@ async def _search_products_impl(
         raise
 
 
-@mcp.tool()
 async def search_products(
     request: SearchProductsRequest, context: Context
 ) -> SearchProductsResponse:
@@ -331,3 +341,14 @@ async def search_products(
         Returns: {"products": [...], "total_count": 5}
     """
     return await _search_products_impl(request, context)
+
+
+def register_tools(mcp: FastMCP) -> None:
+    """Register all inventory tools with the FastMCP instance.
+
+    Args:
+        mcp: FastMCP server instance to register tools with
+    """
+    mcp.tool()(check_inventory)
+    mcp.tool()(list_low_stock_items)
+    mcp.tool()(search_products)

@@ -38,7 +38,8 @@ KATANA_BASE_URL=https://api.katanamrp.com/v1  # Optional, uses default if not se
 
 ### 3. Use with Claude Desktop
 
-Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+Add to your Claude Desktop configuration
+(`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
 ```json
 {
@@ -72,9 +73,11 @@ katana-mcp-server
 Check stock levels for a specific product SKU.
 
 **Parameters**:
+
 - `sku` (string, required): Product SKU to check
 
 **Example Request**:
+
 ```json
 {
   "sku": "WIDGET-001"
@@ -82,6 +85,7 @@ Check stock levels for a specific product SKU.
 ```
 
 **Example Response**:
+
 ```json
 {
   "sku": "WIDGET-001",
@@ -93,21 +97,24 @@ Check stock levels for a specific product SKU.
 ```
 
 **Use Cases**:
+
 - "What's the current stock level for SKU WIDGET-001?"
 - "Check inventory for my best-selling product"
 - "How much stock do we have available for order fulfillment?"
 
----
+______________________________________________________________________
 
 ### list_low_stock_items
 
 Find products below a specified stock threshold.
 
 **Parameters**:
+
 - `threshold` (integer, optional, default: 10): Stock level threshold
 - `limit` (integer, optional, default: 50): Maximum items to return
 
 **Example Request**:
+
 ```json
 {
   "threshold": 5,
@@ -116,6 +123,7 @@ Find products below a specified stock threshold.
 ```
 
 **Example Response**:
+
 ```json
 {
   "items": [
@@ -137,21 +145,24 @@ Find products below a specified stock threshold.
 ```
 
 **Use Cases**:
+
 - "Show me products with less than 10 units in stock"
 - "What items need reordering?"
 - "Find critical low stock items (below 5 units)"
 
----
+______________________________________________________________________
 
 ### search_products
 
 Search for products by name or SKU.
 
 **Parameters**:
+
 - `query` (string, required): Search term (matches name or SKU)
 - `limit` (integer, optional, default: 20): Maximum results to return
 
 **Example Request**:
+
 ```json
 {
   "query": "widget",
@@ -160,6 +171,7 @@ Search for products by name or SKU.
 ```
 
 **Example Response**:
+
 ```json
 {
   "products": [
@@ -183,6 +195,7 @@ Search for products by name or SKU.
 ```
 
 **Use Cases**:
+
 - "Find all products containing 'widget'"
 - "Search for SKU PART-123"
 - "What products do we have in the electronics category?"
@@ -196,7 +209,9 @@ Search for products by name or SKU.
 
 ### Advanced Configuration
 
-The server uses the [katana-openapi-client](https://pypi.org/project/katana-openapi-client/) library with:
+The server uses the
+[katana-openapi-client](https://pypi.org/project/katana-openapi-client/) library with:
+
 - Automatic retries on rate limits (429) and server errors (5xx)
 - Exponential backoff with jitter
 - Transparent pagination for large result sets
@@ -209,6 +224,7 @@ The server uses the [katana-openapi-client](https://pypi.org/project/katana-open
 **Cause**: API key not set in environment.
 
 **Solution**: Set the environment variable or add to `.env` file:
+
 ```bash
 export KATANA_API_KEY=your-api-key-here
 ```
@@ -217,25 +233,87 @@ export KATANA_API_KEY=your-api-key-here
 
 **Cause**: Invalid or expired API key.
 
-**Solution**: Verify your API key in Katana account settings and update the environment variable.
+**Solution**: Verify your API key in Katana account settings and update the environment
+variable.
 
 ### Tools not showing up in Claude Desktop
 
 **Cause**: Configuration error or server not starting.
 
 **Solutions**:
+
 1. Check Claude Desktop logs: `~/Library/Logs/Claude/mcp*.log`
-2. Verify configuration file syntax (valid JSON)
-3. Test server standalone: `katana-mcp-server` (should start without errors)
-4. Restart Claude Desktop after configuration changes
+1. Verify configuration file syntax (valid JSON)
+1. Test server standalone: `katana-mcp-server` (should start without errors)
+1. Restart Claude Desktop after configuration changes
 
 ### Rate limiting (429 errors)
 
 **Cause**: Too many requests to Katana API.
 
-**Solution**: The server automatically retries with exponential backoff. If you see persistent rate limiting, reduce request frequency.
+**Solution**: The server automatically retries with exponential backoff. If you see
+persistent rate limiting, reduce request frequency.
 
 ## Development
+
+### Prerequisites
+
+- **uv** package manager -
+  [Install uv](https://docs.astral.sh/uv/getting-started/installation/)
+- **Python 3.12+** (for hot-reload mode)
+
+### Development Mode with Hot Reload ⚡
+
+For **rapid iteration** during development, use hot-reload mode to see changes instantly
+without rebuilding or restarting:
+
+```bash
+# 1. Install dependencies
+cd katana_mcp_server
+uv sync
+
+# 2. Install mcp-hmr (requires Python 3.12+)
+uv pip install mcp-hmr
+
+# 3. Run with hot reload
+uv run mcp-hmr src/katana_mcp/server.py:mcp
+```
+
+**Benefits**:
+
+- Edit code → Save → Changes apply instantly
+- No rebuild, no reinstall, no restart needed
+- Keep your Claude Desktop conversation context
+- Iteration time: ~5 seconds instead of 5-10 minutes
+
+**Claude Desktop Configuration for Development**:
+
+```json
+{
+  "mcpServers": {
+    "katana-erp-dev": {
+      "comment": "Use full path to uv - find with: which uv",
+      "command": "/Users/YOUR_USERNAME/.local/bin/uv",
+      "args": ["run", "mcp-hmr", "src/katana_mcp/server.py:mcp"],
+      "cwd": "/absolute/path/to/katana-openapi-client/katana_mcp_server",
+      "env": {
+        "KATANA_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+**Important**:
+
+- Replace `YOUR_USERNAME` with your actual username
+- Run `which uv` to find the correct uv path (usually `~/.local/bin/uv`)
+- Replace `/absolute/path/to/` with your repository path
+- Hot reload requires Python >=3.12. For Python 3.11 users, use the production install
+  method.
+
+See [DEVELOPMENT.md](../docs/mcp-server/DEVELOPMENT.md) for the complete development
+guide.
 
 ### Install from Source
 
@@ -256,11 +334,14 @@ export KATANA_API_KEY=your-key
 uv run pytest tests/
 ```
 
-### Local Development
+### Build and Install Locally
 
 ```bash
-# Run server in development mode
-uv run python -m katana_mcp
+# Build the package
+uv build
+
+# Install with pipx
+pipx install --force dist/katana_mcp_server-*.whl
 ```
 
 ## Version
@@ -268,6 +349,7 @@ uv run python -m katana_mcp
 Current version: **0.1.0a1** (alpha release)
 
 This is an alpha release with 3 inventory management tools. Future releases will add:
+
 - Sales order management
 - Purchase order management
 - Manufacturing order management
