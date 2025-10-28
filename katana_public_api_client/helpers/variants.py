@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 
 # Import list from builtins to avoid shadowing by our list() method
@@ -23,6 +24,8 @@ from katana_public_api_client.models.get_all_variants_extend_item import (
 from katana_public_api_client.models.update_variant_request import UpdateVariantRequest
 from katana_public_api_client.models.variant import Variant
 from katana_public_api_client.utils import get_variant_display_name, unwrap, unwrap_data
+
+logger = logging.getLogger(__name__)
 
 
 class VariantCache:
@@ -51,7 +54,7 @@ class VariantCache:
         """Check if cache is still valid."""
         if not self.variants:
             return False
-        age = time.time() - self.cached_at
+        age = time.monotonic() - self.cached_at
         return age < self.ttl_seconds
 
     def update(self, variants: List[Variant]) -> None:
@@ -61,11 +64,21 @@ class VariantCache:
             variants: List of variants to cache
         """
         self.variants = variants
-        self.cached_at = time.time()
+        self.cached_at = time.monotonic()
 
         # Build lookup dictionaries
         self.by_id = {v.id: v for v in variants}
-        self.by_sku = {v.sku: v for v in variants if v.sku}
+
+        # Build SKU lookup with duplicate detection
+        self.by_sku = {}
+        for v in variants:
+            if v.sku:
+                if v.sku in self.by_sku:
+                    logger.warning(
+                        f"Duplicate SKU detected: {v.sku} "
+                        f"(variant IDs: {self.by_sku[v.sku].id} and {v.id})"
+                    )
+                self.by_sku[v.sku] = v
 
     def clear(self) -> None:
         """Clear all cached data."""

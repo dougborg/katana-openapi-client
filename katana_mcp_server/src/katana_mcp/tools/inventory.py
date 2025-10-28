@@ -296,11 +296,7 @@ async def _search_products_impl(
             name = get_variant_display_name(variant)
 
             # Determine if variant is sellable (products are sellable, materials are not)
-            is_sellable = (
-                variant.type_ and variant.type_.value == "product"
-                if variant.type_
-                else False
-            )
+            is_sellable = variant.type_.value == "product" if variant.type_ else False
 
             products_info.append(
                 ProductInfo(
