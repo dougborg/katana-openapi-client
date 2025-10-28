@@ -286,12 +286,16 @@ async def _search_products_impl(
         # Search variants (which have SKUs) with parent product/material info
         variants = await client.variants.search(request.query, limit=request.limit)
 
-        # Build response using API-provided fully expanded variant names
+        # Build response - extract names from nested product/material objects
         products_info = []
         for variant in variants:
-            # API provides fully expanded name with variant attributes
-            # e.g., "Professional Kitchen Knife Set - 8-Piece - Steel Handles"
-            name = variant.product_or_material_name or ""
+            # Extract product/material name from nested object
+            # (API returns product_or_material object, not flat product_or_material_name string)
+            name = ""
+            if hasattr(variant, "product_or_material") and variant.product_or_material:
+                product_or_material = variant.product_or_material
+                if hasattr(product_or_material, "name"):
+                    name = product_or_material.name or ""
 
             # Determine if variant is sellable (products are sellable, materials are not)
             is_sellable = (
