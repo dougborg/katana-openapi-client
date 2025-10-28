@@ -1,0 +1,42 @@
+name: katana-erp
+image: mcp/katana-erp
+type: server
+meta:
+  category: productivity
+  tags:
+    - manufacturing
+    - erp
+    - inventory
+    - production
+    - orders
+about:
+  title: Katana Manufacturing ERP
+  description: MCP server for Katana Manufacturing ERP - manage inventory, production, and orders through AI agents
+  icon: https://raw.githubusercontent.com/dougborg/katana-openapi-client/main/site/assets/images/favicon.png
+source:
+  project: https://github.com/dougborg/katana-openapi-client
+  commit: HEAD
+config:
+  description: |
+    Configure the Katana MCP server with your API credentials.
+
+    To get your API key:
+    1. Log in to your Katana account
+    2. Navigate to Settings → Integrations → API
+    3. Create a new API key or copy your existing key
+
+    The base URL defaults to https://api.katanamrp.com/v1 for production use.
+  secrets:
+    - name: katana-erp.api_key
+      env: KATANA_API_KEY
+      example: your-api-key-here
+  env:
+    - name: KATANA_BASE_URL
+      example: https://api.katanamrp.com/v1
+      value: '{{katana-erp.base_url}}'
+  parameters:
+    type: object
+    properties:
+      base_url:
+        type: string
+        default: https://api.katanamrp.com/v1

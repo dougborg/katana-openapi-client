@@ -6,6 +6,7 @@ from typing import Any
 
 from katana_public_api_client.api.product import get_all_products
 from katana_public_api_client.helpers.base import Base
+from katana_public_api_client.models.product import Product
 from katana_public_api_client.utils import unwrap_data
 
 
@@ -30,7 +31,7 @@ class Inventory(Base):
 
     # === MCP Tool Support Methods ===
 
-    async def check_stock(self, sku: str) -> dict[str, Any]:
+    async def check_stock(self, sku: str) -> Product | None:
         """Check stock levels for a specific SKU.
 
         Used by: MCP tool check_inventory
@@ -39,11 +40,13 @@ class Inventory(Base):
             sku: The SKU to check stock for.
 
         Returns:
-            Dictionary with stock information including available, allocated, in_stock quantities.
+            Product model with stock information, or None if SKU not found.
 
         Example:
-            >>> stock = await client.inventory.check_stock("WIDGET-001")
-            >>> print(f"Available: {stock['available']}, In Stock: {stock['in_stock']}")
+            >>> product = await client.inventory.check_stock("WIDGET-001")
+            >>> if product:
+            ...     stock = product.stock_information
+            ...     print(f"Available: {stock.available}, In Stock: {stock.in_stock}")
         """
         # Note: The API doesn't support direct SKU filtering yet
         # We need to fetch products and filter client-side
@@ -54,37 +57,21 @@ class Inventory(Base):
         )
         products = unwrap_data(response)
 
-        # Find product by SKU
-        matching_product = None
+        # Find product by SKU - check both product.sku and variant.sku
         for product in products:
-            if getattr(product, "sku", None) == sku:
-                matching_product = product
-                break
+            # Check if product has sku attribute directly
+            if hasattr(product, "sku") and product.sku == sku:
+                return product
 
-        if not matching_product:
-            return {
-                "sku": sku,
-                "found": False,
-                "available": 0,
-                "allocated": 0,
-                "in_stock": 0,
-            }
+            # Check variants for matching SKU
+            if hasattr(product, "variants"):
+                for variant in product.variants or []:
+                    if hasattr(variant, "sku") and variant.sku == sku:
+                        return product
 
-        stock_info = getattr(matching_product, "stock_information", None)
+        return None
 
-        return {
-            "sku": sku,
-            "found": True,
-            "product_id": matching_product.id,
-            "product_name": matching_product.name,
-            "available": getattr(stock_info, "available", 0) if stock_info else 0,
-            "allocated": getattr(stock_info, "allocated", 0) if stock_info else 0,
-            "in_stock": getattr(stock_info, "in_stock", 0) if stock_info else 0,
-        }
-
-    async def list_low_stock(
-        self, threshold: int | None = None
-    ) -> list[dict[str, Any]]:
+    async def list_low_stock(self, threshold: int | None = None) -> list[Product]:
         """Find products below their reorder point.
 
         Used by: MCP tool list_low_stock_items
@@ -94,12 +81,13 @@ class Inventory(Base):
                       If None, uses each product's reorder point.
 
         Returns:
-            List of dictionaries with product and stock information.
+            List of Product models that are below stock threshold.
 
         Example:
             >>> low_stock = await client.inventory.list_low_stock(threshold=10)
-            >>> for item in low_stock:
-            ...     print(f"{item['sku']}: {item['in_stock']} units")
+            >>> for product in low_stock:
+            ...     stock = product.stock_information
+            ...     print(f"{product.sku}: {stock.in_stock} units")
         """
         # Note: Stock information is included in product response by default
         response = await get_all_products.asyncio_detailed(
@@ -125,17 +113,7 @@ class Inventory(Base):
                 is_low = in_stock < reorder_point
 
             if is_low:
-                low_stock_items.append(
-                    {
-                        "product_id": product.id,
-                        "sku": product.sku if hasattr(product, "sku") else None,
-                        "name": product.name,
-                        "in_stock": in_stock,
-                        "available": stock_info.available or 0,
-                        "allocated": stock_info.allocated or 0,
-                        "reorder_point": reorder_point,
-                    }
-                )
+                low_stock_items.append(product)
 
         return low_stock_items
 

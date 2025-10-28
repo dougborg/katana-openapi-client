@@ -13,6 +13,24 @@ from katana_mcp.tools.inventory import (
 )
 
 # ============================================================================
+# Test Helpers
+# ============================================================================
+
+
+def create_mock_context():
+    """Create a mock context with proper FastMCP structure.
+
+    Returns context with request_context.lifespan_context.client accessible.
+    """
+    context = MagicMock()
+    mock_request_context = MagicMock()
+    mock_lifespan_context = MagicMock()
+    context.request_context = mock_request_context
+    mock_request_context.lifespan_context = mock_lifespan_context
+    return context, mock_lifespan_context
+
+
+# ============================================================================
 # Unit Tests (with mocks)
 # ============================================================================
 
@@ -20,17 +38,18 @@ from katana_mcp.tools.inventory import (
 @pytest.mark.asyncio
 async def test_check_inventory():
     """Test check_inventory tool with mocked client."""
-    # Mock context and client
-    context = MagicMock()
-    context.state.client.inventory.check_stock = AsyncMock(
-        return_value={
-            "sku": "WIDGET-001",
-            "product_name": "Test Widget",
-            "available": 100,
-            "in_stock": 150,
-            "allocated": 30,
-        }
-    )
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock Product with stock_information
+    mock_product = MagicMock()
+    mock_product.name = "Test Widget"
+    mock_stock = MagicMock()
+    mock_stock.available = 100
+    mock_stock.allocated = 30
+    mock_stock.in_stock = 150
+    mock_product.stock_information = mock_stock
+
+    lifespan_ctx.client.inventory.check_stock = AsyncMock(return_value=mock_product)
 
     request = CheckInventoryRequest(sku="WIDGET-001")
     result = await _check_inventory_impl(request, context)
@@ -40,19 +59,20 @@ async def test_check_inventory():
     assert result.available_stock == 100
     assert result.in_production == 0  # Not available in API yet
     assert result.committed == 30
-    context.state.client.inventory.check_stock.assert_called_once_with("WIDGET-001")
+    lifespan_ctx.client.inventory.check_stock.assert_called_once_with("WIDGET-001")
 
 
 @pytest.mark.asyncio
 async def test_check_inventory_missing_fields():
     """Test check_inventory handles missing optional fields."""
-    context = MagicMock()
-    context.state.client.inventory.check_stock = AsyncMock(
-        return_value={
-            "sku": "WIDGET-002",
-            # Missing product_name, available, allocated
-        }
-    )
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock Product with missing stock_information
+    mock_product = MagicMock()
+    mock_product.name = ""
+    mock_product.stock_information = None
+
+    lifespan_ctx.client.inventory.check_stock = AsyncMock(return_value=mock_product)
 
     request = CheckInventoryRequest(sku="WIDGET-002")
     result = await _check_inventory_impl(request, context)
@@ -64,16 +84,41 @@ async def test_check_inventory_missing_fields():
 
 
 @pytest.mark.asyncio
+async def test_check_inventory_not_found():
+    """Test check_inventory when SKU not found."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.client.inventory.check_stock = AsyncMock(return_value=None)
+
+    request = CheckInventoryRequest(sku="NOT-FOUND")
+    result = await _check_inventory_impl(request, context)
+
+    assert result.sku == "NOT-FOUND"
+    assert result.product_name == ""
+    assert result.available_stock == 0
+    assert result.committed == 0
+
+
+@pytest.mark.asyncio
 async def test_list_low_stock_items():
     """Test list_low_stock_items tool with mocked client."""
-    context = MagicMock()
-    context.state.client.inventory.list_low_stock = AsyncMock(
-        return_value=[
-            {"sku": "ITEM-001", "name": "Item 1", "in_stock": 5},
-            {"sku": "ITEM-002", "name": "Item 2", "in_stock": 3},
-            {"sku": "ITEM-003", "name": "Item 3", "in_stock": 8},
-        ]
-    )
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock Product objects with stock_information
+    mock_products = []
+    for sku, name, stock in [
+        ("ITEM-001", "Item 1", 5),
+        ("ITEM-002", "Item 2", 3),
+        ("ITEM-003", "Item 3", 8),
+    ]:
+        product = MagicMock()
+        product.sku = sku
+        product.name = name
+        stock_info = MagicMock()
+        stock_info.in_stock = stock
+        product.stock_information = stock_info
+        mock_products.append(product)
+
+    lifespan_ctx.client.inventory.list_low_stock = AsyncMock(return_value=mock_products)
 
     request = LowStockRequest(threshold=10, limit=50)
     result = await _list_low_stock_items_impl(request, context)
@@ -83,19 +128,26 @@ async def test_list_low_stock_items():
     assert result.items[0].sku == "ITEM-001"
     assert result.items[0].current_stock == 5
     assert result.items[0].threshold == 10
-    context.state.client.inventory.list_low_stock.assert_called_once_with(threshold=10)
+    lifespan_ctx.client.inventory.list_low_stock.assert_called_once_with(threshold=10)
 
 
 @pytest.mark.asyncio
 async def test_list_low_stock_items_with_limit():
     """Test list_low_stock_items respects limit parameter."""
-    context = MagicMock()
-    context.state.client.inventory.list_low_stock = AsyncMock(
-        return_value=[
-            {"sku": f"ITEM-{i:03d}", "name": f"Item {i}", "in_stock": i}
-            for i in range(100)
-        ]
-    )
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock 100 Product objects
+    mock_products = []
+    for i in range(100):
+        product = MagicMock()
+        product.sku = f"ITEM-{i:03d}"
+        product.name = f"Item {i}"
+        stock_info = MagicMock()
+        stock_info.in_stock = i
+        product.stock_information = stock_info
+        mock_products.append(product)
+
+    lifespan_ctx.client.inventory.list_low_stock = AsyncMock(return_value=mock_products)
 
     request = LowStockRequest(threshold=10, limit=20)
     result = await _list_low_stock_items_impl(request, context)
@@ -107,12 +159,17 @@ async def test_list_low_stock_items_with_limit():
 @pytest.mark.asyncio
 async def test_list_low_stock_items_handles_none_values():
     """Test list_low_stock_items handles None SKU and name."""
-    context = MagicMock()
-    context.state.client.inventory.list_low_stock = AsyncMock(
-        return_value=[
-            {"sku": None, "name": None, "in_stock": 5},
-        ]
-    )
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock Product with None values
+    product = MagicMock()
+    product.sku = None
+    product.name = None
+    stock_info = MagicMock()
+    stock_info.in_stock = 5
+    product.stock_information = stock_info
+
+    lifespan_ctx.client.inventory.list_low_stock = AsyncMock(return_value=[product])
 
     request = LowStockRequest(threshold=10)
     result = await _list_low_stock_items_impl(request, context)
@@ -125,21 +182,21 @@ async def test_list_low_stock_items_handles_none_values():
 @pytest.mark.asyncio
 async def test_list_low_stock_default_parameters():
     """Test list_low_stock_items uses default threshold and limit."""
-    context = MagicMock()
-    context.state.client.inventory.list_low_stock = AsyncMock(return_value=[])
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.client.inventory.list_low_stock = AsyncMock(return_value=[])
 
     request = LowStockRequest()  # Use defaults
     await _list_low_stock_items_impl(request, context)
 
     assert request.threshold == 10  # Default
     assert request.limit == 50  # Default
-    context.state.client.inventory.list_low_stock.assert_called_once_with(threshold=10)
+    lifespan_ctx.client.inventory.list_low_stock.assert_called_once_with(threshold=10)
 
 
 @pytest.mark.asyncio
 async def test_search_products():
     """Test search_products tool with mocked client."""
-    context = MagicMock()
+    context, lifespan_ctx = create_mock_context()
 
     # Mock Product objects
     mock_product = MagicMock()
@@ -149,7 +206,7 @@ async def test_search_products():
     mock_product.is_sellable = True
     mock_product.stock_level = None
 
-    context.state.client.products.search = AsyncMock(return_value=[mock_product])
+    lifespan_ctx.client.products.search = AsyncMock(return_value=[mock_product])
 
     request = SearchProductsRequest(query="widget", limit=20)
     result = await _search_products_impl(request, context)
@@ -160,13 +217,13 @@ async def test_search_products():
     assert result.products[0].sku == "WIDGET-001"
     assert result.products[0].name == "Test Widget"
     assert result.products[0].is_sellable is True
-    context.state.client.products.search.assert_called_once_with("widget", limit=20)
+    lifespan_ctx.client.products.search.assert_called_once_with("widget", limit=20)
 
 
 @pytest.mark.asyncio
 async def test_search_products_handles_optional_fields():
     """Test search_products handles missing optional fields."""
-    context = MagicMock()
+    context, lifespan_ctx = create_mock_context()
 
     # Mock Product with missing optional fields
     mock_product = MagicMock()
@@ -175,7 +232,7 @@ async def test_search_products_handles_optional_fields():
     mock_product.name = None
     mock_product.is_sellable = None
 
-    context.state.client.products.search = AsyncMock(return_value=[mock_product])
+    lifespan_ctx.client.products.search = AsyncMock(return_value=[mock_product])
 
     request = SearchProductsRequest(query="test")
     result = await _search_products_impl(request, context)
@@ -188,20 +245,20 @@ async def test_search_products_handles_optional_fields():
 @pytest.mark.asyncio
 async def test_search_products_default_limit():
     """Test search_products uses default limit."""
-    context = MagicMock()
-    context.state.client.products.search = AsyncMock(return_value=[])
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.client.products.search = AsyncMock(return_value=[])
 
     request = SearchProductsRequest(query="test")  # Use default limit
     await _search_products_impl(request, context)
 
     assert request.limit == 20  # Default
-    context.state.client.products.search.assert_called_once_with("test", limit=20)
+    lifespan_ctx.client.products.search.assert_called_once_with("test", limit=20)
 
 
 @pytest.mark.asyncio
 async def test_search_products_multiple_results():
     """Test search_products with multiple results."""
-    context = MagicMock()
+    context, lifespan_ctx = create_mock_context()
 
     # Mock multiple Product objects
     mock_products = []
@@ -213,7 +270,7 @@ async def test_search_products_multiple_results():
         mock_product.is_sellable = i % 2 == 0
         mock_products.append(mock_product)
 
-    context.state.client.products.search = AsyncMock(return_value=mock_products)
+    lifespan_ctx.client.products.search = AsyncMock(return_value=mock_products)
 
     request = SearchProductsRequest(query="product", limit=10)
     result = await _search_products_impl(request, context)

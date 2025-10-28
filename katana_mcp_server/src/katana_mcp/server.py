@@ -19,6 +19,7 @@ from typing import Any
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 
+from katana_mcp import __version__
 from katana_public_api_client import KatanaClient
 
 # Configure logging
@@ -116,7 +117,7 @@ async def lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
 # Initialize FastMCP server with lifespan management
 mcp = FastMCP(
     name="katana-erp",
-    version="0.1.0",
+    version=__version__,
     lifespan=lifespan,
     instructions="""
     Katana MCP Server provides tools for interacting with Katana Manufacturing ERP.

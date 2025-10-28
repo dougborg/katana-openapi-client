@@ -1,0 +1,54 @@
+[
+  {
+    "name": "check_inventory",
+    "description": "Check stock levels for a specific product SKU. Retrieves current inventory levels including available stock, items in production, and committed quantities.",
+    "arguments": {
+      "type": "object",
+      "properties": {
+        "sku": {
+          "type": "string",
+          "description": "Product SKU to check"
+        }
+      },
+      "required": ["sku"]
+    }
+  },
+  {
+    "name": "list_low_stock_items",
+    "description": "List products below stock threshold. Identifies products that have fallen below a specified stock threshold, useful for proactive inventory management and reordering.",
+    "arguments": {
+      "type": "object",
+      "properties": {
+        "threshold": {
+          "type": "integer",
+          "description": "Stock threshold level",
+          "default": 10
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum items to return",
+          "default": 50
+        }
+      }
+    }
+  },
+  {
+    "name": "search_products",
+    "description": "Search for products by name or SKU. Performs a search across product catalog to find items matching the search query.",
+    "arguments": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Search query (name, SKU, etc.)"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum results to return",
+          "default": 20
+        }
+      },
+      "required": ["query"]
+    }
+  }
+]
