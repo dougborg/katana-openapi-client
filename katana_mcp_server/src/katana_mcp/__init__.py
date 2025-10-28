@@ -32,6 +32,8 @@ For more information, see the documentation at:
 https://dougborg.github.io/katana-openapi-client/
 """
 
-__version__ = "0.2.0"
+from importlib.metadata import version
+
+__version__ = version("katana-mcp-server")
 
 __all__ = ["__version__"]
