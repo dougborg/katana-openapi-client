@@ -34,7 +34,7 @@ uv sync
 uv pip install mcp-hmr
 
 # 3. Run server with hot reload
-uv run mcp-hmr src/katana_mcp/server.py:mcp
+uv run mcp-hmr katana_mcp.server:mcp
 ```
 
 **Result**: Edit code → Save → See changes instantly in Claude Desktop. No rebuild, no
@@ -81,8 +81,8 @@ You can configure Claude Desktop to support both modes simultaneously.
 {
   "mcpServers": {
     "katana-erp-dev": {
-      "command": "/Users/YOUR_USERNAME/.local/bin/uv",
-      "args": ["run", "mcp-hmr", "src/katana_mcp/server.py:mcp"],
+      "command": "/absolute/path/to/katana-openapi-client/.venv/bin/mcp-hmr",
+      "args": ["katana_mcp.server:mcp"],
       "cwd": "/absolute/path/to/katana-openapi-client/katana_mcp_server",
       "env": {
         "KATANA_API_KEY": "your-api-key-here"
@@ -100,10 +100,9 @@ You can configure Claude Desktop to support both modes simultaneously.
 
 **Important**:
 
-- Replace `YOUR_USERNAME` with your actual username
 - Replace `/absolute/path/to/` with your actual repository path
-- On Windows, use the full path to `uv.exe` (e.g.,
-  `C:\\Users\\YourName\\.local\\bin\\uv.exe`)
+- The `.venv/bin/mcp-hmr` executable is created when you run `uv pip install mcp-hmr`
+- On Windows, use `.venv\\Scripts\\mcp-hmr.exe` instead
 
 ### Switching Between Modes
 
@@ -121,7 +120,7 @@ creating a PR.
 ```bash
 # 1. Start development server (once)
 cd katana_mcp_server
-uv run mcp-hmr src/katana_mcp/server.py:mcp
+uv run mcp-hmr katana_mcp.server:mcp
 
 # 2. Use the MCP server in Claude Desktop
 #    - Chat with Claude
@@ -283,7 +282,7 @@ pipx install --force dist/*.whl    # Install for real
 
 ```bash
 # Start dev server once, keep it running all day
-uv run mcp-hmr src/katana_mcp/server.py:mcp
+uv run mcp-hmr katana_mcp.server:mcp
 ```
 
 ### 2. Test in Production Mode Before PR

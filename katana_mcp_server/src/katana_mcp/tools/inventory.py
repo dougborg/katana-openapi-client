@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import logging
 
-from fastmcp import Context
+from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
-
-from katana_mcp.server import mcp
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +90,6 @@ async def _check_inventory_impl(
         raise
 
 
-@mcp.tool()
 async def check_inventory(
     request: CheckInventoryRequest, context: Context
 ) -> StockInfo:
@@ -205,7 +202,6 @@ async def _list_low_stock_items_impl(
         raise
 
 
-@mcp.tool()
 async def list_low_stock_items(
     request: LowStockRequest, context: Context
 ) -> LowStockResponse:
@@ -310,7 +306,6 @@ async def _search_products_impl(
         raise
 
 
-@mcp.tool()
 async def search_products(
     request: SearchProductsRequest, context: Context
 ) -> SearchProductsResponse:
@@ -331,3 +326,14 @@ async def search_products(
         Returns: {"products": [...], "total_count": 5}
     """
     return await _search_products_impl(request, context)
+
+
+def register_tools(mcp: FastMCP) -> None:
+    """Register all inventory tools with the FastMCP instance.
+
+    Args:
+        mcp: FastMCP server instance to register tools with
+    """
+    mcp.tool()(check_inventory)
+    mcp.tool()(list_low_stock_items)
+    mcp.tool()(search_products)
