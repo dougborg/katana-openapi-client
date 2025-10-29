@@ -11,6 +11,11 @@ from katana_public_api_client.api.material import (
     get_material,
     update_material,
 )
+from katana_public_api_client.domain import (
+    KatanaMaterial,
+    material_to_katana,
+    materials_to_katana,
+)
 from katana_public_api_client.helpers.base import Base
 from katana_public_api_client.models.create_material_request import (
     CreateMaterialRequest,
@@ -35,14 +40,14 @@ class Materials(Base):
         ...     new_material = await client.materials.create({"name": "Steel"})
     """
 
-    async def list(self, **filters: Any) -> list[Material]:
+    async def list(self, **filters: Any) -> list[KatanaMaterial]:
         """List all materials with optional filters.
 
         Args:
             **filters: Filtering parameters.
 
         Returns:
-            List of Material objects.
+            List of KatanaMaterial domain model objects.
 
         Example:
             >>> materials = await client.materials.list(limit=100)
@@ -51,16 +56,17 @@ class Materials(Base):
             client=self._client,
             **filters,
         )
-        return unwrap_data(response)
+        attrs_materials = unwrap_data(response)
+        return materials_to_katana(attrs_materials)
 
-    async def get(self, material_id: int) -> Material:
+    async def get(self, material_id: int) -> KatanaMaterial:
         """Get a specific material by ID.
 
         Args:
             material_id: The material ID.
 
         Returns:
-            Material object.
+            KatanaMaterial domain model object.
 
         Example:
             >>> material = await client.materials.get(123)
@@ -70,16 +76,17 @@ class Materials(Base):
             id=material_id,
         )
         # unwrap() raises on errors, so cast is safe
-        return cast(Material, unwrap(response))
+        attrs_material = cast(Material, unwrap(response))
+        return material_to_katana(attrs_material)
 
-    async def create(self, material_data: CreateMaterialRequest) -> Material:
+    async def create(self, material_data: CreateMaterialRequest) -> KatanaMaterial:
         """Create a new material.
 
         Args:
             material_data: CreateMaterialRequest model with material details.
 
         Returns:
-            Created Material object.
+            Created KatanaMaterial domain model object.
 
         Example:
             >>> from katana_public_api_client.models import CreateMaterialRequest
@@ -92,11 +99,12 @@ class Materials(Base):
             body=material_data,
         )
         # unwrap() raises on errors, so cast is safe
-        return cast(Material, unwrap(response))
+        attrs_material = cast(Material, unwrap(response))
+        return material_to_katana(attrs_material)
 
     async def update(
         self, material_id: int, material_data: UpdateMaterialRequest
-    ) -> Material:
+    ) -> KatanaMaterial:
         """Update an existing material.
 
         Args:
@@ -104,7 +112,7 @@ class Materials(Base):
             material_data: UpdateMaterialRequest model with fields to update.
 
         Returns:
-            Updated Material object.
+            Updated KatanaMaterial domain model object.
 
         Example:
             >>> from katana_public_api_client.models import UpdateMaterialRequest
@@ -118,7 +126,8 @@ class Materials(Base):
             body=material_data,
         )
         # unwrap() raises on errors, so cast is safe
-        return cast(Material, unwrap(response))
+        attrs_material = cast(Material, unwrap(response))
+        return material_to_katana(attrs_material)
 
     async def delete(self, material_id: int) -> None:
         """Delete a material.

@@ -32,12 +32,34 @@ Example:
 """
 
 from .base import KatanaBaseModel
-from .converters import unwrap_unset, variant_to_katana, variants_to_katana
+from .converters import (
+    material_to_katana,
+    materials_to_katana,
+    product_to_katana,
+    products_to_katana,
+    service_to_katana,
+    services_to_katana,
+    unwrap_unset,
+    variant_to_katana,
+    variants_to_katana,
+)
+from .material import KatanaMaterial
+from .product import KatanaProduct
+from .service import KatanaService
 from .variant import KatanaVariant
 
 __all__ = [
     "KatanaBaseModel",
+    "KatanaMaterial",
+    "KatanaProduct",
+    "KatanaService",
     "KatanaVariant",
+    "material_to_katana",
+    "materials_to_katana",
+    "product_to_katana",
+    "products_to_katana",
+    "service_to_katana",
+    "services_to_katana",
     "unwrap_unset",
     "variant_to_katana",
     "variants_to_katana",

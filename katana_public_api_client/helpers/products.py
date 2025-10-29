@@ -12,6 +12,11 @@ from katana_public_api_client.api.product import (
     get_product,
     update_product,
 )
+from katana_public_api_client.domain import (
+    KatanaProduct,
+    product_to_katana,
+    products_to_katana,
+)
 from katana_public_api_client.helpers.base import Base
 from katana_public_api_client.models.create_product_request import CreateProductRequest
 from katana_public_api_client.models.product import Product
@@ -35,14 +40,14 @@ class Products(Base):
         ...     new_product = await client.products.create({"name": "Widget"})
     """
 
-    async def list(self, **filters: Any) -> list[Product]:
+    async def list(self, **filters: Any) -> list[KatanaProduct]:
         """List all products with optional filters.
 
         Args:
             **filters: Filtering parameters (e.g., is_sellable, is_producible, include_deleted).
 
         Returns:
-            List of Product objects.
+            List of KatanaProduct domain model objects.
 
         Example:
             >>> products = await client.products.list(is_sellable=True, limit=100)
@@ -51,16 +56,17 @@ class Products(Base):
             client=self._client,
             **filters,
         )
-        return unwrap_data(response)
+        attrs_products = unwrap_data(response)
+        return products_to_katana(attrs_products)
 
-    async def get(self, product_id: int) -> Product:
+    async def get(self, product_id: int) -> KatanaProduct:
         """Get a specific product by ID.
 
         Args:
             product_id: The product ID.
 
         Returns:
-            Product object.
+            KatanaProduct domain model object.
 
         Example:
             >>> product = await client.products.get(123)
@@ -70,16 +76,17 @@ class Products(Base):
             id=product_id,
         )
         # unwrap() raises on errors, so cast is safe
-        return cast(Product, unwrap(response))
+        attrs_product = cast(Product, unwrap(response))
+        return product_to_katana(attrs_product)
 
-    async def create(self, product_data: CreateProductRequest) -> Product:
+    async def create(self, product_data: CreateProductRequest) -> KatanaProduct:
         """Create a new product.
 
         Args:
             product_data: CreateProductRequest model with product details.
 
         Returns:
-            Created Product object.
+            Created KatanaProduct domain model object.
 
         Example:
             >>> from katana_public_api_client.models import CreateProductRequest
@@ -97,11 +104,12 @@ class Products(Base):
             body=product_data,
         )
         # unwrap() raises on errors, so cast is safe
-        return cast(Product, unwrap(response))
+        attrs_product = cast(Product, unwrap(response))
+        return product_to_katana(attrs_product)
 
     async def update(
         self, product_id: int, product_data: UpdateProductRequest
-    ) -> Product:
+    ) -> KatanaProduct:
         """Update an existing product.
 
         Args:
@@ -109,7 +117,7 @@ class Products(Base):
             product_data: UpdateProductRequest model with fields to update.
 
         Returns:
-            Updated Product object.
+            Updated KatanaProduct domain model object.
 
         Example:
             >>> from katana_public_api_client.models import UpdateProductRequest
@@ -123,7 +131,8 @@ class Products(Base):
             body=product_data,
         )
         # unwrap() raises on errors, so cast is safe
-        return cast(Product, unwrap(response))
+        attrs_product = cast(Product, unwrap(response))
+        return product_to_katana(attrs_product)
 
     async def delete(self, product_id: int) -> None:
         """Delete a product.
@@ -139,49 +148,38 @@ class Products(Base):
             id=product_id,
         )
 
-    async def search(self, query: str, limit: int = 50) -> builtins.list[Product]:
-        """Search products by name or SKU (fuzzy search).
+    async def search(self, query: str, limit: int = 50) -> builtins.list[KatanaProduct]:
+        """Search products by name (fuzzy search).
 
         Used by: MCP tool search_products
 
         Note: The Katana API 'name' parameter only does exact matches, so we
-        fetch all products and perform client-side fuzzy searching across both
-        product names and variant SKUs.
+        fetch all products and perform client-side fuzzy searching against
+        product names.
 
         Args:
-            query: Search query to match against product names and SKUs (case-insensitive).
+            query: Search query to match against product names (case-insensitive).
             limit: Maximum number of results to return.
 
         Returns:
-            List of matching Product objects, sorted by relevance.
+            List of matching KatanaProduct domain model objects, sorted by relevance.
 
         Example:
             >>> products = await client.products.search("fox", limit=10)
             >>> for product in products:
-            ...     print(f"{product.sku}: {product.name}")
+            ...     print(f"{product.id}: {product.name}")
         """
         # Fetch all products (the API doesn't support partial/fuzzy search)
         response = await get_all_products.asyncio_detailed(
             client=self._client,
             limit=1000,  # Fetch up to 1000 products for searching
         )
-        all_products = unwrap_data(response)
+        attrs_products = unwrap_data(response)
 
-        # Perform case-insensitive fuzzy search on product names and variant SKUs
-        query_lower = query.lower()
-        matches = []
+        # Convert to domain models
+        domain_products = products_to_katana(attrs_products)
 
-        for product in all_products:
-            # Check product name
-            if product.name and query_lower in product.name.lower():
-                matches.append(product)
-                continue
-
-            # Check variant SKUs
-            if product.variants:
-                for variant in product.variants:
-                    if variant.sku and query_lower in variant.sku.lower():
-                        matches.append(product)
-                        break
+        # Use domain model's matches_search method
+        matches = [p for p in domain_products if p.matches_search(query)]
 
         return matches[:limit]
