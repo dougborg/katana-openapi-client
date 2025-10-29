@@ -16,6 +16,8 @@ from katana_public_api_client.api.variant import (
     get_variant,
     update_variant,
 )
+from katana_public_api_client.domain import KatanaVariant, variants_to_katana
+from katana_public_api_client.domain.converters import variant_to_katana
 from katana_public_api_client.helpers.base import Base
 from katana_public_api_client.models.create_variant_request import CreateVariantRequest
 from katana_public_api_client.models.get_all_variants_extend_item import (
@@ -23,7 +25,7 @@ from katana_public_api_client.models.get_all_variants_extend_item import (
 )
 from katana_public_api_client.models.update_variant_request import UpdateVariantRequest
 from katana_public_api_client.models.variant import Variant
-from katana_public_api_client.utils import get_variant_display_name, unwrap, unwrap_data
+from katana_public_api_client.utils import unwrap, unwrap_data
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,8 @@ class VariantCache:
     - Dict by variant ID (O(1) lookup by ID)
     - Dict by SKU (O(1) lookup by SKU)
     - TTL-based invalidation
+
+    Note: Cache stores Pydantic KatanaVariant models (not attrs models).
     """
 
     def __init__(self, ttl_seconds: int = 300):
@@ -45,9 +49,9 @@ class VariantCache:
             ttl_seconds: Time-to-live in seconds. Default 5 minutes.
         """
         self.ttl_seconds = ttl_seconds
-        self.variants: List[Variant] = []
-        self.by_id: dict[int, Variant] = {}
-        self.by_sku: dict[str, Variant] = {}
+        self.variants: List[KatanaVariant] = []
+        self.by_id: dict[int, KatanaVariant] = {}
+        self.by_sku: dict[str, KatanaVariant] = {}
         self.cached_at: float = 0
 
     def is_valid(self) -> bool:
@@ -57,11 +61,11 @@ class VariantCache:
         age = time.monotonic() - self.cached_at
         return age < self.ttl_seconds
 
-    def update(self, variants: List[Variant]) -> None:
+    def update(self, variants: List[KatanaVariant]) -> None:
         """Update cache with new variant list.
 
         Args:
-            variants: List of variants to cache
+            variants: List of domain variants to cache
         """
         self.variants = variants
         self.cached_at = time.monotonic()
@@ -113,44 +117,50 @@ class Variants(Base):
         super().__init__(*args, **kwargs)
         self._cache = VariantCache(ttl_seconds=300)  # 5 minute cache
 
-    async def list(self, **filters: Any) -> List[Variant]:
+    async def list(self, **filters: Any) -> List[KatanaVariant]:
         """List all variants with optional filters.
 
         Args:
             **filters: Filtering parameters.
 
         Returns:
-            List of Variant objects.
+            List of KatanaVariant objects.
 
         Example:
             >>> variants = await client.variants.list(limit=100)
+            >>> for v in variants:
+            ...     print(f"{v.get_display_name()}: {v.profit_margin}%")
         """
         response = await get_all_variants.asyncio_detailed(
             client=self._client,
             **filters,
         )
-        return unwrap_data(response)
+        attrs_variants = unwrap_data(response)
+        return variants_to_katana(attrs_variants)
 
-    async def get(self, variant_id: int) -> Variant:
+    async def get(self, variant_id: int) -> KatanaVariant:
         """Get a specific variant by ID.
 
         Args:
             variant_id: The variant ID.
 
         Returns:
-            Variant object.
+            KatanaVariant object.
 
         Example:
             >>> variant = await client.variants.get(123)
+            >>> print(variant.get_display_name())
+            >>> print(f"Profit margin: {variant.profit_margin}%")
         """
         response = await get_variant.asyncio_detailed(
             client=self._client,
             id=variant_id,
         )
         # unwrap() raises on errors, so cast is safe
-        return cast(Variant, unwrap(response))
+        attrs_variant = cast(Variant, unwrap(response))
+        return variant_to_katana(attrs_variant)
 
-    async def create(self, variant_data: CreateVariantRequest) -> Variant:
+    async def create(self, variant_data: CreateVariantRequest) -> KatanaVariant:
         """Create a new variant.
 
         Note: Clears the variant cache after creation.
@@ -174,11 +184,12 @@ class Variants(Base):
         # Clear cache since data changed
         self._cache.clear()
         # unwrap() raises on errors, so cast is safe
-        return cast(Variant, unwrap(response))
+        attrs_variant = cast(Variant, unwrap(response))
+        return variant_to_katana(attrs_variant)
 
     async def update(
         self, variant_id: int, variant_data: UpdateVariantRequest
-    ) -> Variant:
+    ) -> KatanaVariant:
         """Update an existing variant.
 
         Note: Clears the variant cache after update.
@@ -204,7 +215,8 @@ class Variants(Base):
         # Clear cache since data changed
         self._cache.clear()
         # unwrap() raises on errors, so cast is safe
-        return cast(Variant, unwrap(response))
+        attrs_variant = cast(Variant, unwrap(response))
+        return variant_to_katana(attrs_variant)
 
     async def delete(self, variant_id: int) -> None:
         """Delete a variant.
@@ -224,11 +236,11 @@ class Variants(Base):
         # Clear cache since data changed
         self._cache.clear()
 
-    async def _fetch_all_variants(self) -> List[Variant]:
+    async def _fetch_all_variants(self) -> List[KatanaVariant]:
         """Fetch all variants with parent info. Uses cache if valid.
 
         Returns:
-            List of all Variant objects with product_or_material_name populated.
+            List of all KatanaVariant objects with product_or_material_name populated.
         """
         # Check cache first
         if self._cache.is_valid():
@@ -240,14 +252,17 @@ class Variants(Base):
             extend=[GetAllVariantsExtendItem.PRODUCT_OR_MATERIAL],
             # No limit = fetch all pages automatically (up to max_pages in client)
         )
-        all_variants = unwrap_data(response)
+        all_variants_attrs = unwrap_data(response)
+
+        # Convert to domain models
+        all_variants = variants_to_katana(all_variants_attrs)
 
         # Update cache
         self._cache.update(all_variants)
 
         return all_variants
 
-    def _get_variant_name(self, variant: Variant) -> str:
+    def _get_variant_name(self, variant: KatanaVariant) -> str:
         """Build the full variant display name matching Katana UI format.
 
         Format: "{Product/Material Name} / {Config Value 1} / {Config Value 2} / ..."
@@ -255,17 +270,19 @@ class Variants(Base):
         Example: "Mayhem 140 / Liquid Black / Large / 5 Star"
 
         Args:
-            variant: Variant object
+            variant: KatanaVariant object
 
         Returns:
             Formatted variant name with config values, or empty string
 
         Note:
-            This is a convenience wrapper around the get_variant_display_name utility.
+            This is a convenience wrapper - domain models have get_display_name() method.
         """
-        return get_variant_display_name(variant)
+        return variant.get_display_name()
 
-    def _calculate_relevance(self, variant: Variant, query_tokens: List[str]) -> int:
+    def _calculate_relevance(
+        self, variant: KatanaVariant, query_tokens: List[str]
+    ) -> int:
         """Calculate relevance score for a variant against query tokens.
 
         Scoring:
@@ -309,7 +326,7 @@ class Variants(Base):
 
         return 0
 
-    async def search(self, query: str, limit: int = 50) -> List[Variant]:
+    async def search(self, query: str, limit: int = 50) -> List[KatanaVariant]:
         """Search variants by SKU or parent product/material name with relevance ranking.
 
         Used by: MCP tool search_products
@@ -346,7 +363,7 @@ class Variants(Base):
         all_variants = await self._fetch_all_variants()
 
         # Score and filter variants
-        scored_matches: list[tuple[Variant, int]] = []
+        scored_matches: list[tuple[KatanaVariant, int]] = []
 
         for variant in all_variants:
             score = self._calculate_relevance(variant, query_tokens)
