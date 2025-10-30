@@ -43,7 +43,7 @@ def unwrap_unset(value: T | Unset, default: T | None = None) -> T | None:
         unwrap_unset(UNSET, 0)  # 0
         ```
     """
-    return default if isinstance(value, type(UNSET)) else value  # type: ignore[return-value]
+    return default if value is UNSET else value  # type: ignore[return-value]
 
 
 def variant_to_katana(variant: Variant) -> KatanaVariant:

@@ -149,7 +149,7 @@ class Products(Base):
         )
 
     async def search(self, query: str, limit: int = 50) -> builtins.list[KatanaProduct]:
-        """Search products by name (case-insensitive substring search).
+        """Search products by name and category (case-insensitive substring search).
 
         Used by: MCP tool search_products
 

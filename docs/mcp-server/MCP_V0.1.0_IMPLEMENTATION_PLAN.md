@@ -830,13 +830,13 @@ async def create_purchase_order(
 ) -> CreatePurchaseOrderResponse:
     """Create a purchase order with two-step confirmation.
 
-    Step 1: Call with confirm=false (default)
+    Step 1: Call with confirm=False (default)
         - Validates inputs
         - Calculates totals
         - Checks supplier info
         - Returns preview without creating anything
 
-    Step 2: Call with confirm=true
+    Step 2: Call with confirm=True
         - Creates the actual PO in Katana
         - Returns created order details
 
