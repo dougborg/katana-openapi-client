@@ -1,0 +1,39 @@
+# Pre-commit configuration (LITE) for fast iteration
+# Use this for rapid development iteration (~5-10 seconds)
+#
+# Install: uv run pre-commit install --config .pre-commit-config-lite.yaml
+# Run manually: uv run pre-commit run --all-files --config .pre-commit-config-lite.yaml
+#
+# For full validation, use .pre-commit-config.yaml instead.
+# See AGENT_WORKFLOW.md for when to use each configuration.
+
+repos:
+  # Ruff - Fast Python linter and formatter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.3
+    hooks:
+      # Run the linter
+      - id: ruff
+        args: [--fix]
+      # Run the formatter
+      - id: ruff-format
+
+  # General pre-commit hooks (fast checks only)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-added-large-files
+        exclude: 'docs/katana-api-comprehensive/openapi-spec\.json'
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+# Excluded from lite config for speed:
+# - check-yaml (can be slow)
+# - mdformat (can be slow on many markdown files)
+# - yamllint (not critical for fast iteration)
+# - pytest (too slow for fast iteration - use poe quick-check instead)
