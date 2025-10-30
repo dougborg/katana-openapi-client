@@ -48,23 +48,29 @@ cp .env.example .env  # Add your KATANA_API_KEY
 
 - **`uv run poe quick-check`** (~5-10s) - Format + lint only → Use during development
 - **`uv run poe agent-check`** (~10-15s) - Format + lint + mypy → Use before committing
-- **`uv run poe check`** (~40s) - Full validation → **REQUIRED before opening PR**
-- **`uv run poe full-check`** (~50s) - Everything + docs → Use before requesting review
+- **`uv run poe check`** (~35-40s) - Full validation → **REQUIRED before opening PR**
+- **`uv run poe full-check`** (~45-50s) - Everything + docs → Use before requesting
+  review
 
 ### Development Workflow
 
 - **Setup**: `uv sync --all-extras`
 - **Format code**: `uv run poe format`
 - **Lint code**: `uv run poe lint` (11 seconds, NEVER CANCEL)
-- **Run tests**: `uv run poe test` (27 seconds, NEVER CANCEL)
+- **Run tests**: `uv run poe test` (21 seconds with parallel execution, NEVER CANCEL)
 - **Auto-fix issues**: `uv run poe fix`
 
 ### Testing Commands
 
-- **Basic tests**: `uv run poe test`
-- **With coverage**: `uv run poe test-coverage` (39 seconds, NEVER CANCEL)
+- **Basic tests**: `uv run poe test` (parallel execution, ~21s)
+- **Sequential tests**: `uv run poe test-sequential` (if parallel has issues, ~27s)
+- **With coverage**: `uv run poe test-coverage` (25-30 seconds, NEVER CANCEL)
 - **Unit tests only**: `uv run poe test-unit`
 - **Integration tests**: `uv run poe test-integration` (requires KATANA_API_KEY in .env)
+- **Schema validation**: `uv run poe test-schema` (excluded by default, run explicitly)
+
+**Note**: Tests use pytest-xdist for parallel execution. Schema validation tests are
+excluded by default due to pytest-xdist collection issues.
 
 ### OpenAPI and Client Management
 
@@ -227,9 +233,9 @@ All tools are configured in `pyproject.toml` (no separate config files):
 
 - `uv sync --all-extras`: ~5-10 seconds (timeout: 30+ minutes)
 - `uv run poe lint`: ~11 seconds (timeout: 15+ minutes)
-- `uv run poe test`: ~27 seconds (timeout: 30+ minutes)
-- `uv run poe test-coverage`: ~39 seconds (timeout: 45+ minutes)
-- `uv run poe check`: ~40 seconds (timeout: 60+ minutes)
+- `uv run poe test`: ~21 seconds (timeout: 30+ minutes)
+- `uv run poe test-coverage`: ~25-30 seconds (timeout: 45+ minutes)
+- `uv run poe check`: ~35-40 seconds (timeout: 60+ minutes)
 - `uv run poe docs-build`: ~2.5 minutes (timeout: 60+ minutes)
 - `uv run poe regenerate-client`: ~2+ minutes (timeout: 60+ minutes)
 

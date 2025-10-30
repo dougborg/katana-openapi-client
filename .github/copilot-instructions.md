@@ -196,11 +196,17 @@ uv run poe fix             # Auto-fix formatting and linting issues
 ### Testing
 
 ```bash
-uv run poe test                # Run basic test suite (~27s)
-uv run poe test-coverage       # Run tests with coverage (~39s)
+uv run poe test                # Run basic test suite in parallel (~21s)
+uv run poe test-sequential     # Run tests sequentially if needed (~27s)
+uv run poe test-coverage       # Run tests with coverage (~25-30s)
 uv run poe test-unit           # Unit tests only
 uv run poe test-integration    # Integration tests (needs KATANA_API_KEY)
+uv run poe test-schema         # Schema validation tests (excluded by default)
 ```
+
+**Note**: Tests use pytest-xdist for parallel execution by default. Schema validation
+tests are excluded from default runs due to pytest-xdist collection issues but can be
+run explicitly with `uv run poe test-schema`.
 
 ### Validation Tiers
 
@@ -369,10 +375,10 @@ ______________________________________________________________________
 | `uv run poe quick-check`       | ~5-10 seconds  | 15+ minutes     |
 | `uv run poe agent-check`       | ~10-15 seconds | 20+ minutes     |
 | `uv run poe lint`              | ~11 seconds    | 15+ minutes     |
-| `uv run poe test`              | ~27 seconds    | 30+ minutes     |
-| `uv run poe test-coverage`     | ~39 seconds    | 45+ minutes     |
-| `uv run poe check`             | ~40 seconds    | 60+ minutes     |
-| `uv run poe full-check`        | ~50 seconds    | 60+ minutes     |
+| `uv run poe test`              | ~21 seconds    | 30+ minutes     |
+| `uv run poe test-coverage`     | ~25-30 seconds | 45+ minutes     |
+| `uv run poe check`             | ~35-40 seconds | 60+ minutes     |
+| `uv run poe full-check`        | ~45-50 seconds | 60+ minutes     |
 | `uv run poe docs-build`        | ~2.5 minutes   | 60+ minutes     |
 | `uv run poe regenerate-client` | ~2+ minutes    | 60+ minutes     |
 

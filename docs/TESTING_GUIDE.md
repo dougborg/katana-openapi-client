@@ -54,21 +54,45 @@ Our test suite uses a **zero-tolerance approach** for API quality issues:
 ### Development Workflow
 
 ```bash
-# Run all tests
+# Run all tests (parallel execution with pytest-xdist, ~21s)
 uv run poe test
 
-# Test specific areas
-uv run pytest tests/test_schema_comprehensive.py        # Schema issues
-uv run pytest tests/test_endpoint_comprehensive.py     # Endpoint issues
-uv run pytest tests/test_openapi_specification.py      # Structure issues
-uv run pytest tests/test_external_documentation_comparison.py  # External consistency
+# Run tests sequentially (if parallel has issues)
+uv run poe test-sequential
 
 # Run with coverage
 uv run poe test-coverage
 
-# Analyze coverage by category
-uv run poe analyze-coverage
+# Test specific areas
+uv run pytest tests/test_endpoint_comprehensive.py     # Endpoint issues
+uv run pytest tests/test_openapi_specification.py      # Structure issues
+uv run pytest tests/test_external_documentation_comparison.py  # External consistency
+
+# Schema validation tests (run explicitly, excluded by default)
+# Note: Excluded from default runs due to pytest-xdist collection issues
+uv run poe test-schema
 ```
+
+### Schema Validation Tests
+
+**Note**: `test_schema_comprehensive.py` uses dynamic test parametrization that causes
+collection issues with pytest-xdist (parallel test execution). These tests are marked
+with `@pytest.mark.schema_validation` and excluded from default test runs.
+
+**To run schema validation tests explicitly:**
+
+```bash
+uv run poe test-schema
+# or
+uv run pytest -m schema_validation
+```
+
+**Why excluded by default:**
+
+- Dynamic parametrization via `pytest_generate_tests()` causes non-deterministic test
+  collection across parallel workers
+- Parallel execution improves test time from ~27s to ~21s (22% speedup)
+- Schema validation tests are still available for on-demand quality checks
 
 ### Debugging Test Failures
 
