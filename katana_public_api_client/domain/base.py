@@ -113,24 +113,5 @@ class KatanaBaseModel(BaseModel):
         # Pydantic v2 automatically includes computed fields in model_dump
         return self.model_dump(mode="python", exclude_none=True)
 
-    @classmethod
-    def from_api_model(cls, api_model: Any) -> KatanaBaseModel:
-        """Convert from attrs API model to domain model.
-
-        This method should be overridden by subclasses to provide
-        specific conversion logic.
-
-        Args:
-            api_model: The attrs model from the generated API
-
-        Returns:
-            Domain model instance
-
-        Raises:
-            NotImplementedError: If not overridden by subclass
-        """
-        msg = f"{cls.__name__}.from_api_model() must be implemented by subclass"
-        raise NotImplementedError(msg)
-
 
 __all__ = ["KatanaBaseModel"]

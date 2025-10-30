@@ -149,13 +149,13 @@ class Products(Base):
         )
 
     async def search(self, query: str, limit: int = 50) -> builtins.list[KatanaProduct]:
-        """Search products by name (fuzzy search).
+        """Search products by name (case-insensitive substring search).
 
         Used by: MCP tool search_products
 
         Note: The Katana API 'name' parameter only does exact matches, so we
-        fetch all products and perform client-side fuzzy searching against
-        product names.
+        fetch all products and perform client-side substring searching against
+        product names and categories.
 
         Args:
             query: Search query to match against product names (case-insensitive).
