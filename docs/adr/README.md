@@ -36,13 +36,14 @@ We use the format proposed by Michael Nygard in his article
 - [ADR-004: Defer Observability to httpx](0004-defer-observability-to-httpx.md)
 - [ADR-005: Provide Both Sync and Async APIs](0005-sync-async-apis.md)
 - [ADR-006: Use Utility Functions for Response Unwrapping](0006-response-unwrapping-utilities.md)
+- [ADR-007: Generate Domain Helper Classes](0007-domain-helper-classes.md)
 - [ADR-009: Migrate from Poetry to uv Package Manager](0009-migrate-from-poetry-to-uv.md)
 - [ADR-010: Create Katana MCP Server for Claude Code Integration](0010-katana-mcp-server.md)
+- [ADR-011: Pydantic Domain Models for Business Entities](0011-pydantic-domain-models.md)
+- [ADR-012: Validation Tiers for Agent Workflows](0012-validation-tiers-for-agent-workflows.md)
 
 ### Proposed Architecture Decisions
 
-- [ADR-007: Generate Domain Helper Classes](0007-domain-helper-classes.md) -
-  **PROPOSED**
 - [ADR-008: Avoid Traditional Builder Pattern](0008-avoid-builder-pattern.md) -
   **PROPOSED**
 

@@ -401,7 +401,14 @@ pre-commit-update = "pre-commit autoupdate"
 # -----------------------------------------------------------------------------
 # Combined Workflow Tasks
 # -----------------------------------------------------------------------------
-check = ["format-check", "lint", "test"]
+
+# Validation Tiers (for agent workflows)
+quick-check = ["format-check", "lint-ruff"]                              # Tier 1: Fast feedback (~5-10s)
+agent-check = ["format-check", "lint-ruff", "lint-mypy"]                # Tier 2: Pre-commit (~10-15s)
+check = ["format-check", "lint", "test"]                                 # Tier 3: PR validation (~40s)
+full-check = ["format-check", "lint", "test", "docs-build"]             # Tier 4: Final validation (~50s)
+
+# Other combined workflows
 fix = ["format", "lint-ruff-fix"]
 ci = ["format-check", "lint", "test-coverage", "docs-build"]
 prepare = ["format", "lint", "test", "validate-openapi", "validate-openapi-redocly"]
