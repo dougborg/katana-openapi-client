@@ -622,16 +622,54 @@ ______________________________________________________________________
 
 ## Working with Multiple Agents
 
+When multiple AI agents work on the same codebase in parallel, coordination is essential
+to avoid conflicts and wasted effort. Follow these patterns for smooth parallel
+development.
+
 ### Coordination Strategies
 
 #### 1. Claim Issues Early
 
+**Always** comment on an issue as soon as you start working on it:
+
 ```bash
 # As soon as you start
 gh issue comment <issue-number> --body "🤖 Starting work on this issue"
+
+# Self-assign if possible
+gh issue edit <issue-number> --add-assignee "@me"
 ```
 
-#### 2. Communicate in Issue Comments
+**Why:** Other agents can see someone is already working on it.
+
+#### 2. Check for Conflicts BEFORE Starting
+
+**Critical:** Before starting work, check if anyone else is already working on similar
+changes:
+
+```bash
+# 1. Check open PRs that might overlap
+gh pr list --state open
+
+# 2. Check issues assigned to others
+gh issue list --state open --assignee "@others"
+
+# 3. Check recent activity on files you'll touch
+git log --oneline -10 --follow <file-path>
+
+# 4. Check open branches
+git branch -r | grep feature
+```
+
+**Decision tree:**
+
+- **No conflicts?** → Start work, claim issue
+- **Similar work in progress?** → Comment on issue, coordinate with other agent
+- **Depends on other PR?** → Wait for that PR to merge, or coordinate merge order
+
+#### 3. Communicate Progress in Issue Comments
+
+Keep issue comments updated so other agents know your status:
 
 ```bash
 # Update progress
@@ -642,11 +680,20 @@ gh issue comment <issue-number> --body "⚠️ Blocked by #<other-issue>, waitin
 
 # Ask for coordination
 gh issue comment <issue-number> --body "📋 This may conflict with #<other-issue>. Coordinating..."
+
+# Signal completion
+gh issue comment <issue-number> --body "✅ PR #<pr-number> ready for review"
 ```
 
-#### 3. Branch Naming for Clarity
+#### 4. Branch Naming for Clarity
 
-Use agent-specific prefixes if multiple agents working in parallel:
+**Standard pattern:** `feature/<issue-number>-<description>`
+
+```bash
+git checkout -b feature/88-agent-workflow
+```
+
+**Agent-specific pattern** (if coordinating multiple agents on same project):
 
 ```bash
 # Agent 1
@@ -656,15 +703,136 @@ git checkout -b agent/claude-1/88-agent-workflow
 git checkout -b agent/copilot-1/89-update-instructions
 ```
 
-#### 4. Check Before Starting
+**Why agent-specific branches help:**
+
+- Clearly shows which agent owns which work
+- Prevents accidental branch name collisions
+- Makes it easy to see parallel work in `git branch -r`
+
+#### 5. File-Level Conflict Detection
+
+Before starting, identify which files you'll modify and check for conflicts:
 
 ```bash
-# See what others are working on
-gh issue list --label "agent-infrastructure" --state "open"
-gh pr list --label "agent-infrastructure" --state "open"
+# Check who else recently touched these files
+git log --oneline -10 -- path/to/file.py
 
-# Check recent activity on files you'll touch
-git log --oneline --follow <file>
+# Check open PRs touching same files
+gh pr list --json number,title,files --jq '.[] | select(.files[].path == "path/to/file.py") | {number, title}'
+
+# Check for unmerged branches touching same files
+git branch -r --contains <commit> | grep -v "$(git rev-parse --abbrev-ref HEAD)"
+```
+
+**If conflicts detected:**
+
+1. **Same file, different sections** → Can work in parallel, coordinate merge order
+1. **Same file, same sections** → One agent should wait or pick different issue
+1. **Dependencies** → Work sequentially, file issue dependencies
+
+#### 6. Merge Order Coordination
+
+When multiple PRs will conflict, coordinate merge order:
+
+```bash
+# Option A: Sequential (safest)
+# Agent 1: Open PR #100, merge
+# Agent 2: Wait for #100 to merge, rebase, then open PR #101
+
+# Option B: Parallel with coordination (faster)
+# Agent 1: Open PR #100 (touches file A)
+# Agent 2: Open PR #101 (touches file B, no conflicts)
+# Both can merge independently
+
+# Option C: Stacked PRs (for dependencies)
+# Agent 1: Open PR #100 (foundation)
+# Agent 2: Branch from PR #100, open PR #101 (depends on #100)
+# Merge #100 first, then #101 rebases and merges
+```
+
+#### 7. Self-Coordination Strategies
+
+**Pattern 1: Claim and Complete**
+
+```bash
+# 1. Check issue list, pick unclaimed issue
+gh issue list --no-assignee
+
+# 2. Claim it
+gh issue edit <issue-number> --add-assignee "@me"
+gh issue comment <issue-number> --body "🤖 Starting work"
+
+# 3. Complete end-to-end (no partial work)
+# 4. Open PR, get it merged
+# 5. Move to next issue
+```
+
+**Pattern 2: Avoid Overlap**
+
+```bash
+# Before starting, check if files overlap with open PRs
+ISSUE=92
+FILES="path/to/file.py path/to/other.py"
+
+for FILE in $FILES; do
+  echo "Checking $FILE..."
+  gh pr list --json number,files --jq ".[] | select(.files[].path == \"$FILE\") | .number"
+done
+
+# If overlap found, choose different issue or coordinate
+```
+
+**Pattern 3: Phase-Based Work**
+
+Work on issues grouped by phase to minimize conflicts:
+
+```bash
+# Agent 1: Works on Phase 1 issues (#88, #89, #90)
+# Agent 2: Works on Phase 2 issues (#92, #93)
+# Agent 3: Works on Phase 3 issues (#94, #95)
+
+# Check your assigned phase
+gh issue list --label "phase-1"
+```
+
+#### 8. Rebase Frequently
+
+If working on a long-running branch, rebase frequently to stay current:
+
+```bash
+# Every few hours or before opening PR
+git fetch origin
+git rebase origin/main
+
+# If conflicts, resolve them immediately
+git status
+# Fix conflicts, then:
+git add .
+git rebase --continue
+```
+
+#### 9. Use GitHub Projects for Visibility
+
+If available, use GitHub Projects to show what each agent is working on:
+
+```bash
+# View project status
+gh project list
+
+# See what's in progress
+gh project item-list <project-number> --format json | jq '.[] | select(.status == "In Progress")'
+```
+
+#### 10. Coordinate Breaking Changes
+
+If your change will break other agents' work, coordinate explicitly:
+
+```bash
+# Announce in main issue
+gh issue comment <tracking-issue> --body "⚠️ PR #<number> will rename function X → Y. Other agents should wait for this to merge."
+
+# Or create tracking issue
+gh issue create --title "Coordination: Breaking change in PR #<number>" --body "..."
 ```
 
 ______________________________________________________________________
