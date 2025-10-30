@@ -376,9 +376,8 @@ After PR is merged:
   Comprehensive guide
 - **Contributing**: [docs/CONTRIBUTING.md](../docs/CONTRIBUTING.md) - Commit message
   format
-- **Agent Guide**:
-  [docs/mcp-server/AGENT_QUICK_START.md](../docs/mcp-server/AGENT_QUICK_START.md) -
-  Guide for GitHub Copilot agents
+- **MCP Documentation Index**: [docs/mcp-server/README.md](../docs/mcp-server/README.md)
+  \- All MCP documentation
 
 ## Related Links
 

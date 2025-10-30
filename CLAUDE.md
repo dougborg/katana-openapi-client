@@ -3,6 +3,11 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in
 this repository.
 
+## Agent Workflow Guide
+
+**NEW:** For complete step-by-step workflow instructions, validation tiers, and parallel
+agent coordination strategies, see **[AGENT_WORKFLOW.md](AGENT_WORKFLOW.md)**.
+
 ## Quick Start
 
 ### Using GitHub Codespaces (Recommended for Agents)
@@ -358,17 +363,18 @@ separate package in a monorepo using uv workspace.
 
 ### Key Resources for MCP Work:
 
+- **MCP v0.1.0 Implementation Plan**:
+  [docs/mcp-server/MCP_V0.1.0_IMPLEMENTATION_PLAN.md](docs/mcp-server/MCP_V0.1.0_IMPLEMENTATION_PLAN.md)
+  \- Current plan with 10 tools, 6 resources, 3 prompts
+- **MCP Architecture Design**:
+  [docs/mcp-server/MCP_ARCHITECTURE_DESIGN.md](docs/mcp-server/MCP_ARCHITECTURE_DESIGN.md)
+  \- MCP best practices and patterns
 - **ADR-010**: [docs/adr/0010-katana-mcp-server.md](docs/adr/0010-katana-mcp-server.md)
-  \- Architecture decisions
-- **Implementation Plan**:
-  [docs/mcp-server/IMPLEMENTATION_PLAN.md](docs/mcp-server/IMPLEMENTATION_PLAN.md) -
-  Dependency graph
-- **Agent Quick Start**:
-  [docs/mcp-server/AGENT_QUICK_START.md](docs/mcp-server/AGENT_QUICK_START.md) - Guide
-  for copilot agents
-- **GitHub Milestone**:
-  [MCP Server v0.1.0 MVP](https://github.com/dougborg/katana-openapi-client/milestone/1)
-  \- 24 issues (#32-55)
+  \- Core architecture decisions
+- **MCP Documentation Index**: [docs/mcp-server/README.md](docs/mcp-server/README.md) -
+  All MCP docs
+- **GitHub Issues**:
+  [mcp-server label](https://github.com/dougborg/katana-openapi-client/labels/mcp-server)
 
 ### MCP Server Structure:
 
@@ -376,24 +382,41 @@ separate package in a monorepo using uv workspace.
 katana-openapi-client/          # Repository root (monorepo)
 ├── pyproject.toml              # Workspace configuration
 ├── katana_public_api_client/   # Existing client library
-└── katana_mcp_server/          # NEW: MCP server package
+└── katana_mcp_server/          # MCP server package
     ├── pyproject.toml          # Depends on client
     ├── src/katana_mcp/
     │   ├── server.py           # FastMCP server
-    │   ├── tools/              # 12 tools (inventory, orders, manufacturing)
-    │   ├── resources/          # 5 MCP resources
-    │   └── prompts/            # Workflow prompts
+    │   ├── tools/              # 10 tools with elicitation
+    │   ├── resources/          # 6 resources (inventory + orders)
+    │   └── prompts/            # 3 workflow prompts
     └── tests/
 ```
 
-### Working on MCP Issues:
+### MCP v0.1.0 Scope:
 
-1. **Check dependencies**: Every issue has clear "Blocked by" markers
-1. **Start with infrastructure**: Issues #32-34 must be done first
-1. **Then parallelize**: After #34, 4 agents can work simultaneously
-1. **Follow acceptance criteria**: Each issue has specific checkboxes
+**Design Philosophy**: "Small set of all MCP features to see how everything works
+together"
 
-See the [Agent Quick Start Guide](docs/mcp-server/AGENT_QUICK_START.md) for details.
+**10 Tools** (all 7 user workflows):
+
+- Inventory: search_variants, get_variant_details, check_inventory
+- Catalog: create_product, create_material
+- Orders: create_purchase_order, receive_purchase_order, verify_order_document,
+  create_manufacturing_order, fulfill_order
+
+**6 Resources** (organized by domain):
+
+- Inventory: items, stock-movements, stock-adjustments
+- Orders: sales-orders, purchase-orders, manufacturing-orders
+
+**3 Prompts** (complete workflows):
+
+- create_and_receive_po (workflows #3 + #7)
+- verify_and_create_po (workflow #6)
+- fulfill_order (workflow #5)
+
+**Key Feature**: Elicitation pattern (preview with confirm=false, execute with
+confirm=true)
 
 ## Development Workflow
 

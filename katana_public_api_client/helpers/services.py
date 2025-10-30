@@ -11,6 +11,11 @@ from katana_public_api_client.api.services import (
     get_service,
     update_service,
 )
+from katana_public_api_client.domain import (
+    KatanaService,
+    service_to_katana,
+    services_to_katana,
+)
 from katana_public_api_client.helpers.base import Base
 from katana_public_api_client.models.create_service_request import CreateServiceRequest
 from katana_public_api_client.models.service import Service
@@ -31,14 +36,14 @@ class Services(Base):
         ...     new_service = await client.services.create({"name": "Assembly"})
     """
 
-    async def list(self, **filters: Any) -> list[Service]:
+    async def list(self, **filters: Any) -> list[KatanaService]:
         """List all services with optional filters.
 
         Args:
             **filters: Filtering parameters.
 
         Returns:
-            List of Service objects.
+            List of KatanaService domain model objects.
 
         Example:
             >>> services = await client.services.list(limit=100)
@@ -47,16 +52,17 @@ class Services(Base):
             client=self._client,
             **filters,
         )
-        return unwrap_data(response)
+        attrs_services = unwrap_data(response)
+        return services_to_katana(attrs_services)
 
-    async def get(self, service_id: int) -> Service:
+    async def get(self, service_id: int) -> KatanaService:
         """Get a specific service by ID.
 
         Args:
             service_id: The service ID.
 
         Returns:
-            Service object.
+            KatanaService domain model object.
 
         Example:
             >>> service = await client.services.get(123)
@@ -66,16 +72,17 @@ class Services(Base):
             id=service_id,
         )
         # unwrap() raises on errors, so cast is safe
-        return cast(Service, unwrap(response))
+        attrs_service = cast(Service, unwrap(response))
+        return service_to_katana(attrs_service)
 
-    async def create(self, service_data: CreateServiceRequest) -> Service:
+    async def create(self, service_data: CreateServiceRequest) -> KatanaService:
         """Create a new service.
 
         Args:
             service_data: CreateServiceRequest model with service details.
 
         Returns:
-            Created Service object.
+            Created KatanaService domain model object.
 
         Example:
             >>> from katana_public_api_client.models import CreateServiceRequest
@@ -88,11 +95,12 @@ class Services(Base):
             body=service_data,
         )
         # unwrap() raises on errors, so cast is safe
-        return cast(Service, unwrap(response))
+        attrs_service = cast(Service, unwrap(response))
+        return service_to_katana(attrs_service)
 
     async def update(
         self, service_id: int, service_data: UpdateServiceRequest
-    ) -> Service:
+    ) -> KatanaService:
         """Update an existing service.
 
         Args:
@@ -100,7 +108,7 @@ class Services(Base):
             service_data: UpdateServiceRequest model with fields to update.
 
         Returns:
-            Updated Service object.
+            Updated KatanaService domain model object.
 
         Example:
             >>> from katana_public_api_client.models import UpdateServiceRequest
@@ -114,7 +122,8 @@ class Services(Base):
             body=service_data,
         )
         # unwrap() raises on errors, so cast is safe
-        return cast(Service, unwrap(response))
+        attrs_service = cast(Service, unwrap(response))
+        return service_to_katana(attrs_service)
 
     async def delete(self, service_id: int) -> None:
         """Delete a service.

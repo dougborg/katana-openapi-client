@@ -42,7 +42,7 @@ def format_issue_body(issue: dict[str, Any]) -> str:
         "- [ADR-010: Katana MCP Server](docs/adr/0010-katana-mcp-server.md)\n"
     )
     body_parts.append(
-        "- [Implementation Plan](docs/mcp-server/IMPLEMENTATION_PLAN.md)\n"
+        "- [MCP v0.1.0 Implementation Plan](docs/mcp-server/MCP_V0.1.0_IMPLEMENTATION_PLAN.md)\n"
     )
 
     # Metadata footer
@@ -118,7 +118,7 @@ def main():
     parser.add_argument(
         "--json-file",
         type=str,
-        default="docs/mcp-server/issues.json",
+        required=True,
         help="Path to issues JSON file",
     )
 

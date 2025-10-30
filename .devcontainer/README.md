@@ -190,5 +190,5 @@ To customize the container:
 
 - [VS Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers)
 - [uv Documentation](https://docs.astral.sh/uv/)
-- [MCP Implementation Plan](../docs/mcp-server/IMPLEMENTATION_PLAN.md)
-- [Agent Quick Start](../docs/mcp-server/AGENT_QUICK_START.md)
+- [MCP v0.1.0 Implementation Plan](../docs/mcp-server/MCP_V0.1.0_IMPLEMENTATION_PLAN.md)
+- [MCP Architecture Design](../docs/mcp-server/MCP_ARCHITECTURE_DESIGN.md)

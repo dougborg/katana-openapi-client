@@ -3,7 +3,7 @@
 Create GitHub issues for MCP server implementation.
 
 This script creates all 24 issues for the Katana MCP Server implementation
-as planned in docs/mcp-server/IMPLEMENTATION_PLAN.md.
+as planned in docs/mcp-server/MCP_V0.1.0_IMPLEMENTATION_PLAN.md.
 
 Usage:
     uv run python scripts/create_mcp_issues.py
@@ -64,7 +64,7 @@ members = ["katana_public_api_client", "katana_mcp_server"]
 ## Related Documentation
 
 - [ADR-010: Katana MCP Server](docs/adr/0010-katana-mcp-server.md)
-- [Implementation Plan](docs/mcp-server/IMPLEMENTATION_PLAN.md)
+- [MCP v0.1.0 Implementation Plan](docs/mcp-server/MCP_V0.1.0_IMPLEMENTATION_PLAN.md)
 """,
         labels=["infrastructure", "mcp-server", "p0-critical"],
         milestone="MCP Server v0.1.0 MVP",
