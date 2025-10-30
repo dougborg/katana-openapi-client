@@ -240,9 +240,7 @@ def product_to_katana(product: Product) -> KatanaProduct:
         config_count=config_count,
         created_at=unwrap_unset(product.created_at),
         updated_at=unwrap_unset(product.updated_at),
-        deleted_at=unwrap_unset(product.deleted_at)
-        if hasattr(product, "deleted_at")
-        else None,
+        deleted_at=None,  # Product model has archived_at, not deleted_at
     )
 
 
