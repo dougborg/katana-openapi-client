@@ -78,10 +78,10 @@ def variant_to_katana(variant: Variant) -> KatanaVariant:
     from .variant import KatanaVariant
 
     # Extract product/material name from nested object if available
-    product_or_material_name = unwrap_unset(variant.product_or_material_name)
-
-    # If not in flat field, try nested object (VariantResponse with extend)
-    if not product_or_material_name and hasattr(variant, "product_or_material"):
+    # Note: product_or_material_name flat field doesn't exist in API
+    # Only product_or_material.name exists (when extend=product_or_material is used)
+    product_or_material_name = None
+    if hasattr(variant, "product_or_material"):
         pom = unwrap_unset(variant.product_or_material)
         if pom and hasattr(pom, "name"):
             product_or_material_name = unwrap_unset(pom.name)
