@@ -3,6 +3,11 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in
 this repository.
 
+## Agent Workflow Guide
+
+**NEW:** For complete step-by-step workflow instructions, validation tiers, and parallel
+agent coordination strategies, see **[AGENT_WORKFLOW.md](AGENT_WORKFLOW.md)**.
+
 ## Quick Start
 
 ### Using GitHub Codespaces (Recommended for Agents)
