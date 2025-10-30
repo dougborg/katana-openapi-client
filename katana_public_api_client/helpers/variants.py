@@ -262,24 +262,6 @@ class Variants(Base):
 
         return all_variants
 
-    def _get_variant_name(self, variant: KatanaVariant) -> str:
-        """Build the full variant display name matching Katana UI format.
-
-        Format: "{Product/Material Name} / {Config Value 1} / {Config Value 2} / ..."
-
-        Example: "Mayhem 140 / Liquid Black / Large / 5 Star"
-
-        Args:
-            variant: KatanaVariant object
-
-        Returns:
-            Formatted variant name with config values, or empty string
-
-        Note:
-            This is a convenience wrapper - domain models have get_display_name() method.
-        """
-        return variant.get_display_name()
-
     def _calculate_relevance(
         self, variant: KatanaVariant, query_tokens: List[str]
     ) -> int:
@@ -302,7 +284,7 @@ class Variants(Base):
         """
         query = " ".join(query_tokens)
         sku_lower = (variant.sku or "").lower()
-        name_lower = self._get_variant_name(variant).lower()
+        name_lower = variant.get_display_name().lower()
 
         # Check for exact SKU match
         if sku_lower == query:

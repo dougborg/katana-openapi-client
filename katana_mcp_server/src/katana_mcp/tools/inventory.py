@@ -7,8 +7,6 @@ import logging
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
-from katana_public_api_client.utils import get_variant_display_name
-
 logger = logging.getLogger(__name__)
 
 # ============================================================================
@@ -291,12 +289,12 @@ async def _search_products_impl(
         # Build response - format names matching Katana UI
         products_info = []
         for variant in variants:
-            # Build variant name using utility function
+            # Build variant name using domain model method
             # Format: "Product Name / Config1 / Config2 / ..."
-            name = get_variant_display_name(variant)
+            name = variant.get_display_name()
 
             # Determine if variant is sellable (products are sellable, materials are not)
-            is_sellable = variant.type_.value == "product" if variant.type_ else False
+            is_sellable = variant.type_ == "product" if variant.type_ else False
 
             products_info.append(
                 ProductInfo(

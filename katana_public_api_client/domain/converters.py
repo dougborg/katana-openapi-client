@@ -240,7 +240,7 @@ def product_to_katana(product: Product) -> KatanaProduct:
         config_count=config_count,
         created_at=unwrap_unset(product.created_at),
         updated_at=unwrap_unset(product.updated_at),
-        deleted_at=unwrap_unset(product.archived_at)
+        deleted_at=unwrap_unset(product.deleted_at)
         if hasattr(product, "deleted_at")
         else None,
     )
@@ -333,7 +333,7 @@ def material_to_katana(material: Material) -> KatanaMaterial:
         config_count=config_count,
         created_at=unwrap_unset(material.created_at),
         updated_at=unwrap_unset(material.updated_at),
-        deleted_at=unwrap_unset(material.archived_at)
+        deleted_at=unwrap_unset(material.deleted_at)
         if hasattr(material, "deleted_at")
         else None,
     )
