@@ -44,7 +44,9 @@ jobs:
   release-client:
     needs: test
     runs-on: ubuntu-latest
-    concurrency: release-client
+    concurrency:
+      group: release-client
+      cancel-in-progress: false
     permissions:
       id-token: write
       contents: write
@@ -100,7 +102,9 @@ jobs:
   release-mcp:
     needs: test
     runs-on: ubuntu-latest
-    concurrency: release-mcp
+    concurrency:
+      group: release-mcp
+      cancel-in-progress: false
     permissions:
       id-token: write
       contents: write
