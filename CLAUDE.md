@@ -44,13 +44,19 @@ cp .env.example .env  # Add your KATANA_API_KEY
 
 ## Essential Commands
 
+### Validation Tiers (Use the Right One!)
+
+- **`uv run poe quick-check`** (~5-10s) - Format + lint only → Use during development
+- **`uv run poe agent-check`** (~10-15s) - Format + lint + mypy → Use before committing
+- **`uv run poe check`** (~40s) - Full validation → **REQUIRED before opening PR**
+- **`uv run poe full-check`** (~50s) - Everything + docs → Use before requesting review
+
 ### Development Workflow
 
 - **Setup**: `uv sync --all-extras`
 - **Format code**: `uv run poe format`
 - **Lint code**: `uv run poe lint` (11 seconds, NEVER CANCEL)
 - **Run tests**: `uv run poe test` (27 seconds, NEVER CANCEL)
-- **Quick check**: `uv run poe check` (40 seconds - runs format-check + lint + test)
 - **Auto-fix issues**: `uv run poe fix`
 
 ### Testing Commands
