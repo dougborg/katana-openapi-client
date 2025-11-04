@@ -370,16 +370,17 @@ lint = ["lint-ruff", "lint-mypy", "lint-yaml"]
 # -----------------------------------------------------------------------------
 # Note: schema_validation tests are excluded by default due to pytest-xdist collection issues
 # Run them explicitly with: pytest -m schema_validation
-test = "pytest -n auto -m 'not docs and not schema_validation'"  # Parallel execution with pytest-xdist
+# Optimal worker count: 4 (testing shows best performance vs sequential: 25s → 16s = 36% faster)
+test = "pytest -n 4 -m 'not docs and not schema_validation'"  # Parallel execution with pytest-xdist
 test-sequential = "pytest -m 'not docs and not schema_validation'"  # Sequential execution (if parallel has issues)
-test-verbose = "pytest -n auto -v -m 'not docs and not schema_validation'"
-test-coverage = "pytest -n auto --cov=katana_public_api_client --cov-report=term-missing -m 'not docs and not schema_validation'"
-test-coverage-html = "pytest -n auto --cov=katana_public_api_client --cov-report=html -m 'not docs and not schema_validation'"
-test-unit = "pytest -n auto -m 'unit and not schema_validation'"
-test-integration = "pytest -n auto -m 'integration and not schema_validation'"
+test-verbose = "pytest -n 4 -v -m 'not docs and not schema_validation'"
+test-coverage = "pytest -n 4 --cov=katana_public_api_client --cov-report=term-missing -m 'not docs and not schema_validation'"
+test-coverage-html = "pytest -n 4 --cov=katana_public_api_client --cov-report=html -m 'not docs and not schema_validation'"
+test-unit = "pytest -n 4 -m 'unit and not schema_validation'"
+test-integration = "pytest -n 4 -m 'integration and not schema_validation'"
 test-docs = { shell = "CI_DOCS_BUILD=true pytest -m docs -v --timeout=600" }  # 10 minute timeout for docs
-test-no-docs = "pytest -n auto -m 'not docs and not schema_validation'"
-test-all = "pytest -n auto -m 'not schema_validation'"  # Run everything except schema_validation (parallel-incompatible)
+test-no-docs = "pytest -n 4 -m 'not docs and not schema_validation'"
+test-all = "pytest -n 4 -m 'not schema_validation'"  # Run everything except schema_validation (parallel-incompatible)
 test-schema = "pytest -m schema_validation"  # Run schema validation tests only (sequential, may be slow)
 
 # -----------------------------------------------------------------------------
