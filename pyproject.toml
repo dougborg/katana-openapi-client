@@ -211,7 +211,7 @@ markers = [
   "unit: marks tests as unit tests",
   "asyncio: marks tests as async tests",
   "docs: marks tests as documentation tests (slow, only run in CI docs jobs)",
-  "schema_validation: marks tests that validate OpenAPI schema quality (causes pytest-xdist collection issues, run explicitly with -m schema_validation)",
+  "schema_validation: marks tests that validate OpenAPI schema quality (these tests cause non-deterministic test collection and race conditions when run with pytest-xdist due to dynamic parametrization; run explicitly with -m schema_validation)",
 ]
 
 [tool.coverage.run]
@@ -370,7 +370,10 @@ lint = ["lint-ruff", "lint-mypy", "lint-yaml"]
 # -----------------------------------------------------------------------------
 # Note: schema_validation tests are excluded by default due to pytest-xdist collection issues
 # Run them explicitly with: pytest -m schema_validation
-# Optimal worker count: 4 (testing shows best performance vs sequential: 25s → 16s = 36% faster)
+#
+# Optimal worker count: 4 (tested on macOS with 11 CPUs available)
+# Performance: sequential 25s → parallel 16s = 36% faster
+# Note: Optimal count may vary by system (4+ cores recommended for best results)
 test = "pytest -n 4 -m 'not docs and not schema_validation'"  # Parallel execution with pytest-xdist
 test-sequential = "pytest -m 'not docs and not schema_validation'"  # Sequential execution (if parallel has issues)
 test-verbose = "pytest -n 4 -v -m 'not docs and not schema_validation'"
