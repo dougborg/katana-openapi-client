@@ -4,7 +4,7 @@
 
 Accepted
 
-Date: 2025-10-21
+Date: 2025-10-21 Updated: 2025-11-04 (StockTrim architecture patterns)
 
 ## Context
 
@@ -615,14 +615,58 @@ server instances for multiple Katana environments.
 **Phase 2**: Consider adding instance parameter to tools if multi-tenancy becomes a
 common requirement.
 
+## Update (2025-11-04): StockTrim Architecture Patterns
+
+After reviewing the production-ready
+[StockTrim MCP Server](https://github.com/dougborg/stocktrim-openapi-client/), we've
+identified several proven patterns to adopt:
+
+### Key Architectural Improvements
+
+1. **Two-Tier Tool Organization**: Foundation (low-level API operations) and Workflow
+   (high-level intent-based operations)
+1. **Lifespan Management**: Async context manager pattern for client lifecycle
+1. **Registration Pattern**: Deferred tool registration to avoid circular imports
+1. **Dependencies Helper**: Clean dependency injection via `get_services(context)`
+1. **Separate Implementation Functions**: `_impl` functions for better testability
+
+### Updated Implementation Approach
+
+See [MCP_V0.1.0_STOCKTRIM_MIGRATION.md](../mcp-server/MCP_V0.1.0_STOCKTRIM_MIGRATION.md)
+for detailed migration plan incorporating StockTrim's production-proven patterns.
+
+**Key differences from original plan**:
+
+- Foundation tools in `tools/foundation/` (variants, products, materials,
+  purchase_orders, etc.)
+- Workflow tools in `tools/workflows/` (po_lifecycle, manufacturing,
+  document_verification)
+- Lifespan management with `ServerContext` dataclass
+- Tool registration via `register_tools(mcp: FastMCP)` pattern
+- Pydantic request/response models with rich Field descriptions
+
+**What we're keeping from original plan**:
+
+- Resources implementation (6 resources - StockTrim hasn't implemented these yet)
+- Prompts implementation (3 workflow prompts)
+- Elicitation pattern with `confirm=false` preview mode
+- Next actions fields in responses
+- Three-level documentation (description + fields + extended)
+
 ## Next Steps
 
-1. Accept this ADR and commit to repository
-1. Set up uv workspace in root `pyproject.toml`
-1. Create `katana_mcp_server/` directory structure
-1. Create initial `katana_mcp_server/pyproject.toml` with dependencies
-1. Implement basic FastMCP server with environment-based authentication
-1. Create 1-2 proof-of-concept tools (`check_inventory`, `list_products`)
+1. ✅ Accept this ADR and commit to repository
+1. ✅ Set up uv workspace in root `pyproject.toml`
+1. ✅ Create `katana_mcp_server/` directory structure
+1. ✅ Create initial `katana_mcp_server/pyproject.toml` with dependencies
+1. 🔄 **Migrate to StockTrim architecture** (see migration plan)
+   - Reorganize into foundation/workflow structure
+   - Implement lifespan management pattern
+   - Add registration pattern for tools
+   - Create dependencies helper module
+1. Implement foundation tools (10 tools)
+1. Implement workflow tools (3 tools)
+1. Implement resources (6 resources)
+1. Implement prompts (3 prompts)
 1. Test integration with Claude Code
-1. Create GitHub issue to track remaining implementation work
 1. Gather feedback and iterate on design
