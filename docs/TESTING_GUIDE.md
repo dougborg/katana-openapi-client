@@ -54,13 +54,13 @@ Our test suite uses a **zero-tolerance approach** for API quality issues:
 ### Development Workflow
 
 ```bash
-# Run all tests (parallel execution with pytest-xdist, ~21s)
+# Run all tests (4 workers, ~16s)
 uv run poe test
 
-# Run tests sequentially (if parallel has issues)
+# Run tests sequentially (if parallel has issues, ~25s)
 uv run poe test-sequential
 
-# Run with coverage
+# Run with coverage (~22s)
 uv run poe test-coverage
 
 # Test specific areas
@@ -91,7 +91,7 @@ uv run pytest -m schema_validation
 
 - Dynamic parametrization via `pytest_generate_tests()` causes non-deterministic test
   collection across parallel workers
-- Parallel execution improves test time from ~27s to ~21s (22% speedup)
+- Parallel execution with 4 workers improves test time from ~25s to ~16s (36% speedup)
 - Schema validation tests are still available for on-demand quality checks
 
 ### Debugging Test Failures
