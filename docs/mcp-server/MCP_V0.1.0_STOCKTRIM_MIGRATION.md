@@ -74,10 +74,17 @@ ______________________________________________________________________
 **File**: `server.py`
 
 ```python
+import os
+import logging
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from typing import AsyncIterator
 from fastmcp import FastMCP
 from katana_public_api_client import KatanaClient
+
+# Module-level setup
+logger = logging.getLogger(__name__)
+__version__ = "0.1.0"  # Would typically import from __init__.py
 
 @dataclass
 class ServerContext:
@@ -129,6 +136,7 @@ mcp = FastMCP(
 **File**: `tools/foundation/variants.py`
 
 ````python
+from typing import Literal
 from fastmcp import FastMCP, Context
 from pydantic import BaseModel, Field
 
@@ -166,7 +174,7 @@ async def _search_variants_impl(
     server_context = context.request_context.lifespan_context
     client = server_context.client
 
-    # Implementation logic here
+    # Search variants using the client's variants helper
     variants = await client.variants.search(
         query=request.query,
         limit=request.limit
@@ -258,7 +266,28 @@ def get_services(context: Context) -> Services:
 
     Usage in tools:
         services = get_services(context)
+
+        # Use existing helpers (variants, products, materials, services, inventory)
         products = await services.client.products.list()
+
+        # For other endpoints (purchase_orders, sales_orders, etc), use generated API:
+        from katana_public_api_client.api.purchase_order import create_purchase_order
+        po_response = await create_purchase_order.asyncio_detailed(
+            client=services.client,
+            json_body=...
+        )
+
+    Note:
+        Only a limited set of helpers currently exist on KatanaClient:
+        - variants
+        - products
+        - materials
+        - services
+        - inventory
+
+        For other endpoints (purchase_orders, manufacturing_orders, sales_orders),
+        you must use the generated API modules directly from katana_public_api_client.api.*
+        or implement your own helper methods.
     """
     server_context = context.request_context.lifespan_context
     return Services(client=server_context.client)
@@ -270,6 +299,7 @@ def get_services(context: Context) -> Services:
 - Type-safe service access
 - Easy to extend with more services
 - Clear dependency injection
+- Documents which helpers exist vs need generated API
 
 ### 4. Tool Organization: Foundation vs Workflows
 
@@ -280,44 +310,60 @@ Granular operations mapping closely to API endpoints:
 **File**: `tools/foundation/purchase_orders.py`
 
 ```python
+# Import generated API methods (no purchase_orders helper exists)
+from katana_public_api_client.api.purchase_order import (
+    create_purchase_order_asyncio_detailed,
+    get_purchase_order_asyncio_detailed,
+    receive_purchase_order_asyncio_detailed
+)
+
 async def create_purchase_order(
     request: CreatePurchaseOrderRequest,
     context: Context
 ) -> PurchaseOrderResponse:
-    """Create a new purchase order."""
+    """Create a new purchase order using generated API."""
     services = get_services(context)
 
-    # Direct API call
-    po = await services.client.purchase_orders.create(
-        supplier_id=request.supplier_id,
-        items=request.items,
-        notes=request.notes
+    # Use generated API directly (no helper method exists)
+    response = await create_purchase_order_asyncio_detailed(
+        client=services.client,
+        json_body={
+            "supplier_id": request.supplier_id,
+            "items": request.items,
+            "notes": request.notes
+        }
     )
 
-    return PurchaseOrderResponse.from_katana(po)
+    return PurchaseOrderResponse.from_katana(response.parsed)
 
 async def get_purchase_order(
     request: GetPurchaseOrderRequest,
     context: Context
 ) -> PurchaseOrderResponse:
-    """Get purchase order by ID."""
+    """Get purchase order by ID using generated API."""
     services = get_services(context)
-    po = await services.client.purchase_orders.get(request.po_id)
-    return PurchaseOrderResponse.from_katana(po)
+
+    response = await get_purchase_order_asyncio_detailed(
+        client=services.client,
+        id=request.po_id
+    )
+
+    return PurchaseOrderResponse.from_katana(response.parsed)
 
 async def receive_purchase_order(
     request: ReceivePurchaseOrderRequest,
     context: Context
 ) -> ReceiveResponse:
-    """Receive items on a purchase order."""
+    """Receive items on a purchase order using generated API."""
     services = get_services(context)
 
-    result = await services.client.purchase_orders.receive(
-        po_id=request.po_id,
-        items=request.items
+    response = await receive_purchase_order_asyncio_detailed(
+        client=services.client,
+        id=request.po_id,
+        json_body={"items": request.items}
     )
 
-    return ReceiveResponse.from_katana(result)
+    return ReceiveResponse.from_katana(response.parsed)
 ```
 
 #### Workflow Tools (High-Level)
@@ -370,23 +416,39 @@ async def create_and_receive_po(
     }
     ```
     """
+    # Import generated API methods
+    from katana_public_api_client.api.purchase_order import (
+        create_purchase_order_asyncio_detailed,
+        receive_purchase_order_asyncio_detailed
+    )
+
     services = get_services(context)
 
-    # Step 1: Create PO (using foundation tool logic)
-    po = await services.client.purchase_orders.create(
-        supplier_id=request.supplier_id,
-        items=request.items,
-        notes=request.notes
+    # Step 1: Create PO using generated API
+    po_response = await create_purchase_order_asyncio_detailed(
+        client=services.client,
+        json_body={
+            "supplier_id": request.supplier_id,
+            "items": request.items,
+            "notes": request.notes
+        }
     )
+    po = po_response.parsed
 
     receipt = None
     if request.auto_receive:
-        # Step 2: Receive items (using foundation tool logic)
-        receipt = await services.client.purchase_orders.receive(
-            po_id=po.id,
-            items=[ReceiveItem(sku=item.sku, quantity=item.quantity)
-                   for item in request.items]
+        # Step 2: Receive items using generated API
+        receipt_response = await receive_purchase_order_asyncio_detailed(
+            client=services.client,
+            id=po.id,
+            json_body={
+                "items": [
+                    {"sku": item.sku, "quantity": item.quantity}
+                    for item in request.items
+                ]
+            }
         )
+        receipt = receipt_response.parsed
 
     # Step 3: Generate next actions
     next_actions = []
