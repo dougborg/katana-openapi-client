@@ -1,58 +1,51 @@
 # Pre-commit configuration for katana-openapi-client
 # See https://pre-commit.com for more information
-# See https://pre-commit.com/hooks.html for more hooks
+#
+# This configuration uses LOCAL hooks that run via uv to avoid network
+# restrictions in CI environments (e.g., GitHub Copilot agents that block
+# pip.pypa.io). All tools are installed via project dependencies.
+#
+# See issue #134 for background on why we use local hooks.
 
 repos:
-  # Ruff - Fast Python linter and formatter
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.3
-    hooks:
-      # Run the linter
-      - id: ruff
-        args: [--fix]
-      # Run the formatter
-      - id: ruff-format
-
-  # General pre-commit hooks
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
-    hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-      - id: check-yaml
-        args: [--allow-multiple-documents, --unsafe]
-      - id: check-added-large-files
-        exclude: 'docs/katana-api-comprehensive/openapi-spec\.json'
-      - id: check-case-conflict
-      - id: check-merge-conflict
-      - id: debug-statements
-      - id: mixed-line-ending
-        args: [--fix=lf]
-
-  # Markdown formatting
-  - repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.22
-    hooks:
-      - id: mdformat
-        args: [--wrap=88]
-        exclude: '(CHANGELOG\.md|docs/CHANGELOG\.md)'
-        additional_dependencies:
-          - mdformat-gfm
-          - mdformat-tables
-
-  # YAML linting
-  - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.37.1
-    hooks:
-      - id: yamllint
-        args: [-c=.yamllint.yml]
-
-  # Run tests
   - repo: local
     hooks:
+      # Python formatting and linting with Ruff (via uv)
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types: [python]
+        pass_filenames: true
+
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+        pass_filenames: true
+
+      # Markdown formatting (via uv)
+      - id: mdformat
+        name: mdformat
+        entry: uv run mdformat --wrap=88
+        language: system
+        types: [markdown]
+        exclude: '(CHANGELOG\.md|docs/CHANGELOG\.md|katana_public_api_client/docs/CHANGELOG\.md)'
+        pass_filenames: true
+
+      # YAML linting (via uv)
+      - id: yamllint
+        name: yamllint
+        entry: uv run yamllint -c=.yamllint.yml
+        language: system
+        types: [yaml]
+        pass_filenames: true
+
+      # Run tests (via poe task)
       - id: pytest
         name: pytest
-        entry: bash -c '~/.local/bin/uv run poe test'
+        entry: uv run poe test
         language: system
         pass_filenames: false
         always_run: true
