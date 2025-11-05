@@ -687,13 +687,24 @@ class KatanaClient(AuthenticatedClient):
         try:
             # Extract hostname from base_url - handle both full URLs and bare hostnames
             parsed = urlparse(base_url)
+            host: str | None = None
+
             if parsed.hostname:
                 # URL with scheme (e.g., "https://api.katanamrp.com/v1")
                 host = parsed.hostname
             else:
                 # Try parsing as URL without scheme (e.g., "api.katanamrp.com/v1")
                 parsed_with_scheme = urlparse(f"https://{base_url}")
-                host = parsed_with_scheme.hostname or base_url.split("/")[0]
+                if parsed_with_scheme.hostname:
+                    host = parsed_with_scheme.hostname
+                else:
+                    # Final fallback: treat as bare hostname (e.g., "api.example.com")
+                    # Extract just the hostname part before any path
+                    host = base_url.split("/")[0] if base_url else None
+
+            # If we couldn't extract a valid hostname, return None
+            if not host:
+                return None
 
             netrc_path = Path.home() / ".netrc"
             if not netrc_path.exists():
