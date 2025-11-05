@@ -686,11 +686,15 @@ class KatanaClient(AuthenticatedClient):
         try:
             from urllib.parse import urlparse
 
-            # Extract hostname from base_url
-            host = (
-                urlparse(base_url).netloc
-                or base_url.replace("https://", "").split("/")[0]
-            )
+            # Extract hostname from base_url - handle both full URLs and bare hostnames
+            parsed = urlparse(base_url)
+            if parsed.hostname:
+                # URL with scheme (e.g., "https://api.katanamrp.com/v1")
+                host = parsed.hostname
+            else:
+                # Try parsing as URL without scheme (e.g., "api.katanamrp.com/v1")
+                parsed_with_scheme = urlparse(f"https://{base_url}")
+                host = parsed_with_scheme.hostname or base_url.split("/")[0]
 
             netrc_path = Path.home() / ".netrc"
             if not netrc_path.exists():
