@@ -2774,7 +2774,10 @@ components:
       example:
         completed_by_operators:
           - id: 101
-            name: John Smith
+            operator_name: John Smith
+            created_at: "2024-01-15T08:00:00.000Z"
+            updated_at: "2024-01-15T08:00:00.000Z"
+            deleted_at: null
         total_actual_time: 52.3
     ManufacturingOrderOperationRowResponse:
       description: Complete manufacturing order operation details including all metadata and operational parameters
@@ -3195,7 +3198,10 @@ components:
             total_actual_time: 52.3
             completed_by_operators:
               - id: 101
-                name: John Smith
+                operator_name: John Smith
+                created_at: "2023-10-15T09:00:00Z"
+                updated_at: "2023-10-15T10:30:00Z"
+                deleted_at: null
             created_at: "2023-10-15T09:00:00Z"
             updated_at: "2023-10-15T10:30:00Z"
     CreateMaterialRequest:
@@ -4320,22 +4326,22 @@ components:
         - $ref: "#/components/schemas/OutsourcedPurchaseOrder"
       example:
         id: 156
-        status: OPEN
+        status: NOT_RECEIVED
         order_no: PO-2024-0156
         entity_type: regular
         default_group_id: 1
         supplier_id: 4001
         currency: USD
-        expected_arrival_date: "2024-02-15"
-        order_created_date: "2024-01-28"
+        expected_arrival_date: "2024-02-15T00:00:00Z"
+        order_created_date: "2024-01-28T00:00:00Z"
         additional_info: Rush order - needed for Valentine's Day production run
         location_id: 1
         tracking_location_id: null
         total: 1962.5
         total_in_base_currency: 1962.5
-        billing_status: UNBILLED
-        last_document_status: CONFIRMED
-        ingredient_availability: AVAILABLE
+        billing_status: NOT_BILLED
+        last_document_status: NOT_SENT
+        ingredient_availability: IN_STOCK
         ingredient_expected_date: null
         created_at: "2024-01-28T09:15:00Z"
         updated_at: "2024-01-28T09:15:00Z"
@@ -4396,31 +4402,31 @@ components:
       example:
         data:
           - id: 156
-            status: OPEN
+            status: NOT_RECEIVED
             order_no: PO-2024-0156
             entity_type: regular
             supplier_id: 4001
             currency: USD
-            expected_arrival_date: "2024-02-15"
-            order_created_date: "2024-01-28"
+            expected_arrival_date: "2024-02-15T00:00:00Z"
+            order_created_date: "2024-01-28T00:00:00Z"
             total: 1962.5
             total_in_base_currency: 1962.5
-            billing_status: UNBILLED
+            billing_status: NOT_BILLED
             tracking_location_id: null
             created_at: "2024-01-28T09:15:00Z"
             updated_at: "2024-01-28T09:15:00Z"
             deleted_at: null
           - id: 158
-            status: OPEN
+            status: PARTIALLY_RECEIVED
             order_no: PO-2024-0158
             entity_type: outsourced
             supplier_id: 4003
             currency: USD
-            expected_arrival_date: "2024-02-20"
-            order_created_date: "2024-01-30"
+            expected_arrival_date: "2024-02-20T00:00:00Z"
+            order_created_date: "2024-01-30T00:00:00Z"
             total: 2450.0
             total_in_base_currency: 2450.0
-            billing_status: UNBILLED
+            billing_status: PARTIALLY_BILLED
             tracking_location_id: 2
             ingredient_availability: EXPECTED
             ingredient_expected_date: "2024-02-18T10:00:00Z"
@@ -4626,7 +4632,7 @@ components:
           description: Optional notes or special instructions for the supplier
       example:
         order_no: PO-2024-0156-REVISED
-        expected_arrival_date: "2024-02-20"
+        expected_arrival_date: "2024-02-20T00:00:00Z"
         status: PARTIALLY_RECEIVED
         additional_info: Delivery delayed due to weather - updated schedule
     CreatePurchaseOrderAdditionalCostRowRequest:
@@ -7839,6 +7845,7 @@ components:
       example:
         data:
           - id: 2001
+            stock_adjustment_number: SA-2024-001
             reference_no: SA-2024-001
             location_id: 1
             status: COMPLETED
@@ -7848,6 +7855,7 @@ components:
             updated_at: "2024-01-15T14:30:00.000Z"
             deleted_at: null
           - id: 2002
+            stock_adjustment_number: SA-2024-002
             reference_no: SA-2024-002
             location_id: 2
             status: DRAFT
@@ -9669,6 +9677,8 @@ components:
           - id: 5001
             price_list_id: 1001
             variant_id: 201
+            adjustment_method: fixed
+            amount: 249.99
             price: 249.99
             currency: USD
             created_at: "2024-01-15T10:00:00Z"
@@ -9676,6 +9686,8 @@ components:
           - id: 5002
             price_list_id: 1001
             variant_id: 202
+            adjustment_method: percentage
+            amount: 10.0
             price: 69.99
             currency: USD
             created_at: "2024-01-15T10:05:00Z"
