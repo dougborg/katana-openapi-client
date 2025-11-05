@@ -119,11 +119,9 @@ class TestKatanaClientInitialization:
 
     def test_initialization_from_netrc(self, tmp_path):
         """Test initialization using ~/.netrc file."""
-        # Create a temporary netrc file
+        # Create a temporary netrc file (login field is optional and ignored)
         netrc_file = tmp_path / ".netrc"
-        netrc_file.write_text(
-            "machine api.katanamrp.com\nlogin katana-api-key\npassword netrc-api-key\n"
-        )
+        netrc_file.write_text("machine api.katanamrp.com\npassword netrc-api-key\n")
         netrc_file.chmod(0o600)
 
         with (

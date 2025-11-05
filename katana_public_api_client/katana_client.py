@@ -15,6 +15,7 @@ from collections.abc import Awaitable, Callable
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any, cast
+from urllib.parse import urlparse
 
 import httpx
 from dotenv import load_dotenv
@@ -684,8 +685,6 @@ class KatanaClient(AuthenticatedClient):
             Katana API uses bearer token authentication, not HTTP Basic Auth.
         """
         try:
-            from urllib.parse import urlparse
-
             # Extract hostname from base_url - handle both full URLs and bare hostnames
             parsed = urlparse(base_url)
             if parsed.hostname:
