@@ -152,7 +152,8 @@ version, the MCP dependency is **automatically updated** via the
 1. **Update**: Updates `katana-openapi-client>=X.Y.Z` in
    `katana_mcp_server/pyproject.toml`
 1. **Lockfile**: Runs `uv sync --all-extras` to update `uv.lock`
-1. **PR Creation**: Creates a PR with title `feat(mcp): update client dependency to vX.Y.Z`
+1. **PR Creation**: Creates a PR with title
+   `feat(mcp): update client dependency to vX.Y.Z`
 1. **Release**: When the PR is merged, the `feat(mcp):` commit triggers a new MCP
    release
 
@@ -308,7 +309,8 @@ automatically:
 1. Updates the `katana-openapi-client>=X.Y.Z` dependency in
    `katana_mcp_server/pyproject.toml`
 1. Updates the `uv.lock` file
-1. Creates a PR with the conventional commit message `feat(mcp): update client dependency to vX.Y.Z`
+1. Creates a PR with the conventional commit message
+   `feat(mcp): update client dependency to vX.Y.Z`
 1. When merged, triggers a new MCP release (MINOR version bump due to `feat(mcp):`)
 
 **Manual Override**: If you need to update the dependency without waiting for a client
