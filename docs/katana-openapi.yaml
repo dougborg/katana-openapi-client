@@ -941,12 +941,12 @@ components:
           - first_page
           - last_page
         example:
-          total_records: 142
-          total_pages: 8
-          offset: 50
-          page: 2
-          first_page: false
-          last_page: false
+          total_records: "142"
+          total_pages: "8"
+          offset: "50"
+          page: "2"
+          first_page: "false"
+          last_page: "false"
     X-Ratelimit-Limit:
       description: Number of requests available for this application (default 60 per minute)
       schema:
@@ -1223,6 +1223,7 @@ components:
               format: date-time
               description: Nullable archive timestamp
       example:
+        id: 12345
         created_at: "2020-10-23T10:37:05.085Z"
         updated_at: "2020-10-23T10:37:05.085Z"
         archived_at: null
@@ -1247,6 +1248,7 @@ components:
               format: date-time
               description: Nullable deletion timestamp
       example:
+        id: 12345
         created_at: "2020-10-23T10:37:05.085Z"
         updated_at: "2020-10-23T10:37:05.085Z"
         deleted_at: null
@@ -1465,7 +1467,7 @@ components:
             location_id: 1
             variant_id: 1002
             quantity_in_stock: "50.00000"
-            batch_barcode: 0318
+            batch_barcode: "0318"
     BatchStockUpdate:
       type: object
       description: Request payload for updating batch properties and tracking information
@@ -1694,13 +1696,24 @@ components:
           - id: 5001
             variant_id: 2002
             location_id: 1
+            resource_type: PurchaseOrderRow
+            resource_id: 1001
+            caused_by_order_no: PO-2024-001
+            caused_by_resource_id: 1001
             movement_type: TRANSFER_IN
-            quantity: 10.0
-            cost_per_unit: 12.5
-            total_cost: 125.0
-            reference_id: 1001
             movement_date: "2023-10-15T14:30:00Z"
+            quantity: 10.0
+            quantity_change: 10.0
+            balance_after: 100.0
+            cost_per_unit: 12.5
+            value_per_unit: 12.5
+            total_cost: 125.0
+            value_in_stock_after: 1250.0
+            average_cost_after: 12.5
+            reference_id: 1001
             notes: Received from supplier shipment
+            created_at: "2023-10-15T14:30:00Z"
+            updated_at: "2023-10-15T14:30:00Z"
     Variant:
       description: Specific SKU of a product or material with unique pricing, configuration, and inventory tracking
       allOf:
@@ -1935,38 +1948,25 @@ components:
             - name
         - $ref: "#/components/schemas/DeletableEntity"
       example:
-        data:
-          - id: 1
-            name: Main location
-            legal_name: Amazon
-            address_id: 1
-            address:
-              id: 1
-              city: New York
-              country: US
-              line_1: 10 East 20th Example St
-              line_2: ""
-              state: New York
-              zip: "10000"
-            is_primary: true
-            sales_allowed: true
-            purchase_allowed: true
-            manufacturing_allowed: true
-            created_at: "2020-10-23T10:37:05.085Z"
-            updated_at: "2020-10-23T10:37:05.085Z"
-            deleted_at: null
-          - id: 2
-            name: Secondary location
-            legal_name: Amazon
-            address_id: null
-            address: null
-            is_primary: false
-            sales_allowed: false
-            purchase_allowed: true
-            manufacturing_allowed: false
-            created_at: "2020-10-23T10:37:05.085Z"
-            updated_at: "2020-10-23T10:37:05.085Z"
-            deleted_at: null
+        id: 1
+        name: Main location
+        legal_name: Amazon
+        address_id: 1
+        address:
+          id: 1
+          city: New York
+          country: US
+          line_1: 10 East 20th Example St
+          line_2: ""
+          state: New York
+          zip: "10000"
+        is_primary: true
+        sales_allowed: true
+        purchase_allowed: true
+        manufacturing_allowed: true
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2020-10-23T10:37:05.085Z"
+        deleted_at: null
     Inventory:
       type: object
       description: |-
@@ -2054,7 +2054,14 @@ components:
             quantity_on_hand: 150.0
             quantity_allocated: 25.0
             quantity_available: 125.0
-            average_cost: 25.5
+            reorder_point: "25.0"
+            average_cost: "25.5"
+            value_in_stock: "3825.0"
+            quantity_in_stock: "150.0"
+            quantity_committed: "25.0"
+            quantity_expected: "50.0"
+            quantity_missing_or_excess: "0.0"
+            quantity_potential: "175.0"
             total_value: 3825.0
             created_at: "2024-01-15T08:00:00.000Z"
             updated_at: "2024-01-15T12:30:00.000Z"
@@ -2064,7 +2071,14 @@ components:
             quantity_on_hand: 75.0
             quantity_allocated: 10.0
             quantity_available: 65.0
-            average_cost: 45.0
+            reorder_point: "30.0"
+            average_cost: "45.0"
+            value_in_stock: "3375.0"
+            quantity_in_stock: "75.0"
+            quantity_committed: "10.0"
+            quantity_expected: "25.0"
+            quantity_missing_or_excess: "0.0"
+            quantity_potential: "90.0"
             total_value: 3375.0
             created_at: "2024-01-15T08:00:00.000Z"
             updated_at: "2024-01-15T14:15:00.000Z"
@@ -2280,7 +2294,7 @@ components:
         production_deadline_date: "2024-01-25T17:00:00Z"
         additional_info: Priority order for new product launch
         is_linked_to_sales_order: true
-        ingredient_availability: AVAILABLE
+        ingredient_availability: IN_STOCK
         total_cost: 12500.0
         total_actual_time: 140.5
         total_planned_time: 200.0
@@ -2291,9 +2305,27 @@ components:
         subassemblies_cost: 2250.0
         operations_cost: 1500.0
         serial_numbers:
-          - PKS-001-240115
-          - PKS-002-240115
-          - PKS-003-240115
+          - id: 1
+            transaction_id: "MO-2024-001-001"
+            serial_number: PKS-001-240115
+            resource_type: ManufacturingOrder
+            resource_id: 3001
+            transaction_date: "2024-01-15T08:00:00Z"
+            quantity_change: 1
+          - id: 2
+            transaction_id: "MO-2024-001-002"
+            serial_number: PKS-002-240115
+            resource_type: ManufacturingOrder
+            resource_id: 3001
+            transaction_date: "2024-01-15T08:00:00Z"
+            quantity_change: 1
+          - id: 3
+            transaction_id: "MO-2024-001-003"
+            serial_number: PKS-003-240115
+            resource_type: ManufacturingOrder
+            resource_id: 3001
+            transaction_date: "2024-01-15T08:00:00Z"
+            quantity_change: 1
         created_at: "2024-01-15T08:00:00Z"
         updated_at: "2024-01-20T14:30:00Z"
         deleted_at: null
@@ -2469,8 +2501,20 @@ components:
             updated_at: "2024-01-20T14:30:00Z"
             deleted_at: null
         serial_numbers:
-          - PKS-001-240120
-          - PKS-002-240120
+          - id: 1
+            transaction_id: "PROD-3501-001"
+            serial_number: PKS-001-240120
+            resource_type: Production
+            resource_id: 3501
+            transaction_date: "2024-01-20T14:30:00Z"
+            quantity_change: 1
+          - id: 2
+            transaction_id: "PROD-3501-002"
+            serial_number: PKS-002-240120
+            resource_type: Production
+            resource_id: 3501
+            transaction_date: "2024-01-20T14:30:00Z"
+            quantity_change: 1
         created_at: "2024-01-20T14:30:00Z"
         updated_at: "2024-01-20T14:30:00Z"
         deleted_at: null
@@ -2515,8 +2559,20 @@ components:
                 updated_at: "2024-01-20T14:30:00Z"
                 deleted_at: null
             serial_numbers:
-              - PKS-001-240120
-              - PKS-002-240120
+              - id: 1
+                transaction_id: "PROD-3501-001"
+                serial_number: PKS-001-240120
+                resource_type: Production
+                resource_id: 3501
+                transaction_date: "2024-01-20T14:30:00Z"
+                quantity_change: 1
+              - id: 2
+                transaction_id: "PROD-3501-002"
+                serial_number: PKS-002-240120
+                resource_type: Production
+                resource_id: 3501
+                transaction_date: "2024-01-20T14:30:00Z"
+                quantity_change: 1
             created_at: "2024-01-20T14:30:00Z"
             updated_at: "2024-01-20T14:30:00Z"
             deleted_at: null
@@ -3030,7 +3086,7 @@ components:
             production_deadline_date: "2024-01-25T17:00:00Z"
             additional_info: Priority order for new product launch
             is_linked_to_sales_order: true
-            ingredient_availability: AVAILABLE
+            ingredient_availability: IN_STOCK
             total_cost: 12500.0
             total_actual_time: 140.5
             total_planned_time: 200.0
@@ -3041,9 +3097,27 @@ components:
             subassemblies_cost: 2250.0
             operations_cost: 1500.0
             serial_numbers:
-              - PKS-001-240115
-              - PKS-002-240115
-              - PKS-003-240115
+              - id: 1
+                transaction_id: "MO-2024-001-001"
+                serial_number: PKS-001-240115
+                resource_type: ManufacturingOrder
+                resource_id: 3001
+                transaction_date: "2024-01-15T08:00:00Z"
+                quantity_change: 1
+              - id: 2
+                transaction_id: "MO-2024-001-002"
+                serial_number: PKS-002-240115
+                resource_type: ManufacturingOrder
+                resource_id: 3001
+                transaction_date: "2024-01-15T08:00:00Z"
+                quantity_change: 1
+              - id: 3
+                transaction_id: "MO-2024-001-003"
+                serial_number: PKS-003-240115
+                resource_type: ManufacturingOrder
+                resource_id: 3001
+                transaction_date: "2024-01-15T08:00:00Z"
+                quantity_change: 1
             created_at: "2024-01-15T08:00:00Z"
             updated_at: "2024-01-20T14:30:00Z"
             deleted_at: null
