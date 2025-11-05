@@ -2,7 +2,7 @@
 # Provides an isolated, secure environment for running the Katana Manufacturing ERP MCP server
 # Compatible with Docker MCP Catalog and Toolkit
 
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 # Metadata
 LABEL org.opencontainers.image.title="Katana MCP Server"
