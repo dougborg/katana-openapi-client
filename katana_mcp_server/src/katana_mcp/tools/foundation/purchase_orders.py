@@ -537,10 +537,10 @@ async def _verify_order_document_impl(
             if not isinstance(row.variant_id, type(UNSET)):
                 variant_ids.append(cast(int, row.variant_id))
 
-        # Fetch all variants in one call to avoid N+1 queries
+        # Fetch only the needed variants by ID (API-level filtering)
         try:
-            all_variants = await services.client.variants.list()
-            variant_by_id = {v.id: v for v in all_variants if v.id in variant_ids}
+            filtered_variants = await services.client.variants.list(ids=variant_ids)
+            variant_by_id = {v.id: v for v in filtered_variants}
         except Exception as e:
             logger.error(f"Failed to fetch variants: {e}")
             raise
