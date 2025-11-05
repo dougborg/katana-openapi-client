@@ -165,6 +165,7 @@ nav:
   - Monorepo ADRs:
       - Overview: adr/README.md
       - ADR-009 Migrate to uv: adr/0009-migrate-from-poetry-to-uv.md
+      - ADR-013 Module-Local Docs: adr/0013-module-local-documentation.md
 
 extra:
   version:
