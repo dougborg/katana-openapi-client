@@ -2,6 +2,85 @@
 
 <!-- version list -->
 
+## v0.28.0 (2025-11-05)
+
+### Bug Fixes
+
+- Address additional review feedback on PR #78
+  ([#78](https://github.com/dougborg/katana-openapi-client/pull/78),
+  [`0547845`](https://github.com/dougborg/katana-openapi-client/commit/054784522fd46954ca689d886cbc4bf33913d2db))
+
+- Address code review feedback from PR #78
+  ([#78](https://github.com/dougborg/katana-openapi-client/pull/78),
+  [`0547845`](https://github.com/dougborg/katana-openapi-client/commit/054784522fd46954ca689d886cbc4bf33913d2db))
+
+- Correct Product converter to use archived_at instead of deleted_at
+  ([#78](https://github.com/dougborg/katana-openapi-client/pull/78),
+  [`0547845`](https://github.com/dougborg/katana-openapi-client/commit/054784522fd46954ca689d886cbc4bf33913d2db))
+
+- Remove reference to non-existent variant.product_or_material_name field
+  ([#78](https://github.com/dougborg/katana-openapi-client/pull/78),
+  [`0547845`](https://github.com/dougborg/katana-openapi-client/commit/054784522fd46954ca689d886cbc4bf33913d2db))
+
+- Update devcontainer and deployment docs with corrected MCP doc references
+  ([#78](https://github.com/dougborg/katana-openapi-client/pull/78),
+  [`0547845`](https://github.com/dougborg/katana-openapi-client/commit/054784522fd46954ca689d886cbc4bf33913d2db))
+
+- Update MCP issue creation scripts to reference new documentation paths
+  ([#78](https://github.com/dougborg/katana-openapi-client/pull/78),
+  [`0547845`](https://github.com/dougborg/katana-openapi-client/commit/054784522fd46954ca689d886cbc4bf33913d2db))
+
+### Chores
+
+- **client**: Regenerate client after removing product_or_material_name field
+  ([`fa53c7c`](https://github.com/dougborg/katana-openapi-client/commit/fa53c7cedacabe3934c950291acd5fc104fbc898))
+
+### Continuous Integration
+
+- Prevent race conditions in release workflow with proper concurrency control
+  ([#109](https://github.com/dougborg/katana-openapi-client/pull/109),
+  [`4fc496f`](https://github.com/dougborg/katana-openapi-client/commit/4fc496f06403bc09e094b94513974986b1abb3b9))
+
+### Documentation
+
+- Create AGENT_WORKFLOW.md for AI agent development guide
+  ([#78](https://github.com/dougborg/katana-openapi-client/pull/78),
+  [`0547845`](https://github.com/dougborg/katana-openapi-client/commit/054784522fd46954ca689d886cbc4bf33913d2db))
+
+- Enhance agent coordination guidelines with detailed patterns
+  ([#110](https://github.com/dougborg/katana-openapi-client/pull/110),
+  [`9478f42`](https://github.com/dougborg/katana-openapi-client/commit/9478f4238b77b79305337393fb1d638577e1e7fd))
+
+- Update copilot-instructions.md and CLAUDE.md with uv and validation tiers
+  ([#107](https://github.com/dougborg/katana-openapi-client/pull/107),
+  [`9d3c383`](https://github.com/dougborg/katana-openapi-client/commit/9d3c3838ce815d53993e3b39b1ee01c567da7531))
+
+- **mcp**: Add StockTrim architecture migration plan
+  ([#112](https://github.com/dougborg/katana-openapi-client/pull/112),
+  [`8d081e4`](https://github.com/dougborg/katana-openapi-client/commit/8d081e45cae909543e7cd6a1e754a5c9aca0cd60))
+
+- **mcp**: Reorganize MCP documentation and align issues with v0.1.0 plan
+  ([#78](https://github.com/dougborg/katana-openapi-client/pull/78),
+  [`0547845`](https://github.com/dougborg/katana-openapi-client/commit/054784522fd46954ca689d886cbc4bf33913d2db))
+
+### Features
+
+- **client**: Add Product, Material, Service domain models with helper integration
+  ([#78](https://github.com/dougborg/katana-openapi-client/pull/78),
+  [`0547845`](https://github.com/dougborg/katana-openapi-client/commit/054784522fd46954ca689d886cbc4bf33913d2db))
+
+- **client**: Add Pydantic domain models for ETL and data processing
+  ([#78](https://github.com/dougborg/katana-openapi-client/pull/78),
+  [`0547845`](https://github.com/dougborg/katana-openapi-client/commit/054784522fd46954ca689d886cbc4bf33913d2db))
+
+- **client**: Add pytest-xdist for parallel test execution
+  ([#111](https://github.com/dougborg/katana-openapi-client/pull/111),
+  [`c96bee1`](https://github.com/dougborg/katana-openapi-client/commit/c96bee1e83c214097711d622d74b6add2b1854f3))
+
+- **client+mcp**: Add Pydantic domain models for catalog entities
+  ([#78](https://github.com/dougborg/katana-openapi-client/pull/78),
+  [`0547845`](https://github.com/dougborg/katana-openapi-client/commit/054784522fd46954ca689d886cbc4bf33913d2db))
+
 ## v0.27.0 (2025-10-28)
 
 ### Bug Fixes
