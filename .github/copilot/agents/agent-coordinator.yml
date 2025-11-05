@@ -321,8 +321,8 @@ instructions: |
   # Check all open PRs
   gh pr list --state open --json number,title,author,updatedAt
   
-  # Merge multiple ready PRs
-  for pr in 135 123; do
+  # Merge multiple ready PRs (replace <pr1> <pr2> with actual PR numbers)
+  for pr in <pr1> <pr2>; do
     gh pr merge $pr --merge --delete-branch
   done
   

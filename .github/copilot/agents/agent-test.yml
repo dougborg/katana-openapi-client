@@ -26,14 +26,16 @@ instructions: |
 
   ### Test Commands
 
+  **Note**: Timing estimates are approximate and may vary based on test suite size and CI/CD infrastructure.
+
   ```bash
-  # Basic tests (4 workers, ~16 seconds)
+  # Basic tests (parallel, 4 workers, ~16s)
   uv run poe test
-  
-  # Sequential tests (if parallel has issues, ~25 seconds)
+
+  # Sequential tests (if parallel has issues, ~25s)
   uv run poe test-sequential
-  
-  # With coverage report (~22 seconds)
+
+  # With coverage report (~22s)
   uv run poe test-coverage
   
   # Unit tests only

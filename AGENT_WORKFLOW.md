@@ -68,6 +68,7 @@ Each agent has domain-specific knowledge and follows project patterns.
 #### Coordinator Agent
 
 - **`@agent-coordinator`** - Orchestrates multi-agent work and project management
+
   - Monitors all open PRs and their status
   - Routes tasks to appropriate specialist agents
   - Ensures PRs meet merge criteria
