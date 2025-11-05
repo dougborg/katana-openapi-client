@@ -2137,11 +2137,13 @@ components:
         - $ref: "#/components/schemas/InventorySafetyStockLevel"
         - $ref: "#/components/schemas/DeletableEntity"
       example:
+        id: 1001
         variant_id: 1
         location_id: 1
         value: 10
         created_at: "2020-10-23T10:37:05.085Z"
         updated_at: "2020-10-23T10:37:05.085Z"
+        deleted_at: null
     CreateManufacturingOrderRequest:
       description: Request payload for creating a new manufacturing order to initiate production of products or components.
       type: object
@@ -2975,7 +2977,6 @@ components:
         planned_quantity_per_unit: 2.5
         total_actual_quantity: 125.0
         ingredient_availability: IN_STOCK
-        ingredient_expected_date: "2024-01-15T08:00:00Z"
         batch_transactions:
           - batch_id: 1201
             quantity: 125.0
@@ -3001,7 +3002,6 @@ components:
             planned_quantity_per_unit: 2.5
             total_actual_quantity: 125.0
             ingredient_availability: IN_STOCK
-            ingredient_expected_date: "2024-01-15T08:00:00Z"
             batch_transactions:
               - batch_id: 1201
                 quantity: 125.0
@@ -3197,10 +3197,8 @@ components:
             time: 45.5
             total_actual_time: 52.3
             completed_by_operators:
-              - id: 101
-                operator_name: John Smith
-                created_at: "2023-10-15T09:00:00Z"
-                updated_at: "2023-10-15T10:30:00Z"
+              - operator_id: 101
+                name: John Smith
                 deleted_at: null
             created_at: "2023-10-15T09:00:00Z"
             updated_at: "2023-10-15T10:30:00Z"
@@ -3273,18 +3271,22 @@ components:
         purchase_uom: sheet
         purchase_uom_conversion_rate: 2.0
         configs:
-          - name: Grade
+          - id: 1
+            name: Grade
             values:
               - "304"
               - "316"
-          - name: Thickness
+            material_id: 1
+          - id: 2
+            name: Thickness
             values:
               - 1.5mm
               - 2.0mm
               - 3.0mm
+            material_id: 1
         variants:
           - sku: STEEL-304-1.5MM
-            sales_price: null
+            sales_price: 65.00
             purchase_price: 45.00
             lead_time: 5
             minimum_order_quantity: 1
@@ -3893,7 +3895,7 @@ components:
         is_producible: true
         is_purchasable: false
         is_auto_assembly: false
-        default_supplier_id: null
+        default_supplier_id: 1501
         additional_info: High-carbon stainless steel with ergonomic handles, dishwasher safe
         batch_tracked: false
         serial_tracked: true
@@ -5846,7 +5848,7 @@ components:
                 config_value: Wood
           - id: 5001
             sku: STEEL-304-1.5MM
-            sales_price: null
+            sales_price: 65.00
             purchase_price: 45.00
             type: material
             lead_time: 5
@@ -5858,7 +5860,7 @@ components:
                 config_value: "1.5mm"
           - id: 5003
             sku: ALU-6061-2.0MM
-            sales_price: null
+            sales_price: 55.00
             purchase_price: 38.50
             type: material
             lead_time: 3
@@ -7754,7 +7756,9 @@ components:
         tracking_number: null
         tracking_number_url: null
         addresses:
-          - entity_type: billing
+          - id: 1
+            sales_order_id: 2001
+            entity_type: billing
             first_name: David
             last_name: Wilson
             company: Wilson's Catering
@@ -7763,7 +7767,9 @@ components:
             state: WA
             zip: "98101"
             country: US
-          - entity_type: shipping
+          - id: 2
+            sales_order_id: 2001
+            entity_type: shipping
             first_name: David
             last_name: Wilson
             company: Wilson's Catering
@@ -8557,7 +8563,7 @@ components:
             $ref: "#/components/schemas/BomRow"
       example:
         data:
-          - id: 501
+          - id: "501a1234-5678-90ab-cdef-1234567890ab"
             product_variant_id: 2001
             product_item_id: 3001
             ingredient_variant_id: 2002
@@ -8565,7 +8571,7 @@ components:
             notes: Handle with care - fragile component
             created_at: "2023-10-15T14:30:00Z"
             updated_at: "2023-10-16T09:15:00Z"
-          - id: 502
+          - id: "502b1234-5678-90ab-cdef-1234567890ab"
             product_variant_id: 2001
             product_item_id: 3001
             ingredient_variant_id: 2003
@@ -9266,8 +9272,6 @@ components:
             quantity: 2
             return_reason_id: 1
             notes: Packaging was damaged
-            unit_price: 25.0
-            total_price: 50.0
     UpdateSalesReturnRequest:
       description: Request payload for updating an existing sales return
       type: object
@@ -9727,6 +9731,7 @@ components:
       example:
         data:
           - id: 4001
+            stocktake_number: STK-2024-001
             reference_no: STK-2024-001
             location_id: 1
             status: COMPLETED
@@ -9735,6 +9740,7 @@ components:
             created_at: "2024-01-15T09:00:00.000Z"
             updated_at: "2024-01-15T17:30:00.000Z"
           - id: 4002
+            stocktake_number: STK-2024-002
             reference_no: STK-2024-002
             location_id: 2
             status: IN_PROGRESS
@@ -9954,8 +9960,8 @@ components:
       example:
         data:
           - id: 42
-            first_name: Sarah
-            last_name: Johnson
+            firstName: Sarah
+            lastName: Johnson
             email: sarah.johnson@company.com
             role: production_manager
             status: active
@@ -9963,8 +9969,8 @@ components:
             created_at: "2024-01-10T09:00:00Z"
             updated_at: "2024-01-15T14:30:00Z"
           - id: 43
-            first_name: Mike
-            last_name: Chen
+            firstName: Mike
+            lastName: Chen
             email: mike.chen@company.com
             role: inventory_coordinator
             status: active
@@ -9983,10 +9989,13 @@ components:
       example:
         data:
           - id: 6001
+            material_id: 1
             purchase_order_id: 1001
+            purchase_order_row_id: 1001
             variant_id: 2002
+            ingredient_variant_id: 2002
             planned_quantity_per_unit: 2.5
-            ingredient_availability: AVAILABLE
+            ingredient_availability: IN_STOCK
             ingredient_expected_date: "2023-10-15T08:00:00Z"
             notes: Supplier will handle assembly
     OutsourcedPurchaseOrderRecipeRow:
@@ -10154,7 +10163,7 @@ components:
         data:
           - id: 2801
             sales_order_id: 2001
-            amount: 25.99
+            amount: "25.99"
             tax_rate_id: 301
             description: UPS Ground Shipping
     SalesOrderShippingFee:
@@ -10185,7 +10194,7 @@ components:
       example:
         id: 2801
         sales_order_id: 2001
-        amount: 25.99
+        amount: "25.99"
         tax_rate_id: 301
         description: UPS Ground Shipping
     CreateSalesOrderShippingFeeRequest:
