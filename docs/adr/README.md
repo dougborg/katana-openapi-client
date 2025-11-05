@@ -35,6 +35,7 @@ We use the format proposed by Michael Nygard in his article
 ### Accepted Shared/Monorepo Decisions
 
 - [ADR-009: Migrate from Poetry to uv Package Manager](0009-migrate-from-poetry-to-uv.md)
+- [ADR-013: Module-Local Documentation Structure](0013-module-local-documentation.md)
 
 ## Creating a New ADR
 
