@@ -18,25 +18,25 @@ class BatchCreateBomRowsRequest:
     """Request payload for creating multiple BOM rows in a single operation
 
     Example:
-        {'bom_rows': [{'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2002, 'quantity':
-            2.5, 'notes': 'Primary component'}, {'product_item_id': 3001, 'product_variant_id': 2001,
-            'ingredient_variant_id': 2003, 'quantity': 1.0, 'notes': 'Secondary component'}]}
+        {'data': [{'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2002, 'quantity': 2.5,
+            'notes': 'Primary component'}, {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id':
+            2003, 'quantity': 1.0, 'notes': 'Secondary component'}]}
     """
 
-    bom_rows: list["CreateBomRowRequest"]
+    data: list["CreateBomRowRequest"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        bom_rows = []
-        for bom_rows_item_data in self.bom_rows:
-            bom_rows_item = bom_rows_item_data.to_dict()
-            bom_rows.append(bom_rows_item)
+        data = []
+        for data_item_data in self.data:
+            data_item = data_item_data.to_dict()
+            data.append(data_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "bom_rows": bom_rows,
+                "data": data,
             }
         )
 
@@ -47,15 +47,15 @@ class BatchCreateBomRowsRequest:
         from ..models.create_bom_row_request import CreateBomRowRequest
 
         d = dict(src_dict)
-        bom_rows = []
-        _bom_rows = d.pop("bom_rows")
-        for bom_rows_item_data in _bom_rows:
-            bom_rows_item = CreateBomRowRequest.from_dict(bom_rows_item_data)
+        data = []
+        _data = d.pop("data")
+        for data_item_data in _data:
+            data_item = CreateBomRowRequest.from_dict(data_item_data)
 
-            bom_rows.append(bom_rows_item)
+            data.append(data_item)
 
         batch_create_bom_rows_request = cls(
-            bom_rows=bom_rows,
+            data=data,
         )
 
         batch_create_bom_rows_request.additional_properties = d
