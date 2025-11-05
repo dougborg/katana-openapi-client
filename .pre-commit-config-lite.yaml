@@ -1,5 +1,5 @@
 # Pre-commit configuration (LITE) for fast iteration
-# Use this for rapid development iteration (~2-5 seconds)
+# Use this for rapid development iteration (~5-10 seconds)
 #
 # Install: uv run pre-commit install --config .pre-commit-config-lite.yaml
 # Run manually: uv run pre-commit run --all-files --config .pre-commit-config-lite.yaml

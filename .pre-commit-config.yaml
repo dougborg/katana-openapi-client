@@ -45,7 +45,7 @@ repos:
       # Run tests (via poe task)
       - id: pytest
         name: pytest
-        entry: bash -c 'uv run poe test'
+        entry: uv run poe test
         language: system
         pass_filenames: false
         always_run: true
