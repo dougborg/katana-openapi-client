@@ -2,6 +2,36 @@
 
 <!-- version list -->
 
+## v0.29.0 (2025-11-05)
+
+### Bug Fixes
+
+- **client**: Correct BatchCreateBomRowsRequest field name from bom_rows to data
+  ([#115](https://github.com/dougborg/katana-openapi-client/pull/115),
+  [`5bb9918`](https://github.com/dougborg/katana-openapi-client/commit/5bb9918095c33f06b2502f944b7ae1df708c9dcc))
+
+### Chores
+
+- **release**: Mcp v0.4.0
+  ([`c3594e4`](https://github.com/dougborg/katana-openapi-client/commit/c3594e404b660ccd6e06b16dcc133ccae91d5866))
+
+- **release**: Mcp v0.5.0
+  ([`0c67647`](https://github.com/dougborg/katana-openapi-client/commit/0c67647906e83400e8df2767547892ba1a6a9736))
+
+### Documentation
+
+- Fix 66 OpenAPI spec example warnings
+  ([#116](https://github.com/dougborg/katana-openapi-client/pull/116),
+  [`d20997c`](https://github.com/dougborg/katana-openapi-client/commit/d20997c6a8287659ca1ccc7ed4f487e4bd1816fb))
+
+### Features
+
+- **mcp**: Complete unified item CRUD interface
+  ([`9c123e3`](https://github.com/dougborg/katana-openapi-client/commit/9c123e3619b9e872d4ce8aa360d11ec6779002f1))
+
+- **mcp**: Migrate to StockTrim architecture with unified item creation
+  ([`8645d9d`](https://github.com/dougborg/katana-openapi-client/commit/8645d9dd15dc302b2f64938d8b6f61ce390e13d4))
+
 ## v0.28.0 (2025-11-05)
 
 ### Bug Fixes
