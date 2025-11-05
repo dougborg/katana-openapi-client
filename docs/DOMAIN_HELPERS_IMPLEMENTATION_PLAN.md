@@ -254,9 +254,9 @@ class KatanaClient(AuthenticatedClient):
 
 ### Documentation
 
-1. Update [KATANA_CLIENT_GUIDE.md](KATANA_CLIENT_GUIDE.md) with helper examples
+1. Update [Client Guide](client/guide.md) with helper examples
 1. Add docstrings with clear "Used by" references to MCP tools
-1. Update [COOKBOOK.md](COOKBOOK.md) with helper-based recipes
+1. Update [Cookbook](client/cookbook.md) with helper-based recipes
 
 ## Dependency Impact on MCP Implementation
 
@@ -329,7 +329,7 @@ async def check_inventory(sku: str, ctx: Context) -> InventoryStatus:
 - [ ] All helper methods documented with "Used by" MCP tool references
 - [ ] Helper properties added to KatanaClient
 - [ ] Integration tests passing with actual Katana API
-- [ ] KATANA_CLIENT_GUIDE.md updated with helper examples
+- [ ] Client Guide updated with helper examples
 
 ## Next Steps
 

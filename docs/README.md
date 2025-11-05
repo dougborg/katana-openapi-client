@@ -32,17 +32,42 @@ uv run poe docs-clean
 
 ## Documentation Structure
 
+This is a monorepo with module-local documentation. Each package has its own `docs/` directory:
+
 ```
-docs/
-├── index.md                      # Home page
-├── KATANA_CLIENT_GUIDE.md        # Main user guide
-├── CONTRIBUTING.md               # Contributing guidelines
-├── TESTING_GUIDE.md              # Testing documentation
-├── CHANGELOG.md                  # Release notes
-├── openapi-docs.md               # OpenAPI spec viewer
-├── gen_ref_pages.py              # API reference generator
-├── katana-api-comprehensive/     # External Katana API docs (248 files)
-└── reference/                    # Auto-generated API docs (built at runtime)
+docs/                                # Shared/monorepo documentation
+├── index.md                         # Home page
+├── CONTRIBUTING.md                  # Contributing guidelines
+├── CODE_OF_CONDUCT.md              # Code of conduct
+├── MONOREPO_SEMANTIC_RELEASE.md    # Semantic release guide
+├── UV_USAGE.md                     # uv package manager guide
+├── PYPI_SETUP.md                   # PyPI publishing setup
+├── RELEASE.md                      # Release documentation
+├── openapi-docs.md                 # OpenAPI spec viewer
+├── gen_ref_pages.py                # API reference generator
+├── client/                         # Symlink → katana_public_api_client/docs
+├── mcp-server/                     # Symlink → katana_mcp_server/docs
+├── adr/                            # Shared/monorepo ADRs
+│   └── 0009-migrate-from-poetry-to-uv.md
+└── reference/                      # Auto-generated API docs (built at runtime)
+
+katana_public_api_client/docs/       # Client-specific documentation
+├── README.md                        # Client docs index
+├── guide.md                         # Client user guide
+├── cookbook.md                      # Usage recipes
+├── testing.md                       # Testing documentation
+├── CHANGELOG.md                     # Client changelog
+└── adr/                            # Client ADRs (001-008, 011-012)
+
+katana_mcp_server/docs/              # MCP server-specific documentation
+├── README.md                        # MCP docs index
+├── architecture.md                  # MCP architecture design
+├── development.md                   # Development guide
+├── deployment.md                    # Deployment guide
+├── docker.md                        # Docker deployment
+├── implementation-plan.md           # Implementation roadmap
+├── stocktrim-migration.md           # StockTrim migration plan
+└── adr/                            # MCP ADRs (010)
 ```
 
 ## Configuration
