@@ -8503,15 +8503,15 @@ components:
       type: object
       description: Request payload for creating multiple BOM rows in a single operation
       properties:
-        bom_rows:
+        data:
           type: array
           description: Array of BOM rows to create
           items:
             $ref: "#/components/schemas/CreateBomRowRequest"
       required:
-        - bom_rows
+        - data
       example:
-        bom_rows:
+        data:
           - product_item_id: 3001
             product_variant_id: 2001
             ingredient_variant_id: 2002
