@@ -14,7 +14,7 @@ def mock_api_credentials():
     """Provide mock API credentials for testing."""
     return {
         "api_key": "test-api-key-12345",
-        "base_url": "https://api.test.katana.example.com",
+        "base_url": "https://api.katana.test",  # .test TLD reserved for testing (RFC 6761)
     }
 
 
@@ -157,9 +157,9 @@ def setup_test_env(monkeypatch, request):
         if not os.getenv("KATANA_BASE_URL"):
             monkeypatch.setenv("KATANA_BASE_URL", "https://api.katanamrp.com/v1")
     else:
-        # For unit tests, use test values
+        # For unit tests, use test values with .test TLD (RFC 6761 reserved for testing)
         monkeypatch.setenv("KATANA_API_KEY", "test-key")
-        monkeypatch.setenv("KATANA_BASE_URL", "https://api.test.katana.example.com")
+        monkeypatch.setenv("KATANA_BASE_URL", "https://api.katana.test")
 
 
 # Async test utilities
