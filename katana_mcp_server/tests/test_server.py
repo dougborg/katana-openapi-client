@@ -220,7 +220,7 @@ class TestMCPServerInitialization:
         """Test that mcp server has version."""
         # FastMCP stores version in version attribute
         assert hasattr(mcp, "version")
-        assert mcp.version == "0.1.0a1"
+        assert mcp.version == "0.3.0"
 
     def test_mcp_server_has_lifespan(self):
         """Test that mcp server has lifespan configured."""

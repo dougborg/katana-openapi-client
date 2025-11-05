@@ -1,15 +1,17 @@
-"""Tests for inventory MCP tools."""
+"""Tests for inventory and item MCP tools."""
 
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from katana_mcp.tools.inventory import (
+from katana_mcp.tools.foundation.inventory import (
     CheckInventoryRequest,
     LowStockRequest,
-    SearchProductsRequest,
     _check_inventory_impl,
     _list_low_stock_items_impl,
-    _search_products_impl,
+)
+from katana_mcp.tools.foundation.items import (
+    SearchItemsRequest,
+    _search_items_impl,
 )
 
 # ============================================================================
@@ -194,93 +196,92 @@ async def test_list_low_stock_default_parameters():
 
 
 @pytest.mark.asyncio
-async def test_search_products():
-    """Test search_products tool with mocked client."""
+async def test_search_items():
+    """Test search_items tool with mocked client."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock Product objects
-    mock_product = MagicMock()
-    mock_product.id = 123
-    mock_product.sku = "WIDGET-001"
-    mock_product.name = "Test Widget"
-    mock_product.is_sellable = True
-    mock_product.stock_level = None
+    # Mock Variant objects
+    mock_variant = MagicMock()
+    mock_variant.id = 123
+    mock_variant.sku = "WIDGET-001"
+    mock_variant.type_ = "product"
+    mock_variant.get_display_name = MagicMock(return_value="Test Widget")
 
-    lifespan_ctx.client.products.search = AsyncMock(return_value=[mock_product])
+    lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
 
-    request = SearchProductsRequest(query="widget", limit=20)
-    result = await _search_products_impl(request, context)
+    request = SearchItemsRequest(query="widget", limit=20)
+    result = await _search_items_impl(request, context)
 
     assert result.total_count == 1
-    assert len(result.products) == 1
-    assert result.products[0].id == 123
-    assert result.products[0].sku == "WIDGET-001"
-    assert result.products[0].name == "Test Widget"
-    assert result.products[0].is_sellable is True
-    lifespan_ctx.client.products.search.assert_called_once_with("widget", limit=20)
+    assert len(result.items) == 1
+    assert result.items[0].id == 123
+    assert result.items[0].sku == "WIDGET-001"
+    assert result.items[0].name == "Test Widget"
+    assert result.items[0].is_sellable is True
+    lifespan_ctx.client.variants.search.assert_called_once_with("widget", limit=20)
 
 
 @pytest.mark.asyncio
-async def test_search_products_handles_optional_fields():
-    """Test search_products handles missing optional fields."""
+async def test_search_items_handles_optional_fields():
+    """Test search_items handles missing optional fields."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock Product with missing optional fields
-    mock_product = MagicMock()
-    mock_product.id = 456
-    mock_product.sku = None
-    mock_product.name = None
-    mock_product.is_sellable = None
+    # Mock Variant with missing optional fields
+    mock_variant = MagicMock()
+    mock_variant.id = 456
+    mock_variant.sku = None
+    mock_variant.type_ = None
+    mock_variant.get_display_name = MagicMock(return_value="")
 
-    lifespan_ctx.client.products.search = AsyncMock(return_value=[mock_product])
+    lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
 
-    request = SearchProductsRequest(query="test")
-    result = await _search_products_impl(request, context)
+    request = SearchItemsRequest(query="test")
+    result = await _search_items_impl(request, context)
 
-    assert result.products[0].sku == ""  # Converts None to empty string
-    assert result.products[0].name == ""
-    assert result.products[0].is_sellable is False
+    assert result.items[0].sku == ""  # Converts None to empty string
+    assert result.items[0].name == ""
+    assert result.items[0].is_sellable is False
 
 
 @pytest.mark.asyncio
-async def test_search_products_default_limit():
-    """Test search_products uses default limit."""
+async def test_search_items_default_limit():
+    """Test search_items uses default limit."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.client.products.search = AsyncMock(return_value=[])
+    lifespan_ctx.client.variants.search = AsyncMock(return_value=[])
 
-    request = SearchProductsRequest(query="test")  # Use default limit
-    await _search_products_impl(request, context)
+    request = SearchItemsRequest(query="test")  # Use default limit
+    await _search_items_impl(request, context)
 
     assert request.limit == 20  # Default
-    lifespan_ctx.client.products.search.assert_called_once_with("test", limit=20)
+    lifespan_ctx.client.variants.search.assert_called_once_with("test", limit=20)
 
 
 @pytest.mark.asyncio
-async def test_search_products_multiple_results():
-    """Test search_products with multiple results."""
+async def test_search_items_multiple_results():
+    """Test search_items with multiple results."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock multiple Product objects
-    mock_products = []
+    # Mock multiple Variant objects
+    mock_variants = []
     for i in range(5):
-        mock_product = MagicMock()
-        mock_product.id = i
-        mock_product.sku = f"SKU-{i:03d}"
-        mock_product.name = f"Product {i}"
-        mock_product.is_sellable = i % 2 == 0
-        mock_products.append(mock_product)
+        mock_variant = MagicMock()
+        mock_variant.id = i
+        mock_variant.sku = f"SKU-{i:03d}"
+        mock_variant.type_ = "product" if i % 2 == 0 else "material"
+        mock_variant.get_display_name = MagicMock(return_value=f"Item {i}")
+        mock_variants.append(mock_variant)
 
-    lifespan_ctx.client.products.search = AsyncMock(return_value=mock_products)
+    lifespan_ctx.client.variants.search = AsyncMock(return_value=mock_variants)
 
-    request = SearchProductsRequest(query="product", limit=10)
-    result = await _search_products_impl(request, context)
+    request = SearchItemsRequest(query="item", limit=10)
+    result = await _search_items_impl(request, context)
 
     assert result.total_count == 5
-    assert len(result.products) == 5
-    assert result.products[0].id == 0
-    assert result.products[0].sku == "SKU-000"
-    assert result.products[0].is_sellable is True
-    assert result.products[1].is_sellable is False
+    assert len(result.items) == 5
+    assert result.items[0].id == 0
+    assert result.items[0].sku == "SKU-000"
+    assert result.items[0].is_sellable is True
+    assert result.items[1].is_sellable is False
 
 
 # ============================================================================

@@ -14,6 +14,7 @@ import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from typing import Any
 
 from dotenv import load_dotenv
@@ -30,16 +31,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+@dataclass
 class ServerContext:
-    """Context object that holds the KatanaClient instance for the server lifespan."""
+    """Context object that holds the KatanaClient instance for the server lifespan.
 
-    def __init__(self, client: KatanaClient):
-        """Initialize server context with KatanaClient.
+    This dataclass provides type-safe access to the KatanaClient throughout
+    the server lifecycle, following the StockTrim architecture pattern.
 
-        Args:
-            client: Initialized KatanaClient instance
-        """
-        self.client = client
+    Attributes:
+        client: Initialized KatanaClient instance for API operations
+    """
+
+    client: KatanaClient
 
 
 @asynccontextmanager
@@ -95,7 +98,6 @@ async def lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
             logger.info("KatanaClient initialized successfully")
 
             # Create context with client for tools to access
-            # Note: client is KatanaClient but mypy sees it as AuthenticatedClient
             context = ServerContext(client=client)  # type: ignore[arg-type]
 
             # Yield context to server - tools can access via lifespan dependency

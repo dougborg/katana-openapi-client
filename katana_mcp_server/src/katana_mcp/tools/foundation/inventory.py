@@ -1,4 +1,8 @@
-"""Inventory management tools for Katana MCP Server."""
+"""Inventory management tools for Katana MCP Server.
+
+Foundation tools for checking stock levels, monitoring low stock,
+and managing inventory operations.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +10,8 @@ import logging
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
+
+from katana_mcp.services import get_services
 
 logger = logging.getLogger(__name__)
 
@@ -52,10 +58,9 @@ async def _check_inventory_impl(
     logger.info(f"Checking inventory for SKU: {request.sku}")
 
     try:
-        # Access KatanaClient from lifespan context
-        server_context = context.request_context.lifespan_context  # type: ignore[attr-defined]
-        client = server_context.client  # type: ignore[attr-defined]
-        product = await client.inventory.check_stock(request.sku)
+        # Access services using helper
+        services = get_services(context)
+        product = await services.client.inventory.check_stock(request.sku)
 
         if not product:
             # Product not found - return zero stock
@@ -166,10 +171,11 @@ async def _list_low_stock_items_impl(
     )
 
     try:
-        # Access KatanaClient from lifespan context
-        server_context = context.request_context.lifespan_context  # type: ignore[attr-defined]
-        client = server_context.client  # type: ignore[attr-defined]
-        products = await client.inventory.list_low_stock(threshold=request.threshold)
+        # Access services using helper
+        services = get_services(context)
+        products = await services.client.inventory.list_low_stock(
+            threshold=request.threshold
+        )
 
         # Limit results
         limited_products = products[: request.limit]
@@ -224,123 +230,6 @@ async def list_low_stock_items(
     return await _list_low_stock_items_impl(request, context)
 
 
-# ============================================================================
-# Tool 3: search_products
-# ============================================================================
-
-
-class SearchProductsRequest(BaseModel):
-    """Request model for searching products."""
-
-    query: str = Field(..., description="Search query (name, SKU, etc.)")
-    limit: int = Field(default=20, description="Maximum results to return")
-
-
-class ProductInfo(BaseModel):
-    """Product information."""
-
-    id: int
-    sku: str
-    name: str
-    is_sellable: bool
-    stock_level: int | None = None
-
-
-class SearchProductsResponse(BaseModel):
-    """Response containing search results."""
-
-    products: list[ProductInfo]
-    total_count: int
-
-
-async def _search_products_impl(
-    request: SearchProductsRequest, context: Context
-) -> SearchProductsResponse:
-    """Implementation of search_products tool.
-
-    Args:
-        request: Request with search query and limit
-        context: Server context with KatanaClient
-
-    Returns:
-        List of matching product variants with extended names
-
-    Raises:
-        ValueError: If query is empty or limit is invalid
-        Exception: If API call fails
-    """
-    if not request.query or not request.query.strip():
-        raise ValueError("Search query cannot be empty")
-    if request.limit <= 0:
-        raise ValueError("Limit must be positive")
-
-    logger.info(
-        f"Searching variants for query: '{request.query}' (limit={request.limit})"
-    )
-
-    try:
-        # Access KatanaClient from lifespan context
-        server_context = context.request_context.lifespan_context  # type: ignore[attr-defined]
-        client = server_context.client  # type: ignore[attr-defined]
-
-        # Search variants (which have SKUs) with parent product/material info
-        variants = await client.variants.search(request.query, limit=request.limit)
-
-        # Build response - format names matching Katana UI
-        products_info = []
-        for variant in variants:
-            # Build variant name using domain model method
-            # Format: "Product Name / Config1 / Config2 / ..."
-            name = variant.get_display_name()
-
-            # Determine if variant is sellable (products are sellable, materials are not)
-            is_sellable = variant.type_ == "product" if variant.type_ else False
-
-            products_info.append(
-                ProductInfo(
-                    id=variant.id,
-                    sku=variant.sku or "",
-                    name=name,
-                    is_sellable=is_sellable,
-                    stock_level=None,  # Variants don't have stock_level directly
-                )
-            )
-
-        response = SearchProductsResponse(
-            products=products_info,
-            total_count=len(products_info),
-        )
-
-        logger.info(f"Found {response.total_count} variants matching '{request.query}'")
-        return response
-
-    except Exception as e:
-        logger.error(f"Failed to search products for query '{request.query}': {e}")
-        raise
-
-
-async def search_products(
-    request: SearchProductsRequest, context: Context
-) -> SearchProductsResponse:
-    """Search for products by name or SKU.
-
-    Performs a search across product catalog to find items matching
-    the search query. Useful for quick product lookup.
-
-    Args:
-        request: Request with search query and limit
-        context: Server context with KatanaClient
-
-    Returns:
-        List of matching products with basic info
-
-    Example:
-        Request: {"query": "widget", "limit": 10}
-        Returns: {"products": [...], "total_count": 5}
-    """
-    return await _search_products_impl(request, context)
-
-
 def register_tools(mcp: FastMCP) -> None:
     """Register all inventory tools with the FastMCP instance.
 
@@ -349,4 +238,3 @@ def register_tools(mcp: FastMCP) -> None:
     """
     mcp.tool()(check_inventory)
     mcp.tool()(list_low_stock_items)
-    mcp.tool()(search_products)
