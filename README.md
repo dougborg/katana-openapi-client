@@ -8,6 +8,10 @@ resilience.
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![uv](https://img.shields.io/badge/dependency--management-uv-blue.svg)](https://docs.astral.sh/uv/)
 [![OpenAPI 3.1.0](https://img.shields.io/badge/OpenAPI-3.1.0-green.svg)](https://spec.openapis.org/oas/v3.1.0)
+[![CI](https://github.com/dougborg/katana-openapi-client/actions/workflows/ci.yml/badge.svg)](https://github.com/dougborg/katana-openapi-client/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/dougborg/katana-openapi-client/branch/main/graph/badge.svg)](https://codecov.io/gh/dougborg/katana-openapi-client)
+[![Docs](https://github.com/dougborg/katana-openapi-client/actions/workflows/docs.yml/badge.svg)](https://github.com/dougborg/katana-openapi-client/actions/workflows/docs.yml)
+[![Security](https://github.com/dougborg/katana-openapi-client/actions/workflows/security.yml/badge.svg)](https://github.com/dougborg/katana-openapi-client/actions/workflows/security.yml)
 
 ## ✨ Features
 
