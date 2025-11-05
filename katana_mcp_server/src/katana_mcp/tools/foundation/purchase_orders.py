@@ -304,55 +304,137 @@ class ReceivePurchaseOrderResponse(BaseModel):
 async def _receive_purchase_order_impl(
     request: ReceivePurchaseOrderRequest, context: Context
 ) -> ReceivePurchaseOrderResponse:
-    """STUB implementation of receive_purchase_order tool.
+    """Implementation of receive_purchase_order tool.
 
     Args:
         request: Request with purchase order ID and items to receive
         context: Server context with KatanaClient
 
     Returns:
-        Receive response (currently stub)
+        Receive response with details
 
-    Note:
-        This is a placeholder. Full implementation requires:
-        - Understanding PurchaseOrderReceiveRow model
-        - Proper API endpoint usage (no ID parameter in path)
-        - Batch transaction handling
-        - Inventory update confirmation
+    Raises:
+        ValueError: If validation fails
+        Exception: If API call fails
     """
-    logger.warning("receive_purchase_order is a stub - returning placeholder response")
-
-    return ReceivePurchaseOrderResponse(
-        order_id=request.order_id,
-        items_received=len(request.items),
-        is_preview=not request.confirm,
-        warnings=["This tool is not yet fully implemented"],
-        next_actions=[
-            "Purchase order receiving not yet implemented",
-            "See tool documentation for implementation status",
-        ],
-        message=f"STUB: Would {'receive' if request.confirm else 'preview receiving'} {len(request.items)} items for PO {request.order_id}",
+    logger.info(
+        f"{'Previewing' if not request.confirm else 'Receiving'} items for PO {request.order_id}"
     )
+
+    try:
+        services = get_services(context)
+
+        # First, fetch the PO to get its details for validation and preview
+        from katana_public_api_client.api.purchase_order import (
+            get_purchase_order as api_get_purchase_order,
+        )
+
+        po_response = await api_get_purchase_order.asyncio_detailed(
+            id=request.order_id, client=services.client
+        )
+
+        if po_response.status_code != 200 or not isinstance(
+            po_response.parsed, RegularPurchaseOrder
+        ):
+            raise Exception(
+                f"Failed to fetch purchase order {request.order_id}: {po_response.status_code}"
+            )
+
+        po = po_response.parsed
+        order_no = (
+            cast(str, po.order_no)
+            if not isinstance(po.order_no, type(UNSET))
+            else f"PO-{request.order_id}"
+        )
+
+        # Preview mode - return summary without API call
+        if not request.confirm:
+            logger.info(
+                f"Preview mode: Would receive {len(request.items)} items for PO {order_no}"
+            )
+            return ReceivePurchaseOrderResponse(
+                order_id=request.order_id,
+                order_number=order_no,
+                items_received=len(request.items),
+                is_preview=True,
+                next_actions=[
+                    "Review the items to receive",
+                    "Set confirm=true to receive the items and update inventory",
+                ],
+                message=f"Preview: Receive {len(request.items)} items for PO {order_no}",
+            )
+
+        # Confirm mode - receive items via API
+        from katana_public_api_client.api.purchase_order import (
+            receive_purchase_order as api_receive_purchase_order,
+        )
+        from katana_public_api_client.models import PurchaseOrderReceiveRow
+
+        # Build receive rows
+        receive_rows = []
+        for item in request.items:
+            row = PurchaseOrderReceiveRow(
+                purchase_order_row_id=item.purchase_order_row_id,
+                quantity=item.quantity,
+                received_date=datetime.now(UTC),
+            )
+            receive_rows.append(row)
+
+        # Call API
+        response = await api_receive_purchase_order.asyncio_detailed(
+            client=services.client, body=receive_rows
+        )
+
+        if response.status_code == 204:
+            logger.info(
+                f"Successfully received {len(request.items)} items for PO {order_no}"
+            )
+            return ReceivePurchaseOrderResponse(
+                order_id=request.order_id,
+                order_number=order_no,
+                items_received=len(request.items),
+                is_preview=False,
+                next_actions=[
+                    f"Received {len(request.items)} items",
+                    "Inventory has been updated",
+                ],
+                message=f"Successfully received {len(request.items)} items for PO {order_no}",
+            )
+        else:
+            raise Exception(f"API returned unexpected status: {response.status_code}")
+
+    except Exception as e:
+        logger.error(f"Failed to receive purchase order: {e}")
+        raise
 
 
 async def receive_purchase_order(
     request: ReceivePurchaseOrderRequest, context: Context
 ) -> ReceivePurchaseOrderResponse:
-    """Receive items from a purchase order (STUB - not yet implemented).
+    """Receive items from a purchase order with two-step confirmation.
 
-    This tool will support a two-step confirmation process:
+    This tool supports a two-step confirmation process:
     1. Preview (confirm=false): Shows items to be received
     2. Confirm (confirm=true): Receives the items and updates inventory
+
+    The tool marks items as received in Katana and updates inventory levels.
+    The API returns 204 (no content) on success.
 
     Args:
         request: Request with purchase order ID, items, and confirm flag
         context: Server context with KatanaClient
 
     Returns:
-        Receive response (currently stub)
+        Receive response with status and details
 
-    Note:
-        This is a stub implementation. Full functionality coming in future update.
+    Example:
+        Preview:
+            Request: {"order_id": 1234, "items": [{"purchase_order_row_id": 501, "quantity": 100}], "confirm": false}
+            Returns: Preview with summary
+
+        Confirm:
+            Request: Same as above but with "confirm": true
+            Returns: Success message with updated inventory
     """
     return await _receive_purchase_order_impl(request, context)
 
