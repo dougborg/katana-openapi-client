@@ -11,6 +11,10 @@ Consolidates:
 - Schema validation parts from test_individual_schema_validation.py
 
 All schema testing is now parameterized for complete equality and automatic scaling.
+
+NOTE: These tests are marked with @pytest.mark.schema_validation and are SKIPPED by default
+because they cause pytest-xdist collection issues (dynamically generated parametrized tests).
+Run explicitly with: pytest -m schema_validation
 """
 
 from pathlib import Path
@@ -18,6 +22,9 @@ from typing import Any
 
 import pytest
 import yaml
+
+# Mark all tests in this module as schema_validation
+pytestmark = pytest.mark.schema_validation
 
 
 def pytest_generate_tests(metafunc):

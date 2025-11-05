@@ -196,19 +196,25 @@ uv run poe fix             # Auto-fix formatting and linting issues
 ### Testing
 
 ```bash
-uv run poe test                # Run basic test suite (~27s)
-uv run poe test-coverage       # Run tests with coverage (~39s)
+uv run poe test                # Run basic test suite (4 workers, ~16s)
+uv run poe test-sequential     # Run tests sequentially if needed (~25s)
+uv run poe test-coverage       # Run tests with coverage (~22s)
 uv run poe test-unit           # Unit tests only
 uv run poe test-integration    # Integration tests (needs KATANA_API_KEY)
+uv run poe test-schema         # Schema validation tests (excluded by default)
 ```
+
+**Note**: Tests use pytest-xdist with 4 workers (optimal for performance). Schema
+validation tests are excluded from default runs due to pytest-xdist collection issues
+but can be run explicitly with `uv run poe test-schema`.
 
 ### Validation Tiers
 
 ```bash
 uv run poe quick-check     # Tier 1: Fast validation (~5-10s)
 uv run poe agent-check     # Tier 2: Pre-commit validation (~10-15s)
-uv run poe check           # Tier 3: PR validation (~40s) - REQUIRED
-uv run poe full-check      # Tier 4: Full validation (~50s)
+uv run poe check           # Tier 3: PR validation (~30s) - REQUIRED
+uv run poe full-check      # Tier 4: Full validation (~40s)
 ```
 
 ### Documentation
@@ -369,10 +375,10 @@ ______________________________________________________________________
 | `uv run poe quick-check`       | ~5-10 seconds  | 15+ minutes     |
 | `uv run poe agent-check`       | ~10-15 seconds | 20+ minutes     |
 | `uv run poe lint`              | ~11 seconds    | 15+ minutes     |
-| `uv run poe test`              | ~27 seconds    | 30+ minutes     |
-| `uv run poe test-coverage`     | ~39 seconds    | 45+ minutes     |
-| `uv run poe check`             | ~40 seconds    | 60+ minutes     |
-| `uv run poe full-check`        | ~50 seconds    | 60+ minutes     |
+| `uv run poe test`              | ~16 seconds    | 30+ minutes     |
+| `uv run poe test-coverage`     | ~22 seconds    | 45+ minutes     |
+| `uv run poe check`             | ~30 seconds    | 60+ minutes     |
+| `uv run poe full-check`        | ~40 seconds    | 60+ minutes     |
 | `uv run poe docs-build`        | ~2.5 minutes   | 60+ minutes     |
 | `uv run poe regenerate-client` | ~2+ minutes    | 60+ minutes     |
 
