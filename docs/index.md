@@ -7,7 +7,7 @@ client for the Katana Manufacturing ERP API with automatic resilience features.
 
 - **Transport-layer resilience**: Automatic retries, rate limiting, and smart pagination
   at the HTTP transport level
-- **Type-safe**: Full type hints and mypy compatibility
+- **Type-safe**: Full type hints and ty/mypy compatibility
 - **Async/await support**: Built on httpx for modern Python async patterns
 - **Production-ready**: Comprehensive error handling and logging
 - **Zero-wrapper philosophy**: All resilience features work transparently with the

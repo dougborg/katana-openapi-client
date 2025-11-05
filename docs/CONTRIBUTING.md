@@ -70,7 +70,8 @@ uv run poe test-integration
 ### Code Style
 
 - We use [Ruff](https://docs.astral.sh/ruff/) for code formatting and linting
-- [mypy](https://mypy.readthedocs.io/) for type checking
+- [ty](https://astral.sh/blog/ty) for type checking (Astral's fast Rust-based type
+  checker)
 - [mdformat](https://mdformat.readthedocs.io/) for Markdown formatting
 
 All formatting is automated via `uv run poe format`.

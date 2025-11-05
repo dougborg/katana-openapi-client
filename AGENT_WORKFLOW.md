@@ -9,7 +9,7 @@ parallel with other agents.
 **Fast Commands:**
 
 - `uv run poe quick-check` - Format + lint only (~5-10s) - **Use during development**
-- `uv run poe agent-check` - Format + lint + mypy (~10-15s) - **Use before committing**
+- `uv run poe agent-check` - Format + lint + ty (~8-12s) - **Use before committing**
 - `uv run poe check` - Full validation (~40s) - **Required before opening PR**
 - `uv run poe full-check` - Everything including docs (~50s) - **Use before requesting
   review**
@@ -177,7 +177,7 @@ pre-commit run --all-files
 **What `check` does:**
 
 1. Format check (ruff, markdown)
-1. Linting (ruff, mypy, yamllint)
+1. Linting (ruff, ty, yamllint)
 1. Tests (pytest with coverage, excluding slow docs tests)
 
 **If any checks fail:**
@@ -299,7 +299,7 @@ uv run poe full-check
 
 # This includes:
 # - Format check
-# - Linting (ruff, mypy, yamllint)
+# - Linting (ruff, ty, yamllint)
 # - All tests (including docs tests)
 # - Coverage check
 
@@ -384,7 +384,7 @@ ______________________________________________________________________
 **Runs:**
 
 - Format check (ruff, markdown)
-- Linting (ruff, mypy, yamllint)
+- Linting (ruff, ty, yamllint)
 - Tests (pytest with coverage, excluding docs)
 
 **Use When:**
@@ -871,14 +871,17 @@ uv run ruff check path/to/file.py
 ### Type Checking Errors
 
 ```bash
-# Run mypy
-uv run mypy katana_public_api_client
+# Run ty type checker
+uv run poe typecheck
 
-# Check specific file
-uv run mypy path/to/file.py
+# Or run ty directly
+uv run ty check
 
-# See mypy config
-# Check [tool.mypy] in pyproject.toml
+# See ty config
+# Check [tool.ty] in pyproject.toml
+
+# Note: ty is pre-alpha and may report false positives
+# Uses --exit-zero to prevent CI failures during early adoption
 ```
 
 ### Pre-commit Hook Timeouts

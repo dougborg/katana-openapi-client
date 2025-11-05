@@ -147,7 +147,7 @@ Added comprehensive guide for semantic-release with scopes.
 
 All tests must pass before release:
 
-- Code quality checks (ruff, mypy)
+- Code quality checks (ruff, ty)
 - Unit and integration tests
 - Security scans (CodeQL, Semgrep, Trivy)
 
