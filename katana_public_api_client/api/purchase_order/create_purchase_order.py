@@ -1,5 +1,6 @@
+from collections.abc import Mapping
 from http import HTTPStatus
-from typing import Any, Union
+from typing import Any, Union, cast
 
 import httpx
 
@@ -48,8 +49,10 @@ def _parse_response(
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
+                # Cast to proper type for ty type checker
+                dict_data = cast(Mapping[str, Any], data)
                 componentsschemas_purchase_order_type_0 = (
-                    RegularPurchaseOrder.from_dict(data)  # type: ignore[arg-type]
+                    RegularPurchaseOrder.from_dict(dict_data)
                 )
 
                 return componentsschemas_purchase_order_type_0
@@ -57,9 +60,11 @@ def _parse_response(
                 pass
             if not isinstance(data, dict):
                 raise TypeError()
+            # Cast to proper type for ty type checker
+            dict_data = cast(Mapping[str, Any], data)
             componentsschemas_purchase_order_type_1 = OutsourcedPurchaseOrder.from_dict(
-                data
-            )  # type: ignore[arg-type]
+                dict_data
+            )
 
             return componentsschemas_purchase_order_type_1
 
