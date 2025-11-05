@@ -1,72 +1,15 @@
 # Dependabot configuration for automated dependency updates
 # See: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# NOTE: Python dependency updates are currently disabled because this project uses uv
+# for package management (see ADR-009), and Dependabot does not yet support the uv
+# ecosystem. When Dependabot adds uv support, Python dependencies can be re-enabled.
+# See: https://github.com/dependabot/dependabot-core/issues/10478
+#
+# For manual Python dependency updates, use: uv lock --upgrade
 
 version: 2
 updates:
-  # Production Python dependencies
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "UTC"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "python"
-      - "production"
-    groups:
-      production-dependencies:
-        patterns:
-          - "httpx*"
-          - "attrs"
-          - "python-dateutil"
-          - "tenacity"
-          - "python-dotenv"
-          - "urllib3"
-          - "pydantic"
-          - "typing-extensions"
-          - "httpx-retries"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
-
-  # Development Python dependencies
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "UTC"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "python"
-      - "development"
-    groups:
-      dev-dependencies:
-        patterns:
-          - "pytest*"
-          - "ruff"
-          - "mypy*"
-          - "pre-commit"
-          - "build"
-          - "yamllint"
-          - "pyyaml"
-          - "openapi-spec-validator"
-          - "mdformat*"
-          - "types-*"
-          - "openapi-python-client"
-          - "python-semantic-release"
-          - "tox"
-          - "mkdocs*"
-          - "poethepoet"
-    commit-message:
-      prefix: "chore(deps-dev)"
-      include: "scope"
-
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
