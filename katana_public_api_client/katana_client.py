@@ -781,7 +781,7 @@ class KatanaClient(AuthenticatedClient):
             base_url or os.getenv("KATANA_BASE_URL") or "https://api.katanamrp.com/v1"
         )
 
-        # Setup credentials with priority: param > env > .env > netrc
+        # Setup credentials with priority: param > env (including .env) > netrc
         api_key = (
             api_key or os.getenv("KATANA_API_KEY") or self._read_from_netrc(base_url)
         )
