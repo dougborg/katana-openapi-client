@@ -2,6 +2,78 @@
 
 <!-- version list -->
 
+## v0.30.0 (2025-11-05)
+
+### Chores
+
+- Clean up trigger file
+  ([#121](https://github.com/dougborg/katana-openapi-client/pull/121),
+  [`b5346bc`](https://github.com/dougborg/katana-openapi-client/commit/b5346bc0f02164c8cdcb00b5d7dd7797412bcbe4))
+
+- Trigger push of README badge changes
+  ([#121](https://github.com/dougborg/katana-openapi-client/pull/121),
+  [`b5346bc`](https://github.com/dougborg/katana-openapi-client/commit/b5346bc0f02164c8cdcb00b5d7dd7797412bcbe4))
+
+- **infra**: Add Dependabot configuration for GitHub Actions and Docker updates
+  ([#119](https://github.com/dougborg/katana-openapi-client/pull/119),
+  [`555122b`](https://github.com/dougborg/katana-openapi-client/commit/555122bbbf45675c0aef0acba6c26872c1b4670b))
+
+- **infra**: Add Dependabot configuration for weekly dependency updates
+  ([#119](https://github.com/dougborg/katana-openapi-client/pull/119),
+  [`555122b`](https://github.com/dougborg/katana-openapi-client/commit/555122bbbf45675c0aef0acba6c26872c1b4670b))
+
+- **infra**: Remove Python pip config from Dependabot (uv incompatibility)
+  ([#119](https://github.com/dougborg/katana-openapi-client/pull/119),
+  [`555122b`](https://github.com/dougborg/katana-openapi-client/commit/555122bbbf45675c0aef0acba6c26872c1b4670b))
+
+### Continuous Integration
+
+- Add path filters to skip CI for docs-only changes
+  ([#123](https://github.com/dougborg/katana-openapi-client/pull/123),
+  [`722a6f8`](https://github.com/dougborg/katana-openapi-client/commit/722a6f869df737857261c936990a1f5b76ae5b2a))
+
+- Add path filters to skip unnecessary CI runs
+  ([#123](https://github.com/dougborg/katana-openapi-client/pull/123),
+  [`722a6f8`](https://github.com/dougborg/katana-openapi-client/commit/722a6f869df737857261c936990a1f5b76ae5b2a))
+
+### Documentation
+
+- Add CI, coverage, and docs status badges to README
+  ([#121](https://github.com/dougborg/katana-openapi-client/pull/121),
+  [`b5346bc`](https://github.com/dougborg/katana-openapi-client/commit/b5346bc0f02164c8cdcb00b5d7dd7797412bcbe4))
+
+- Add CI, coverage, docs, and security status badges to README
+  ([#121](https://github.com/dougborg/katana-openapi-client/pull/121),
+  [`b5346bc`](https://github.com/dougborg/katana-openapi-client/commit/b5346bc0f02164c8cdcb00b5d7dd7797412bcbe4))
+
+- **client**: Fix inline comment to reflect actual priority order
+  ([#117](https://github.com/dougborg/katana-openapi-client/pull/117),
+  [`509a010`](https://github.com/dougborg/katana-openapi-client/commit/509a010a52d944e7f819d5ce366b00346b9ddf86))
+
+### Features
+
+- **client**: Add netrc support for API authentication
+  ([#117](https://github.com/dougborg/katana-openapi-client/pull/117),
+  [`509a010`](https://github.com/dougborg/katana-openapi-client/commit/509a010a52d944e7f819d5ce366b00346b9ddf86))
+
+- **client**: Add ~/.netrc support for API authentication
+  ([#117](https://github.com/dougborg/katana-openapi-client/pull/117),
+  [`509a010`](https://github.com/dougborg/katana-openapi-client/commit/509a010a52d944e7f819d5ce366b00346b9ddf86))
+
+### Refactoring
+
+- **client**: Address code review feedback
+  ([#117](https://github.com/dougborg/katana-openapi-client/pull/117),
+  [`509a010`](https://github.com/dougborg/katana-openapi-client/commit/509a010a52d944e7f819d5ce366b00346b9ddf86))
+
+- **client**: Improve hostname extraction robustness and type safety
+  ([#117](https://github.com/dougborg/katana-openapi-client/pull/117),
+  [`509a010`](https://github.com/dougborg/katana-openapi-client/commit/509a010a52d944e7f819d5ce366b00346b9ddf86))
+
+- **client**: Improve netrc hostname extraction robustness
+  ([#117](https://github.com/dougborg/katana-openapi-client/pull/117),
+  [`509a010`](https://github.com/dougborg/katana-openapi-client/commit/509a010a52d944e7f819d5ce366b00346b9ddf86))
+
 ## v0.29.0 (2025-11-05)
 
 ### Bug Fixes
