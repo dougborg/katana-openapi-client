@@ -6,14 +6,15 @@ and managing inventory operations.
 
 from __future__ import annotations
 
-import logging
+import time
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
+from katana_mcp.logging import get_logger
 from katana_mcp.services import get_services
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ============================================================================
 # Tool 1: check_inventory
@@ -55,7 +56,8 @@ async def _check_inventory_impl(
     if not request.sku or not request.sku.strip():
         raise ValueError("SKU cannot be empty")
 
-    logger.info(f"Checking inventory for SKU: {request.sku}")
+    start_time = time.monotonic()
+    logger.info("inventory_check_started", sku=request.sku)
 
     try:
         # Access services using helper
@@ -71,7 +73,12 @@ async def _check_inventory_impl(
                 in_production=0,
                 committed=0,
             )
-            logger.warning(f"SKU not found: {request.sku}")
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.warning(
+                "inventory_check_not_found",
+                sku=request.sku,
+                duration_ms=duration_ms,
+            )
             return stock_info
 
         # Extract stock information from Product model
@@ -84,14 +91,27 @@ async def _check_inventory_impl(
             committed=getattr(stock, "allocated", 0) if stock else 0,
         )
 
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
         logger.info(
-            f"Stock check complete for {request.sku}: "
-            f"{stock_info.available_stock} available"
+            "inventory_check_completed",
+            sku=request.sku,
+            product_name=stock_info.product_name,
+            available_stock=stock_info.available_stock,
+            committed=stock_info.committed,
+            duration_ms=duration_ms,
         )
         return stock_info
 
     except Exception as e:
-        logger.error(f"Failed to check inventory for SKU {request.sku}: {e}")
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+        logger.error(
+            "inventory_check_failed",
+            sku=request.sku,
+            error=str(e),
+            error_type=type(e).__name__,
+            duration_ms=duration_ms,
+            exc_info=True,
+        )
         raise
 
 
@@ -166,8 +186,11 @@ async def _list_low_stock_items_impl(
     if request.limit <= 0:
         raise ValueError("Limit must be positive")
 
+    start_time = time.monotonic()
     logger.info(
-        f"Listing low stock items (threshold={request.threshold}, limit={request.limit})"
+        "low_stock_search_started",
+        threshold=request.threshold,
+        limit=request.limit,
     )
 
     try:
@@ -198,13 +221,26 @@ async def _list_low_stock_items_impl(
             total_count=len(products),
         )
 
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
         logger.info(
-            f"Found {response.total_count} low stock items, returning {len(response.items)}"
+            "low_stock_search_completed",
+            threshold=request.threshold,
+            total_count=response.total_count,
+            returned_count=len(response.items),
+            duration_ms=duration_ms,
         )
         return response
 
     except Exception as e:
-        logger.error(f"Failed to list low stock items: {e}")
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+        logger.error(
+            "low_stock_search_failed",
+            threshold=request.threshold,
+            error=str(e),
+            error_type=type(e).__name__,
+            duration_ms=duration_ms,
+            exc_info=True,
+        )
         raise
 
 

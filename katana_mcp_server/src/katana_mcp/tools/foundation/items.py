@@ -6,12 +6,13 @@ Items are things with SKUs - they appear in the "Items" tab of the Katana UI.
 
 from __future__ import annotations
 
-import logging
+import time
 from enum import Enum
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
+from katana_mcp.logging import get_logger
 from katana_mcp.services import get_services
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
@@ -22,7 +23,7 @@ from katana_public_api_client.models import (
     CreateVariantRequest,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # ============================================================================
@@ -88,7 +89,8 @@ async def _search_items_impl(
     if request.limit <= 0:
         raise ValueError("Limit must be positive")
 
-    logger.info(f"Searching items for query: '{request.query}' (limit={request.limit})")
+    start_time = time.monotonic()
+    logger.info("item_search_started", query=request.query, limit=request.limit)
 
     try:
         # Access services using helper
@@ -124,11 +126,25 @@ async def _search_items_impl(
             total_count=len(items_info),
         )
 
-        logger.info(f"Found {response.total_count} items matching '{request.query}'")
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+        logger.info(
+            "item_search_completed",
+            query=request.query,
+            result_count=response.total_count,
+            duration_ms=duration_ms,
+        )
         return response
 
     except Exception as e:
-        logger.error(f"Failed to search items for query '{request.query}': {e}")
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+        logger.error(
+            "item_search_failed",
+            query=request.query,
+            error=str(e),
+            error_type=type(e).__name__,
+            duration_ms=duration_ms,
+            exc_info=True,
+        )
         raise
 
 
@@ -219,7 +235,13 @@ async def _create_item_impl(
         ValueError: If type is invalid or required fields missing
         Exception: If API call fails
     """
-    logger.info(f"Creating {request.type} item: {request.name} (SKU: {request.sku})")
+    start_time = time.monotonic()
+    logger.info(
+        "item_create_started",
+        item_type=request.type,
+        name=request.name,
+        sku=request.sku,
+    )
 
     try:
         services = get_services(context)
@@ -255,6 +277,15 @@ async def _create_item_impl(
                 variants=[variant],
             )
             product = await services.client.products.create(product_request)
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.info(
+                "item_create_completed",
+                item_type=ItemType.PRODUCT,
+                item_id=product.id,
+                name=product.name,
+                sku=request.sku,
+                duration_ms=duration_ms,
+            )
             return CreateItemResponse(
                 id=product.id,
                 name=product.name or "",
@@ -280,6 +311,15 @@ async def _create_item_impl(
                 variants=[variant],
             )
             material = await services.client.materials.create(material_request)
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.info(
+                "item_create_completed",
+                item_type=ItemType.MATERIAL,
+                item_id=material.id,
+                name=material.name,
+                sku=request.sku,
+                duration_ms=duration_ms,
+            )
             return CreateItemResponse(
                 id=material.id,
                 name=material.name or "",
@@ -309,6 +349,15 @@ async def _create_item_impl(
                 variants=[service_variant],
             )
             service = await services.client.services.create(service_request)
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.info(
+                "item_create_completed",
+                item_type=ItemType.SERVICE,
+                item_id=service.id,
+                name=service.name,
+                sku=request.sku,
+                duration_ms=duration_ms,
+            )
             return CreateItemResponse(
                 id=service.id,
                 name=service.name or "",
@@ -321,7 +370,17 @@ async def _create_item_impl(
             raise ValueError(f"Invalid item type: {request.type}")
 
     except Exception as e:
-        logger.error(f"Failed to create {request.type} item '{request.name}': {e}")
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+        logger.error(
+            "item_create_failed",
+            item_type=request.type,
+            name=request.name,
+            sku=request.sku,
+            error=str(e),
+            error_type=type(e).__name__,
+            duration_ms=duration_ms,
+            exc_info=True,
+        )
         raise
 
 
@@ -410,7 +469,8 @@ async def _get_item_impl(
         ValueError: If type is invalid
         Exception: If API call fails or item not found
     """
-    logger.info(f"Getting {request.type} item ID: {request.id}")
+    start_time = time.monotonic()
+    logger.info("item_get_started", item_type=request.type, item_id=request.id)
 
     try:
         services = get_services(context)
@@ -418,6 +478,14 @@ async def _get_item_impl(
         # Route based on item type
         if request.type == ItemType.PRODUCT:
             product = await services.client.products.get(request.id)
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.info(
+                "item_get_completed",
+                item_type=ItemType.PRODUCT,
+                item_id=product.id,
+                name=product.name,
+                duration_ms=duration_ms,
+            )
             return ItemDetailsResponse(
                 id=product.id,
                 name=product.name,
@@ -432,6 +500,14 @@ async def _get_item_impl(
 
         elif request.type == ItemType.MATERIAL:
             material = await services.client.materials.get(request.id)
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.info(
+                "item_get_completed",
+                item_type=ItemType.MATERIAL,
+                item_id=material.id,
+                name=material.name,
+                duration_ms=duration_ms,
+            )
             return ItemDetailsResponse(
                 id=material.id,
                 name=material.name,
@@ -444,6 +520,14 @@ async def _get_item_impl(
 
         elif request.type == ItemType.SERVICE:
             service = await services.client.services.get(request.id)
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.info(
+                "item_get_completed",
+                item_type=ItemType.SERVICE,
+                item_id=service.id,
+                name=service.name,
+                duration_ms=duration_ms,
+            )
             return ItemDetailsResponse(
                 id=service.id,
                 name=service.name or "",
@@ -457,7 +541,16 @@ async def _get_item_impl(
             raise ValueError(f"Invalid item type: {request.type}")
 
     except Exception as e:
-        logger.error(f"Failed to get {request.type} item ID {request.id}: {e}")
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+        logger.error(
+            "item_get_failed",
+            item_type=request.type,
+            item_id=request.id,
+            error=str(e),
+            error_type=type(e).__name__,
+            duration_ms=duration_ms,
+            exc_info=True,
+        )
         raise
 
 
@@ -528,7 +621,8 @@ async def _update_item_impl(
         ValueError: If type is invalid
         Exception: If API call fails
     """
-    logger.info(f"Updating {request.type} item ID: {request.id}")
+    start_time = time.monotonic()
+    logger.info("item_update_started", item_type=request.type, item_id=request.id)
 
     try:
         services = get_services(context)
@@ -565,6 +659,14 @@ async def _update_item_impl(
                 else UNSET,
             )
             product = await services.client.products.update(request.id, update_data)
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.info(
+                "item_update_completed",
+                item_type=ItemType.PRODUCT,
+                item_id=product.id,
+                name=product.name,
+                duration_ms=duration_ms,
+            )
             return UpdateItemResponse(
                 id=product.id,
                 name=product.name,
@@ -592,6 +694,14 @@ async def _update_item_impl(
             material = await services.client.materials.update(
                 request.id, material_update_data
             )
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.info(
+                "item_update_completed",
+                item_type=ItemType.MATERIAL,
+                item_id=material.id,
+                name=material.name,
+                duration_ms=duration_ms,
+            )
             return UpdateItemResponse(
                 id=material.id,
                 name=material.name or "",
@@ -613,6 +723,14 @@ async def _update_item_impl(
             service = await services.client.services.update(
                 request.id, service_update_data
             )
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.info(
+                "item_update_completed",
+                item_type=ItemType.SERVICE,
+                item_id=service.id,
+                name=service.name,
+                duration_ms=duration_ms,
+            )
             return UpdateItemResponse(
                 id=service.id,
                 name=service.name or "",
@@ -624,7 +742,16 @@ async def _update_item_impl(
             raise ValueError(f"Invalid item type: {request.type}")
 
     except Exception as e:
-        logger.error(f"Failed to update {request.type} item ID {request.id}: {e}")
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+        logger.error(
+            "item_update_failed",
+            item_type=request.type,
+            item_id=request.id,
+            error=str(e),
+            error_type=type(e).__name__,
+            duration_ms=duration_ms,
+            exc_info=True,
+        )
         raise
 
 
@@ -687,7 +814,8 @@ async def _delete_item_impl(
         ValueError: If type is invalid
         Exception: If API call fails
     """
-    logger.info(f"Deleting {request.type} item ID: {request.id}")
+    start_time = time.monotonic()
+    logger.info("item_delete_started", item_type=request.type, item_id=request.id)
 
     try:
         services = get_services(context)
@@ -695,6 +823,13 @@ async def _delete_item_impl(
         # Route based on item type
         if request.type == ItemType.PRODUCT:
             await services.client.products.delete(request.id)
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.info(
+                "item_delete_completed",
+                item_type=ItemType.PRODUCT,
+                item_id=request.id,
+                duration_ms=duration_ms,
+            )
             return DeleteItemResponse(
                 id=request.id,
                 type=ItemType.PRODUCT,
@@ -703,6 +838,13 @@ async def _delete_item_impl(
 
         elif request.type == ItemType.MATERIAL:
             await services.client.materials.delete(request.id)
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.info(
+                "item_delete_completed",
+                item_type=ItemType.MATERIAL,
+                item_id=request.id,
+                duration_ms=duration_ms,
+            )
             return DeleteItemResponse(
                 id=request.id,
                 type=ItemType.MATERIAL,
@@ -711,6 +853,13 @@ async def _delete_item_impl(
 
         elif request.type == ItemType.SERVICE:
             await services.client.services.delete(request.id)
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.info(
+                "item_delete_completed",
+                item_type=ItemType.SERVICE,
+                item_id=request.id,
+                duration_ms=duration_ms,
+            )
             return DeleteItemResponse(
                 id=request.id,
                 type=ItemType.SERVICE,
@@ -721,7 +870,16 @@ async def _delete_item_impl(
             raise ValueError(f"Invalid item type: {request.type}")
 
     except Exception as e:
-        logger.error(f"Failed to delete {request.type} item ID {request.id}: {e}")
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+        logger.error(
+            "item_delete_failed",
+            item_type=request.type,
+            item_id=request.id,
+            error=str(e),
+            error_type=type(e).__name__,
+            duration_ms=duration_ms,
+            exc_info=True,
+        )
         raise
 
 

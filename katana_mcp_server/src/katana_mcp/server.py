@@ -8,9 +8,9 @@ Features:
 - Automatic client initialization with error handling
 - Lifespan management for KatanaClient context
 - Production-ready with transport-layer resilience
+- Structured logging with observability
 """
 
-import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -21,14 +21,12 @@ from dotenv import load_dotenv
 from fastmcp import FastMCP
 
 from katana_mcp import __version__
+from katana_mcp.logging import get_logger, setup_logging
 from katana_public_api_client import KatanaClient
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+# Initialize structured logging
+setup_logging()
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -76,15 +74,15 @@ async def lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
     # Validate required configuration
     if not api_key:
         logger.error(
-            "KATANA_API_KEY environment variable is required. "
-            "Please set it in your .env file or environment."
+            "authentication_failed",
+            reason="KATANA_API_KEY environment variable is required",
+            message="Please set it in your .env file or environment.",
         )
         raise ValueError(
             "KATANA_API_KEY environment variable is required for authentication"
         )
 
-    logger.info("Initializing Katana MCP Server...")
-    logger.info(f"API Base URL: {base_url}")
+    logger.info("server_initializing", version=__version__, base_url=base_url)
 
     try:
         # Initialize KatanaClient with automatic resilience features
@@ -95,25 +93,35 @@ async def lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
             max_retries=5,
             max_pages=100,
         ) as client:
-            logger.info("KatanaClient initialized successfully")
+            logger.info(
+                "client_initialized",
+                timeout=30.0,
+                max_retries=5,
+                max_pages=100,
+            )
 
             # Create context with client for tools to access
             context = ServerContext(client=client)  # type: ignore[arg-type]
 
             # Yield context to server - tools can access via lifespan dependency
-            logger.info("Katana MCP Server ready")
+            logger.info("server_ready", version=__version__)
             yield context
 
     except ValueError as e:
         # Authentication or configuration errors
-        logger.error(f"Authentication error: {e}")
+        logger.error("initialization_failed", error_type="ValueError", error=str(e))
         raise
     except Exception as e:
         # Unexpected errors during initialization
-        logger.error(f"Failed to initialize KatanaClient: {e}")
+        logger.error(
+            "initialization_failed",
+            error_type=type(e).__name__,
+            error=str(e),
+            exc_info=True,
+        )
         raise
     finally:
-        logger.info("Katana MCP Server shutting down...")
+        logger.info("server_shutting_down")
 
 
 # Initialize FastMCP server with lifespan management
@@ -152,7 +160,7 @@ def main(**kwargs: Any) -> None:
     Args:
         **kwargs: Additional arguments passed to mcp.run()
     """
-    logger.info("Starting Katana MCP Server...")
+    logger.info("server_starting", version=__version__)
     mcp.run(**kwargs)
 
 
