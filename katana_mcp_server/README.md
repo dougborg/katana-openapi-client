@@ -206,6 +206,28 @@ Search for products by name or SKU.
 
 - `KATANA_API_KEY` (required): Your Katana API key
 - `KATANA_BASE_URL` (optional): API base URL (default: https://api.katanamrp.com/v1)
+- `KATANA_MCP_LOG_LEVEL` (optional): Log level - DEBUG, INFO, WARNING, ERROR (default: INFO)
+- `KATANA_MCP_LOG_FORMAT` (optional): Log format - json, text (default: json)
+
+### Logging Configuration
+
+The server uses structured logging with configurable output format and verbosity:
+
+**Development (verbose text logs):**
+```bash
+export KATANA_MCP_LOG_LEVEL=DEBUG
+export KATANA_MCP_LOG_FORMAT=text
+katana-mcp-server
+```
+
+**Production (structured JSON logs):**
+```bash
+export KATANA_MCP_LOG_LEVEL=INFO
+export KATANA_MCP_LOG_FORMAT=json
+katana-mcp-server
+```
+
+See [docs/LOGGING.md](docs/LOGGING.md) for complete logging documentation.
 
 ### Advanced Configuration
 
