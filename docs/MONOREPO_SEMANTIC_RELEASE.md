@@ -137,6 +137,42 @@ Both packages are configured with PyPI trusted publishers:
 
 No API tokens needed - authentication via GitHub OIDC.
 
+## Automated Dependency Management
+
+### MCP Client Dependency Updates
+
+The MCP server package depends on the client library. When the client releases a new
+version, the MCP dependency is **automatically updated** via the
+[Update MCP Client Dependency workflow](.github/workflows/update-mcp-dependency.yml).
+
+**How it works:**
+
+1. **Trigger**: Runs after the main `Release` workflow completes successfully
+1. **Detection**: Checks if a new `client-v*` tag was created
+1. **Update**: Updates `katana-openapi-client>=X.Y.Z` in
+   `katana_mcp_server/pyproject.toml`
+1. **Lockfile**: Runs `uv sync --all-extras` to update `uv.lock`
+1. **PR Creation**: Creates a PR with title `feat(mcp): update client dependency to vX.Y.Z`
+1. **Release**: When the PR is merged, the `feat(mcp):` commit triggers a new MCP
+   release
+
+**Why this matters:**
+
+- Ensures MCP always declares compatibility with the latest client
+- Prevents users from installing MCP with an outdated client version
+- Automates a previously manual process documented in issue #XXX
+- Maintains semantic versioning (MINOR bump for dependency updates)
+
+**Edge cases handled:**
+
+- Skips if dependency is already up to date
+- Only runs when client actually released (not on every workflow run)
+- Requires workflow success before triggering
+- Uses separate PR branch for each client version
+
+**Manual override**: You can still manually update the dependency if needed (see
+[Dependency Between Packages](#dependency-between-packages) section).
+
 ## Manual Release (Emergency)
 
 If you need to manually trigger a release:
@@ -261,19 +297,26 @@ scopes
 
 ### Dependency Between Packages
 
-**Problem**: MCP server depends on client. If client version bumps, does MCP need to
-release?
+**Problem**: MCP server depends on client. When the client version bumps, the MCP
+dependency should be updated.
 
-**Answer**: Only if MCP needs the new client features. Update
-`katana_mcp_server/pyproject.toml` dependencies manually:
+**Solution**: This is now **automated**! The
+[Update MCP Client Dependency workflow](.github/workflows/update-mcp-dependency.yml)
+automatically:
 
-```toml
-dependencies = [
-    "katana-openapi-client>=0.24.0",  # Update minimum version
-]
-```
+1. Detects when a new client release is published
+1. Updates the `katana-openapi-client>=X.Y.Z` dependency in
+   `katana_mcp_server/pyproject.toml`
+1. Updates the `uv.lock` file
+1. Creates a PR with the conventional commit message `feat(mcp): update client dependency to vX.Y.Z`
+1. When merged, triggers a new MCP release (MINOR version bump due to `feat(mcp):`)
 
-Then commit with `feat(mcp): update to client v0.24.0`
+**Manual Override**: If you need to update the dependency without waiting for a client
+release, you can:
+
+1. Manually update `katana_mcp_server/pyproject.toml`
+1. Run `uv sync --all-extras` to update the lockfile
+1. Commit with `feat(mcp): update to client v0.24.0` (or appropriate message)
 
 ## Best Practices
 
@@ -290,7 +333,6 @@ Then commit with `feat(mcp): update to client v0.24.0`
 Potential improvements to the release process:
 
 1. **Pre-release automation**: Automatically create pre-release versions for alpha/beta
-1. **Dependency bump automation**: Auto-update MCP dependencies when client releases
 1. **Release notes templates**: Custom templates for each package type
 1. **Manual version override**: Allow manual version specification via workflow_dispatch
 
