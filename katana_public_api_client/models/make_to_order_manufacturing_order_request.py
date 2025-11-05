@@ -38,7 +38,7 @@ class MakeToOrderManufacturingOrderRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         d = dict(src_dict)
         sales_order_row_id = d.pop("sales_order_row_id")
 

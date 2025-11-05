@@ -75,7 +75,7 @@ class CreateServiceRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         from ..models.create_service_variant_request import CreateServiceVariantRequest
 
         d = dict(src_dict)

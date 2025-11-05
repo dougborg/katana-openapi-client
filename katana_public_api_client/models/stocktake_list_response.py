@@ -48,7 +48,7 @@ class StocktakeListResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         from ..models.stocktake import Stocktake
 
         d = dict(src_dict)

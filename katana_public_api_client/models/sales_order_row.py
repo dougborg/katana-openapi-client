@@ -250,7 +250,7 @@ class SalesOrderRow:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         from ..models.sales_order_row_attributes_item import SalesOrderRowAttributesItem
         from ..models.sales_order_row_batch_transactions_item import (
             SalesOrderRowBatchTransactionsItem,

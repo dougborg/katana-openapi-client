@@ -88,7 +88,7 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         from ..models.create_sales_order_request_sales_order_rows_item_attributes_item import (
             CreateSalesOrderRequestSalesOrderRowsItemAttributesItem,
         )

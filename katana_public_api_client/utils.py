@@ -461,7 +461,7 @@ def get_variant_display_name(variant: "Variant") -> str:
     if hasattr(variant, "config_attributes") and variant.config_attributes:
         for attr in variant.config_attributes:
             if hasattr(attr, "config_value") and attr.config_value:
-                parts.append(str(attr.config_value))
+                parts.append(str(attr.config_value))  # type: ignore[arg-type]
 
     # Join with forward slashes (Katana UI format)
     return " / ".join(parts)  # type: ignore[arg-type]

@@ -8,7 +8,7 @@ Based on the Cookbook recipe: docs/COOKBOOK.md#retry-failed-operations
 """
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
 
 from katana_public_api_client import KatanaClient
@@ -19,7 +19,7 @@ T = TypeVar("T")
 
 
 async def retry_with_backoff(
-    operation: Callable[[], T],
+    operation: Callable[[], Awaitable[T]],
     max_attempts: int = 3,
     backoff_factor: float = 2.0,
 ) -> T:
@@ -40,7 +40,7 @@ async def retry_with_backoff(
     Raises:
         Last exception if all retries fail
     """
-    last_exception = None
+    last_exception: Exception | None = None
     delay = 1.0
 
     for attempt in range(max_attempts):
@@ -56,7 +56,10 @@ async def retry_with_backoff(
             else:
                 print(f"All {max_attempts} attempts failed")
 
-    raise last_exception
+    if last_exception is not None:
+        raise last_exception
+    # This should never happen, but satisfies type checker
+    raise RuntimeError("Retry failed without exception")
 
 
 async def create_order_with_retry(order_data: dict[str, Any]):

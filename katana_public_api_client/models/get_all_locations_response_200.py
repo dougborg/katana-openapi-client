@@ -45,7 +45,7 @@ class GetAllLocationsResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         from ..models.deletable_entity import DeletableEntity
         from ..models.location_type_0 import LocationType0
 
@@ -60,14 +60,14 @@ class GetAllLocationsResponse200:
                 try:
                     if not isinstance(data, dict):
                         raise TypeError()
-                    componentsschemas_location_type_0 = LocationType0.from_dict(data)
+                    componentsschemas_location_type_0 = LocationType0.from_dict(data)  # type: ignore[arg-type]
 
                     return componentsschemas_location_type_0
                 except:  # noqa: E722
                     pass
                 if not isinstance(data, dict):
                     raise TypeError()
-                componentsschemas_location_type_1 = DeletableEntity.from_dict(data)
+                componentsschemas_location_type_1 = DeletableEntity.from_dict(data)  # type: ignore[arg-type]
 
                 return componentsschemas_location_type_1
 

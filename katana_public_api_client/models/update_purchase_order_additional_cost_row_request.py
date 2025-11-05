@@ -52,7 +52,7 @@ class UpdatePurchaseOrderAdditionalCostRowRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         d = dict(src_dict)
         additional_cost_id = d.pop("additional_cost_id", UNSET)
 

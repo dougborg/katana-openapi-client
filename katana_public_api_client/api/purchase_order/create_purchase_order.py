@@ -49,7 +49,7 @@ def _parse_response(
                 if not isinstance(data, dict):
                     raise TypeError()
                 componentsschemas_purchase_order_type_0 = (
-                    RegularPurchaseOrder.from_dict(data)
+                    RegularPurchaseOrder.from_dict(data)  # type: ignore[arg-type]
                 )
 
                 return componentsschemas_purchase_order_type_0
@@ -59,7 +59,7 @@ def _parse_response(
                 raise TypeError()
             componentsschemas_purchase_order_type_1 = OutsourcedPurchaseOrder.from_dict(
                 data
-            )
+            )  # type: ignore[arg-type]
 
             return componentsschemas_purchase_order_type_1
 

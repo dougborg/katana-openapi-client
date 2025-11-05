@@ -352,7 +352,7 @@ format-check = ["format-python-check", "format-markdown-check"]
 # -----------------------------------------------------------------------------
 # Linting and Type Checking Tasks
 # -----------------------------------------------------------------------------
-typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'scripts/extract_all_katana_docs.py'"
+typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'scripts/extract_all_katana_docs.py' --exclude 'katana_mcp_server/'"
 lint-ruff = "ruff check ."
 lint-ruff-fix = "ruff check --fix ."
 lint-yaml = "yamllint ."

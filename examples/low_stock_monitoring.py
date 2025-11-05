@@ -13,6 +13,7 @@ from typing import Any
 from katana_public_api_client import KatanaClient
 from katana_public_api_client.api.inventory import get_all_inventory_point
 from katana_public_api_client.api.variant import get_variant
+from katana_public_api_client.models import VariantResponse
 from katana_public_api_client.utils import unwrap_data
 
 
@@ -43,17 +44,19 @@ async def get_low_stock_alerts(threshold: int = 10) -> list[dict[str, Any]]:
                     client=client, id=inv_point.variant_id
                 )
 
-                if variant_response.parsed:
+                if variant_response.parsed and isinstance(
+                    variant_response.parsed, VariantResponse
+                ):
                     variant = variant_response.parsed
 
                     low_stock_items.append(
                         {
-                            "sku": variant.sku,
-                            "name": variant.name,
+                            "sku": variant.sku,  # type: ignore[attr-defined]
+                            "name": variant.name,  # type: ignore[attr-defined]
                             "current_stock": inv_point.in_stock,
                             "location": inv_point.location_name,
                             "reorder_point": getattr(inv_point, "reorder_point", None),
-                            "variant_id": variant.id,
+                            "variant_id": variant.id,  # type: ignore[attr-defined]
                         }
                     )
 

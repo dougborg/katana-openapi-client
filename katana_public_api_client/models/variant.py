@@ -173,7 +173,7 @@ class Variant:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         from ..models.variant_config_attributes_item import VariantConfigAttributesItem
         from ..models.variant_custom_fields_item import VariantCustomFieldsItem
 

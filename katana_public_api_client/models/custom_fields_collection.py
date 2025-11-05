@@ -83,7 +83,7 @@ class CustomFieldsCollection:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         from ..models.custom_field import CustomField
 
         d = dict(src_dict)

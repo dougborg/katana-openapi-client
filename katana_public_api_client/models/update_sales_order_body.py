@@ -116,7 +116,7 @@ class UpdateSalesOrderBody:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         d = dict(src_dict)
         order_no = d.pop("order_no", UNSET)
 

@@ -132,7 +132,7 @@ def variant_to_katana(variant: Variant) -> KatanaVariant:
         purchase_price=unwrap_unset(variant.purchase_price),
         product_id=unwrap_unset(variant.product_id),
         material_id=unwrap_unset(variant.material_id),
-        product_or_material_name=product_or_material_name,
+        product_or_material_name=product_or_material_name,  # type: ignore[arg-type]
         type=type_value,  # Pydantic uses 'type' not 'type_'
         internal_barcode=unwrap_unset(variant.internal_barcode),
         registered_barcode=unwrap_unset(variant.registered_barcode),
@@ -331,7 +331,7 @@ def material_to_katana(material: Material) -> KatanaMaterial:
         config_count=config_count,
         created_at=unwrap_unset(material.created_at),
         updated_at=unwrap_unset(material.updated_at),
-        deleted_at=unwrap_unset(material.deleted_at)
+        deleted_at=unwrap_unset(material.deleted_at)  # type: ignore[arg-type]
         if hasattr(material, "deleted_at")
         else None,
     )

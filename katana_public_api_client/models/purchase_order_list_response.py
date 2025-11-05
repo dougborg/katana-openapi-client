@@ -59,7 +59,7 @@ class PurchaseOrderListResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         from ..models.outsourced_purchase_order import OutsourcedPurchaseOrder
         from ..models.regular_purchase_order import RegularPurchaseOrder
 
@@ -75,7 +75,7 @@ class PurchaseOrderListResponse:
                     if not isinstance(data, dict):
                         raise TypeError()
                     componentsschemas_purchase_order_type_0 = (
-                        RegularPurchaseOrder.from_dict(data)
+                        RegularPurchaseOrder.from_dict(data)  # type: ignore[arg-type]
                     )
 
                     return componentsschemas_purchase_order_type_0
@@ -84,7 +84,7 @@ class PurchaseOrderListResponse:
                 if not isinstance(data, dict):
                     raise TypeError()
                 componentsschemas_purchase_order_type_1 = (
-                    OutsourcedPurchaseOrder.from_dict(data)
+                    OutsourcedPurchaseOrder.from_dict(data)  # type: ignore[arg-type]
                 )
 
                 return componentsschemas_purchase_order_type_1

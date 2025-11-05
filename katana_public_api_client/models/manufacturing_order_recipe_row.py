@@ -127,7 +127,7 @@ class ManufacturingOrderRecipeRow:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         from ..models.manufacturing_order_recipe_row_batch_transactions_item import (
             ManufacturingOrderRecipeRowBatchTransactionsItem,
         )

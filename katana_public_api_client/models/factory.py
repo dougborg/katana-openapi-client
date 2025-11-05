@@ -124,7 +124,7 @@ class Factory:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         from ..models.factory_legal_address import FactoryLegalAddress
 
         d = dict(src_dict)

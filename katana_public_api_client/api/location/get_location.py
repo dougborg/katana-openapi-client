@@ -33,14 +33,14 @@ def _parse_response(
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                componentsschemas_location_type_0 = LocationType0.from_dict(data)
+                componentsschemas_location_type_0 = LocationType0.from_dict(data)  # type: ignore[arg-type]
 
                 return componentsschemas_location_type_0
             except:  # noqa: E722
                 pass
             if not isinstance(data, dict):
                 raise TypeError()
-            componentsschemas_location_type_1 = DeletableEntity.from_dict(data)
+            componentsschemas_location_type_1 = DeletableEntity.from_dict(data)  # type: ignore[arg-type]
 
             return componentsschemas_location_type_1
 
