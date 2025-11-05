@@ -67,5 +67,5 @@ def get_services(context: Context) -> Services:
     Returns:
         Services: Dataclass containing client and other services
     """
-    server_context = context.request_context.lifespan_context  # type: ignore[attr-defined]
-    return Services(client=server_context.client)  # type: ignore[attr-defined]
+    server_context = context.request_context.lifespan_context
+    return Services(client=server_context.client)
