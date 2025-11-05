@@ -127,28 +127,44 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - User Guide: KATANA_CLIENT_GUIDE.md
-  - Cookbook: COOKBOOK.md
+  - Client:
+      - User Guide: client/guide.md
+      - Cookbook: client/cookbook.md
+      - Testing: client/testing.md
+      - Changelog: client/CHANGELOG.md
+      - ADRs:
+          - Overview: client/adr/README.md
+          - ADR-001 Transport-Layer Resilience: client/adr/0001-transport-layer-resilience.md
+          - ADR-002 OpenAPI Code Generation: client/adr/0002-openapi-code-generation.md
+          - ADR-003 Transparent Pagination: client/adr/0003-transparent-pagination.md
+          - ADR-004 Defer Observability to httpx: client/adr/0004-defer-observability-to-httpx.md
+          - ADR-005 Sync and Async APIs: client/adr/0005-sync-async-apis.md
+          - ADR-006 Response Unwrapping Utilities: client/adr/0006-response-unwrapping-utilities.md
+          - ADR-007 Domain Helper Classes: client/adr/0007-domain-helper-classes.md
+          - ADR-008 Avoid Builder Pattern (Proposed): client/adr/0008-avoid-builder-pattern.md
+          - ADR-011 Pydantic Domain Models: client/adr/0011-pydantic-domain-models.md
+          - ADR-012 Validation Tiers: client/adr/0012-validation-tiers-for-agent-workflows.md
+  - MCP Server:
+      - Overview: mcp-server/index.md
+      - Architecture: mcp-server/architecture.md
+      - Development: mcp-server/development.md
+      - Deployment: mcp-server/deployment.md
+      - Docker: mcp-server/docker.md
+      - Implementation Plan: mcp-server/implementation-plan.md
+      - ADRs:
+          - Overview: mcp-server/adr/README.md
+          - ADR-010 Katana MCP Server: mcp-server/adr/0010-katana-mcp-server.md
   - API Reference: reference/
   - OpenAPI Documentation: openapi-docs.md
   - Development:
       - Contributing: CONTRIBUTING.md
-      - Testing: TESTING_GUIDE.md
       - uv Package Manager: UV_USAGE.md
-      - Semantic Release: SEMANTIC_RELEASE_GUIDE.md
+      - Semantic Release: MONOREPO_SEMANTIC_RELEASE.md
       - PyPI Setup: PYPI_SETUP.md
-  - Architecture (ADRs):
+      - Release Guide: RELEASE.md
+  - Monorepo ADRs:
       - Overview: adr/README.md
-      - ADR-001 Transport-Layer Resilience: adr/0001-transport-layer-resilience.md
-      - ADR-002 OpenAPI Code Generation: adr/0002-openapi-code-generation.md
-      - ADR-003 Transparent Pagination: adr/0003-transparent-pagination.md
-      - ADR-004 Defer Observability to httpx: adr/0004-defer-observability-to-httpx.md
-      - ADR-005 Sync and Async APIs: adr/0005-sync-async-apis.md
-      - ADR-006 Response Unwrapping Utilities: adr/0006-response-unwrapping-utilities.md
-      - ADR-007 Domain Helper Classes (Proposed): adr/0007-domain-helper-classes.md
-      - ADR-008 Avoid Builder Pattern (Proposed): adr/0008-avoid-builder-pattern.md
       - ADR-009 Migrate to uv: adr/0009-migrate-from-poetry-to-uv.md
-  - Changelog: CHANGELOG.md
 
 extra:
   version:
