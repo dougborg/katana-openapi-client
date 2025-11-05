@@ -85,8 +85,8 @@ def sync_detailed(
 
     Args:
         body (BatchCreateBomRowsRequest): Request payload for creating multiple BOM rows in a
-            single operation Example: {'bom_rows': [{'product_item_id': 3001, 'product_variant_id':
-            2001, 'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes': 'Primary component'},
+            single operation Example: {'data': [{'product_item_id': 3001, 'product_variant_id': 2001,
+            'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes': 'Primary component'},
             {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2003,
             'quantity': 1.0, 'notes': 'Secondary component'}]}.
 
@@ -121,8 +121,8 @@ def sync(
 
     Args:
         body (BatchCreateBomRowsRequest): Request payload for creating multiple BOM rows in a
-            single operation Example: {'bom_rows': [{'product_item_id': 3001, 'product_variant_id':
-            2001, 'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes': 'Primary component'},
+            single operation Example: {'data': [{'product_item_id': 3001, 'product_variant_id': 2001,
+            'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes': 'Primary component'},
             {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2003,
             'quantity': 1.0, 'notes': 'Secondary component'}]}.
 
@@ -152,8 +152,8 @@ async def asyncio_detailed(
 
     Args:
         body (BatchCreateBomRowsRequest): Request payload for creating multiple BOM rows in a
-            single operation Example: {'bom_rows': [{'product_item_id': 3001, 'product_variant_id':
-            2001, 'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes': 'Primary component'},
+            single operation Example: {'data': [{'product_item_id': 3001, 'product_variant_id': 2001,
+            'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes': 'Primary component'},
             {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2003,
             'quantity': 1.0, 'notes': 'Secondary component'}]}.
 
@@ -186,8 +186,8 @@ async def asyncio(
 
     Args:
         body (BatchCreateBomRowsRequest): Request payload for creating multiple BOM rows in a
-            single operation Example: {'bom_rows': [{'product_item_id': 3001, 'product_variant_id':
-            2001, 'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes': 'Primary component'},
+            single operation Example: {'data': [{'product_item_id': 3001, 'product_variant_id': 2001,
+            'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes': 'Primary component'},
             {'product_item_id': 3001, 'product_variant_id': 2001, 'ingredient_variant_id': 2003,
             'quantity': 1.0, 'notes': 'Secondary component'}]}.
 
