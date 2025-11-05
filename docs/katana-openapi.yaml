@@ -941,12 +941,12 @@ components:
           - first_page
           - last_page
         example:
-          total_records: 142
-          total_pages: 8
-          offset: 50
-          page: 2
-          first_page: false
-          last_page: false
+          total_records: "142"
+          total_pages: "8"
+          offset: "50"
+          page: "2"
+          first_page: "false"
+          last_page: "false"
     X-Ratelimit-Limit:
       description: Number of requests available for this application (default 60 per minute)
       schema:
@@ -1223,6 +1223,7 @@ components:
               format: date-time
               description: Nullable archive timestamp
       example:
+        id: 12345
         created_at: "2020-10-23T10:37:05.085Z"
         updated_at: "2020-10-23T10:37:05.085Z"
         archived_at: null
@@ -1247,6 +1248,7 @@ components:
               format: date-time
               description: Nullable deletion timestamp
       example:
+        id: 12345
         created_at: "2020-10-23T10:37:05.085Z"
         updated_at: "2020-10-23T10:37:05.085Z"
         deleted_at: null
@@ -1465,7 +1467,7 @@ components:
             location_id: 1
             variant_id: 1002
             quantity_in_stock: "50.00000"
-            batch_barcode: 0318
+            batch_barcode: "0318"
     BatchStockUpdate:
       type: object
       description: Request payload for updating batch properties and tracking information
@@ -1694,13 +1696,24 @@ components:
           - id: 5001
             variant_id: 2002
             location_id: 1
+            resource_type: PurchaseOrderRow
+            resource_id: 1001
+            caused_by_order_no: PO-2024-001
+            caused_by_resource_id: 1001
             movement_type: TRANSFER_IN
-            quantity: 10.0
-            cost_per_unit: 12.5
-            total_cost: 125.0
-            reference_id: 1001
             movement_date: "2023-10-15T14:30:00Z"
+            quantity: 10.0
+            quantity_change: 10.0
+            balance_after: 100.0
+            cost_per_unit: 12.5
+            value_per_unit: 12.5
+            total_cost: 125.0
+            value_in_stock_after: 1250.0
+            average_cost_after: 12.5
+            reference_id: 1001
             notes: Received from supplier shipment
+            created_at: "2023-10-15T14:30:00Z"
+            updated_at: "2023-10-15T14:30:00Z"
     Variant:
       description: Specific SKU of a product or material with unique pricing, configuration, and inventory tracking
       allOf:
@@ -1935,38 +1948,25 @@ components:
             - name
         - $ref: "#/components/schemas/DeletableEntity"
       example:
-        data:
-          - id: 1
-            name: Main location
-            legal_name: Amazon
-            address_id: 1
-            address:
-              id: 1
-              city: New York
-              country: US
-              line_1: 10 East 20th Example St
-              line_2: ""
-              state: New York
-              zip: "10000"
-            is_primary: true
-            sales_allowed: true
-            purchase_allowed: true
-            manufacturing_allowed: true
-            created_at: "2020-10-23T10:37:05.085Z"
-            updated_at: "2020-10-23T10:37:05.085Z"
-            deleted_at: null
-          - id: 2
-            name: Secondary location
-            legal_name: Amazon
-            address_id: null
-            address: null
-            is_primary: false
-            sales_allowed: false
-            purchase_allowed: true
-            manufacturing_allowed: false
-            created_at: "2020-10-23T10:37:05.085Z"
-            updated_at: "2020-10-23T10:37:05.085Z"
-            deleted_at: null
+        id: 1
+        name: Main location
+        legal_name: Amazon
+        address_id: 1
+        address:
+          id: 1
+          city: New York
+          country: US
+          line_1: 10 East 20th Example St
+          line_2: ""
+          state: New York
+          zip: "10000"
+        is_primary: true
+        sales_allowed: true
+        purchase_allowed: true
+        manufacturing_allowed: true
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2020-10-23T10:37:05.085Z"
+        deleted_at: null
     Inventory:
       type: object
       description: |-
@@ -2054,7 +2054,14 @@ components:
             quantity_on_hand: 150.0
             quantity_allocated: 25.0
             quantity_available: 125.0
-            average_cost: 25.5
+            reorder_point: "25.0"
+            average_cost: "25.5"
+            value_in_stock: "3825.0"
+            quantity_in_stock: "150.0"
+            quantity_committed: "25.0"
+            quantity_expected: "50.0"
+            quantity_missing_or_excess: "0.0"
+            quantity_potential: "175.0"
             total_value: 3825.0
             created_at: "2024-01-15T08:00:00.000Z"
             updated_at: "2024-01-15T12:30:00.000Z"
@@ -2064,7 +2071,14 @@ components:
             quantity_on_hand: 75.0
             quantity_allocated: 10.0
             quantity_available: 65.0
-            average_cost: 45.0
+            reorder_point: "30.0"
+            average_cost: "45.0"
+            value_in_stock: "3375.0"
+            quantity_in_stock: "75.0"
+            quantity_committed: "10.0"
+            quantity_expected: "25.0"
+            quantity_missing_or_excess: "0.0"
+            quantity_potential: "90.0"
             total_value: 3375.0
             created_at: "2024-01-15T08:00:00.000Z"
             updated_at: "2024-01-15T14:15:00.000Z"
@@ -2123,11 +2137,13 @@ components:
         - $ref: "#/components/schemas/InventorySafetyStockLevel"
         - $ref: "#/components/schemas/DeletableEntity"
       example:
+        id: 1001
         variant_id: 1
         location_id: 1
         value: 10
         created_at: "2020-10-23T10:37:05.085Z"
         updated_at: "2020-10-23T10:37:05.085Z"
+        deleted_at: null
     CreateManufacturingOrderRequest:
       description: Request payload for creating a new manufacturing order to initiate production of products or components.
       type: object
@@ -2280,7 +2296,7 @@ components:
         production_deadline_date: "2024-01-25T17:00:00Z"
         additional_info: Priority order for new product launch
         is_linked_to_sales_order: true
-        ingredient_availability: AVAILABLE
+        ingredient_availability: IN_STOCK
         total_cost: 12500.0
         total_actual_time: 140.5
         total_planned_time: 200.0
@@ -2291,9 +2307,27 @@ components:
         subassemblies_cost: 2250.0
         operations_cost: 1500.0
         serial_numbers:
-          - PKS-001-240115
-          - PKS-002-240115
-          - PKS-003-240115
+          - id: 1
+            transaction_id: "MO-2024-001-001"
+            serial_number: PKS-001-240115
+            resource_type: ManufacturingOrder
+            resource_id: 3001
+            transaction_date: "2024-01-15T08:00:00Z"
+            quantity_change: 1
+          - id: 2
+            transaction_id: "MO-2024-001-002"
+            serial_number: PKS-002-240115
+            resource_type: ManufacturingOrder
+            resource_id: 3001
+            transaction_date: "2024-01-15T08:00:00Z"
+            quantity_change: 1
+          - id: 3
+            transaction_id: "MO-2024-001-003"
+            serial_number: PKS-003-240115
+            resource_type: ManufacturingOrder
+            resource_id: 3001
+            transaction_date: "2024-01-15T08:00:00Z"
+            quantity_change: 1
         created_at: "2024-01-15T08:00:00Z"
         updated_at: "2024-01-20T14:30:00Z"
         deleted_at: null
@@ -2469,8 +2503,20 @@ components:
             updated_at: "2024-01-20T14:30:00Z"
             deleted_at: null
         serial_numbers:
-          - PKS-001-240120
-          - PKS-002-240120
+          - id: 1
+            transaction_id: "PROD-3501-001"
+            serial_number: PKS-001-240120
+            resource_type: Production
+            resource_id: 3501
+            transaction_date: "2024-01-20T14:30:00Z"
+            quantity_change: 1
+          - id: 2
+            transaction_id: "PROD-3501-002"
+            serial_number: PKS-002-240120
+            resource_type: Production
+            resource_id: 3501
+            transaction_date: "2024-01-20T14:30:00Z"
+            quantity_change: 1
         created_at: "2024-01-20T14:30:00Z"
         updated_at: "2024-01-20T14:30:00Z"
         deleted_at: null
@@ -2515,8 +2561,20 @@ components:
                 updated_at: "2024-01-20T14:30:00Z"
                 deleted_at: null
             serial_numbers:
-              - PKS-001-240120
-              - PKS-002-240120
+              - id: 1
+                transaction_id: "PROD-3501-001"
+                serial_number: PKS-001-240120
+                resource_type: Production
+                resource_id: 3501
+                transaction_date: "2024-01-20T14:30:00Z"
+                quantity_change: 1
+              - id: 2
+                transaction_id: "PROD-3501-002"
+                serial_number: PKS-002-240120
+                resource_type: Production
+                resource_id: 3501
+                transaction_date: "2024-01-20T14:30:00Z"
+                quantity_change: 1
             created_at: "2024-01-20T14:30:00Z"
             updated_at: "2024-01-20T14:30:00Z"
             deleted_at: null
@@ -2718,7 +2776,10 @@ components:
       example:
         completed_by_operators:
           - id: 101
-            name: John Smith
+            operator_name: John Smith
+            created_at: "2024-01-15T08:00:00.000Z"
+            updated_at: "2024-01-15T08:00:00.000Z"
+            deleted_at: null
         total_actual_time: 52.3
     ManufacturingOrderOperationRowResponse:
       description: Complete manufacturing order operation details including all metadata and operational parameters
@@ -2915,8 +2976,7 @@ components:
         notes: Use only grade 304 material
         planned_quantity_per_unit: 2.5
         total_actual_quantity: 125.0
-        ingredient_availability: AVAILABLE
-        ingredient_expected_date: null
+        ingredient_availability: IN_STOCK
         batch_transactions:
           - batch_id: 1201
             quantity: 125.0
@@ -2941,8 +3001,7 @@ components:
             notes: Use only grade 304 material
             planned_quantity_per_unit: 2.5
             total_actual_quantity: 125.0
-            ingredient_availability: AVAILABLE
-            ingredient_expected_date: null
+            ingredient_availability: IN_STOCK
             batch_transactions:
               - batch_id: 1201
                 quantity: 125.0
@@ -3030,7 +3089,7 @@ components:
             production_deadline_date: "2024-01-25T17:00:00Z"
             additional_info: Priority order for new product launch
             is_linked_to_sales_order: true
-            ingredient_availability: AVAILABLE
+            ingredient_availability: IN_STOCK
             total_cost: 12500.0
             total_actual_time: 140.5
             total_planned_time: 200.0
@@ -3041,9 +3100,27 @@ components:
             subassemblies_cost: 2250.0
             operations_cost: 1500.0
             serial_numbers:
-              - PKS-001-240115
-              - PKS-002-240115
-              - PKS-003-240115
+              - id: 1
+                transaction_id: "MO-2024-001-001"
+                serial_number: PKS-001-240115
+                resource_type: ManufacturingOrder
+                resource_id: 3001
+                transaction_date: "2024-01-15T08:00:00Z"
+                quantity_change: 1
+              - id: 2
+                transaction_id: "MO-2024-001-002"
+                serial_number: PKS-002-240115
+                resource_type: ManufacturingOrder
+                resource_id: 3001
+                transaction_date: "2024-01-15T08:00:00Z"
+                quantity_change: 1
+              - id: 3
+                transaction_id: "MO-2024-001-003"
+                serial_number: PKS-003-240115
+                resource_type: ManufacturingOrder
+                resource_id: 3001
+                transaction_date: "2024-01-15T08:00:00Z"
+                quantity_change: 1
             created_at: "2024-01-15T08:00:00Z"
             updated_at: "2024-01-20T14:30:00Z"
             deleted_at: null
@@ -3120,8 +3197,9 @@ components:
             time: 45.5
             total_actual_time: 52.3
             completed_by_operators:
-              - id: 101
+              - operator_id: 101
                 name: John Smith
+                deleted_at: null
             created_at: "2023-10-15T09:00:00Z"
             updated_at: "2023-10-15T10:30:00Z"
     CreateMaterialRequest:
@@ -3193,18 +3271,22 @@ components:
         purchase_uom: sheet
         purchase_uom_conversion_rate: 2.0
         configs:
-          - name: Grade
+          - id: 1
+            name: Grade
             values:
               - "304"
               - "316"
-          - name: Thickness
+            material_id: 1
+          - id: 2
+            name: Thickness
             values:
               - 1.5mm
               - 2.0mm
               - 3.0mm
+            material_id: 1
         variants:
           - sku: STEEL-304-1.5MM
-            sales_price: null
+            sales_price: 65.00
             purchase_price: 45.00
             lead_time: 5
             minimum_order_quantity: 1
@@ -3813,7 +3895,7 @@ components:
         is_producible: true
         is_purchasable: false
         is_auto_assembly: false
-        default_supplier_id: null
+        default_supplier_id: 1501
         additional_info: High-carbon stainless steel with ergonomic handles, dishwasher safe
         batch_tracked: false
         serial_tracked: true
@@ -4246,22 +4328,22 @@ components:
         - $ref: "#/components/schemas/OutsourcedPurchaseOrder"
       example:
         id: 156
-        status: OPEN
+        status: NOT_RECEIVED
         order_no: PO-2024-0156
         entity_type: regular
         default_group_id: 1
         supplier_id: 4001
         currency: USD
-        expected_arrival_date: "2024-02-15"
-        order_created_date: "2024-01-28"
+        expected_arrival_date: "2024-02-15T00:00:00Z"
+        order_created_date: "2024-01-28T00:00:00Z"
         additional_info: Rush order - needed for Valentine's Day production run
         location_id: 1
         tracking_location_id: null
         total: 1962.5
         total_in_base_currency: 1962.5
-        billing_status: UNBILLED
-        last_document_status: CONFIRMED
-        ingredient_availability: AVAILABLE
+        billing_status: NOT_BILLED
+        last_document_status: NOT_SENT
+        ingredient_availability: IN_STOCK
         ingredient_expected_date: null
         created_at: "2024-01-28T09:15:00Z"
         updated_at: "2024-01-28T09:15:00Z"
@@ -4322,31 +4404,31 @@ components:
       example:
         data:
           - id: 156
-            status: OPEN
+            status: NOT_RECEIVED
             order_no: PO-2024-0156
             entity_type: regular
             supplier_id: 4001
             currency: USD
-            expected_arrival_date: "2024-02-15"
-            order_created_date: "2024-01-28"
+            expected_arrival_date: "2024-02-15T00:00:00Z"
+            order_created_date: "2024-01-28T00:00:00Z"
             total: 1962.5
             total_in_base_currency: 1962.5
-            billing_status: UNBILLED
+            billing_status: NOT_BILLED
             tracking_location_id: null
             created_at: "2024-01-28T09:15:00Z"
             updated_at: "2024-01-28T09:15:00Z"
             deleted_at: null
           - id: 158
-            status: OPEN
+            status: PARTIALLY_RECEIVED
             order_no: PO-2024-0158
             entity_type: outsourced
             supplier_id: 4003
             currency: USD
-            expected_arrival_date: "2024-02-20"
-            order_created_date: "2024-01-30"
+            expected_arrival_date: "2024-02-20T00:00:00Z"
+            order_created_date: "2024-01-30T00:00:00Z"
             total: 2450.0
             total_in_base_currency: 2450.0
-            billing_status: UNBILLED
+            billing_status: PARTIALLY_BILLED
             tracking_location_id: 2
             ingredient_availability: EXPECTED
             ingredient_expected_date: "2024-02-18T10:00:00Z"
@@ -4552,7 +4634,7 @@ components:
           description: Optional notes or special instructions for the supplier
       example:
         order_no: PO-2024-0156-REVISED
-        expected_arrival_date: "2024-02-20"
+        expected_arrival_date: "2024-02-20T00:00:00Z"
         status: PARTIALLY_RECEIVED
         additional_info: Delivery delayed due to weather - updated schedule
     CreatePurchaseOrderAdditionalCostRowRequest:
@@ -5766,7 +5848,7 @@ components:
                 config_value: Wood
           - id: 5001
             sku: STEEL-304-1.5MM
-            sales_price: null
+            sales_price: 65.00
             purchase_price: 45.00
             type: material
             lead_time: 5
@@ -5778,7 +5860,7 @@ components:
                 config_value: "1.5mm"
           - id: 5003
             sku: ALU-6061-2.0MM
-            sales_price: null
+            sales_price: 55.00
             purchase_price: 38.50
             type: material
             lead_time: 3
@@ -7674,7 +7756,9 @@ components:
         tracking_number: null
         tracking_number_url: null
         addresses:
-          - entity_type: billing
+          - id: 1
+            sales_order_id: 2001
+            entity_type: billing
             first_name: David
             last_name: Wilson
             company: Wilson's Catering
@@ -7683,7 +7767,9 @@ components:
             state: WA
             zip: "98101"
             country: US
-          - entity_type: shipping
+          - id: 2
+            sales_order_id: 2001
+            entity_type: shipping
             first_name: David
             last_name: Wilson
             company: Wilson's Catering
@@ -7765,6 +7851,7 @@ components:
       example:
         data:
           - id: 2001
+            stock_adjustment_number: SA-2024-001
             reference_no: SA-2024-001
             location_id: 1
             status: COMPLETED
@@ -7774,6 +7861,7 @@ components:
             updated_at: "2024-01-15T14:30:00.000Z"
             deleted_at: null
           - id: 2002
+            stock_adjustment_number: SA-2024-002
             reference_no: SA-2024-002
             location_id: 2
             status: DRAFT
@@ -8475,7 +8563,7 @@ components:
             $ref: "#/components/schemas/BomRow"
       example:
         data:
-          - id: 501
+          - id: "501a1234-5678-90ab-cdef-1234567890ab"
             product_variant_id: 2001
             product_item_id: 3001
             ingredient_variant_id: 2002
@@ -8483,7 +8571,7 @@ components:
             notes: Handle with care - fragile component
             created_at: "2023-10-15T14:30:00Z"
             updated_at: "2023-10-16T09:15:00Z"
-          - id: 502
+          - id: "502b1234-5678-90ab-cdef-1234567890ab"
             product_variant_id: 2001
             product_item_id: 3001
             ingredient_variant_id: 2003
@@ -9113,7 +9201,7 @@ components:
         sales_order_id: 2001
         order_no: SR-2023-001
         return_location_id: 1
-        status: RETURNED
+        status: RETURNED_ALL
         currency: USD
         return_date: "2023-10-15T14:30:00Z"
         order_created_date: "2023-10-10T10:00:00Z"
@@ -9123,11 +9211,13 @@ components:
           - id: 3501
             sales_return_id: 3001
             variant_id: 2002
-            quantity: 2
+            quantity: "2.0"
             return_reason_id: 1
             notes: Packaging was damaged
             unit_price: 25.0
             total_price: 50.0
+            created_at: "2023-10-15T14:00:00Z"
+            updated_at: "2023-10-15T15:00:00Z"
         created_at: "2023-10-15T14:00:00Z"
         updated_at: "2023-10-15T15:00:00Z"
         deleted_at: null
@@ -9182,8 +9272,6 @@ components:
             quantity: 2
             return_reason_id: 1
             notes: Packaging was damaged
-            unit_price: 25.0
-            total_price: 50.0
     UpdateSalesReturnRequest:
       description: Request payload for updating an existing sales return
       type: object
@@ -9226,7 +9314,7 @@ components:
         currency: USD
         order_created_date: "2023-10-10T10:00:00Z"
         additional_info: Customer reported damaged items during shipping
-        status: RETURNED
+        status: RETURNED_ALL
     SalesReturnRow:
       description: Individual line item within a sales return specifying returned product, quantity, and refund details
       allOf:
@@ -9595,6 +9683,8 @@ components:
           - id: 5001
             price_list_id: 1001
             variant_id: 201
+            adjustment_method: fixed
+            amount: 249.99
             price: 249.99
             currency: USD
             created_at: "2024-01-15T10:00:00Z"
@@ -9602,6 +9692,8 @@ components:
           - id: 5002
             price_list_id: 1001
             variant_id: 202
+            adjustment_method: percentage
+            amount: 10.0
             price: 69.99
             currency: USD
             created_at: "2024-01-15T10:05:00Z"
@@ -9639,6 +9731,7 @@ components:
       example:
         data:
           - id: 4001
+            stocktake_number: STK-2024-001
             reference_no: STK-2024-001
             location_id: 1
             status: COMPLETED
@@ -9647,6 +9740,7 @@ components:
             created_at: "2024-01-15T09:00:00.000Z"
             updated_at: "2024-01-15T17:30:00.000Z"
           - id: 4002
+            stocktake_number: STK-2024-002
             reference_no: STK-2024-002
             location_id: 2
             status: IN_PROGRESS
@@ -9829,7 +9923,7 @@ components:
             sales_order_id: 2001
             order_no: SR-2023-001
             return_location_id: 1
-            status: RETURNED
+            status: RETURNED_ALL
             currency: USD
             return_date: "2023-10-15T14:30:00Z"
             order_created_date: "2023-10-10T10:00:00Z"
@@ -9849,7 +9943,7 @@ components:
           - id: 3501
             sales_return_id: 3001
             variant_id: 2002
-            quantity: 2
+            quantity: "2.0"
             return_reason_id: 1
             notes: Packaging was damaged
             unit_price: 25.0
@@ -9866,8 +9960,8 @@ components:
       example:
         data:
           - id: 42
-            first_name: Sarah
-            last_name: Johnson
+            firstName: Sarah
+            lastName: Johnson
             email: sarah.johnson@company.com
             role: production_manager
             status: active
@@ -9875,8 +9969,8 @@ components:
             created_at: "2024-01-10T09:00:00Z"
             updated_at: "2024-01-15T14:30:00Z"
           - id: 43
-            first_name: Mike
-            last_name: Chen
+            firstName: Mike
+            lastName: Chen
             email: mike.chen@company.com
             role: inventory_coordinator
             status: active
@@ -9895,10 +9989,13 @@ components:
       example:
         data:
           - id: 6001
+            material_id: 1
             purchase_order_id: 1001
+            purchase_order_row_id: 1001
             variant_id: 2002
+            ingredient_variant_id: 2002
             planned_quantity_per_unit: 2.5
-            ingredient_availability: AVAILABLE
+            ingredient_availability: IN_STOCK
             ingredient_expected_date: "2023-10-15T08:00:00Z"
             notes: Supplier will handle assembly
     OutsourcedPurchaseOrderRecipeRow:
@@ -10066,7 +10163,7 @@ components:
         data:
           - id: 2801
             sales_order_id: 2001
-            amount: 25.99
+            amount: "25.99"
             tax_rate_id: 301
             description: UPS Ground Shipping
     SalesOrderShippingFee:
@@ -10097,7 +10194,7 @@ components:
       example:
         id: 2801
         sales_order_id: 2001
-        amount: 25.99
+        amount: "25.99"
         tax_rate_id: 301
         description: UPS Ground Shipping
     CreateSalesOrderShippingFeeRequest:
