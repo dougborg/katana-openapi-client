@@ -48,7 +48,7 @@ class TestUnwrap:
             utils.unwrap(response)
 
         assert "No parsed response data" in str(exc_info.value)
-        assert exc_info.value.status_code == 200
+        assert exc_info.value.status_code == 200  # type: ignore[attr-defined]
 
     def test_unwrap_with_none_parsed_returns_none_when_not_raising(self):
         """Test that unwrap returns None when parsed is None and raise_on_error=False."""
@@ -80,8 +80,8 @@ class TestUnwrap:
             utils.unwrap(response)
 
         assert "Unauthorized: Invalid API key" in str(exc_info.value)
-        assert exc_info.value.status_code == 401
-        assert exc_info.value.error_response == error_response
+        assert exc_info.value.status_code == 401  # type: ignore[attr-defined]
+        assert exc_info.value.error_response == error_response  # type: ignore[attr-defined]
 
     def test_unwrap_422_raises_validation_error(self):
         """Test that 422 status raises ValidationError."""
@@ -101,8 +101,8 @@ class TestUnwrap:
             utils.unwrap(response)
 
         assert "ValidationError: Invalid request data" in str(exc_info.value)
-        assert exc_info.value.status_code == 422
-        assert exc_info.value.validation_errors == []
+        assert exc_info.value.status_code == 422  # type: ignore[attr-defined]
+        assert exc_info.value.validation_errors == []  # type: ignore[attr-defined]
 
     def test_unwrap_with_raise_on_error_false_returns_none(self):
         """Test that unwrap with raise_on_error=False returns None on error."""
@@ -182,7 +182,7 @@ class TestUnwrap:
             utils.unwrap(response)
 
         assert "TooManyRequestsError: Too Many Requests" in str(exc_info.value)
-        assert exc_info.value.status_code == 429
+        assert exc_info.value.status_code == 429  # type: ignore[attr-defined]
 
     def test_unwrap_500_raises_server_error(self):
         """Test that 500 status raises ServerError."""
@@ -201,7 +201,7 @@ class TestUnwrap:
             utils.unwrap(response)
 
         assert "InternalServerError: Internal server error" in str(exc_info.value)
-        assert exc_info.value.status_code == 500
+        assert exc_info.value.status_code == 500  # type: ignore[attr-defined]
 
     def test_unwrap_error_with_raise_on_error_false_returns_none(self):
         """Test that errors return None when raise_on_error=False."""

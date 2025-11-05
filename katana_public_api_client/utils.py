@@ -149,35 +149,38 @@ def unwrap(
         if not raise_on_error:
             return None
 
+        # Type narrowing: at this point parsed is ErrorResponse | DetailedErrorResponse
+        parsed_error = response.parsed
+
         error_name = (
-            response.parsed.name
-            if not isinstance(response.parsed.name, Unset)
+            parsed_error.name  # type: ignore[attr-defined]
+            if not isinstance(parsed_error.name, Unset)  # type: ignore[attr-defined]
             else "Unknown"
         )
         error_message = (
-            response.parsed.message
-            if not isinstance(response.parsed.message, Unset)
+            parsed_error.message  # type: ignore[attr-defined]
+            if not isinstance(parsed_error.message, Unset)  # type: ignore[attr-defined]
             else "No error message provided"
         )
 
         # Handle nested error format
-        if hasattr(response.parsed, "additional_properties"):
-            nested = response.parsed.additional_properties
+        if hasattr(parsed_error, "additional_properties"):
+            nested = parsed_error.additional_properties  # type: ignore[attr-defined]
             if isinstance(nested, dict) and "error" in nested:
-                nested_error = nested["error"]
+                nested_error = nested["error"]  # type: ignore[index]
                 if isinstance(nested_error, dict):
-                    error_name = nested_error.get("name", error_name)
-                    error_message = nested_error.get("message", error_message)
+                    error_name = str(nested_error.get("name", error_name))  # type: ignore[arg-type]
+                    error_message = str(nested_error.get("message", error_message))  # type: ignore[arg-type]
 
         message = f"{error_name}: {error_message}"
 
         if response.status_code == HTTPStatus.UNAUTHORIZED:
-            raise AuthenticationError(message, response.status_code, response.parsed)
+            raise AuthenticationError(message, response.status_code, parsed_error)  # type: ignore[arg-type]
         elif response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY:
-            # ValidationError expects DetailedErrorResponse, but response.parsed could be ErrorResponse
+            # ValidationError expects DetailedErrorResponse, but parsed_error could be ErrorResponse
             detailed_error = (
-                response.parsed
-                if isinstance(response.parsed, DetailedErrorResponse)
+                parsed_error
+                if isinstance(parsed_error, DetailedErrorResponse)
                 else None
             )
             raise ValidationError(
@@ -186,11 +189,11 @@ def unwrap(
                 detailed_error,
             )
         elif response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
-            raise RateLimitError(message, response.status_code, response.parsed)
+            raise RateLimitError(message, response.status_code, parsed_error)  # type: ignore[arg-type]
         elif 500 <= response.status_code < 600:
-            raise ServerError(message, response.status_code, response.parsed)
+            raise ServerError(message, response.status_code, parsed_error)  # type: ignore[arg-type]
         else:
-            raise APIError(message, response.status_code, response.parsed)
+            raise APIError(message, response.status_code, parsed_error)  # type: ignore[arg-type]
 
     return response.parsed
 
@@ -340,19 +343,22 @@ def get_error_message(response: Response[T]) -> str | None:
     if not isinstance(response.parsed, ErrorResponse | DetailedErrorResponse):
         return None
 
+    # Type narrowing: at this point parsed is ErrorResponse | DetailedErrorResponse
+    parsed_error = response.parsed
+
     error_message = (
-        response.parsed.message
-        if not isinstance(response.parsed.message, Unset)
+        parsed_error.message  # type: ignore[attr-defined]
+        if not isinstance(parsed_error.message, Unset)  # type: ignore[attr-defined]
         else None
     )
 
     # Check nested error format
-    if hasattr(response.parsed, "additional_properties"):
-        nested = response.parsed.additional_properties
+    if hasattr(parsed_error, "additional_properties"):
+        nested = parsed_error.additional_properties  # type: ignore[attr-defined]
         if isinstance(nested, dict) and "error" in nested:
-            nested_error = nested["error"]
+            nested_error = nested["error"]  # type: ignore[index]
             if isinstance(nested_error, dict):
-                error_message = nested_error.get("message", error_message)
+                error_message = str(nested_error.get("message", error_message))  # type: ignore[arg-type]
 
     return error_message
 
@@ -455,10 +461,10 @@ def get_variant_display_name(variant: "Variant") -> str:
     if hasattr(variant, "config_attributes") and variant.config_attributes:
         for attr in variant.config_attributes:
             if hasattr(attr, "config_value") and attr.config_value:
-                parts.append(attr.config_value)
+                parts.append(str(attr.config_value))
 
     # Join with forward slashes (Katana UI format)
-    return " / ".join(parts)
+    return " / ".join(parts)  # type: ignore[arg-type]
 
 
 __all__ = [

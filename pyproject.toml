@@ -352,9 +352,7 @@ format-check = ["format-python-check", "format-markdown-check"]
 # -----------------------------------------------------------------------------
 # Linting and Type Checking Tasks
 # -----------------------------------------------------------------------------
-# Note: ty is pre-alpha and may report false positives. Using --exit-zero to prevent CI failures.
-# Remove --exit-zero when ty reaches stable release.
-typecheck = "ty check --exit-zero --exclude 'tests/conftest.py' --exclude 'scripts/extract_all_katana_docs.py'"
+typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'scripts/extract_all_katana_docs.py'"
 lint-ruff = "ruff check ."
 lint-ruff-fix = "ruff check --fix ."
 lint-yaml = "yamllint ."

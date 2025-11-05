@@ -149,7 +149,7 @@ def analyze_coverage() -> dict[str, CategoryStats]:
     }
 
     # Process each file
-    files_data = coverage_data.get("files", {})
+    files_data = coverage_data.get("files", {}) if coverage_data else {}
     for file_path, file_data in files_data.items():
         summary = file_data.get("summary", {})
         statements = summary.get("num_statements", 0)

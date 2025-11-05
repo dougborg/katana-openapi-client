@@ -94,7 +94,7 @@ def test_new_cookbook_examples_have_main_function():
 
         # Find all function definitions (including async)
         functions = [
-            node.name
+            node.name  # type: ignore[attr-defined]
             for node in ast.walk(tree)
             if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
         ]
