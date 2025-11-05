@@ -266,7 +266,7 @@ async def create_purchase_order(
 
 
 # ============================================================================
-# Tool 2: receive_purchase_order (STUB)
+# Tool 2: receive_purchase_order
 # ============================================================================
 
 
@@ -440,7 +440,7 @@ async def receive_purchase_order(
 
 
 # ============================================================================
-# Tool 3: verify_order_document (STUB)
+# Tool 3: verify_order_document
 # ============================================================================
 
 
@@ -531,27 +531,38 @@ async def _verify_order_document_impl(
 
         po_rows = po.purchase_order_rows
 
+        # Collect all variant IDs from PO rows
+        variant_ids = []
+        for row in po_rows:
+            if not isinstance(row.variant_id, type(UNSET)):
+                variant_ids.append(cast(int, row.variant_id))
+
+        # Fetch all variants in one call to avoid N+1 queries
+        try:
+            all_variants = await services.client.variants.list()
+            variant_by_id = {v.id: v for v in all_variants if v.id in variant_ids}
+        except Exception as e:
+            logger.error(f"Failed to fetch variants: {e}")
+            raise
+
         # Build a map of SKU -> PO row for matching
         sku_to_row: dict[str, Any] = {}
         for row in po_rows:
             if isinstance(row.variant_id, type(UNSET)):
                 continue
             variant_id = cast(int, row.variant_id)
-
-            # Get variant to find SKU
-            try:
-                variant = await services.client.variants.get(variant_id)
-                if variant.sku:
-                    sku_to_row[variant.sku] = row
-            except Exception as e:
-                logger.warning(f"Failed to fetch variant {variant_id}: {e}")
-                continue
+            variant = variant_by_id.get(variant_id)
+            if variant and variant.sku:
+                sku_to_row[variant.sku] = row
 
         # Now match document items to PO rows
         matches = 0
         discrepancies = []
 
         for doc_item in request.document_items:
+            # Track discrepancies for this specific item
+            item_has_discrepancy = False
+
             if doc_item.sku not in sku_to_row:
                 discrepancies.append(
                     f"SKU {doc_item.sku}: Not found in purchase order {order_no}"
@@ -577,6 +588,7 @@ async def _verify_order_document_impl(
                 discrepancies.append(
                     f"SKU {doc_item.sku}: Quantity mismatch (Document: {doc_item.quantity}, PO: {row_qty})"
                 )
+                item_has_discrepancy = True
 
             # Check price match if provided
             if (
@@ -586,9 +598,10 @@ async def _verify_order_document_impl(
                 discrepancies.append(
                     f"SKU {doc_item.sku}: Price mismatch (Document: {doc_item.unit_price}, PO: {row_price})"
                 )
+                item_has_discrepancy = True
 
-            # If no discrepancies for this item, count as match
-            if all(doc_item.sku not in d for d in discrepancies):
+            # Count as match only if no discrepancies for this specific item
+            if not item_has_discrepancy:
                 matches += 1
 
         # Build suggested actions
