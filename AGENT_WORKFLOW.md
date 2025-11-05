@@ -21,6 +21,247 @@ parallel with other agents.
 
 ______________________________________________________________________
 
+## Using Custom GitHub Copilot Agents
+
+This project defines specialized GitHub Copilot agents for different development tasks.
+Each agent has domain-specific knowledge and follows project patterns.
+
+### Available Agents
+
+#### Specialist Agents
+
+- **`@agent-dev`** - Development agent for feature implementation and bug fixes
+
+  - Implements new features following established patterns
+  - Fixes bugs with proper error handling and logging
+  - Refactors code for consistency
+  - References ADRs for architectural decisions
+
+- **`@agent-plan`** - Planning agent for breaking down complex tasks
+
+  - Creates detailed implementation plans with phases
+  - Identifies dependencies and blockers
+  - Estimates effort (p1-high, p2-medium, p3-low)
+  - Writes comprehensive issues following templates
+
+- **`@agent-docs`** - Documentation agent for maintaining docs
+
+  - Creates and updates documentation
+  - Writes Architecture Decision Records (ADRs)
+  - Keeps guides current with code changes
+  - Ensures consistent markdown formatting
+
+- **`@agent-test`** - Testing agent for comprehensive test coverage
+
+  - Writes unit and integration tests
+  - Debugs test failures
+  - Maintains 87%+ coverage on core logic
+  - Implements reusable test fixtures
+
+- **`@agent-review`** - Review agent for thorough code reviews
+
+  - Checks adherence to project patterns
+  - Verifies type safety and error handling
+  - Identifies potential bugs and edge cases
+  - Suggests improvements with rationale
+
+#### Coordinator Agent
+
+- **`@agent-coordinator`** - Orchestrates multi-agent work and project management
+
+  - Monitors all open PRs and their status
+  - Routes tasks to appropriate specialist agents
+  - Ensures PRs meet merge criteria
+  - Tracks dependencies and blockers
+  - Maintains project velocity
+
+### Agent Workflow Patterns
+
+#### Single Agent (Direct Task)
+
+For straightforward tasks, use a specialist agent directly:
+
+```
+@agent-dev implement the create_sales_order tool following the purchase order pattern
+```
+
+```
+@agent-test write comprehensive tests for the inventory helper functions
+```
+
+```
+@agent-docs create an ADR for the new Pydantic domain model architecture
+```
+
+#### Multi-Agent Coordination
+
+For complex tasks requiring multiple agents, use the coordinator:
+
+```
+@agent-coordinator get PR #125 ready to merge
+→ Analyzes PR status (review comments, CI failures, etc.)
+→ Delegates to @agent-dev for code fixes
+→ Delegates to @agent-test for test coverage
+→ Delegates to @agent-docs for documentation
+→ Verifies all criteria met
+→ Merges when ready
+```
+
+```
+@agent-coordinator complete the MCP v0.1.0 milestone
+→ Identifies all open issues and PRs
+→ Routes work to specialist agents
+→ Tracks progress across parallel workstreams
+→ Reports blockers and status
+→ Coordinates release when all work complete
+```
+
+#### Project-Level Coordination
+
+For ongoing project management:
+
+```
+@agent-coordinator check in on all open PRs
+→ Scans all PRs for status
+→ Identifies ready-to-merge PRs
+→ Assigns specialists to PRs needing work
+→ Reports blockers and stale PRs
+→ Provides project health summary
+```
+
+### Agent Definition Files
+
+All custom agents are defined in `.github/copilot/agents/`:
+
+- `agent-dev.yml` - Development agent configuration
+- `agent-plan.yml` - Planning agent configuration
+- `agent-docs.yml` - Documentation agent configuration
+- `agent-test.yml` - Testing agent configuration
+- `agent-review.yml` - Review agent configuration
+- `agent-coordinator.yml` - Coordinator agent configuration
+
+Each agent has:
+
+- Specialized instructions based on project patterns
+- References to key documentation (CLAUDE.md, ADRs)
+- Context about which files they work with
+- Examples of typical tasks and approaches
+
+### When to Use Which Agent
+
+**Use @agent-dev when:**
+
+- Implementing new features
+- Fixing bugs
+- Addressing review comments
+- Resolving merge conflicts
+- Refactoring code
+
+**Use @agent-plan when:**
+
+- Breaking down epic-level work
+- Creating implementation plans
+- Identifying dependencies
+- Estimating effort
+- Designing architecture
+
+**Use @agent-docs when:**
+
+- Writing new documentation
+- Updating existing docs
+- Creating ADRs
+- Adding examples to cookbook
+- Documenting APIs
+
+**Use @agent-test when:**
+
+- Writing new tests
+- Fixing test failures
+- Improving coverage
+- Debugging test issues
+- Creating test fixtures
+
+**Use @agent-review when:**
+
+- Reviewing pull requests
+- Checking code quality
+- Verifying patterns
+- Identifying bugs
+- Suggesting improvements
+
+**Use @agent-coordinator when:**
+
+- Managing multiple PRs
+- Coordinating agent work
+- Tracking project progress
+- Unblocking stalled work
+- Preparing releases
+
+### Example: Complete Feature Workflow
+
+Here's how multiple agents work together on a feature:
+
+1. **Planning Phase**
+
+   ```
+   @agent-plan break down "Add sales order support" into implementation tasks
+   → Creates detailed plan with phases
+   → Identifies dependencies
+   → Creates individual issues
+   ```
+
+1. **Implementation Phase**
+
+   ```
+   @agent-dev implement sales_orders.py following purchase order pattern
+   → Implements tool with proper patterns
+   → Adds error handling and logging
+   → Creates PR with changes
+   ```
+
+1. **Testing Phase**
+
+   ```
+   @agent-test write comprehensive tests for sales_orders tool
+   → Writes unit tests for all functions
+   → Tests success and error paths
+   → Verifies 90%+ coverage
+   ```
+
+1. **Documentation Phase**
+
+   ```
+   @agent-docs document the sales_orders tool
+   → Adds docstrings
+   → Updates README
+   → Adds cookbook example
+   ```
+
+1. **Review Phase**
+
+   ```
+   @agent-review review PR #123 for sales orders
+   → Checks pattern adherence
+   → Verifies test coverage
+   → Validates documentation
+   → Suggests improvements
+   ```
+
+1. **Coordination Phase**
+
+   ```
+   @agent-coordinator get PR #123 merged
+   → Ensures all feedback addressed
+   → Verifies CI passing
+   → Confirms merge criteria met
+   → Merges PR
+   → Updates milestone
+   ```
+
+This coordinated workflow ensures high-quality, well-tested, documented features.
+
+______________________________________________________________________
+
 ## Step-by-Step Workflow
 
 ### 1. Starting Work on an Issue
