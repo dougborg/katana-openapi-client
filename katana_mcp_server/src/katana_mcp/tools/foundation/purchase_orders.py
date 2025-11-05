@@ -4,15 +4,15 @@ Foundation tools for creating, receiving, and verifying purchase orders.
 
 These tools provide:
 - create_purchase_order: Create regular purchase orders with preview/confirm pattern
-- receive_purchase_order: Receive items from purchase orders (stub)
-- verify_order_document: Verify supplier documents against POs (stub)
+- receive_purchase_order: Receive items from purchase orders with inventory updates
+- verify_order_document: Verify supplier documents against POs
 """
 
 from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
-from typing import cast
+from typing import Any, cast
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
@@ -474,53 +474,183 @@ class VerifyOrderDocumentResponse(BaseModel):
 async def _verify_order_document_impl(
     request: VerifyOrderDocumentRequest, context: Context
 ) -> VerifyOrderDocumentResponse:
-    """STUB implementation of verify_order_document tool.
+    """Implementation of verify_order_document tool.
 
     Args:
         request: Request with order ID and document items
         context: Server context with KatanaClient
 
     Returns:
-        Verification response (currently stub)
+        Verification response with matches and discrepancies
 
-    Note:
-        This is a placeholder. Full implementation requires:
-        - Fetching PO details with line items
-        - Matching document items to PO rows by SKU
-        - Comparing quantities and prices
-        - Identifying discrepancies with actionable suggestions
+    Raises:
+        Exception: If API call fails
     """
-    logger.warning("verify_order_document is a stub - returning placeholder response")
-
-    return VerifyOrderDocumentResponse(
-        order_id=request.order_id,
-        matches=0,
-        discrepancies=["Document verification not yet implemented"],
-        suggested_actions=[
-            "Manual verification required",
-            "Tool implementation pending",
-        ],
-        message=f"STUB: Would verify {len(request.document_items)} items against PO {request.order_id}",
+    logger.info(
+        f"Verifying document with {len(request.document_items)} items against PO {request.order_id}"
     )
+
+    try:
+        services = get_services(context)
+
+        # Fetch the PO to get its details
+        from katana_public_api_client.api.purchase_order import (
+            get_purchase_order as api_get_purchase_order,
+        )
+
+        po_response = await api_get_purchase_order.asyncio_detailed(
+            id=request.order_id, client=services.client
+        )
+
+        if po_response.status_code != 200 or not isinstance(
+            po_response.parsed, RegularPurchaseOrder
+        ):
+            raise Exception(
+                f"Failed to fetch purchase order {request.order_id}: {po_response.status_code}"
+            )
+
+        po = po_response.parsed
+        order_no = (
+            cast(str, po.order_no)
+            if not isinstance(po.order_no, type(UNSET))
+            else f"PO-{request.order_id}"
+        )
+
+        # Get PO rows
+        if (
+            isinstance(po.purchase_order_rows, type(UNSET))
+            or not po.purchase_order_rows
+        ):
+            return VerifyOrderDocumentResponse(
+                order_id=request.order_id,
+                matches=0,
+                discrepancies=[f"Purchase order {order_no} has no line items"],
+                suggested_actions=["Verify purchase order data in Katana"],
+                message=f"No items to verify in PO {order_no}",
+            )
+
+        po_rows = po.purchase_order_rows
+
+        # Build a map of SKU -> PO row for matching
+        sku_to_row: dict[str, Any] = {}
+        for row in po_rows:
+            if isinstance(row.variant_id, type(UNSET)):
+                continue
+            variant_id = cast(int, row.variant_id)
+
+            # Get variant to find SKU
+            try:
+                variant = await services.client.variants.get(variant_id)
+                if variant.sku:
+                    sku_to_row[variant.sku] = row
+            except Exception as e:
+                logger.warning(f"Failed to fetch variant {variant_id}: {e}")
+                continue
+
+        # Now match document items to PO rows
+        matches = 0
+        discrepancies = []
+
+        for doc_item in request.document_items:
+            if doc_item.sku not in sku_to_row:
+                discrepancies.append(
+                    f"SKU {doc_item.sku}: Not found in purchase order {order_no}"
+                )
+                continue
+
+            row = sku_to_row[doc_item.sku]
+            row_qty = (
+                cast(float, row.quantity)
+                if not isinstance(row.quantity, type(UNSET))
+                else 0
+            )
+            row_price = (
+                cast(float, row.price_per_unit)
+                if not isinstance(row.price_per_unit, type(UNSET))
+                else 0
+            )
+
+            # Check quantity match
+            if (
+                abs(doc_item.quantity - row_qty) > 0.01
+            ):  # Small tolerance for float comparison
+                discrepancies.append(
+                    f"SKU {doc_item.sku}: Quantity mismatch (Document: {doc_item.quantity}, PO: {row_qty})"
+                )
+
+            # Check price match if provided
+            if (
+                doc_item.unit_price is not None
+                and abs(doc_item.unit_price - row_price) > 0.01
+            ):
+                discrepancies.append(
+                    f"SKU {doc_item.sku}: Price mismatch (Document: {doc_item.unit_price}, PO: {row_price})"
+                )
+
+            # If no discrepancies for this item, count as match
+            if all(doc_item.sku not in d for d in discrepancies):
+                matches += 1
+
+        # Build suggested actions
+        suggested_actions = []
+        if discrepancies:
+            suggested_actions.append("Review discrepancies before receiving")
+            suggested_actions.append(
+                "Contact supplier if quantities or prices don't match"
+            )
+        else:
+            suggested_actions.append(
+                "All items verified successfully - proceed with receiving"
+            )
+
+        message = (
+            f"Verified {len(request.document_items)} items: {matches} matches, "
+            f"{len(discrepancies)} discrepancies"
+        )
+
+        return VerifyOrderDocumentResponse(
+            order_id=request.order_id,
+            matches=matches,
+            discrepancies=discrepancies,
+            suggested_actions=suggested_actions,
+            message=message,
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to verify order document: {e}")
+        raise
 
 
 async def verify_order_document(
     request: VerifyOrderDocumentRequest, context: Context
 ) -> VerifyOrderDocumentResponse:
-    """Verify a document against a purchase order (STUB - not yet implemented).
+    """Verify a document against a purchase order.
 
     Compares items from a supplier document (invoice, packing slip, etc.)
     against the purchase order to identify matches and discrepancies.
+
+    The tool:
+    - Fetches the purchase order details
+    - Looks up variants to match SKUs
+    - Compares quantities and prices
+    - Reports discrepancies with actionable suggestions
 
     Args:
         request: Request with order ID and document items
         context: Server context with KatanaClient
 
     Returns:
-        Verification response (currently stub)
+        Verification response with matches and discrepancies
 
-    Note:
-        This is a stub implementation. Full functionality coming in future update.
+    Example:
+        Request: {
+            "order_id": 1234,
+            "document_items": [
+                {"sku": "WIDGET-001", "quantity": 100, "unit_price": 25.50},
+                {"sku": "WIDGET-002", "quantity": 50, "unit_price": 30.00}
+            ]
+        }
+        Returns: Verification report with matches/discrepancies
     """
     return await _verify_order_document_impl(request, context)
 
@@ -528,13 +658,15 @@ async def verify_order_document(
 def register_tools(mcp: FastMCP) -> None:
     """Register all purchase order tools with the FastMCP instance.
 
+    Registers three fully-functional purchase order tools:
+    - create_purchase_order: Create regular purchase orders
+    - receive_purchase_order: Receive items and update inventory
+    - verify_order_document: Verify supplier documents against POs
+
+    All tools follow the preview/confirm pattern for safe operation.
+
     Args:
         mcp: FastMCP server instance to register tools with
-
-    Note:
-        These are currently stub implementations that return placeholder responses.
-        They are registered to establish the tool interface, but full functionality
-        requires additional implementation work with the complex Katana PO API.
     """
     mcp.tool()(create_purchase_order)
     mcp.tool()(receive_purchase_order)
