@@ -9,9 +9,11 @@ decorators or wrapper methods needed.
 import contextlib
 import json
 import logging
+import netrc
 import os
 from collections.abc import Awaitable, Callable
 from http import HTTPStatus
+from pathlib import Path
 from typing import Any, cast
 
 import httpx
@@ -666,6 +668,48 @@ class KatanaClient(AuthenticatedClient):
             client_limited = KatanaClient(max_pages=5)  # Limit to 5 pages max
     """
 
+    @staticmethod
+    def _read_from_netrc(base_url: str) -> str | None:
+        """
+        Read API key from ~/.netrc file.
+
+        Args:
+            base_url: The base URL to extract the hostname from.
+
+        Returns:
+            The API key (password field) from netrc, or None if not found.
+
+        Note:
+            The password field in netrc is used to store the API token since
+            Katana API uses bearer token authentication, not HTTP Basic Auth.
+        """
+        try:
+            from urllib.parse import urlparse
+
+            # Extract hostname from base_url
+            host = (
+                urlparse(base_url).netloc
+                or base_url.replace("https://", "").split("/")[0]
+            )
+
+            netrc_path = Path.home() / ".netrc"
+            if not netrc_path.exists():
+                return None
+
+            auth = netrc.netrc(str(netrc_path))
+            authenticators = auth.authenticators(host)
+
+            if authenticators:
+                # Return password field (which contains our API token)
+                # netrc returns (login, account, password)
+                _login, _account, password = authenticators
+                return password
+        except (FileNotFoundError, netrc.NetrcParseError, OSError):
+            # Silently ignore netrc errors - it's an optional source
+            pass
+
+        return None
+
     def __init__(
         self,
         api_key: str | None = None,
@@ -680,7 +724,8 @@ class KatanaClient(AuthenticatedClient):
         Initialize the Katana API client with automatic resilience features.
 
         Args:
-            api_key: Katana API key. If None, will try to load from KATANA_API_KEY env var.
+            api_key: Katana API key. If None, will try to load from KATANA_API_KEY env var,
+                .env file, or ~/.netrc file (in that order).
             base_url: Base URL for the Katana API. Defaults to https://api.katanamrp.com/v1
             timeout: Request timeout in seconds. Defaults to 30.0.
             max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
@@ -696,7 +741,8 @@ class KatanaClient(AuthenticatedClient):
                 - event_hooks (dict): Custom event hooks (will be merged with built-in hooks)
 
         Raises:
-            ValueError: If no API key is provided and KATANA_API_KEY env var is not set.
+            ValueError: If no API key is provided via api_key param, KATANA_API_KEY env var,
+                .env file, or ~/.netrc file.
 
         Note:
             Transport-related parameters (http2, limits, verify, etc.) are correctly
@@ -716,15 +762,20 @@ class KatanaClient(AuthenticatedClient):
                 raise ValueError("Cannot specify both 'api_key' and 'token' parameters")
             api_key = httpx_kwargs.pop("token")
 
-        # Setup credentials
-        api_key = api_key or os.getenv("KATANA_API_KEY")
+        # Determine base_url early so we can use it for netrc lookup
         base_url = (
             base_url or os.getenv("KATANA_BASE_URL") or "https://api.katanamrp.com/v1"
         )
 
+        # Setup credentials with priority: param > env > .env > netrc
+        api_key = (
+            api_key or os.getenv("KATANA_API_KEY") or self._read_from_netrc(base_url)
+        )
+
         if not api_key:
             raise ValueError(
-                "API key required (KATANA_API_KEY env var or api_key param)"
+                "API key required via: api_key param, KATANA_API_KEY env var, "
+                ".env file, or ~/.netrc"
             )
 
         self.logger = logger or logging.getLogger(__name__)

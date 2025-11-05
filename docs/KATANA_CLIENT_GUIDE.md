@@ -137,14 +137,65 @@ async with KatanaClient() as client:
 
 ## ⚙️ Configuration
 
-### Environment Variables
+### Authentication Methods
+
+The client supports multiple authentication methods (in priority order):
+
+1. **Direct parameter**: Pass `api_key` to `KatanaClient()`
+1. **Environment variable**: Set `KATANA_API_KEY`
+1. **`.env` file**: Create a `.env` file with your credentials
+1. **`~/.netrc` file**: Use standard Unix credential file
+
+#### Using .env file (Recommended)
 
 ```bash
-# Required
+# Create .env file
 KATANA_API_KEY=your-api-key-here
+KATANA_BASE_URL=https://api.katanamrp.com/v1  # Optional
+```
 
-# Optional (defaults shown)
-KATANA_BASE_URL=https://api.katanamrp.com/v1
+```python
+# Automatically loads from .env
+async with KatanaClient() as client:
+    # Uses credentials from .env
+    pass
+```
+
+#### Using ~/.netrc file
+
+For centralized credential management across multiple tools:
+
+```bash
+# Add to ~/.netrc
+machine api.katanamrp.com
+password your-api-key-here
+
+# Set proper permissions (required)
+chmod 600 ~/.netrc
+```
+
+```python
+# Automatically loads from ~/.netrc
+async with KatanaClient() as client:
+    # Uses credentials from ~/.netrc
+    pass
+```
+
+**Note**: The `password` field in netrc stores your API key (bearer token), not an
+actual password. The `login` field is optional and ignored.
+
+#### Using environment variable
+
+```bash
+export KATANA_API_KEY=your-api-key-here
+```
+
+#### Using direct parameter
+
+```python
+async with KatanaClient(api_key="your-api-key-here") as client:
+    # Explicit API key
+    pass
 ```
 
 ### Custom Configuration

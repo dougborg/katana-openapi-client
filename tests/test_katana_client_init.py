@@ -117,6 +117,141 @@ class TestKatanaClientInitialization:
         )
         assert client.logger is custom_logger
 
+    def test_initialization_from_netrc(self, tmp_path):
+        """Test initialization using ~/.netrc file."""
+        # Create a temporary netrc file
+        netrc_file = tmp_path / ".netrc"
+        netrc_file.write_text(
+            "machine api.katanamrp.com\nlogin katana-api-key\npassword netrc-api-key\n"
+        )
+        netrc_file.chmod(0o600)
+
+        with (
+            patch("katana_public_api_client.katana_client.load_dotenv"),
+            patch.dict(os.environ, {}, clear=True),
+            patch(
+                "katana_public_api_client.katana_client.Path.home",
+                return_value=tmp_path,
+            ),
+        ):
+            client = KatanaClient(base_url="https://api.katanamrp.com/v1")
+            # Client should initialize successfully with netrc credentials
+            assert client._base_url == "https://api.katanamrp.com/v1"
+
+    def test_initialization_from_netrc_with_custom_base_url(self, tmp_path):
+        """Test initialization using ~/.netrc with custom base URL."""
+        # Create a temporary netrc file with custom domain
+        netrc_file = tmp_path / ".netrc"
+        netrc_file.write_text("machine custom.api.com\npassword custom-netrc-key\n")
+        netrc_file.chmod(0o600)
+
+        with (
+            patch("katana_public_api_client.katana_client.load_dotenv"),
+            patch.dict(os.environ, {}, clear=True),
+            patch(
+                "katana_public_api_client.katana_client.Path.home",
+                return_value=tmp_path,
+            ),
+        ):
+            client = KatanaClient(base_url="https://custom.api.com/v1")
+            assert client._base_url == "https://custom.api.com/v1"
+
+    def test_initialization_env_var_overrides_netrc(self, tmp_path):
+        """Test that environment variable takes precedence over netrc."""
+        # Create a temporary netrc file
+        netrc_file = tmp_path / ".netrc"
+        netrc_file.write_text("machine api.katanamrp.com\npassword netrc-api-key\n")
+        netrc_file.chmod(0o600)
+
+        with (
+            patch.dict(os.environ, {"KATANA_API_KEY": "env-key"}),
+            patch(
+                "katana_public_api_client.katana_client.Path.home",
+                return_value=tmp_path,
+            ),
+        ):
+            # Should use env var, not netrc
+            client = KatanaClient(base_url="https://api.katanamrp.com/v1")
+            assert client._base_url == "https://api.katanamrp.com/v1"
+
+    def test_initialization_explicit_overrides_netrc(self, tmp_path):
+        """Test that explicit api_key parameter overrides netrc."""
+        # Create a temporary netrc file
+        netrc_file = tmp_path / ".netrc"
+        netrc_file.write_text("machine api.katanamrp.com\npassword netrc-api-key\n")
+        netrc_file.chmod(0o600)
+
+        with (
+            patch("katana_public_api_client.katana_client.load_dotenv"),
+            patch.dict(os.environ, {}, clear=True),
+            patch(
+                "katana_public_api_client.katana_client.Path.home",
+                return_value=tmp_path,
+            ),
+        ):
+            # Should use explicit parameter, not netrc
+            client = KatanaClient(
+                api_key="explicit-key", base_url="https://api.katanamrp.com/v1"
+            )
+            assert client._base_url == "https://api.katanamrp.com/v1"
+
+    def test_initialization_netrc_missing_file(self):
+        """Test graceful handling when ~/.netrc doesn't exist."""
+        with (
+            patch("katana_public_api_client.katana_client.load_dotenv"),
+            patch.dict(os.environ, {}, clear=True),
+            pytest.raises(ValueError, match="API key required"),
+        ):
+            # Should fail gracefully when netrc doesn't exist
+            KatanaClient(base_url="https://api.example.com")
+
+    def test_initialization_netrc_missing_host_entry(self, tmp_path):
+        """Test graceful handling when netrc exists but has no matching host."""
+        # Create netrc with different host
+        netrc_file = tmp_path / ".netrc"
+        netrc_file.write_text("machine different.api.com\npassword different-key\n")
+        netrc_file.chmod(0o600)
+
+        with (
+            patch("katana_public_api_client.katana_client.load_dotenv"),
+            patch.dict(os.environ, {}, clear=True),
+            patch(
+                "katana_public_api_client.katana_client.Path.home",
+                return_value=tmp_path,
+            ),
+            pytest.raises(ValueError, match="API key required"),
+        ):
+            # Should fail when host not found in netrc
+            KatanaClient(base_url="https://api.katanamrp.com/v1")
+
+    def test_initialization_netrc_parse_error(self, tmp_path):
+        """Test graceful handling of malformed netrc file."""
+        # Create malformed netrc file
+        netrc_file = tmp_path / ".netrc"
+        netrc_file.write_text("this is not valid netrc format {{{")
+        netrc_file.chmod(0o600)
+
+        with (
+            patch("katana_public_api_client.katana_client.load_dotenv"),
+            patch.dict(os.environ, {}, clear=True),
+            patch(
+                "katana_public_api_client.katana_client.Path.home",
+                return_value=tmp_path,
+            ),
+            pytest.raises(ValueError, match="API key required"),
+        ):
+            # Should fail gracefully with malformed netrc
+            KatanaClient(base_url="https://api.katanamrp.com/v1")
+
+    def test_error_message_mentions_netrc(self):
+        """Test that error message mentions netrc as an authentication option."""
+        with (
+            patch("katana_public_api_client.katana_client.load_dotenv"),
+            patch.dict(os.environ, {}, clear=True),
+            pytest.raises(ValueError, match=r"\.netrc"),
+        ):
+            KatanaClient(base_url="https://api.example.com")
+
 
 @pytest.mark.unit
 class TestKatanaClientHttpxParameterPassing:
