@@ -1,0 +1,106 @@
+# Dependabot configuration for automated dependency updates
+# See: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Production Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+      - "production"
+    groups:
+      production-dependencies:
+        patterns:
+          - "httpx*"
+          - "attrs"
+          - "python-dateutil"
+          - "tenacity"
+          - "python-dotenv"
+          - "urllib3"
+          - "pydantic"
+          - "typing-extensions"
+          - "httpx-retries"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # Development Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+      - "development"
+    groups:
+      dev-dependencies:
+        patterns:
+          - "pytest*"
+          - "ruff"
+          - "mypy*"
+          - "pre-commit"
+          - "build"
+          - "yamllint"
+          - "pyyaml"
+          - "openapi-spec-validator"
+          - "mdformat*"
+          - "types-*"
+          - "openapi-python-client"
+          - "python-semantic-release"
+          - "tox"
+          - "mkdocs*"
+          - "poethepoet"
+    commit-message:
+      prefix: "chore(deps-dev)"
+      include: "scope"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci/cd"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(actions)"
+      include: "scope"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/katana_mcp_server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+      - "mcp-server"
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
