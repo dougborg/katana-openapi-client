@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 # Path to examples directory
-EXAMPLES_DIR = Path(__file__).parent.parent / "examples" / "client"
+EXAMPLES_DIR = (Path(__file__).parent.parent / "examples" / "client").resolve()
 
 
 def load_module_from_file(file_path: Path):
