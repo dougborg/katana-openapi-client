@@ -1,0 +1,49 @@
+# Dependabot configuration for automated dependency updates
+# See: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# NOTE: Python dependency updates are currently disabled because this project uses uv
+# for package management (see ADR-009), and Dependabot does not yet support the uv
+# ecosystem. When Dependabot adds uv support, Python dependencies can be re-enabled.
+# See: https://github.com/dependabot/dependabot-core/issues/10478
+#
+# For manual Python dependency updates, use: uv lock --upgrade
+
+version: 2
+updates:
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci/cd"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(actions)"
+      include: "scope"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/katana_mcp_server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+      - "mcp-server"
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
