@@ -39,12 +39,45 @@ pip install -e .
 
 ### 📋 Configuration
 
+The Katana client supports multiple authentication methods (in priority order):
+
+1. **Direct parameter**: Pass `api_key` to `KatanaClient()`
+1. **Environment variable**: Set `KATANA_API_KEY`
+1. **`.env` file**: Create a `.env` file with your credentials
+1. **`~/.netrc` file**: Use standard Unix credential file
+
+#### Option 1: .env file (Recommended)
+
 Create a `.env` file with your Katana API credentials:
 
 ```bash
 KATANA_API_KEY=your-api-key-here
 # Optional: defaults to https://api.katanamrp.com/v1
 KATANA_BASE_URL=https://api.katanamrp.com/v1
+```
+
+#### Option 2: ~/.netrc file
+
+For centralized credential management, add to `~/.netrc`:
+
+```netrc
+machine api.katanamrp.com
+password your-api-key-here
+```
+
+**Note**: Ensure your netrc file has restricted permissions (`chmod 600 ~/.netrc`)
+
+#### Option 3: Environment variable
+
+```bash
+export KATANA_API_KEY=your-api-key-here
+```
+
+#### Option 4: Direct parameter
+
+```python
+async with KatanaClient(api_key="your-api-key-here") as client:
+    # ...
 ```
 
 ### Basic Usage
