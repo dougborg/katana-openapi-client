@@ -2974,8 +2974,8 @@ components:
         notes: Use only grade 304 material
         planned_quantity_per_unit: 2.5
         total_actual_quantity: 125.0
-        ingredient_availability: AVAILABLE
-        ingredient_expected_date: null
+        ingredient_availability: IN_STOCK
+        ingredient_expected_date: "2024-01-15T08:00:00Z"
         batch_transactions:
           - batch_id: 1201
             quantity: 125.0
@@ -3000,8 +3000,8 @@ components:
             notes: Use only grade 304 material
             planned_quantity_per_unit: 2.5
             total_actual_quantity: 125.0
-            ingredient_availability: AVAILABLE
-            ingredient_expected_date: null
+            ingredient_availability: IN_STOCK
+            ingredient_expected_date: "2024-01-15T08:00:00Z"
             batch_transactions:
               - batch_id: 1201
                 quantity: 125.0
@@ -9195,7 +9195,7 @@ components:
         sales_order_id: 2001
         order_no: SR-2023-001
         return_location_id: 1
-        status: RETURNED
+        status: RETURNED_ALL
         currency: USD
         return_date: "2023-10-15T14:30:00Z"
         order_created_date: "2023-10-10T10:00:00Z"
@@ -9205,11 +9205,13 @@ components:
           - id: 3501
             sales_return_id: 3001
             variant_id: 2002
-            quantity: 2
+            quantity: "2.0"
             return_reason_id: 1
             notes: Packaging was damaged
             unit_price: 25.0
             total_price: 50.0
+            created_at: "2023-10-15T14:00:00Z"
+            updated_at: "2023-10-15T15:00:00Z"
         created_at: "2023-10-15T14:00:00Z"
         updated_at: "2023-10-15T15:00:00Z"
         deleted_at: null
@@ -9308,7 +9310,7 @@ components:
         currency: USD
         order_created_date: "2023-10-10T10:00:00Z"
         additional_info: Customer reported damaged items during shipping
-        status: RETURNED
+        status: RETURNED_ALL
     SalesReturnRow:
       description: Individual line item within a sales return specifying returned product, quantity, and refund details
       allOf:
@@ -9915,7 +9917,7 @@ components:
             sales_order_id: 2001
             order_no: SR-2023-001
             return_location_id: 1
-            status: RETURNED
+            status: RETURNED_ALL
             currency: USD
             return_date: "2023-10-15T14:30:00Z"
             order_created_date: "2023-10-10T10:00:00Z"
@@ -9935,7 +9937,7 @@ components:
           - id: 3501
             sales_return_id: 3001
             variant_id: 2002
-            quantity: 2
+            quantity: "2.0"
             return_reason_id: 1
             notes: Packaging was damaged
             unit_price: 25.0
