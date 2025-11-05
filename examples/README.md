@@ -1,7 +1,15 @@
-# Katana OpenAPI Client Examples
+# Examples
 
-This directory contains various examples demonstrating different features and usage
-patterns of the KatanaClient.
+This directory contains examples for the packages in this monorepo.
+
+## Structure
+
+- **[client/](client/)** - Examples for `katana-openapi-client` package
+- **[mcp-server/](mcp-server/)** - Examples for `katana-mcp-server` package (coming soon)
+
+## Katana OpenAPI Client Examples
+
+The `client/` directory contains various examples demonstrating different features and usage patterns of the KatanaClient.
 
 ## Prerequisites
 
@@ -27,9 +35,9 @@ Before running any examples, make sure you have:
      export KATANA_API_KEY="your_api_key_here"
      ```
 
-## Available Examples
+## Available Client Examples
 
-### Basic Usage (`basic_usage.py`)
+### Basic Usage (`client/basic_usage.py`)
 
 Demonstrates the core features of KatanaClient including:
 
@@ -41,7 +49,7 @@ Demonstrates the core features of KatanaClient including:
 **Run:**
 
 ```bash
-uv run python examples/basic_usage.py
+uv run python examples/client/basic_usage.py
 ```
 
 **Key Features Shown:**
@@ -51,7 +59,7 @@ uv run python examples/basic_usage.py
 - Configure maximum pages to collect with `max_pages`
 - All requests get automatic retries and error handling
 
-### Inventory Synchronization (`inventory_sync.py`)
+### Inventory Synchronization (`client/inventory_sync.py`)
 
 Compare inventory levels between an external warehouse management system and Katana to
 identify discrepancies.
@@ -59,7 +67,7 @@ identify discrepancies.
 **Run:**
 
 ```bash
-uv run python examples/inventory_sync.py
+uv run python examples/client/inventory_sync.py
 ```
 
 **Key Features Shown:**
@@ -69,14 +77,14 @@ uv run python examples/inventory_sync.py
 - Tracking matched, mismatched, and skipped items
 - Real-world inventory monitoring workflow
 
-### Low Stock Monitoring (`low_stock_monitoring.py`)
+### Low Stock Monitoring (`client/low_stock_monitoring.py`)
 
 Monitor inventory levels and identify products that need reordering.
 
 **Run:**
 
 ```bash
-uv run python examples/low_stock_monitoring.py
+uv run python examples/client/low_stock_monitoring.py
 ```
 
 **Key Features Shown:**
@@ -86,14 +94,14 @@ uv run python examples/low_stock_monitoring.py
 - Generating low stock alerts
 - Production-ready monitoring pattern
 
-### Concurrent Requests (`concurrent_requests.py`)
+### Concurrent Requests (`client/concurrent_requests.py`)
 
 Make multiple API requests concurrently using `asyncio.gather` for better performance.
 
 **Run:**
 
 ```bash
-uv run python examples/concurrent_requests.py
+uv run python examples/client/concurrent_requests.py
 ```
 
 **Key Features Shown:**
@@ -103,7 +111,7 @@ uv run python examples/concurrent_requests.py
 - Performance benchmarking
 - Efficient bulk data retrieval
 
-### Error Handling (`error_handling.py`)
+### Error Handling (`client/error_handling.py`)
 
 Implement custom error handling and retry logic on top of the client's built-in
 resilience.
@@ -111,7 +119,7 @@ resilience.
 **Run:**
 
 ```bash
-uv run python examples/error_handling.py
+uv run python examples/client/error_handling.py
 ```
 
 **Key Features Shown:**
@@ -173,18 +181,17 @@ async with KatanaClient() as client:
 
 ## Additional Resources
 
-- [**Cookbook**](../docs/COOKBOOK.md) - Practical recipes for common integration
-  scenarios
-- [Main Documentation](../docs/KATANA_CLIENT_GUIDE.md)
-- [Testing Guide](../docs/TESTING_GUIDE.md)
-- [uv Package Manager](../docs/UV_USAGE.md)
+- [**Cookbook**](../katana_public_api_client/docs/cookbook.md) - Practical recipes for common integration scenarios
+- [Client Guide](../katana_public_api_client/docs/guide.md) - Main documentation
+- [Testing Guide](../katana_public_api_client/docs/testing.md) - Testing documentation
+- [uv Package Manager](../docs/UV_USAGE.md) - Package manager guide
 
 ## Contributing Examples
 
 When adding new examples:
 
-1. Create a new Python file in this directory
-1. Include a comprehensive docstring explaining the example
-1. Add proper error handling
-1. Update this README with the new example
-1. Test the example works with a real API key
+1. Add the file to the appropriate subdirectory (`client/` or `mcp-server/`)
+2. Include a comprehensive docstring explaining the example
+3. Add proper error handling
+4. Update this README with the new example
+5. Test the example works with a real API key
