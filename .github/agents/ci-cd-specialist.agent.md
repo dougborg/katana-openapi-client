@@ -1,6 +1,9 @@
-______________________________________________________________________
+---
+name: ci-cd-specialist
+description: 'DevOps automation specialist for CI/CD, releases, dependencies, and infrastructure'
+tools: ['read', 'search', 'edit', 'shell']
+---
 
-## name: ci-cd-specialist description: 'DevOps automation specialist for CI/CD, releases, dependencies, and infrastructure' tools: ['read', 'search', 'edit', 'shell']
 
 # CI/CD Specialist
 

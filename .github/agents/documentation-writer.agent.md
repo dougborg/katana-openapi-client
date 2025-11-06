@@ -1,6 +1,9 @@
-______________________________________________________________________
+---
+name: documentation-writer
+description: 'Documentation specialist for writing and maintaining project documentation, ADRs, and guides'
+tools: ['read', 'search', 'edit', 'shell']
+---
 
-## name: documentation-writer description: 'Documentation specialist for writing and maintaining project documentation, ADRs, and guides' tools: ['read', 'search', 'edit', 'shell']
 
 # Documentation Writer
 
