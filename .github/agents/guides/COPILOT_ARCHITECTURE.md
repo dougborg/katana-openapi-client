@@ -12,7 +12,7 @@ a specific purpose:
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │ LAYER 1: CHATMODES                                               │
-│ Files: .github/copilot/chatmodes/*.chatmode.md                   │
+│ Files: .github/agents/*.md                   │
 │ Purpose: Define specialized agent roles and workflows            │
 │ Format: YAML frontmatter + markdown                              │
 │ Size: ~100-500 lines per agent                                   │
@@ -67,7 +67,7 @@ You are a specialized [role] agent...
 Use the `read` tool to access:
 - `.github/instructions/[tech].instructions.md` - Technology standards
 - `.github/prompts/[task].prompt.md` - Reusable workflows
-- `.github/copilot/chatmodes/guides/[topic].md` - Detailed guides
+- `.github/agents/guides/[topic].md` - Detailed guides
 
 ## Quality Gates
 [Checklist before work is complete]
@@ -78,15 +78,15 @@ Use the `read` tool to access:
 
 ### File Naming Convention
 
-- Format: `[role].chatmode.md`
+- Format: `[role].md`
 - Examples:
-  - `python-developer.chatmode.md`
-  - `tdd-specialist.chatmode.md`
-  - `task-planner.chatmode.md`
-  - `documentation-writer.chatmode.md`
-  - `code-reviewer.chatmode.md`
-  - `ci-cd-specialist.chatmode.md`
-  - `project-coordinator.chatmode.md`
+  - `python-developer.md`
+  - `tdd-specialist.md`
+  - `task-planner.md`
+  - `documentation-writer.md`
+  - `code-reviewer.md`
+  - `ci-cd-specialist.md`
+  - `project-coordinator.md`
 
 ### Key Characteristics
 
@@ -253,7 +253,7 @@ Create a new prompt when you have:
 
 #### Step 1: Chatmode Loads
 
-`python-developer.chatmode.md` loads, providing:
+`python-developer.md` loads, providing:
 
 - Agent identity: "You are a Python development specialist"
 - Core workflow: Development → Testing → Validation
@@ -295,7 +295,7 @@ If agent needs more detail:
 
 #### Step 1: Chatmode Loads
 
-`documentation-writer.chatmode.md` loads, providing:
+`documentation-writer.md` loads, providing:
 
 - Agent identity: "You are a documentation specialist"
 - Documentation types: ADRs, guides, docstrings, README
@@ -373,14 +373,14 @@ As agent works:
 ```
 .github/
 ├── copilot/
-│   └── chatmodes/
-│       ├── task-planner.chatmode.md
-│       ├── python-developer.chatmode.md
-│       ├── tdd-specialist.chatmode.md
-│       ├── documentation-writer.chatmode.md
-│       ├── code-reviewer.chatmode.md
-│       ├── ci-cd-specialist.chatmode.md
-│       ├── project-coordinator.chatmode.md
+│   └── agents/
+│       ├── task-planner.md
+│       ├── python-developer.md
+│       ├── tdd-specialist.md
+│       ├── documentation-writer.md
+│       ├── code-reviewer.md
+│       ├── ci-cd-specialist.md
+│       ├── project-coordinator.md
 │       └── guides/
 │           ├── README.md
 │           ├── CONTEXT_INVESTIGATION.md
@@ -409,13 +409,13 @@ As agent works:
 ### Creating a New Chatmode
 
 1. **Identify the need**: Is there a distinct agent role needed?
-1. **Research patterns**: Review existing chatmodes in this project and awesome-copilot
+1. **Research patterns**: Review existing agents in this project and awesome-copilot
 1. **Define scope**:
    - Core responsibilities (2-5 bullet points)
    - Key workflows (step-by-step)
    - Tool access needed (read, search, edit, shell)
    - Quality gates
-1. **Create file**: `.github/copilot/chatmodes/[role].chatmode.md`
+1. **Create file**: `.github/agents/[role].md`
 1. **Use YAML frontmatter**: description + tools
 1. **Structure content**: Mission → Workflow → Resources → Quality Gates
 1. **Target size**: 100-500 lines (progressive disclosure)
@@ -508,7 +508,7 @@ instructions: |
 ### New Structure (Three-Tier)
 
 ```yaml
-# .github/copilot/chatmodes/python-developer.chatmode.md
+# .github/agents/python-developer.md
 ---
 description: 'Python development specialist for implementing features'
 tools: ['read', 'search', 'edit', 'shell']
@@ -529,7 +529,7 @@ Use the `read` tool to access:
 - `.github/instructions/python.instructions.md` - Python standards
 - `.github/instructions/pytest.instructions.md` - Testing standards
 - `.github/prompts/create-test.prompt.md` - Test creation workflow
-- `.github/copilot/chatmodes/guides/shared/VALIDATION_TIERS.md`
+- `.github/agents/guides/shared/VALIDATION_TIERS.md`
 
 ## Quality Gates
 [Checklist - 20 lines]
@@ -551,20 +551,20 @@ This architecture is based on patterns from
 ### Patterns Adopted
 
 1. **YAML frontmatter + markdown** (not pure YAML)
-1. **Three-tier organization** (chatmodes/instructions/prompts)
+1. **Three-tier organization** (agents/instructions/prompts)
 1. **Auto-applying instructions** via `applyTo` glob patterns
 1. **Reusable prompts** for common workflows
 1. **Progressive disclosure** with on-demand guide loading
 1. **Quality gates** and checkpoint patterns
-1. **File naming conventions** (.chatmode.md, .instructions.md, .prompt.md)
+1. **File naming conventions** (.md, .instructions.md, .prompt.md)
 
 ### Collections Referenced
 
 During Phase 5 implementation, we analyzed these awesome-copilot collections:
 
 - **python-mcp-development**: Informed `python-mcp-server.instructions.md`
-- **project-planning**: Informed `task-planner.chatmode.md`
-- **testing-automation**: Informed `tdd-specialist.chatmode.md`
+- **project-planning**: Informed `task-planner.md`
+- **testing-automation**: Informed `tdd-specialist.md`
 
 ### Integration with Existing Guides
 
@@ -598,6 +598,5 @@ that scales indefinitely.
 
 ______________________________________________________________________
 
-**Document**: `.github/copilot/chatmodes/guides/COPILOT_ARCHITECTURE.md` **Created**:
-2025-01-06 **Purpose**: Document three-tier architecture for GitHub Copilot agent
-customizations
+**Document**: `.github/agents/guides/COPILOT_ARCHITECTURE.md` **Created**: 2025-01-06
+**Purpose**: Document three-tier architecture for GitHub Copilot agent customizations

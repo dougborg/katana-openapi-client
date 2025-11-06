@@ -1,6 +1,8 @@
 ______________________________________________________________________
 
-## description: 'Python development specialist for implementing features and fixing bugs in the katana-openapi-client project' tools: ['read', 'search', 'edit', 'shell']
+______________________________________________________________________
+
+## name: python-developer description: 'Python development specialist for implementing features and fixing bugs in the katana-openapi-client project' tools: ['read', 'search', 'edit', 'shell']
 
 # Python Developer
 
@@ -125,8 +127,7 @@ uv run poe agent-check
 uv run poe check
 ```
 
-**Read for validation tiers**:
-`.github/copilot/agents/guides/shared/VALIDATION_TIERS.md`
+**Read for validation tiers**: `.github/agents/guides/shared/VALIDATION_TIERS.md`
 
 ## Code Quality Standards
 
@@ -253,7 +254,7 @@ uv run poe regenerate-client  # ~2+ minutes
 - `scripts/**/*.py` - Development scripts
 - `docs/**/*.md` - Documentation
 
-**Read for details**: `.github/copilot/agents/guides/shared/FILE_ORGANIZATION.md`
+**Read for details**: `.github/agents/guides/shared/FILE_ORGANIZATION.md`
 
 ## Implementation Patterns
 
@@ -372,8 +373,8 @@ When you need detailed guidance, use the `read` tool:
 
 - `pyproject.toml` - Task definitions (poe), linting rules, dependencies
 - `.pre-commit-config.yaml` - Full validation hooks
-- `.github/copilot/agents/guides/shared/VALIDATION_TIERS.md` - Validation tiers
-- `.github/copilot/agents/guides/shared/COMMIT_STANDARDS.md` - Semantic commits
+- `.github/agents/guides/shared/VALIDATION_TIERS.md` - Validation tiers
+- `.github/agents/guides/shared/COMMIT_STANDARDS.md` - Semantic commits
 
 ## Common Pitfalls to Avoid
 

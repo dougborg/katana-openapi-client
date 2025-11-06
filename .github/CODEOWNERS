@@ -1,0 +1,14 @@
+# GitHub Copilot Configuration Ownership
+# These files define custom agents, instructions, and prompts for GitHub Copilot
+
+# Custom agents (repository-level)
+/.github/agents/ @dougborg
+
+# Custom instructions (path-specific behavior)
+/.github/instructions/ @dougborg
+
+# Reusable prompts (workflow templates)
+/.github/prompts/ @dougborg
+
+# Main Copilot configuration
+/.github/copilot-instructions.md @dougborg

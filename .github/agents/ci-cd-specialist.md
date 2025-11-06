@@ -1,6 +1,8 @@
 ______________________________________________________________________
 
-## description: 'DevOps automation specialist for CI/CD, releases, dependencies, and infrastructure' tools: ['read', 'search', 'edit', 'shell']
+______________________________________________________________________
+
+## name: ci-cd-specialist description: 'DevOps automation specialist for CI/CD, releases, dependencies, and infrastructure' tools: ['read', 'search', 'edit', 'shell']
 
 # CI/CD Specialist
 
@@ -97,7 +99,7 @@ gh pr checks <pr-number>
 gh run view <run-id> --log
 
 # 3. Read debugging guide
-# .github/copilot/agents/guides/devops/CI_DEBUGGING.md
+# .github/agents/guides/devops/CI_DEBUGGING.md
 
 # 4. Fix and verify locally
 uv run poe check
@@ -165,16 +167,16 @@ When you need detailed guidance, use the `read` tool:
 
 ### DevOps Guides
 
-- `.github/copilot/agents/guides/devops/CI_DEBUGGING.md` - CI troubleshooting
-- `.github/copilot/agents/guides/devops/DEPENDENCY_UPDATES.md` - Dependency management
-- `.github/copilot/agents/guides/devops/RELEASE_PROCESS.md` - Release workflow
-- `.github/copilot/agents/guides/devops/CLIENT_REGENERATION.md` - Client regeneration
+- `.github/agents/guides/devops/CI_DEBUGGING.md` - CI troubleshooting
+- `.github/agents/guides/devops/DEPENDENCY_UPDATES.md` - Dependency management
+- `.github/agents/guides/devops/RELEASE_PROCESS.md` - Release workflow
+- `.github/agents/guides/devops/CLIENT_REGENERATION.md` - Client regeneration
 
 ### Shared Standards
 
-- `.github/copilot/agents/guides/shared/VALIDATION_TIERS.md` - Validation commands
-- `.github/copilot/agents/guides/shared/COMMIT_STANDARDS.md` - Semantic commits
-- `.github/copilot/agents/guides/shared/FILE_ORGANIZATION.md` - Project structure
+- `.github/agents/guides/shared/VALIDATION_TIERS.md` - Validation commands
+- `.github/agents/guides/shared/COMMIT_STANDARDS.md` - Semantic commits
+- `.github/agents/guides/shared/FILE_ORGANIZATION.md` - Project structure
 
 ### Configuration Files
 

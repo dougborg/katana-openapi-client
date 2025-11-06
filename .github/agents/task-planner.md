@@ -1,6 +1,8 @@
 ______________________________________________________________________
 
-## description: 'Task planner for creating actionable implementation plans from complex feature requests' tools: ['read', 'search', 'edit', 'shell']
+______________________________________________________________________
+
+## name: task-planner description: 'Task planner for creating actionable implementation plans from complex feature requests' tools: ['read', 'search', 'edit', 'shell']
 
 # Task Planner
 
@@ -38,9 +40,8 @@ multi-agent execution.
 ### 2. Research & Analysis
 
 - **Architecture patterns**: Read
-  `.github/copilot/agents/guides/shared/ARCHITECTURE_QUICK_REF.md`
-- **Project structure**: Check
-  `.github/copilot/agents/guides/shared/FILE_ORGANIZATION.md`
+  `.github/agents/guides/shared/ARCHITECTURE_QUICK_REF.md`
+- **Project structure**: Check `.github/agents/guides/shared/FILE_ORGANIZATION.md`
 - **Similar implementations**: Search codebase for reference patterns
 - **Standards**: Review ADRs for design decisions
 
@@ -84,7 +85,7 @@ Use project priority labels based on time estimates:
 - **p2-medium**: 4-8 hours (standard features, integrations)
 - **p3-low**: 1-3 hours (small improvements, doc updates)
 
-**Read for details**: `.github/copilot/agents/guides/plan/EFFORT_ESTIMATION.md`
+**Read for details**: `.github/agents/guides/plan/EFFORT_ESTIMATION.md`
 
 ### 5. Map Dependencies
 
@@ -100,7 +101,7 @@ Use project priority labels based on time estimates:
 - Timeline risks (complexity, unknowns)
 - Mitigation strategies for each risk
 
-**Read for methodology**: `.github/copilot/agents/guides/plan/PLANNING_PROCESS.md`
+**Read for methodology**: `.github/agents/guides/plan/PLANNING_PROCESS.md`
 
 ### 7. Create GitHub Issues
 
@@ -109,7 +110,7 @@ Use project priority labels based on time estimates:
 - Add appropriate labels (p1/p2/p3, package tags)
 - Assign to relevant agents
 
-**Read for templates**: `.github/copilot/agents/guides/plan/ISSUE_TEMPLATES.md`
+**Read for templates**: `.github/agents/guides/plan/ISSUE_TEMPLATES.md`
 
 ### 8. Coordinate Agent Handoffs
 
@@ -140,7 +141,7 @@ Always reference these when relevant:
 - **MCP Architecture** (ADR-010) - MCP server design
 - **Validation Tiers** (ADR-012) - Development validation workflow
 
-**Full reference**: `.github/copilot/agents/guides/shared/ARCHITECTURE_QUICK_REF.md`
+**Full reference**: `.github/agents/guides/shared/ARCHITECTURE_QUICK_REF.md`
 
 ## On-Demand Resources
 
@@ -148,7 +149,7 @@ When you need detailed guidance, use the `read` tool to access:
 
 ### Planning Methodology
 
-- `.github/copilot/agents/guides/plan/PLANNING_PROCESS.md`
+- `.github/agents/guides/plan/PLANNING_PROCESS.md`
   - §1: Understanding requests
   - §2: Creating phased plans
   - §4: Identifying dependencies
@@ -156,23 +157,23 @@ When you need detailed guidance, use the `read` tool to access:
 
 ### Issue Creation
 
-- `.github/copilot/agents/guides/plan/ISSUE_TEMPLATES.md`
+- `.github/agents/guides/plan/ISSUE_TEMPLATES.md`
   - Standard issue structure
   - Complete examples (feature, bug, refactor)
   - Label reference
 
 ### Effort Estimation
 
-- `.github/copilot/agents/guides/plan/EFFORT_ESTIMATION.md`
+- `.github/agents/guides/plan/EFFORT_ESTIMATION.md`
   - p1/p2/p3 criteria
   - Estimation process
   - Common mistakes to avoid
 
 ### Project Standards
 
-- `.github/copilot/agents/guides/shared/VALIDATION_TIERS.md` - Validation commands
-- `.github/copilot/agents/guides/shared/COMMIT_STANDARDS.md` - Semantic commits
-- `.github/copilot/agents/guides/shared/FILE_ORGANIZATION.md` - Project structure
+- `.github/agents/guides/shared/VALIDATION_TIERS.md` - Validation commands
+- `.github/agents/guides/shared/COMMIT_STANDARDS.md` - Semantic commits
+- `.github/agents/guides/shared/FILE_ORGANIZATION.md` - Project structure
 - `.github/copilot-instructions.md` - General Copilot instructions
 - `CLAUDE.md` - Claude Code agent instructions
 - `AGENT_WORKFLOW.md` - Multi-agent workflow guidance

@@ -169,27 +169,27 @@ Created 4 shared guides eliminating duplication across all agents:
 - Identified three-tier architecture: chatmodes → instructions → prompts
 - Confirmed YAML frontmatter + markdown format (not pure YAML)
 
-**Converted 7 agents from .yml to .chatmode.md:**
+**Converted 7 agents from .yml to .md:**
 
-1. **task-planner.chatmode.md** (125 lines)
+1. **task-planner.md** (125 lines)
    - From: agent-plan.yml (378 lines)
    - Reduction: 67%
-1. **python-developer.chatmode.md** (398 lines)
+1. **python-developer.md** (398 lines)
    - From: agent-dev.yml (240 lines)
    - Expansion: 66% (added comprehensive patterns from awesome-copilot)
-1. **tdd-specialist.chatmode.md** (393 lines)
+1. **tdd-specialist.md** (393 lines)
    - From: agent-test.yml (532 lines)
    - Reduction: 26% (testing patterns require detail)
-1. **documentation-writer.chatmode.md** (286 lines)
+1. **documentation-writer.md** (286 lines)
    - From: agent-docs.yml (485 lines)
    - Reduction: 41%
-1. **code-reviewer.chatmode.md** (387 lines)
+1. **code-reviewer.md** (387 lines)
    - From: agent-review.yml (490 lines)
    - Reduction: 21%
-1. **ci-cd-specialist.chatmode.md** (229 lines)
+1. **ci-cd-specialist.md** (229 lines)
    - From: agent-devops.yml (150 lines)
    - Expansion: 53% (added CI debugging patterns)
-1. **project-coordinator.chatmode.md** (497 lines)
+1. **project-coordinator.md** (497 lines)
    - From: agent-coordinator.yml (630 lines)
    - Reduction: 21%
 
@@ -220,7 +220,7 @@ Created 4 shared guides eliminating duplication across all agents:
 **File operations:**
 
 - Deleted 7 old .yml agent files
-- Moved `.github/copilot/agents/guides/` → `.github/copilot/chatmodes/guides/`
+- Moved `.github/copilot/agents/guides/` → `.github/agents/guides/`
 - Created GitHub issue #144 with complete implementation plan
 
 **Total Phase 5 additions:**
@@ -337,8 +337,8 @@ ______________________________________________________________________
 
 **Notes:**
 
-- agent-plan.yml and task-planner.chatmode.md are the same agent (refactored twice)
-- agent-devops.yml became ci-cd-specialist.chatmode.md
+- agent-plan.yml and task-planner.md are the same agent (refactored twice)
+- agent-devops.yml became ci-cd-specialist.md
 - **Instructions** (767 lines) are auto-applied, reducing duplication
 - **Prompts** (495 lines) are reusable workflows, eliminating redundancy
 - Net result: More comprehensive guidance with better organization
@@ -563,7 +563,7 @@ ______________________________________________________________________
 - [x] 67% reduction achieved on pilot
 - [x] Progressive disclosure pattern established
 - [x] Documentation comprehensive
-- [x] All 7 agents converted to .chatmode.md format
+- [x] All 7 agents converted to .md format
 - [x] awesome-copilot patterns integrated
 - [x] Three-tier architecture implemented (chatmodes/instructions/prompts)
 - [x] 4 technology instruction files created with auto-apply
@@ -623,6 +623,5 @@ comprehensive guidance in a better-organized structure.
 
 ______________________________________________________________________
 
-**Document:** `.github/copilot/chatmodes/guides/REFACTORING_SUMMARY.md` **Created:**
-2025-01-06 **Last Updated:** 2025-01-06 **Status:** All 5 phases complete, Phase 6
-optional
+**Document:** `.github/agents/guides/REFACTORING_SUMMARY.md` **Created:** 2025-01-06
+**Last Updated:** 2025-01-06 **Status:** All 5 phases complete, Phase 6 optional

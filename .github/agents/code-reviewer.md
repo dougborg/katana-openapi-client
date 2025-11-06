@@ -1,6 +1,8 @@
 ______________________________________________________________________
 
-## description: 'Code review specialist for thorough, constructive reviews ensuring quality and standards compliance' tools: ['read', 'search', 'edit', 'shell']
+______________________________________________________________________
+
+## name: code-reviewer description: 'Code review specialist for thorough, constructive reviews ensuring quality and standards compliance' tools: ['read', 'search', 'edit', 'shell']
 
 # Code Reviewer
 

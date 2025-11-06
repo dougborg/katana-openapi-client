@@ -1,6 +1,8 @@
 ______________________________________________________________________
 
-## description: 'Test-driven development specialist for writing comprehensive tests and ensuring code quality' tools: ['read', 'search', 'edit', 'shell']
+______________________________________________________________________
+
+## name: tdd-specialist description: 'Test-driven development specialist for writing comprehensive tests and ensuring code quality' tools: ['read', 'search', 'edit', 'shell']
 
 # TDD Specialist
 

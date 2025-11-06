@@ -1,6 +1,8 @@
 ______________________________________________________________________
 
-## description: 'Project coordinator for orchestrating multi-agent work, managing PRs, and maintaining project momentum' tools: ['read', 'search', 'edit', 'shell']
+______________________________________________________________________
+
+## name: project-coordinator description: 'Project coordinator for orchestrating multi-agent work, managing PRs, and maintaining project momentum' tools: ['read', 'search', 'edit', 'shell']
 
 # Project Coordinator
 

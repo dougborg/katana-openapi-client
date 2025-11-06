@@ -31,8 +31,8 @@ in the official GitHub Copilot custom agents configuration reference.
 ```yaml
 context:
   files:
-    - .github/copilot/agents/guides/plan/*.md
-    - .github/copilot/agents/guides/shared/*.md
+    - .github/agents/guides/plan/*.md
+    - .github/agents/guides/shared/*.md
   patterns:
     - "docs/adr/*.md"
 ```
@@ -68,7 +68,7 @@ Our strategy remains valid regardless of `context.files` behavior:
 **Level 2: Specialized Guides** (loaded on-demand)
 
 - Agent reads files using `read` tool when instructed
-- Example: "Read `.github/copilot/agents/guides/plan/PLANNING_PROCESS.md`"
+- Example: "Read `.github/agents/guides/plan/PLANNING_PROCESS.md`"
 
 **Level 3: Codebase Documentation** (loaded on-demand)
 
@@ -124,16 +124,17 @@ After adopting patterns from
 [GitHub's awesome-copilot repository](https://github.com/github/awesome-copilot), we now
 organize GitHub Copilot customizations into three distinct types:
 
-### 1. Chat Modes (`.chatmode.md`)
+### 1. Agents (`.md`)
 
 **Purpose**: Define **HOW** the chat operates
 
-**Location**: `.github/copilot/chatmodes/*.chatmode.md`
+**Location**: `.github/agents/*.md`
 
 **Structure**:
 
 ```yaml
 ---
+name: agent-name
 description: 'Brief description of agent role and expertise'
 tools: ['read', 'search', 'edit', 'shell']
 ---
@@ -253,8 +254,8 @@ description: 'Brief description of task'
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ CHATMODES: Specialized agent roles with workflows          │
-│ Example: python-developer.chatmode.md                      │
+│ AGENTS: Specialized agent roles with workflows             │
+│ Example: python-developer.md                               │
 │ Use for: Creating agents with specific expertise           │
 └─────────────────────────────────────────────────────────────┘
                           ↓ references
@@ -273,7 +274,7 @@ description: 'Brief description of task'
 
 **Decision tree**:
 
-- Need an agent with specific role? → **Chatmode**
+- Need an agent with specific role? → **Agent**
 - Need standards for a file type? → **Instruction**
 - Need a reusable task? → **Prompt**
 
@@ -281,7 +282,7 @@ description: 'Brief description of task'
 
 The three-tier architecture enables true progressive disclosure:
 
-**Level 1**: Chatmode loaded (~150 lines)
+**Level 1**: Agent file loaded (~150 lines)
 
 - Core agent identity and workflow
 - References to relevant instructions and prompts
