@@ -31,7 +31,7 @@ repos:
         entry: uv run mdformat --wrap=88
         language: system
         types: [markdown]
-        exclude: '(CHANGELOG\.md|docs/CHANGELOG\.md|katana_public_api_client/docs/CHANGELOG\.md)'
+        exclude: '(CHANGELOG\.md|docs/CHANGELOG\.md|katana_public_api_client/docs/CHANGELOG\.md|\.agent\.md$)'
         pass_filenames: true
 
       # YAML linting (via uv)
