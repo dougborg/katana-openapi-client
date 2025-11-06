@@ -124,11 +124,11 @@ After adopting patterns from
 [GitHub's awesome-copilot repository](https://github.com/github/awesome-copilot), we now
 organize GitHub Copilot customizations into three distinct types:
 
-### 1. Agents (`.md`)
+### 1. Agents (`.agent.md`)
 
 **Purpose**: Define **HOW** the chat operates
 
-**Location**: `.github/agents/*.md`
+**Location**: `.github/agents/*.agent.md`
 
 **Structure**:
 
@@ -255,7 +255,7 @@ description: 'Brief description of task'
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ AGENTS: Specialized agent roles with workflows             │
-│ Example: python-developer.md                               │
+│ Example: python-developer.agent.md                         │
 │ Use for: Creating agents with specific expertise           │
 └─────────────────────────────────────────────────────────────┘
                           ↓ references

@@ -80,7 +80,7 @@ Use the `read` tool to access:
 
 - Format: `[role].md`
 - Examples:
-  - `python-developer.md`
+  - `python-developer.agent.md`
   - `tdd-specialist.md`
   - `task-planner.md`
   - `documentation-writer.md`
@@ -253,7 +253,7 @@ Create a new prompt when you have:
 
 #### Step 1: Chatmode Loads
 
-`python-developer.md` loads, providing:
+`python-developer.agent.md` loads, providing:
 
 - Agent identity: "You are a Python development specialist"
 - Core workflow: Development → Testing → Validation
@@ -375,7 +375,7 @@ As agent works:
 ├── copilot/
 │   └── agents/
 │       ├── task-planner.md
-│       ├── python-developer.md
+│       ├── python-developer.agent.md
 │       ├── tdd-specialist.md
 │       ├── documentation-writer.md
 │       ├── code-reviewer.md
@@ -508,7 +508,7 @@ instructions: |
 ### New Structure (Three-Tier)
 
 ```yaml
-# .github/agents/python-developer.md
+# .github/agents/python-developer.agent.md
 ---
 description: 'Python development specialist for implementing features'
 tools: ['read', 'search', 'edit', 'shell']

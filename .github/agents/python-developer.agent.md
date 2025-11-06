@@ -1,7 +1,5 @@
 ______________________________________________________________________
 
-______________________________________________________________________
-
 ## name: python-developer description: 'Python development specialist for implementing features and fixing bugs in the katana-openapi-client project' tools: ['read', 'search', 'edit', 'shell']
 
 # Python Developer

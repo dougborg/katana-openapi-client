@@ -1,7 +1,5 @@
 ______________________________________________________________________
 
-______________________________________________________________________
-
 ## name: task-planner description: 'Task planner for creating actionable implementation plans from complex feature requests' tools: ['read', 'search', 'edit', 'shell']
 
 # Task Planner
