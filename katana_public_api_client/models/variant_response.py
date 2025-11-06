@@ -191,7 +191,7 @@ class VariantResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         from ..models.material import Material
         from ..models.product import Product
         from ..models.variant_response_config_attributes_item import (
@@ -318,14 +318,14 @@ class VariantResponse:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                product_or_material_type_0 = Product.from_dict(data)
+                product_or_material_type_0 = Product.from_dict(data)  # type: ignore[arg-type]
 
                 return product_or_material_type_0
             except:  # noqa: E722
                 pass
             if not isinstance(data, dict):
                 raise TypeError()
-            product_or_material_type_1 = Material.from_dict(data)
+            product_or_material_type_1 = Material.from_dict(data)  # type: ignore[arg-type]
 
             return product_or_material_type_1
 

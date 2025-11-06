@@ -52,7 +52,7 @@ class ManufacturingOrderProductionListResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         from ..models.manufacturing_order_production import ManufacturingOrderProduction
 
         d = dict(src_dict)

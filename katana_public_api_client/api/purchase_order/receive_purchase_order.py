@@ -25,13 +25,13 @@ def _get_kwargs(
     if isinstance(body, list):
         _kwargs["json"] = []
         for componentsschemas_purchase_order_receive_request_type_0_item_data in body:
-            componentsschemas_purchase_order_receive_request_type_0_item = componentsschemas_purchase_order_receive_request_type_0_item_data.to_dict()
+            componentsschemas_purchase_order_receive_request_type_0_item = componentsschemas_purchase_order_receive_request_type_0_item_data.to_dict()  # type: ignore[attr-defined]
             _kwargs["json"].append(
                 componentsschemas_purchase_order_receive_request_type_0_item
             )
 
     else:
-        _kwargs["json"] = body.to_dict()
+        _kwargs["json"] = body.to_dict()  # type: ignore[attr-defined]
 
     headers["Content-Type"] = "application/json"
 

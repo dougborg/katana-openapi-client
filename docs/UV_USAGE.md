@@ -144,7 +144,7 @@ uv run poe format-check    # Check formatting
 # Linting
 uv run poe lint            # All linters
 uv run poe lint-ruff       # Ruff linting
-uv run poe lint-mypy       # Type checking
+uv run poe typecheck       # Type checking (ty)
 uv run poe lint-yaml       # YAML linting
 ```
 

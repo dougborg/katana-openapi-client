@@ -48,7 +48,7 @@ class ProductOperationRerankRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         d = dict(src_dict)
         rank_product_operation_id = d.pop("rank_product_operation_id")
 

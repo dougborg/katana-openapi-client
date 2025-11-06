@@ -75,7 +75,6 @@ dev = [
   "tox>=4.0.0",
   # Code quality and linting
   "ruff>=0.12.4,<0.13",
-  "mypy>=1.17.0,<2.0.0",
   "pre-commit>=4.2.0",
   # Build tools
   "build>=1.0.0",
@@ -93,7 +92,6 @@ dev = [
   "types-python-dateutil>=2.8.0",
   "types-PyYAML>=6.0.0",
   "types-urllib3>=1.26.0",
-  "mypy-extensions>=1.1.0",
   # OpenAPI tools
   "openapi-python-client>=0.25.2",
   # Semantic release
@@ -117,6 +115,7 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "poethepoet>=0.37.0",
+    "ty>=0.0.1a25",
     "types-jsonschema>=4.25.1.20251009",
 ]
 
@@ -135,63 +134,59 @@ packages = ["katana_public_api_client"]
 [tool.hatch.build.targets.wheel.force-include]
 "docs/katana-openapi.yaml" = "katana_public_api_client/katana-openapi.yaml"
 
-[tool.mypy]
-files = ["katana_public_api_client", "tests", "scripts"]
-exclude = [
-  "tests/conftest.py",                     # Avoid duplicate module name issue
-  "scripts/extract_all_katana_docs.py",   # Utility script with external dependencies
-]
-# TODO: enable "strict" once all these individual checks are passing
-# strict = true
-
-# List from: https://mypy.readthedocs.io/en/stable/existing_code.html#introduce-stricter-options
-warn_unused_configs = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-
-## Getting these passing should be easy
-strict_equality = true
-extra_checks = true
-
-## Strongly recommend enabling this one as soon as you can
-check_untyped_defs = true
-
-## These shouldn't be too much additional work, but may be tricky to
-## get passing if you use a lot of untyped libraries
-disallow_subclassing_any = true
-disallow_untyped_decorators = true
-disallow_any_generics = true
-
-### These next few are various gradations of forcing use of type annotations
-#disallow_untyped_calls = true
-#disallow_incomplete_defs = true
-#disallow_untyped_defs = true
+# =============================================================================
+# Type Checker Configuration (ty)
+# =============================================================================
+# ty is Astral's Rust-based type checker, drop-in replacement for mypy
+# See: https://astral.sh/blog/ty
 #
-### This one isn't too hard to get passing, but return on investment is lower
-#no_implicit_reexport = true
+# Note: ty v0.0.1a25 is in pre-alpha and has limited configuration support.
+# Supported fields: environment, src, rules, terminal, overrides
+# The configuration is minimal as most options are passed via command line flags.
+
+[tool.ty]
+# ty auto-discovers source files from project root
+# Use --exclude flags in command line for exclusions (see typecheck task below)
+
+# =============================================================================
+# Legacy mypy configuration (kept for reference/fallback)
+# =============================================================================
+# Uncomment to revert to mypy if needed
 #
-### This one can be tricky to get passing if you use a lot of untyped libraries
-#warn_return_any = true
-
-[[tool.mypy.overrides]]
-module = ["katana_openapi_client.configuration"]
-warn_unused_ignores = true
-strict_equality = true
-extra_checks = true
-check_untyped_defs = true
-disallow_subclassing_any = true
-disallow_untyped_decorators = true
-disallow_any_generics = true
-disallow_untyped_calls = true
-disallow_incomplete_defs = true
-disallow_untyped_defs = true
-no_implicit_reexport = true
-warn_return_any = true
-
-[[tool.mypy.overrides]]
-module = ["katana_public_api_client.katana_client"]
-# Allow unknown types for JSON parsing methods
-disable_error_code = ["misc", "arg-type"]
+# [tool.mypy]
+# files = ["katana_public_api_client", "tests", "scripts"]
+# exclude = [
+#   "tests/conftest.py",
+#   "scripts/extract_all_katana_docs.py",
+# ]
+# warn_unused_configs = true
+# warn_redundant_casts = true
+# warn_unused_ignores = true
+# strict_equality = true
+# extra_checks = true
+# check_untyped_defs = true
+# disallow_subclassing_any = true
+# disallow_untyped_decorators = true
+# disallow_any_generics = true
+#
+# [[tool.mypy.overrides]]
+# module = ["katana_openapi_client.configuration"]
+# warn_unused_ignores = true
+# strict_equality = true
+# extra_checks = true
+# check_untyped_defs = true
+# disallow_subclassing_any = true
+# disallow_untyped_decorators = true
+# disallow_any_generics = true
+# disallow_untyped_calls = true
+# disallow_incomplete_defs = true
+# disallow_untyped_defs = true
+# no_implicit_reexport = true
+# warn_return_any = true
+#
+# [[tool.mypy.overrides]]
+# module = ["katana_public_api_client.katana_client"]
+# disable_error_code = ["misc", "arg-type"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
@@ -358,12 +353,15 @@ format-check = ["format-python-check", "format-markdown-check"]
 # -----------------------------------------------------------------------------
 # Linting and Type Checking Tasks
 # -----------------------------------------------------------------------------
-lint-mypy = "mypy katana_public_api_client tests scripts"
+# Note: katana_mcp_server/ is excluded as it's a separate workspace package
+# with its own dependencies (fastmcp, structlog) that ty needs to resolve.
+# Type check it separately from its own directory.
+typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'scripts/extract_all_katana_docs.py' --exclude 'katana_mcp_server/'"
 lint-ruff = "ruff check ."
 lint-ruff-fix = "ruff check --fix ."
 lint-yaml = "yamllint ."
 
-lint = ["lint-ruff", "lint-mypy", "lint-yaml"]
+lint = ["lint-ruff", "typecheck", "lint-yaml"]
 
 # -----------------------------------------------------------------------------
 # Testing Tasks
@@ -415,7 +413,7 @@ pre-commit-update = "pre-commit autoupdate"
 
 # Validation Tiers (for agent workflows)
 quick-check = ["format-check", "lint-ruff"]                              # Tier 1: Fast feedback (~5-10s)
-agent-check = ["format-check", "lint-ruff", "lint-mypy"]                # Tier 2: Pre-commit (~10-15s)
+agent-check = ["format-check", "lint-ruff", "typecheck"]                # Tier 2: Pre-commit (~10-15s)
 check = ["format-check", "lint", "test"]                                 # Tier 3: PR validation (~40s)
 full-check = ["format-check", "lint", "test", "docs-build"]             # Tier 4: Final validation (~50s)
 
@@ -450,8 +448,8 @@ echo "   poe format-python       - Format Python code with ruff"
 echo "   poe format-markdown     - Format markdown files"
 echo ""
 echo "📁 Linting & Type Checking:"
-echo "   poe lint                - Run all linters (mypy, ruff, yaml)"
-echo "   poe lint-mypy           - Type checking with mypy"
+echo "   poe lint                - Run all linters (ty, ruff, yaml)"
+echo "   poe typecheck           - Type checking with ty"
 echo "   poe lint-ruff           - Fast linting with ruff"
 echo "   poe lint-yaml           - YAML file linting"
 echo ""

@@ -410,7 +410,7 @@ class SalesOrder:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         from ..models.sales_order_address import SalesOrderAddress
         from ..models.sales_order_row import SalesOrderRow
         from ..models.sales_order_shipping_fee import SalesOrderShippingFee
@@ -757,7 +757,7 @@ class SalesOrder:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                shipping_fee_type_0 = SalesOrderShippingFee.from_dict(data)
+                shipping_fee_type_0 = SalesOrderShippingFee.from_dict(data)  # type: ignore[arg-type]
 
                 return shipping_fee_type_0
             except:  # noqa: E722

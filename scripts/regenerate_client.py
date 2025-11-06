@@ -543,7 +543,57 @@ def fix_specific_generated_issues(workspace_path: Path) -> bool:
         except Exception as e:
             print(f"   ⚠️  Could not fix client_types.py: {e}")
 
+    # Fix ty type errors in generated code
+    fix_ty_type_errors(workspace_path)
+
     return True
+
+
+def fix_ty_type_errors(workspace_path: Path) -> None:
+    """Add type: ignore comments for ty type checker errors in generated code."""
+    print("🔧 Adding type: ignore comments for ty type checker...")
+
+    client_path = workspace_path / "katana_public_api_client"
+
+    # Fix from_dict method calls in API files - common pattern where data: Any is passed
+    api_files = list((client_path / "api").rglob("*.py"))
+    for api_file in api_files:
+        try:
+            content = api_file.read_text(encoding="utf-8")
+            original = content
+
+            # Fix .from_dict(data) calls where data is Any
+            content = re.sub(
+                r"(\w+)\.from_dict\(data\)",
+                r"\1.from_dict(data)  # type: ignore[arg-type]",
+                content,
+            )
+
+            if content != original:
+                api_file.write_text(content, encoding="utf-8")
+        except Exception as e:
+            print(f"   ⚠️  Could not fix {api_file}: {e}")
+
+    # Fix from_dict method signatures in model files
+    model_files = list((client_path / "models").rglob("*.py"))
+    for model_file in model_files:
+        try:
+            content = model_file.read_text(encoding="utf-8")
+            original = content
+
+            # Add type: ignore to from_dict method definitions
+            content = re.sub(
+                r"(    def from_dict\(cls: type\[T\], src_dict: Mapping\[str, Any\]\) -> T:)",
+                r"\1  # type: ignore[misc]",
+                content,
+            )
+
+            if content != original:
+                model_file.write_text(content, encoding="utf-8")
+        except Exception as e:
+            print(f"   ⚠️  Could not fix {model_file}: {e}")
+
+    print("   ✓ Added type: ignore comments for ty type checker errors")
 
 
 def run_lint_check(workspace_path: Path) -> bool:

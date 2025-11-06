@@ -182,7 +182,7 @@ class Material:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         from ..models.item_config import ItemConfig
         from ..models.supplier import Supplier
         from ..models.variant import Variant
@@ -299,7 +299,7 @@ class Material:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                supplier_type_0 = Supplier.from_dict(data)
+                supplier_type_0 = Supplier.from_dict(data)  # type: ignore[arg-type]
 
                 return supplier_type_0
             except:  # noqa: E722

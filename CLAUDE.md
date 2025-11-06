@@ -47,7 +47,7 @@ cp .env.example .env  # Add your KATANA_API_KEY
 ### Validation Tiers (Use the Right One!)
 
 - **`uv run poe quick-check`** (~5-10s) - Format + lint only → Use during development
-- **`uv run poe agent-check`** (~10-15s) - Format + lint + mypy → Use before committing
+- **`uv run poe agent-check`** (~8-12s) - Format + lint + ty → Use before committing
 - **`uv run poe check`** (~30s) - Full validation → **REQUIRED before opening PR**
 - **`uv run poe full-check`** (~40s) - Everything + docs → Use before requesting review
 

@@ -366,9 +366,9 @@ uv run poe format-check        # Check formatting without changes
 uv run poe format-python       # Format Python code only
 
 # Linting and Type Checking
-uv run poe lint                 # Run all linters (ruff, mypy, yaml)
+uv run poe lint                 # Run all linters (ruff, ty, yaml)
 uv run poe lint-ruff           # Fast linting with ruff
-uv run poe lint-mypy           # Type checking with mypy
+uv run poe typecheck           # Type checking with ty
 
 # Testing
 uv run poe test                 # Run all tests
