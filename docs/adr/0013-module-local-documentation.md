@@ -8,35 +8,47 @@ Date: 2025-11-05
 
 ## Context
 
-The monorepo had inconsistent documentation organization that made it difficult for contributors to find relevant information and didn't align with modern Python monorepo best practices.
+The monorepo had inconsistent documentation organization that made it difficult for
+contributors to find relevant information and didn't align with modern Python monorepo
+best practices.
 
 ### Problems with Previous Structure
 
 1. **Documentation scattered across multiple locations**:
+
    - Client docs at root `docs/` (8 guides + 8 ADRs)
-   - MCP docs split between `docs/mcp-server/` (5 files) and `katana_mcp_server/` (2 files)
+   - MCP docs split between `docs/mcp-server/` (5 files) and `katana_mcp_server/` (2
+     files)
    - No clear module boundaries
 
-2. **ADRs mixed by scope**:
-   - Root `docs/adr/` contained client ADRs (001-008, 011-012), MCP ADR (010), and shared ADR (009)
+1. **ADRs mixed by scope**:
+
+   - Root `docs/adr/` contained client ADRs (001-008, 011-012), MCP ADR (010), and
+     shared ADR (009)
    - Made it unclear which ADRs applied to which package
 
-3. **Examples not organized by module**:
+1. **Examples not organized by module**:
+
    - All examples in flat `examples/` directory
    - No separation between client and MCP examples
 
-4. **Difficult to extract packages**:
+1. **Difficult to extract packages**:
+
    - Package-specific docs didn't travel with the package
    - Would need extensive refactoring to split packages into separate repos
 
-5. **Questions about organization**:
-   - "Where are the client docs?" → Unclear (some in root docs/, some might be elsewhere)
+1. **Questions about organization**:
+
+   - "Where are the client docs?" → Unclear (some in root docs/, some might be
+     elsewhere)
    - "Where are the MCP docs?" → Very unclear (split across 3 locations)
    - "Which ADRs apply to the client?" → Required reading all ADRs to determine
 
 ## Decision
 
-We will reorganize documentation into a **module-local structure** where each package has its own `docs/` subdirectory containing all module-specific documentation, including ADRs.
+We will reorganize documentation into a **module-local structure** where each package
+has its own `docs/` subdirectory containing all module-specific documentation, including
+ADRs.
 
 ### New Structure
 
@@ -86,43 +98,52 @@ katana-openapi-client/
 ### Implementation
 
 1. Created `katana_public_api_client/docs/` and `katana_mcp_server/docs/` directories
-2. Moved client docs and ADRs to client package
-3. Moved MCP docs and ADRs to MCP package
-4. Reorganized examples by module
-5. Created symlinks from `docs/client/` and `docs/mcp-server/` to module docs
-6. Updated all internal links and references
-7. Updated `mkdocs.yml` navigation structure
+1. Moved client docs and ADRs to client package
+1. Moved MCP docs and ADRs to MCP package
+1. Reorganized examples by module
+1. Created symlinks from `docs/client/` and `docs/mcp-server/` to module docs
+1. Updated all internal links and references
+1. Updated `mkdocs.yml` navigation structure
 
 ## Consequences
 
 ### Positive Consequences
 
 1. **Clear Module Boundaries**: Each package has complete, self-contained documentation
-2. **Improved Discoverability**: Easy to find docs - client docs in client package, MCP docs in MCP package
-3. **Better ADR Organization**: ADRs organized by scope (client/MCP/shared)
-4. **Package Extractability**: Documentation travels with the package - could extract to separate repo without refactoring
-5. **Consistent with Modern Practices**: Aligns with Python monorepo best practices
-6. **Better mkdocs Integration**: Root `docs/` aggregates everything via symlinks
-7. **Easier Navigation**: Clear navigation structure by module in documentation site
+1. **Improved Discoverability**: Easy to find docs - client docs in client package, MCP
+   docs in MCP package
+1. **Better ADR Organization**: ADRs organized by scope (client/MCP/shared)
+1. **Package Extractability**: Documentation travels with the package - could extract to
+   separate repo without refactoring
+1. **Consistent with Modern Practices**: Aligns with Python monorepo best practices
+1. **Better mkdocs Integration**: Root `docs/` aggregates everything via symlinks
+1. **Easier Navigation**: Clear navigation structure by module in documentation site
 
 ### Negative Consequences
 
-1. **More Complex Directory Structure**: More directories to navigate (though better organized)
-2. **Symlinks Required**: CI/CD must handle symlinks or copy files for documentation builds
-3. **Cross-References**: Some documentation cross-references require relative paths (e.g., `../../`)
+1. **More Complex Directory Structure**: More directories to navigate (though better
+   organized)
+1. **Symlinks Required**: CI/CD must handle symlinks or copy files for documentation
+   builds
+1. **Cross-References**: Some documentation cross-references require relative paths
+   (e.g., `../../`)
 
 ### Neutral Consequences
 
-1. **Documentation Paths Changed**: All documentation paths updated - old bookmarks/links will break
-2. **Git History**: File moves preserved in git history but may complicate some git operations
+1. **Documentation Paths Changed**: All documentation paths updated - old
+   bookmarks/links will break
+1. **Git History**: File moves preserved in git history but may complicate some git
+   operations
 
 ## Alternatives Considered
 
 ### Alternative 1: Keep Flat Structure
 
-- **Description**: Keep all docs in root `docs/` directory with subdirectories for different topics
+- **Description**: Keep all docs in root `docs/` directory with subdirectories for
+  different topics
 - **Pros**: Simpler structure, easier to browse all docs at once
-- **Cons**: Doesn't scale to multiple packages, unclear ownership, difficult to extract packages
+- **Cons**: Doesn't scale to multiple packages, unclear ownership, difficult to extract
+  packages
 - **Why rejected**: Doesn't support monorepo evolution and package independence
 
 ### Alternative 2: Duplicate Documentation
@@ -136,13 +157,17 @@ katana-openapi-client/
 
 - **Description**: Move all documentation to a separate repository
 - **Pros**: Clean separation, focused documentation repo
-- **Cons**: Docs far from code, version synchronization issues, harder to keep docs updated
+- **Cons**: Docs far from code, version synchronization issues, harder to keep docs
+  updated
 - **Why rejected**: Best practice is to keep docs with code
 
 ## References
 
-- Issue: dougborg/katana-openapi-client#[number] - Documentation reorganization
-- [Python Packaging Guide](https://packaging.python.org/) - Modern Python packaging practices
+- Issue: dougborg/katana-openapi-client#118 - Documentation reorganization
+- [Python Packaging Guide](https://packaging.python.org/) - Modern Python packaging
+  practices
 - [Monorepo Best Practices](https://monorepo.tools/) - Monorepo organization patterns
-- [ADR-009: Migrate to uv](0009-migrate-from-poetry-to-uv.md) - Related monorepo decision
-- [ADR-010: Katana MCP Server](../../katana_mcp_server/docs/adr/0010-katana-mcp-server.md) - MCP server architecture
+- [ADR-009: Migrate to uv](0009-migrate-from-poetry-to-uv.md) - Related monorepo
+  decision
+- [ADR-010: Katana MCP Server](../../katana_mcp_server/docs/adr/0010-katana-mcp-server.md)
+  \- MCP server architecture
