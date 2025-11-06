@@ -81,12 +81,12 @@ Use the `read` tool to access:
 - Format: `[role].md`
 - Examples:
   - `python-developer.agent.md`
-  - `tdd-specialist.md`
-  - `task-planner.md`
-  - `documentation-writer.md`
-  - `code-reviewer.md`
-  - `ci-cd-specialist.md`
-  - `project-coordinator.md`
+  - `tdd-specialist.agent.md`
+  - `task-planner.agent.md`
+  - `documentation-writer.agent.md`
+  - `code-reviewer.agent.md`
+  - `ci-cd-specialist.agent.md`
+  - `project-coordinator.agent.md`
 
 ### Key Characteristics
 
@@ -374,13 +374,13 @@ As agent works:
 .github/
 ├── copilot/
 │   └── agents/
-│       ├── task-planner.md
+│       ├── task-planner.agent.md
 │       ├── python-developer.agent.md
-│       ├── tdd-specialist.md
-│       ├── documentation-writer.md
-│       ├── code-reviewer.md
-│       ├── ci-cd-specialist.md
-│       ├── project-coordinator.md
+│       ├── tdd-specialist.agent.md
+│       ├── documentation-writer.agent.md
+│       ├── code-reviewer.agent.md
+│       ├── ci-cd-specialist.agent.md
+│       ├── project-coordinator.agent.md
 │       └── guides/
 │           ├── README.md
 │           ├── CONTEXT_INVESTIGATION.md
