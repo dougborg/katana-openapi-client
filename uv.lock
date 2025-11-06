@@ -732,7 +732,7 @@ wheels = [
 
 [[package]]
 name = "katana-mcp-server"
-version = "0.6.0"
+version = "0.7.0"
 source = { editable = "katana_mcp_server" }
 dependencies = [
     { name = "fastmcp" },

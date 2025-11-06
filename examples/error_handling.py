@@ -40,26 +40,28 @@ async def retry_with_backoff(
     Raises:
         Last exception if all retries fail
     """
-    last_exception: Exception | None = None
+    if max_attempts < 1:
+        raise ValueError("max_attempts must be at least 1")
+
     delay = 1.0
+    last_exception: Exception | None = None
 
     for attempt in range(max_attempts):
         try:
             return await operation()
         except Exception as e:
             last_exception = e
-
             if attempt < max_attempts - 1:
                 print(f"Attempt {attempt + 1} failed: {e}. Retrying in {delay}s...")
                 await asyncio.sleep(delay)
                 delay *= backoff_factor
             else:
+                # Last attempt failed
                 print(f"All {max_attempts} attempts failed")
 
-    if last_exception is not None:
-        raise last_exception
-    # This should never happen, but satisfies type checker
-    raise RuntimeError("Retry failed without exception")
+    # We only reach here if all attempts failed and last_exception is set
+    assert last_exception is not None, "Logic error: last_exception should be set"
+    raise last_exception
 
 
 async def create_order_with_retry(order_data: dict[str, Any]):

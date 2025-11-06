@@ -571,8 +571,8 @@ def fix_ty_type_errors(workspace_path: Path) -> None:
 
             if content != original:
                 api_file.write_text(content, encoding="utf-8")
-        except Exception:
-            pass  # Skip files with issues
+        except Exception as e:
+            print(f"   ⚠️  Could not fix {api_file}: {e}")
 
     # Fix from_dict method signatures in model files
     model_files = list((client_path / "models").rglob("*.py"))
@@ -590,8 +590,8 @@ def fix_ty_type_errors(workspace_path: Path) -> None:
 
             if content != original:
                 model_file.write_text(content, encoding="utf-8")
-        except Exception:
-            pass  # Skip files with issues
+        except Exception as e:
+            print(f"   ⚠️  Could not fix {model_file}: {e}")
 
     print("   ✓ Added type: ignore comments for ty type checker errors")
 

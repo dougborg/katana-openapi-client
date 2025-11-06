@@ -142,10 +142,11 @@ packages = ["katana_public_api_client"]
 #
 # Note: ty v0.0.1a25 is in pre-alpha and has limited configuration support.
 # Supported fields: environment, src, rules, terminal, overrides
+# The configuration is minimal as most options are passed via command line flags.
 
 [tool.ty]
-# Source files to check - ty will auto-discover from project root
-# exclude patterns via --exclude flag in command line
+# ty auto-discovers source files from project root
+# Use --exclude flags in command line for exclusions (see typecheck task below)
 
 # =============================================================================
 # Legacy mypy configuration (kept for reference/fallback)
