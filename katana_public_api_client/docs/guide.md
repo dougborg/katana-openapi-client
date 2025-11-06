@@ -629,4 +629,4 @@ ______________________________________________________________________
 
 **Next Steps**: Check out the
 [API Reference](reference/katana_public_api_client/index.md) for detailed endpoint
-documentation, or see [Testing Guide](TESTING_GUIDE.md) for testing patterns.
+documentation, or see [Testing Guide](testing.md) for testing patterns.

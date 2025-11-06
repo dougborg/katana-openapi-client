@@ -1,7 +1,11 @@
 # Architecture Decision Records
 
-This directory contains Architecture Decision Records (ADRs) for the Katana OpenAPI
-Client project.
+This directory contains Architecture Decision Records (ADRs) for **shared/monorepo-level** decisions that affect the entire repository.
+
+For package-specific ADRs, see:
+
+- **[Client ADRs](../../katana_public_api_client/docs/adr/README.md)** - `katana-openapi-client` package decisions
+- **[MCP Server ADRs](../../katana_mcp_server/docs/adr/README.md)** - `katana-mcp-server` package decisions
 
 ## What is an ADR?
 
@@ -28,24 +32,10 @@ We use the format proposed by Michael Nygard in his article
 
 ## Index
 
-### Accepted Architecture Decisions
+### Accepted Shared/Monorepo Decisions
 
-- [ADR-001: Use Transport-Layer Resilience Pattern](0001-transport-layer-resilience.md)
-- [ADR-002: Generate Client from OpenAPI Specification](0002-openapi-code-generation.md)
-- [ADR-003: Transparent Automatic Pagination](0003-transparent-pagination.md)
-- [ADR-004: Defer Observability to httpx](0004-defer-observability-to-httpx.md)
-- [ADR-005: Provide Both Sync and Async APIs](0005-sync-async-apis.md)
-- [ADR-006: Use Utility Functions for Response Unwrapping](0006-response-unwrapping-utilities.md)
-- [ADR-007: Generate Domain Helper Classes](0007-domain-helper-classes.md)
 - [ADR-009: Migrate from Poetry to uv Package Manager](0009-migrate-from-poetry-to-uv.md)
-- [ADR-010: Create Katana MCP Server for Claude Code Integration](0010-katana-mcp-server.md)
-- [ADR-011: Pydantic Domain Models for Business Entities](0011-pydantic-domain-models.md)
-- [ADR-012: Validation Tiers for Agent Workflows](0012-validation-tiers-for-agent-workflows.md)
-
-### Proposed Architecture Decisions
-
-- [ADR-008: Avoid Traditional Builder Pattern](0008-avoid-builder-pattern.md) -
-  **PROPOSED**
+- [ADR-013: Module-Local Documentation Structure](0013-module-local-documentation.md)
 
 ## Creating a New ADR
 
@@ -76,7 +66,7 @@ ensure ordering.
 
 ## Related Documentation
 
-- [TESTING_GUIDE.md](../TESTING_GUIDE.md) - Test coverage analysis and testing strategy
-- [KATANA_CLIENT_GUIDE.md](../KATANA_CLIENT_GUIDE.md) - User guide for the client
-- [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
-- [README.md](../../README.md) - Project overview and quick start
+- [Client ADRs](../../katana_public_api_client/docs/adr/README.md) - Client package ADRs
+- [MCP Server ADRs](../../katana_mcp_server/docs/adr/README.md) - MCP server package ADRs
+- [Contributing Guide](../CONTRIBUTING.md) - Contribution guidelines
+- [README](../../README.md) - Project overview and quick start

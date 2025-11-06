@@ -49,9 +49,20 @@ than as decorators or wrapper methods. This means:
 :maxdepth: 2
 :caption: User Guides
 
-KATANA_CLIENT_GUIDE
-TESTING_GUIDE
+client/guide
+client/cookbook
+client/testing
 CONTRIBUTING
+```
+
+```{toctree}
+:maxdepth: 2
+:caption: MCP Server
+
+mcp-server/README
+mcp-server/architecture
+mcp-server/development
+mcp-server/deployment
 ```
 
 ```{toctree}
@@ -65,16 +76,17 @@ autoapi/katana_public_api_client/index
 :maxdepth: 2
 :caption: Development
 
-RELEASE_WORKFLOW
-SEMANTIC_RELEASE_GUIDE
-POETRY_USAGE
+RELEASE
+MONOREPO_SEMANTIC_RELEASE
+UV_USAGE
+PYPI_SETUP
 ```
 
 ```{toctree}
 :maxdepth: 2
 :caption: Project Information
 
-CHANGELOG
+client/CHANGELOG
 CODE_OF_CONDUCT
 ```
 

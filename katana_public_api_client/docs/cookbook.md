@@ -1687,7 +1687,7 @@ async def test_with_helpers():
 ## Need Help?
 
 - Check the [API Documentation](https://help.katanamrp.com/api)
-- Review [KATANA_CLIENT_GUIDE.md](KATANA_CLIENT_GUIDE.md) for client features
+- Review [Client Guide](guide.md) for client features
 - See
   [examples directory](https://github.com/dougborg/katana-openapi-client/tree/main/examples)
   for runnable code samples

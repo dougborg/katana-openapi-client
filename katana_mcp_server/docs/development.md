@@ -338,7 +338,7 @@ This allows testing `_check_inventory_impl` directly with mocks.
 - **MCP Specification**: https://modelcontextprotocol.io
 - **Project README**:
   [../katana_mcp_server/README.md](../../katana_mcp_server/README.md)
-- **Testing Guide**: [TESTING_GUIDE.md](../TESTING_GUIDE.md)
+- **Testing Guide**: [Client Testing Guide](../../katana_public_api_client/docs/testing.md)
 
 ## Getting Help
 

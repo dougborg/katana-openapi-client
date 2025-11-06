@@ -41,7 +41,7 @@ ______________________________________________________________________
 
 ## Need Help?
 
-- **Client Documentation**: See our [KatanaClient Guide](KATANA_CLIENT_GUIDE.md) for
+- **Client Documentation**: See our [KatanaClient Guide](client/guide.md) for
   Python-specific usage
 - **Rate Limiting**: The API has rate limits - our client handles this automatically
 - **Pagination**: Large result sets are paginated - our client auto-paginates

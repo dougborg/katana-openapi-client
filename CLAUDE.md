@@ -164,47 +164,61 @@ parameter.
 
 ## Documentation Structure
 
+This is a monorepo with module-local documentation. Each package has its own `docs/` directory.
+
 ### Key Documentation Files
+
+**Shared/Monorepo Documentation:**
 
 - **[README.md](README.md)** - Project overview and quick start
 - **[CLAUDE.md](CLAUDE.md)** - This file - guidance for Claude Code
-- **[docs/KATANA_CLIENT_GUIDE.md](docs/KATANA_CLIENT_GUIDE.md)** - User guide for the
-  client
-- **[docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)** - Testing strategy and coverage
-  analysis
 - **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Contribution guidelines
-- **[docs/adr/](docs/adr/)** - Architecture Decision Records (ADRs)
+- **[docs/adr/](docs/adr/)** - Shared/monorepo-level ADRs
+- **[docs/UV_USAGE.md](docs/UV_USAGE.md)** - uv package manager guide
+- **[docs/MONOREPO_SEMANTIC_RELEASE.md](docs/MONOREPO_SEMANTIC_RELEASE.md)** - Release guide
+
+**Client Package Documentation:**
+
+- **[katana_public_api_client/docs/guide.md](katana_public_api_client/docs/guide.md)** - Client user guide
+- **[katana_public_api_client/docs/testing.md](katana_public_api_client/docs/testing.md)** - Testing strategy
+- **[katana_public_api_client/docs/cookbook.md](katana_public_api_client/docs/cookbook.md)** - Usage recipes
+- **[katana_public_api_client/docs/adr/](katana_public_api_client/docs/adr/)** - Client ADRs
+
+**MCP Server Documentation:**
+
+- **[katana_mcp_server/docs/README.md](katana_mcp_server/docs/README.md)** - MCP docs index
+- **[katana_mcp_server/docs/architecture.md](katana_mcp_server/docs/architecture.md)** - MCP architecture
+- **[katana_mcp_server/docs/development.md](katana_mcp_server/docs/development.md)** - Development guide
+- **[katana_mcp_server/docs/adr/](katana_mcp_server/docs/adr/)** - MCP ADRs
 
 ### Architecture Decision Records (ADRs)
 
-**Location**: [docs/adr/](docs/adr/)
+ADRs document key architectural decisions with their context and consequences.
 
-ADRs document key architectural decisions with their context and consequences. See
-[docs/adr/README.md](docs/adr/README.md) for the full index.
+**Client ADRs** - [katana_public_api_client/docs/adr/](katana_public_api_client/docs/adr/)
 
-**Accepted ADRs** (Core Architecture):
+Core architectural decisions for the client:
 
-- **[ADR-001](docs/adr/0001-transport-layer-resilience.md)**: Transport-Layer Resilience
-  Pattern
-- **[ADR-002](docs/adr/0002-openapi-code-generation.md)**: Generate Client from OpenAPI
-  Specification
-- **[ADR-003](docs/adr/0003-transparent-pagination.md)**: Transparent Automatic
-  Pagination
-- **[ADR-004](docs/adr/0004-defer-observability-to-httpx.md)**: Defer Observability to
-  httpx
-- **[ADR-005](docs/adr/0005-sync-async-apis.md)**: Provide Both Sync and Async APIs
-- **[ADR-006](docs/adr/0006-response-unwrapping-utilities.md)**: Response Unwrapping
-  Utilities
+- **[ADR-001](katana_public_api_client/docs/adr/0001-transport-layer-resilience.md)**: Transport-Layer Resilience Pattern
+- **[ADR-002](katana_public_api_client/docs/adr/0002-openapi-code-generation.md)**: Generate Client from OpenAPI Specification
+- **[ADR-003](katana_public_api_client/docs/adr/0003-transparent-pagination.md)**: Transparent Automatic Pagination
+- **[ADR-004](katana_public_api_client/docs/adr/0004-defer-observability-to-httpx.md)**: Defer Observability to httpx
+- **[ADR-005](katana_public_api_client/docs/adr/0005-sync-async-apis.md)**: Provide Both Sync and Async APIs
+- **[ADR-006](katana_public_api_client/docs/adr/0006-response-unwrapping-utilities.md)**: Response Unwrapping Utilities
+- **[ADR-007](katana_public_api_client/docs/adr/0007-domain-helper-classes.md)**: Generate Domain Helper Classes
+- **[ADR-008](katana_public_api_client/docs/adr/0008-avoid-builder-pattern.md)**: Avoid Traditional Builder Pattern (PROPOSED)
+- **[ADR-011](katana_public_api_client/docs/adr/0011-pydantic-domain-models.md)**: Pydantic Domain Models
+- **[ADR-012](katana_public_api_client/docs/adr/0012-validation-tiers-for-agent-workflows.md)**: Validation Tiers
 
-**Proposed ADRs** (Under Consideration):
+**MCP Server ADRs** - [katana_mcp_server/docs/adr/](katana_mcp_server/docs/adr/)
 
-- **[ADR-007](docs/adr/0007-domain-helper-classes.md)**: Generate Domain Helper Classes
-  (PROPOSED)
-- **[ADR-008](docs/adr/0008-avoid-builder-pattern.md)**: Avoid Traditional Builder
-  Pattern (PROPOSED)
+- **[ADR-010](katana_mcp_server/docs/adr/0010-katana-mcp-server.md)**: Create Katana MCP Server
 
-When making architectural decisions or understanding design choices, **consult the ADRs
-first** - they explain the "why" behind the codebase structure.
+**Shared/Monorepo ADRs** - [docs/adr/](docs/adr/)
+
+- **[ADR-009](docs/adr/0009-migrate-from-poetry-to-uv.md)**: Migrate from Poetry to uv
+
+When making architectural decisions or understanding design choices, **consult the ADRs first** - they explain the "why" behind the codebase structure.
 
 ## Development Environment
 
@@ -375,14 +389,14 @@ separate package in a monorepo using uv workspace.
 ### Key Resources for MCP Work:
 
 - **MCP v0.1.0 Implementation Plan**:
-  [docs/mcp-server/MCP_V0.1.0_IMPLEMENTATION_PLAN.md](docs/mcp-server/MCP_V0.1.0_IMPLEMENTATION_PLAN.md)
+  [katana_mcp_server/docs/implementation-plan.md](katana_mcp_server/docs/implementation-plan.md)
   \- Current plan with 10 tools, 6 resources, 3 prompts
 - **MCP Architecture Design**:
-  [docs/mcp-server/MCP_ARCHITECTURE_DESIGN.md](docs/mcp-server/MCP_ARCHITECTURE_DESIGN.md)
+  [katana_mcp_server/docs/architecture.md](katana_mcp_server/docs/architecture.md)
   \- MCP best practices and patterns
-- **ADR-010**: [docs/adr/0010-katana-mcp-server.md](docs/adr/0010-katana-mcp-server.md)
+- **ADR-010**: [katana_mcp_server/docs/adr/0010-katana-mcp-server.md](katana_mcp_server/docs/adr/0010-katana-mcp-server.md)
   \- Core architecture decisions
-- **MCP Documentation Index**: [docs/mcp-server/README.md](docs/mcp-server/README.md) -
+- **MCP Documentation Index**: [katana_mcp_server/docs/README.md](katana_mcp_server/docs/README.md) -
   All MCP docs
 - **GitHub Issues**:
   [mcp-server label](https://github.com/dougborg/katana-openapi-client/labels/mcp-server)
