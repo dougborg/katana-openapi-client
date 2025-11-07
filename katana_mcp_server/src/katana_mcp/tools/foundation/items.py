@@ -964,8 +964,8 @@ async def _get_variant_details_impl(
         Detailed variant information
 
     Raises:
-        ValueError: If SKU is empty or invalid
-        Exception: If API call fails or variant not found
+        ValueError: If SKU is empty, invalid, or variant not found
+        Exception: If API call fails for other reasons
     """
     if not request.sku or not request.sku.strip():
         raise ValueError("SKU cannot be empty")
