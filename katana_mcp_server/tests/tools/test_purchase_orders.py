@@ -558,3 +558,123 @@ async def test_receive_purchase_order_exception_handling():
         await _receive_purchase_order_impl(request, context)
 
     assert "Network error" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_receive_purchase_order_builds_correct_api_payload():
+    """Test that the API payload is built correctly with all fields."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock successful get and receive
+    mock_po = MagicMock(spec=RegularPurchaseOrder)
+    mock_po.id = 1234
+    mock_po.order_no = "PO-2024-TEST"
+    mock_po.status = MagicMock()
+    mock_po.status.value = "NOT_RECEIVED"
+
+    mock_get_response = MagicMock()
+    mock_get_response.status_code = 200
+    mock_get_response.parsed = mock_po
+
+    mock_receive_response = MagicMock()
+    mock_receive_response.status_code = 204
+
+    lifespan_ctx.client = MagicMock()
+
+    from katana_public_api_client.api.purchase_order import (
+        get_purchase_order as api_get_purchase_order,
+        receive_purchase_order as api_receive_purchase_order,
+    )
+
+    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+        return_value=mock_receive_response
+    )
+
+    # Create request with multiple items
+    request = ReceivePurchaseOrderRequest(
+        order_id=1234,
+        items=[
+            ReceiveItemRequest(purchase_order_row_id=501, quantity=100.0),
+            ReceiveItemRequest(purchase_order_row_id=502, quantity=50.5),
+        ],
+        confirm=True,
+    )
+
+    await _receive_purchase_order_impl(request, context)
+
+    # Verify the API was called with correct parameters
+    api_receive_purchase_order.asyncio_detailed.assert_called_once()
+    call_args = api_receive_purchase_order.asyncio_detailed.call_args
+
+    # Check client parameter
+    assert "client" in call_args.kwargs
+    assert call_args.kwargs["client"] == lifespan_ctx.client
+
+    # Check body parameter (list of PurchaseOrderReceiveRow)
+    body = call_args.kwargs["body"]
+    assert isinstance(body, list)
+    assert len(body) == 2
+
+    # Verify first row
+    assert isinstance(body[0], PurchaseOrderReceiveRow)
+    assert body[0].purchase_order_row_id == 501
+    assert body[0].quantity == 100.0
+    assert isinstance(body[0].received_date, datetime)
+
+    # Verify second row
+    assert isinstance(body[1], PurchaseOrderReceiveRow)
+    assert body[1].purchase_order_row_id == 502
+    assert body[1].quantity == 50.5
+    assert isinstance(body[1].received_date, datetime)
+
+
+@pytest.mark.asyncio
+async def test_receive_purchase_order_response_structure():
+    """Test that response contains all expected fields."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock successful response
+    mock_po = MagicMock(spec=RegularPurchaseOrder)
+    mock_po.id = 9999
+    mock_po.order_no = "PO-RESPONSE-TEST"
+    mock_po.status = MagicMock()
+    mock_po.status.value = "RECEIVED"
+
+    mock_get_response = MagicMock()
+    mock_get_response.status_code = 200
+    mock_get_response.parsed = mock_po
+
+    mock_receive_response = MagicMock()
+    mock_receive_response.status_code = 204
+
+    lifespan_ctx.client = MagicMock()
+
+    from katana_public_api_client.api.purchase_order import (
+        get_purchase_order as api_get_purchase_order,
+        receive_purchase_order as api_receive_purchase_order,
+    )
+
+    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+        return_value=mock_receive_response
+    )
+
+    request = ReceivePurchaseOrderRequest(
+        order_id=9999,
+        items=[ReceiveItemRequest(purchase_order_row_id=701, quantity=25.0)],
+        confirm=True,
+    )
+
+    result = await _receive_purchase_order_impl(request, context)
+
+    # Verify all response fields are populated correctly
+    assert result.order_id == 9999
+    assert result.order_number == "PO-RESPONSE-TEST"
+    assert result.items_received == 1
+    assert result.is_preview is False
+    assert isinstance(result.warnings, list)
+    assert isinstance(result.next_actions, list)
+    assert len(result.next_actions) > 0
+    assert isinstance(result.message, str)
+    assert "Successfully received" in result.message
