@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
+from enum import Enum
 from typing import Any, cast
 
 from fastmcp import Context, FastMCP
@@ -452,6 +453,37 @@ class DocumentItem(BaseModel):
     unit_price: float | None = Field(None, description="Price from document")
 
 
+class MatchResult(BaseModel):
+    """Result of matching a document item to a PO line."""
+
+    sku: str = Field(..., description="Item SKU")
+    quantity: float = Field(..., description="Matched quantity")
+    unit_price: float | None = Field(None, description="Matched price")
+    status: str = Field(
+        ...,
+        description="Match status (perfect, quantity_diff, price_diff, both_diff)",
+    )
+
+
+class DiscrepancyType(str, Enum):
+    """Types of discrepancies."""
+
+    QUANTITY_MISMATCH = "quantity_mismatch"
+    PRICE_MISMATCH = "price_mismatch"
+    MISSING_IN_PO = "missing_in_po"
+    EXTRA_IN_DOCUMENT = "extra_in_document"
+
+
+class Discrepancy(BaseModel):
+    """A discrepancy found during verification."""
+
+    sku: str = Field(..., description="Item SKU")
+    type: DiscrepancyType = Field(..., description="Type of discrepancy")
+    expected: float | None = Field(None, description="Expected value (from PO)")
+    actual: float | None = Field(None, description="Actual value (from document)")
+    message: str = Field(..., description="Human-readable description")
+
+
 class VerifyOrderDocumentRequest(BaseModel):
     """Request to verify a document against a purchase order."""
 
@@ -465,10 +497,11 @@ class VerifyOrderDocumentResponse(BaseModel):
     """Response from verifying an order document."""
 
     order_id: int
-    matches: int = 0
-    discrepancies: list[str] = []
+    matches: list[MatchResult] = []
+    discrepancies: list[Discrepancy] = []
     suggested_actions: list[str] = []
-    message: str = "Document verification is a stub - not yet implemented"
+    overall_status: str = Field(..., description="match, partial_match, or no_match")
+    message: str
 
 
 async def _verify_order_document_impl(
@@ -523,10 +556,11 @@ async def _verify_order_document_impl(
         ):
             return VerifyOrderDocumentResponse(
                 order_id=request.order_id,
-                matches=0,
-                discrepancies=[f"Purchase order {order_no} has no line items"],
+                matches=[],
+                discrepancies=[],
                 suggested_actions=["Verify purchase order data in Katana"],
-                message=f"No items to verify in PO {order_no}",
+                overall_status="no_match",
+                message=f"Purchase order {order_no} has no line items",
             )
 
         po_rows = po.purchase_order_rows
@@ -556,16 +590,20 @@ async def _verify_order_document_impl(
                 sku_to_row[variant.sku] = row
 
         # Now match document items to PO rows
-        matches = 0
-        discrepancies = []
+        matches: list[MatchResult] = []
+        discrepancies: list[Discrepancy] = []
 
         for doc_item in request.document_items:
-            # Track discrepancies for this specific item
-            item_has_discrepancy = False
-
+            # Check if SKU exists in PO
             if doc_item.sku not in sku_to_row:
                 discrepancies.append(
-                    f"SKU {doc_item.sku}: Not found in purchase order {order_no}"
+                    Discrepancy(
+                        sku=doc_item.sku,
+                        type=DiscrepancyType.MISSING_IN_PO,
+                        expected=None,
+                        actual=doc_item.quantity,
+                        message=f"SKU {doc_item.sku}: Not found in purchase order {order_no}",
+                    )
                 )
                 continue
 
@@ -573,36 +611,76 @@ async def _verify_order_document_impl(
             row_qty = (
                 cast(float, row.quantity)
                 if not isinstance(row.quantity, type(UNSET))
-                else 0
+                else 0.0
             )
             row_price = (
                 cast(float, row.price_per_unit)
                 if not isinstance(row.price_per_unit, type(UNSET))
-                else 0
+                else 0.0
             )
+
+            # Track match status and discrepancies
+            has_qty_mismatch = False
+            has_price_mismatch = False
 
             # Check quantity match
             if (
                 abs(doc_item.quantity - row_qty) > 0.01
             ):  # Small tolerance for float comparison
+                has_qty_mismatch = True
                 discrepancies.append(
-                    f"SKU {doc_item.sku}: Quantity mismatch (Document: {doc_item.quantity}, PO: {row_qty})"
+                    Discrepancy(
+                        sku=doc_item.sku,
+                        type=DiscrepancyType.QUANTITY_MISMATCH,
+                        expected=row_qty,
+                        actual=doc_item.quantity,
+                        message=f"SKU {doc_item.sku}: Quantity mismatch (Document: {doc_item.quantity}, PO: {row_qty})",
+                    )
                 )
-                item_has_discrepancy = True
 
             # Check price match if provided
             if (
                 doc_item.unit_price is not None
                 and abs(doc_item.unit_price - row_price) > 0.01
             ):
+                has_price_mismatch = True
                 discrepancies.append(
-                    f"SKU {doc_item.sku}: Price mismatch (Document: {doc_item.unit_price}, PO: {row_price})"
+                    Discrepancy(
+                        sku=doc_item.sku,
+                        type=DiscrepancyType.PRICE_MISMATCH,
+                        expected=row_price,
+                        actual=doc_item.unit_price,
+                        message=f"SKU {doc_item.sku}: Price mismatch (Document: {doc_item.unit_price}, PO: {row_price})",
+                    )
                 )
-                item_has_discrepancy = True
 
-            # Count as match only if no discrepancies for this specific item
-            if not item_has_discrepancy:
-                matches += 1
+            # Determine match status
+            if has_qty_mismatch and has_price_mismatch:
+                status = "both_diff"
+            elif has_qty_mismatch:
+                status = "quantity_diff"
+            elif has_price_mismatch:
+                status = "price_diff"
+            else:
+                status = "perfect"
+
+            # Create match result
+            matches.append(
+                MatchResult(
+                    sku=doc_item.sku,
+                    quantity=doc_item.quantity,
+                    unit_price=doc_item.unit_price,
+                    status=status,
+                )
+            )
+
+        # Determine overall status
+        if len(matches) == 0:
+            overall_status = "no_match"
+        elif len(discrepancies) == 0:
+            overall_status = "match"
+        else:
+            overall_status = "partial_match"
 
         # Build suggested actions
         suggested_actions = []
@@ -617,7 +695,7 @@ async def _verify_order_document_impl(
             )
 
         message = (
-            f"Verified {len(request.document_items)} items: {matches} matches, "
+            f"Verified {len(request.document_items)} items: {len(matches)} matches, "
             f"{len(discrepancies)} discrepancies"
         )
 
@@ -626,6 +704,7 @@ async def _verify_order_document_impl(
             matches=matches,
             discrepancies=discrepancies,
             suggested_actions=suggested_actions,
+            overall_status=overall_status,
             message=message,
         )
 
