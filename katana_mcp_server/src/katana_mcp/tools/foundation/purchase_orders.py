@@ -466,12 +466,17 @@ class MatchResult(BaseModel):
 
 
 class DiscrepancyType(str, Enum):
-    """Types of discrepancies."""
+    """Types of discrepancies.
+
+    Note: EXTRA_IN_DOCUMENT is reserved for future use to detect items
+    in the document that exceed PO quantities or are unexpected.
+    Currently, we only verify items from the document against the PO.
+    """
 
     QUANTITY_MISMATCH = "quantity_mismatch"
     PRICE_MISMATCH = "price_mismatch"
     MISSING_IN_PO = "missing_in_po"
-    EXTRA_IN_DOCUMENT = "extra_in_document"
+    EXTRA_IN_DOCUMENT = "extra_in_document"  # Reserved for future enhancement
 
 
 class Discrepancy(BaseModel):

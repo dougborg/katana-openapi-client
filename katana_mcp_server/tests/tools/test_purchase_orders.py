@@ -10,6 +10,9 @@ from katana_mcp.tools.foundation.purchase_orders import (
     _verify_order_document_impl,
 )
 
+from katana_public_api_client.api.purchase_order import (
+    get_purchase_order as api_get_purchase_order,
+)
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import RegularPurchaseOrder
 
@@ -86,9 +89,6 @@ async def test_verify_order_document_perfect_match():
     ]
 
     # Setup mocks
-    from katana_public_api_client.api.purchase_order import (
-        get_purchase_order as api_get_purchase_order,
-    )
 
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
@@ -149,10 +149,6 @@ async def test_verify_order_document_quantity_mismatch():
 
     mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
 
-    from katana_public_api_client.api.purchase_order import (
-        get_purchase_order as api_get_purchase_order,
-    )
-
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
@@ -208,10 +204,6 @@ async def test_verify_order_document_price_mismatch():
 
     mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
 
-    from katana_public_api_client.api.purchase_order import (
-        get_purchase_order as api_get_purchase_order,
-    )
-
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
@@ -264,10 +256,6 @@ async def test_verify_order_document_missing_in_po():
     mock_po_response.parsed = mock_po
 
     mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
-
-    from katana_public_api_client.api.purchase_order import (
-        get_purchase_order as api_get_purchase_order,
-    )
 
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
@@ -324,10 +312,6 @@ async def test_verify_order_document_extra_in_document():
         create_mock_variant(variant_id=2, sku="WIDGET-002"),
     ]
 
-    from katana_public_api_client.api.purchase_order import (
-        get_purchase_order as api_get_purchase_order,
-    )
-
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
@@ -373,10 +357,6 @@ async def test_verify_order_document_mixed_discrepancies():
         create_mock_variant(variant_id=1, sku="WIDGET-001"),
         create_mock_variant(variant_id=2, sku="WIDGET-002"),
     ]
-
-    from katana_public_api_client.api.purchase_order import (
-        get_purchase_order as api_get_purchase_order,
-    )
 
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
@@ -445,10 +425,6 @@ async def test_verify_order_document_empty_po():
     mock_po_response.status_code = 200
     mock_po_response.parsed = mock_po
 
-    from katana_public_api_client.api.purchase_order import (
-        get_purchase_order as api_get_purchase_order,
-    )
-
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
 
     request = VerifyOrderDocumentRequest(
@@ -480,10 +456,6 @@ async def test_verify_order_document_po_not_found():
     mock_po_response = MagicMock()
     mock_po_response.status_code = 404
     mock_po_response.parsed = None
-
-    from katana_public_api_client.api.purchase_order import (
-        get_purchase_order as api_get_purchase_order,
-    )
 
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
 
@@ -518,10 +490,6 @@ async def test_verify_order_document_unset_values():
     mock_po_response.parsed = mock_po
 
     mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
-
-    from katana_public_api_client.api.purchase_order import (
-        get_purchase_order as api_get_purchase_order,
-    )
 
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
@@ -561,10 +529,6 @@ async def test_verify_order_document_no_price_in_document():
 
     mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
 
-    from katana_public_api_client.api.purchase_order import (
-        get_purchase_order as api_get_purchase_order,
-    )
-
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
@@ -603,10 +567,6 @@ async def test_verify_order_document_variant_not_found():
 
     # Variants list doesn't include variant_id=1
     mock_variants = []
-
-    from katana_public_api_client.api.purchase_order import (
-        get_purchase_order as api_get_purchase_order,
-    )
 
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
@@ -648,10 +608,6 @@ async def test_verify_order_document_unset_order_no():
     mock_po_response.parsed = mock_po
 
     mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
-
-    from katana_public_api_client.api.purchase_order import (
-        get_purchase_order as api_get_purchase_order,
-    )
 
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
@@ -712,10 +668,6 @@ async def test_verify_order_document_no_match():
     mock_po_response.parsed = mock_po
 
     mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
-
-    from katana_public_api_client.api.purchase_order import (
-        get_purchase_order as api_get_purchase_order,
-    )
 
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
