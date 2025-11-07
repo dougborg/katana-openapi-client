@@ -23,8 +23,6 @@ from katana_public_api_client.models import (
     UpdateManufacturingOrderRequest,
 )
 
-# Note: ManufacturingOrderStatus is imported later when needed
-
 logger = logging.getLogger(__name__)
 
 # ============================================================================
