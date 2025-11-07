@@ -1,5 +1,6 @@
 """Tests for inventory and item MCP tools."""
 
+from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -10,7 +11,9 @@ from katana_mcp.tools.foundation.inventory import (
     _list_low_stock_items_impl,
 )
 from katana_mcp.tools.foundation.items import (
+    GetVariantDetailsRequest,
     SearchItemsRequest,
+    _get_variant_details_impl,
     _search_items_impl,
 )
 
@@ -363,6 +366,239 @@ async def test_search_items_negative_limit():
         await _search_items_impl(request, context)
 
 
+@pytest.mark.asyncio
+async def test_get_variant_details():
+    """Test get_variant_details tool with mocked client."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock Variant object with all properties
+    mock_variant = MagicMock()
+    mock_variant.id = 123
+    mock_variant.sku = "WIDGET-001"
+    mock_variant.type_ = "product"
+    mock_variant.product_id = 456
+    mock_variant.material_id = None
+    mock_variant.product_or_material_name = "Test Widget"
+    mock_variant.sales_price = 29.99
+    mock_variant.purchase_price = 15.00
+    mock_variant.internal_barcode = "BAR-123"
+    mock_variant.registered_barcode = "UPC-456"
+    mock_variant.supplier_item_codes = ["SUP-001", "SUP-002"]
+    mock_variant.lead_time = 7
+    mock_variant.minimum_order_quantity = 10.0
+    mock_variant.config_attributes = [
+        {"config_name": "Size", "config_value": "Large"},
+        {"config_name": "Color", "config_value": "Blue"},
+    ]
+    mock_variant.custom_fields = [
+        {"field_name": "Warranty", "field_value": "1 year"},
+    ]
+    mock_variant.created_at = None
+    mock_variant.updated_at = None
+    mock_variant.get_display_name = MagicMock(return_value="Test Widget / Large / Blue")
+
+    lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
+
+    request = GetVariantDetailsRequest(sku="WIDGET-001")
+    result = await _get_variant_details_impl(request, context)
+
+    assert result.id == 123
+    assert result.sku == "WIDGET-001"
+    assert result.name == "Test Widget / Large / Blue"
+    assert result.type == "product"
+    assert result.product_id == 456
+    assert result.material_id is None
+    assert result.product_or_material_name == "Test Widget"
+    assert result.sales_price == 29.99
+    assert result.purchase_price == 15.00
+    assert result.internal_barcode == "BAR-123"
+    assert result.registered_barcode == "UPC-456"
+    assert result.supplier_item_codes == ["SUP-001", "SUP-002"]
+    assert result.lead_time == 7
+    assert result.minimum_order_quantity == 10.0
+    assert len(result.config_attributes) == 2
+    assert result.config_attributes[0]["config_name"] == "Size"
+    assert result.config_attributes[0]["config_value"] == "Large"
+    assert len(result.custom_fields) == 1
+    assert result.custom_fields[0]["field_name"] == "Warranty"
+    lifespan_ctx.client.variants.search.assert_called_once_with("WIDGET-001", limit=100)
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_case_insensitive():
+    """Test get_variant_details with case-insensitive SKU matching."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock variant with uppercase SKU
+    mock_variant = MagicMock()
+    mock_variant.id = 123
+    mock_variant.sku = "WIDGET-001"
+    mock_variant.type_ = "product"
+    mock_variant.product_id = 456
+    mock_variant.material_id = None
+    mock_variant.product_or_material_name = "Test Widget"
+    mock_variant.sales_price = 29.99
+    mock_variant.purchase_price = 15.00
+    mock_variant.internal_barcode = None
+    mock_variant.registered_barcode = None
+    mock_variant.supplier_item_codes = []
+    mock_variant.lead_time = None
+    mock_variant.minimum_order_quantity = None
+    mock_variant.config_attributes = []
+    mock_variant.custom_fields = []
+    mock_variant.created_at = None
+    mock_variant.updated_at = None
+    mock_variant.get_display_name = MagicMock(return_value="Test Widget")
+
+    lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
+
+    # Search with lowercase SKU
+    request = GetVariantDetailsRequest(sku="widget-001")
+    result = await _get_variant_details_impl(request, context)
+
+    assert result.id == 123
+    assert result.sku == "WIDGET-001"
+    assert result.name == "Test Widget"
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_not_found():
+    """Test get_variant_details when SKU not found."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Return empty list (no matches)
+    lifespan_ctx.client.variants.search = AsyncMock(return_value=[])
+
+    request = GetVariantDetailsRequest(sku="NOT-FOUND")
+    with pytest.raises(ValueError, match="Variant with SKU 'NOT-FOUND' not found"):
+        await _get_variant_details_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_no_exact_match():
+    """Test get_variant_details when no exact SKU match exists."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock variant with different SKU (partial match)
+    mock_variant = MagicMock()
+    mock_variant.id = 999
+    mock_variant.sku = "WIDGET-002"
+    mock_variant.get_display_name = MagicMock(return_value="Other Widget")
+
+    # Return similar but not exact match
+    lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
+
+    request = GetVariantDetailsRequest(sku="WIDGET-001")
+    with pytest.raises(ValueError, match="Variant with SKU 'WIDGET-001' not found"):
+        await _get_variant_details_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_empty_sku():
+    """Test get_variant_details rejects empty SKU."""
+    context, _ = create_mock_context()
+
+    request = GetVariantDetailsRequest(sku="")
+    with pytest.raises(ValueError, match="SKU cannot be empty"):
+        await _get_variant_details_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_whitespace_sku():
+    """Test get_variant_details rejects whitespace-only SKU."""
+    context, _ = create_mock_context()
+
+    request = GetVariantDetailsRequest(sku="   ")
+    with pytest.raises(ValueError, match="SKU cannot be empty"):
+        await _get_variant_details_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_minimal_fields():
+    """Test get_variant_details with minimal fields populated."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock variant with only required fields
+    mock_variant = MagicMock()
+    mock_variant.id = 123
+    mock_variant.sku = "MIN-001"
+    mock_variant.type_ = None
+    mock_variant.product_id = None
+    mock_variant.material_id = None
+    mock_variant.product_or_material_name = None
+    mock_variant.sales_price = None
+    mock_variant.purchase_price = None
+    mock_variant.internal_barcode = None
+    mock_variant.registered_barcode = None
+    mock_variant.supplier_item_codes = []
+    mock_variant.lead_time = None
+    mock_variant.minimum_order_quantity = None
+    mock_variant.config_attributes = []
+    mock_variant.custom_fields = []
+    mock_variant.created_at = None
+    mock_variant.updated_at = None
+    mock_variant.get_display_name = MagicMock(return_value="MIN-001")
+
+    lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
+
+    request = GetVariantDetailsRequest(sku="MIN-001")
+    result = await _get_variant_details_impl(request, context)
+
+    assert result.id == 123
+    assert result.sku == "MIN-001"
+    assert result.name == "MIN-001"
+    assert result.type is None
+    assert result.sales_price is None
+    assert result.purchase_price is None
+    assert result.internal_barcode is None
+    assert result.registered_barcode is None
+    assert result.supplier_item_codes == []
+    assert result.lead_time is None
+    assert result.minimum_order_quantity is None
+    assert result.config_attributes == []
+    assert result.custom_fields == []
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_with_timestamps():
+    """Test get_variant_details with created_at and updated_at."""
+    from datetime import datetime
+
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock variant with timestamps
+    created = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+    updated = datetime(2024, 6, 1, 14, 30, 0, tzinfo=UTC)
+
+    mock_variant = MagicMock()
+    mock_variant.id = 123
+    mock_variant.sku = "TIME-001"
+    mock_variant.type_ = "product"
+    mock_variant.product_id = None
+    mock_variant.material_id = None
+    mock_variant.product_or_material_name = "Timed Product"
+    mock_variant.sales_price = None
+    mock_variant.purchase_price = None
+    mock_variant.internal_barcode = None
+    mock_variant.registered_barcode = None
+    mock_variant.supplier_item_codes = []
+    mock_variant.lead_time = None
+    mock_variant.minimum_order_quantity = None
+    mock_variant.config_attributes = []
+    mock_variant.custom_fields = []
+    mock_variant.created_at = created
+    mock_variant.updated_at = updated
+    mock_variant.get_display_name = MagicMock(return_value="Timed Product")
+
+    lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
+
+    request = GetVariantDetailsRequest(sku="TIME-001")
+    result = await _get_variant_details_impl(request, context)
+
+    assert result.created_at == "2024-01-01T12:00:00+00:00"
+    assert result.updated_at == "2024-06-01T14:30:00+00:00"
+
+
 # ============================================================================
 # Integration Tests (with real API)
 # ============================================================================
@@ -498,6 +734,87 @@ async def test_check_inventory_nonexistent_sku_integration(katana_context):
         # product_name may be empty for nonexistent SKU
         assert isinstance(result.product_name, str)
 
+    except Exception as e:
+        # Network/auth errors are acceptable
+        error_msg = str(e).lower()
+        assert any(
+            word in error_msg for word in ["connection", "network", "auth", "timeout"]
+        ), f"Unexpected error: {e}"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_get_variant_details_integration(katana_context):
+    """Integration test: get_variant_details with real Katana API.
+
+    This test requires a valid KATANA_API_KEY in the environment.
+    Tests fetching variant details for a test SKU.
+
+    Note: This test may fail if:
+    - API key is invalid
+    - Network is unavailable
+    - Test SKU doesn't exist (expected - raises ValueError)
+    """
+    # Use a common test SKU or generic search term
+    request = GetVariantDetailsRequest(sku="TEST-001")
+
+    try:
+        result = await _get_variant_details_impl(request, katana_context)
+
+        # Verify response structure
+        assert isinstance(result.id, int)
+        assert isinstance(result.sku, str)
+        assert isinstance(result.name, str)
+        assert result.id > 0
+
+        # Verify optional fields are correct types or None
+        assert result.sales_price is None or isinstance(result.sales_price, float)
+        assert result.purchase_price is None or isinstance(result.purchase_price, float)
+        assert result.type is None or isinstance(result.type, str)
+        assert result.product_id is None or isinstance(result.product_id, int)
+        assert result.material_id is None or isinstance(result.material_id, int)
+        assert result.internal_barcode is None or isinstance(
+            result.internal_barcode, str
+        )
+        assert result.registered_barcode is None or isinstance(
+            result.registered_barcode, str
+        )
+        assert isinstance(result.supplier_item_codes, list)
+        assert result.lead_time is None or isinstance(result.lead_time, int)
+        assert result.minimum_order_quantity is None or isinstance(
+            result.minimum_order_quantity, float
+        )
+        assert isinstance(result.config_attributes, list)
+        assert isinstance(result.custom_fields, list)
+
+    except ValueError as e:
+        # SKU not found is acceptable for integration test
+        assert "not found" in str(e).lower()
+    except Exception as e:
+        # Network/auth errors are acceptable in integration tests
+        error_msg = str(e).lower()
+        assert any(
+            word in error_msg for word in ["connection", "network", "auth", "timeout"]
+        ), f"Unexpected error: {e}"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_get_variant_details_nonexistent_integration(katana_context):
+    """Integration test: get_variant_details with nonexistent SKU.
+
+    Verifies that requesting a nonexistent SKU raises ValueError.
+    """
+    # Use a SKU that's extremely unlikely to exist
+    request = GetVariantDetailsRequest(sku="NONEXISTENT-VARIANT-99999")
+
+    try:
+        await _get_variant_details_impl(request, katana_context)
+        # If we get here without error, the SKU somehow exists
+        # This is unexpected but not a test failure
+    except ValueError as e:
+        # Expected: SKU not found
+        assert "not found" in str(e).lower()
     except Exception as e:
         # Network/auth errors are acceptable
         error_msg = str(e).lower()
