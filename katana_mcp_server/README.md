@@ -4,7 +4,8 @@ Model Context Protocol (MCP) server for Katana Manufacturing ERP.
 
 ## Features
 
-- **Inventory Management**: Check stock levels, find low stock items, search products
+- **Inventory Management**: Check stock levels, find low stock items, search items
+  (products, materials, services)
 - **Environment-based Authentication**: Secure API key management
 - **Built-in Resilience**: Automatic retries, rate limiting, and pagination
 - **Type Safety**: Pydantic models for all requests and responses
@@ -152,9 +153,9 @@ Find products below a specified stock threshold.
 
 ______________________________________________________________________
 
-### search_products
+### search_items
 
-Search for products by name or SKU.
+Search for items (products, materials, services) by name or SKU.
 
 **Parameters**:
 
@@ -174,31 +175,35 @@ Search for products by name or SKU.
 
 ```json
 {
-  "products": [
+  "items": [
     {
       "id": 12345,
       "sku": "WIDGET-001",
       "name": "Premium Widget",
       "is_sellable": true,
-      "stock_level": 150
+      "stock_level": null
     },
     {
       "id": 12346,
       "sku": "WIDGET-002",
       "name": "Economy Widget",
       "is_sellable": true,
-      "stock_level": 200
+      "stock_level": null
     }
   ],
   "total_count": 2
 }
 ```
 
+**Note**: `stock_level` is always `null` for search results in the current
+implementation.
+
 **Use Cases**:
 
 - "Find all products containing 'widget'"
 - "Search for SKU PART-123"
-- "What products do we have in the electronics category?"
+- "What items do we have for order creation?"
+- "Show me all sellable products vs internal materials"
 
 ## Configuration
 
@@ -206,7 +211,8 @@ Search for products by name or SKU.
 
 - `KATANA_API_KEY` (required): Your Katana API key
 - `KATANA_BASE_URL` (optional): API base URL (default: https://api.katanamrp.com/v1)
-- `KATANA_MCP_LOG_LEVEL` (optional): Log level - DEBUG, INFO, WARNING, ERROR (default: INFO)
+- `KATANA_MCP_LOG_LEVEL` (optional): Log level - DEBUG, INFO, WARNING, ERROR (default:
+  INFO)
 - `KATANA_MCP_LOG_FORMAT` (optional): Log format - json, text (default: json)
 
 ### Logging Configuration
@@ -214,6 +220,7 @@ Search for products by name or SKU.
 The server uses structured logging with configurable output format and verbosity:
 
 **Development (verbose text logs):**
+
 ```bash
 export KATANA_MCP_LOG_LEVEL=DEBUG
 export KATANA_MCP_LOG_FORMAT=text
@@ -221,6 +228,7 @@ katana-mcp-server
 ```
 
 **Production (structured JSON logs):**
+
 ```bash
 export KATANA_MCP_LOG_LEVEL=INFO
 export KATANA_MCP_LOG_FORMAT=json
