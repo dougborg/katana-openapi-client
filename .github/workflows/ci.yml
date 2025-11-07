@@ -3,22 +3,8 @@ name: CI
 on:
   push:
     branches: [main, develop]
-    paths-ignore:
-      - "docs/**"
-      - "mkdocs.yml"
-      - "*.md"
-      - "LICENSE"
-      - ".github/copilot-instructions.md"
-      - ".github/pull_request_template.md"
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "docs/**"
-      - "mkdocs.yml"
-      - "*.md"
-      - "LICENSE"
-      - ".github/copilot-instructions.md"
-      - ".github/pull_request_template.md"
 
 # Cancel in-progress runs when a new workflow with the same group name is triggered
 concurrency:
@@ -29,7 +15,30 @@ permissions:
   contents: read
 
 jobs:
+  # Detect if code changes warrant full CI run
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - '!docs/**'
+              - '!mkdocs.yml'
+              - '!*.md'
+              - '!LICENSE'
+              - '!.github/copilot-instructions.md'
+              - '!.github/pull_request_template.md'
+              - '!.github/agents/**'
+              - '!.github/instructions/**'
+              - '!.github/prompts/**'
+
   test:
+    needs: changes
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false  # Don't cancel other matrix jobs if one fails
@@ -37,10 +46,16 @@ jobs:
         python-version: ["3.12", "3.13", "3.14"]
 
     steps:
+      - name: Skip for docs-only changes
+        if: needs.changes.outputs.code == 'false'
+        run: echo "Skipping tests for documentation-only changes"
+
       - name: Checkout code
+        if: needs.changes.outputs.code == 'true'
         uses: actions/checkout@v5
 
       - name: Install uv
+        if: needs.changes.outputs.code == 'true'
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
@@ -48,30 +63,42 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
+        if: needs.changes.outputs.code == 'true'
         run: uv sync --all-extras
 
       - name: Check code formatting
+        if: needs.changes.outputs.code == 'true'
         run: uv run poe format-check
 
       - name: Run linting and type checking
+        if: needs.changes.outputs.code == 'true'
         run: uv run poe lint
 
       - name: Run tests
+        if: needs.changes.outputs.code == 'true'
         run: uv run poe test-coverage
 
       - name: Upload coverage to Codecov
+        if: needs.changes.outputs.code == 'true'
         uses: codecov/codecov-action@v5
         with:
           files: coverage.xml
           fail_ci_if_error: false
 
   quality:
+    needs: changes
     runs-on: ubuntu-latest
     steps:
+      - name: Skip for docs-only changes
+        if: needs.changes.outputs.code == 'false'
+        run: echo "Skipping quality checks for documentation-only changes"
+
       - name: Checkout code
+        if: needs.changes.outputs.code == 'true'
         uses: actions/checkout@v5
 
       - name: Install uv
+        if: needs.changes.outputs.code == 'true'
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
@@ -79,17 +106,21 @@ jobs:
           python-version: "3.14"
 
       - name: Install dependencies
+        if: needs.changes.outputs.code == 'true'
         run: uv sync --all-extras
 
       - name: Validate OpenAPI specification
+        if: needs.changes.outputs.code == 'true'
         run: uv run poe validate-openapi
 
       - name: Build documentation
+        if: needs.changes.outputs.code == 'true'
         run: uv run poe docs-build
         env:
           CI_DOCS_BUILD: "true"
 
       - name: Test documentation
+        if: needs.changes.outputs.code == 'true'
         run: uv run poe test-docs
         env:
           CI_DOCS_BUILD: "true"
