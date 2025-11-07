@@ -32,7 +32,8 @@ uv run poe docs-clean
 
 ## Documentation Structure
 
-This is a monorepo with module-local documentation. Each package has its own `docs/` directory:
+This is a monorepo with module-local documentation. Each package has its own `docs/`
+directory:
 
 ```
 docs/                                # Shared/monorepo documentation
