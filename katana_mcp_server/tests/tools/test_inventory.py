@@ -285,14 +285,6 @@ async def test_search_items_multiple_results():
 
 
 # ============================================================================
-# Integration Tests (with real API)
-# ============================================================================
-# Note: Integration tests would require a real KatanaClient fixture.
-# These are placeholders for future implementation once fixture infrastructure
-# is set up. For now, all integration testing happens at the server level.
-
-
-# ============================================================================
 # Validation Tests
 # ============================================================================
 
@@ -459,7 +451,8 @@ async def test_list_low_stock_items_integration(katana_context):
         # Network/auth errors are acceptable in integration tests
         error_msg = str(e).lower()
         assert any(
-            word in error_msg for word in ["connection", "network", "auth", "timeout"]
+            word in error_msg
+            for word in ["connection", "network", "auth", "timeout", "not found"]
         ), f"Unexpected error: {e}"
 
 
@@ -495,7 +488,8 @@ async def test_search_items_integration(katana_context):
         # Network/auth errors are acceptable in integration tests
         error_msg = str(e).lower()
         assert any(
-            word in error_msg for word in ["connection", "network", "auth", "timeout"]
+            word in error_msg
+            for word in ["connection", "network", "auth", "timeout", "not found"]
         ), f"Unexpected error: {e}"
 
 

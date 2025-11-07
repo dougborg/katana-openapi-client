@@ -7,7 +7,7 @@ import pytest
 
 
 @pytest.fixture
-def katana_context():
+async def katana_context():
     """Create a mock context for integration tests that uses real KatanaClient.
 
     This fixture is used by integration tests to get a context with a real
@@ -36,9 +36,7 @@ def katana_context():
     mock_request_context = MagicMock()
     mock_lifespan_context = MagicMock()
 
-    # Initialize real KatanaClient (synchronously for fixture)
-    # Note: We can't use async context manager in fixture, so we create
-    # the client directly. Tests should handle cleanup if needed.
+    # Initialize real KatanaClient
     base_url = os.getenv("KATANA_BASE_URL", "https://api.katanamrp.com/v1")
     client = KatanaClient(
         api_key=api_key,
@@ -55,7 +53,5 @@ def katana_context():
 
     yield context
 
-    # Cleanup: Close the client if it has cleanup methods
-    # Note: KatanaClient uses httpx.AsyncClient which should be closed,
-    # but for sync fixtures we skip this. Integration tests should be
-    # short-lived enough that this isn't a problem.
+    # Properly close the async client
+    await client.aclose()
