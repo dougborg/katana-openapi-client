@@ -904,6 +904,184 @@ async def delete_item(
     return await _delete_item_impl(request, context)
 
 
+# ============================================================================
+# Tool 6: get_variant_details
+# ============================================================================
+
+
+class GetVariantDetailsRequest(BaseModel):
+    """Request to get variant details by SKU."""
+
+    sku: str = Field(..., description="SKU to look up")
+
+
+class VariantDetailsResponse(BaseModel):
+    """Detailed variant information including all properties."""
+
+    # Core fields
+    id: int
+    sku: str
+    name: str
+
+    # Pricing
+    sales_price: float | None = None
+    purchase_price: float | None = None
+
+    # Classification
+    type: str | None = None
+    product_id: int | None = None
+    material_id: int | None = None
+    product_or_material_name: str | None = None
+
+    # Barcode & Inventory
+    internal_barcode: str | None = None
+    registered_barcode: str | None = None
+    supplier_item_codes: list[str] = Field(default_factory=list)
+
+    # Ordering
+    lead_time: int | None = None
+    minimum_order_quantity: float | None = None
+
+    # Configuration & Custom Fields
+    config_attributes: list[dict[str, str]] = Field(default_factory=list)
+    custom_fields: list[dict[str, str]] = Field(default_factory=list)
+
+    # Metadata
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+async def _get_variant_details_impl(
+    request: GetVariantDetailsRequest, context: Context
+) -> VariantDetailsResponse:
+    """Implementation of get_variant_details tool.
+
+    Args:
+        request: Request with SKU
+        context: Server context with KatanaClient
+
+    Returns:
+        Detailed variant information
+
+    Raises:
+        ValueError: If SKU is empty or invalid
+        Exception: If API call fails or variant not found
+    """
+    if not request.sku or not request.sku.strip():
+        raise ValueError("SKU cannot be empty")
+
+    start_time = time.monotonic()
+    logger.info("variant_details_started", sku=request.sku)
+
+    try:
+        services = get_services(context)
+
+        # Search for the variant by SKU
+        # The search method returns a list, we need to find exact match
+        variants = await services.client.variants.search(request.sku, limit=100)
+
+        # Find exact SKU match (case-insensitive)
+        matching_variant = None
+        for variant in variants:
+            if variant.sku and variant.sku.lower() == request.sku.lower():
+                matching_variant = variant
+                break
+
+        if not matching_variant:
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.info(
+                "variant_details_not_found",
+                sku=request.sku,
+                duration_ms=duration_ms,
+            )
+            raise ValueError(f"Variant with SKU '{request.sku}' not found")
+
+        # Build detailed response from KatanaVariant domain model
+        response = VariantDetailsResponse(
+            id=matching_variant.id,
+            sku=matching_variant.sku,
+            name=matching_variant.get_display_name(),
+            sales_price=matching_variant.sales_price,
+            purchase_price=matching_variant.purchase_price,
+            type=matching_variant.type_,
+            product_id=matching_variant.product_id,
+            material_id=matching_variant.material_id,
+            product_or_material_name=matching_variant.product_or_material_name,
+            internal_barcode=matching_variant.internal_barcode,
+            registered_barcode=matching_variant.registered_barcode,
+            supplier_item_codes=matching_variant.supplier_item_codes,
+            lead_time=matching_variant.lead_time,
+            minimum_order_quantity=matching_variant.minimum_order_quantity,
+            config_attributes=matching_variant.config_attributes,
+            custom_fields=matching_variant.custom_fields,
+            created_at=matching_variant.created_at.isoformat()
+            if matching_variant.created_at
+            else None,
+            updated_at=matching_variant.updated_at.isoformat()
+            if matching_variant.updated_at
+            else None,
+        )
+
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+        logger.info(
+            "variant_details_completed",
+            sku=request.sku,
+            variant_id=matching_variant.id,
+            name=matching_variant.get_display_name(),
+            duration_ms=duration_ms,
+        )
+        return response
+
+    except ValueError:
+        # Re-raise validation errors
+        raise
+    except Exception as e:
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+        logger.error(
+            "variant_details_failed",
+            sku=request.sku,
+            error=str(e),
+            error_type=type(e).__name__,
+            duration_ms=duration_ms,
+            exc_info=True,
+        )
+        raise
+
+
+async def get_variant_details(
+    request: GetVariantDetailsRequest, context: Context
+) -> VariantDetailsResponse:
+    """Get detailed variant information by SKU.
+
+    Retrieves comprehensive details about a specific variant including pricing,
+    barcodes, configuration attributes, custom fields, and more.
+
+    Args:
+        request: Request with SKU to look up
+        context: Server context with KatanaClient
+
+    Returns:
+        Detailed variant information including all properties
+
+    Example:
+        Request: {"sku": "WIDGET-001"}
+        Returns: {
+            "id": 123,
+            "sku": "WIDGET-001",
+            "name": "Widget Pro / Large / Blue",
+            "sales_price": 29.99,
+            "purchase_price": 15.00,
+            "type": "product",
+            "config_attributes": [
+                {"config_name": "Size", "config_value": "Large"},
+                {"config_name": "Color", "config_value": "Blue"}
+            ],
+            ...
+        }
+    """
+    return await _get_variant_details_impl(request, context)
+
+
 def register_tools(mcp: FastMCP) -> None:
     """Register all item tools with the FastMCP instance.
 
@@ -915,3 +1093,4 @@ def register_tools(mcp: FastMCP) -> None:
     mcp.tool()(get_item)
     mcp.tool()(update_item)
     mcp.tool()(delete_item)
+    mcp.tool()(get_variant_details)
