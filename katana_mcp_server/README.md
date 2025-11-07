@@ -180,18 +180,23 @@ Search for items (products, materials, services) by name or SKU.
       "id": 12345,
       "sku": "WIDGET-001",
       "name": "Premium Widget",
-      "is_sellable": true
+      "is_sellable": true,
+      "stock_level": null
     },
     {
       "id": 12346,
       "sku": "WIDGET-002",
       "name": "Economy Widget",
-      "is_sellable": true
+      "is_sellable": true,
+      "stock_level": null
     }
   ],
   "total_count": 2
 }
 ```
+
+**Note**: `stock_level` is always `null` for search results in the current
+implementation.
 
 **Use Cases**:
 
