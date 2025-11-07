@@ -18,7 +18,7 @@ modern Python package manager written in Rust.
 - **Build Backend**: poetry-core
 - **Task Runner**: poethepoet (poe)
 - **Dependencies**: 13 core + 30+ dev dependencies
-- **Python Versions**: 3.11, 3.12, 3.13
+- **Python Versions**: 3.12, 3.13, 3.14
 - **Configuration**: pyproject.toml with Poetry-specific sections
 
 ### Forces at Play

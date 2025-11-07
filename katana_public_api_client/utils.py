@@ -81,7 +81,7 @@ class ServerError(APIError):
 
 
 @overload
-def unwrap(
+def unwrap[T](
     response: Response[T],
     *,
     raise_on_error: bool = True,
@@ -89,14 +89,14 @@ def unwrap(
 
 
 @overload
-def unwrap(
+def unwrap[T](
     response: Response[T],
     *,
     raise_on_error: bool = False,
 ) -> T | None: ...
 
 
-def unwrap(
+def unwrap[T](
     response: Response[T],
     *,
     raise_on_error: bool = True,
@@ -199,7 +199,7 @@ def unwrap(
 
 
 @overload
-def unwrap_data(
+def unwrap_data[T](
     response: Response[T],
     *,
     raise_on_error: bool = True,
@@ -208,7 +208,7 @@ def unwrap_data(
 
 
 @overload
-def unwrap_data(
+def unwrap_data[T](
     response: Response[T],
     *,
     raise_on_error: bool = False,
@@ -217,7 +217,7 @@ def unwrap_data(
 
 
 @overload
-def unwrap_data(
+def unwrap_data[T, DataT](
     response: Response[T],
     *,
     raise_on_error: bool = False,
@@ -225,7 +225,7 @@ def unwrap_data(
 ) -> Any: ...
 
 
-def unwrap_data(
+def unwrap_data[T, DataT](
     response: Response[T],
     *,
     raise_on_error: bool = True,
@@ -320,7 +320,7 @@ def is_error(response: Response[Any]) -> bool:
     return response.status_code >= 400
 
 
-def get_error_message(response: Response[T]) -> str | None:
+def get_error_message[T](response: Response[T]) -> str | None:
     """Extract error message from an error response.
 
     Args:

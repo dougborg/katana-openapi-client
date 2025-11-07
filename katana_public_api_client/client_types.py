@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping, MutableMapping
 from http import HTTPStatus
-from typing import IO, BinaryIO, Generic, Literal, TypeVar
+from typing import IO, BinaryIO, Literal, TypeVar
 
 from attrs import define
 
@@ -43,7 +43,7 @@ T = TypeVar("T")
 
 
 @define
-class Response(Generic[T]):
+class Response[T]:
     """A response from an endpoint"""
 
     status_code: HTTPStatus

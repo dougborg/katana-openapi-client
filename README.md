@@ -5,7 +5,7 @@ A modern, pythonic Python client for the
 comprehensive OpenAPI 3.1.0 specification with 100% endpoint coverage and automatic
 resilience.
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![uv](https://img.shields.io/badge/dependency--management-uv-blue.svg)](https://docs.astral.sh/uv/)
 [![OpenAPI 3.1.0](https://img.shields.io/badge/OpenAPI-3.1.0-green.svg)](https://spec.openapis.org/oas/v3.1.0)
 [![CI](https://github.com/dougborg/katana-openapi-client/actions/workflows/ci.yml/badge.svg)](https://github.com/dougborg/katana-openapi-client/actions/workflows/ci.yml)

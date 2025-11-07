@@ -18,7 +18,7 @@ from katana_public_api_client.models import CreateSalesOrderRequest
 T = TypeVar("T")
 
 
-async def retry_with_backoff(
+async def retry_with_backoff[T](
     operation: Callable[[], Awaitable[T]],
     max_attempts: int = 3,
     backoff_factor: float = 2.0,

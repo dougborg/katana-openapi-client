@@ -354,12 +354,12 @@ uv run --isolated python script.py
 
 ```bash
 # Use specific Python version
-uv run --python 3.11 python script.py
+uv run --python 3.12 python script.py
 
 # Install Python if needed (uv can manage Python installations)
-uv python install 3.11
 uv python install 3.12
 uv python install 3.13
+uv python install 3.14
 
 # List available Python versions
 uv python list
@@ -391,7 +391,7 @@ This project uses uv in GitHub Actions for fast, reliable CI/CD:
   with:
     enable-cache: true
     cache-dependency-glob: "uv.lock"
-    python-version: "3.13"
+    python-version: "3.14"
 
 - name: Install dependencies
   run: uv sync --all-extras

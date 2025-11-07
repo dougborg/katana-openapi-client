@@ -76,7 +76,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
-          python-version: "3.13"
+          python-version: "3.14"
 
       - name: Update MCP dependency
         if: steps.check-current.outputs.needs_update == 'true'
