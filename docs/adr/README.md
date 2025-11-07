@@ -1,11 +1,14 @@
 # Architecture Decision Records
 
-This directory contains Architecture Decision Records (ADRs) for **shared/monorepo-level** decisions that affect the entire repository.
+This directory contains Architecture Decision Records (ADRs) for
+**shared/monorepo-level** decisions that affect the entire repository.
 
 For package-specific ADRs, see:
 
-- **[Client ADRs](../../katana_public_api_client/docs/adr/README.md)** - `katana-openapi-client` package decisions
-- **[MCP Server ADRs](../../katana_mcp_server/docs/adr/README.md)** - `katana-mcp-server` package decisions
+- **[Client ADRs](../../katana_public_api_client/docs/adr/README.md)** -
+  `katana-openapi-client` package decisions
+- **[MCP Server ADRs](../../katana_mcp_server/docs/adr/README.md)** -
+  `katana-mcp-server` package decisions
 
 ## What is an ADR?
 
@@ -36,6 +39,7 @@ We use the format proposed by Michael Nygard in his article
 
 - [ADR-009: Migrate from Poetry to uv Package Manager](0009-migrate-from-poetry-to-uv.md)
 - [ADR-013: Module-Local Documentation Structure](0013-module-local-documentation.md)
+- [ADR-014: GitHub Copilot Custom Agents with Three-Tier Architecture](0014-github-copilot-custom-agents.md)
 
 ## Creating a New ADR
 
@@ -67,6 +71,7 @@ ensure ordering.
 ## Related Documentation
 
 - [Client ADRs](../../katana_public_api_client/docs/adr/README.md) - Client package ADRs
-- [MCP Server ADRs](../../katana_mcp_server/docs/adr/README.md) - MCP server package ADRs
+- [MCP Server ADRs](../../katana_mcp_server/docs/adr/README.md) - MCP server package
+  ADRs
 - [Contributing Guide](../CONTRIBUTING.md) - Contribution guidelines
 - [README](../../README.md) - Project overview and quick start
