@@ -10,6 +10,7 @@ from katana_mcp.tools.foundation.purchase_orders import (
     ReceivePurchaseOrderRequest,
     ReceivePurchaseOrderResponse,
     _receive_purchase_order_impl,
+    receive_purchase_order,
 )
 
 from katana_public_api_client.client_types import UNSET
@@ -403,3 +404,157 @@ async def test_receive_purchase_order_integration_preview(katana_context):
     assert result.is_preview is True
     assert result.order_id == int(test_po_id)
     assert result.items_received == 1
+
+
+# ============================================================================
+# Tests for public wrapper function
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_receive_purchase_order_wrapper():
+    """Test the public receive_purchase_order wrapper function."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock the get_purchase_order API response
+    mock_po = MagicMock(spec=RegularPurchaseOrder)
+    mock_po.id = 1234
+    mock_po.order_no = "PO-2024-001"
+    mock_po.status = MagicMock()
+    mock_po.status.value = "NOT_RECEIVED"
+
+    mock_get_response = MagicMock()
+    mock_get_response.status_code = 200
+    mock_get_response.parsed = mock_po
+
+    lifespan_ctx.client = MagicMock()
+
+    from katana_public_api_client.api.purchase_order import (
+        get_purchase_order as api_get_purchase_order,
+    )
+
+    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+
+    # Call the public wrapper function
+    request = ReceivePurchaseOrderRequest(
+        order_id=1234,
+        items=[ReceiveItemRequest(purchase_order_row_id=501, quantity=100.0)],
+        confirm=False,
+    )
+
+    result = await receive_purchase_order(request, context)
+
+    # Verify it returns the same type as the implementation
+    assert isinstance(result, ReceivePurchaseOrderResponse)
+    assert result.order_id == 1234
+    assert result.is_preview is True
+
+
+@pytest.mark.asyncio
+async def test_receive_purchase_order_multiple_items_various_quantities():
+    """Test receiving multiple items with various quantities including decimals."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock successful get and receive
+    mock_po = MagicMock(spec=RegularPurchaseOrder)
+    mock_po.id = 1234
+    mock_po.order_no = "PO-2024-003"
+    mock_po.status = MagicMock()
+    mock_po.status.value = "NOT_RECEIVED"
+
+    mock_get_response = MagicMock()
+    mock_get_response.status_code = 200
+    mock_get_response.parsed = mock_po
+
+    mock_receive_response = MagicMock()
+    mock_receive_response.status_code = 204
+
+    lifespan_ctx.client = MagicMock()
+
+    from katana_public_api_client.api.purchase_order import (
+        get_purchase_order as api_get_purchase_order,
+        receive_purchase_order as api_receive_purchase_order,
+    )
+
+    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+        return_value=mock_receive_response
+    )
+
+    # Test with various quantities: integers, decimals, large numbers
+    request = ReceivePurchaseOrderRequest(
+        order_id=1234,
+        items=[
+            ReceiveItemRequest(purchase_order_row_id=501, quantity=100.0),
+            ReceiveItemRequest(purchase_order_row_id=502, quantity=25.5),
+            ReceiveItemRequest(purchase_order_row_id=503, quantity=0.75),
+            ReceiveItemRequest(purchase_order_row_id=504, quantity=1000.0),
+        ],
+        confirm=True,
+    )
+
+    result = await _receive_purchase_order_impl(request, context)
+
+    assert result.items_received == 4
+    assert result.is_preview is False
+
+    # Verify all items were sent to API
+    call_args = api_receive_purchase_order.asyncio_detailed.call_args
+    body = call_args.kwargs["body"]
+    assert len(body) == 4
+    assert body[0].quantity == 100.0
+    assert body[1].quantity == 25.5
+    assert body[2].quantity == 0.75
+    assert body[3].quantity == 1000.0
+
+
+@pytest.mark.asyncio
+async def test_receive_purchase_order_validates_positive_quantity():
+    """Test that ReceiveItemRequest validates quantity > 0."""
+    # Pydantic should validate this at model creation time
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        ReceiveItemRequest(purchase_order_row_id=501, quantity=0.0)
+
+    with pytest.raises(ValidationError):
+        ReceiveItemRequest(purchase_order_row_id=501, quantity=-10.0)
+
+
+@pytest.mark.asyncio
+async def test_receive_purchase_order_validates_min_items():
+    """Test that ReceivePurchaseOrderRequest requires at least one item."""
+    # Pydantic should validate min_length=1
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        ReceivePurchaseOrderRequest(order_id=1234, items=[], confirm=False)
+
+
+@pytest.mark.asyncio
+async def test_receive_purchase_order_exception_handling():
+    """Test proper exception handling and logging."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Mock get_purchase_order to raise an exception
+    from katana_public_api_client.api.purchase_order import (
+        get_purchase_order as api_get_purchase_order,
+    )
+
+    api_get_purchase_order.asyncio_detailed = AsyncMock(
+        side_effect=Exception("Network error")
+    )
+
+    lifespan_ctx.client = MagicMock()
+
+    request = ReceivePurchaseOrderRequest(
+        order_id=1234,
+        items=[ReceiveItemRequest(purchase_order_row_id=501, quantity=100.0)],
+        confirm=False,
+    )
+
+    # Should raise and propagate the exception
+    with pytest.raises(Exception) as exc_info:
+        await _receive_purchase_order_impl(request, context)
+
+    assert "Network error" in str(exc_info.value)
