@@ -50,7 +50,23 @@ class CreateManufacturingOrderRequest(BaseModel):
 
 
 class ManufacturingOrderResponse(BaseModel):
-    """Response from creating a manufacturing order."""
+    """Response from creating a manufacturing order.
+
+    Attributes:
+        id: Manufacturing order ID (None in preview mode)
+        order_no: Manufacturing order number
+        variant_id: Variant ID to manufacture
+        planned_quantity: Planned quantity to produce
+        location_id: Production location ID
+        status: Order status (e.g., "NOT_STARTED")
+        order_created_date: Order creation timestamp
+        production_deadline_date: Production deadline
+        additional_info: Additional notes
+        is_preview: True if preview mode, False if order created
+        warnings: List of warnings (e.g., missing optional fields)
+        next_actions: Suggested next steps
+        message: Human-readable summary message
+    """
 
     id: int | None = None
     order_no: str | None = None
@@ -92,6 +108,18 @@ async def _create_manufacturing_order_impl(
         logger.info(
             f"Preview mode: MO for variant {request.variant_id}, quantity {request.planned_quantity}"
         )
+
+        # Generate warnings for missing optional fields
+        warnings = []
+        if request.production_deadline_date is None:
+            warnings.append(
+                "No production_deadline_date specified - order will have no deadline"
+            )
+        if request.additional_info is None:
+            warnings.append(
+                "No additional_info specified - consider adding notes for context"
+            )
+
         return ManufacturingOrderResponse(
             variant_id=request.variant_id,
             planned_quantity=request.planned_quantity,
@@ -100,6 +128,7 @@ async def _create_manufacturing_order_impl(
             production_deadline_date=request.production_deadline_date,
             additional_info=request.additional_info,
             is_preview=True,
+            warnings=warnings,
             next_actions=[
                 "Review the order details",
                 "Set confirm=true to create the manufacturing order",

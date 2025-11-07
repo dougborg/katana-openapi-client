@@ -64,6 +64,7 @@ async def test_create_manufacturing_order_preview():
     assert result.id is None
     assert "preview" in result.message.lower()
     assert len(result.next_actions) > 0
+    assert len(result.warnings) == 0  # All optional fields provided
 
 
 @pytest.mark.asyncio
@@ -146,6 +147,10 @@ async def test_create_manufacturing_order_missing_optional_fields():
     assert result.order_created_date is None
     assert result.production_deadline_date is None
     assert result.additional_info is None
+    # Verify warnings for missing optional fields
+    assert len(result.warnings) == 2
+    assert any("production_deadline_date" in w for w in result.warnings)
+    assert any("additional_info" in w for w in result.warnings)
 
 
 @pytest.mark.asyncio
@@ -291,8 +296,6 @@ async def test_create_manufacturing_order_with_order_created_date():
 @pytest.mark.asyncio
 async def test_create_manufacturing_order_invalid_quantity():
     """Test create_manufacturing_order rejects invalid quantity."""
-    context, _ = create_mock_context()
-
     # Pydantic will raise validation error for quantity <= 0
     from pydantic import ValidationError
 
@@ -308,8 +311,6 @@ async def test_create_manufacturing_order_invalid_quantity():
 @pytest.mark.asyncio
 async def test_create_manufacturing_order_negative_quantity():
     """Test create_manufacturing_order rejects negative quantity."""
-    context, _ = create_mock_context()
-
     # Pydantic will raise validation error for negative quantity
     from pydantic import ValidationError
 
