@@ -25,10 +25,12 @@ def create_mock_context():
     """Create a mock context with proper FastMCP structure.
 
     Returns context with request_context.lifespan_context.client accessible.
+    The .client attribute is required by get_services(context).
     """
     context = MagicMock()
     mock_request_context = MagicMock()
     mock_lifespan_context = MagicMock()
+    mock_lifespan_context.client = MagicMock()  # Required by get_services()
     context.request_context = mock_request_context
     mock_request_context.lifespan_context = mock_lifespan_context
     return context, mock_lifespan_context
