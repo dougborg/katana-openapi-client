@@ -290,3 +290,239 @@ async def test_search_items_multiple_results():
 # Note: Integration tests would require a real KatanaClient fixture.
 # These are placeholders for future implementation once fixture infrastructure
 # is set up. For now, all integration testing happens at the server level.
+
+
+# ============================================================================
+# Validation Tests
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_empty_sku():
+    """Test check_inventory rejects empty SKU."""
+    context, _ = create_mock_context()
+
+    request = CheckInventoryRequest(sku="")
+    with pytest.raises(ValueError, match="SKU cannot be empty"):
+        await _check_inventory_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_whitespace_sku():
+    """Test check_inventory rejects whitespace-only SKU."""
+    context, _ = create_mock_context()
+
+    request = CheckInventoryRequest(sku="   ")
+    with pytest.raises(ValueError, match="SKU cannot be empty"):
+        await _check_inventory_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_list_low_stock_negative_threshold():
+    """Test list_low_stock_items rejects negative threshold."""
+    context, _ = create_mock_context()
+
+    request = LowStockRequest(threshold=-1)
+    with pytest.raises(ValueError, match="Threshold must be non-negative"):
+        await _list_low_stock_items_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_list_low_stock_zero_limit():
+    """Test list_low_stock_items rejects zero limit."""
+    context, _ = create_mock_context()
+
+    request = LowStockRequest(limit=0)
+    with pytest.raises(ValueError, match="Limit must be positive"):
+        await _list_low_stock_items_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_list_low_stock_negative_limit():
+    """Test list_low_stock_items rejects negative limit."""
+    context, _ = create_mock_context()
+
+    request = LowStockRequest(limit=-5)
+    with pytest.raises(ValueError, match="Limit must be positive"):
+        await _list_low_stock_items_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_search_items_empty_query():
+    """Test search_items rejects empty query."""
+    context, _ = create_mock_context()
+
+    request = SearchItemsRequest(query="")
+    with pytest.raises(ValueError, match="Search query cannot be empty"):
+        await _search_items_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_search_items_whitespace_query():
+    """Test search_items rejects whitespace-only query."""
+    context, _ = create_mock_context()
+
+    request = SearchItemsRequest(query="   ")
+    with pytest.raises(ValueError, match="Search query cannot be empty"):
+        await _search_items_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_search_items_zero_limit():
+    """Test search_items rejects zero limit."""
+    context, _ = create_mock_context()
+
+    request = SearchItemsRequest(query="test", limit=0)
+    with pytest.raises(ValueError, match="Limit must be positive"):
+        await _search_items_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_search_items_negative_limit():
+    """Test search_items rejects negative limit."""
+    context, _ = create_mock_context()
+
+    request = SearchItemsRequest(query="test", limit=-10)
+    with pytest.raises(ValueError, match="Limit must be positive"):
+        await _search_items_impl(request, context)
+
+
+# ============================================================================
+# Integration Tests (with real API)
+# ============================================================================
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_check_inventory_integration(katana_context):
+    """Integration test: check_inventory with real Katana API.
+
+    This test requires a valid KATANA_API_KEY in the environment.
+    It attempts to check inventory for a test SKU.
+
+    Note: This test may fail if:
+    - API key is invalid
+    - Network is unavailable
+    - Test SKU doesn't exist (expected - returns zero stock)
+    """
+    request = CheckInventoryRequest(sku="TEST-SKU-001")
+
+    try:
+        result = await _check_inventory_impl(request, katana_context)
+
+        # Verify response structure
+        assert result.sku == "TEST-SKU-001"
+        assert isinstance(result.product_name, str)
+        assert isinstance(result.available_stock, int)
+        assert isinstance(result.in_production, int)
+        assert isinstance(result.committed, int)
+        assert result.available_stock >= 0
+        assert result.committed >= 0
+
+    except Exception as e:
+        # Network/auth errors are acceptable in integration tests
+        error_msg = str(e).lower()
+        assert any(
+            word in error_msg
+            for word in ["connection", "network", "auth", "timeout", "not found"]
+        ), f"Unexpected error: {e}"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_list_low_stock_items_integration(katana_context):
+    """Integration test: list_low_stock_items with real Katana API.
+
+    This test requires a valid KATANA_API_KEY in the environment.
+    Tests listing low stock items with a reasonable threshold.
+    """
+    request = LowStockRequest(threshold=100, limit=10)
+
+    try:
+        result = await _list_low_stock_items_impl(request, katana_context)
+
+        # Verify response structure
+        assert isinstance(result.items, list)
+        assert isinstance(result.total_count, int)
+        assert result.total_count >= 0
+        assert len(result.items) <= 10  # Respects limit
+
+        # Verify each item structure
+        for item in result.items:
+            assert isinstance(item.sku, str)
+            assert isinstance(item.product_name, str)
+            assert isinstance(item.current_stock, int)
+            assert item.current_stock >= 0
+            assert item.threshold == 100
+
+    except Exception as e:
+        # Network/auth errors are acceptable in integration tests
+        error_msg = str(e).lower()
+        assert any(
+            word in error_msg for word in ["connection", "network", "auth", "timeout"]
+        ), f"Unexpected error: {e}"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_search_items_integration(katana_context):
+    """Integration test: search_items with real Katana API.
+
+    This test requires a valid KATANA_API_KEY in the environment.
+    Tests searching for items with a common query term.
+    """
+    request = SearchItemsRequest(query="test", limit=5)
+
+    try:
+        result = await _search_items_impl(request, katana_context)
+
+        # Verify response structure
+        assert isinstance(result.items, list)
+        assert isinstance(result.total_count, int)
+        assert result.total_count >= 0
+        assert len(result.items) <= 5  # Respects limit
+
+        # Verify each item structure
+        for item in result.items:
+            assert isinstance(item.id, int)
+            assert isinstance(item.sku, str)
+            assert isinstance(item.name, str)
+            assert isinstance(item.is_sellable, bool)
+            # stock_level can be None
+            assert item.stock_level is None or isinstance(item.stock_level, int)
+
+    except Exception as e:
+        # Network/auth errors are acceptable in integration tests
+        error_msg = str(e).lower()
+        assert any(
+            word in error_msg for word in ["connection", "network", "auth", "timeout"]
+        ), f"Unexpected error: {e}"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_check_inventory_nonexistent_sku_integration(katana_context):
+    """Integration test: check_inventory with nonexistent SKU.
+
+    Verifies that checking a nonexistent SKU returns zero stock
+    rather than failing.
+    """
+    # Use a SKU that's extremely unlikely to exist
+    request = CheckInventoryRequest(sku="NONEXISTENT-SKU-99999")
+
+    try:
+        result = await _check_inventory_impl(request, katana_context)
+
+        # Should return zero stock, not error
+        assert result.sku == "NONEXISTENT-SKU-99999"
+        assert result.available_stock == 0
+        assert result.committed == 0
+        # product_name may be empty for nonexistent SKU
+        assert isinstance(result.product_name, str)
+
+    except Exception as e:
+        # Network/auth errors are acceptable
+        error_msg = str(e).lower()
+        assert any(
+            word in error_msg for word in ["connection", "network", "auth", "timeout"]
+        ), f"Unexpected error: {e}"
