@@ -7,12 +7,14 @@ and managing inventory operations.
 from __future__ import annotations
 
 import time
+from typing import Annotated
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger
 from katana_mcp.services import get_services
+from katana_mcp.unpack import Unpack, unpack_pydantic_params
 
 logger = get_logger(__name__)
 
@@ -115,8 +117,9 @@ async def _check_inventory_impl(
         raise
 
 
+@unpack_pydantic_params
 async def check_inventory(
-    request: CheckInventoryRequest, context: Context
+    request: Annotated[CheckInventoryRequest, Unpack()], context: Context
 ) -> StockInfo:
     """Check stock levels for a specific product SKU.
 
@@ -124,14 +127,14 @@ async def check_inventory(
     items in production, and committed quantities.
 
     Args:
-        request: Request containing SKU to check
+        sku: Product SKU to check
         context: Server context with KatanaClient
 
     Returns:
         StockInfo with current stock levels
 
     Example:
-        Request: {"sku": "WIDGET-001"}
+        sku: "WIDGET-001"
         Returns: {"sku": "WIDGET-001", "product_name": "Widget", "available_stock": 100, ...}
     """
     return await _check_inventory_impl(request, context)
@@ -244,8 +247,9 @@ async def _list_low_stock_items_impl(
         raise
 
 
+@unpack_pydantic_params
 async def list_low_stock_items(
-    request: LowStockRequest, context: Context
+    request: Annotated[LowStockRequest, Unpack()], context: Context
 ) -> LowStockResponse:
     """List products below stock threshold.
 
@@ -253,14 +257,15 @@ async def list_low_stock_items(
     useful for proactive inventory management and reordering.
 
     Args:
-        request: Request with threshold and limit
+        threshold: Stock threshold level (default: 10)
+        limit: Maximum items to return (default: 50)
         context: Server context with KatanaClient
 
     Returns:
         List of products below threshold with current levels
 
     Example:
-        Request: {"threshold": 5, "limit": 10}
+        threshold: 5, limit: 10
         Returns: {"items": [...], "total_count": 15}
     """
     return await _list_low_stock_items_impl(request, context)
