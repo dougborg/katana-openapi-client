@@ -50,7 +50,7 @@ class KatanaVariant(KatanaBaseModel):
     # ============ Core Fields (always present) ============
 
     id: int = Field(..., description="Unique variant ID")
-    sku: str = Field(..., description="Stock Keeping Unit", min_length=1)
+    sku: str = Field(..., description="Stock Keeping Unit")
 
     # ============ Pricing Fields ============
 
@@ -71,7 +71,7 @@ class KatanaVariant(KatanaBaseModel):
 
     # ============ Classification ============
 
-    type_: Literal["product", "material"] | None = Field(
+    type_: Literal["product", "material", "service"] | None = Field(
         None, alias="type", description="Variant type"
     )
 
