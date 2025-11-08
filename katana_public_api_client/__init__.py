@@ -1,6 +1,6 @@
 """Katana Public API Client - Python client for Katana Manufacturing ERP."""
 
-__version__ = "0.30.0"
+__version__ = "0.32.0"
 
 from .client import AuthenticatedClient, Client
 from .katana_client import KatanaClient
