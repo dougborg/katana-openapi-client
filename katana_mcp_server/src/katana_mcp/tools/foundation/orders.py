@@ -9,12 +9,13 @@ These tools provide:
 from __future__ import annotations
 
 import logging
-from typing import Literal, cast
+from typing import Annotated, Literal, cast
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from katana_mcp.services import get_services
+from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
     CreateSalesOrderFulfillmentBody,
@@ -345,8 +346,9 @@ async def _fulfill_order_impl(
         raise
 
 
+@unpack_pydantic_params
 async def fulfill_order(
-    request: FulfillOrderRequest, context: Context
+    request: Annotated[FulfillOrderRequest, Unpack()], context: Context
 ) -> FulfillOrderResponse:
     """Fulfill a manufacturing order or sales order with two-step confirmation.
 

@@ -10,12 +10,13 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import cast
+from typing import Annotated, cast
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from katana_mcp.services import get_services
+from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
     CreateManufacturingOrderRequest as APICreateManufacturingOrderRequest,
@@ -235,8 +236,9 @@ async def _create_manufacturing_order_impl(
         raise
 
 
+@unpack_pydantic_params
 async def create_manufacturing_order(
-    request: CreateManufacturingOrderRequest, context: Context
+    request: Annotated[CreateManufacturingOrderRequest, Unpack()], context: Context
 ) -> ManufacturingOrderResponse:
     """Create a manufacturing order with two-step confirmation.
 
