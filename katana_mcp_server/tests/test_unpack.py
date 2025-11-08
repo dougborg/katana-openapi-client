@@ -90,7 +90,7 @@ class TestUnpackDecorator:
         # Check signature
         sig = inspect.signature(process)
         assert sig.parameters["required_field"].annotation is str
-        assert sig.parameters["optional_field"].annotation is str | None
+        assert sig.parameters["optional_field"].annotation == (str | None)
         assert sig.parameters["default_field"].default == 100
 
         # Test with only required field

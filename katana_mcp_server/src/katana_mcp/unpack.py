@@ -31,7 +31,7 @@ from __future__ import annotations
 import functools
 import inspect
 from collections.abc import Callable
-from typing import Annotated, Any, get_args, get_origin
+from typing import Annotated, Any, get_args, get_origin, get_type_hints
 
 from pydantic import BaseModel, ValidationError
 from pydantic_core import PydanticUndefined
@@ -83,11 +83,23 @@ def unpack_pydantic_params(func: Callable) -> Callable:
     """
     sig = inspect.signature(func)
     new_params = []
-    unpack_mapping: dict[str, tuple[str, type[BaseModel]]] = {}
+    unpack_mapping: dict[str, tuple[type[BaseModel], list[str]]] = {}
+
+    # Get type hints to resolve string annotations (from __future__ import annotations)
+    try:
+        type_hints = get_type_hints(func, include_extras=True)
+    except Exception:
+        # If get_type_hints() fails, fall back to raw annotations
+        type_hints = {}
+
+    # Track if we've added any KEYWORD_ONLY params
+    # If we have, all subsequent params must also be KEYWORD_ONLY
+    has_keyword_only = False
 
     # Scan parameters to find ones marked with Unpack()
     for param_name, param in sig.parameters.items():
-        annotation = param.annotation
+        # Use resolved type hint if available, otherwise use raw annotation
+        annotation = type_hints.get(param_name, param.annotation)
 
         # Check if this is Annotated[SomeModel, Unpack()]
         if get_origin(annotation) is Annotated:
@@ -105,6 +117,8 @@ def unpack_pydantic_params(func: Callable) -> Callable:
                     )
 
                 # Extract fields from the Pydantic model
+                # Store fields to add them in correct order later
+                unpacked_fields = []
                 for field_name, field_info in model_class.model_fields.items():
                     # Create parameter for each model field
                     field_annotation = field_info.annotation
@@ -117,14 +131,19 @@ def unpack_pydantic_params(func: Callable) -> Callable:
                     else:
                         field_default = inspect.Parameter.empty
 
-                    # Use POSITIONAL_OR_KEYWORD to maintain proper parameter order
+                    # Use KEYWORD_ONLY to avoid parameter ordering issues
+                    # This allows unpacked params to work with other params like Context
                     new_param = inspect.Parameter(
                         name=field_name,
-                        kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                        kind=inspect.Parameter.KEYWORD_ONLY,
                         default=field_default,
                         annotation=field_annotation,
                     )
-                    new_params.append(new_param)
+                    unpacked_fields.append(new_param)
+
+                # Add all unpacked fields
+                new_params.extend(unpacked_fields)
+                has_keyword_only = True
 
                 # Remember this mapping for runtime reconstruction
                 unpack_mapping[param_name] = (
@@ -133,8 +152,12 @@ def unpack_pydantic_params(func: Callable) -> Callable:
                 )
                 continue
 
-        # Keep non-unpacked parameters as-is
-        new_params.append(param)
+        # Keep non-unpacked parameters, but if we've added KEYWORD_ONLY params
+        # before this, we need to make this KEYWORD_ONLY too
+        if has_keyword_only and param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD:
+            new_params.append(param.replace(kind=inspect.Parameter.KEYWORD_ONLY))
+        else:
+            new_params.append(param)
 
     # Create new signature with flattened parameters
     new_sig = sig.replace(parameters=new_params)
@@ -199,6 +222,16 @@ def unpack_pydantic_params(func: Callable) -> Callable:
 
     # Update wrapper signature to show flattened parameters
     wrapper.__signature__ = new_sig  # type: ignore[attr-defined]
+
+    # CRITICAL: Also update __annotations__ so get_type_hints() sees the flattened params
+    # This is required for FastMCP's ParsedFunction.from_function() to work correctly
+    new_annotations = {}
+    for param_name, param in new_sig.parameters.items():
+        if param.annotation != inspect.Parameter.empty:
+            new_annotations[param_name] = param.annotation
+    if new_sig.return_annotation != inspect.Signature.empty:
+        new_annotations["return"] = new_sig.return_annotation
+    wrapper.__annotations__ = new_annotations
 
     return wrapper
 
