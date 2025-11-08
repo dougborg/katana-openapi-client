@@ -4,9 +4,10 @@ import os
 from unittest.mock import MagicMock
 
 import pytest
+import pytest_asyncio
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def katana_context():
     """Create a mock context for integration tests that uses real KatanaClient.
 
@@ -53,5 +54,4 @@ async def katana_context():
 
     yield context
 
-    # Properly close the async client
-    await client.aclose()
+    # Note: KatanaClient cleanup is handled automatically
