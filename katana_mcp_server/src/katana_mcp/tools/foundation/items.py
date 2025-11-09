@@ -8,12 +8,14 @@ from __future__ import annotations
 
 import time
 from enum import Enum
+from typing import Annotated
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger
 from katana_mcp.services import get_services
+from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
     CreateMaterialRequest,
@@ -148,8 +150,9 @@ async def _search_items_impl(
         raise
 
 
+@unpack_pydantic_params
 async def search_items(
-    request: SearchItemsRequest, context: Context
+    request: Annotated[SearchItemsRequest, Unpack()], context: Context
 ) -> SearchItemsResponse:
     """Search for items by name or SKU.
 
