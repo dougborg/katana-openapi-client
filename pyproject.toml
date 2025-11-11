@@ -283,6 +283,72 @@ extensions = [
   "toc",    # Table of contents
 ]
 
+# =============================================================================
+# Markdownlint Configuration
+# =============================================================================
+# Configure markdown linting rules for documentation consistency
+
+[tool.markdownlint]
+# MD013: Line length
+line_length = 88
+code_blocks = false  # Don't check line length in code blocks
+tables = false       # Don't check line length in tables
+
+# MD024: Multiple headings with the same content
+# Disable globally except for CHANGELOG.md which uses siblings_only
+MD024 = false
+
+[tool.markdownlint.files."docs/CHANGELOG.md"]
+# Allow duplicate headings in CHANGELOG if they're not siblings
+MD024 = { siblings_only = true }
+
+# =============================================================================
+# Yamllint Configuration
+# =============================================================================
+# Configure YAML linting for consistency across config files
+
+[tool.yamllint]
+extends = "default"
+
+[tool.yamllint.rules.line-length]
+# Very lenient for OpenAPI specs with long descriptions
+max = 200
+
+[tool.yamllint.rules.document-start]
+# Don't require --- at start of YAML files
+present = false
+
+[tool.yamllint.rules.truthy]
+# Allow various boolean representations
+allowed-values = ['true', 'false', 'yes', 'no', 'True', 'False']
+
+[tool.yamllint.rules.comments]
+min-spaces-from-content = 1
+
+[tool.yamllint.rules.indentation]
+spaces = 2
+
+[tool.yamllint.rules.brackets]
+min-spaces-inside = 0
+max-spaces-inside = 1
+
+[tool.yamllint.rules.braces]
+min-spaces-inside = 0
+max-spaces-inside = 1
+
+[tool.yamllint.ignore]
+# Ignore these directories
+paths = [
+  ".github/",
+  ".venv/",
+  "node_modules/",
+  "dist/",
+  "build/",
+  "*.egg-info/",
+  "katana_public_api_client/generated/",
+  "docs/original openapi files/",
+]
+
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
 version_variables = ["katana_public_api_client/__init__.py:__version__"]
