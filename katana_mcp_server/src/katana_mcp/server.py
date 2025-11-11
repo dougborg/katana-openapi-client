@@ -144,9 +144,11 @@ mcp = FastMCP(
 
 # Register all tools, resources, and prompts with the mcp instance
 # This must come after mcp initialization
+from katana_mcp.resources import register_all_resources  # noqa: E402
 from katana_mcp.tools import register_all_tools  # noqa: E402
 
 register_all_tools(mcp)
+register_all_resources(mcp)
 
 
 def main(**kwargs: Any) -> None:
