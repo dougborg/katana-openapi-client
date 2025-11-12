@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.templates import format_template
 from katana_mcp.tools.schemas import ConfirmationSchema
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
@@ -586,7 +587,7 @@ class VerifyOrderDocumentResponse(BaseModel):
 
 async def _verify_order_document_impl(
     request: VerifyOrderDocumentRequest, context: Context
-) -> VerifyOrderDocumentResponse:
+) -> str:
     """Implementation of verify_order_document tool.
 
     Args:
@@ -594,7 +595,7 @@ async def _verify_order_document_impl(
         context: Server context with KatanaClient
 
     Returns:
-        Verification response with matches and discrepancies
+        Formatted string with verification results using templates
 
     Raises:
         Exception: If API call fails
@@ -634,13 +635,12 @@ async def _verify_order_document_impl(
             isinstance(po.purchase_order_rows, type(UNSET))
             or not po.purchase_order_rows
         ):
-            return VerifyOrderDocumentResponse(
+            return format_template(
+                "order_verification_no_match",
+                order_number=order_no,
                 order_id=request.order_id,
-                matches=[],
-                discrepancies=[],
-                suggested_actions=["Verify purchase order data in Katana"],
-                overall_status="no_match",
-                message=f"Purchase order {order_no} has no line items",
+                total_items=len(request.document_items),
+                error_message=f"Purchase order {order_no} has no line items to verify against",
             )
 
         po_rows = po.purchase_order_rows
@@ -754,6 +754,23 @@ async def _verify_order_document_impl(
                 )
             )
 
+        # Format items table
+        items_table_rows = []
+        for match in matches:
+            status_icon = "✅" if match.status == "perfect" else "⚠️"
+            price_str = f"${match.unit_price:.2f}" if match.unit_price else "N/A"
+            items_table_rows.append(
+                f"| {status_icon} | {match.sku} | {match.quantity} | {price_str} | {match.status} |"
+            )
+
+        items_table = "\n".join(
+            [
+                "| Status | SKU | Quantity | Price | Match Status |",
+                "|--------|-----|----------|-------|--------------|",
+                *items_table_rows,
+            ]
+        )
+
         # Determine overall status
         if len(matches) == 0:
             overall_status = "no_match"
@@ -762,31 +779,50 @@ async def _verify_order_document_impl(
         else:
             overall_status = "partial_match"
 
-        # Build suggested actions
-        suggested_actions = []
-        if discrepancies:
-            suggested_actions.append("Review discrepancies before receiving")
-            suggested_actions.append(
-                "Contact supplier if quantities or prices don't match"
+        # Format response using appropriate template
+        if overall_status == "no_match":
+            error_messages = [d.message for d in discrepancies]
+            return format_template(
+                "order_verification_no_match",
+                order_number=order_no,
+                order_id=request.order_id,
+                total_items=len(request.document_items),
+                error_message="\n".join(f"- {msg}" for msg in error_messages),
             )
-        else:
-            suggested_actions.append(
-                "All items verified successfully - proceed with receiving"
+        elif overall_status == "match":
+            return format_template(
+                "order_verification_match",
+                order_number=order_no,
+                order_id=request.order_id,
+                items_table=items_table,
+                total_items=len(request.document_items),
+                match_count=len(matches),
+            )
+        else:  # partial_match
+            # Format discrepancies list
+            discrepancy_list = []
+            for disc in discrepancies:
+                discrepancy_list.append(f"- **{disc.sku}**: {disc.message}")
+
+            suggested_actions = "\n".join(
+                [
+                    "1. Review discrepancies before receiving items",
+                    "2. Contact supplier if quantities or prices don't match expectations",
+                    "3. Consider adjusting the purchase order if needed",
+                ]
             )
 
-        message = (
-            f"Verified {len(request.document_items)} items: {len(matches)} matches, "
-            f"{len(discrepancies)} discrepancies"
-        )
-
-        return VerifyOrderDocumentResponse(
-            order_id=request.order_id,
-            matches=matches,
-            discrepancies=discrepancies,
-            suggested_actions=suggested_actions,
-            overall_status=overall_status,
-            message=message,
-        )
+            return format_template(
+                "order_verification_partial",
+                order_number=order_no,
+                order_id=request.order_id,
+                items_table=items_table,
+                discrepancies_list="\n".join(discrepancy_list),
+                total_items=len(request.document_items),
+                match_count=len(matches),
+                discrepancy_count=len(discrepancies),
+                suggested_actions=suggested_actions,
+            )
 
     except Exception as e:
         logger.error(f"Failed to verify order document: {e}")
@@ -797,7 +833,7 @@ async def _verify_order_document_impl(
 @unpack_pydantic_params
 async def verify_order_document(
     request: Annotated[VerifyOrderDocumentRequest, Unpack()], context: Context
-) -> VerifyOrderDocumentResponse:
+) -> str:
     """Verify a document against a purchase order.
 
     Compares items from a supplier document (invoice, packing slip, etc.)
@@ -808,13 +844,14 @@ async def verify_order_document(
     - Looks up variants to match SKUs
     - Compares quantities and prices
     - Reports discrepancies with actionable suggestions
+    - Returns formatted markdown response using templates
 
     Args:
         request: Request with order ID and document items
         context: Server context with KatanaClient
 
     Returns:
-        Verification response with matches and discrepancies
+        Formatted markdown string with verification results
 
     Example:
         Request: {
@@ -824,7 +861,7 @@ async def verify_order_document(
                 {"sku": "WIDGET-002", "quantity": 50, "unit_price": 30.00}
             ]
         }
-        Returns: Verification report with matches/discrepancies
+        Returns: Formatted verification report with matches/discrepancies
     """
     return await _verify_order_document_impl(request, context)
 

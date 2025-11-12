@@ -1,44 +1,9 @@
-# yamllint configuration for katana-openapi-client
-# See https://yamllint.readthedocs.io/ for documentation
-
+---
 extends: default
 
 rules:
   line-length:
     max: 120
-    level: error
-    # Ignore line length in OpenAPI spec files
-    ignore: |
-      /docs/katana-openapi.yaml
-
-  document-start:
-    # Don't require --- at start of YAML files
-    present: false
-
-  truthy:
-    # Allow various boolean representations
-    allowed-values: ['true', 'false', 'yes', 'no', 'True', 'False']
-
-  comments:
-    min-spaces-from-content: 1
-
+  document-start: disable
   indentation:
     spaces: 2
-
-  brackets:
-    min-spaces-inside: 0
-    max-spaces-inside: 1
-
-  braces:
-    min-spaces-inside: 0
-    max-spaces-inside: 1
-
-# Ignore these paths completely
-ignore: |
-  .venv/
-  node_modules/
-  dist/
-  build/
-  *.egg-info/
-  katana_public_api_client/generated/
-  docs/original openapi files/
