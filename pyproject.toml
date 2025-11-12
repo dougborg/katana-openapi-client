@@ -311,8 +311,9 @@ MD024 = { siblings_only = true }
 extends = "default"
 
 [tool.yamllint.rules.line-length]
-# Very lenient for OpenAPI specs with long descriptions
-max = 200
+# General line length limit of 120 characters
+# OpenAPI specs are excluded via ignore paths
+max = 120
 
 [tool.yamllint.rules.document-start]
 # Don't require --- at start of YAML files
