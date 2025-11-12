@@ -178,10 +178,6 @@ def clear_trace_id() -> None:
     trace_id_var.set("")
 
 
-# Type variable for decorators
-F = TypeVar("F", bound=Callable[..., Any])
-
-
 def observe_tool[F: Callable[..., Any]](func: F) -> F:
     """Decorator to add observability to MCP tool functions.
 
@@ -243,6 +239,10 @@ def observe_tool[F: Callable[..., Any]](func: F) -> F:
             raise
 
     return wrapper  # type: ignore[return-value]
+
+
+# Type variable for observe_service decorator
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 def observe_service(operation: str) -> Callable[[F], F]:
