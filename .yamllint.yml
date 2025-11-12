@@ -42,4 +42,3 @@ ignore: |
   *.egg-info/
   katana_public_api_client/generated/
   docs/original openapi files/
-  .github/

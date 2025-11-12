@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools.schemas import ConfirmationSchema
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
@@ -26,17 +27,6 @@ from katana_public_api_client.models import (
 )
 
 logger = logging.getLogger(__name__)
-
-# ============================================================================
-# Shared Confirmation Schema
-# ============================================================================
-
-
-class ConfirmationSchema(BaseModel):
-    """Schema for user confirmation via elicitation."""
-
-    confirm: bool = Field(..., description="Confirm the action (true to proceed)")
-
 
 # ============================================================================
 # Tool: fulfill_order

@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools.schemas import ConfirmationSchema
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
@@ -86,12 +87,6 @@ class PurchaseOrderResponse(BaseModel):
     warnings: list[str] = []
     next_actions: list[str] = []
     message: str
-
-
-class ConfirmationSchema(BaseModel):
-    """Schema for user confirmation via elicitation."""
-
-    confirm: bool = Field(..., description="Confirm the action (true to proceed)")
 
 
 async def _create_purchase_order_impl(
