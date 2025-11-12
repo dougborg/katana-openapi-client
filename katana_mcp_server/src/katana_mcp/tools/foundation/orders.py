@@ -28,6 +28,17 @@ from katana_public_api_client.models import (
 logger = logging.getLogger(__name__)
 
 # ============================================================================
+# Shared Confirmation Schema
+# ============================================================================
+
+
+class ConfirmationSchema(BaseModel):
+    """Schema for user confirmation via elicitation."""
+
+    confirm: bool = Field(..., description="Confirm the action (true to proceed)")
+
+
+# ============================================================================
 # Tool: fulfill_order
 # ============================================================================
 
@@ -172,7 +183,7 @@ async def _fulfill_order_impl(
                     message=f"Preview: Would mark manufacturing order {order_number} as DONE (currently {current_status})",
                 )
 
-            # Confirm mode - actually update the order
+            # Confirm mode - use elicitation to get user confirmation
             if current_status == "DONE":
                 logger.info(f"Manufacturing order {order_number} is already completed")
                 return FulfillOrderResponse(
@@ -187,7 +198,51 @@ async def _fulfill_order_impl(
                     message=f"Manufacturing order {order_number} is already completed",
                 )
 
-            # Update order status to DONE
+            # Get user confirmation before marking as done
+            elicit_result = await context.elicit(
+                f"Mark manufacturing order {order_number} as DONE and update inventory?",
+                ConfirmationSchema,
+            )
+
+            # Check if user accepted
+            if elicit_result.action != "accept":
+                logger.info(
+                    f"User did not accept fulfillment of manufacturing order {order_number}"
+                )
+                return FulfillOrderResponse(
+                    order_id=request.order_id,
+                    order_type="manufacturing",
+                    order_number=order_number,
+                    status=current_status,
+                    is_preview=True,
+                    inventory_updates=inventory_updates,
+                    warnings=warnings,
+                    message="Manufacturing order fulfillment cancelled by user",
+                    next_actions=[
+                        "Review the order details and try again with confirm=true"
+                    ],
+                )
+
+            # Type narrowing: at this point we know action == "accept", so data exists
+            if not elicit_result.data.confirm:
+                logger.info(
+                    f"User declined to confirm fulfillment of manufacturing order {order_number}"
+                )
+                return FulfillOrderResponse(
+                    order_id=request.order_id,
+                    order_type="manufacturing",
+                    order_number=order_number,
+                    status=current_status,
+                    is_preview=True,
+                    inventory_updates=inventory_updates,
+                    warnings=warnings,
+                    message="Manufacturing order fulfillment declined by user",
+                    next_actions=[
+                        "Review the order details and try again with confirm=true"
+                    ],
+                )
+
+            # User confirmed - update order status to DONE
             from katana_public_api_client.api.manufacturing_order import (
                 update_manufacturing_order as api_update_manufacturing_order,
             )
@@ -298,11 +353,55 @@ async def _fulfill_order_impl(
                     message=f"Preview: Would fulfill sales order {order_number} (currently {current_status})",
                 )
 
-            # Confirm mode - create fulfillment
+            # Confirm mode - use elicitation to get user confirmation before creating fulfillment
             # Note: Sales orders in Katana can have multiple fulfillments, so we don't
             # prevent fulfillment based on status
 
-            # Create sales order fulfillment
+            # Get user confirmation
+            elicit_result = await context.elicit(
+                f"Create fulfillment for sales order {order_number} and update inventory?",
+                ConfirmationSchema,
+            )
+
+            # Check if user accepted
+            if elicit_result.action != "accept":
+                logger.info(
+                    f"User did not accept fulfillment of sales order {order_number}"
+                )
+                return FulfillOrderResponse(
+                    order_id=request.order_id,
+                    order_type="sales",
+                    order_number=order_number,
+                    status=current_status,
+                    is_preview=True,
+                    inventory_updates=inventory_updates,
+                    warnings=warnings,
+                    message="Sales order fulfillment cancelled by user",
+                    next_actions=[
+                        "Review the order details and try again with confirm=true"
+                    ],
+                )
+
+            # Type narrowing: at this point we know action == "accept", so data exists
+            if not elicit_result.data.confirm:
+                logger.info(
+                    f"User declined to confirm fulfillment of sales order {order_number}"
+                )
+                return FulfillOrderResponse(
+                    order_id=request.order_id,
+                    order_type="sales",
+                    order_number=order_number,
+                    status=current_status,
+                    is_preview=True,
+                    inventory_updates=inventory_updates,
+                    warnings=warnings,
+                    message="Sales order fulfillment declined by user",
+                    next_actions=[
+                        "Review the order details and try again with confirm=true"
+                    ],
+                )
+
+            # User confirmed - create sales order fulfillment
             from katana_public_api_client.api.sales_order_fulfillment import (
                 create_sales_order_fulfillment as api_create_sales_order_fulfillment,
             )

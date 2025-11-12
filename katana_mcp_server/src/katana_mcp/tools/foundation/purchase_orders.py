@@ -88,6 +88,12 @@ class PurchaseOrderResponse(BaseModel):
     message: str
 
 
+class ConfirmationSchema(BaseModel):
+    """Schema for user confirmation via elicitation."""
+
+    confirm: bool = Field(..., description="Confirm the action (true to proceed)")
+
+
 async def _create_purchase_order_impl(
     request: CreatePurchaseOrderRequest, context: Context
 ) -> PurchaseOrderResponse:
@@ -132,7 +138,45 @@ async def _create_purchase_order_impl(
             message=f"Preview: Purchase order {request.order_number} with {len(request.items)} items totaling {total_cost:.2f}",
         )
 
-    # Confirm mode - create the purchase order via API
+    # Confirm mode - use elicitation to get user confirmation before creating
+    elicit_result = await context.elicit(
+        f"Create purchase order {request.order_number} with {len(request.items)} items totaling {total_cost:.2f}?",
+        ConfirmationSchema,
+    )
+
+    # Check if user accepted
+    if elicit_result.action != "accept":
+        logger.info(f"User did not confirm creation of PO {request.order_number}")
+        return PurchaseOrderResponse(
+            order_number=request.order_number,
+            supplier_id=request.supplier_id,
+            location_id=request.location_id,
+            status=request.status or "NOT_RECEIVED",
+            entity_type="regular",
+            total_cost=total_cost,
+            currency=request.currency,
+            is_preview=True,
+            message="Purchase order creation cancelled by user",
+            next_actions=["Review the order details and try again with confirm=true"],
+        )
+
+    # Type narrowing: at this point we know action == "accept", so data exists
+    if not elicit_result.data.confirm:
+        logger.info(f"User declined to confirm creation of PO {request.order_number}")
+        return PurchaseOrderResponse(
+            order_number=request.order_number,
+            supplier_id=request.supplier_id,
+            location_id=request.location_id,
+            status=request.status or "NOT_RECEIVED",
+            entity_type="regular",
+            total_cost=total_cost,
+            currency=request.currency,
+            is_preview=True,
+            message="Purchase order creation declined by user",
+            next_actions=["Review the order details and try again with confirm=true"],
+        )
+
+    # User confirmed - create the purchase order via API
     try:
         services = get_services(context)
 
@@ -369,7 +413,37 @@ async def _receive_purchase_order_impl(
                 message=f"Preview: Receive {len(request.items)} items for PO {order_no}",
             )
 
-        # Confirm mode - receive items via API
+        # Confirm mode - use elicitation to get user confirmation before receiving
+        elicit_result = await context.elicit(
+            f"Receive {len(request.items)} items for purchase order {order_no} and update inventory?",
+            ConfirmationSchema,
+        )
+
+        # Check if user accepted
+        if elicit_result.action != "accept":
+            logger.info(f"User did not accept receiving items for PO {order_no}")
+            return ReceivePurchaseOrderResponse(
+                order_id=request.order_id,
+                order_number=order_no,
+                items_received=0,
+                is_preview=True,
+                message="Item receipt cancelled by user",
+                next_actions=["Review the items and try again with confirm=true"],
+            )
+
+        # Type narrowing: at this point we know action == "accept", so data exists
+        if not elicit_result.data.confirm:
+            logger.info(f"User declined to confirm receiving items for PO {order_no}")
+            return ReceivePurchaseOrderResponse(
+                order_id=request.order_id,
+                order_number=order_no,
+                items_received=0,
+                is_preview=True,
+                message="Item receipt declined by user",
+                next_actions=["Review the items and try again with confirm=true"],
+            )
+
+        # User confirmed - receive items via API
         from katana_public_api_client.api.purchase_order import (
             receive_purchase_order as api_receive_purchase_order,
         )
