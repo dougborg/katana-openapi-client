@@ -27,7 +27,11 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import time
+from collections.abc import Callable
 from contextvars import ContextVar
+from functools import wraps
+from typing import Any, TypeVar
 
 import structlog
 from structlog.typing import EventDict, WrappedLogger
@@ -174,9 +178,143 @@ def clear_trace_id() -> None:
     trace_id_var.set("")
 
 
+def observe_tool[F: Callable[..., Any]](func: F) -> F:
+    """Decorator to add observability to MCP tool functions.
+
+    Logs:
+    - Tool invocation with parameters
+    - Execution duration
+    - Success/failure status
+    - Error details if failed
+
+    Usage:
+        @observe_tool
+        @mcp.tool()
+        async def my_tool(param: str, ctx: Context) -> str:
+            return "result"
+    """
+
+    @wraps(func)
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
+        tool_name = func.__name__
+        start_time = time.perf_counter()
+
+        # Get logger
+        logger = get_logger(__name__)
+
+        # Extract parameters (excluding ctx/context)
+        params = {k: v for k, v in kwargs.items() if k not in ("ctx", "context")}
+
+        logger.info(
+            "tool_invoked",
+            tool_name=tool_name,
+            params=params,
+        )
+
+        try:
+            result = await func(*args, **kwargs)
+            duration_ms = (time.perf_counter() - start_time) * 1000
+
+            logger.info(
+                "tool_completed",
+                tool_name=tool_name,
+                duration_ms=round(duration_ms, 2),
+                success=True,
+            )
+
+            return result
+
+        except Exception as e:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+
+            logger.error(
+                "tool_failed",
+                tool_name=tool_name,
+                duration_ms=round(duration_ms, 2),
+                error=str(e),
+                error_type=type(e).__name__,
+                success=False,
+            )
+
+            raise
+
+    return wrapper  # type: ignore[return-value]
+
+
+# Type variable for observe_service decorator
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def observe_service(operation: str) -> Callable[[F], F]:
+    """Decorator to add observability to service layer operations.
+
+    Args:
+        operation: Name of the operation (e.g., "get_product", "create_order")
+
+    Usage:
+        class MyService:
+            @observe_service("get_item")
+            async def get(self, item_id: int) -> Item:
+                return item
+    """
+
+    def decorator(func: F) -> F:
+        @wraps(func)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            start_time = time.perf_counter()
+
+            # Get logger
+            logger = get_logger(__name__)
+
+            # Get class name if available
+            class_name = args[0].__class__.__name__ if args else "unknown"
+
+            logger.debug(
+                "service_operation_started",
+                service=class_name,
+                operation=operation,
+                params=kwargs,
+            )
+
+            try:
+                result = await func(*args, **kwargs)
+                duration_ms = (time.perf_counter() - start_time) * 1000
+
+                logger.debug(
+                    "service_operation_completed",
+                    service=class_name,
+                    operation=operation,
+                    duration_ms=round(duration_ms, 2),
+                    success=True,
+                )
+
+                return result
+
+            except Exception as e:
+                duration_ms = (time.perf_counter() - start_time) * 1000
+
+                logger.error(
+                    "service_operation_failed",
+                    service=class_name,
+                    operation=operation,
+                    duration_ms=round(duration_ms, 2),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    success=False,
+                )
+
+                raise
+
+        return wrapper  # type: ignore[return-value]
+
+    return decorator
+
+
 __all__ = [
     "clear_trace_id",
     "get_logger",
+    "observe_service",
+    "observe_tool",
     "set_trace_id",
     "setup_logging",
     "trace_id_var",

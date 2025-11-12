@@ -15,6 +15,7 @@ from typing import Annotated, cast
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
+from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
@@ -236,6 +237,7 @@ async def _create_manufacturing_order_impl(
         raise
 
 
+@observe_tool
 @unpack_pydantic_params
 async def create_manufacturing_order(
     request: Annotated[CreateManufacturingOrderRequest, Unpack()], context: Context
