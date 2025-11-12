@@ -12,7 +12,7 @@ from typing import Annotated
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
-from katana_mcp.logging import get_logger
+from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
@@ -146,6 +146,7 @@ async def _create_product_impl(
         raise
 
 
+@observe_tool
 @unpack_pydantic_params
 async def create_product(
     request: Annotated[CreateProductRequest, Unpack()], context: Context
@@ -298,6 +299,7 @@ async def _create_material_impl(
         raise
 
 
+@observe_tool
 @unpack_pydantic_params
 async def create_material(
     request: Annotated[CreateMaterialRequest, Unpack()], context: Context

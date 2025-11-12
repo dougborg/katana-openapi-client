@@ -18,6 +18,7 @@ from typing import Annotated, Any, cast
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
+from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
@@ -231,6 +232,7 @@ async def _create_purchase_order_impl(
         raise
 
 
+@observe_tool
 @unpack_pydantic_params
 async def create_purchase_order(
     request: Annotated[CreatePurchaseOrderRequest, Unpack()], context: Context
@@ -411,6 +413,7 @@ async def _receive_purchase_order_impl(
         raise
 
 
+@observe_tool
 @unpack_pydantic_params
 async def receive_purchase_order(
     request: Annotated[ReceivePurchaseOrderRequest, Unpack()], context: Context
@@ -721,6 +724,7 @@ async def _verify_order_document_impl(
         raise
 
 
+@observe_tool
 @unpack_pydantic_params
 async def verify_order_document(
     request: Annotated[VerifyOrderDocumentRequest, Unpack()], context: Context

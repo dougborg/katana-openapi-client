@@ -13,7 +13,7 @@ from typing import Annotated
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
-from katana_mcp.logging import get_logger
+from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
@@ -150,6 +150,7 @@ async def _search_items_impl(
         raise
 
 
+@observe_tool
 @unpack_pydantic_params
 async def search_items(
     request: Annotated[SearchItemsRequest, Unpack()], context: Context
@@ -387,6 +388,7 @@ async def _create_item_impl(
         raise
 
 
+@observe_tool
 async def create_item(
     request: CreateItemRequest, context: Context
 ) -> CreateItemResponse:
@@ -557,6 +559,7 @@ async def _get_item_impl(
         raise
 
 
+@observe_tool
 async def get_item(request: GetItemRequest, context: Context) -> ItemDetailsResponse:
     """Get item details by ID and type.
 
@@ -758,6 +761,7 @@ async def _update_item_impl(
         raise
 
 
+@observe_tool
 async def update_item(
     request: UpdateItemRequest, context: Context
 ) -> UpdateItemResponse:
@@ -886,6 +890,7 @@ async def _delete_item_impl(
         raise
 
 
+@observe_tool
 async def delete_item(
     request: DeleteItemRequest, context: Context
 ) -> DeleteItemResponse:
@@ -1051,6 +1056,7 @@ async def _get_variant_details_impl(
         raise
 
 
+@observe_tool
 async def get_variant_details(
     request: GetVariantDetailsRequest, context: Context
 ) -> VariantDetailsResponse:

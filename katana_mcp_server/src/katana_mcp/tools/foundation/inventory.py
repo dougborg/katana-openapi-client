@@ -12,7 +12,7 @@ from typing import Annotated
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
-from katana_mcp.logging import get_logger
+from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 
@@ -117,6 +117,7 @@ async def _check_inventory_impl(
         raise
 
 
+@observe_tool
 @unpack_pydantic_params
 async def check_inventory(
     request: Annotated[CheckInventoryRequest, Unpack()], context: Context
@@ -247,6 +248,7 @@ async def _list_low_stock_items_impl(
         raise
 
 
+@observe_tool
 @unpack_pydantic_params
 async def list_low_stock_items(
     request: Annotated[LowStockRequest, Unpack()], context: Context
