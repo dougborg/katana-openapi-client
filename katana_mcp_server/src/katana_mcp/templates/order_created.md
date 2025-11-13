@@ -1,8 +1,7 @@
 # ✅ Purchase Order Created
 
 **Order Number**: {order_number} **Order ID**: {order_id} **Supplier**: Supplier
-#{supplier_id} **Location**: Location #{location_id} **Total**: ${total_cost:,.2f}
-{currency}
+#{supplier_id} **Location**: Location #{location_id} **Total**: ${total_cost:,.2f} {currency}
 
 ## Status
 
