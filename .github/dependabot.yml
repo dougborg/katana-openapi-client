@@ -1,5 +1,6 @@
 # Dependabot configuration for automated dependency updates
-# See: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+# See:
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 #
 # NOTE: Python dependency updates are currently disabled because this project uses uv
 # for package management (see ADR-009), and Dependabot does not yet support the uv

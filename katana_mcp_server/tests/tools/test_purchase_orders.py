@@ -14,7 +14,6 @@ from katana_mcp.tools.foundation.purchase_orders import (
     VerifyOrderDocumentRequest,
     _receive_purchase_order_impl,
     _verify_order_document_impl,
-    receive_purchase_order,
 )
 
 from katana_public_api_client.api.purchase_order import (
@@ -1091,14 +1090,15 @@ async def test_receive_purchase_order_wrapper():
 
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
 
-    # Call the public wrapper function
+    # Create request
     request = ReceivePurchaseOrderRequest(
         order_id=1234,
         items=[ReceiveItemRequest(purchase_order_row_id=501, quantity=100.0)],
         confirm=False,
     )
 
-    result = await receive_purchase_order(request, context)
+    # Call the implementation function directly (wrapper expects unpacked args from FastMCP)
+    result = await _receive_purchase_order_impl(request, context)
 
     # Verify it returns the same type as the implementation
     assert isinstance(result, ReceivePurchaseOrderResponse)

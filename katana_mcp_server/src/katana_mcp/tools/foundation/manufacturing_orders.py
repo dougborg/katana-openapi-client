@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools.schemas import ConfirmationSchema
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
@@ -138,7 +139,47 @@ async def _create_manufacturing_order_impl(
             message=f"Preview: Manufacturing order for variant {request.variant_id}, quantity {request.planned_quantity}",
         )
 
-    # Confirm mode - create the manufacturing order via API
+    # Confirm mode - use elicitation to get user confirmation before creating
+    elicit_result = await context.elicit(
+        f"Create manufacturing order for variant {request.variant_id} with quantity {request.planned_quantity}?",
+        ConfirmationSchema,
+    )
+
+    # Check if user accepted
+    if elicit_result.action != "accept":
+        logger.info(
+            f"User did not accept creation of manufacturing order for variant {request.variant_id}"
+        )
+        return ManufacturingOrderResponse(
+            variant_id=request.variant_id,
+            planned_quantity=request.planned_quantity,
+            location_id=request.location_id,
+            order_created_date=request.order_created_date,
+            production_deadline_date=request.production_deadline_date,
+            additional_info=request.additional_info,
+            is_preview=True,
+            message="Manufacturing order creation cancelled by user",
+            next_actions=["Review the order details and try again with confirm=true"],
+        )
+
+    # Type narrowing: at this point we know action == "accept", so data exists
+    if not elicit_result.data.confirm:
+        logger.info(
+            f"User declined to confirm creation of manufacturing order for variant {request.variant_id}"
+        )
+        return ManufacturingOrderResponse(
+            variant_id=request.variant_id,
+            planned_quantity=request.planned_quantity,
+            location_id=request.location_id,
+            order_created_date=request.order_created_date,
+            production_deadline_date=request.production_deadline_date,
+            additional_info=request.additional_info,
+            is_preview=True,
+            message="Manufacturing order creation declined by user",
+            next_actions=["Review the order details and try again with confirm=true"],
+        )
+
+    # User confirmed - create the manufacturing order via API
     try:
         services = get_services(context)
 

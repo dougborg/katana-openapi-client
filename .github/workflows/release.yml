@@ -73,8 +73,11 @@ jobs:
       - name: Check for client changes
         id: check
         run: |
-          # Check if there are any commits with (client) scope or no scope since last client release
-          if git log $(git describe --tags --abbrev=0 --match="client-v*" 2>/dev/null || echo "HEAD~10")..HEAD --pretty=format:"%s" | grep -qE '^(feat|fix|perf)(\(client\))?:'; then
+          # Check if there are any commits with (client) scope or no scope since last
+          # client release
+          if git log $(git describe --tags --abbrev=0 --match="client-v*" 2>/dev/null || \
+            echo "HEAD~10")..HEAD --pretty=format:"%s" | \
+            grep -qE '^(feat|fix|perf)(\(client\))?:'; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
@@ -89,11 +92,17 @@ jobs:
           verbosity: 2
 
       - name: Build client package
-        if: (steps.release.outcome == 'success' && steps.release.outputs.released == 'true') || inputs.force_publish_client == true
+        if: >-
+          (steps.release.outcome == 'success' &&
+          steps.release.outputs.released == 'true') ||
+          inputs.force_publish_client == true
         run: uv build
 
       - name: Upload client build artifacts
-        if: (steps.release.outcome == 'success' && steps.release.outputs.released == 'true') || inputs.force_publish_client == true
+        if: >-
+          (steps.release.outcome == 'success' &&
+          steps.release.outputs.released == 'true') ||
+          inputs.force_publish_client == true
         uses: actions/upload-artifact@v5
         with:
           name: client-dist
@@ -132,7 +141,9 @@ jobs:
         id: check
         run: |
           # Check if there are any commits with (mcp) scope since last mcp release
-          if git log $(git describe --tags --abbrev=0 --match="mcp-v*" 2>/dev/null || echo "HEAD~10")..HEAD --pretty=format:"%s" | grep -qE '^(feat|fix|perf)\(mcp\):'; then
+          if git log $(git describe --tags --abbrev=0 --match="mcp-v*" 2>/dev/null || \
+            echo "HEAD~10")..HEAD --pretty=format:"%s" | \
+            grep -qE '^(feat|fix|perf)\(mcp\):'; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
@@ -148,11 +159,17 @@ jobs:
           directory: katana_mcp_server
 
       - name: Build MCP package
-        if: (steps.release.outcome == 'success' && steps.release.outputs.released == 'true') || inputs.force_publish_mcp == true
+        if: >-
+          (steps.release.outcome == 'success' &&
+          steps.release.outputs.released == 'true') ||
+          inputs.force_publish_mcp == true
         run: cd katana_mcp_server && uv build
 
       - name: Upload MCP build artifacts
-        if: (steps.release.outcome == 'success' && steps.release.outputs.released == 'true') || inputs.force_publish_mcp == true
+        if: >-
+          (steps.release.outcome == 'success' &&
+          steps.release.outputs.released == 'true') ||
+          inputs.force_publish_mcp == true
         uses: actions/upload-artifact@v5
         with:
           name: mcp-dist

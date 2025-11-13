@@ -28,22 +28,22 @@ jobs:
         run: |
           # Get the most recent client-v* tag
           LATEST_CLIENT_TAG=$(git tag --list 'client-v*' --sort=-version:refname | head -n 1)
-          
+
           if [ -z "$LATEST_CLIENT_TAG" ]; then
             echo "No client tags found"
             echo "has_release=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           # Extract version from tag (client-v0.28.0 -> 0.28.0)
           CLIENT_VERSION="${LATEST_CLIENT_TAG#client-v}"
           echo "client_version=$CLIENT_VERSION" >> $GITHUB_OUTPUT
-          
+
           # Check if this tag was created in the last workflow run
           # Get the timestamp of the tag
           TAG_DATE=$(git log -1 --format=%ct "$LATEST_CLIENT_TAG")
           WORKFLOW_DATE=$(date -d "${{ github.event.workflow_run.created_at }}" +%s)
-          
+
           # If tag is newer than workflow start (created during the workflow)
           if [ "$TAG_DATE" -ge "$WORKFLOW_DATE" ]; then
             echo "New client release detected: $CLIENT_VERSION"
@@ -59,9 +59,9 @@ jobs:
         run: |
           CLIENT_VERSION="${{ steps.check-release.outputs.client_version }}"
           CURRENT_DEP=$(grep "katana-openapi-client>=" katana_mcp_server/pyproject.toml | sed 's/.*>=\([0-9.]*\).*/\1/')
-          
+
           echo "current_version=$CURRENT_DEP" >> $GITHUB_OUTPUT
-          
+
           if [ "$CURRENT_DEP" = "$CLIENT_VERSION" ]; then
             echo "MCP dependency already up to date"
             echo "needs_update=false" >> $GITHUB_OUTPUT
@@ -82,10 +82,12 @@ jobs:
         if: steps.check-current.outputs.needs_update == 'true'
         run: |
           CLIENT_VERSION="${{ steps.check-release.outputs.client_version }}"
-          
+
           # Update the dependency in pyproject.toml
-          sed -i "s/katana-openapi-client>=.*\",/katana-openapi-client>=$CLIENT_VERSION\",/" katana_mcp_server/pyproject.toml
-          
+          sed -i \
+            "s/katana-openapi-client>=.*\",/katana-openapi-client>=$CLIENT_VERSION\",/" \
+            katana_mcp_server/pyproject.toml
+
           # Verify the change
           echo "Updated dependency:"
           grep "katana-openapi-client>=" katana_mcp_server/pyproject.toml
@@ -105,22 +107,27 @@ jobs:
           title: "feat(mcp): update client dependency to v${{ steps.check-release.outputs.client_version }}"
           body: |
             ## Automated Dependency Update
-            
+
             This PR updates the MCP server's client dependency to match the latest client release.
-            
+
             **Changes:**
-            - Update `katana-openapi-client` dependency from `>=${{ steps.check-current.outputs.current_version }}` to `>=${{ steps.check-release.outputs.client_version }}`
+            - Update `katana-openapi-client` dependency from
+              `>=${{ steps.check-current.outputs.current_version }}` to
+              `>=${{ steps.check-release.outputs.client_version }}`
             - Update `uv.lock` to reflect the new dependency
-            
+
             **Release Information:**
             - Client version: v${{ steps.check-release.outputs.client_version }}
             - Tag: client-v${{ steps.check-release.outputs.client_version }}
-            
+
             **Next Steps:**
-            When this PR is merged, it will trigger a new MCP server release with the conventional commit message `feat(mcp):`, which will bump the MCP server's MINOR version.
-            
+            When this PR is merged, it will trigger a new MCP server release with the
+            conventional commit message `feat(mcp):`, which will bump the MCP server's
+            MINOR version.
+
             ---
-            *This PR was automatically created by the [Update MCP Client Dependency workflow](.github/workflows/update-mcp-dependency.yml).*
+            *This PR was automatically created by the
+            [Update MCP Client Dependency workflow](.github/workflows/update-mcp-dependency.yml).*
           branch: auto/update-mcp-dependency-v${{ steps.check-release.outputs.client_version }}
           delete-branch: true
           labels: |

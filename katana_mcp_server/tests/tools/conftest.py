@@ -5,21 +5,39 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 
-def create_mock_context():
+def create_mock_context(elicit_confirm: bool = True):
     """Create a mock context with proper FastMCP structure.
+
+    Args:
+        elicit_confirm: If True, elicit() returns an accepted result with confirm=True.
+                       If False, elicit() returns a declined result.
 
     Returns:
         Tuple of (context, lifespan_context) where context has the structure:
         context.request_context.lifespan_context.client
 
     This helper creates the nested mock structure that FastMCP uses to provide
-    the KatanaClient to tool implementations.
+    the KatanaClient to tool implementations, and includes a mock for context.elicit()
+    that simulates user confirmation behavior.
     """
     context = MagicMock()
     mock_request_context = MagicMock()
     mock_lifespan_context = MagicMock()
     context.request_context = mock_request_context
     mock_request_context.lifespan_context = mock_lifespan_context
+
+    # Mock elicit() to simulate user confirmation
+    mock_elicit_result = MagicMock()
+    if elicit_confirm:
+        mock_elicit_result.action = "accept"
+        mock_elicit_result.data = MagicMock()
+        mock_elicit_result.data.confirm = True
+    else:
+        mock_elicit_result.action = "decline"
+        mock_elicit_result.data = None
+
+    context.elicit = AsyncMock(return_value=mock_elicit_result)
+
     return context, mock_lifespan_context
 
 
