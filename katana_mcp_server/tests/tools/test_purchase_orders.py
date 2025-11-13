@@ -102,15 +102,20 @@ async def test_verify_order_document_perfect_match():
 
     result = await _verify_order_document_impl(request, context)
 
-    # Assertions - verify the formatted string contains expected content
-    assert isinstance(result, str)
-    assert "Perfect Match" in result
-    assert "PO-001" in result
-    assert "1234" in result
-    assert "WIDGET-001" in result
-    assert "WIDGET-002" in result
-    assert "100" in result or "100.0" in result
-    assert "50" in result or "50.0" in result
+    # Assertions
+    assert result.order_id == 1234
+    assert result.overall_status == "match"
+    assert len(result.matches) == 2
+    assert len(result.discrepancies) == 0
+    assert result.matches[0].sku == "WIDGET-001"
+    assert result.matches[0].quantity == 100.0
+    assert result.matches[0].unit_price == 25.50
+    assert result.matches[0].status == "perfect"
+    assert result.matches[1].sku == "WIDGET-002"
+    assert result.matches[1].quantity == 50.0
+    assert result.matches[1].unit_price == 30.00
+    assert result.matches[1].status == "perfect"
+    assert "All items verified successfully" in result.suggested_actions[0]
 
 
 # ============================================================================
