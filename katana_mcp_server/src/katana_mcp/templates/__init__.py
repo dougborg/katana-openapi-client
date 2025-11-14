@@ -12,6 +12,7 @@ Example:
 """
 
 from pathlib import Path
+from typing import Any
 
 # Template directory
 TEMPLATE_DIR = Path(__file__).parent
@@ -35,12 +36,15 @@ def load_template(template_name: str) -> str:
     return template_path.read_text()
 
 
-def format_template(template_name: str, **kwargs: str | int | float | None) -> str:
+def format_template(template_name: str, **kwargs: Any) -> str:
     """Load and format a markdown template.
 
     Args:
         template_name: Name of the template file (without .md extension)
-        **kwargs: Format variables to substitute in the template
+        **kwargs: Format variables to substitute in the template.
+            Accepts any type that can be formatted by str.format().
+            Note: Numeric format specifiers (e.g., {value:,.2f}) require
+            numeric types (int/float), not strings.
 
     Returns:
         Formatted template content
@@ -48,6 +52,7 @@ def format_template(template_name: str, **kwargs: str | int | float | None) -> s
     Raises:
         FileNotFoundError: If template doesn't exist
         KeyError: If required template variable is missing
+        ValueError: If format specifier doesn't match value type
     """
     template = load_template(template_name)
     return template.format(**kwargs)
