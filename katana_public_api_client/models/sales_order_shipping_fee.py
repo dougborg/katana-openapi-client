@@ -16,7 +16,8 @@ class SalesOrderShippingFee:
     """Shipping fee record associated with a sales order, tracking shipping costs and applicable taxes
 
     Example:
-        {'id': 2801, 'sales_order_id': 2001, 'amount': 25.99, 'tax_rate_id': 301, 'description': 'UPS Ground Shipping'}
+        {'id': 2801, 'sales_order_id': 2001, 'amount': '25.99', 'tax_rate_id': 301, 'description': 'UPS Ground
+            Shipping'}
     """
 
     id: int
@@ -73,7 +74,7 @@ class SalesOrderShippingFee:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         description = _parse_description(d.pop("description", UNSET))
 

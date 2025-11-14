@@ -125,7 +125,7 @@ class SalesReturnRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         return_reason_id = _parse_return_reason_id(d.pop("return_reason_id", UNSET))
 
@@ -134,7 +134,7 @@ class SalesReturnRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
@@ -143,7 +143,7 @@ class SalesReturnRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         unit_price = _parse_unit_price(d.pop("unit_price", UNSET))
 
@@ -152,7 +152,7 @@ class SalesReturnRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         total_price = _parse_total_price(d.pop("total_price", UNSET))
 

@@ -96,8 +96,7 @@ def sync_detailed(
             'sales_order_id': 2001, 'order_no': 'SR-2023-001', 'return_location_id': 1, 'currency':
             'USD', 'order_created_date': '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported
             damaged items during shipping', 'sales_return_rows': [{'variant_id': 2002, 'quantity': 2,
-            'return_reason_id': 1, 'notes': 'Packaging was damaged', 'unit_price': 25.0,
-            'total_price': 50.0}]}.
+            'return_reason_id': 1, 'notes': 'Packaging was damaged'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -134,8 +133,7 @@ def sync(
             'sales_order_id': 2001, 'order_no': 'SR-2023-001', 'return_location_id': 1, 'currency':
             'USD', 'order_created_date': '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported
             damaged items during shipping', 'sales_return_rows': [{'variant_id': 2002, 'quantity': 2,
-            'return_reason_id': 1, 'notes': 'Packaging was damaged', 'unit_price': 25.0,
-            'total_price': 50.0}]}.
+            'return_reason_id': 1, 'notes': 'Packaging was damaged'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -167,8 +165,7 @@ async def asyncio_detailed(
             'sales_order_id': 2001, 'order_no': 'SR-2023-001', 'return_location_id': 1, 'currency':
             'USD', 'order_created_date': '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported
             damaged items during shipping', 'sales_return_rows': [{'variant_id': 2002, 'quantity': 2,
-            'return_reason_id': 1, 'notes': 'Packaging was damaged', 'unit_price': 25.0,
-            'total_price': 50.0}]}.
+            'return_reason_id': 1, 'notes': 'Packaging was damaged'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -203,8 +200,7 @@ async def asyncio(
             'sales_order_id': 2001, 'order_no': 'SR-2023-001', 'return_location_id': 1, 'currency':
             'USD', 'order_created_date': '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported
             damaged items during shipping', 'sales_return_rows': [{'variant_id': 2002, 'quantity': 2,
-            'return_reason_id': 1, 'notes': 'Packaging was damaged', 'unit_price': 25.0,
-            'total_price': 50.0}]}.
+            'return_reason_id': 1, 'notes': 'Packaging was damaged'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

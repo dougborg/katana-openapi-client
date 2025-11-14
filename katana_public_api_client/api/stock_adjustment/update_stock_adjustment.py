@@ -97,8 +97,9 @@ def sync_detailed(
         id (int):
         body (UpdateStockAdjustmentRequest): Request payload for updating an existing stock
             adjustment Example: {'reference_no': 'SA-2024-003', 'location_id': 1, 'adjustment_date':
-            '2024-01-17T14:30:00.000Z', 'additional_info': 'Cycle count correction - updated',
-            'status': 'COMPLETED'}.
+            '2024-01-17T14:30:00.000Z', 'reason': 'Cycle count correction', 'additional_info': 'Cycle
+            count correction - updated with final counts', 'status': 'COMPLETED',
+            'stock_adjustment_rows': [{'variant_id': 501, 'quantity': 95, 'cost_per_unit': 123.45}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -136,8 +137,9 @@ def sync(
         id (int):
         body (UpdateStockAdjustmentRequest): Request payload for updating an existing stock
             adjustment Example: {'reference_no': 'SA-2024-003', 'location_id': 1, 'adjustment_date':
-            '2024-01-17T14:30:00.000Z', 'additional_info': 'Cycle count correction - updated',
-            'status': 'COMPLETED'}.
+            '2024-01-17T14:30:00.000Z', 'reason': 'Cycle count correction', 'additional_info': 'Cycle
+            count correction - updated with final counts', 'status': 'COMPLETED',
+            'stock_adjustment_rows': [{'variant_id': 501, 'quantity': 95, 'cost_per_unit': 123.45}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -170,8 +172,9 @@ async def asyncio_detailed(
         id (int):
         body (UpdateStockAdjustmentRequest): Request payload for updating an existing stock
             adjustment Example: {'reference_no': 'SA-2024-003', 'location_id': 1, 'adjustment_date':
-            '2024-01-17T14:30:00.000Z', 'additional_info': 'Cycle count correction - updated',
-            'status': 'COMPLETED'}.
+            '2024-01-17T14:30:00.000Z', 'reason': 'Cycle count correction', 'additional_info': 'Cycle
+            count correction - updated with final counts', 'status': 'COMPLETED',
+            'stock_adjustment_rows': [{'variant_id': 501, 'quantity': 95, 'cost_per_unit': 123.45}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -207,8 +210,9 @@ async def asyncio(
         id (int):
         body (UpdateStockAdjustmentRequest): Request payload for updating an existing stock
             adjustment Example: {'reference_no': 'SA-2024-003', 'location_id': 1, 'adjustment_date':
-            '2024-01-17T14:30:00.000Z', 'additional_info': 'Cycle count correction - updated',
-            'status': 'COMPLETED'}.
+            '2024-01-17T14:30:00.000Z', 'reason': 'Cycle count correction', 'additional_info': 'Cycle
+            count correction - updated with final counts', 'status': 'COMPLETED',
+            'stock_adjustment_rows': [{'variant_id': 501, 'quantity': 95, 'cost_per_unit': 123.45}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

@@ -26,9 +26,9 @@ class ManufacturingOrderRecipeRow:
 
         Example:
             {'id': 4001, 'manufacturing_order_id': 3001, 'variant_id': 3201, 'notes': 'Use only grade 304 material',
-                'planned_quantity_per_unit': 2.5, 'total_actual_quantity': 125.0, 'ingredient_availability': 'AVAILABLE',
-                'ingredient_expected_date': None, 'batch_transactions': [{'batch_id': 1201, 'quantity': 125.0}], 'cost': 437.5,
-                'created_at': '2024-01-15T08:00:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}
+                'planned_quantity_per_unit': 2.5, 'total_actual_quantity': 125.0, 'ingredient_availability': 'IN_STOCK',
+                'batch_transactions': [{'batch_id': 1201, 'quantity': 125.0}], 'cost': 437.5, 'created_at':
+                '2024-01-15T08:00:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}
     """
 
     id: int
@@ -162,7 +162,7 @@ class ManufacturingOrderRecipeRow:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

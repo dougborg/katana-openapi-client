@@ -233,7 +233,7 @@ class PurchaseOrderRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         conversion_rate = _parse_conversion_rate(d.pop("conversion_rate", UNSET))
 
@@ -254,7 +254,7 @@ class PurchaseOrderRow:
                 return conversion_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         conversion_date = _parse_conversion_date(d.pop("conversion_date", UNSET))
 
@@ -271,7 +271,7 @@ class PurchaseOrderRow:
                 return received_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         received_date = _parse_received_date(d.pop("received_date", UNSET))
 
@@ -288,7 +288,7 @@ class PurchaseOrderRow:
                 return arrival_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         arrival_date = _parse_arrival_date(d.pop("arrival_date", UNSET))
 
@@ -306,7 +306,7 @@ class PurchaseOrderRow:
         def _parse_landed_cost(data: object) -> Unset | float | str:
             if isinstance(data, Unset):
                 return data
-            return cast(Unset | float | str, data)
+            return cast(Unset | float | str, data)  # type: ignore[return-value]
 
         landed_cost = _parse_landed_cost(d.pop("landed_cost", UNSET))
 

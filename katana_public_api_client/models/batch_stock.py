@@ -107,7 +107,7 @@ class BatchStock:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         batch_barcode = _parse_batch_barcode(d.pop("batch_barcode", UNSET))
 

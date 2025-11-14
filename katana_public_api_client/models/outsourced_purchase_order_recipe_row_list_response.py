@@ -22,9 +22,9 @@ class OutsourcedPurchaseOrderRecipeRowListResponse:
     """Response containing a list of outsourced purchase order recipe rows for externally manufactured products
 
     Example:
-        {'data': [{'id': 6001, 'purchase_order_id': 1001, 'variant_id': 2002, 'planned_quantity_per_unit': 2.5,
-            'ingredient_availability': 'AVAILABLE', 'ingredient_expected_date': '2023-10-15T08:00:00Z', 'notes': 'Supplier
-            will handle assembly'}]}
+        {'data': [{'id': 6001, 'material_id': 1, 'purchase_order_id': 1001, 'purchase_order_row_id': 1001, 'variant_id':
+            2002, 'ingredient_variant_id': 2002, 'planned_quantity_per_unit': 2.5, 'ingredient_availability': 'IN_STOCK',
+            'ingredient_expected_date': '2023-10-15T08:00:00Z', 'notes': 'Supplier will handle assembly'}]}
     """
 
     data: Unset | list["OutsourcedPurchaseOrderRecipeRow"] = UNSET

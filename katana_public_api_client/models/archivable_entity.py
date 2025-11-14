@@ -18,7 +18,8 @@ class ArchivableEntity:
     """Common fields for entities that can be archived
 
     Example:
-        {'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'archived_at': None}
+        {'id': 12345, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'archived_at':
+            None}
     """
 
     id: int
@@ -94,7 +95,7 @@ class ArchivableEntity:
                 return archived_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
