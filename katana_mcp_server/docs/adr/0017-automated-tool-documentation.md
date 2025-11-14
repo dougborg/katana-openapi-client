@@ -142,13 +142,16 @@ Benefits:
 - Usage pattern analysis
 - No manual logging code needed
 
-#### Layer 4: Tool Metadata Generator
+#### Layer 4: Tool Metadata Generator (Pending)
 
-`scripts/generate_tools_json.py` auto-generates MCP tool metadata for discovery and
+**Status**: Implementation pending in
+[PR #170](https://github.com/dougborg/katana-openapi-client/pull/170)
+
+`scripts/generate_tools_json.py` will auto-generate MCP tool metadata for discovery and
 Docker registry:
 
 ```python
-# Extracts:
+# Will extract:
 # - Tool names from function definitions
 # - Descriptions from first line of docstrings
 # - Parameters from Pydantic models (via AST parsing)
@@ -158,12 +161,16 @@ $ python scripts/generate_tools_json.py -o tools.json --pretty
 
 **Output**: `tools.json` for Docker MCP Registry submission
 
-#### Layer 5: Template-Based Responses (Optional)
+#### Layer 5: Template-Based Responses (Optional, Pending)
 
-For tools with complex multi-format responses, externalized markdown templates provide
-consistent formatting:
+**Status**: Implementation pending in
+[PR #169](https://github.com/dougborg/katana-openapi-client/pull/169)
+
+For tools with complex multi-format responses, externalized markdown templates will
+provide consistent formatting:
 
 ```python
+# Future API (pending PR #169):
 from katana_mcp.templates import format_template
 
 result = format_template(
@@ -174,7 +181,7 @@ result = format_template(
 )
 ```
 
-Templates live in `katana_mcp_server/src/katana_mcp/templates/*.md`
+Templates will live in `katana_mcp_server/src/katana_mcp/templates/*.md`
 
 ### Documentation Standards
 
@@ -218,15 +225,18 @@ Templates live in `katana_mcp_server/src/katana_mcp/templates/*.md`
 1. Write comprehensive docstring following Layer 1 standards
 1. Add field descriptions to all Pydantic models (Layer 2)
 1. Apply `@observe_tool` decorator (Layer 3)
-1. Run `scripts/generate_tools_json.py` to update metadata (Layer 4)
-1. (Optional) Create response template if needed (Layer 5)
+1. (Future) Run `scripts/generate_tools_json.py` to update metadata (Layer 4, pending PR
+   #170)
+1. (Optional, Future) Create response template if needed (Layer 5, pending PR #169)
 
 ### Maintaining Documentation
 
 - **Code Changes**: Update docstrings and field descriptions
 - **Examples**: Keep example requests/responses current with API
-- **Metadata**: Regenerate `tools.json` before each release
-- **Templates**: Update templates when response format changes
+- **Metadata**: (Future) Regenerate `tools.json` before each release (once PR #170 is
+  merged)
+- **Templates**: (Future) Update templates when response format changes (once PR #169 is
+  merged)
 
 ## Alternatives Considered
 
@@ -281,12 +291,13 @@ Require templates for all tool responses.
 - Layer 1: Comprehensive docstrings on all tools ✅
 - Layer 2: Field descriptions on all Pydantic models ✅
 - Layer 3: `@observe_tool` decorator on all tools ✅
-- Layer 4: `scripts/generate_tools_json.py` generator ✅
 
-**Partially Implemented**:
+**Pending Implementation**:
 
-- Layer 5: Templates for `verify_order_document` tool ✅
-- Layer 5: Templates for other tools (future work)
+- Layer 4: `scripts/generate_tools_json.py` generator (see
+  [PR #170](https://github.com/dougborg/katana-openapi-client/pull/170))
+- Layer 5: Templates for tool responses (see
+  [PR #169](https://github.com/dougborg/katana-openapi-client/pull/169))
 
 **Documentation Coverage**:
 
@@ -321,14 +332,11 @@ Require templates for all tool responses.
 
 - [ADR-0016: Tool Interface Pattern](0016-tool-interface-pattern.md)
 - [ADR-004: Defer Observability to httpx](../../katana_public_api_client/docs/adr/0004-defer-observability-to-httpx.md)
-- [scripts/generate_tools_json.py](../../../scripts/generate_tools_json.py) - Metadata
-  generator
-- [katana_mcp/templates/](../../src/katana_mcp/templates/) - Response templates
 - [katana_mcp/logging.py](../../src/katana_mcp/logging.py) - Observability decorators
 - [Google Style Docstrings](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
 - [PR #167](https://github.com/dougborg/katana-openapi-client/pull/167) - Observability
   decorators
 - [PR #169](https://github.com/dougborg/katana-openapi-client/pull/169) - Template
-  externalization
+  externalization (pending)
 - [PR #170](https://github.com/dougborg/katana-openapi-client/pull/170) - Tools.json
-  generator
+  generator (pending)
