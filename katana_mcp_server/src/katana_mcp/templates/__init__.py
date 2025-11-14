@@ -7,7 +7,15 @@ business logic and response formatting.
 Example:
     >>> from katana_mcp.templates import format_template
     >>> result = format_template(
-    ...     "order_created", order_number="PO-2024-001", order_id=1234
+    ...     "order_created",
+    ...     order_number="PO-2024-001",
+    ...     order_id=1234,
+    ...     supplier_id=42,
+    ...     location_id=1,
+    ...     total_cost=2550.00,
+    ...     currency="USD",
+    ...     created_at="2024-01-15T10:30:00Z",
+    ...     status="NOT_RECEIVED",
     ... )
 """
 
