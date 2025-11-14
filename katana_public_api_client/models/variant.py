@@ -209,7 +209,7 @@ class Variant:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -218,7 +218,7 @@ class Variant:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         sales_price = _parse_sales_price(d.pop("sales_price", UNSET))
 
@@ -227,7 +227,7 @@ class Variant:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         product_id = _parse_product_id(d.pop("product_id", UNSET))
 
@@ -236,7 +236,7 @@ class Variant:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         material_id = _parse_material_id(d.pop("material_id", UNSET))
 
@@ -260,7 +260,7 @@ class Variant:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
 
@@ -269,7 +269,7 @@ class Variant:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         minimum_order_quantity = _parse_minimum_order_quantity(
             d.pop("minimum_order_quantity", UNSET)

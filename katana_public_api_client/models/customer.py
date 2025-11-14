@@ -224,7 +224,7 @@ class Customer:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -233,7 +233,7 @@ class Customer:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         first_name = _parse_first_name(d.pop("first_name", UNSET))
 
@@ -242,7 +242,7 @@ class Customer:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         last_name = _parse_last_name(d.pop("last_name", UNSET))
 
@@ -251,7 +251,7 @@ class Customer:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         company = _parse_company(d.pop("company", UNSET))
 
@@ -260,7 +260,7 @@ class Customer:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         email = _parse_email(d.pop("email", UNSET))
 
@@ -269,7 +269,7 @@ class Customer:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         phone = _parse_phone(d.pop("phone", UNSET))
 
@@ -278,7 +278,7 @@ class Customer:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         comment = _parse_comment(d.pop("comment", UNSET))
 
@@ -289,7 +289,7 @@ class Customer:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         reference_id = _parse_reference_id(d.pop("reference_id", UNSET))
 
@@ -298,7 +298,7 @@ class Customer:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         category = _parse_category(d.pop("category", UNSET))
 
@@ -307,7 +307,7 @@ class Customer:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         discount_rate = _parse_discount_rate(d.pop("discount_rate", UNSET))
 
@@ -316,7 +316,7 @@ class Customer:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         default_billing_id = _parse_default_billing_id(
             d.pop("default_billing_id", UNSET)
@@ -327,7 +327,7 @@ class Customer:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         default_shipping_id = _parse_default_shipping_id(
             d.pop("default_shipping_id", UNSET)

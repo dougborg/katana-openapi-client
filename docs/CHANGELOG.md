@@ -2,6 +2,129 @@
 
 <!-- version list -->
 
+## v0.33.0 (2025-11-14)
+
+### Chores
+
+- Configure yamllint with 120 char line length
+  ([#173](https://github.com/dougborg/katana-openapi-client/pull/173),
+  [`fe49bd2`](https://github.com/dougborg/katana-openapi-client/commit/fe49bd2b51bd8480f5994db38e1a15a88097c5d6))
+
+- Consolidate config and cleanup documentation
+  ([`36a2b0f`](https://github.com/dougborg/katana-openapi-client/commit/36a2b0f87151eb6c2d74c733a57226a411a6d0b5))
+
+- **actions)(deps**: Bump the github-actions group with 2 updates
+  ([`7ca453a`](https://github.com/dougborg/katana-openapi-client/commit/7ca453ac54954b0ea8a45279749356ae83e7d98a))
+
+- **release**: Mcp v0.10.0
+  ([`14f1835`](https://github.com/dougborg/katana-openapi-client/commit/14f183557e2dc172ed952e8da1a7e016934e12a6))
+
+- **release**: Mcp v0.11.0
+  ([`74d0dd2`](https://github.com/dougborg/katana-openapi-client/commit/74d0dd2e7cd882606cce67f2460dceb8507fa352))
+
+- **release**: Mcp v0.12.0
+  ([`1e54f96`](https://github.com/dougborg/katana-openapi-client/commit/1e54f96a9790e272265a67d41aa5f3d99c4e40bf))
+
+- **release**: Mcp v0.13.0
+  ([`911b0ef`](https://github.com/dougborg/katana-openapi-client/commit/911b0efdd5e22d5ddde46781576f8ab28d62a82d))
+
+- **release**: Mcp v0.14.0
+  ([`8f33a95`](https://github.com/dougborg/katana-openapi-client/commit/8f33a959b011eaa037f10b9323ebed51827a292f))
+
+- **release**: Mcp v0.15.0
+  ([`5310d08`](https://github.com/dougborg/katana-openapi-client/commit/5310d08626e8fad4572e139f95566381c4cf45dd))
+
+- **release**: Mcp v0.16.0
+  ([`65b09a0`](https://github.com/dougborg/katana-openapi-client/commit/65b09a0d0c39c81505581e42f1fded9ad426c34a))
+
+- **release**: Mcp v0.9.0
+  ([`2ec7337`](https://github.com/dougborg/katana-openapi-client/commit/2ec73379b775646bad3bd4adc2bd39b5cbfeb4fc))
+
+### Documentation
+
+- **client**: Add pending changelog entry for stock adjustment rows
+  ([#178](https://github.com/dougborg/katana-openapi-client/pull/178),
+  [`6ef834e`](https://github.com/dougborg/katana-openapi-client/commit/6ef834ebfd765e0ad982a5db6561fa7a68823b16))
+
+- **mcp**: Add comprehensive documentation for observability decorators to LOGGING.md
+  ([#172](https://github.com/dougborg/katana-openapi-client/pull/172),
+  [`c1c2a48`](https://github.com/dougborg/katana-openapi-client/commit/c1c2a48011b2ba8319f40989556de8bacaa207de))
+
+- **mcp**: Add tools.json generator documentation to docker.md
+  ([#175](https://github.com/dougborg/katana-openapi-client/pull/175),
+  [`9c2c6f2`](https://github.com/dougborg/katana-openapi-client/commit/9c2c6f27e55424c67e1920df06902f29c5957a7d))
+
+### Features
+
+- **client**: Add stock adjustment rows, reason field, and regen script improvements
+  (#178) ([#179](https://github.com/dougborg/katana-openapi-client/pull/179),
+  [`c57c5f3`](https://github.com/dougborg/katana-openapi-client/commit/c57c5f39682fe4d2a19af227070565c2c978452c))
+
+- **mcp**: Add @observe_tool and @observe_service decorators with tests
+  ([#172](https://github.com/dougborg/katana-openapi-client/pull/172),
+  [`c1c2a48`](https://github.com/dougborg/katana-openapi-client/commit/c1c2a48011b2ba8319f40989556de8bacaa207de))
+
+- **mcp**: Add FastMCP elicitation pattern to destructive operations
+  ([#173](https://github.com/dougborg/katana-openapi-client/pull/173),
+  [`fe49bd2`](https://github.com/dougborg/katana-openapi-client/commit/fe49bd2b51bd8480f5994db38e1a15a88097c5d6))
+
+- **mcp**: Add observability decorators for automatic tool instrumentation
+  ([#172](https://github.com/dougborg/katana-openapi-client/pull/172),
+  [`c1c2a48`](https://github.com/dougborg/katana-openapi-client/commit/c1c2a48011b2ba8319f40989556de8bacaa207de))
+
+- **mcp**: Add resources foundation and first inventory/items resource
+  ([`c0b5459`](https://github.com/dougborg/katana-openapi-client/commit/c0b54593e54c268cd9e170af2b6cfdb0cd56c2d2))
+
+- **mcp**: Add tools.json generator for Docker MCP Registry submission
+  ([#175](https://github.com/dougborg/katana-openapi-client/pull/175),
+  [`9c2c6f2`](https://github.com/dougborg/katana-openapi-client/commit/9c2c6f27e55424c67e1920df06902f29c5957a7d))
+
+- **mcp**: Add tools.json generator script with comprehensive tests
+  ([#175](https://github.com/dougborg/katana-openapi-client/pull/175),
+  [`9c2c6f2`](https://github.com/dougborg/katana-openapi-client/commit/9c2c6f27e55424c67e1920df06902f29c5957a7d))
+
+- **mcp**: Apply @observe_tool decorator to all foundation tools
+  ([#172](https://github.com/dougborg/katana-openapi-client/pull/172),
+  [`c1c2a48`](https://github.com/dougborg/katana-openapi-client/commit/c1c2a48011b2ba8319f40989556de8bacaa207de))
+
+- **mcp**: Apply Unpack decorator to all remaining MCP tools
+  ([`ef59809`](https://github.com/dougborg/katana-openapi-client/commit/ef5980912bb2afa40b1b2d41a7c45639a33ba237))
+
+- **mcp**: Implement FastMCP elicitation pattern for destructive operations
+  ([#173](https://github.com/dougborg/katana-openapi-client/pull/173),
+  [`fe49bd2`](https://github.com/dougborg/katana-openapi-client/commit/fe49bd2b51bd8480f5994db38e1a15a88097c5d6))
+
+- **mcp**: Implement remaining MCP resources for inventory and orders
+  ([`062fedd`](https://github.com/dougborg/katana-openapi-client/commit/062feddcd2a2fc789e35b8c5ba1cc0d1c836cfb3))
+
+- **mcp**: Implement Unpack decorator for flat tool parameters
+  ([`862ce79`](https://github.com/dougborg/katana-openapi-client/commit/862ce79f10c244c3b711487cccbed7ccf744d27f))
+
+- **mcp**: Implement Unpack decorator for flat tool parameters
+  ([`a025ca9`](https://github.com/dougborg/katana-openapi-client/commit/a025ca98e0f8d279da03471800b7ebeb8da20ec7))
+
+- **mcp**: Update client dependency to v0.32.0
+  ([#158](https://github.com/dougborg/katana-openapi-client/pull/158),
+  [`ff8f2be`](https://github.com/dougborg/katana-openapi-client/commit/ff8f2be1ab84d5cabeffa41b32e425a7ad0dc41f))
+
+### Refactoring
+
+- **mcp**: Extract ConfirmationSchema to shared module
+  ([#173](https://github.com/dougborg/katana-openapi-client/pull/173),
+  [`fe49bd2`](https://github.com/dougborg/katana-openapi-client/commit/fe49bd2b51bd8480f5994db38e1a15a88097c5d6))
+
+### Testing
+
+- **mcp**: Add test reproducing Claude Code parameter passing issue
+  ([`05f643e`](https://github.com/dougborg/katana-openapi-client/commit/05f643eabf2880c3577259baf4b81a9e4433ce4f))
+
+- **mcp**: Fix integration tests with pytest-asyncio fixture decorator
+  ([`36db39d`](https://github.com/dougborg/katana-openapi-client/commit/36db39d548f4573a1714d56a99dff3355b5f0a96))
+
+- **mcp**: Fix wrapper test to call implementation directly
+  ([#173](https://github.com/dougborg/katana-openapi-client/pull/173),
+  [`fe49bd2`](https://github.com/dougborg/katana-openapi-client/commit/fe49bd2b51bd8480f5994db38e1a15a88097c5d6))
+
 ## v0.32.0 (2025-11-08)
 
 ### Bug Fixes

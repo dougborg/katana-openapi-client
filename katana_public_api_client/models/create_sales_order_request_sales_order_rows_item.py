@@ -103,7 +103,7 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         tax_rate_id = _parse_tax_rate_id(d.pop("tax_rate_id", UNSET))
 
@@ -112,7 +112,7 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         location_id = _parse_location_id(d.pop("location_id", UNSET))
 
@@ -121,7 +121,7 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         price_per_unit = _parse_price_per_unit(d.pop("price_per_unit", UNSET))
 
@@ -130,7 +130,7 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         total_discount = _parse_total_discount(d.pop("total_discount", UNSET))
 

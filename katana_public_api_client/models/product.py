@@ -266,7 +266,7 @@ class Product:
                 return archived_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
@@ -281,7 +281,7 @@ class Product:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         default_supplier_id = _parse_default_supplier_id(
             d.pop("default_supplier_id", UNSET)
@@ -296,7 +296,7 @@ class Product:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         purchase_uom = _parse_purchase_uom(d.pop("purchase_uom", UNSET))
 
@@ -305,7 +305,7 @@ class Product:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         purchase_uom_conversion_rate = _parse_purchase_uom_conversion_rate(
             d.pop("purchase_uom_conversion_rate", UNSET)
@@ -316,7 +316,7 @@ class Product:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)
@@ -344,7 +344,7 @@ class Product:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                supplier_type_0 = Supplier.from_dict(data)  # type: ignore[arg-type]
+                supplier_type_0 = Supplier.from_dict(cast(Mapping[str, Any], data))
 
                 return supplier_type_0
             except:  # noqa: E722
@@ -368,7 +368,7 @@ class Product:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
 
@@ -377,7 +377,7 @@ class Product:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         minimum_order_quantity = _parse_minimum_order_quantity(
             d.pop("minimum_order_quantity", UNSET)

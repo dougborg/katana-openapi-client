@@ -167,5 +167,8 @@ coverage.json
 api_analysis_results.json
 validation_results.json
 
+# Generated MCP metadata
+tools.json
+
 # Claude
 .claude/settings.local.json

@@ -108,7 +108,7 @@ class UpdateServiceRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         sales_price = _parse_sales_price(d.pop("sales_price", UNSET))
 
@@ -117,7 +117,7 @@ class UpdateServiceRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         default_cost = _parse_default_cost(d.pop("default_cost", UNSET))
 
@@ -128,7 +128,7 @@ class UpdateServiceRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)

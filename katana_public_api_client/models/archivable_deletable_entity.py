@@ -94,7 +94,7 @@ class ArchivableDeletableEntity:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
@@ -103,7 +103,7 @@ class ArchivableDeletableEntity:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

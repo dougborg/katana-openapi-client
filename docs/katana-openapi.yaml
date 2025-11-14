@@ -7788,6 +7788,58 @@ components:
         ecommerce_order_type: wholesale
         ecommerce_store_name: B2B Portal
         ecommerce_order_id: B2B-7891-2024
+    StockAdjustmentBatchTransaction:
+      description: Batch-specific transaction for tracking stock adjustments per batch
+      type: object
+      additionalProperties: false
+      required:
+        - batch_id
+        - quantity
+      properties:
+        batch_id:
+          type: integer
+          description: Unique identifier for the batch being adjusted
+        quantity:
+          type: number
+          description: Quantity adjusted for this specific batch
+      example:
+        batch_id: 1001
+        quantity: 50
+    StockAdjustmentRow:
+      description: Individual line item in a stock adjustment showing specific variant and quantity changes
+      type: object
+      additionalProperties: false
+      required:
+        - variant_id
+        - quantity
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the stock adjustment row (present in responses only)
+        variant_id:
+          type: integer
+          description: ID of the product or material variant being adjusted
+        quantity:
+          type: number
+          description: Quantity to adjust (positive or negative)
+        cost_per_unit:
+          type: number
+          description: Cost per unit for this adjustment (defaults to current average cost if not specified)
+        batch_transactions:
+          type: array
+          description: Optional batch-specific adjustments for tracked inventory
+          items:
+            $ref: "#/components/schemas/StockAdjustmentBatchTransaction"
+      example:
+        id: 3001
+        variant_id: 501
+        quantity: 100
+        cost_per_unit: 123.45
+        batch_transactions:
+          - batch_id: 1001
+            quantity: 50
+          - batch_id: 1002
+            quantity: 50
     StockAdjustment:
       description:
         Manual inventory adjustment record for correcting stock discrepancies and maintaining accurate inventory
@@ -7819,11 +7871,21 @@ components:
               type: string
               format: date-time
               description: Date and time when the adjustment was performed
+            reason:
+              type:
+                - string
+                - "null"
+              description: Reason for the stock adjustment
             additional_info:
               type:
                 - string
                 - "null"
               description: Optional notes or comments about the adjustment reason
+            stock_adjustment_rows:
+              type: array
+              description: Line items showing specific variants and quantities being adjusted
+              items:
+                $ref: "#/components/schemas/StockAdjustmentRow"
           required:
             - id
             - stock_adjustment_number
@@ -7835,7 +7897,22 @@ components:
         location_id: 1
         status: COMPLETED
         adjustment_date: "2024-01-15T14:30:00.000Z"
+        reason: Cycle count discrepancy
         additional_info: Physical count discrepancy correction
+        stock_adjustment_rows:
+          - id: 3001
+            variant_id: 501
+            quantity: 100
+            cost_per_unit: 123.45
+            batch_transactions:
+              - batch_id: 1001
+                quantity: 50
+              - batch_id: 1002
+                quantity: 50
+          - id: 3002
+            variant_id: 502
+            quantity: 150
+            cost_per_unit: 234.56
         created_at: "2024-01-15T14:30:00.000Z"
         updated_at: "2024-01-15T14:30:00.000Z"
         deleted_at: null
@@ -7856,7 +7933,17 @@ components:
             location_id: 1
             status: COMPLETED
             adjustment_date: "2024-01-15T14:30:00.000Z"
+            reason: Cycle count discrepancy
             additional_info: Physical count discrepancy correction
+            stock_adjustment_rows:
+              - id: 3001
+                variant_id: 501
+                quantity: 100
+                cost_per_unit: 123.45
+              - id: 3002
+                variant_id: 502
+                quantity: -10
+                cost_per_unit: 234.56
             created_at: "2024-01-15T14:30:00.000Z"
             updated_at: "2024-01-15T14:30:00.000Z"
             deleted_at: null
@@ -7866,7 +7953,13 @@ components:
             location_id: 2
             status: DRAFT
             adjustment_date: "2024-01-16T10:00:00.000Z"
+            reason: Damaged goods
             additional_info: Damaged goods write-off
+            stock_adjustment_rows:
+              - id: 3003
+                variant_id: 503
+                quantity: -5
+                cost_per_unit: 89.99
             created_at: "2024-01-16T10:00:00.000Z"
             updated_at: "2024-01-16T10:00:00.000Z"
             deleted_at: null
@@ -7878,6 +7971,7 @@ components:
         - reference_no
         - location_id
         - adjustment_date
+        - stock_adjustment_rows
       properties:
         reference_no:
           type: string
@@ -7889,6 +7983,9 @@ components:
           type: string
           format: date-time
           description: Date and time when the adjustment was performed
+        reason:
+          type: string
+          description: Reason for the stock adjustment
         additional_info:
           type: string
           description: Optional notes or comments about the adjustment reason
@@ -7899,12 +7996,46 @@ components:
             - DRAFT
             - COMPLETED
           default: DRAFT
+        stock_adjustment_rows:
+          type: array
+          description: Line items specifying variants and quantities to adjust
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - variant_id
+              - quantity
+            properties:
+              variant_id:
+                type: integer
+                description: ID of the product or material variant being adjusted
+              quantity:
+                type: number
+                description: Quantity to adjust (positive or negative)
+              cost_per_unit:
+                type: number
+                description: Cost per unit for this adjustment (defaults to current average cost if not specified)
+              batch_transactions:
+                type: array
+                description: Optional batch-specific adjustments for tracked inventory
+                minItems: 1
+                items:
+                  $ref: "#/components/schemas/StockAdjustmentBatchTransaction"
       example:
         reference_no: SA-2024-003
         location_id: 1
         adjustment_date: "2024-01-17T14:30:00.000Z"
-        additional_info: Cycle count correction
+        reason: Cycle count correction
+        additional_info: Q1 2024 physical inventory
         status: DRAFT
+        stock_adjustment_rows:
+          - variant_id: 501
+            quantity: 100
+            cost_per_unit: 123.45
+          - variant_id: 502
+            quantity: -25
+            cost_per_unit: 234.56
     UpdateStockAdjustmentRequest:
       description: Request payload for updating an existing stock adjustment
       type: object
@@ -7920,6 +8051,9 @@ components:
           type: string
           format: date-time
           description: Date and time when the adjustment was performed
+        reason:
+          type: string
+          description: Reason for the stock adjustment
         additional_info:
           type: string
           description: Optional notes or comments about the adjustment reason
@@ -7929,12 +8063,43 @@ components:
           enum:
             - DRAFT
             - COMPLETED
+        stock_adjustment_rows:
+          type: array
+          description: Line items specifying variants and quantities to adjust
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - variant_id
+              - quantity
+            properties:
+              variant_id:
+                type: integer
+                description: ID of the product or material variant being adjusted
+              quantity:
+                type: number
+                description: Quantity to adjust (positive or negative)
+              cost_per_unit:
+                type: number
+                description: Cost per unit for this adjustment (defaults to current average cost if not specified)
+              batch_transactions:
+                type: array
+                description: Optional batch-specific adjustments for tracked inventory
+                minItems: 1
+                items:
+                  $ref: "#/components/schemas/StockAdjustmentBatchTransaction"
       example:
         reference_no: SA-2024-003
         location_id: 1
         adjustment_date: "2024-01-17T14:30:00.000Z"
-        additional_info: Cycle count correction - updated
+        reason: Cycle count correction
+        additional_info: Cycle count correction - updated with final counts
         status: COMPLETED
+        stock_adjustment_rows:
+          - variant_id: 501
+            quantity: 95
+            cost_per_unit: 123.45
     StockTransfer:
       description: Inventory transfer record for moving stock between different warehouse locations or facilities
       allOf:

@@ -29,14 +29,15 @@ class CreateSalesOrderRequest:
         {'order_no': 'SO-2024-002', 'customer_id': 1501, 'sales_order_rows': [{'quantity': 3, 'variant_id': 2101,
             'tax_rate_id': 301, 'location_id': 1, 'price_per_unit': 599.99, 'total_discount': 50.0, 'attributes': [{'key':
             'engrave_text', 'value': 'Professional Kitchen'}, {'key': 'rush_order', 'value': 'true'}]}], 'tracking_number':
-            None, 'tracking_number_url': None, 'addresses': [{'entity_type': 'billing', 'first_name': 'David', 'last_name':
-            'Wilson', 'company': "Wilson's Catering", 'line_1': '456 Commerce Ave', 'city': 'Seattle', 'state': 'WA', 'zip':
-            '98101', 'country': 'US'}, {'entity_type': 'shipping', 'first_name': 'David', 'last_name': 'Wilson', 'company':
-            "Wilson's Catering", 'line_1': '789 Industrial Blvd', 'city': 'Seattle', 'state': 'WA', 'zip': '98102',
-            'country': 'US'}], 'order_created_date': '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z',
-            'currency': 'USD', 'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
-            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale', 'ecommerce_store_name':
-            'B2B Portal', 'ecommerce_order_id': 'B2B-7891-2024'}
+            None, 'tracking_number_url': None, 'addresses': [{'id': 1, 'sales_order_id': 2001, 'entity_type': 'billing',
+            'first_name': 'David', 'last_name': 'Wilson', 'company': "Wilson's Catering", 'line_1': '456 Commerce Ave',
+            'city': 'Seattle', 'state': 'WA', 'zip': '98101', 'country': 'US'}, {'id': 2, 'sales_order_id': 2001,
+            'entity_type': 'shipping', 'first_name': 'David', 'last_name': 'Wilson', 'company': "Wilson's Catering",
+            'line_1': '789 Industrial Blvd', 'city': 'Seattle', 'state': 'WA', 'zip': '98102', 'country': 'US'}],
+            'order_created_date': '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z', 'currency': 'USD',
+            'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning delivery', 'customer_ref':
+            'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale', 'ecommerce_store_name': 'B2B Portal',
+            'ecommerce_order_id': 'B2B-7891-2024'}
 
     Attributes:
         order_no (str): Unique order number for tracking and reference
@@ -228,7 +229,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
@@ -237,7 +238,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         tracking_number_url = _parse_tracking_number_url(
             d.pop("tracking_number_url", UNSET)
@@ -263,7 +264,7 @@ class CreateSalesOrderRequest:
                 return order_created_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         order_created_date = _parse_order_created_date(
             d.pop("order_created_date", UNSET)
@@ -282,7 +283,7 @@ class CreateSalesOrderRequest:
                 return delivery_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         delivery_date = _parse_delivery_date(d.pop("delivery_date", UNSET))
 
@@ -291,7 +292,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         currency = _parse_currency(d.pop("currency", UNSET))
 
@@ -309,7 +310,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
@@ -318,7 +319,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         customer_ref = _parse_customer_ref(d.pop("customer_ref", UNSET))
 
@@ -327,7 +328,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         ecommerce_order_type = _parse_ecommerce_order_type(
             d.pop("ecommerce_order_type", UNSET)
@@ -338,7 +339,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         ecommerce_store_name = _parse_ecommerce_store_name(
             d.pop("ecommerce_store_name", UNSET)
@@ -349,7 +350,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         ecommerce_order_id = _parse_ecommerce_order_id(
             d.pop("ecommerce_order_id", UNSET)

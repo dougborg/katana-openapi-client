@@ -1,6 +1,6 @@
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -11,6 +11,10 @@ from dateutil.parser import isoparse
 from ..client_types import UNSET, Unset
 from ..models.stock_adjustment_status import StockAdjustmentStatus
 
+if TYPE_CHECKING:
+    from ..models.stock_adjustment_row import StockAdjustmentRow
+
+
 T = TypeVar("T", bound="StockAdjustment")
 
 
@@ -20,8 +24,11 @@ class StockAdjustment:
 
     Example:
         {'id': 2001, 'stock_adjustment_number': 'SA-2024-001', 'location_id': 1, 'status': 'COMPLETED',
-            'adjustment_date': '2024-01-15T14:30:00.000Z', 'additional_info': 'Physical count discrepancy correction',
-            'created_at': '2024-01-15T14:30:00.000Z', 'updated_at': '2024-01-15T14:30:00.000Z', 'deleted_at': None}
+            'adjustment_date': '2024-01-15T14:30:00.000Z', 'reason': 'Cycle count discrepancy', 'additional_info': 'Physical
+            count discrepancy correction', 'stock_adjustment_rows': [{'id': 3001, 'variant_id': 501, 'quantity': 100,
+            'cost_per_unit': 123.45, 'batch_transactions': [{'batch_id': 1001, 'quantity': 50}, {'batch_id': 1002,
+            'quantity': 50}]}, {'id': 3002, 'variant_id': 502, 'quantity': 150, 'cost_per_unit': 234.56}], 'created_at':
+            '2024-01-15T14:30:00.000Z', 'updated_at': '2024-01-15T14:30:00.000Z', 'deleted_at': None}
     """
 
     id: int
@@ -33,7 +40,9 @@ class StockAdjustment:
     reference_no: None | Unset | str = UNSET
     status: Unset | StockAdjustmentStatus = UNSET
     adjustment_date: Unset | datetime.datetime = UNSET
+    reason: None | Unset | str = UNSET
     additional_info: None | Unset | str = UNSET
+    stock_adjustment_rows: Unset | list["StockAdjustmentRow"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -73,11 +82,24 @@ class StockAdjustment:
         if not isinstance(self.adjustment_date, Unset):
             adjustment_date = self.adjustment_date.isoformat()
 
+        reason: None | Unset | str
+        if isinstance(self.reason, Unset):
+            reason = UNSET
+        else:
+            reason = self.reason
+
         additional_info: None | Unset | str
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
         else:
             additional_info = self.additional_info
+
+        stock_adjustment_rows: Unset | list[dict[str, Any]] = UNSET
+        if not isinstance(self.stock_adjustment_rows, Unset):
+            stock_adjustment_rows = []
+            for stock_adjustment_rows_item_data in self.stock_adjustment_rows:
+                stock_adjustment_rows_item = stock_adjustment_rows_item_data.to_dict()
+                stock_adjustment_rows.append(stock_adjustment_rows_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -100,13 +122,19 @@ class StockAdjustment:
             field_dict["status"] = status
         if adjustment_date is not UNSET:
             field_dict["adjustment_date"] = adjustment_date
+        if reason is not UNSET:
+            field_dict["reason"] = reason
         if additional_info is not UNSET:
             field_dict["additional_info"] = additional_info
+        if stock_adjustment_rows is not UNSET:
+            field_dict["stock_adjustment_rows"] = stock_adjustment_rows
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+        from ..models.stock_adjustment_row import StockAdjustmentRow
+
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -141,7 +169,7 @@ class StockAdjustment:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -150,7 +178,7 @@ class StockAdjustment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         reference_no = _parse_reference_no(d.pop("reference_no", UNSET))
 
@@ -168,14 +196,32 @@ class StockAdjustment:
         else:
             adjustment_date = isoparse(_adjustment_date)
 
+        def _parse_reason(data: object) -> None | Unset | str:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
+
+        reason = _parse_reason(d.pop("reason", UNSET))
+
         def _parse_additional_info(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
+
+        stock_adjustment_rows = []
+        _stock_adjustment_rows = d.pop("stock_adjustment_rows", UNSET)
+        for stock_adjustment_rows_item_data in _stock_adjustment_rows or []:
+            stock_adjustment_rows_item = StockAdjustmentRow.from_dict(
+                stock_adjustment_rows_item_data
+            )
+
+            stock_adjustment_rows.append(stock_adjustment_rows_item)
 
         stock_adjustment = cls(
             id=id,
@@ -187,7 +233,9 @@ class StockAdjustment:
             reference_no=reference_no,
             status=status,
             adjustment_date=adjustment_date,
+            reason=reason,
             additional_info=additional_info,
+            stock_adjustment_rows=stock_adjustment_rows,
         )
 
         stock_adjustment.additional_properties = d

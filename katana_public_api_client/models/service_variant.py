@@ -155,7 +155,7 @@ class ServiceVariant:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -164,7 +164,7 @@ class ServiceVariant:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         sales_price = _parse_sales_price(d.pop("sales_price", UNSET))
 
@@ -173,7 +173,7 @@ class ServiceVariant:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         default_cost = _parse_default_cost(d.pop("default_cost", UNSET))
 

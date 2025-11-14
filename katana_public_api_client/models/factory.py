@@ -139,7 +139,7 @@ class Factory:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         address = _parse_address(d.pop("address", UNSET))
 

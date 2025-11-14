@@ -95,6 +95,9 @@ from .create_service_variant_request_custom_fields_item import (
 )
 from .create_stock_adjustment_request import CreateStockAdjustmentRequest
 from .create_stock_adjustment_request_status import CreateStockAdjustmentRequestStatus
+from .create_stock_adjustment_request_stock_adjustment_rows_item import (
+    CreateStockAdjustmentRequestStockAdjustmentRowsItem,
+)
 from .create_stock_transfer_body import CreateStockTransferBody
 from .create_stocktake_request import CreateStocktakeRequest
 from .create_stocktake_request_status import CreateStocktakeRequestStatus
@@ -345,7 +348,9 @@ from .service_variant import ServiceVariant
 from .service_variant_custom_fields_item import ServiceVariantCustomFieldsItem
 from .service_variant_type import ServiceVariantType
 from .stock_adjustment import StockAdjustment
+from .stock_adjustment_batch_transaction import StockAdjustmentBatchTransaction
 from .stock_adjustment_list_response import StockAdjustmentListResponse
+from .stock_adjustment_row import StockAdjustmentRow
 from .stock_adjustment_status import StockAdjustmentStatus
 from .stock_transfer import StockTransfer
 from .stock_transfer_list_response import StockTransferListResponse
@@ -434,6 +439,9 @@ from .update_sales_return_row_body import UpdateSalesReturnRowBody
 from .update_service_request import UpdateServiceRequest
 from .update_stock_adjustment_request import UpdateStockAdjustmentRequest
 from .update_stock_adjustment_request_status import UpdateStockAdjustmentRequestStatus
+from .update_stock_adjustment_request_stock_adjustment_rows_item import (
+    UpdateStockAdjustmentRequestStockAdjustmentRowsItem,
+)
 from .update_stock_transfer_body import UpdateStockTransferBody
 from .update_stock_transfer_status_body import UpdateStockTransferStatusBody
 from .update_stock_transfer_status_body_status import (
@@ -545,6 +553,7 @@ __all__ = (
     "CreateServiceVariantRequestCustomFieldsItem",
     "CreateStockAdjustmentRequest",
     "CreateStockAdjustmentRequestStatus",
+    "CreateStockAdjustmentRequestStockAdjustmentRowsItem",
     "CreateStockTransferBody",
     "CreateStocktakeRequest",
     "CreateStocktakeRequestStatus",
@@ -717,7 +726,9 @@ __all__ = (
     "ServiceVariantCustomFieldsItem",
     "ServiceVariantType",
     "StockAdjustment",
+    "StockAdjustmentBatchTransaction",
     "StockAdjustmentListResponse",
+    "StockAdjustmentRow",
     "StockAdjustmentStatus",
     "StockTransfer",
     "StockTransferListResponse",
@@ -782,6 +793,7 @@ __all__ = (
     "UpdateServiceRequest",
     "UpdateStockAdjustmentRequest",
     "UpdateStockAdjustmentRequestStatus",
+    "UpdateStockAdjustmentRequestStockAdjustmentRowsItem",
     "UpdateStockTransferBody",
     "UpdateStockTransferStatusBody",
     "UpdateStockTransferStatusBodyStatus",

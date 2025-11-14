@@ -128,7 +128,7 @@ class User:
                 return last_login_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         last_login_at = _parse_last_login_at(d.pop("last_login_at", UNSET))
 

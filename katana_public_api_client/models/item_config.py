@@ -75,7 +75,7 @@ class ItemConfig:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         product_id = _parse_product_id(d.pop("product_id", UNSET))
 
@@ -84,7 +84,7 @@ class ItemConfig:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         material_id = _parse_material_id(d.pop("material_id", UNSET))
 

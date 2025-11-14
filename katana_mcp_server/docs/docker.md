@@ -76,6 +76,60 @@ docker run -it \
 1. **Documentation**: README with clear setup instructions
 1. **License**: Open source license (MIT in our case)
 
+### Generating Tool Metadata
+
+To generate `tools.json` for Docker MCP Registry submission:
+
+```bash
+# Generate to stdout
+python scripts/generate_tools_json.py
+
+# Generate to file
+python scripts/generate_tools_json.py -o tools.json
+
+# Generate with pretty formatting
+python scripts/generate_tools_json.py -o tools.json --pretty
+```
+
+The script automatically introspects the FastMCP server to extract tool metadata,
+ensuring the tools list stays synchronized with actual implementations.
+
+#### Example Output
+
+```json
+[
+  {
+    "name": "check_inventory",
+    "description": "Check stock levels for a specific product SKU."
+  },
+  {
+    "name": "create_purchase_order",
+    "description": "Create a purchase order with two-step confirmation."
+  },
+  {
+    "name": "search_items",
+    "description": "Search for items by name or SKU."
+  }
+]
+```
+
+#### CI/CD Integration
+
+The script can be run in CI/CD to verify tool metadata is accurate:
+
+```yaml
+# In .github/workflows/ci.yml
+- name: Generate tools.json
+  run: python scripts/generate_tools_json.py -o tools.json --pretty
+
+- name: Verify tools.json is up to date
+  run: |
+    git diff --exit-code tools.json || {
+      echo "tools.json is out of date. Run: python scripts/generate_tools_json.py -o tools.json --pretty"
+      exit 1
+    }
+```
+
 ### Submission Process
 
 1. **Fork the MCP Registry**: https://github.com/docker/mcp-registry

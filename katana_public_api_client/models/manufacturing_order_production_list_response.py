@@ -28,8 +28,12 @@ class ManufacturingOrderProductionListResponse:
                 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}], 'operations': [{'id': 3801,
                 'manufacturing_order_id': 3001, 'operation_id': 401, 'operation_name': 'Cut Steel Sheets', 'time': 15.0, 'cost':
                 45.0, 'created_at': '2024-01-20T14:30:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}],
-                'serial_numbers': ['PKS-001-240120', 'PKS-002-240120'], 'created_at': '2024-01-20T14:30:00Z', 'updated_at':
-                '2024-01-20T14:30:00Z', 'deleted_at': None}]}
+                'serial_numbers': [{'id': 1, 'transaction_id': 'PROD-3501-001', 'serial_number': 'PKS-001-240120',
+                'resource_type': 'Production', 'resource_id': 3501, 'transaction_date': '2024-01-20T14:30:00Z',
+                'quantity_change': 1}, {'id': 2, 'transaction_id': 'PROD-3501-002', 'serial_number': 'PKS-002-240120',
+                'resource_type': 'Production', 'resource_id': 3501, 'transaction_date': '2024-01-20T14:30:00Z',
+                'quantity_change': 1}], 'created_at': '2024-01-20T14:30:00Z', 'updated_at': '2024-01-20T14:30:00Z',
+                'deleted_at': None}]}
     """
 
     data: Unset | list["ManufacturingOrderProduction"] = UNSET

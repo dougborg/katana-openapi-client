@@ -151,7 +151,7 @@ class SupplierAddress:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -164,7 +164,7 @@ class SupplierAddress:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         line_2 = _parse_line_2(d.pop("line_2", UNSET))
 
@@ -173,7 +173,7 @@ class SupplierAddress:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         city = _parse_city(d.pop("city", UNSET))
 
@@ -182,7 +182,7 @@ class SupplierAddress:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         state = _parse_state(d.pop("state", UNSET))
 
@@ -191,7 +191,7 @@ class SupplierAddress:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         zip_ = _parse_zip_(d.pop("zip", UNSET))
 
@@ -200,7 +200,7 @@ class SupplierAddress:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         country = _parse_country(d.pop("country", UNSET))
 

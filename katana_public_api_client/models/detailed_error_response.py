@@ -78,7 +78,7 @@ class DetailedErrorResponse:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         code = _parse_code(d.pop("code", UNSET))
 

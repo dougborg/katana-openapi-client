@@ -20,12 +20,16 @@ class StockAdjustmentListResponse:
     """List of stock adjustment records showing all manual inventory corrections and their current status
 
     Example:
-        {'data': [{'id': 2001, 'reference_no': 'SA-2024-001', 'location_id': 1, 'status': 'COMPLETED',
-            'adjustment_date': '2024-01-15T14:30:00.000Z', 'additional_info': 'Physical count discrepancy correction',
-            'created_at': '2024-01-15T14:30:00.000Z', 'updated_at': '2024-01-15T14:30:00.000Z', 'deleted_at': None}, {'id':
-            2002, 'reference_no': 'SA-2024-002', 'location_id': 2, 'status': 'DRAFT', 'adjustment_date':
-            '2024-01-16T10:00:00.000Z', 'additional_info': 'Damaged goods write-off', 'created_at':
-            '2024-01-16T10:00:00.000Z', 'updated_at': '2024-01-16T10:00:00.000Z', 'deleted_at': None}]}
+        {'data': [{'id': 2001, 'stock_adjustment_number': 'SA-2024-001', 'reference_no': 'SA-2024-001', 'location_id':
+            1, 'status': 'COMPLETED', 'adjustment_date': '2024-01-15T14:30:00.000Z', 'reason': 'Cycle count discrepancy',
+            'additional_info': 'Physical count discrepancy correction', 'stock_adjustment_rows': [{'id': 3001, 'variant_id':
+            501, 'quantity': 100, 'cost_per_unit': 123.45}, {'id': 3002, 'variant_id': 502, 'quantity': -10,
+            'cost_per_unit': 234.56}], 'created_at': '2024-01-15T14:30:00.000Z', 'updated_at': '2024-01-15T14:30:00.000Z',
+            'deleted_at': None}, {'id': 2002, 'stock_adjustment_number': 'SA-2024-002', 'reference_no': 'SA-2024-002',
+            'location_id': 2, 'status': 'DRAFT', 'adjustment_date': '2024-01-16T10:00:00.000Z', 'reason': 'Damaged goods',
+            'additional_info': 'Damaged goods write-off', 'stock_adjustment_rows': [{'id': 3003, 'variant_id': 503,
+            'quantity': -5, 'cost_per_unit': 89.99}], 'created_at': '2024-01-16T10:00:00.000Z', 'updated_at':
+            '2024-01-16T10:00:00.000Z', 'deleted_at': None}]}
     """
 
     data: Unset | list["StockAdjustment"] = UNSET

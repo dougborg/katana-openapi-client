@@ -20,7 +20,7 @@ class SalesReturnRowListResponse:
     """Response containing a list of sales return row items with product return details and quantities
 
     Example:
-        {'data': [{'id': 3501, 'sales_return_id': 3001, 'variant_id': 2002, 'quantity': 2, 'return_reason_id': 1,
+        {'data': [{'id': 3501, 'sales_return_id': 3001, 'variant_id': 2002, 'quantity': '2.0', 'return_reason_id': 1,
             'notes': 'Packaging was damaged', 'unit_price': 25.0, 'total_price': 50.0}]}
     """
 

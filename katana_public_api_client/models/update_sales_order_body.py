@@ -163,7 +163,7 @@ class UpdateSalesOrderBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
@@ -172,7 +172,7 @@ class UpdateSalesOrderBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         customer_ref = _parse_customer_ref(d.pop("customer_ref", UNSET))
 
@@ -181,7 +181,7 @@ class UpdateSalesOrderBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
@@ -190,7 +190,7 @@ class UpdateSalesOrderBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         tracking_number_url = _parse_tracking_number_url(
             d.pop("tracking_number_url", UNSET)
