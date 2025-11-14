@@ -718,7 +718,8 @@ components:
     supplier_item_codes:
       name: supplier_item_codes
       required: false
-      description: Filters variants by supplier item codes. Returns the variants that match with any of the codes in the array.
+      description: |
+        Filters variants by supplier item codes. Returns the variants that match with any of the codes in the array.
       schema:
         type: array
         items:
@@ -1347,7 +1348,9 @@ components:
         product_id: 1
         material_id: null
     AdditionalCost:
-      description: Additional cost types that can be applied to purchase orders and manufacturing orders (e.g., shipping, taxes, duties)
+      description: |
+        Additional cost types that can be applied to purchase orders and manufacturing orders (e.g., shipping, taxes,
+        duties)
       allOf:
         - type: object
           properties:
@@ -1511,7 +1514,8 @@ components:
         batch_barcode: "0317"
     BatchTransaction:
       type: object
-      description: Represents a quantity transaction for a specific batch in manufacturing, sales, or inventory operations
+      description: |
+        Represents a quantity transaction for a specific batch in manufacturing, sales, or inventory operations
       additionalProperties: false
       required:
         - batch_id
@@ -1592,7 +1596,8 @@ components:
             updated_at: "2020-10-23T10:37:05.085Z"
             deleted_at: null
     InventoryMovement:
-      description: Record of inventory quantity changes caused by transactions like sales, purchases, manufacturing, or adjustments
+      description: |
+        Record of inventory quantity changes caused by transactions like sales, purchases, manufacturing, or adjustments
       allOf:
         - type: object
           properties:
@@ -1682,7 +1687,8 @@ components:
         updated_at: "2024-01-15T10:30:00.000Z"
     InventoryMovementListResponse:
       type: object
-      description: A list of inventory movement records tracking stock changes, transfers, and adjustments across locations.
+      description: |
+        A list of inventory movement records tracking stock changes, transfers, and adjustments across locations.
       properties:
         data:
           type: array
@@ -1835,7 +1841,9 @@ components:
               type:
                 - number
                 - "null"
-              description: Default sales price (excluding tax), which is automatically assigned to the service when creating sales orders
+              description: |
+                Default sales price (excluding tax), which is automatically assigned to the service when creating sales
+                orders
             default_cost:
               type:
                 - number
@@ -1981,7 +1989,9 @@ components:
           description: Unique identifier of the location where inventory is stored
         safety_stock_level:
           type: string
-          description: The quantity of a product or material which indicates an acceptable stock level for unexpected demand without overstocking
+          description: |
+            The quantity of a product or material which indicates an acceptable stock level for unexpected demand
+            without overstocking
         reorder_point:
           type: string
           description: (Deprecated - use safety_stock_level instead) Queries the safety stock level
@@ -2083,7 +2093,9 @@ components:
             created_at: "2024-01-15T08:00:00.000Z"
             updated_at: "2024-01-15T14:15:00.000Z"
     InventoryReorderPoint:
-      description: Configuration that defines the minimum inventory level that triggers automatic reordering for a specific variant at a location
+      description: |
+        Configuration that defines the minimum inventory level that triggers automatic reordering for a specific variant
+        at a location
       type: object
       required:
         - location_id
@@ -2145,7 +2157,8 @@ components:
         updated_at: "2020-10-23T10:37:05.085Z"
         deleted_at: null
     CreateManufacturingOrderRequest:
-      description: Request payload for creating a new manufacturing order to initiate production of products or components.
+      description: |
+        Request payload for creating a new manufacturing order to initiate production of products or components.
       type: object
       required:
         - variant_id
@@ -2579,7 +2592,8 @@ components:
             updated_at: "2024-01-20T14:30:00Z"
             deleted_at: null
     ManufacturingOrderProductionIngredient:
-      description: Record of actual ingredient consumption during manufacturing order production, tracking quantities and costs
+      description: |
+        Record of actual ingredient consumption during manufacturing order production, tracking quantities and costs
       allOf:
         - type: object
           properties:
@@ -2985,7 +2999,8 @@ components:
         updated_at: "2024-01-20T14:30:00Z"
         deleted_at: null
     ManufacturingOrderRecipeRowListResponse:
-      description: Response containing a list of recipe rows (ingredients) for manufacturing orders with pagination support.
+      description: |
+        Response containing a list of recipe rows (ingredients) for manufacturing orders with pagination support.
       type: object
       properties:
         data:
@@ -3010,7 +3025,8 @@ components:
             updated_at: "2024-01-20T14:30:00Z"
             deleted_at: null
     SerialNumber:
-      description: Individual serial number record for tracking specific units of serialized inventory items through transactions
+      description: |
+        Individual serial number record for tracking specific units of serialized inventory items through transactions
       type: object
       properties:
         id:
@@ -3068,7 +3084,8 @@ components:
             created_at: "2024-01-15T08:30:00.000Z"
             updated_at: "2024-01-16T14:20:00.000Z"
     ManufacturingOrderListResponse:
-      description: Response containing a list of manufacturing orders with pagination support for retrieving production data.
+      description: |
+        Response containing a list of manufacturing orders with pagination support for retrieving production data.
       type: object
       properties:
         data:
@@ -3181,7 +3198,8 @@ components:
         production_date: "2023-10-15T10:30:00Z"
         cost: 12.5
     ManufacturingOrderOperationRowListResponse:
-      description: Response containing a list of manufacturing order operation rows with time tracking and operator assignments
+      description: |
+        Response containing a list of manufacturing order operation rows with time tracking and operator assignments
       type: object
       properties:
         data:
@@ -3240,7 +3258,8 @@ components:
           type: string
           maxLength: 7
           description: |-
-            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
+            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking
+            stock)
             for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
             of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
         purchase_uom_conversion_rate:
@@ -3296,7 +3315,9 @@ components:
               - config_name: Thickness
                 config_value: "1.5mm"
     InventoryItem:
-      description: Base schema for products and materials with common inventory management features including tracking, supplier relationships, and variant configurations
+      description: |
+        Base schema for products and materials with common inventory management features including tracking, supplier
+        relationships, and variant configurations
       allOf:
         - $ref: "#/components/schemas/ArchivableEntity"
         - type: object
@@ -3332,7 +3353,8 @@ components:
               maxLength: 7
               description: |-
                 If purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
-                for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
+                for this item, you can define the purchase unit. Value null indicates that purchasing is done in same
+                unit
                 of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
             purchase_uom_conversion_rate:
               type:
@@ -3374,8 +3396,8 @@ components:
             - type
     Material:
       description:
-        Represents raw materials and components used in manufacturing, including inventory tracking, supplier information,
-        and batch management.
+        Represents raw materials and components used in manufacturing, including
+        inventory tracking, supplier information, and batch management.
       allOf:
         - $ref: "#/components/schemas/InventoryItem"
         - type: object
@@ -3432,7 +3454,8 @@ components:
         updated_at: "2024-01-15T14:30:00Z"
         archived_at: null
     MaterialListResponse:
-      description: Response containing a list of materials with pagination support for inventory and procurement management.
+      description: |
+        Response containing a list of materials with pagination support for inventory and procurement management.
       type: object
       properties:
         data:
@@ -3536,7 +3559,8 @@ components:
           type: string
           maxLength: 7
           description: |-
-            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
+            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking
+            stock)
             for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
             of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
         purchase_uom_conversion_rate:
@@ -3639,7 +3663,8 @@ components:
         quantity_allocated: 25.0
     NegativeStockListResponse:
       type: object
-      description: List of inventory records showing variants with negative stock levels that require immediate attention
+      description: |
+        List of inventory records showing variants with negative stock levels that require immediate attention
       properties:
         data:
           type: array
@@ -3659,7 +3684,9 @@ components:
             quantity_on_hand: -5.0
             quantity_allocated: 10.0
     CreateProductRequest:
-      description: Request payload for creating a new finished product with variants, configurations, and manufacturing specifications
+      description: |
+        Request payload for creating a new finished product with variants, configurations, and manufacturing
+        specifications
       type: object
       additionalProperties: false
       required:
@@ -3711,7 +3738,8 @@ components:
           type: string
           maxLength: 7
           description: |-
-            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
+            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking
+            stock)
             for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
             of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
         purchase_uom_conversion_rate:
@@ -3852,7 +3880,8 @@ components:
           type: string
           maxLength: 7
           description: |-
-            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
+            If you are purchasing in a different unit of measure than the default unit of measure (used for tracking
+            stock)
             for this item, you can define the purchase unit. Value null indicates that purchasing is done in same unit
             of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
         purchase_uom_conversion_rate:
@@ -4222,7 +4251,9 @@ components:
               description: The timestamp of creating the document.
             additional_info:
               type: string
-              description: A string attached to the object to add any internal comments, links to external files, additional instructions, etc.
+              description: |
+                A string attached to the object to add any internal comments, links to external files, additional
+                instructions, etc.
             location_id:
               type: integer
               description: The ID of the location to which items are received.
@@ -4238,7 +4269,9 @@ components:
                 - "BILLED"
                 - "NOT_BILLED"
                 - "PARTIALLY_BILLED"
-              description: Indicating the status of generating the bill through accounting integration to either Xero or QuickBooks Online. "PARTIALLY_BILLED" does not apply to Xero integration.
+              description: |
+                Indicating the status of generating the bill through accounting integration to either Xero or QuickBooks
+                Online. "PARTIALLY_BILLED" does not apply to Xero integration.
             last_document_status:
               type: string
               enum:
@@ -4296,7 +4329,9 @@ components:
                 - string
                 - "null"
               format: date-time
-              description: The latest date of a manufacturing order production deadline or a purchasing order expected arrival date that relates to the required ingredient
+              description: |
+                The latest date of a manufacturing order production deadline or a purchasing order expected arrival date
+                that relates to the required ingredient
         # Conditional validation for ingredient_expected_date based on ingredient_availability
         - if:
             properties:
@@ -4465,7 +4500,9 @@ components:
               description: The conversion rate between the purchase and stock tracking UoMs.
             purchase_uom:
               type: string
-              description: The unit used to measure the quantity of the items (e.g. pcs, kg, m) you purchase. It can be different from the unit used to track stock.
+              description: |
+                The unit used to measure the quantity of the items (e.g. pcs, kg, m) you purchase. It can be different
+                from the unit used to track stock.
             currency:
               type: string
               description: Currency used for this line item pricing
@@ -4497,7 +4534,9 @@ components:
                 - string
                 - "null"
               format: date-time
-              description: The timestamp when the item on the row is expected to arrive (in full) in your warehouse. ISO 8601 format with time and timezone must be used.
+              description: |
+                The timestamp when the item on the row is expected to arrive (in full) in your warehouse. ISO 8601
+                format with time and timezone must be used.
             batch_transactions:
               type: array
               items:
@@ -4509,7 +4548,9 @@ components:
                   batch_id:
                     type: integer
                     description: ID of the batch for the received item.
-              description: An array of batch transactions and their quantities. You can receive stock for the same item in multiple batches.
+              description: |
+                An array of batch transactions and their quantities. You can receive stock for the same item in multiple
+                batches.
             purchase_order_id:
               type: integer
               description: Unique identifier of the parent purchase order
@@ -4550,7 +4591,8 @@ components:
           - quantity: 100
             batch_id: 1002
     PurchaseOrderRowListResponse:
-      description: Response containing a list of purchase order line items with pagination support for detailed order management
+      description: |
+        Response containing a list of purchase order line items with pagination support for detailed order management
       type: object
       properties:
         data:
@@ -5391,7 +5433,8 @@ components:
         zip: "60601"
         country: US
     CreateTaxRateRequest:
-      description: Request payload for creating a new tax rate to be applied to sales and purchase orders for financial compliance
+      description: |
+        Request payload for creating a new tax rate to be applied to sales and purchase orders for financial compliance
       type: object
       additionalProperties: false
       required:
@@ -5474,7 +5517,8 @@ components:
             created_at: "2024-01-15T09:35:00Z"
             updated_at: "2024-01-15T09:35:00Z"
     CreateVariantRequest:
-      description: Request payload for creating a new product or material variant with specific SKU and configuration attributes
+      description: |
+        Request payload for creating a new product or material variant with specific SKU and configuration attributes
       type: object
       additionalProperties: false
       required:
@@ -5590,7 +5634,8 @@ components:
           - field_name: Care Instructions
             field_value: Hand wash only
     VariantResponse:
-      description: Response containing a variant with its configuration attributes and related product or material details
+      description: |
+        Response containing a variant with its configuration attributes and related product or material details
       allOf:
         - type: object
           properties:
@@ -5717,7 +5762,8 @@ components:
         updated_at: "2024-08-20T14:45:00.000Z"
         deleted_at: null
     UpdateVariantRequest:
-      description: Request payload for updating product variant details including pricing, configuration, and inventory information
+      description: |
+        Request payload for updating product variant details including pricing, configuration, and inventory information
       type: object
       additionalProperties: false
       properties:
@@ -6310,7 +6356,9 @@ components:
               description: Indicating the item type. Service objects are of type "service"
             additional_info:
               type: string
-              description: A string attached to the object to add any internal comments, links to external files, additional instructions, etc.
+              description: |
+                A string attached to the object to add any internal comments, links to external files, additional
+                instructions, etc.
             custom_field_collection_id:
               type:
                 - integer
@@ -6403,7 +6451,9 @@ components:
           description: A string used to group similar items for better organization and analysis
         additional_info:
           type: string
-          description: A string attached to the object to add any internal comments, links to external files, additional instructions, etc.
+          description: |
+            A string attached to the object to add any internal comments, links to external files, additional
+            instructions, etc.
         is_sellable:
           type: boolean
           description: Sellable services can be added to Quotes and Sales orders
@@ -6502,7 +6552,9 @@ components:
           description: A string used to group similar items for better organization and analysis
         additional_info:
           type: string
-          description: A string attached to the object to add any internal comments, links to external files, additional instructions, etc.
+          description: |
+            A string attached to the object to add any internal comments, links to external files, additional
+            instructions, etc.
         is_sellable:
           type: boolean
           description: Sellable services can be added to Quotes and Sales orders
@@ -7317,7 +7369,8 @@ components:
         created_at: "2024-01-15T10:00:00Z"
         updated_at: "2024-01-15T10:00:00Z"
     SalesOrderAddress:
-      description: Billing or shipping address associated with a sales order, containing complete contact and location information
+      description: |
+        Billing or shipping address associated with a sales order, containing complete contact and location information
       allOf:
         - type: object
           properties:
@@ -7608,7 +7661,8 @@ components:
             created_at: "2024-01-15T10:00:00Z"
             updated_at: "2024-01-20T16:30:00Z"
     CreateSalesOrderRequest:
-      description: Request payload for creating a new sales order with customer information, order lines, and delivery details
+      description: |
+        Request payload for creating a new sales order with customer information, order lines, and delivery details
       type: object
       properties:
         order_no:
@@ -8198,7 +8252,8 @@ components:
             - quantity
     StockTransferListResponse:
       type: object
-      description: List of stock transfer records showing all inventory movements between locations and their transfer status
+      description: |
+        List of stock transfer records showing all inventory movements between locations and their transfer status
       properties:
         data:
           type: array
@@ -8746,7 +8801,8 @@ components:
             updated_at: "2023-10-15T14:31:00Z"
     Recipe:
       type: object
-      description: Recipe row representing ingredient requirements for product manufacturing (deprecated in favor of BOM rows)
+      description: |
+        Recipe row representing ingredient requirements for product manufacturing (deprecated in favor of BOM rows)
       deprecated: true
       properties:
         id:
@@ -9296,7 +9352,8 @@ components:
         - in_stock
         - transactions
     SalesReturn:
-      description: Sales return record representing customer product returns with refund processing and inventory adjustments
+      description: |
+        Sales return record representing customer product returns with refund processing and inventory adjustments
       allOf:
         - type: object
           properties:
@@ -9588,7 +9645,8 @@ components:
         created_at: "2024-01-10T09:00:00Z"
         updated_at: "2024-01-15T14:30:00Z"
     SalesOrderRowListResponse:
-      description: Response containing a list of sales order rows with pagination support for retrieving order line items
+      description: |
+        Response containing a list of sales order rows with pagination support for retrieving order line items
       type: object
       properties:
         data:
@@ -9651,7 +9709,8 @@ components:
             created_at: "2024-01-15T10:00:00Z"
             updated_at: "2024-01-15T10:00:00Z"
     SalesOrderFulfillmentListResponse:
-      description: Response containing a list of fulfillment records showing shipping and delivery status for sales orders
+      description: |
+        Response containing a list of fulfillment records showing shipping and delivery status for sales orders
       type: object
       properties:
         data:
@@ -9835,7 +9894,8 @@ components:
             updated_at: "2024-01-01T10:05:00Z"
             deleted_at: null
     PriceListRowListResponse:
-      description: Response containing a paginated list of price list rows showing variant-specific pricing within price lists
+      description: |
+        Response containing a paginated list of price list rows showing variant-specific pricing within price lists
       type: object
       properties:
         data:
@@ -9915,7 +9975,8 @@ components:
             updated_at: "2024-01-16T12:00:00.000Z"
     StocktakeRowListResponse:
       type: object
-      description: List of individual stocktake row records showing counted quantities for each variant in a stocktake session
+      description: |
+        List of individual stocktake row records showing counted quantities for each variant in a stocktake session
       properties:
         data:
           type: array
@@ -10143,7 +10204,8 @@ components:
             created_at: "2024-01-08T11:00:00Z"
             updated_at: "2024-01-15T10:15:00Z"
     OutsourcedPurchaseOrderRecipeRowListResponse:
-      description: Response containing a list of outsourced purchase order recipe rows for externally manufactured products
+      description: |
+        Response containing a list of outsourced purchase order recipe rows for externally manufactured products
       type: object
       properties:
         data:
@@ -10257,7 +10319,8 @@ components:
         message: Product operation successfully reordered
         success: true
     SalesOrderAccountingMetadataListResponse:
-      description: Response containing a list of accounting metadata records linking sales orders to external accounting systems
+      description: |
+        Response containing a list of accounting metadata records linking sales orders to external accounting systems
       type: object
       properties:
         data:
@@ -10274,7 +10337,8 @@ components:
             integration_type: xero
             created_at: "2024-01-20T17:00:00Z"
     SalesOrderAccountingMetadata:
-      description: Accounting integration metadata linking sales orders to external accounting systems and invoice records
+      description: |
+        Accounting integration metadata linking sales orders to external accounting systems and invoice records
       type: object
       properties:
         id:
@@ -10470,7 +10534,8 @@ paths:
       tags:
         - Batch
       description: |-
-        Returns a list for current batch stock. The inventory is returned in sorted order, based on location_id ASC, variant_id ASC, and batch_id DESC.
+        Returns a list for current batch stock. The inventory is returned in sorted order, based on location_id ASC,
+        variant_id ASC, and batch_id DESC.
       operationId: getBatchStock
       parameters:
         - $ref: "#/components/parameters/batch_id"
@@ -10511,7 +10576,8 @@ paths:
       tags:
         - Batch
       description: |-
-        Updates the specified batch details by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+        Updates the specified batch details by setting the values of the parameters passed. Any parameters not provided
+        will be left unchanged.
       operationId: updateBatchStock
       parameters:
         - name: batch_id
@@ -10557,7 +10623,8 @@ paths:
       tags:
         - Storage bin
       description: |-
-        Returns a list of storage bins you've previously created. The storage bins are returned in sorted order, with the most recent storage bin appearing first.
+        Returns a list of storage bins you've previously created. The storage bins are returned in sorted order, with
+        the most recent storage bin appearing first.
       operationId: getAllStorageBins
       parameters:
         - $ref: "#/components/parameters/location_id"
@@ -10593,7 +10660,8 @@ paths:
       tags:
         - Storage bin
       description: |-
-        Updates the specified storage bin by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+        Updates the specified storage bin by setting the values of the parameters passed. Any parameters not provided
+        will be left unchanged.
       operationId: updateDefaultStorageBin
       parameters:
         - $ref: "#/components/parameters/id"
@@ -10653,7 +10721,8 @@ paths:
       tags:
         - Inventory
       description: |-
-        Returns a list for current inventory. The inventory is returned in sorted order, with the oldest locations appearing first.
+        Returns a list for current inventory. The inventory is returned in sorted order, with the oldest locations
+        appearing first.
       operationId: getAllInventoryPoint
       parameters:
         - $ref: "#/components/parameters/location_id"
@@ -10690,7 +10759,8 @@ paths:
       tags:
         - Inventory movements
       description: |-
-        Returns a list of inventory movements created by your Katana resources. The inventory movements are returned in sorted order, with the most recent movements appearing first.
+        Returns a list of inventory movements created by your Katana resources. The inventory movements are returned in
+        sorted order, with the most recent movements appearing first.
       operationId: getAllInventoryMovements
       parameters:
         - $ref: "#/components/parameters/ids"
@@ -10770,7 +10840,8 @@ paths:
       tags:
         - Location
       description: |-
-        Returns a list of locations you've previously created. The locations are returned in sorted order, with the most recent locations appearing first.
+        Returns a list of locations you've previously created. The locations are returned in sorted order, with the most
+        recent locations appearing first.
       operationId: getAllLocations
       parameters:
         - $ref: "#/components/parameters/ids"
@@ -10920,7 +10991,8 @@ paths:
         - Manufacturing order
       description: |-
         Returns a list of manufacturing orders you've previously created.
-          The manufacturing orders are returned in sorted order, with the most recent manufacturing orders appearing first.
+          The manufacturing orders are returned in sorted order, with the most recent manufacturing orders appearing
+          first.
       operationId: getAllManufacturingOrders
       parameters:
         - $ref: "#/components/parameters/ids"
@@ -11306,7 +11378,8 @@ paths:
         - Manufacturing order
       description: |-
         Returns a list of manufacturing orders you've previously created.
-          The manufacturing orders are returned in sorted order, with the most recent manufacturing orders appearing first.
+          The manufacturing orders are returned in sorted order, with the most recent manufacturing orders appearing
+          first.
       operationId: getAllManufacturingOrderProductions
       parameters:
         - $ref: "#/components/parameters/ids"
@@ -11557,7 +11630,8 @@ paths:
         - Manufacturing order production ingredient
       description: |-
         Updates the specified manufacturing order production ingredient by setting the values of the parameters passed.
-          Any parameters not provided will be left unchanged. Manufacturing order production ingredient cannot be updated when
+          Any parameters not provided will be left unchanged. Manufacturing order production ingredient cannot be
+          updated when
           the manufacturing order status is DONE.
       operationId: updateManufacturingOrderProductionIngredient
       parameters:
@@ -11942,7 +12016,8 @@ paths:
         - Manufacturing order recipe
       description: |-
         Returns a list of manufacturing order recipe rows you've previously created. The manufacturing order
-          recipe rows are returned in sorted order, with the most recent manufacturing order recipe rows appearing first.
+          recipe rows are returned in sorted order, with the most recent manufacturing order recipe rows appearing
+          first.
       operationId: getAllManufacturingOrderRecipeRows
       parameters:
         - $ref: "#/components/parameters/ids"
@@ -15058,7 +15133,8 @@ paths:
       tags:
         - Sales return
       description: |-
-        Returns a list of sales returns you've previously created. The sales returns are returned in sorted order, with the most recent sales return appearing first.
+        Returns a list of sales returns you've previously created. The sales returns are returned in sorted order, with
+        the most recent sales return appearing first.
       operationId: getAllSalesReturns
       parameters:
         - $ref: "#/components/parameters/limit"
@@ -15182,7 +15258,8 @@ paths:
       tags:
         - Sales return
       description: |-
-        Updates the specified sales return by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+        Updates the specified sales return by setting the values of the parameters passed. Any parameters not provided
+        will be left unchanged.
       operationId: updateSalesReturn
       parameters:
         - $ref: "#/components/parameters/id"
@@ -15249,7 +15326,8 @@ paths:
       tags:
         - Sales return row
       description: |-
-        Returns a list of sales return rows you've previously created. The sales return rows are returned in sorted order, with the most recent sales return row appearing first.
+        Returns a list of sales return rows you've previously created. The sales return rows are returned in sorted
+        order, with the most recent sales return row appearing first.
       operationId: getAllSalesReturnRows
       parameters:
         - $ref: "#/components/parameters/limit"
@@ -15622,7 +15700,8 @@ paths:
       tags:
         - Recipe
       description: |-
-        Create one or many new recipe rows for a product. The endpoint accepts up to 150 recipe rows and processes them in bulk. This endpoint is deprecated in favor of BOM rows.
+        Create one or many new recipe rows for a product. The endpoint accepts up to 150 recipe rows and processes them
+        in bulk. This endpoint is deprecated in favor of BOM rows.
       operationId: createRecipes
       deprecated: true
       requestBody:
@@ -15769,7 +15848,8 @@ paths:
       tags:
         - Services
       description: |-
-        Retrieve a list of all Service objects. (See: [Get All Services](https://developer.katanamrp.com/reference/getallservices))
+        Retrieve a list of all Service objects. (See: [Get All
+        Services](https://developer.katanamrp.com/reference/getallservices))
       operationId: getAllServices
       parameters:
         - $ref: "#/components/parameters/ids"
@@ -15802,7 +15882,9 @@ paths:
       summary: Create Service
       tags:
         - Services
-      description: "Create a new Service. (See: [Create Service](https://developer.katanamrp.com/reference/createservice))"
+      description:
+        "Create a new Service. (See: [Create
+        Service](https://developer.katanamrp.com/reference/createservice))"
       requestBody:
         description: Service data for creating a new service record
         required: true
@@ -15831,7 +15913,9 @@ paths:
       summary: Get Service
       tags:
         - Services
-      description: "Retrieve a single Service by its ID. (See: [Get Service](https://developer.katanamrp.com/reference/getservice))"
+      description:
+        "Retrieve a single Service by its ID. (See: [Get
+        Service](https://developer.katanamrp.com/reference/getservice))"
       operationId: getService
       parameters:
         - $ref: "#/components/parameters/id"
@@ -15854,7 +15938,9 @@ paths:
       summary: Update Service
       tags:
         - Services
-      description: "Update an existing Service. (See: [Update Service](https://developer.katanamrp.com/reference/updateservice))"
+      description:
+        "Update an existing Service. (See: [Update
+        Service](https://developer.katanamrp.com/reference/updateservice))"
       operationId: updateService
       parameters:
         - $ref: "#/components/parameters/id"
@@ -15884,7 +15970,9 @@ paths:
       summary: Delete Service
       tags:
         - Services
-      description: "Delete a Service by its ID. (See: [Delete Service](https://developer.katanamrp.com/reference/deleteservice))"
+      description:
+        "Delete a Service by its ID. (See: [Delete
+        Service](https://developer.katanamrp.com/reference/deleteservice))"
       operationId: deleteService
       parameters:
         - $ref: "#/components/parameters/id"
@@ -16108,7 +16196,8 @@ paths:
                 currency:
                   type: string
                   description: |-
-                    E.g. USD, EUR. All currently active currency codes in ISO 4217 format. Updatable only when sales order status is NOT_SHIPPED or PENDING.
+                    E.g. USD, EUR. All currently active currency codes in ISO 4217 format. Updatable only when sales
+                    order status is NOT_SHIPPED or PENDING.
                 conversion_rate:
                   type: number
                   description:
@@ -16326,7 +16415,8 @@ paths:
       tags:
         - Customer
       description: |-
-        Updates the specified customer by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+        Updates the specified customer by setting the values of the parameters passed. Any parameters not provided will
+        be left unchanged.
       operationId: updateCustomer
       parameters:
         - $ref: "#/components/parameters/id"
@@ -16471,7 +16561,8 @@ paths:
       tags:
         - Stock adjustment
       description: |-
-        Updates the specified stock adjustment by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+        Updates the specified stock adjustment by setting the values of the parameters passed. Any parameters not
+        provided will be left unchanged.
       operationId: updateStockAdjustment
       parameters:
         - $ref: "#/components/parameters/id"
@@ -16912,7 +17003,8 @@ paths:
       tags:
         - Sales order row
       description: |-
-        Updates the specified sales order row by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+        Updates the specified sales order row by setting the values of the parameters passed. Any parameters not
+        provided will be left unchanged.
       operationId: updateSalesOrderRow
       parameters:
         - $ref: "#/components/parameters/id"
@@ -17069,7 +17161,8 @@ paths:
       tags:
         - Sales order address
       description: |-
-        Updates the specified sales order address by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+        Updates the specified sales order address by setting the values of the parameters passed. Any parameters not
+        provided will be left unchanged.
       operationId: updateSalesOrderAddress
       parameters:
         - $ref: "#/components/parameters/id"
@@ -17666,7 +17759,8 @@ paths:
       tags:
         - Price list
       description: |-
-        Updates the specified price list by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+        Updates the specified price list by setting the values of the parameters passed. Any parameters not provided
+        will be left unchanged.
       operationId: updatePriceList
       parameters:
         - $ref: "#/components/parameters/id"
@@ -17855,7 +17949,8 @@ paths:
       tags:
         - Price list row
       description: |-
-        Updates the specified price list row by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+        Updates the specified price list row by setting the values of the parameters passed. Any parameters not provided
+        will be left unchanged.
       operationId: updatePriceListRow
       parameters:
         - $ref: "#/components/parameters/id"
@@ -18040,7 +18135,8 @@ paths:
       tags:
         - Price list customer
       description: |-
-        Updates the specified price list customer assignment by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+        Updates the specified price list customer assignment by setting the values of the parameters passed. Any
+        parameters not provided will be left unchanged.
       operationId: updatePriceListCustomer
       parameters:
         - $ref: "#/components/parameters/id"
@@ -18107,7 +18203,8 @@ paths:
       tags:
         - BOM row
       description: |-
-        Returns a list of BOM (Bill of Materials) rows you've previously created. Product variant BOM consists of ingredient variants and their quantities.
+        Returns a list of BOM (Bill of Materials) rows you've previously created. Product variant BOM consists of
+        ingredient variants and their quantities.
       operationId: getAllBomRows
       parameters:
         - $ref: "#/components/parameters/limit"
@@ -18205,7 +18302,8 @@ paths:
       tags:
         - BOM row
       description: |-
-        Updates the specified BOM row by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+        Updates the specified BOM row by setting the values of the parameters passed. Any parameters not provided will
+        be left unchanged.
       operationId: updateBomRow
       parameters:
         - $ref: "#/components/parameters/id"
@@ -18357,7 +18455,8 @@ paths:
       tags:
         - Stocktake
       description: |-
-        Updates the specified stocktake by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+        Updates the specified stocktake by setting the values of the parameters passed. Any parameters not provided will
+        be left unchanged.
       operationId: updateStocktake
       parameters:
         - $ref: "#/components/parameters/id"
@@ -18513,7 +18612,8 @@ paths:
       tags:
         - Stocktake row
       description: |-
-        Updates the specified stocktake row by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+        Updates the specified stocktake row by setting the values of the parameters passed. Any parameters not provided
+        will be left unchanged.
       operationId: updateStocktakeRow
       parameters:
         - $ref: "#/components/parameters/id"
@@ -19233,11 +19333,17 @@ paths:
                       type:
                         type: string
                         description: |-
-                          Different operation types allows you to use different cost calculations depending on the type of product operation
-                          Process: The process operation type is best for when products are individually built and time is the main driver of cost.
-                          Setup: The setup operation type is best for setting up a machine for production where the production quantity doesn't affect cost.
-                          Per unit: The per unit operation type is best when cost of time isn't a factor, but only the quantity of product made.
-                          Fixed cost: The fixed cost operation type is useful for adding the expected extra costs that go into producing a product.
+                          Different operation types allows you to use different cost
+                          calculations depending on the type of product operation
+                          Process: The process operation type is best for when products
+                          are individually built and time is the main driver of cost.
+                          Setup: The setup operation type is best for setting up a
+                          machine for production where the production quantity doesn't
+                          affect cost.
+                          Per unit: The per unit operation type is best when cost of
+                          time isn't a factor, but only the quantity of product made.
+                          Fixed cost: The fixed cost operation type is useful for adding
+                          the expected extra costs that go into producing a product.
                         enum:
                           - process
                           - setup
@@ -19247,9 +19353,11 @@ paths:
                       cost_parameter:
                         type: number
                         description: |-
-                          The expected cost of an operation, either total or per hour/unit of product (based on type). Total cost of the operation on a manufacturing order is calculated as follows:
+                          The expected cost of an operation, either total or per hour/unit of product (based on type).
+                          Total cost of the operation on a manufacturing order is calculated as follows:
                           process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
-                          setup: cost = cost_parameter x planned_time_parameter (in hours)
+                          setup: cost = cost_parameter x planned_time_parameter (in
+                          hours)
                           perUnit: cost = cost_parameter x product quantity
                           fixed: cost = cost_parameter
                         maximum: 1000000000000000000
@@ -19262,7 +19370,8 @@ paths:
                           operation, either total or per hour/unit of product (based on type). Total cost
                           of the operation on a manufacturing order is calculated as follows:
                           process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
-                          setup: cost = cost_parameter x planned_time_parameter (in hours)
+                          setup: cost = cost_parameter x planned_time_parameter (in
+                          hours)
                           perUnit: cost = cost_parameter x product quantity
                           fixed: cost = cost_parameter
                         maximum: 1000000000000000000
@@ -19278,8 +19387,9 @@ paths:
                         type: integer
                         deprecated: true
                         description:
-                          (This field is deprecated in favor of planned_time_parameter) The planned duration of
-                          an operation, in seconds, to either manufacture one unit of a product or complete a manufacturing
+                          (This field is deprecated in favor of planned_time_parameter)
+                          The planned duration of an operation, in seconds, to either
+                          manufacture one unit of a product or complete a manufacturing
                           order (based on type).
                         maximum: 2147483647
                         minimum: 0
@@ -19754,7 +19864,8 @@ webhooks:
       description: |-
         Webhook events for manufacturing orders. Supports all manufacturing order lifecycle events:
         - manufacturing_order.created: When a new manufacturing order is created
-        - manufacturing_order.updated: When a manufacturing order is updated (except ingredient_availability, total_planned_time, total_actual_time, and cost-related fields)
+        - manufacturing_order.updated: When a manufacturing order is updated (except ingredient_availability,
+        total_planned_time, total_actual_time, and cost-related fields)
         - manufacturing_order.deleted: When a manufacturing order is deleted
         - manufacturing_order.in_progress: When status gets marked as IN_PROGRESS
         - manufacturing_order.blocked: When status gets marked as BLOCKED
@@ -19832,7 +19943,8 @@ webhooks:
         - manufacturing_order_recipe_row.created: When a recipe row is added to a manufacturing order
         - manufacturing_order_recipe_row.updated: When a recipe row is updated in a manufacturing order
         - manufacturing_order_recipe_row.deleted: When a recipe row is deleted from a manufacturing order
-        - manufacturing_order_recipe_row.ingredients_in_stock: When the ingredient availability of a manufacturing order recipe row is updated to IN_STOCK
+        - manufacturing_order_recipe_row.ingredients_in_stock: When the ingredient availability of a manufacturing order
+        recipe row is updated to IN_STOCK
       requestBody:
         required: true
         content:
@@ -19860,8 +19972,10 @@ webhooks:
         Webhook events for current inventory changes. Supports all inventory monitoring events:
         - current_inventory.product_updated: When a product's current stock level or average cost is updated
         - current_inventory.material_updated: When a material's current stock level or average cost is updated
-        - current_inventory.product_out_of_stock: When a product's current stock level is below the optimal level (quantity_missing_or_excess <= 0)
-        - current_inventory.material_out_of_stock: When a material's current stock level is below the optimal level (quantity_missing_or_excess <= 0)
+        - current_inventory.product_out_of_stock: When a product's current stock level is below the optimal level
+        (quantity_missing_or_excess <= 0)
+        - current_inventory.material_out_of_stock: When a material's current stock level is below the optimal level
+        (quantity_missing_or_excess <= 0)
       requestBody:
         required: true
         content:
@@ -20069,7 +20183,8 @@ webhooks:
       operationId: outsourcedPurchaseOrderRecipeRowEventsWebhook
       summary: Outsourced Purchase Order Recipe Row Events
       description: |-
-        Webhook events for outsourced purchase order recipe rows. Supports all outsourced purchase order recipe row lifecycle events:
+        Webhook events for outsourced purchase order recipe rows. Supports all outsourced purchase order recipe row
+        lifecycle events:
         - outsourced_purchase_order_recipe_row.created: When an outsourced purchase order recipe row is created
         - outsourced_purchase_order_recipe_row.updated: When an outsourced purchase order recipe row is updated
         - outsourced_purchase_order_recipe_row.deleted: When an outsourced purchase order recipe row is deleted
