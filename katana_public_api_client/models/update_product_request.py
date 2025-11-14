@@ -21,7 +21,7 @@ class UpdateProductRequest:
 
         Example:
             {'name': 'Professional Kitchen Knife Set', 'uom': 'set', 'category_name': 'Premium Kitchenware', 'is_sellable':
-                True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly': False, 'default_supplier_id': None,
+                True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly': False, 'default_supplier_id': 1501,
                 'additional_info': 'High-carbon stainless steel with ergonomic handles, dishwasher safe', 'batch_tracked':
                 False, 'serial_tracked': True, 'operations_in_sequence': True, 'purchase_uom': 'set',
                 'purchase_uom_conversion_rate': 1.0, 'custom_field_collection_id': 5, 'configs': [{'name': 'Piece Count',
@@ -173,7 +173,7 @@ class UpdateProductRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)

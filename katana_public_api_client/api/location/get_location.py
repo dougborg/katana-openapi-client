@@ -1,5 +1,6 @@
+from collections.abc import Mapping
 from http import HTTPStatus
-from typing import Any, Union
+from typing import Any, Union, cast
 
 import httpx
 
@@ -33,14 +34,18 @@ def _parse_response(
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                componentsschemas_location_type_0 = LocationType0.from_dict(data)  # type: ignore[arg-type]
+                componentsschemas_location_type_0 = LocationType0.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
 
                 return componentsschemas_location_type_0
             except:  # noqa: E722
                 pass
             if not isinstance(data, dict):
                 raise TypeError()
-            componentsschemas_location_type_1 = DeletableEntity.from_dict(data)  # type: ignore[arg-type]
+            componentsschemas_location_type_1 = DeletableEntity.from_dict(
+                cast(Mapping[str, Any], data)
+            )
 
             return componentsschemas_location_type_1
 

@@ -49,10 +49,8 @@ def _parse_response(
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                # Cast to proper type for ty type checker
-                dict_data = cast(Mapping[str, Any], data)
                 componentsschemas_purchase_order_type_0 = (
-                    RegularPurchaseOrder.from_dict(dict_data)
+                    RegularPurchaseOrder.from_dict(cast(Mapping[str, Any], data))
                 )
 
                 return componentsschemas_purchase_order_type_0
@@ -60,10 +58,8 @@ def _parse_response(
                 pass
             if not isinstance(data, dict):
                 raise TypeError()
-            # Cast to proper type for ty type checker
-            dict_data = cast(Mapping[str, Any], data)
             componentsschemas_purchase_order_type_1 = OutsourcedPurchaseOrder.from_dict(
-                dict_data
+                cast(Mapping[str, Any], data)
             )
 
             return componentsschemas_purchase_order_type_1

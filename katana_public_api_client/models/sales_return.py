@@ -24,11 +24,12 @@ class SalesReturn:
 
     Example:
         {'id': 3001, 'customer_id': 1001, 'sales_order_id': 2001, 'order_no': 'SR-2023-001', 'return_location_id': 1,
-            'status': 'RETURNED', 'currency': 'USD', 'return_date': '2023-10-15T14:30:00Z', 'order_created_date':
+            'status': 'RETURNED_ALL', 'currency': 'USD', 'return_date': '2023-10-15T14:30:00Z', 'order_created_date':
             '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported damaged items during shipping', 'refund_status':
-            'PROCESSED', 'sales_return_rows': [{'id': 3501, 'sales_return_id': 3001, 'variant_id': 2002, 'quantity': 2,
-            'return_reason_id': 1, 'notes': 'Packaging was damaged', 'unit_price': 25.0, 'total_price': 50.0}],
-            'created_at': '2023-10-15T14:00:00Z', 'updated_at': '2023-10-15T15:00:00Z', 'deleted_at': None}
+            'PROCESSED', 'sales_return_rows': [{'id': 3501, 'sales_return_id': 3001, 'variant_id': 2002, 'quantity': '2.0',
+            'return_reason_id': 1, 'notes': 'Packaging was damaged', 'unit_price': 25.0, 'total_price': 50.0, 'created_at':
+            '2023-10-15T14:00:00Z', 'updated_at': '2023-10-15T15:00:00Z'}], 'created_at': '2023-10-15T14:00:00Z',
+            'updated_at': '2023-10-15T15:00:00Z', 'deleted_at': None}
     """
 
     id: int
@@ -190,7 +191,7 @@ class SalesReturn:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -199,7 +200,7 @@ class SalesReturn:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         sales_order_id = _parse_sales_order_id(d.pop("sales_order_id", UNSET))
 
@@ -218,7 +219,7 @@ class SalesReturn:
                 return return_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         return_date = _parse_return_date(d.pop("return_date", UNSET))
 
@@ -234,7 +235,7 @@ class SalesReturn:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
@@ -243,7 +244,7 @@ class SalesReturn:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         refund_status = _parse_refund_status(d.pop("refund_status", UNSET))
 

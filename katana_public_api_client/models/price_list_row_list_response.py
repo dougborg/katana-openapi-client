@@ -20,10 +20,10 @@ class PriceListRowListResponse:
     """Response containing a paginated list of price list rows showing variant-specific pricing within price lists
 
     Example:
-        {'data': [{'id': 5001, 'price_list_id': 1001, 'variant_id': 201, 'price': 249.99, 'currency': 'USD',
-            'created_at': '2024-01-15T10:00:00Z', 'updated_at': '2024-01-15T10:00:00Z'}, {'id': 5002, 'price_list_id': 1001,
-            'variant_id': 202, 'price': 69.99, 'currency': 'USD', 'created_at': '2024-01-15T10:05:00Z', 'updated_at':
-            '2024-01-15T10:05:00Z'}]}
+        {'data': [{'id': 5001, 'price_list_id': 1001, 'variant_id': 201, 'adjustment_method': 'fixed', 'amount': 249.99,
+            'price': 249.99, 'currency': 'USD', 'created_at': '2024-01-15T10:00:00Z', 'updated_at': '2024-01-15T10:00:00Z'},
+            {'id': 5002, 'price_list_id': 1001, 'variant_id': 202, 'adjustment_method': 'percentage', 'amount': 10.0,
+            'price': 69.99, 'currency': 'USD', 'created_at': '2024-01-15T10:05:00Z', 'updated_at': '2024-01-15T10:05:00Z'}]}
     """
 
     data: Unset | list["PriceListRow"] = UNSET

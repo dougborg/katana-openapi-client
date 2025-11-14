@@ -20,11 +20,11 @@ class CreateMaterialRequest:
     Example:
         {'name': 'Stainless Steel Sheet 304', 'uom': 'm²', 'category_name': 'Raw Materials', 'default_supplier_id':
             1501, 'additional_info': 'Food-grade stainless steel, 1.5mm thickness', 'batch_tracked': True, 'is_sellable':
-            False, 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'name': 'Grade', 'values':
-            ['304', '316']}, {'name': 'Thickness', 'values': ['1.5mm', '2.0mm', '3.0mm']}], 'variants': [{'sku':
-            'STEEL-304-1.5MM', 'sales_price': None, 'purchase_price': 45.0, 'lead_time': 5, 'minimum_order_quantity': 1,
-            'config_attributes': [{'config_name': 'Grade', 'config_value': '304'}, {'config_name': 'Thickness',
-            'config_value': '1.5mm'}]}]}
+            False, 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0, 'configs': [{'id': 1, 'name': 'Grade',
+            'values': ['304', '316'], 'material_id': 1}, {'id': 2, 'name': 'Thickness', 'values': ['1.5mm', '2.0mm',
+            '3.0mm'], 'material_id': 1}], 'variants': [{'sku': 'STEEL-304-1.5MM', 'sales_price': 65.0, 'purchase_price':
+            45.0, 'lead_time': 5, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Grade',
+            'config_value': '304'}, {'config_name': 'Thickness', 'config_value': '1.5mm'}]}]}
     """
 
     name: str

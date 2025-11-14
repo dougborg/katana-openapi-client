@@ -142,7 +142,7 @@ class UpdateVariantRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         product_id = _parse_product_id(d.pop("product_id", UNSET))
 
@@ -151,7 +151,7 @@ class UpdateVariantRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         material_id = _parse_material_id(d.pop("material_id", UNSET))
 
@@ -166,7 +166,7 @@ class UpdateVariantRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
 

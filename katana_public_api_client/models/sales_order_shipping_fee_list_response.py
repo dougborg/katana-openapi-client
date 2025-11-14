@@ -20,7 +20,7 @@ class SalesOrderShippingFeeListResponse:
     """Response containing a list of shipping fees associated with sales orders
 
     Example:
-        {'data': [{'id': 2801, 'sales_order_id': 2001, 'amount': 25.99, 'tax_rate_id': 301, 'description': 'UPS Ground
+        {'data': [{'id': 2801, 'sales_order_id': 2001, 'amount': '25.99', 'tax_rate_id': 301, 'description': 'UPS Ground
             Shipping'}]}
     """
 

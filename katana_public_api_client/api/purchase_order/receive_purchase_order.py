@@ -24,14 +24,18 @@ def _get_kwargs(
 
     if isinstance(body, list):
         _kwargs["json"] = []
-        for componentsschemas_purchase_order_receive_request_type_0_item_data in body:
-            componentsschemas_purchase_order_receive_request_type_0_item = componentsschemas_purchase_order_receive_request_type_0_item_data.to_dict()  # type: ignore[attr-defined]
+        # Cast needed for type checker to understand loop variable type
+        typed_body = cast(list["PurchaseOrderReceiveRow"], body)
+        for (
+            componentsschemas_purchase_order_receive_request_type_0_item_data
+        ) in typed_body:
+            componentsschemas_purchase_order_receive_request_type_0_item = componentsschemas_purchase_order_receive_request_type_0_item_data.to_dict()
             _kwargs["json"].append(
                 componentsschemas_purchase_order_receive_request_type_0_item
             )
 
     else:
-        _kwargs["json"] = body.to_dict()  # type: ignore[attr-defined]
+        _kwargs["json"] = body.to_dict()
 
     headers["Content-Type"] = "application/json"
 

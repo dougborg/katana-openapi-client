@@ -347,15 +347,41 @@ def move_client_to_workspace(workspace_path: Path) -> bool:
 
 from .client import AuthenticatedClient, Client
 from .katana_client import KatanaClient
+from .utils import (
+    APIError,
+    AuthenticationError,
+    RateLimitError,
+    ServerError,
+    ValidationError,
+    get_error_message,
+    get_variant_display_name,
+    handle_response,
+    is_error,
+    is_success,
+    unwrap,
+    unwrap_data,
+)
 
 __all__ = [
+    "APIError",
     "AuthenticatedClient",
+    "AuthenticationError",
     "Client",
     "KatanaClient",
+    "RateLimitError",
+    "ServerError",
+    "ValidationError",
+    "get_error_message",
+    "get_variant_display_name",
+    "handle_response",
+    "is_error",
+    "is_success",
+    "unwrap",
+    "unwrap_data",
 ]
 '''
         main_init.write_text(init_content, encoding="utf-8")
-        print("   📄 Updated __init__.py with flattened imports")
+        print("   📄 Updated __init__.py with flattened imports and utils exports")
 
         # Fix imports in generated API files to use client_types instead of types
         print("🔧 Fixing imports in generated API files...")
@@ -504,7 +530,7 @@ def fix_specific_generated_issues(workspace_path: Path) -> bool:
     """Fix specific issues in generated code that ruff can't handle automatically."""
     print("🔧 Fixing specific generated code issues...")
 
-    # Fix the B032 issue in receive_purchase_order.py
+    # Fix the B032 issue and type annotation in receive_purchase_order.py
     receive_po_file = (
         workspace_path
         / "katana_public_api_client"
@@ -519,8 +545,27 @@ def fix_specific_generated_issues(workspace_path: Path) -> bool:
             content = content.replace(
                 '    _kwargs["json"]: dict[str, Any] | list[dict[str, Any]]\n', ""
             )
+            # Add explicit cast to fix ty error - ty doesn't narrow types in for loops
+            if (
+                "for componentsschemas_purchase_order_receive_request_type_0_item_data in body:"
+                in content
+            ):
+                # Add cast import if not present
+                if "from typing import" in content and "cast" not in content:
+                    content = re.sub(
+                        r"from typing import ([^\n]+)",
+                        r"from typing import \1, cast",
+                        content,
+                        count=1,
+                    )
+                # Add cast before the loop
+                content = re.sub(
+                    r'(if isinstance\(body, list\):)\s*\n(\s+)_kwargs\["json"\] = \[\]\s*\n(\s+)for componentsschemas_purchase_order_receive_request_type_0_item_data in body:',
+                    r'\1\n\2_kwargs["json"] = []\n\2# Cast needed for type checker to understand loop variable type\n\2typed_body = cast(list["PurchaseOrderReceiveRow"], body)\n\2for componentsschemas_purchase_order_receive_request_type_0_item_data in typed_body:',
+                    content,
+                )
             receive_po_file.write_text(content, encoding="utf-8")
-            print("   ✓ Fixed B032 issue in receive_purchase_order.py")
+            print("   ✓ Fixed B032 and type annotation in receive_purchase_order.py")
         except Exception as e:
             print(f"   ⚠️  Could not fix receive_purchase_order.py: {e}")
 
@@ -550,50 +595,88 @@ def fix_specific_generated_issues(workspace_path: Path) -> bool:
 
 
 def fix_ty_type_errors(workspace_path: Path) -> None:
-    """Add type: ignore comments for ty type checker errors in generated code."""
-    print("🔧 Adding type: ignore comments for ty type checker...")
+    """Add type: ignore comments and casts for ty type checker errors in generated code."""
+    print("🔧 Adding type: ignore comments and casts for ty type checker...")
 
     client_path = workspace_path / "katana_public_api_client"
 
-    # Fix from_dict method calls in API files - common pattern where data: Any is passed
-    api_files = list((client_path / "api").rglob("*.py"))
-    for api_file in api_files:
+    # Fix from_dict method calls in API files and model files
+    all_py_files = list((client_path / "api").rglob("*.py")) + list(
+        (client_path / "models").rglob("*.py")
+    )
+
+    for py_file in all_py_files:
         try:
-            content = api_file.read_text(encoding="utf-8")
+            content = py_file.read_text(encoding="utf-8")
             original = content
 
-            # Fix .from_dict(data) calls where data is Any
+            # Fix .from_dict(data) calls - cast data to Mapping[str, Any]
+            # Pattern 1: Single line calls
             content = re.sub(
-                r"(\w+)\.from_dict\(data\)",
-                r"\1.from_dict(data)  # type: ignore[arg-type]",
+                r"(\w+)\.from_dict\(data\)(\s*#\s*type:\s*ignore\[arg-type\])?",
+                r"\1.from_dict(cast(Mapping[str, Any], data))",
                 content,
             )
 
-            if content != original:
-                api_file.write_text(content, encoding="utf-8")
-        except Exception as e:
-            print(f"   ⚠️  Could not fix {api_file}: {e}")
-
-    # Fix from_dict method signatures in model files
-    model_files = list((client_path / "models").rglob("*.py"))
-    for model_file in model_files:
-        try:
-            content = model_file.read_text(encoding="utf-8")
-            original = content
-
-            # Add type: ignore to from_dict method definitions
+            # Pattern 2: Multi-line calls with data on next line
             content = re.sub(
-                r"(    def from_dict\(cls: type\[T\], src_dict: Mapping\[str, Any\]\) -> T:)",
+                r"(\w+)\.from_dict\(\s*\n\s+data\s*\n\s*\)(\s*#\s*type:\s*ignore\[arg-type\])?",
+                r"\1.from_dict(\n                cast(Mapping[str, Any], data)\n            )",
+                content,
+            )
+
+            # Ensure cast and Mapping are imported
+            if "cast(Mapping[str, Any], data)" in content:
+                # Check if cast is already imported from typing
+                if not re.search(r"from typing import.*\bcast\b", content):
+                    # Find the from typing import line and add cast at the end
+                    content = re.sub(
+                        r"(from typing import (?:[^,\n]+(?:,\s*)?)+)",
+                        r"\1, cast",
+                        content,
+                        count=1,
+                    )
+
+                # Check if Mapping is imported from collections.abc
+                if not re.search(r"from collections\.abc import.*\bMapping\b", content):
+                    # Check if there's already a collections.abc import
+                    if "from collections.abc import" in content:
+                        # Add Mapping to existing import at the end
+                        content = re.sub(
+                            r"(from collections\.abc import (?:[^,\n]+(?:,\s*)?)+)",
+                            r"\1, Mapping",
+                            content,
+                            count=1,
+                        )
+                    else:
+                        # Add new import after typing import
+                        content = re.sub(
+                            r"(from typing import [^\n]+\n)",
+                            r"\1from collections.abc import Mapping\n",
+                            content,
+                            count=1,
+                        )
+
+            # Fix @classmethod from_dict signatures - only add if not present
+            content = re.sub(
+                r"(    def from_dict\(cls: type\[T\], src_dict: Mapping\[str, Any\]\) -> T:)(?!\s*#\s*type:\s*ignore)",
                 r"\1  # type: ignore[misc]",
                 content,
             )
 
-            if content != original:
-                model_file.write_text(content, encoding="utf-8")
-        except Exception as e:
-            print(f"   ⚠️  Could not fix {model_file}: {e}")
+            # Fix cast() calls with dict types that have unknown values - already have cast
+            content = re.sub(
+                r"(return cast\([^,]+, data\))(?!\s*#\s*type:\s*ignore)",
+                r"\1  # type: ignore[return-value]",
+                content,
+            )
 
-    print("   ✓ Added type: ignore comments for ty type checker errors")
+            if content != original:
+                py_file.write_text(content, encoding="utf-8")
+        except Exception as e:
+            print(f"   ⚠️  Could not fix {py_file}: {e}")
+
+    print("   ✓ Added type: ignore comments and casts for ty type checker errors")
 
 
 def run_lint_check(workspace_path: Path) -> bool:

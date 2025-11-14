@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
 from attrs import (
     define as _attrs_define,
@@ -149,14 +149,18 @@ class Inventory:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                componentsschemas_location_type_0 = LocationType0.from_dict(data)  # type: ignore[arg-type]
+                componentsschemas_location_type_0 = LocationType0.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
 
                 return componentsschemas_location_type_0
             except:  # noqa: E722
                 pass
             if not isinstance(data, dict):
                 raise TypeError()
-            componentsschemas_location_type_1 = DeletableEntity.from_dict(data)  # type: ignore[arg-type]
+            componentsschemas_location_type_1 = DeletableEntity.from_dict(
+                cast(Mapping[str, Any], data)
+            )
 
             return componentsschemas_location_type_1
 

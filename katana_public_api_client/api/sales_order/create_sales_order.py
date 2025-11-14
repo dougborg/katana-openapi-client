@@ -86,11 +86,12 @@ def sync_detailed(
             2101, 'tax_rate_id': 301, 'location_id': 1, 'price_per_unit': 599.99, 'total_discount':
             50.0, 'attributes': [{'key': 'engrave_text', 'value': 'Professional Kitchen'}, {'key':
             'rush_order', 'value': 'true'}]}], 'tracking_number': None, 'tracking_number_url': None,
-            'addresses': [{'entity_type': 'billing', 'first_name': 'David', 'last_name': 'Wilson',
-            'company': "Wilson's Catering", 'line_1': '456 Commerce Ave', 'city': 'Seattle', 'state':
-            'WA', 'zip': '98101', 'country': 'US'}, {'entity_type': 'shipping', 'first_name': 'David',
-            'last_name': 'Wilson', 'company': "Wilson's Catering", 'line_1': '789 Industrial Blvd',
-            'city': 'Seattle', 'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
+            'addresses': [{'id': 1, 'sales_order_id': 2001, 'entity_type': 'billing', 'first_name':
+            'David', 'last_name': 'Wilson', 'company': "Wilson's Catering", 'line_1': '456 Commerce
+            Ave', 'city': 'Seattle', 'state': 'WA', 'zip': '98101', 'country': 'US'}, {'id': 2,
+            'sales_order_id': 2001, 'entity_type': 'shipping', 'first_name': 'David', 'last_name':
+            'Wilson', 'company': "Wilson's Catering", 'line_1': '789 Industrial Blvd', 'city':
+            'Seattle', 'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
             '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z', 'currency': 'USD',
             'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
             delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale',
@@ -132,11 +133,12 @@ def sync(
             2101, 'tax_rate_id': 301, 'location_id': 1, 'price_per_unit': 599.99, 'total_discount':
             50.0, 'attributes': [{'key': 'engrave_text', 'value': 'Professional Kitchen'}, {'key':
             'rush_order', 'value': 'true'}]}], 'tracking_number': None, 'tracking_number_url': None,
-            'addresses': [{'entity_type': 'billing', 'first_name': 'David', 'last_name': 'Wilson',
-            'company': "Wilson's Catering", 'line_1': '456 Commerce Ave', 'city': 'Seattle', 'state':
-            'WA', 'zip': '98101', 'country': 'US'}, {'entity_type': 'shipping', 'first_name': 'David',
-            'last_name': 'Wilson', 'company': "Wilson's Catering", 'line_1': '789 Industrial Blvd',
-            'city': 'Seattle', 'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
+            'addresses': [{'id': 1, 'sales_order_id': 2001, 'entity_type': 'billing', 'first_name':
+            'David', 'last_name': 'Wilson', 'company': "Wilson's Catering", 'line_1': '456 Commerce
+            Ave', 'city': 'Seattle', 'state': 'WA', 'zip': '98101', 'country': 'US'}, {'id': 2,
+            'sales_order_id': 2001, 'entity_type': 'shipping', 'first_name': 'David', 'last_name':
+            'Wilson', 'company': "Wilson's Catering", 'line_1': '789 Industrial Blvd', 'city':
+            'Seattle', 'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
             '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z', 'currency': 'USD',
             'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
             delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale',
@@ -173,11 +175,12 @@ async def asyncio_detailed(
             2101, 'tax_rate_id': 301, 'location_id': 1, 'price_per_unit': 599.99, 'total_discount':
             50.0, 'attributes': [{'key': 'engrave_text', 'value': 'Professional Kitchen'}, {'key':
             'rush_order', 'value': 'true'}]}], 'tracking_number': None, 'tracking_number_url': None,
-            'addresses': [{'entity_type': 'billing', 'first_name': 'David', 'last_name': 'Wilson',
-            'company': "Wilson's Catering", 'line_1': '456 Commerce Ave', 'city': 'Seattle', 'state':
-            'WA', 'zip': '98101', 'country': 'US'}, {'entity_type': 'shipping', 'first_name': 'David',
-            'last_name': 'Wilson', 'company': "Wilson's Catering", 'line_1': '789 Industrial Blvd',
-            'city': 'Seattle', 'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
+            'addresses': [{'id': 1, 'sales_order_id': 2001, 'entity_type': 'billing', 'first_name':
+            'David', 'last_name': 'Wilson', 'company': "Wilson's Catering", 'line_1': '456 Commerce
+            Ave', 'city': 'Seattle', 'state': 'WA', 'zip': '98101', 'country': 'US'}, {'id': 2,
+            'sales_order_id': 2001, 'entity_type': 'shipping', 'first_name': 'David', 'last_name':
+            'Wilson', 'company': "Wilson's Catering", 'line_1': '789 Industrial Blvd', 'city':
+            'Seattle', 'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
             '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z', 'currency': 'USD',
             'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
             delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale',
@@ -217,11 +220,12 @@ async def asyncio(
             2101, 'tax_rate_id': 301, 'location_id': 1, 'price_per_unit': 599.99, 'total_discount':
             50.0, 'attributes': [{'key': 'engrave_text', 'value': 'Professional Kitchen'}, {'key':
             'rush_order', 'value': 'true'}]}], 'tracking_number': None, 'tracking_number_url': None,
-            'addresses': [{'entity_type': 'billing', 'first_name': 'David', 'last_name': 'Wilson',
-            'company': "Wilson's Catering", 'line_1': '456 Commerce Ave', 'city': 'Seattle', 'state':
-            'WA', 'zip': '98101', 'country': 'US'}, {'entity_type': 'shipping', 'first_name': 'David',
-            'last_name': 'Wilson', 'company': "Wilson's Catering", 'line_1': '789 Industrial Blvd',
-            'city': 'Seattle', 'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
+            'addresses': [{'id': 1, 'sales_order_id': 2001, 'entity_type': 'billing', 'first_name':
+            'David', 'last_name': 'Wilson', 'company': "Wilson's Catering", 'line_1': '456 Commerce
+            Ave', 'city': 'Seattle', 'state': 'WA', 'zip': '98101', 'country': 'US'}, {'id': 2,
+            'sales_order_id': 2001, 'entity_type': 'shipping', 'first_name': 'David', 'last_name':
+            'Wilson', 'company': "Wilson's Catering", 'line_1': '789 Industrial Blvd', 'city':
+            'Seattle', 'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
             '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z', 'currency': 'USD',
             'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
             delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale',

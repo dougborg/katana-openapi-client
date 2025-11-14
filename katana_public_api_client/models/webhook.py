@@ -115,7 +115,7 @@ class Webhook:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         description = _parse_description(d.pop("description", UNSET))
 

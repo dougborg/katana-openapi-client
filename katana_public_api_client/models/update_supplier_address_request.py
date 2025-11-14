@@ -88,7 +88,7 @@ class UpdateSupplierAddressRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         line_1 = _parse_line_1(d.pop("line_1", UNSET))
 
@@ -97,7 +97,7 @@ class UpdateSupplierAddressRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         line_2 = _parse_line_2(d.pop("line_2", UNSET))
 
@@ -106,7 +106,7 @@ class UpdateSupplierAddressRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         city = _parse_city(d.pop("city", UNSET))
 
@@ -115,7 +115,7 @@ class UpdateSupplierAddressRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         state = _parse_state(d.pop("state", UNSET))
 
@@ -124,7 +124,7 @@ class UpdateSupplierAddressRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         zip_ = _parse_zip_(d.pop("zip", UNSET))
 
@@ -133,7 +133,7 @@ class UpdateSupplierAddressRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         country = _parse_country(d.pop("country", UNSET))
 
