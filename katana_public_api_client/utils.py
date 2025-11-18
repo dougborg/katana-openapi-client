@@ -99,6 +99,13 @@ class ValidationError(APIError):
                         maximum = info["maximum"]
                         error_details.append(f"  Field '{field}' must be <= {maximum}")
 
+                    # Invalid type validation errors
+                    elif detail.code == "invalid_type" and "expectedType" in info:
+                        expected_type = info["expectedType"]
+                        error_details.append(
+                            f"  Field '{field}' must be of type: {expected_type}"
+                        )
+
             if error_details:
                 msg += "\n" + "\n".join(error_details)
 

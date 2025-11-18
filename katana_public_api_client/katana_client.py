@@ -326,6 +326,35 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                                 )
                                 log_message += f"\n       Additional info: {formatted}"
 
+                        # Special formatting for invalid_type validation errors
+                        elif detail.code == "invalid_type":
+                            # Try to extract the sent value from request body
+                            sent_value = None
+                            if request_body and detail.path:
+                                field_path = detail.path.lstrip("/")
+                                if "/" not in field_path:
+                                    sent_value = request_body.get(field_path)
+
+                            if sent_value is not None:
+                                sent_type = type(sent_value).__name__
+                                log_message += f"\n       Sent value: {sent_value!r} (type: {sent_type})"
+
+                            # Show expected type
+                            if "expectedType" in info:
+                                log_message += (
+                                    f"\n       Expected type: {info['expectedType']}"
+                                )
+
+                            # Log other info if present (excluding expectedType)
+                            other_info = {
+                                k: v for k, v in info.items() if k != "expectedType"
+                            }
+                            if other_info:
+                                formatted = ", ".join(
+                                    f"{k}: {v!r}" for k, v in other_info.items()
+                                )
+                                log_message += f"\n       Additional info: {formatted}"
+
                         else:
                             # Generic formatting for non-enum errors
                             formatted = ", ".join(
