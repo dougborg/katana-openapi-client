@@ -36,7 +36,7 @@ classifiers = [
 ]
 dependencies = [
     "fastmcp>=2.12.5",
-    "katana-openapi-client>=0.33.0",
+    "katana-openapi-client>=0.34.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
     "structlog>=24.1.0",
