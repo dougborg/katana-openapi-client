@@ -585,27 +585,23 @@ class TestValidationErrorEnumFormatting:
 
     def test_validation_error_with_enum_details(self):
         """Test that enum validation errors include allowed values in message."""
-        from katana_public_api_client.models.validation_error_detail import (
-            ValidationErrorDetail,
+        from katana_public_api_client.models.enum_validation_error import (
+            EnumValidationError,
         )
-        from katana_public_api_client.models.validation_error_detail_info import (
-            ValidationErrorDetailInfo,
+        from katana_public_api_client.models.enum_validation_error_code import (
+            EnumValidationErrorCode,
         )
 
         # Create validation detail with enum error
-        detail_info = ValidationErrorDetailInfo()
-        detail_info.additional_properties = {
-            "allowedValues": [
+        detail = EnumValidationError(
+            path="/resource_type",
+            code=EnumValidationErrorCode.ENUM,
+            message="must be equal to one of the allowed values",
+            allowed_values=[
                 "ManufacturingOrder",
                 "StockAdjustmentRow",
                 "StockTransferRow",
-            ]
-        }
-        detail = ValidationErrorDetail(
-            path="/resource_type",
-            code="enum",
-            message="must be equal to one of the allowed values",
-            info=detail_info,
+            ],
         )
 
         error_response = DetailedErrorResponse(
@@ -632,15 +628,19 @@ class TestValidationErrorEnumFormatting:
 
     def test_validation_error_without_enum_details(self):
         """Test that non-enum validation errors don't break."""
-        from katana_public_api_client.models.validation_error_detail import (
-            ValidationErrorDetail,
+        from katana_public_api_client.models.min_validation_error import (
+            MinValidationError,
+        )
+        from katana_public_api_client.models.min_validation_error_code import (
+            MinValidationErrorCode,
         )
 
         # Create validation detail without enum error
-        detail = ValidationErrorDetail(
+        detail = MinValidationError(
             path="/quantity",
-            code="min",
+            code=MinValidationErrorCode.MIN,
             message="must be >= 0",
+            minimum=0,
         )
 
         error_response = DetailedErrorResponse(
@@ -671,21 +671,19 @@ class TestValidationErrorMinMaxFormatting:
 
     def test_validation_error_with_min_details(self):
         """Test that min validation errors include minimum value in message."""
-        from katana_public_api_client.models.validation_error_detail import (
-            ValidationErrorDetail,
+        from katana_public_api_client.models.min_validation_error import (
+            MinValidationError,
         )
-        from katana_public_api_client.models.validation_error_detail_info import (
-            ValidationErrorDetailInfo,
+        from katana_public_api_client.models.min_validation_error_code import (
+            MinValidationErrorCode,
         )
 
         # Create validation detail with min error
-        detail_info = ValidationErrorDetailInfo()
-        detail_info.additional_properties = {"minimum": 0}
-        detail = ValidationErrorDetail(
+        detail = MinValidationError(
             path="/quantity",
-            code="min",
+            code=MinValidationErrorCode.MIN,
             message="must be >= 0",
-            info=detail_info,
+            minimum=0,
         )
 
         error_response = DetailedErrorResponse(
@@ -709,21 +707,19 @@ class TestValidationErrorMinMaxFormatting:
 
     def test_validation_error_with_max_details(self):
         """Test that max validation errors include maximum value in message."""
-        from katana_public_api_client.models.validation_error_detail import (
-            ValidationErrorDetail,
+        from katana_public_api_client.models.max_validation_error import (
+            MaxValidationError,
         )
-        from katana_public_api_client.models.validation_error_detail_info import (
-            ValidationErrorDetailInfo,
+        from katana_public_api_client.models.max_validation_error_code import (
+            MaxValidationErrorCode,
         )
 
         # Create validation detail with max error
-        detail_info = ValidationErrorDetailInfo()
-        detail_info.additional_properties = {"maximum": 100}
-        detail = ValidationErrorDetail(
+        detail = MaxValidationError(
             path="/discount_percentage",
-            code="max",
+            code=MaxValidationErrorCode.MAX,
             message="must be <= 100",
-            info=detail_info,
+            maximum=100,
         )
 
         error_response = DetailedErrorResponse(
@@ -752,21 +748,19 @@ class TestValidationErrorInvalidTypeFormatting:
 
     def test_validation_error_with_invalid_type_details(self):
         """Test that invalid_type validation errors include expected type in message."""
-        from katana_public_api_client.models.validation_error_detail import (
-            ValidationErrorDetail,
+        from katana_public_api_client.models.invalid_type_validation_error import (
+            InvalidTypeValidationError,
         )
-        from katana_public_api_client.models.validation_error_detail_info import (
-            ValidationErrorDetailInfo,
+        from katana_public_api_client.models.invalid_type_validation_error_code import (
+            InvalidTypeValidationErrorCode,
         )
 
         # Create validation detail with invalid_type error
-        detail_info = ValidationErrorDetailInfo()
-        detail_info.additional_properties = {"expectedType": "number"}
-        detail = ValidationErrorDetail(
+        detail = InvalidTypeValidationError(
             path="/price",
-            code="invalid_type",
+            code=InvalidTypeValidationErrorCode.INVALID_TYPE,
             message="must be number",
-            info=detail_info,
+            expected_type="number",
         )
 
         error_response = DetailedErrorResponse(
@@ -795,21 +789,19 @@ class TestValidationErrorTooSmallTooBigFormatting:
 
     def test_validation_error_with_too_small_minlength(self):
         """Test that too_small validation errors include minimum length in message."""
-        from katana_public_api_client.models.validation_error_detail import (
-            ValidationErrorDetail,
+        from katana_public_api_client.models.too_small_validation_error import (
+            TooSmallValidationError,
         )
-        from katana_public_api_client.models.validation_error_detail_info import (
-            ValidationErrorDetailInfo,
+        from katana_public_api_client.models.too_small_validation_error_code import (
+            TooSmallValidationErrorCode,
         )
 
         # Create validation detail with too_small/minLength error
-        detail_info = ValidationErrorDetailInfo()
-        detail_info.additional_properties = {"minLength": 3}
-        detail = ValidationErrorDetail(
+        detail = TooSmallValidationError(
             path="/sku",
-            code="too_small",
+            code=TooSmallValidationErrorCode.TOO_SMALL,
             message="must have at least 3 characters",
-            info=detail_info,
+            min_length=3,
         )
 
         error_response = DetailedErrorResponse(
@@ -833,21 +825,19 @@ class TestValidationErrorTooSmallTooBigFormatting:
 
     def test_validation_error_with_too_small_minitems(self):
         """Test that too_small validation errors include minimum items in message."""
-        from katana_public_api_client.models.validation_error_detail import (
-            ValidationErrorDetail,
+        from katana_public_api_client.models.too_small_validation_error import (
+            TooSmallValidationError,
         )
-        from katana_public_api_client.models.validation_error_detail_info import (
-            ValidationErrorDetailInfo,
+        from katana_public_api_client.models.too_small_validation_error_code import (
+            TooSmallValidationErrorCode,
         )
 
         # Create validation detail with too_small/minItems error
-        detail_info = ValidationErrorDetailInfo()
-        detail_info.additional_properties = {"minItems": 1}
-        detail = ValidationErrorDetail(
+        detail = TooSmallValidationError(
             path="/items",
-            code="too_small",
+            code=TooSmallValidationErrorCode.TOO_SMALL,
             message="must have at least 1 item",
-            info=detail_info,
+            min_items=1,
         )
 
         error_response = DetailedErrorResponse(
@@ -871,21 +861,19 @@ class TestValidationErrorTooSmallTooBigFormatting:
 
     def test_validation_error_with_too_big_maxlength(self):
         """Test that too_big validation errors include maximum length in message."""
-        from katana_public_api_client.models.validation_error_detail import (
-            ValidationErrorDetail,
+        from katana_public_api_client.models.too_big_validation_error import (
+            TooBigValidationError,
         )
-        from katana_public_api_client.models.validation_error_detail_info import (
-            ValidationErrorDetailInfo,
+        from katana_public_api_client.models.too_big_validation_error_code import (
+            TooBigValidationErrorCode,
         )
 
         # Create validation detail with too_big/maxLength error
-        detail_info = ValidationErrorDetailInfo()
-        detail_info.additional_properties = {"maxLength": 100}
-        detail = ValidationErrorDetail(
+        detail = TooBigValidationError(
             path="/description",
-            code="too_big",
+            code=TooBigValidationErrorCode.TOO_BIG,
             message="must have at most 100 characters",
-            info=detail_info,
+            max_length=100,
         )
 
         error_response = DetailedErrorResponse(
@@ -909,21 +897,19 @@ class TestValidationErrorTooSmallTooBigFormatting:
 
     def test_validation_error_with_too_big_maxitems(self):
         """Test that too_big validation errors include maximum items in message."""
-        from katana_public_api_client.models.validation_error_detail import (
-            ValidationErrorDetail,
+        from katana_public_api_client.models.too_big_validation_error import (
+            TooBigValidationError,
         )
-        from katana_public_api_client.models.validation_error_detail_info import (
-            ValidationErrorDetailInfo,
+        from katana_public_api_client.models.too_big_validation_error_code import (
+            TooBigValidationErrorCode,
         )
 
         # Create validation detail with too_big/maxItems error
-        detail_info = ValidationErrorDetailInfo()
-        detail_info.additional_properties = {"maxItems": 10}
-        detail = ValidationErrorDetail(
+        detail = TooBigValidationError(
             path="/tags",
-            code="too_big",
+            code=TooBigValidationErrorCode.TOO_BIG,
             message="must have at most 10 items",
-            info=detail_info,
+            max_items=10,
         )
 
         error_response = DetailedErrorResponse(
@@ -952,21 +938,19 @@ class TestValidationErrorRequiredFormatting:
 
     def test_validation_error_with_required_field(self):
         """Test that required field validation errors include missing field in message."""
-        from katana_public_api_client.models.validation_error_detail import (
-            ValidationErrorDetail,
+        from katana_public_api_client.models.required_validation_error import (
+            RequiredValidationError,
         )
-        from katana_public_api_client.models.validation_error_detail_info import (
-            ValidationErrorDetailInfo,
+        from katana_public_api_client.models.required_validation_error_code import (
+            RequiredValidationErrorCode,
         )
 
         # Create validation detail with required field error
-        detail_info = ValidationErrorDetailInfo()
-        detail_info.additional_properties = {"missingProperty": "supplier_id"}
-        detail = ValidationErrorDetail(
+        detail = RequiredValidationError(
             path="",
-            code="required",
+            code=RequiredValidationErrorCode.REQUIRED,
             message="supplier_id is required",
-            info=detail_info,
+            missing_property="supplier_id",
         )
 
         error_response = DetailedErrorResponse(
@@ -995,21 +979,19 @@ class TestValidationErrorPatternFormatting:
 
     def test_validation_error_with_pattern(self):
         """Test that pattern validation errors include regex pattern in message."""
-        from katana_public_api_client.models.validation_error_detail import (
-            ValidationErrorDetail,
+        from katana_public_api_client.models.pattern_validation_error import (
+            PatternValidationError,
         )
-        from katana_public_api_client.models.validation_error_detail_info import (
-            ValidationErrorDetailInfo,
+        from katana_public_api_client.models.pattern_validation_error_code import (
+            PatternValidationErrorCode,
         )
 
         # Create validation detail with pattern error
-        detail_info = ValidationErrorDetailInfo()
-        detail_info.additional_properties = {"pattern": "^[A-Z]{2,3}-\\d{3,}$"}
-        detail = ValidationErrorDetail(
+        detail = PatternValidationError(
             path="/sku",
-            code="pattern",
+            code=PatternValidationErrorCode.PATTERN,
             message="must match pattern",
-            info=detail_info,
+            pattern="^[A-Z]{2,3}-\\d{3,}$",
         )
 
         error_response = DetailedErrorResponse(
@@ -1038,24 +1020,20 @@ class TestValidationErrorUnrecognizedKeysFormatting:
 
     def test_validation_error_with_unrecognized_keys(self):
         """Test that unrecognized_keys validation errors include invalid and valid fields in message."""
-        from katana_public_api_client.models.validation_error_detail import (
-            ValidationErrorDetail,
+        from katana_public_api_client.models.unrecognized_keys_validation_error import (
+            UnrecognizedKeysValidationError,
         )
-        from katana_public_api_client.models.validation_error_detail_info import (
-            ValidationErrorDetailInfo,
+        from katana_public_api_client.models.unrecognized_keys_validation_error_code import (
+            UnrecognizedKeysValidationErrorCode,
         )
 
         # Create validation detail with unrecognized_keys error
-        detail_info = ValidationErrorDetailInfo()
-        detail_info.additional_properties = {
-            "keys": ["invalid_field", "another_invalid"],
-            "validKeys": ["supplier_id", "location_id", "order_number", "items"],
-        }
-        detail = ValidationErrorDetail(
+        detail = UnrecognizedKeysValidationError(
             path="",
-            code="unrecognized_keys",
+            code=UnrecognizedKeysValidationErrorCode.UNRECOGNIZED_KEYS,
             message="unrecognized keys in object",
-            info=detail_info,
+            keys=["invalid_field", "another_invalid"],
+            valid_keys=["supplier_id", "location_id", "order_number", "items"],
         )
 
         error_response = DetailedErrorResponse(

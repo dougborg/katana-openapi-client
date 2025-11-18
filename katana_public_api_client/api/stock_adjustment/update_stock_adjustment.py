@@ -91,7 +91,8 @@ def sync_detailed(
     """Update a stock adjustment
 
      Updates the specified stock adjustment by setting the values of the parameters passed. Any
-    parameters not provided will be left unchanged.
+    parameters not
+    provided will be left unchanged.
 
     Args:
         id (int):
@@ -131,7 +132,8 @@ def sync(
     """Update a stock adjustment
 
      Updates the specified stock adjustment by setting the values of the parameters passed. Any
-    parameters not provided will be left unchanged.
+    parameters not
+    provided will be left unchanged.
 
     Args:
         id (int):
@@ -166,7 +168,8 @@ async def asyncio_detailed(
     """Update a stock adjustment
 
      Updates the specified stock adjustment by setting the values of the parameters passed. Any
-    parameters not provided will be left unchanged.
+    parameters not
+    provided will be left unchanged.
 
     Args:
         id (int):
@@ -204,7 +207,8 @@ async def asyncio(
     """Update a stock adjustment
 
      Updates the specified stock adjustment by setting the values of the parameters passed. Any
-    parameters not provided will be left unchanged.
+    parameters not
+    provided will be left unchanged.
 
     Args:
         id (int):

@@ -1143,8 +1143,33 @@ components:
               items:
                 $ref: "#/components/schemas/ValidationErrorDetail"
     ValidationErrorDetail:
+      oneOf:
+        - $ref: "#/components/schemas/EnumValidationError"
+        - $ref: "#/components/schemas/MinValidationError"
+        - $ref: "#/components/schemas/MaxValidationError"
+        - $ref: "#/components/schemas/InvalidTypeValidationError"
+        - $ref: "#/components/schemas/TooSmallValidationError"
+        - $ref: "#/components/schemas/TooBigValidationError"
+        - $ref: "#/components/schemas/RequiredValidationError"
+        - $ref: "#/components/schemas/PatternValidationError"
+        - $ref: "#/components/schemas/UnrecognizedKeysValidationError"
+        - $ref: "#/components/schemas/GenericValidationError"
+      discriminator:
+        propertyName: code
+        mapping:
+          enum: "#/components/schemas/EnumValidationError"
+          min: "#/components/schemas/MinValidationError"
+          max: "#/components/schemas/MaxValidationError"
+          invalid_type: "#/components/schemas/InvalidTypeValidationError"
+          too_small: "#/components/schemas/TooSmallValidationError"
+          too_big: "#/components/schemas/TooBigValidationError"
+          required: "#/components/schemas/RequiredValidationError"
+          pattern: "#/components/schemas/PatternValidationError"
+          unrecognized_keys: "#/components/schemas/UnrecognizedKeysValidationError"
+
+    BaseValidationError:
       type: object
-      description: Individual validation error detail
+      description: Base validation error with common fields
       properties:
         path:
           type: string
@@ -1155,13 +1180,153 @@ components:
         message:
           type: string
           description: Human-readable validation error message
-        info:
-          type: object
-          description: Additional validation context
-          additionalProperties: true
       required:
         - path
         - code
+        - message
+
+    EnumValidationError:
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["enum"]
+            allowed_values:
+              type: array
+              items:
+                type: string
+              description: List of valid enum values
+          required:
+            - allowed_values
+
+    MinValidationError:
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["min"]
+            minimum:
+              type: number
+              description: Minimum allowed value
+          required:
+            - minimum
+
+    MaxValidationError:
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["max"]
+            maximum:
+              type: number
+              description: Maximum allowed value
+          required:
+            - maximum
+
+    InvalidTypeValidationError:
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["invalid_type"]
+            expected_type:
+              type: string
+              description: Expected type for the field
+          required:
+            - expected_type
+
+    TooSmallValidationError:
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["too_small"]
+            min_length:
+              type: integer
+              description: Minimum string length required
+            min_items:
+              type: integer
+              description: Minimum array items required
+
+    TooBigValidationError:
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["too_big"]
+            max_length:
+              type: integer
+              description: Maximum string length allowed
+            max_items:
+              type: integer
+              description: Maximum array items allowed
+
+    RequiredValidationError:
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["required"]
+            missing_property:
+              type: string
+              description: Name of the required field that is missing
+          required:
+            - missing_property
+
+    PatternValidationError:
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["pattern"]
+            pattern:
+              type: string
+              description: Regular expression pattern that must be matched
+          required:
+            - pattern
+
+    UnrecognizedKeysValidationError:
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["unrecognized_keys"]
+            keys:
+              type: array
+              items:
+                type: string
+              description: List of unrecognized field names
+            valid_keys:
+              type: array
+              items:
+                type: string
+              description: List of valid field names
+          required:
+            - keys
+
+    GenericValidationError:
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          description: Fallback for any validation error codes not explicitly typed
 
     OutsourcedPurchaseOrderIngredientAvailability:
       type: string

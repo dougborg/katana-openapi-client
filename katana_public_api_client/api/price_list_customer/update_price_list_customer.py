@@ -91,7 +91,8 @@ def sync_detailed(
     """Update a price list customer assignment
 
      Updates the specified price list customer assignment by setting the values of the parameters passed.
-    Any parameters not provided will be left unchanged.
+    Any
+    parameters not provided will be left unchanged.
 
     Args:
         id (int):
@@ -129,7 +130,8 @@ def sync(
     """Update a price list customer assignment
 
      Updates the specified price list customer assignment by setting the values of the parameters passed.
-    Any parameters not provided will be left unchanged.
+    Any
+    parameters not provided will be left unchanged.
 
     Args:
         id (int):
@@ -162,7 +164,8 @@ async def asyncio_detailed(
     """Update a price list customer assignment
 
      Updates the specified price list customer assignment by setting the values of the parameters passed.
-    Any parameters not provided will be left unchanged.
+    Any
+    parameters not provided will be left unchanged.
 
     Args:
         id (int):
@@ -198,7 +201,8 @@ async def asyncio(
     """Update a price list customer assignment
 
      Updates the specified price list customer assignment by setting the values of the parameters passed.
-    Any parameters not provided will be left unchanged.
+    Any
+    parameters not provided will be left unchanged.
 
     Args:
         id (int):

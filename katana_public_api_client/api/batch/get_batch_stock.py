@@ -113,7 +113,8 @@ def sync_detailed(
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
-    location_id ASC, variant_id ASC, and batch_id DESC.
+    location_id ASC,
+    variant_id ASC, and batch_id DESC.
 
     Args:
         batch_id (Union[Unset, int]):
@@ -174,7 +175,8 @@ def sync(
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
-    location_id ASC, variant_id ASC, and batch_id DESC.
+    location_id ASC,
+    variant_id ASC, and batch_id DESC.
 
     Args:
         batch_id (Union[Unset, int]):
@@ -230,7 +232,8 @@ async def asyncio_detailed(
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
-    location_id ASC, variant_id ASC, and batch_id DESC.
+    location_id ASC,
+    variant_id ASC, and batch_id DESC.
 
     Args:
         batch_id (Union[Unset, int]):
@@ -289,7 +292,8 @@ async def asyncio(
     """List current batch stock
 
      Returns a list for current batch stock. The inventory is returned in sorted order, based on
-    location_id ASC, variant_id ASC, and batch_id DESC.
+    location_id ASC,
+    variant_id ASC, and batch_id DESC.
 
     Args:
         batch_id (Union[Unset, int]):

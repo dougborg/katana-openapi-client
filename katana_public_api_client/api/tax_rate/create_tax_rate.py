@@ -87,8 +87,9 @@ def sync_detailed(
 
     Args:
         body (CreateTaxRateRequest): Request payload for creating a new tax rate to be applied to
-            sales and purchase orders for financial compliance Example: {'name': 'VAT 20%', 'rate':
-            20.0}.
+            sales and purchase orders for financial compliance
+             Example: {'name': 'VAT 20%', 'rate': 20.0}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -121,8 +122,9 @@ def sync(
 
     Args:
         body (CreateTaxRateRequest): Request payload for creating a new tax rate to be applied to
-            sales and purchase orders for financial compliance Example: {'name': 'VAT 20%', 'rate':
-            20.0}.
+            sales and purchase orders for financial compliance
+             Example: {'name': 'VAT 20%', 'rate': 20.0}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -150,8 +152,9 @@ async def asyncio_detailed(
 
     Args:
         body (CreateTaxRateRequest): Request payload for creating a new tax rate to be applied to
-            sales and purchase orders for financial compliance Example: {'name': 'VAT 20%', 'rate':
-            20.0}.
+            sales and purchase orders for financial compliance
+             Example: {'name': 'VAT 20%', 'rate': 20.0}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -182,8 +185,9 @@ async def asyncio(
 
     Args:
         body (CreateTaxRateRequest): Request payload for creating a new tax rate to be applied to
-            sales and purchase orders for financial compliance Example: {'name': 'VAT 20%', 'rate':
-            20.0}.
+            sales and purchase orders for financial compliance
+             Example: {'name': 'VAT 20%', 'rate': 20.0}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

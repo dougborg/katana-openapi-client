@@ -107,7 +107,8 @@ def sync_detailed(
      Updates the specified manufacturing order production ingredient by setting the values of the
     parameters passed.
       Any parameters not provided will be left unchanged. Manufacturing order production ingredient
-    cannot be updated when
+    cannot be
+      updated when
       the manufacturing order status is DONE.
 
     Args:
@@ -153,7 +154,8 @@ def sync(
      Updates the specified manufacturing order production ingredient by setting the values of the
     parameters passed.
       Any parameters not provided will be left unchanged. Manufacturing order production ingredient
-    cannot be updated when
+    cannot be
+      updated when
       the manufacturing order status is DONE.
 
     Args:
@@ -193,7 +195,8 @@ async def asyncio_detailed(
      Updates the specified manufacturing order production ingredient by setting the values of the
     parameters passed.
       Any parameters not provided will be left unchanged. Manufacturing order production ingredient
-    cannot be updated when
+    cannot be
+      updated when
       the manufacturing order status is DONE.
 
     Args:
@@ -237,7 +240,8 @@ async def asyncio(
      Updates the specified manufacturing order production ingredient by setting the values of the
     parameters passed.
       Any parameters not provided will be left unchanged. Manufacturing order production ingredient
-    cannot be updated when
+    cannot be
+      updated when
       the manufacturing order status is DONE.
 
     Args:

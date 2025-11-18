@@ -6,28 +6,54 @@ from attrs import (
     field as _attrs_field,
 )
 
-T = TypeVar("T", bound="ValidationErrorDetailInfo")
+T = TypeVar("T", bound="BaseValidationError")
 
 
 @_attrs_define
-class ValidationErrorDetailInfo:
-    """Additional validation context"""
+class BaseValidationError:
+    """Base validation error with common fields"""
 
+    path: str
+    code: str
+    message: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        path = self.path
+
+        code = self.code
+
+        message = self.message
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
+        field_dict.update(
+            {
+                "path": path,
+                "code": code,
+                "message": message,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         d = dict(src_dict)
-        validation_error_detail_info = cls()
+        path = d.pop("path")
 
-        validation_error_detail_info.additional_properties = d
-        return validation_error_detail_info
+        code = d.pop("code")
+
+        message = d.pop("message")
+
+        base_validation_error = cls(
+            path=path,
+            code=code,
+            message=message,
+        )
+
+        base_validation_error.additional_properties = d
+        return base_validation_error
 
     @property
     def additional_keys(self) -> list[str]:

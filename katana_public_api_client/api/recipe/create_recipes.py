@@ -82,7 +82,8 @@ def sync_detailed(
     """Create recipes
 
      Create one or many new recipe rows for a product. The endpoint accepts up to 150 recipe rows and
-    processes them in bulk. This endpoint is deprecated in favor of BOM rows.
+    processes them
+    in bulk. This endpoint is deprecated in favor of BOM rows.
 
     Args:
         body (CreateRecipesRequest): Request payload for creating recipe rows (deprecated in favor
@@ -117,7 +118,8 @@ def sync(
     """Create recipes
 
      Create one or many new recipe rows for a product. The endpoint accepts up to 150 recipe rows and
-    processes them in bulk. This endpoint is deprecated in favor of BOM rows.
+    processes them
+    in bulk. This endpoint is deprecated in favor of BOM rows.
 
     Args:
         body (CreateRecipesRequest): Request payload for creating recipe rows (deprecated in favor
@@ -147,7 +149,8 @@ async def asyncio_detailed(
     """Create recipes
 
      Create one or many new recipe rows for a product. The endpoint accepts up to 150 recipe rows and
-    processes them in bulk. This endpoint is deprecated in favor of BOM rows.
+    processes them
+    in bulk. This endpoint is deprecated in favor of BOM rows.
 
     Args:
         body (CreateRecipesRequest): Request payload for creating recipe rows (deprecated in favor
@@ -180,7 +183,8 @@ async def asyncio(
     """Create recipes
 
      Create one or many new recipe rows for a product. The endpoint accepts up to 150 recipe rows and
-    processes them in bulk. This endpoint is deprecated in favor of BOM rows.
+    processes them
+    in bulk. This endpoint is deprecated in favor of BOM rows.
 
     Args:
         body (CreateRecipesRequest): Request payload for creating recipe rows (deprecated in favor

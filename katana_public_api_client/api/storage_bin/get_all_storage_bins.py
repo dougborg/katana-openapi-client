@@ -93,7 +93,8 @@ def sync_detailed(
     """List all storage bins
 
      Returns a list of storage bins you've previously created. The storage bins are returned in sorted
-    order, with the most recent storage bin appearing first.
+    order, with
+    the most recent storage bin appearing first.
 
     Args:
         location_id (Union[Unset, int]):
@@ -138,7 +139,8 @@ def sync(
     """List all storage bins
 
      Returns a list of storage bins you've previously created. The storage bins are returned in sorted
-    order, with the most recent storage bin appearing first.
+    order, with
+    the most recent storage bin appearing first.
 
     Args:
         location_id (Union[Unset, int]):
@@ -178,7 +180,8 @@ async def asyncio_detailed(
     """List all storage bins
 
      Returns a list of storage bins you've previously created. The storage bins are returned in sorted
-    order, with the most recent storage bin appearing first.
+    order, with
+    the most recent storage bin appearing first.
 
     Args:
         location_id (Union[Unset, int]):
@@ -221,7 +224,8 @@ async def asyncio(
     """List all storage bins
 
      Returns a list of storage bins you've previously created. The storage bins are returned in sorted
-    order, with the most recent storage bin appearing first.
+    order, with
+    the most recent storage bin appearing first.
 
     Args:
         location_id (Union[Unset, int]):

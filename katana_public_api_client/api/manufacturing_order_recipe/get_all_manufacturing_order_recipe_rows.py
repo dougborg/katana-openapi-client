@@ -148,7 +148,8 @@ def sync_detailed(
 
      Returns a list of manufacturing order recipe rows you've previously created. The manufacturing order
       recipe rows are returned in sorted order, with the most recent manufacturing order recipe rows
-    appearing first.
+    appearing
+      first.
 
     Args:
         ids (Union[Unset, list[int]]):
@@ -214,7 +215,8 @@ def sync(
 
      Returns a list of manufacturing order recipe rows you've previously created. The manufacturing order
       recipe rows are returned in sorted order, with the most recent manufacturing order recipe rows
-    appearing first.
+    appearing
+      first.
 
     Args:
         ids (Union[Unset, list[int]]):
@@ -275,7 +277,8 @@ async def asyncio_detailed(
 
      Returns a list of manufacturing order recipe rows you've previously created. The manufacturing order
       recipe rows are returned in sorted order, with the most recent manufacturing order recipe rows
-    appearing first.
+    appearing
+      first.
 
     Args:
         ids (Union[Unset, list[int]]):
@@ -339,7 +342,8 @@ async def asyncio(
 
      Returns a list of manufacturing order recipe rows you've previously created. The manufacturing order
       recipe rows are returned in sorted order, with the most recent manufacturing order recipe rows
-    appearing first.
+    appearing
+      first.
 
     Args:
         ids (Union[Unset, list[int]]):

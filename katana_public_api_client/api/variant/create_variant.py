@@ -89,15 +89,14 @@ def sync_detailed(
 
     Args:
         body (CreateVariantRequest): Request payload for creating a new product or material
-            variant with specific SKU and configuration attributes Example: {'sku': 'KNF-PRO-12PC-WD',
-            'sales_price': 399.99, 'purchase_price': 200.0, 'product_id': 101, 'material_id': None,
-            'supplier_item_codes': ['SUP-KNF-12PC-002'], 'internal_barcode': 'INT-KNF-002',
-            'registered_barcode': '789123456790', 'lead_time': 10, 'minimum_order_quantity': 1,
-            'config_attributes': [{'config_name': 'Piece Count', 'config_value': '12-piece'},
-            {'config_name': 'Handle Material', 'config_value': 'Wood'}], 'custom_fields':
-            [{'field_name': 'Warranty Period', 'field_value': '5 years'}, {'field_name': 'Care
-            Instructions', 'field_value': 'Hand wash only'}]}.
-
+            variant with specific SKU and configuration attributes
+             Example: {'sku': 'KNF-PRO-12PC-WD', 'sales_price': 399.99, 'purchase_price': 200.0,
+            'product_id': 101, 'material_id': None, 'supplier_item_codes': ['SUP-KNF-12PC-002'],
+            'internal_barcode': 'INT-KNF-002', 'registered_barcode': '789123456790', 'lead_time': 10,
+            'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece Count',
+            'config_value': '12-piece'}, {'config_name': 'Handle Material', 'config_value': 'Wood'}],
+            'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '5 years'},
+            {'field_name': 'Care Instructions', 'field_value': 'Hand wash only'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -132,15 +131,14 @@ def sync(
 
     Args:
         body (CreateVariantRequest): Request payload for creating a new product or material
-            variant with specific SKU and configuration attributes Example: {'sku': 'KNF-PRO-12PC-WD',
-            'sales_price': 399.99, 'purchase_price': 200.0, 'product_id': 101, 'material_id': None,
-            'supplier_item_codes': ['SUP-KNF-12PC-002'], 'internal_barcode': 'INT-KNF-002',
-            'registered_barcode': '789123456790', 'lead_time': 10, 'minimum_order_quantity': 1,
-            'config_attributes': [{'config_name': 'Piece Count', 'config_value': '12-piece'},
-            {'config_name': 'Handle Material', 'config_value': 'Wood'}], 'custom_fields':
-            [{'field_name': 'Warranty Period', 'field_value': '5 years'}, {'field_name': 'Care
-            Instructions', 'field_value': 'Hand wash only'}]}.
-
+            variant with specific SKU and configuration attributes
+             Example: {'sku': 'KNF-PRO-12PC-WD', 'sales_price': 399.99, 'purchase_price': 200.0,
+            'product_id': 101, 'material_id': None, 'supplier_item_codes': ['SUP-KNF-12PC-002'],
+            'internal_barcode': 'INT-KNF-002', 'registered_barcode': '789123456790', 'lead_time': 10,
+            'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece Count',
+            'config_value': '12-piece'}, {'config_name': 'Handle Material', 'config_value': 'Wood'}],
+            'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '5 years'},
+            {'field_name': 'Care Instructions', 'field_value': 'Hand wash only'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -170,15 +168,14 @@ async def asyncio_detailed(
 
     Args:
         body (CreateVariantRequest): Request payload for creating a new product or material
-            variant with specific SKU and configuration attributes Example: {'sku': 'KNF-PRO-12PC-WD',
-            'sales_price': 399.99, 'purchase_price': 200.0, 'product_id': 101, 'material_id': None,
-            'supplier_item_codes': ['SUP-KNF-12PC-002'], 'internal_barcode': 'INT-KNF-002',
-            'registered_barcode': '789123456790', 'lead_time': 10, 'minimum_order_quantity': 1,
-            'config_attributes': [{'config_name': 'Piece Count', 'config_value': '12-piece'},
-            {'config_name': 'Handle Material', 'config_value': 'Wood'}], 'custom_fields':
-            [{'field_name': 'Warranty Period', 'field_value': '5 years'}, {'field_name': 'Care
-            Instructions', 'field_value': 'Hand wash only'}]}.
-
+            variant with specific SKU and configuration attributes
+             Example: {'sku': 'KNF-PRO-12PC-WD', 'sales_price': 399.99, 'purchase_price': 200.0,
+            'product_id': 101, 'material_id': None, 'supplier_item_codes': ['SUP-KNF-12PC-002'],
+            'internal_barcode': 'INT-KNF-002', 'registered_barcode': '789123456790', 'lead_time': 10,
+            'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece Count',
+            'config_value': '12-piece'}, {'config_name': 'Handle Material', 'config_value': 'Wood'}],
+            'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '5 years'},
+            {'field_name': 'Care Instructions', 'field_value': 'Hand wash only'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -211,15 +208,14 @@ async def asyncio(
 
     Args:
         body (CreateVariantRequest): Request payload for creating a new product or material
-            variant with specific SKU and configuration attributes Example: {'sku': 'KNF-PRO-12PC-WD',
-            'sales_price': 399.99, 'purchase_price': 200.0, 'product_id': 101, 'material_id': None,
-            'supplier_item_codes': ['SUP-KNF-12PC-002'], 'internal_barcode': 'INT-KNF-002',
-            'registered_barcode': '789123456790', 'lead_time': 10, 'minimum_order_quantity': 1,
-            'config_attributes': [{'config_name': 'Piece Count', 'config_value': '12-piece'},
-            {'config_name': 'Handle Material', 'config_value': 'Wood'}], 'custom_fields':
-            [{'field_name': 'Warranty Period', 'field_value': '5 years'}, {'field_name': 'Care
-            Instructions', 'field_value': 'Hand wash only'}]}.
-
+            variant with specific SKU and configuration attributes
+             Example: {'sku': 'KNF-PRO-12PC-WD', 'sales_price': 399.99, 'purchase_price': 200.0,
+            'product_id': 101, 'material_id': None, 'supplier_item_codes': ['SUP-KNF-12PC-002'],
+            'internal_barcode': 'INT-KNF-002', 'registered_barcode': '789123456790', 'lead_time': 10,
+            'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece Count',
+            'config_value': '12-piece'}, {'config_name': 'Handle Material', 'config_value': 'Wood'}],
+            'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '5 years'},
+            {'field_name': 'Care Instructions', 'field_value': 'Hand wash only'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

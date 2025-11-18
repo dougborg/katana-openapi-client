@@ -126,7 +126,8 @@ def sync_detailed(
     """List all BOM rows
 
      Returns a list of BOM (Bill of Materials) rows you've previously created. Product variant BOM
-    consists of ingredient variants and their quantities.
+    consists of
+    ingredient variants and their quantities.
 
     Args:
         limit (Union[Unset, int]):  Default: 50.
@@ -186,7 +187,8 @@ def sync(
     """List all BOM rows
 
      Returns a list of BOM (Bill of Materials) rows you've previously created. Product variant BOM
-    consists of ingredient variants and their quantities.
+    consists of
+    ingredient variants and their quantities.
 
     Args:
         limit (Union[Unset, int]):  Default: 50.
@@ -241,7 +243,8 @@ async def asyncio_detailed(
     """List all BOM rows
 
      Returns a list of BOM (Bill of Materials) rows you've previously created. Product variant BOM
-    consists of ingredient variants and their quantities.
+    consists of
+    ingredient variants and their quantities.
 
     Args:
         limit (Union[Unset, int]):  Default: 50.
@@ -299,7 +302,8 @@ async def asyncio(
     """List all BOM rows
 
      Returns a list of BOM (Bill of Materials) rows you've previously created. Product variant BOM
-    consists of ingredient variants and their quantities.
+    consists of
+    ingredient variants and their quantities.
 
     Args:
         limit (Union[Unset, int]):  Default: 50.
