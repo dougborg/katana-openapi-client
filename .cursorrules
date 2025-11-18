@@ -1,0 +1,198 @@
+# Cursor Rules for Katana OpenAPI Client
+
+## Project Overview
+
+This is a **Python client library and MCP server** for the Katana Manufacturing ERP API. The repository is a **monorepo** containing:
+
+1. **Client Library** (`katana_public_api_client/`): OpenAPI-generated client with transport-layer resilience
+2. **MCP Server** (`katana_mcp_server/`): Model Context Protocol server for AI integration
+3. **Documentation** (`docs/`): Comprehensive guides and ADRs
+
+## Architecture
+
+### Transport-Layer Resilience
+
+**Key Pattern**: Resilience is implemented at the HTTP transport layer, not by wrapping API methods. This means ALL API calls through `KatanaClient` automatically get:
+- Automatic retries with exponential backoff
+- Rate limiting (429) handling with `Retry-After` support
+- Transparent pagination
+- Error translation to domain exceptions
+
+**Retry Strategy**:
+- **429 Rate Limiting**: ALL HTTP methods retried (including POST/PATCH)
+- **502/503/504**: Only idempotent methods (GET, PUT, DELETE, HEAD, OPTIONS, TRACE)
+- **4xx Client Errors**: No retries (client-side issues)
+- **Network Errors**: Automatic retry with exponential backoff
+
+### Core Components
+
+- `katana_public_api_client/katana_client.py` - Enhanced client with `ResilientAsyncTransport`
+- `katana_public_api_client/client.py` - Generated base client (DO NOT EDIT)
+- `katana_public_api_client/api/` - 76+ generated API endpoints (DO NOT EDIT)
+- `katana_public_api_client/models/` - 150+ generated data models (DO NOT EDIT)
+- `katana_public_api_client/domain/` - Domain helper classes
+- `katana_public_api_client/helpers/` - Utility functions
+- `katana_public_api_client/utils.py` - Response unwrapping utilities
+
+## File Organization Rules
+
+### DO NOT EDIT (Generated Files)
+
+- `katana_public_api_client/api/**/*.py`
+- `katana_public_api_client/models/**/*.py`
+- `katana_public_api_client/client.py`
+- `katana_public_api_client/client_types.py`
+- `katana_public_api_client/errors.py`
+- `katana_public_api_client/py.typed`
+
+**To update generated code**: Use `uv run poe regenerate-client` (2+ minutes, NEVER CANCEL)
+
+### EDIT THESE FILES
+
+- `katana_public_api_client/katana_client.py` - Main resilient client
+- `katana_public_api_client/domain/` - Domain helper classes
+- `katana_public_api_client/helpers/` - Utility functions
+- `katana_public_api_client/utils.py` - Response utilities
+- `katana_public_api_client/log_setup.py` - Logging configuration
+- `tests/` - Test files
+- `scripts/` - Development scripts
+- `docs/` - Documentation
+- `katana_mcp_server/` - MCP server code
+
+## Development Workflow
+
+### Essential Commands
+
+**Validation Tiers** (use the right one for the context):
+- `uv run poe quick-check` (~5-10s) - Format + lint only → During development
+- `uv run poe agent-check` (~8-12s) - Format + lint + ty → Before committing
+- `uv run poe check` (~30s) - Full validation → **REQUIRED before PR**
+- `uv run poe full-check` (~40s) - Everything + docs → Before review
+
+**Development**:
+- `uv sync --all-extras` - Install dependencies
+- `uv run poe format` - Format code
+- `uv run poe lint` - Lint (11 seconds, NEVER CANCEL)
+- `uv run poe test` - Run tests (16 seconds, NEVER CANCEL)
+- `uv run poe fix` - Auto-fix issues
+
+**Testing**:
+- `uv run poe test` - All tests (4 workers, ~16s)
+- `uv run poe test-coverage` - With coverage (~22s, NEVER CANCEL)
+- `uv run poe test-unit` - Unit tests only
+- `uv run poe test-integration` - Integration tests (requires KATANA_API_KEY)
+
+**Client Regeneration**:
+- `uv run poe validate-openapi` - Validate OpenAPI spec
+- `uv run poe regenerate-client` - Regenerate client (2+ minutes, NEVER CANCEL)
+- `uv run poe validate-openapi-redocly` - Validate with Redocly
+
+### Command Timeouts (CRITICAL)
+
+**NEVER CANCEL** these commands before timeout:
+- `uv sync --all-extras`: ~5-10s (timeout: 30+ minutes)
+- `uv run poe lint`: ~11s (timeout: 15+ minutes)
+- `uv run poe test`: ~16s (timeout: 30+ minutes)
+- `uv run poe test-coverage`: ~22s (timeout: 45+ minutes)
+- `uv run poe check`: ~30s (timeout: 60+ minutes)
+- `uv run poe docs-build`: ~2.5 minutes (timeout: 60+ minutes)
+- `uv run poe regenerate-client`: ~2+ minutes (timeout: 60+ minutes)
+
+## Code Style & Conventions
+
+### Python Style
+
+- **Type hints**: Required for all function parameters and return types
+- **Python versions**: 3.11, 3.12, 3.13 supported
+- **Package manager**: uv (required)
+- **Task runner**: poethepoet (poe) - all tasks via `uv run poe <task>`
+- **Code formatter**: Ruff (replaces Black, isort)
+- **Type checker**: ty (strict mode)
+- **Linter**: Ruff
+
+### Import Organization
+
+- Use **absolute imports** (no relative imports)
+- Group imports: stdlib, third-party, first-party
+- Ruff's `isort` handles import sorting automatically
+- Import paths are flattened: `from katana_public_api_client.api.product import get_all_products`
+- Client types: `from katana_public_api_client.client_types import` (not `types`)
+
+### Error Handling
+
+- Use **custom exception classes** from `katana_public_api_client.errors`
+- Provide **clear error messages** with context
+- Log errors appropriately (use logging module)
+- Network/auth errors in tests: Use pattern with try/except checking for "connection", "network", "auth"
+
+### Testing
+
+- Use **pytest** for all tests
+- Tests in `tests/` directory
+- Use **pytest markers**: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.docs`
+- Use **pytest fixtures** (defined in `conftest.py`)
+- Tests use pytest-xdist for parallel execution (4 workers)
+- Schema validation tests excluded by default (run explicitly)
+
+### Documentation
+
+- **ADRs**: Architecture Decision Records in `docs/adr/` and `katana_public_api_client/docs/adr/`
+- **Module-local docs**: Each package has its own `docs/` directory
+- **MkDocs**: Documentation built with MkDocs
+- **Docstrings**: Google or NumPy style for public APIs
+
+## Commit Standards
+
+This project uses **semantic-release** with conventional commits and **scopes** for monorepo versioning:
+
+### Commit Scopes for Package Releases
+
+- `feat(client):` / `fix(client):` - Releases **katana-openapi-client** (MINOR/PATCH)
+- `feat(mcp):` / `fix(mcp):` - Releases **katana-mcp-server** (MINOR/PATCH)
+- `feat:` / `fix:` (no scope) - Releases **katana-openapi-client** (default)
+
+### Other Commit Types (No Version Bump)
+
+- `chore:` - Development/tooling
+- `docs:` - Documentation only
+- `test:` - Test changes
+- `refactor:` - Code refactoring
+- `ci:` - CI/CD changes
+
+**Breaking changes**: Use `!` after type (e.g., `feat(client)!:`) for MAJOR version bump
+
+## MCP Server
+
+The MCP server is in `katana_mcp_server/` and provides:
+- **10 Tools**: Inventory, catalog, and order management
+- **6 Resources**: Inventory and order data
+- **3 Prompts**: Complete workflow prompts
+
+Key feature: **Elicitation pattern** (preview with `confirm=false`, execute with `confirm=true`)
+
+## Common Pitfalls
+
+1. **Never cancel long-running commands** - Set generous timeouts
+2. **Always use `uv run`** - Don't run commands outside uv environment
+3. **Generated code is read-only** - Use regeneration script instead of editing
+4. **Integration tests need credentials** - Set `KATANA_API_KEY` in `.env`
+5. **Import paths are flattened** - No `.generated` subdirectory
+6. **Client types import** - Use `client_types` not `types`
+7. **Pre-commit may fail** - Network restrictions can cause timeouts
+
+## When Making Changes
+
+1. **Before changes**: Run `uv run poe check` and `uv run poe fix`
+2. **After changes**: Run `uv run poe format`, `uv run poe lint`, `uv run poe test`, `uv run poe check`
+3. **Client regeneration**: Validate spec first, then regenerate, then test
+4. **Documentation**: Update relevant docs when adding features
+5. **ADRs**: Consult ADRs first to understand architectural decisions
+
+## Important Notes
+
+- **Monorepo structure**: Client and MCP server are separate packages
+- **Transport-layer resilience**: All API calls get automatic retries/pagination
+- **Generated code**: Never edit directly, use regeneration script
+- **Type safety**: Strict type checking with ty
+- **Lock files**: `uv.lock` should be committed for reproducibility
+
