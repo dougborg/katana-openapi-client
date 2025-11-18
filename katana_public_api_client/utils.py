@@ -142,6 +142,17 @@ class ValidationError(APIError):
                             f"  Field '{field}' must match pattern: {pattern}"
                         )
 
+                    # Unrecognized keys validation errors
+                    elif detail.code == "unrecognized_keys":
+                        if "keys" in info:
+                            unrecognized = info["keys"]
+                            error_details.append(
+                                f"  Unrecognized fields: {unrecognized}"
+                            )
+                        if "validKeys" in info:
+                            valid = info["validKeys"]
+                            error_details.append(f"  Valid fields: {valid}")
+
             if error_details:
                 msg += "\n" + "\n".join(error_details)
 
