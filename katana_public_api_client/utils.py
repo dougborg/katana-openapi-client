@@ -68,30 +68,39 @@ class ValidationError(APIError):
         )
 
     def __str__(self) -> str:
-        """Format validation error with enum-specific details."""
+        """Format validation error with code-specific details."""
         msg = super().__str__()
 
-        # Add enum-specific details if present
+        # Add code-specific details if present
         if self.validation_errors:
-            enum_details = []
+            error_details = []
             for detail in self.validation_errors:
                 if (
                     hasattr(detail, "code")
-                    and detail.code == "enum"
                     and hasattr(detail, "info")
                     and detail.info
                     and hasattr(detail.info, "additional_properties")
                 ):
                     info = detail.info.additional_properties
-                    if "allowedValues" in info:
-                        field = getattr(detail, "path", "field").lstrip("/")
+                    field = getattr(detail, "path", "field").lstrip("/")
+
+                    # Enum validation errors
+                    if detail.code == "enum" and "allowedValues" in info:
                         allowed = info["allowedValues"]
-                        enum_details.append(
+                        error_details.append(
                             f"  Field '{field}' must be one of: {allowed}"
                         )
 
-            if enum_details:
-                msg += "\n" + "\n".join(enum_details)
+                    # Min/Max validation errors
+                    elif detail.code == "min" and "minimum" in info:
+                        minimum = info["minimum"]
+                        error_details.append(f"  Field '{field}' must be >= {minimum}")
+                    elif detail.code == "max" and "maximum" in info:
+                        maximum = info["maximum"]
+                        error_details.append(f"  Field '{field}' must be <= {maximum}")
+
+            if error_details:
+                msg += "\n" + "\n".join(error_details)
 
         return msg
 
