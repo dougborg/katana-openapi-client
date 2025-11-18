@@ -128,6 +128,13 @@ class ValidationError(APIError):
                                 f"  Field '{field}' must have maximum items: {info['maxItems']}"
                             )
 
+                    # Required field validation errors
+                    elif detail.code == "required" and "missingProperty" in info:
+                        missing_field = info["missingProperty"]
+                        error_details.append(
+                            f"  Missing required field: '{missing_field}'"
+                        )
+
             if error_details:
                 msg += "\n" + "\n".join(error_details)
 
