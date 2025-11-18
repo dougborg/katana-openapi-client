@@ -106,6 +106,28 @@ class ValidationError(APIError):
                             f"  Field '{field}' must be of type: {expected_type}"
                         )
 
+                    # Too small validation errors
+                    elif detail.code == "too_small":
+                        if "minLength" in info:
+                            error_details.append(
+                                f"  Field '{field}' must have minimum length: {info['minLength']}"
+                            )
+                        elif "minItems" in info:
+                            error_details.append(
+                                f"  Field '{field}' must have minimum items: {info['minItems']}"
+                            )
+
+                    # Too big validation errors
+                    elif detail.code == "too_big":
+                        if "maxLength" in info:
+                            error_details.append(
+                                f"  Field '{field}' must have maximum length: {info['maxLength']}"
+                            )
+                        elif "maxItems" in info:
+                            error_details.append(
+                                f"  Field '{field}' must have maximum items: {info['maxItems']}"
+                            )
+
             if error_details:
                 msg += "\n" + "\n".join(error_details)
 

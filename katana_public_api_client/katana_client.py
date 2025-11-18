@@ -355,6 +355,64 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                                 )
                                 log_message += f"\n       Additional info: {formatted}"
 
+                        # Special formatting for too_small/too_big validation errors
+                        elif detail.code in ("too_small", "too_big"):
+                            # Try to extract the sent value from request body
+                            sent_value = None
+                            if request_body and detail.path:
+                                field_path = detail.path.lstrip("/")
+                                if "/" not in field_path:
+                                    sent_value = request_body.get(field_path)
+
+                            if sent_value is not None:
+                                # For arrays and strings, show length
+                                if isinstance(sent_value, list | str):
+                                    log_message += (
+                                        f"\n       Sent value length: {len(sent_value)}"
+                                    )
+                                else:
+                                    log_message += (
+                                        f"\n       Sent value: {sent_value!r}"
+                                    )
+
+                            # Show the limits
+                            if detail.code == "too_small":
+                                if "minLength" in info:
+                                    log_message += (
+                                        f"\n       Minimum length: {info['minLength']}"
+                                    )
+                                elif "minItems" in info:
+                                    log_message += (
+                                        f"\n       Minimum items: {info['minItems']}"
+                                    )
+                            elif detail.code == "too_big":
+                                if "maxLength" in info:
+                                    log_message += (
+                                        f"\n       Maximum length: {info['maxLength']}"
+                                    )
+                                elif "maxItems" in info:
+                                    log_message += (
+                                        f"\n       Maximum items: {info['maxItems']}"
+                                    )
+
+                            # Log other info if present (excluding limits)
+                            other_info = {
+                                k: v
+                                for k, v in info.items()
+                                if k
+                                not in (
+                                    "minLength",
+                                    "maxLength",
+                                    "minItems",
+                                    "maxItems",
+                                )
+                            }
+                            if other_info:
+                                formatted = ", ".join(
+                                    f"{k}: {v!r}" for k, v in other_info.items()
+                                )
+                                log_message += f"\n       Additional info: {formatted}"
+
                         else:
                             # Generic formatting for non-enum errors
                             formatted = ", ".join(
