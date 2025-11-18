@@ -5,6 +5,7 @@ class SerialNumberResourceType(str, Enum):
     MANUFACTURINGORDER = "ManufacturingOrder"
     PRODUCTION = "Production"
     PURCHASEORDERROW = "PurchaseOrderRow"
+    SALESORDERFULFILLMENTROW = "SalesOrderFulfillmentRow"
     SALESORDERROW = "SalesOrderRow"
     STOCKADJUSTMENTROW = "StockAdjustmentRow"
     STOCKTRANSFERROW = "StockTransferRow"

@@ -3032,6 +3032,7 @@ components:
             - StockTransferRow
             - PurchaseOrderRow
             - SalesOrderRow
+            - SalesOrderFulfillmentRow
         resource_id:
           type: integer
           description: Unique identifier of the specific resource instance
