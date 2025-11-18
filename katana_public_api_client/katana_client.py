@@ -464,6 +464,32 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                                 )
                                 log_message += f"\n       Additional info: {formatted}"
 
+                        # Special formatting for unrecognized_keys validation errors
+                        elif detail.code == "unrecognized_keys":
+                            # Show the unrecognized keys
+                            if "keys" in info:
+                                unrecognized = info["keys"]
+                                log_message += (
+                                    f"\n       Unrecognized fields: {unrecognized}"
+                                )
+
+                            # Show valid keys if available
+                            if "validKeys" in info:
+                                valid_keys = info["validKeys"]
+                                log_message += f"\n       Valid fields: {valid_keys}"
+
+                            # Log other info if present (excluding keys/validKeys)
+                            other_info = {
+                                k: v
+                                for k, v in info.items()
+                                if k not in ("keys", "validKeys")
+                            }
+                            if other_info:
+                                formatted = ", ".join(
+                                    f"{k}: {v!r}" for k, v in other_info.items()
+                                )
+                                log_message += f"\n       Additional info: {formatted}"
+
                         else:
                             # Generic formatting for non-enum errors
                             formatted = ", ".join(

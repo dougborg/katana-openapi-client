@@ -1030,3 +1030,53 @@ class TestValidationErrorPatternFormatting:
 
         # Check that the error string includes pattern-specific formatting
         assert "Field 'sku' must match pattern: ^[A-Z]{2,3}-\\d{3,}$" in error_str
+
+
+@pytest.mark.unit
+class TestValidationErrorUnrecognizedKeysFormatting:
+    """Test ValidationError unrecognized_keys-specific error message formatting."""
+
+    def test_validation_error_with_unrecognized_keys(self):
+        """Test that unrecognized_keys validation errors include invalid and valid fields in message."""
+        from katana_public_api_client.models.validation_error_detail import (
+            ValidationErrorDetail,
+        )
+        from katana_public_api_client.models.validation_error_detail_info import (
+            ValidationErrorDetailInfo,
+        )
+
+        # Create validation detail with unrecognized_keys error
+        detail_info = ValidationErrorDetailInfo()
+        detail_info.additional_properties = {
+            "keys": ["invalid_field", "another_invalid"],
+            "validKeys": ["supplier_id", "location_id", "order_number", "items"],
+        }
+        detail = ValidationErrorDetail(
+            path="",
+            code="unrecognized_keys",
+            message="unrecognized keys in object",
+            info=detail_info,
+        )
+
+        error_response = DetailedErrorResponse(
+            status_code=422,
+            name="UnprocessableEntityError",
+            message="The request body is invalid.",
+            code="VALIDATION_FAILED",
+            details=[detail],
+        )
+
+        error = utils.ValidationError(
+            "Validation failed",
+            422,
+            error_response,
+        )
+
+        error_str = str(error)
+
+        # Check that the error string includes unrecognized_keys-specific formatting
+        assert "Unrecognized fields: ['invalid_field', 'another_invalid']" in error_str
+        assert (
+            "Valid fields: ['supplier_id', 'location_id', 'order_number', 'items']"
+            in error_str
+        )
