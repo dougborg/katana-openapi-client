@@ -577,3 +577,89 @@ class TestHandleResponse:
         result = utils.handle_response(response)
 
         assert result is None
+
+
+@pytest.mark.unit
+class TestValidationErrorEnumFormatting:
+    """Test ValidationError enum-specific error message formatting."""
+
+    def test_validation_error_with_enum_details(self):
+        """Test that enum validation errors include allowed values in message."""
+        from katana_public_api_client.models.validation_error_detail import (
+            ValidationErrorDetail,
+        )
+        from katana_public_api_client.models.validation_error_detail_info import (
+            ValidationErrorDetailInfo,
+        )
+
+        # Create validation detail with enum error
+        detail_info = ValidationErrorDetailInfo()
+        detail_info.additional_properties = {
+            "allowedValues": [
+                "ManufacturingOrder",
+                "StockAdjustmentRow",
+                "StockTransferRow",
+            ]
+        }
+        detail = ValidationErrorDetail(
+            path="/resource_type",
+            code="enum",
+            message="must be equal to one of the allowed values",
+            info=detail_info,
+        )
+
+        error_response = DetailedErrorResponse(
+            status_code=422,
+            name="UnprocessableEntityError",
+            message="The request body is invalid.",
+            code="VALIDATION_FAILED",
+            details=[detail],
+        )
+
+        error = utils.ValidationError(
+            "Validation failed",
+            422,
+            error_response,
+        )
+
+        error_str = str(error)
+
+        # Check that the error string includes enum-specific formatting
+        assert "Field 'resource_type' must be one of:" in error_str
+        assert "ManufacturingOrder" in error_str
+        assert "StockAdjustmentRow" in error_str
+        assert "StockTransferRow" in error_str
+
+    def test_validation_error_without_enum_details(self):
+        """Test that non-enum validation errors don't break."""
+        from katana_public_api_client.models.validation_error_detail import (
+            ValidationErrorDetail,
+        )
+
+        # Create validation detail without enum error
+        detail = ValidationErrorDetail(
+            path="/quantity",
+            code="min",
+            message="must be >= 0",
+        )
+
+        error_response = DetailedErrorResponse(
+            status_code=422,
+            name="UnprocessableEntityError",
+            message="The request body is invalid.",
+            code="VALIDATION_FAILED",
+            details=[detail],
+        )
+
+        error = utils.ValidationError(
+            "Validation failed",
+            422,
+            error_response,
+        )
+
+        error_str = str(error)
+
+        # Should not include enum-specific formatting
+        assert "must be one of:" not in error_str
+        # But should still show base error message
+        assert "Validation failed" in error_str

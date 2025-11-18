@@ -67,6 +67,34 @@ class ValidationError(APIError):
             error_response.details if error_response and error_response.details else []
         )
 
+    def __str__(self) -> str:
+        """Format validation error with enum-specific details."""
+        msg = super().__str__()
+
+        # Add enum-specific details if present
+        if self.validation_errors:
+            enum_details = []
+            for detail in self.validation_errors:
+                if (
+                    hasattr(detail, "code")
+                    and detail.code == "enum"
+                    and hasattr(detail, "info")
+                    and detail.info
+                    and hasattr(detail.info, "additional_properties")
+                ):
+                    info = detail.info.additional_properties
+                    if "allowedValues" in info:
+                        field = getattr(detail, "path", "field").lstrip("/")
+                        allowed = info["allowedValues"]
+                        enum_details.append(
+                            f"  Field '{field}' must be one of: {allowed}"
+                        )
+
+            if enum_details:
+                msg += "\n" + "\n".join(enum_details)
+
+        return msg
+
 
 class RateLimitError(APIError):
     """Raised when rate limit is exceeded (429)."""
