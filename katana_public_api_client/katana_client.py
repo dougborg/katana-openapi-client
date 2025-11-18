@@ -143,6 +143,14 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         url = str(request.url)
         status_code = response.status_code
 
+        # Capture request body for validation error context
+        request_body = None
+        if request.content:
+            with contextlib.suppress(
+                json.JSONDecodeError, UnicodeDecodeError, AttributeError, TypeError
+            ):
+                request_body = json.loads(request.content.decode("utf-8"))
+
         # Read response content if it's streaming
         if hasattr(response, "aread"):
             with contextlib.suppress(TypeError, AttributeError):
@@ -169,7 +177,9 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                     f"is Unset: {isinstance(detailed_error.details, Unset)}, "
                     f"raw error_data: {error_data}"
                 )
-                self._log_detailed_error(detailed_error, method, url, status_code)
+                self._log_detailed_error(
+                    detailed_error, method, url, status_code, request_body
+                )
                 return
             except (TypeError, ValueError, AttributeError) as e:
                 self.logger.debug(
@@ -191,7 +201,12 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         )
 
     def _log_detailed_error(
-        self, error: DetailedErrorResponse, method: str, url: str, status_code: int
+        self,
+        error: DetailedErrorResponse,
+        method: str,
+        url: str,
+        status_code: int,
+        request_body: dict[str, Any] | None = None,
     ) -> None:
         """Log detailed errors using the typed DetailedErrorResponse model."""
 
@@ -250,8 +265,38 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                 ):
                     info = detail.info.additional_properties
                     if info:
-                        formatted = ", ".join(f"{k}: {v!r}" for k, v in info.items())
-                        log_message += f"\n       Details: {formatted}"
+                        # Special formatting for enum validation errors
+                        if detail.code == "enum" and "allowedValues" in info:
+                            allowed = info["allowedValues"]
+
+                            # Try to extract the sent value from request body
+                            sent_value = None
+                            if request_body and detail.path:
+                                # Remove leading slash from path like "/resource_type"
+                                field_path = detail.path.lstrip("/")
+                                # Handle simple field paths (no nesting for now)
+                                if "/" not in field_path:
+                                    sent_value = request_body.get(field_path)
+
+                            if sent_value is not None:
+                                log_message += f"\n       Sent value: {sent_value!r}"
+                            log_message += f"\n       Allowed values: {allowed}"
+
+                            # Log other info if present (excluding allowedValues)
+                            other_info = {
+                                k: v for k, v in info.items() if k != "allowedValues"
+                            }
+                            if other_info:
+                                formatted = ", ".join(
+                                    f"{k}: {v!r}" for k, v in other_info.items()
+                                )
+                                log_message += f"\n       Additional info: {formatted}"
+                        else:
+                            # Generic formatting for non-enum errors
+                            formatted = ", ".join(
+                                f"{k}: {v!r}" for k, v in info.items()
+                            )
+                            log_message += f"\n       Details: {formatted}"
 
         # Also check additional_properties for nested error details
         # The API might return details in a nested structure
