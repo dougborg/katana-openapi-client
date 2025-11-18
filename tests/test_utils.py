@@ -987,3 +987,46 @@ class TestValidationErrorRequiredFormatting:
 
         # Check that the error string includes required field-specific formatting
         assert "Missing required field: 'supplier_id'" in error_str
+
+
+@pytest.mark.unit
+class TestValidationErrorPatternFormatting:
+    """Test ValidationError pattern-specific error message formatting."""
+
+    def test_validation_error_with_pattern(self):
+        """Test that pattern validation errors include regex pattern in message."""
+        from katana_public_api_client.models.validation_error_detail import (
+            ValidationErrorDetail,
+        )
+        from katana_public_api_client.models.validation_error_detail_info import (
+            ValidationErrorDetailInfo,
+        )
+
+        # Create validation detail with pattern error
+        detail_info = ValidationErrorDetailInfo()
+        detail_info.additional_properties = {"pattern": "^[A-Z]{2,3}-\\d{3,}$"}
+        detail = ValidationErrorDetail(
+            path="/sku",
+            code="pattern",
+            message="must match pattern",
+            info=detail_info,
+        )
+
+        error_response = DetailedErrorResponse(
+            status_code=422,
+            name="UnprocessableEntityError",
+            message="The request body is invalid.",
+            code="VALIDATION_FAILED",
+            details=[detail],
+        )
+
+        error = utils.ValidationError(
+            "Validation failed",
+            422,
+            error_response,
+        )
+
+        error_str = str(error)
+
+        # Check that the error string includes pattern-specific formatting
+        assert "Field 'sku' must match pattern: ^[A-Z]{2,3}-\\d{3,}$" in error_str
