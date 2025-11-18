@@ -787,3 +787,160 @@ class TestValidationErrorInvalidTypeFormatting:
 
         # Check that the error string includes invalid_type-specific formatting
         assert "Field 'price' must be of type: number" in error_str
+
+
+@pytest.mark.unit
+class TestValidationErrorTooSmallTooBigFormatting:
+    """Test ValidationError too_small/too_big-specific error message formatting."""
+
+    def test_validation_error_with_too_small_minlength(self):
+        """Test that too_small validation errors include minimum length in message."""
+        from katana_public_api_client.models.validation_error_detail import (
+            ValidationErrorDetail,
+        )
+        from katana_public_api_client.models.validation_error_detail_info import (
+            ValidationErrorDetailInfo,
+        )
+
+        # Create validation detail with too_small/minLength error
+        detail_info = ValidationErrorDetailInfo()
+        detail_info.additional_properties = {"minLength": 3}
+        detail = ValidationErrorDetail(
+            path="/sku",
+            code="too_small",
+            message="must have at least 3 characters",
+            info=detail_info,
+        )
+
+        error_response = DetailedErrorResponse(
+            status_code=422,
+            name="UnprocessableEntityError",
+            message="The request body is invalid.",
+            code="VALIDATION_FAILED",
+            details=[detail],
+        )
+
+        error = utils.ValidationError(
+            "Validation failed",
+            422,
+            error_response,
+        )
+
+        error_str = str(error)
+
+        # Check that the error string includes too_small-specific formatting
+        assert "Field 'sku' must have minimum length: 3" in error_str
+
+    def test_validation_error_with_too_small_minitems(self):
+        """Test that too_small validation errors include minimum items in message."""
+        from katana_public_api_client.models.validation_error_detail import (
+            ValidationErrorDetail,
+        )
+        from katana_public_api_client.models.validation_error_detail_info import (
+            ValidationErrorDetailInfo,
+        )
+
+        # Create validation detail with too_small/minItems error
+        detail_info = ValidationErrorDetailInfo()
+        detail_info.additional_properties = {"minItems": 1}
+        detail = ValidationErrorDetail(
+            path="/items",
+            code="too_small",
+            message="must have at least 1 item",
+            info=detail_info,
+        )
+
+        error_response = DetailedErrorResponse(
+            status_code=422,
+            name="UnprocessableEntityError",
+            message="The request body is invalid.",
+            code="VALIDATION_FAILED",
+            details=[detail],
+        )
+
+        error = utils.ValidationError(
+            "Validation failed",
+            422,
+            error_response,
+        )
+
+        error_str = str(error)
+
+        # Check that the error string includes too_small-specific formatting
+        assert "Field 'items' must have minimum items: 1" in error_str
+
+    def test_validation_error_with_too_big_maxlength(self):
+        """Test that too_big validation errors include maximum length in message."""
+        from katana_public_api_client.models.validation_error_detail import (
+            ValidationErrorDetail,
+        )
+        from katana_public_api_client.models.validation_error_detail_info import (
+            ValidationErrorDetailInfo,
+        )
+
+        # Create validation detail with too_big/maxLength error
+        detail_info = ValidationErrorDetailInfo()
+        detail_info.additional_properties = {"maxLength": 100}
+        detail = ValidationErrorDetail(
+            path="/description",
+            code="too_big",
+            message="must have at most 100 characters",
+            info=detail_info,
+        )
+
+        error_response = DetailedErrorResponse(
+            status_code=422,
+            name="UnprocessableEntityError",
+            message="The request body is invalid.",
+            code="VALIDATION_FAILED",
+            details=[detail],
+        )
+
+        error = utils.ValidationError(
+            "Validation failed",
+            422,
+            error_response,
+        )
+
+        error_str = str(error)
+
+        # Check that the error string includes too_big-specific formatting
+        assert "Field 'description' must have maximum length: 100" in error_str
+
+    def test_validation_error_with_too_big_maxitems(self):
+        """Test that too_big validation errors include maximum items in message."""
+        from katana_public_api_client.models.validation_error_detail import (
+            ValidationErrorDetail,
+        )
+        from katana_public_api_client.models.validation_error_detail_info import (
+            ValidationErrorDetailInfo,
+        )
+
+        # Create validation detail with too_big/maxItems error
+        detail_info = ValidationErrorDetailInfo()
+        detail_info.additional_properties = {"maxItems": 10}
+        detail = ValidationErrorDetail(
+            path="/tags",
+            code="too_big",
+            message="must have at most 10 items",
+            info=detail_info,
+        )
+
+        error_response = DetailedErrorResponse(
+            status_code=422,
+            name="UnprocessableEntityError",
+            message="The request body is invalid.",
+            code="VALIDATION_FAILED",
+            details=[detail],
+        )
+
+        error = utils.ValidationError(
+            "Validation failed",
+            422,
+            error_response,
+        )
+
+        error_str = str(error)
+
+        # Check that the error string includes too_big-specific formatting
+        assert "Field 'tags' must have maximum items: 10" in error_str
