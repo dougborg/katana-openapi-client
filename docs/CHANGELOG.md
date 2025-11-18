@@ -2,6 +2,62 @@
 
 <!-- version list -->
 
+## v0.34.0 (2025-11-18)
+
+### Bug Fixes
+
+- **ci**: Ignore site/ directory in yamllint config
+  ([`2aed19f`](https://github.com/dougborg/katana-openapi-client/commit/2aed19f7b422f1451bd617671fa439fc1ddbe25b))
+
+- **ci**: Ignore site/ directory in yamllint config
+  ([`6aa1e54`](https://github.com/dougborg/katana-openapi-client/commit/6aa1e542dee736107db1eef8c0c0d46bfbaf836e))
+
+### Chores
+
+- **actions)(deps**: Bump python-semantic-release/python-semantic-release
+  ([#176](https://github.com/dougborg/katana-openapi-client/pull/176),
+  [`c8b3a7d`](https://github.com/dougborg/katana-openapi-client/commit/c8b3a7ded982974ac54b9658a12c9a1587ac3f86))
+
+- **release**: Mcp v0.17.0
+  ([`a995d0b`](https://github.com/dougborg/katana-openapi-client/commit/a995d0b0a2d42afbfb937323a637febff5909cda))
+
+### Documentation
+
+- **mcp**: Add ADRs for tool interface pattern and automated documentation
+  ([`4f5425f`](https://github.com/dougborg/katana-openapi-client/commit/4f5425f8686b3685e1779762c1559cb09948daac))
+
+### Features
+
+- **client**: Enhance invalid_type validation error messages
+  ([`5df0d0f`](https://github.com/dougborg/katana-openapi-client/commit/5df0d0f6d0789251e31011db5b587a91c8ca58fb))
+
+- **client**: Enhance min/max validation error messages
+  ([`574cd44`](https://github.com/dougborg/katana-openapi-client/commit/574cd44d75c18c76faa2177ac68d01fba2051c52))
+
+- **client**: Enhance pattern validation error messages
+  ([`491cf3c`](https://github.com/dougborg/katana-openapi-client/commit/491cf3c791c8788795bdcd105ec887e05c42c0b8))
+
+- **client**: Enhance required field validation error messages
+  ([`f41e25f`](https://github.com/dougborg/katana-openapi-client/commit/f41e25fb30539d0fb735ed61e5ddc3805ebddddc))
+
+- **client**: Enhance too_small/too_big validation error messages
+  ([`85a4543`](https://github.com/dougborg/katana-openapi-client/commit/85a45433e1ed2863d068e7f6b6fa28f93d8e3caa))
+
+- **client**: Enhance unrecognized_keys validation error messages
+  ([`9a64a55`](https://github.com/dougborg/katana-openapi-client/commit/9a64a55f25533c50b0ae00bb889c465c334fbd6a))
+
+- **client**: Improve enum validation error messages
+  ([`f86c5ff`](https://github.com/dougborg/katana-openapi-client/commit/f86c5ff095993dd19be78678a64c7028cf0f20af))
+
+- **mcp**: Update client dependency to v0.33.0
+  ([#181](https://github.com/dougborg/katana-openapi-client/pull/181),
+  [`5aa64dc`](https://github.com/dougborg/katana-openapi-client/commit/5aa64dc5e58a4b05c2953f99a018a7af212d4422))
+
+### Refactoring
+
+- **client**: Use discriminated unions for validation errors
+  ([`ce67506`](https://github.com/dougborg/katana-openapi-client/commit/ce67506e90625dd5cc16afba117c03e64b795b13))
+
 ## v0.33.0 (2025-11-14)
 
 ### Chores
