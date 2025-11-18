@@ -107,24 +107,15 @@ async def test_verify_order_document_perfect_match():
     assert result.overall_status == "match"
     assert len(result.matches) == 2
     assert len(result.discrepancies) == 0
-
-    # Check match details
-    match1 = result.matches[0]
-    assert match1.sku == "WIDGET-001"
-    assert match1.quantity == 100.0
-    assert match1.unit_price == 25.50
-    assert match1.status == "perfect"
-
-    match2 = result.matches[1]
-    assert match2.sku == "WIDGET-002"
-    assert match2.quantity == 50.0
-    assert match2.unit_price == 30.00
-    assert match2.status == "perfect"
-
-    assert any(
-        "All items verified successfully" in action
-        for action in result.suggested_actions
-    )
+    assert result.matches[0].sku == "WIDGET-001"
+    assert result.matches[0].quantity == 100.0
+    assert result.matches[0].unit_price == 25.50
+    assert result.matches[0].status == "perfect"
+    assert result.matches[1].sku == "WIDGET-002"
+    assert result.matches[1].quantity == 50.0
+    assert result.matches[1].unit_price == 30.00
+    assert result.matches[1].status == "perfect"
+    assert "All items verified successfully" in result.suggested_actions[0]
 
 
 # ============================================================================
