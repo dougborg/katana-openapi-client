@@ -91,7 +91,8 @@ def sync_detailed(
     """Update a customer
 
      Updates the specified customer by setting the values of the parameters passed. Any parameters not
-    provided will be left unchanged.
+    provided will
+    be left unchanged.
 
     Args:
         id (int):
@@ -132,7 +133,8 @@ def sync(
     """Update a customer
 
      Updates the specified customer by setting the values of the parameters passed. Any parameters not
-    provided will be left unchanged.
+    provided will
+    be left unchanged.
 
     Args:
         id (int):
@@ -168,7 +170,8 @@ async def asyncio_detailed(
     """Update a customer
 
      Updates the specified customer by setting the values of the parameters passed. Any parameters not
-    provided will be left unchanged.
+    provided will
+    be left unchanged.
 
     Args:
         id (int):
@@ -207,7 +210,8 @@ async def asyncio(
     """Update a customer
 
      Updates the specified customer by setting the values of the parameters passed. Any parameters not
-    provided will be left unchanged.
+    provided will
+    be left unchanged.
 
     Args:
         id (int):

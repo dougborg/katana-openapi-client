@@ -135,7 +135,8 @@ def sync_detailed(
 
      Returns a list of manufacturing orders you've previously created.
       The manufacturing orders are returned in sorted order, with the most recent manufacturing orders
-    appearing first.
+    appearing
+      first.
 
     Args:
         ids (Union[Unset, list[int]]):
@@ -193,7 +194,8 @@ def sync(
 
      Returns a list of manufacturing orders you've previously created.
       The manufacturing orders are returned in sorted order, with the most recent manufacturing orders
-    appearing first.
+    appearing
+      first.
 
     Args:
         ids (Union[Unset, list[int]]):
@@ -246,7 +248,8 @@ async def asyncio_detailed(
 
      Returns a list of manufacturing orders you've previously created.
       The manufacturing orders are returned in sorted order, with the most recent manufacturing orders
-    appearing first.
+    appearing
+      first.
 
     Args:
         ids (Union[Unset, list[int]]):
@@ -302,7 +305,8 @@ async def asyncio(
 
      Returns a list of manufacturing orders you've previously created.
       The manufacturing orders are returned in sorted order, with the most recent manufacturing orders
-    appearing first.
+    appearing
+      first.
 
     Args:
         ids (Union[Unset, list[int]]):

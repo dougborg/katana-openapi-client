@@ -30,7 +30,16 @@ from .helpers.products import Products
 from .helpers.services import Services
 from .helpers.variants import Variants
 from .models.detailed_error_response import DetailedErrorResponse
+from .models.enum_validation_error import EnumValidationError
 from .models.error_response import ErrorResponse
+from .models.invalid_type_validation_error import InvalidTypeValidationError
+from .models.max_validation_error import MaxValidationError
+from .models.min_validation_error import MinValidationError
+from .models.pattern_validation_error import PatternValidationError
+from .models.required_validation_error import RequiredValidationError
+from .models.too_big_validation_error import TooBigValidationError
+from .models.too_small_validation_error import TooSmallValidationError
+from .models.unrecognized_keys_validation_error import UnrecognizedKeysValidationError
 
 
 class RateLimitAwareRetry(Retry):
@@ -252,250 +261,73 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             log_message += f"\n  Validation details ({len(error.details)} errors):"
             for i, detail in enumerate(error.details, 1):
                 log_message += f"\n    {i}. Path: {detail.path}"
-                # Only log detail.code if not Unset
-                if hasattr(detail, "code") and detail.code is not None:
-                    log_message += f"\n       Code: {detail.code}"
-                if getattr(detail, "message", None):
-                    log_message += f"\n       Message: {detail.message}"
-                if (
-                    getattr(detail, "info", None)
-                    and detail.info is not None
-                    and not isinstance(detail.info, Unset)
-                    and hasattr(detail.info, "additional_properties")
-                ):
-                    info = detail.info.additional_properties
-                    if info:
-                        # Special formatting for enum validation errors
-                        if detail.code == "enum" and "allowedValues" in info:
-                            allowed = info["allowedValues"]
+                log_message += f"\n       Code: {detail.code}"
+                log_message += f"\n       Message: {detail.message}"
 
-                            # Try to extract the sent value from request body
-                            sent_value = None
-                            if request_body and detail.path:
-                                # Remove leading slash from path like "/resource_type"
-                                field_path = detail.path.lstrip("/")
-                                # Handle simple field paths (no nesting for now)
-                                if "/" not in field_path:
-                                    sent_value = request_body.get(field_path)
+                # Type-safe extraction of sent value from request body
+                sent_value = None
+                if request_body and detail.path:
+                    field_path = detail.path.lstrip("/")
+                    if "/" not in field_path:
+                        sent_value = request_body.get(field_path)
 
-                            if sent_value is not None:
-                                log_message += f"\n       Sent value: {sent_value!r}"
-                            log_message += f"\n       Allowed values: {allowed}"
+                # Use isinstance for type-safe error handling
+                if isinstance(detail, EnumValidationError):
+                    if sent_value is not None:
+                        log_message += f"\n       Sent value: {sent_value!r}"
+                    log_message += f"\n       Allowed values: {detail.allowed_values}"
 
-                            # Log other info if present (excluding allowedValues)
-                            other_info = {
-                                k: v for k, v in info.items() if k != "allowedValues"
-                            }
-                            if other_info:
-                                formatted = ", ".join(
-                                    f"{k}: {v!r}" for k, v in other_info.items()
-                                )
-                                log_message += f"\n       Additional info: {formatted}"
+                elif isinstance(detail, MinValidationError):
+                    if sent_value is not None:
+                        log_message += f"\n       Sent value: {sent_value!r}"
+                    log_message += f"\n       Minimum allowed: {detail.minimum}"
 
-                        # Special formatting for min/max validation errors
-                        elif detail.code in ("min", "max"):
-                            # Try to extract the sent value from request body
-                            sent_value = None
-                            if request_body and detail.path:
-                                field_path = detail.path.lstrip("/")
-                                if "/" not in field_path:
-                                    sent_value = request_body.get(field_path)
+                elif isinstance(detail, MaxValidationError):
+                    if sent_value is not None:
+                        log_message += f"\n       Sent value: {sent_value!r}"
+                    log_message += f"\n       Maximum allowed: {detail.maximum}"
 
-                            if sent_value is not None:
-                                log_message += f"\n       Sent value: {sent_value!r}"
+                elif isinstance(detail, InvalidTypeValidationError):
+                    if sent_value is not None:
+                        sent_type = type(sent_value).__name__
+                        log_message += (
+                            f"\n       Sent value: {sent_value!r} (type: {sent_type})"
+                        )
+                    log_message += f"\n       Expected type: {detail.expected_type}"
 
-                            # Show the limit
-                            if detail.code == "min" and "minimum" in info:
-                                log_message += (
-                                    f"\n       Minimum allowed: {info['minimum']}"
-                                )
-                            elif detail.code == "max" and "maximum" in info:
-                                log_message += (
-                                    f"\n       Maximum allowed: {info['maximum']}"
-                                )
+                elif isinstance(detail, TooSmallValidationError):
+                    if sent_value is not None and isinstance(sent_value, list | str):
+                        log_message += f"\n       Sent value length: {len(sent_value)}"
+                    if not isinstance(detail.min_length, Unset):
+                        log_message += f"\n       Minimum length: {detail.min_length}"
+                    if not isinstance(detail.min_items, Unset):
+                        log_message += f"\n       Minimum items: {detail.min_items}"
 
-                            # Log other info if present (excluding minimum/maximum)
-                            other_info = {
-                                k: v
-                                for k, v in info.items()
-                                if k not in ("minimum", "maximum")
-                            }
-                            if other_info:
-                                formatted = ", ".join(
-                                    f"{k}: {v!r}" for k, v in other_info.items()
-                                )
-                                log_message += f"\n       Additional info: {formatted}"
+                elif isinstance(detail, TooBigValidationError):
+                    if sent_value is not None and isinstance(sent_value, list | str):
+                        log_message += f"\n       Sent value length: {len(sent_value)}"
+                    if not isinstance(detail.max_length, Unset):
+                        log_message += f"\n       Maximum length: {detail.max_length}"
+                    if not isinstance(detail.max_items, Unset):
+                        log_message += f"\n       Maximum items: {detail.max_items}"
 
-                        # Special formatting for invalid_type validation errors
-                        elif detail.code == "invalid_type":
-                            # Try to extract the sent value from request body
-                            sent_value = None
-                            if request_body and detail.path:
-                                field_path = detail.path.lstrip("/")
-                                if "/" not in field_path:
-                                    sent_value = request_body.get(field_path)
+                elif isinstance(detail, RequiredValidationError):
+                    log_message += (
+                        f"\n       Missing required field: {detail.missing_property}"
+                    )
+                    if request_body:
+                        provided_fields = list(request_body.keys())
+                        log_message += f"\n       Provided fields: {provided_fields}"
 
-                            if sent_value is not None:
-                                sent_type = type(sent_value).__name__
-                                log_message += f"\n       Sent value: {sent_value!r} (type: {sent_type})"
+                elif isinstance(detail, PatternValidationError):
+                    if sent_value is not None:
+                        log_message += f"\n       Sent value: {sent_value!r}"
+                    log_message += f"\n       Required pattern: {detail.pattern}"
 
-                            # Show expected type
-                            if "expectedType" in info:
-                                log_message += (
-                                    f"\n       Expected type: {info['expectedType']}"
-                                )
-
-                            # Log other info if present (excluding expectedType)
-                            other_info = {
-                                k: v for k, v in info.items() if k != "expectedType"
-                            }
-                            if other_info:
-                                formatted = ", ".join(
-                                    f"{k}: {v!r}" for k, v in other_info.items()
-                                )
-                                log_message += f"\n       Additional info: {formatted}"
-
-                        # Special formatting for too_small/too_big validation errors
-                        elif detail.code in ("too_small", "too_big"):
-                            # Try to extract the sent value from request body
-                            sent_value = None
-                            if request_body and detail.path:
-                                field_path = detail.path.lstrip("/")
-                                if "/" not in field_path:
-                                    sent_value = request_body.get(field_path)
-
-                            if sent_value is not None:
-                                # For arrays and strings, show length
-                                if isinstance(sent_value, list | str):
-                                    log_message += (
-                                        f"\n       Sent value length: {len(sent_value)}"
-                                    )
-                                else:
-                                    log_message += (
-                                        f"\n       Sent value: {sent_value!r}"
-                                    )
-
-                            # Show the limits
-                            if detail.code == "too_small":
-                                if "minLength" in info:
-                                    log_message += (
-                                        f"\n       Minimum length: {info['minLength']}"
-                                    )
-                                elif "minItems" in info:
-                                    log_message += (
-                                        f"\n       Minimum items: {info['minItems']}"
-                                    )
-                            elif detail.code == "too_big":
-                                if "maxLength" in info:
-                                    log_message += (
-                                        f"\n       Maximum length: {info['maxLength']}"
-                                    )
-                                elif "maxItems" in info:
-                                    log_message += (
-                                        f"\n       Maximum items: {info['maxItems']}"
-                                    )
-
-                            # Log other info if present (excluding limits)
-                            other_info = {
-                                k: v
-                                for k, v in info.items()
-                                if k
-                                not in (
-                                    "minLength",
-                                    "maxLength",
-                                    "minItems",
-                                    "maxItems",
-                                )
-                            }
-                            if other_info:
-                                formatted = ", ".join(
-                                    f"{k}: {v!r}" for k, v in other_info.items()
-                                )
-                                log_message += f"\n       Additional info: {formatted}"
-
-                        # Special formatting for required field validation errors
-                        elif detail.code == "required":
-                            # Show the missing required field
-                            if "missingProperty" in info:
-                                log_message += f"\n       Missing required field: {info['missingProperty']}"
-
-                            # Show what fields were provided (if we have request body)
-                            if request_body:
-                                provided_fields = list(request_body.keys())
-                                log_message += (
-                                    f"\n       Provided fields: {provided_fields}"
-                                )
-
-                            # Log other info if present (excluding missingProperty)
-                            other_info = {
-                                k: v for k, v in info.items() if k != "missingProperty"
-                            }
-                            if other_info:
-                                formatted = ", ".join(
-                                    f"{k}: {v!r}" for k, v in other_info.items()
-                                )
-                                log_message += f"\n       Additional info: {formatted}"
-
-                        # Special formatting for pattern validation errors
-                        elif detail.code == "pattern":
-                            # Try to extract the sent value from request body
-                            sent_value = None
-                            if request_body and detail.path:
-                                field_path = detail.path.lstrip("/")
-                                if "/" not in field_path:
-                                    sent_value = request_body.get(field_path)
-
-                            if sent_value is not None:
-                                log_message += f"\n       Sent value: {sent_value!r}"
-
-                            # Show the regex pattern
-                            if "pattern" in info:
-                                log_message += (
-                                    f"\n       Required pattern: {info['pattern']}"
-                                )
-
-                            # Log other info if present (excluding pattern)
-                            other_info = {
-                                k: v for k, v in info.items() if k != "pattern"
-                            }
-                            if other_info:
-                                formatted = ", ".join(
-                                    f"{k}: {v!r}" for k, v in other_info.items()
-                                )
-                                log_message += f"\n       Additional info: {formatted}"
-
-                        # Special formatting for unrecognized_keys validation errors
-                        elif detail.code == "unrecognized_keys":
-                            # Show the unrecognized keys
-                            if "keys" in info:
-                                unrecognized = info["keys"]
-                                log_message += (
-                                    f"\n       Unrecognized fields: {unrecognized}"
-                                )
-
-                            # Show valid keys if available
-                            if "validKeys" in info:
-                                valid_keys = info["validKeys"]
-                                log_message += f"\n       Valid fields: {valid_keys}"
-
-                            # Log other info if present (excluding keys/validKeys)
-                            other_info = {
-                                k: v
-                                for k, v in info.items()
-                                if k not in ("keys", "validKeys")
-                            }
-                            if other_info:
-                                formatted = ", ".join(
-                                    f"{k}: {v!r}" for k, v in other_info.items()
-                                )
-                                log_message += f"\n       Additional info: {formatted}"
-
-                        else:
-                            # Generic formatting for non-enum errors
-                            formatted = ", ".join(
-                                f"{k}: {v!r}" for k, v in info.items()
-                            )
-                            log_message += f"\n       Details: {formatted}"
+                elif isinstance(detail, UnrecognizedKeysValidationError):
+                    log_message += f"\n       Unrecognized fields: {detail.keys}"
+                    if not isinstance(detail.valid_keys, Unset):
+                        log_message += f"\n       Valid fields: {detail.valid_keys}"
 
         # Also check additional_properties for nested error details
         # The API might return details in a nested structure

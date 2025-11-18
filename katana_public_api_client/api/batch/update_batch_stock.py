@@ -91,7 +91,8 @@ def sync_detailed(
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
-    not provided will be left unchanged.
+    not provided
+    will be left unchanged.
 
     Args:
         batch_id (int):
@@ -129,7 +130,8 @@ def sync(
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
-    not provided will be left unchanged.
+    not provided
+    will be left unchanged.
 
     Args:
         batch_id (int):
@@ -162,7 +164,8 @@ async def asyncio_detailed(
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
-    not provided will be left unchanged.
+    not provided
+    will be left unchanged.
 
     Args:
         batch_id (int):
@@ -198,7 +201,8 @@ async def asyncio(
     """Update batch details
 
      Updates the specified batch details by setting the values of the parameters passed. Any parameters
-    not provided will be left unchanged.
+    not provided
+    will be left unchanged.
 
     Args:
         batch_id (int):

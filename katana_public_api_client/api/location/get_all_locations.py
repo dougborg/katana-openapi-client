@@ -150,7 +150,8 @@ def sync_detailed(
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
-    with the most recent locations appearing first.
+    with the most
+    recent locations appearing first.
 
     Args:
         ids (Union[Unset, list[int]]):
@@ -225,7 +226,8 @@ def sync(
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
-    with the most recent locations appearing first.
+    with the most
+    recent locations appearing first.
 
     Args:
         ids (Union[Unset, list[int]]):
@@ -295,7 +297,8 @@ async def asyncio_detailed(
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
-    with the most recent locations appearing first.
+    with the most
+    recent locations appearing first.
 
     Args:
         ids (Union[Unset, list[int]]):
@@ -368,7 +371,8 @@ async def asyncio(
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
-    with the most recent locations appearing first.
+    with the most
+    recent locations appearing first.
 
     Args:
         ids (Union[Unset, list[int]]):

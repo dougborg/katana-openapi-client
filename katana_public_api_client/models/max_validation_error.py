@@ -1,40 +1,32 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
 
-from ..client_types import UNSET, Unset
+from ..models.max_validation_error_code import MaxValidationErrorCode
 
-if TYPE_CHECKING:
-    from ..models.validation_error_detail_info import ValidationErrorDetailInfo
-
-
-T = TypeVar("T", bound="ValidationErrorDetail")
+T = TypeVar("T", bound="MaxValidationError")
 
 
 @_attrs_define
-class ValidationErrorDetail:
-    """Individual validation error detail"""
-
+class MaxValidationError:
     path: str
-    code: str
-    message: Unset | str = UNSET
-    info: Union[Unset, "ValidationErrorDetailInfo"] = UNSET
+    code: MaxValidationErrorCode
+    message: str
+    maximum: float
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         path = self.path
 
-        code = self.code
+        code = self.code.value
 
         message = self.message
 
-        info: Unset | dict[str, Any] = UNSET
-        if not isinstance(self.info, Unset):
-            info = self.info.to_dict()
+        maximum = self.maximum
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -42,42 +34,33 @@ class ValidationErrorDetail:
             {
                 "path": path,
                 "code": code,
+                "message": message,
+                "maximum": maximum,
             }
         )
-        if message is not UNSET:
-            field_dict["message"] = message
-        if info is not UNSET:
-            field_dict["info"] = info
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
-        from ..models.validation_error_detail_info import ValidationErrorDetailInfo
-
         d = dict(src_dict)
         path = d.pop("path")
 
-        code = d.pop("code")
+        code = MaxValidationErrorCode(d.pop("code"))
 
-        message = d.pop("message", UNSET)
+        message = d.pop("message")
 
-        _info = d.pop("info", UNSET)
-        info: Unset | ValidationErrorDetailInfo
-        if isinstance(_info, Unset):
-            info = UNSET
-        else:
-            info = ValidationErrorDetailInfo.from_dict(_info)
+        maximum = d.pop("maximum")
 
-        validation_error_detail = cls(
+        max_validation_error = cls(
             path=path,
             code=code,
             message=message,
-            info=info,
+            maximum=maximum,
         )
 
-        validation_error_detail.additional_properties = d
-        return validation_error_detail
+        max_validation_error.additional_properties = d
+        return max_validation_error
 
     @property
     def additional_keys(self) -> list[str]:

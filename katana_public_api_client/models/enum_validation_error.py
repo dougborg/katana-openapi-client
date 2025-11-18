@@ -1,39 +1,41 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
 
-T = TypeVar("T", bound="InventoryReorderPoint")
+from ..models.enum_validation_error_code import EnumValidationErrorCode
+
+T = TypeVar("T", bound="EnumValidationError")
 
 
 @_attrs_define
-class InventoryReorderPoint:
-    """Configuration that defines the minimum inventory level that triggers automatic reordering for a specific variant
-    at a location
-    """
-
-    location_id: int
-    variant_id: int
-    value: float
+class EnumValidationError:
+    path: str
+    code: EnumValidationErrorCode
+    message: str
+    allowed_values: list[str]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        location_id = self.location_id
+        path = self.path
 
-        variant_id = self.variant_id
+        code = self.code.value
 
-        value = self.value
+        message = self.message
+
+        allowed_values = self.allowed_values
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "location_id": location_id,
-                "variant_id": variant_id,
-                "value": value,
+                "path": path,
+                "code": code,
+                "message": message,
+                "allowed_values": allowed_values,
             }
         )
 
@@ -42,20 +44,23 @@ class InventoryReorderPoint:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         d = dict(src_dict)
-        location_id = d.pop("location_id")
+        path = d.pop("path")
 
-        variant_id = d.pop("variant_id")
+        code = EnumValidationErrorCode(d.pop("code"))
 
-        value = d.pop("value")
+        message = d.pop("message")
 
-        inventory_reorder_point = cls(
-            location_id=location_id,
-            variant_id=variant_id,
-            value=value,
+        allowed_values = cast(list[str], d.pop("allowed_values"))
+
+        enum_validation_error = cls(
+            path=path,
+            code=code,
+            message=message,
+            allowed_values=allowed_values,
         )
 
-        inventory_reorder_point.additional_properties = d
-        return inventory_reorder_point
+        enum_validation_error.additional_properties = d
+        return enum_validation_error
 
     @property
     def additional_keys(self) -> list[str]:

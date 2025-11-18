@@ -6,6 +6,7 @@ from .archivable_deletable_entity import ArchivableDeletableEntity
 from .archivable_entity import ArchivableEntity
 from .assigned_operator import AssignedOperator
 from .base_entity import BaseEntity
+from .base_validation_error import BaseValidationError
 from .batch import Batch
 from .batch_create_bom_rows_request import BatchCreateBomRowsRequest
 from .batch_response import BatchResponse
@@ -124,6 +125,8 @@ from .customer_address_list_response import CustomerAddressListResponse
 from .customer_list_response import CustomerListResponse
 from .deletable_entity import DeletableEntity
 from .detailed_error_response import DetailedErrorResponse
+from .enum_validation_error import EnumValidationError
+from .enum_validation_error_code import EnumValidationErrorCode
 from .error_response import ErrorResponse
 from .factory import Factory
 from .factory_legal_address import FactoryLegalAddress
@@ -131,6 +134,7 @@ from .find_purchase_orders_billing_status import FindPurchaseOrdersBillingStatus
 from .find_purchase_orders_entity_type import FindPurchaseOrdersEntityType
 from .find_purchase_orders_extend_item import FindPurchaseOrdersExtendItem
 from .find_purchase_orders_status import FindPurchaseOrdersStatus
+from .generic_validation_error import GenericValidationError
 from .get_all_customer_addresses_entity_type import GetAllCustomerAddressesEntityType
 from .get_all_inventory_movements_resource_type import (
     GetAllInventoryMovementsResourceType,
@@ -188,6 +192,8 @@ from .get_sales_return_row_unassigned_batch_transactions_response_200_data_item 
     GetSalesReturnRowUnassignedBatchTransactionsResponse200DataItem,
 )
 from .get_variant_extend_item import GetVariantExtendItem
+from .invalid_type_validation_error import InvalidTypeValidationError
+from .invalid_type_validation_error_code import InvalidTypeValidationErrorCode
 from .inventory import Inventory
 from .inventory_item import InventoryItem
 from .inventory_item_type import InventoryItemType
@@ -242,6 +248,10 @@ from .material import Material
 from .material_config import MaterialConfig
 from .material_list_response import MaterialListResponse
 from .material_type import MaterialType
+from .max_validation_error import MaxValidationError
+from .max_validation_error_code import MaxValidationErrorCode
+from .min_validation_error import MinValidationError
+from .min_validation_error_code import MinValidationErrorCode
 from .negative_stock import NegativeStock
 from .negative_stock_list_response import NegativeStockListResponse
 from .operator import Operator
@@ -260,6 +270,8 @@ from .outsourced_purchase_order_recipe_row_ingredient_availability import (
 from .outsourced_purchase_order_recipe_row_list_response import (
     OutsourcedPurchaseOrderRecipeRowListResponse,
 )
+from .pattern_validation_error import PatternValidationError
+from .pattern_validation_error_code import PatternValidationErrorCode
 from .price_list import PriceList
 from .price_list_customer import PriceListCustomer
 from .price_list_customer_list_response import PriceListCustomerListResponse
@@ -302,6 +314,8 @@ from .recipe import Recipe
 from .recipe_list_response import RecipeListResponse
 from .regular_purchase_order import RegularPurchaseOrder
 from .regular_purchase_order_entity_type import RegularPurchaseOrderEntityType
+from .required_validation_error import RequiredValidationError
+from .required_validation_error_code import RequiredValidationErrorCode
 from .sales_order import SalesOrder
 from .sales_order_accounting_metadata import SalesOrderAccountingMetadata
 from .sales_order_accounting_metadata_integration_type import (
@@ -375,8 +389,14 @@ from .supplier_address_request import SupplierAddressRequest
 from .supplier_list_response import SupplierListResponse
 from .tax_rate import TaxRate
 from .tax_rate_list_response import TaxRateListResponse
+from .too_big_validation_error import TooBigValidationError
+from .too_big_validation_error_code import TooBigValidationErrorCode
+from .too_small_validation_error import TooSmallValidationError
+from .too_small_validation_error_code import TooSmallValidationErrorCode
 from .unlink_manufacturing_order_request import UnlinkManufacturingOrderRequest
 from .unlink_variant_bin_location_request import UnlinkVariantBinLocationRequest
+from .unrecognized_keys_validation_error import UnrecognizedKeysValidationError
+from .unrecognized_keys_validation_error_code import UnrecognizedKeysValidationErrorCode
 from .updatable_entity import UpdatableEntity
 from .update_bom_row_request import UpdateBomRowRequest
 from .update_customer_address_body import UpdateCustomerAddressBody
@@ -462,8 +482,6 @@ from .update_variant_request_custom_fields_item import (
 from .update_webhook_request import UpdateWebhookRequest
 from .user import User
 from .user_list_response import UserListResponse
-from .validation_error_detail import ValidationErrorDetail
-from .validation_error_detail_info import ValidationErrorDetailInfo
 from .variant import Variant
 from .variant_config_attributes_item import VariantConfigAttributesItem
 from .variant_custom_fields_item import VariantCustomFieldsItem
@@ -496,6 +514,7 @@ __all__ = (
     "ArchivableEntity",
     "AssignedOperator",
     "BaseEntity",
+    "BaseValidationError",
     "Batch",
     "BatchCreateBomRowsRequest",
     "BatchResponse",
@@ -576,6 +595,8 @@ __all__ = (
     "CustomerListResponse",
     "DeletableEntity",
     "DetailedErrorResponse",
+    "EnumValidationError",
+    "EnumValidationErrorCode",
     "ErrorResponse",
     "Factory",
     "FactoryLegalAddress",
@@ -583,6 +604,7 @@ __all__ = (
     "FindPurchaseOrdersEntityType",
     "FindPurchaseOrdersExtendItem",
     "FindPurchaseOrdersStatus",
+    "GenericValidationError",
     "GetAllCustomerAddressesEntityType",
     "GetAllInventoryMovementsResourceType",
     "GetAllInventoryPointExtendItem",
@@ -612,6 +634,8 @@ __all__ = (
     "GetSalesReturnRowUnassignedBatchTransactionsResponse200",
     "GetSalesReturnRowUnassignedBatchTransactionsResponse200DataItem",
     "GetVariantExtendItem",
+    "InvalidTypeValidationError",
+    "InvalidTypeValidationErrorCode",
     "Inventory",
     "InventoryItem",
     "InventoryItemType",
@@ -646,6 +670,10 @@ __all__ = (
     "MaterialConfig",
     "MaterialListResponse",
     "MaterialType",
+    "MaxValidationError",
+    "MaxValidationErrorCode",
+    "MinValidationError",
+    "MinValidationErrorCode",
     "NegativeStock",
     "NegativeStockListResponse",
     "Operator",
@@ -656,6 +684,8 @@ __all__ = (
     "OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem",
     "OutsourcedPurchaseOrderRecipeRowIngredientAvailability",
     "OutsourcedPurchaseOrderRecipeRowListResponse",
+    "PatternValidationError",
+    "PatternValidationErrorCode",
     "PriceList",
     "PriceListCustomer",
     "PriceListCustomerListResponse",
@@ -688,6 +718,8 @@ __all__ = (
     "RecipeListResponse",
     "RegularPurchaseOrder",
     "RegularPurchaseOrderEntityType",
+    "RequiredValidationError",
+    "RequiredValidationErrorCode",
     "SalesOrder",
     "SalesOrderAccountingMetadata",
     "SalesOrderAccountingMetadataIntegrationType",
@@ -751,8 +783,14 @@ __all__ = (
     "SupplierListResponse",
     "TaxRate",
     "TaxRateListResponse",
+    "TooBigValidationError",
+    "TooBigValidationErrorCode",
+    "TooSmallValidationError",
+    "TooSmallValidationErrorCode",
     "UnlinkManufacturingOrderRequest",
     "UnlinkVariantBinLocationRequest",
+    "UnrecognizedKeysValidationError",
+    "UnrecognizedKeysValidationErrorCode",
     "UpdatableEntity",
     "UpdateBomRowRequest",
     "UpdateCustomerAddressBody",
@@ -808,8 +846,6 @@ __all__ = (
     "UpdateWebhookRequest",
     "User",
     "UserListResponse",
-    "ValidationErrorDetail",
-    "ValidationErrorDetailInfo",
     "Variant",
     "VariantConfigAttributesItem",
     "VariantCustomFieldsItem",

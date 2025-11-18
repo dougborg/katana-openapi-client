@@ -105,7 +105,8 @@ def sync_detailed(
     """List current inventory
 
      Returns a list for current inventory. The inventory is returned in sorted order, with the oldest
-    locations appearing first.
+    locations
+    appearing first.
 
     Args:
         location_id (Union[Unset, int]):
@@ -154,7 +155,8 @@ def sync(
     """List current inventory
 
      Returns a list for current inventory. The inventory is returned in sorted order, with the oldest
-    locations appearing first.
+    locations
+    appearing first.
 
     Args:
         location_id (Union[Unset, int]):
@@ -198,7 +200,8 @@ async def asyncio_detailed(
     """List current inventory
 
      Returns a list for current inventory. The inventory is returned in sorted order, with the oldest
-    locations appearing first.
+    locations
+    appearing first.
 
     Args:
         location_id (Union[Unset, int]):
@@ -245,7 +248,8 @@ async def asyncio(
     """List current inventory
 
      Returns a list for current inventory. The inventory is returned in sorted order, with the oldest
-    locations appearing first.
+    locations
+    appearing first.
 
     Args:
         location_id (Union[Unset, int]):

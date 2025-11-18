@@ -6,34 +6,36 @@ from attrs import (
     field as _attrs_field,
 )
 
-T = TypeVar("T", bound="InventoryReorderPoint")
+from ..models.min_validation_error_code import MinValidationErrorCode
+
+T = TypeVar("T", bound="MinValidationError")
 
 
 @_attrs_define
-class InventoryReorderPoint:
-    """Configuration that defines the minimum inventory level that triggers automatic reordering for a specific variant
-    at a location
-    """
-
-    location_id: int
-    variant_id: int
-    value: float
+class MinValidationError:
+    path: str
+    code: MinValidationErrorCode
+    message: str
+    minimum: float
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        location_id = self.location_id
+        path = self.path
 
-        variant_id = self.variant_id
+        code = self.code.value
 
-        value = self.value
+        message = self.message
+
+        minimum = self.minimum
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "location_id": location_id,
-                "variant_id": variant_id,
-                "value": value,
+                "path": path,
+                "code": code,
+                "message": message,
+                "minimum": minimum,
             }
         )
 
@@ -42,20 +44,23 @@ class InventoryReorderPoint:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         d = dict(src_dict)
-        location_id = d.pop("location_id")
+        path = d.pop("path")
 
-        variant_id = d.pop("variant_id")
+        code = MinValidationErrorCode(d.pop("code"))
 
-        value = d.pop("value")
+        message = d.pop("message")
 
-        inventory_reorder_point = cls(
-            location_id=location_id,
-            variant_id=variant_id,
-            value=value,
+        minimum = d.pop("minimum")
+
+        min_validation_error = cls(
+            path=path,
+            code=code,
+            message=message,
+            minimum=minimum,
         )
 
-        inventory_reorder_point.additional_properties = d
-        return inventory_reorder_point
+        min_validation_error.additional_properties = d
+        return min_validation_error
 
     @property
     def additional_keys(self) -> list[str]:

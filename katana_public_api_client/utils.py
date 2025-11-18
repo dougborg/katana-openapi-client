@@ -10,7 +10,16 @@ from typing import TYPE_CHECKING, Any, TypeVar, overload
 
 from .client_types import Response, Unset
 from .models.detailed_error_response import DetailedErrorResponse
+from .models.enum_validation_error import EnumValidationError
 from .models.error_response import ErrorResponse
+from .models.invalid_type_validation_error import InvalidTypeValidationError
+from .models.max_validation_error import MaxValidationError
+from .models.min_validation_error import MinValidationError
+from .models.pattern_validation_error import PatternValidationError
+from .models.required_validation_error import RequiredValidationError
+from .models.too_big_validation_error import TooBigValidationError
+from .models.too_small_validation_error import TooSmallValidationError
+from .models.unrecognized_keys_validation_error import UnrecognizedKeysValidationError
 
 if TYPE_CHECKING:
     from .models.variant import Variant
@@ -71,87 +80,67 @@ class ValidationError(APIError):
         """Format validation error with code-specific details."""
         msg = super().__str__()
 
-        # Add code-specific details if present
+        # Add code-specific details if present using type-safe isinstance checks
         if self.validation_errors:
             error_details = []
             for detail in self.validation_errors:
-                if (
-                    hasattr(detail, "code")
-                    and hasattr(detail, "info")
-                    and detail.info
-                    and hasattr(detail.info, "additional_properties")
-                ):
-                    info = detail.info.additional_properties
-                    field = getattr(detail, "path", "field").lstrip("/")
+                field = detail.path.lstrip("/")
 
-                    # Enum validation errors
-                    if detail.code == "enum" and "allowedValues" in info:
-                        allowed = info["allowedValues"]
+                # Use isinstance for type-safe error handling
+                if isinstance(detail, EnumValidationError):
+                    error_details.append(
+                        f"  Field '{field}' must be one of: {detail.allowed_values}"
+                    )
+
+                elif isinstance(detail, MinValidationError):
+                    error_details.append(
+                        f"  Field '{field}' must be >= {detail.minimum}"
+                    )
+
+                elif isinstance(detail, MaxValidationError):
+                    error_details.append(
+                        f"  Field '{field}' must be <= {detail.maximum}"
+                    )
+
+                elif isinstance(detail, InvalidTypeValidationError):
+                    error_details.append(
+                        f"  Field '{field}' must be of type: {detail.expected_type}"
+                    )
+
+                elif isinstance(detail, TooSmallValidationError):
+                    if not isinstance(detail.min_length, Unset):
                         error_details.append(
-                            f"  Field '{field}' must be one of: {allowed}"
+                            f"  Field '{field}' must have minimum length: {detail.min_length}"
+                        )
+                    elif not isinstance(detail.min_items, Unset):
+                        error_details.append(
+                            f"  Field '{field}' must have minimum items: {detail.min_items}"
                         )
 
-                    # Min/Max validation errors
-                    elif detail.code == "min" and "minimum" in info:
-                        minimum = info["minimum"]
-                        error_details.append(f"  Field '{field}' must be >= {minimum}")
-                    elif detail.code == "max" and "maximum" in info:
-                        maximum = info["maximum"]
-                        error_details.append(f"  Field '{field}' must be <= {maximum}")
-
-                    # Invalid type validation errors
-                    elif detail.code == "invalid_type" and "expectedType" in info:
-                        expected_type = info["expectedType"]
+                elif isinstance(detail, TooBigValidationError):
+                    if not isinstance(detail.max_length, Unset):
                         error_details.append(
-                            f"  Field '{field}' must be of type: {expected_type}"
+                            f"  Field '{field}' must have maximum length: {detail.max_length}"
+                        )
+                    elif not isinstance(detail.max_items, Unset):
+                        error_details.append(
+                            f"  Field '{field}' must have maximum items: {detail.max_items}"
                         )
 
-                    # Too small validation errors
-                    elif detail.code == "too_small":
-                        if "minLength" in info:
-                            error_details.append(
-                                f"  Field '{field}' must have minimum length: {info['minLength']}"
-                            )
-                        elif "minItems" in info:
-                            error_details.append(
-                                f"  Field '{field}' must have minimum items: {info['minItems']}"
-                            )
+                elif isinstance(detail, RequiredValidationError):
+                    error_details.append(
+                        f"  Missing required field: '{detail.missing_property}'"
+                    )
 
-                    # Too big validation errors
-                    elif detail.code == "too_big":
-                        if "maxLength" in info:
-                            error_details.append(
-                                f"  Field '{field}' must have maximum length: {info['maxLength']}"
-                            )
-                        elif "maxItems" in info:
-                            error_details.append(
-                                f"  Field '{field}' must have maximum items: {info['maxItems']}"
-                            )
+                elif isinstance(detail, PatternValidationError):
+                    error_details.append(
+                        f"  Field '{field}' must match pattern: {detail.pattern}"
+                    )
 
-                    # Required field validation errors
-                    elif detail.code == "required" and "missingProperty" in info:
-                        missing_field = info["missingProperty"]
-                        error_details.append(
-                            f"  Missing required field: '{missing_field}'"
-                        )
-
-                    # Pattern validation errors
-                    elif detail.code == "pattern" and "pattern" in info:
-                        pattern = info["pattern"]
-                        error_details.append(
-                            f"  Field '{field}' must match pattern: {pattern}"
-                        )
-
-                    # Unrecognized keys validation errors
-                    elif detail.code == "unrecognized_keys":
-                        if "keys" in info:
-                            unrecognized = info["keys"]
-                            error_details.append(
-                                f"  Unrecognized fields: {unrecognized}"
-                            )
-                        if "validKeys" in info:
-                            valid = info["validKeys"]
-                            error_details.append(f"  Valid fields: {valid}")
+                elif isinstance(detail, UnrecognizedKeysValidationError):
+                    error_details.append(f"  Unrecognized fields: {detail.keys}")
+                    if not isinstance(detail.valid_keys, Unset):
+                        error_details.append(f"  Valid fields: {detail.valid_keys}")
 
             if error_details:
                 msg += "\n" + "\n".join(error_details)

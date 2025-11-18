@@ -153,7 +153,8 @@ def sync_detailed(
     """List all inventory movements
 
      Returns a list of inventory movements created by your Katana resources. The inventory movements are
-    returned in sorted order, with the most recent movements appearing first.
+    returned in
+    sorted order, with the most recent movements appearing first.
 
     Args:
         ids (Union[Unset, list[int]]):
@@ -222,7 +223,8 @@ def sync(
     """List all inventory movements
 
      Returns a list of inventory movements created by your Katana resources. The inventory movements are
-    returned in sorted order, with the most recent movements appearing first.
+    returned in
+    sorted order, with the most recent movements appearing first.
 
     Args:
         ids (Union[Unset, list[int]]):
@@ -286,7 +288,8 @@ async def asyncio_detailed(
     """List all inventory movements
 
      Returns a list of inventory movements created by your Katana resources. The inventory movements are
-    returned in sorted order, with the most recent movements appearing first.
+    returned in
+    sorted order, with the most recent movements appearing first.
 
     Args:
         ids (Union[Unset, list[int]]):
@@ -353,7 +356,8 @@ async def asyncio(
     """List all inventory movements
 
      Returns a list of inventory movements created by your Katana resources. The inventory movements are
-    returned in sorted order, with the most recent movements appearing first.
+    returned in
+    sorted order, with the most recent movements appearing first.
 
     Args:
         ids (Union[Unset, list[int]]):

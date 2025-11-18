@@ -171,7 +171,8 @@ def sync_detailed(
     """List all sales returns
 
      Returns a list of sales returns you've previously created. The sales returns are returned in sorted
-    order, with the most recent sales return appearing first.
+    order, with
+    the most recent sales return appearing first.
 
     Args:
         limit (Union[Unset, int]):  Default: 50.
@@ -249,7 +250,8 @@ def sync(
     """List all sales returns
 
      Returns a list of sales returns you've previously created. The sales returns are returned in sorted
-    order, with the most recent sales return appearing first.
+    order, with
+    the most recent sales return appearing first.
 
     Args:
         limit (Union[Unset, int]):  Default: 50.
@@ -322,7 +324,8 @@ async def asyncio_detailed(
     """List all sales returns
 
      Returns a list of sales returns you've previously created. The sales returns are returned in sorted
-    order, with the most recent sales return appearing first.
+    order, with
+    the most recent sales return appearing first.
 
     Args:
         limit (Union[Unset, int]):  Default: 50.
@@ -398,7 +401,8 @@ async def asyncio(
     """List all sales returns
 
      Returns a list of sales returns you've previously created. The sales returns are returned in sorted
-    order, with the most recent sales return appearing first.
+    order, with
+    the most recent sales return appearing first.
 
     Args:
         limit (Union[Unset, int]):  Default: 50.

@@ -91,7 +91,8 @@ def sync_detailed(
     """Update a sales order address
 
      Updates the specified sales order address by setting the values of the parameters passed. Any
-    parameters not provided will be left unchanged.
+    parameters not
+    provided will be left unchanged.
 
     Args:
         id (int):
@@ -129,7 +130,8 @@ def sync(
     """Update a sales order address
 
      Updates the specified sales order address by setting the values of the parameters passed. Any
-    parameters not provided will be left unchanged.
+    parameters not
+    provided will be left unchanged.
 
     Args:
         id (int):
@@ -162,7 +164,8 @@ async def asyncio_detailed(
     """Update a sales order address
 
      Updates the specified sales order address by setting the values of the parameters passed. Any
-    parameters not provided will be left unchanged.
+    parameters not
+    provided will be left unchanged.
 
     Args:
         id (int):
@@ -198,7 +201,8 @@ async def asyncio(
     """Update a sales order address
 
      Updates the specified sales order address by setting the values of the parameters passed. Any
-    parameters not provided will be left unchanged.
+    parameters not
+    provided will be left unchanged.
 
     Args:
         id (int):
