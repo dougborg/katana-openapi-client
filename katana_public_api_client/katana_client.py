@@ -291,6 +291,41 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                                     f"{k}: {v!r}" for k, v in other_info.items()
                                 )
                                 log_message += f"\n       Additional info: {formatted}"
+
+                        # Special formatting for min/max validation errors
+                        elif detail.code in ("min", "max"):
+                            # Try to extract the sent value from request body
+                            sent_value = None
+                            if request_body and detail.path:
+                                field_path = detail.path.lstrip("/")
+                                if "/" not in field_path:
+                                    sent_value = request_body.get(field_path)
+
+                            if sent_value is not None:
+                                log_message += f"\n       Sent value: {sent_value!r}"
+
+                            # Show the limit
+                            if detail.code == "min" and "minimum" in info:
+                                log_message += (
+                                    f"\n       Minimum allowed: {info['minimum']}"
+                                )
+                            elif detail.code == "max" and "maximum" in info:
+                                log_message += (
+                                    f"\n       Maximum allowed: {info['maximum']}"
+                                )
+
+                            # Log other info if present (excluding minimum/maximum)
+                            other_info = {
+                                k: v
+                                for k, v in info.items()
+                                if k not in ("minimum", "maximum")
+                            }
+                            if other_info:
+                                formatted = ", ".join(
+                                    f"{k}: {v!r}" for k, v in other_info.items()
+                                )
+                                log_message += f"\n       Additional info: {formatted}"
+
                         else:
                             # Generic formatting for non-enum errors
                             formatted = ", ".join(

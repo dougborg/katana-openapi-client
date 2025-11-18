@@ -663,3 +663,84 @@ class TestValidationErrorEnumFormatting:
         assert "must be one of:" not in error_str
         # But should still show base error message
         assert "Validation failed" in error_str
+
+
+@pytest.mark.unit
+class TestValidationErrorMinMaxFormatting:
+    """Test ValidationError min/max-specific error message formatting."""
+
+    def test_validation_error_with_min_details(self):
+        """Test that min validation errors include minimum value in message."""
+        from katana_public_api_client.models.validation_error_detail import (
+            ValidationErrorDetail,
+        )
+        from katana_public_api_client.models.validation_error_detail_info import (
+            ValidationErrorDetailInfo,
+        )
+
+        # Create validation detail with min error
+        detail_info = ValidationErrorDetailInfo()
+        detail_info.additional_properties = {"minimum": 0}
+        detail = ValidationErrorDetail(
+            path="/quantity",
+            code="min",
+            message="must be >= 0",
+            info=detail_info,
+        )
+
+        error_response = DetailedErrorResponse(
+            status_code=422,
+            name="UnprocessableEntityError",
+            message="The request body is invalid.",
+            code="VALIDATION_FAILED",
+            details=[detail],
+        )
+
+        error = utils.ValidationError(
+            "Validation failed",
+            422,
+            error_response,
+        )
+
+        error_str = str(error)
+
+        # Check that the error string includes min-specific formatting
+        assert "Field 'quantity' must be >= 0" in error_str
+
+    def test_validation_error_with_max_details(self):
+        """Test that max validation errors include maximum value in message."""
+        from katana_public_api_client.models.validation_error_detail import (
+            ValidationErrorDetail,
+        )
+        from katana_public_api_client.models.validation_error_detail_info import (
+            ValidationErrorDetailInfo,
+        )
+
+        # Create validation detail with max error
+        detail_info = ValidationErrorDetailInfo()
+        detail_info.additional_properties = {"maximum": 100}
+        detail = ValidationErrorDetail(
+            path="/discount_percentage",
+            code="max",
+            message="must be <= 100",
+            info=detail_info,
+        )
+
+        error_response = DetailedErrorResponse(
+            status_code=422,
+            name="UnprocessableEntityError",
+            message="The request body is invalid.",
+            code="VALIDATION_FAILED",
+            details=[detail],
+        )
+
+        error = utils.ValidationError(
+            "Validation failed",
+            422,
+            error_response,
+        )
+
+        error_str = str(error)
+
+        # Check that the error string includes max-specific formatting
+        assert "Field 'discount_percentage' must be <= 100" in error_str
