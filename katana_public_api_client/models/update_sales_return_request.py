@@ -18,7 +18,7 @@ class UpdateSalesReturnRequest:
     Example:
         {'customer_id': 1001, 'sales_order_id': 2001, 'order_no': 'SR-2023-001', 'return_location_id': 1, 'currency':
             'USD', 'order_created_date': '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported damaged items during
-            shipping', 'status': 'RETURNED'}
+            shipping', 'status': 'RETURNED_ALL'}
     """
 
     customer_id: Unset | int = UNSET

@@ -1,7 +1,5 @@
 """Katana Public API Client - Python client for Katana Manufacturing ERP."""
 
-__version__ = "0.32.0"
-
 from .client import AuthenticatedClient, Client
 from .katana_client import KatanaClient
 from .utils import (
@@ -20,9 +18,7 @@ from .utils import (
 )
 
 __all__ = [
-    # Exceptions
     "APIError",
-    # Client classes
     "AuthenticatedClient",
     "AuthenticationError",
     "Client",
@@ -30,7 +26,6 @@ __all__ = [
     "RateLimitError",
     "ServerError",
     "ValidationError",
-    # Utility functions
     "get_error_message",
     "get_variant_display_name",
     "handle_response",

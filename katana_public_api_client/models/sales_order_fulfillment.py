@@ -172,7 +172,7 @@ class SalesOrderFulfillment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
@@ -181,7 +181,7 @@ class SalesOrderFulfillment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         tracking_number_url = _parse_tracking_number_url(
             d.pop("tracking_number_url", UNSET)
@@ -200,7 +200,7 @@ class SalesOrderFulfillment:
                 return shipped_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         shipped_date = _parse_shipped_date(d.pop("shipped_date", UNSET))
 
@@ -219,7 +219,7 @@ class SalesOrderFulfillment:
                 return estimated_delivery_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         estimated_delivery_date = _parse_estimated_delivery_date(
             d.pop("estimated_delivery_date", UNSET)
@@ -240,7 +240,7 @@ class SalesOrderFulfillment:
                 return actual_delivery_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         actual_delivery_date = _parse_actual_delivery_date(
             d.pop("actual_delivery_date", UNSET)
@@ -251,7 +251,7 @@ class SalesOrderFulfillment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         shipping_cost = _parse_shipping_cost(d.pop("shipping_cost", UNSET))
 
@@ -260,7 +260,7 @@ class SalesOrderFulfillment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         shipping_method = _parse_shipping_method(d.pop("shipping_method", UNSET))
 
@@ -269,7 +269,7 @@ class SalesOrderFulfillment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         carrier = _parse_carrier(d.pop("carrier", UNSET))
 
@@ -278,7 +278,7 @@ class SalesOrderFulfillment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         notes = _parse_notes(d.pop("notes", UNSET))
 

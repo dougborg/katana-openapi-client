@@ -18,7 +18,8 @@ class DeletableEntity:
     """Common fields for entities that can be deleted
 
     Example:
-        {'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}
+        {'id': 12345, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at':
+            None}
     """
 
     id: int
@@ -94,7 +95,7 @@ class DeletableEntity:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

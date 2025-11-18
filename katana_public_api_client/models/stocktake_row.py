@@ -128,7 +128,7 @@ class StocktakeRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         batch_id = _parse_batch_id(d.pop("batch_id", UNSET))
 
@@ -137,7 +137,7 @@ class StocktakeRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         in_stock_quantity = _parse_in_stock_quantity(d.pop("in_stock_quantity", UNSET))
 
@@ -146,7 +146,7 @@ class StocktakeRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         counted_quantity = _parse_counted_quantity(d.pop("counted_quantity", UNSET))
 
@@ -155,7 +155,7 @@ class StocktakeRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         discrepancy_quantity = _parse_discrepancy_quantity(
             d.pop("discrepancy_quantity", UNSET)
@@ -166,7 +166,7 @@ class StocktakeRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         notes = _parse_notes(d.pop("notes", UNSET))
 

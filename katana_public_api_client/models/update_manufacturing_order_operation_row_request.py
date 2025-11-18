@@ -20,7 +20,8 @@ class UpdateManufacturingOrderOperationRowRequest:
     """Request payload for updating a manufacturing order operation row with actual completion data
 
     Example:
-        {'completed_by_operators': [{'id': 101, 'name': 'John Smith'}], 'total_actual_time': 52.3}
+        {'completed_by_operators': [{'id': 101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z',
+            'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}], 'total_actual_time': 52.3}
     """
 
     completed_by_operators: Unset | list["Operator"] = UNSET

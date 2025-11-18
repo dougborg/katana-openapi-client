@@ -183,7 +183,7 @@ class Stocktake:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         reference_no = _parse_reference_no(d.pop("reference_no", UNSET))
 
@@ -214,7 +214,7 @@ class Stocktake:
                 return started_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         started_date = _parse_started_date(d.pop("started_date", UNSET))
 
@@ -231,7 +231,7 @@ class Stocktake:
                 return completed_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         completed_date = _parse_completed_date(d.pop("completed_date", UNSET))
 
@@ -244,7 +244,7 @@ class Stocktake:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         stock_adjustment_id = _parse_stock_adjustment_id(
             d.pop("stock_adjustment_id", UNSET)
@@ -255,7 +255,7 @@ class Stocktake:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         reason = _parse_reason(d.pop("reason", UNSET))
 
@@ -264,7 +264,7 @@ class Stocktake:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
@@ -273,7 +273,7 @@ class Stocktake:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         notes = _parse_notes(d.pop("notes", UNSET))
 

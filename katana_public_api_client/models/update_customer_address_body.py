@@ -142,7 +142,7 @@ class UpdateCustomerAddressBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         first_name = _parse_first_name(d.pop("first_name", UNSET))
 
@@ -151,7 +151,7 @@ class UpdateCustomerAddressBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         last_name = _parse_last_name(d.pop("last_name", UNSET))
 
@@ -160,7 +160,7 @@ class UpdateCustomerAddressBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         company = _parse_company(d.pop("company", UNSET))
 
@@ -169,7 +169,7 @@ class UpdateCustomerAddressBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         phone = _parse_phone(d.pop("phone", UNSET))
 
@@ -178,7 +178,7 @@ class UpdateCustomerAddressBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         line_1 = _parse_line_1(d.pop("line_1", UNSET))
 
@@ -187,7 +187,7 @@ class UpdateCustomerAddressBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         line_2 = _parse_line_2(d.pop("line_2", UNSET))
 
@@ -196,7 +196,7 @@ class UpdateCustomerAddressBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         city = _parse_city(d.pop("city", UNSET))
 
@@ -205,7 +205,7 @@ class UpdateCustomerAddressBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         state = _parse_state(d.pop("state", UNSET))
 
@@ -214,7 +214,7 @@ class UpdateCustomerAddressBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         zip_ = _parse_zip_(d.pop("zip", UNSET))
 
@@ -223,7 +223,7 @@ class UpdateCustomerAddressBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         country = _parse_country(d.pop("country", UNSET))
 

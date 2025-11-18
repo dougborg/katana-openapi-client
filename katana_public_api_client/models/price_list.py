@@ -144,7 +144,7 @@ class PriceList:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -157,7 +157,7 @@ class PriceList:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         markup_percentage = _parse_markup_percentage(d.pop("markup_percentage", UNSET))
 
@@ -174,7 +174,7 @@ class PriceList:
                 return start_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         start_date = _parse_start_date(d.pop("start_date", UNSET))
 
@@ -191,7 +191,7 @@ class PriceList:
                 return end_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         end_date = _parse_end_date(d.pop("end_date", UNSET))
 

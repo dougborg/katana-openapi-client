@@ -116,7 +116,7 @@ class Recipe:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         notes = _parse_notes(d.pop("notes", UNSET))
 

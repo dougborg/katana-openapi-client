@@ -18,9 +18,12 @@ class InventoryMovementListResponse:
     """A list of inventory movement records tracking stock changes, transfers, and adjustments across locations.
 
     Example:
-        {'data': [{'id': 5001, 'variant_id': 2002, 'location_id': 1, 'movement_type': 'TRANSFER_IN', 'quantity': 10.0,
-            'cost_per_unit': 12.5, 'total_cost': 125.0, 'reference_id': 1001, 'movement_date': '2023-10-15T14:30:00Z',
-            'notes': 'Received from supplier shipment'}]}
+        {'data': [{'id': 5001, 'variant_id': 2002, 'location_id': 1, 'resource_type': 'PurchaseOrderRow', 'resource_id':
+            1001, 'caused_by_order_no': 'PO-2024-001', 'caused_by_resource_id': 1001, 'movement_type': 'TRANSFER_IN',
+            'movement_date': '2023-10-15T14:30:00Z', 'quantity': 10.0, 'quantity_change': 10.0, 'balance_after': 100.0,
+            'cost_per_unit': 12.5, 'value_per_unit': 12.5, 'total_cost': 125.0, 'value_in_stock_after': 1250.0,
+            'average_cost_after': 12.5, 'reference_id': 1001, 'notes': 'Received from supplier shipment', 'created_at':
+            '2023-10-15T14:30:00Z', 'updated_at': '2023-10-15T14:30:00Z'}]}
     """
 
     data: list["InventoryMovement"]

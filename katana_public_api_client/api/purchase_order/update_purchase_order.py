@@ -50,10 +50,8 @@ def _parse_response(
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                # Cast to proper type for ty type checker
-                dict_data = cast(Mapping[str, Any], data)
                 componentsschemas_purchase_order_type_0 = (
-                    RegularPurchaseOrder.from_dict(dict_data)
+                    RegularPurchaseOrder.from_dict(cast(Mapping[str, Any], data))
                 )
 
                 return componentsschemas_purchase_order_type_0
@@ -61,10 +59,8 @@ def _parse_response(
                 pass
             if not isinstance(data, dict):
                 raise TypeError()
-            # Cast to proper type for ty type checker
-            dict_data = cast(Mapping[str, Any], data)
             componentsschemas_purchase_order_type_1 = OutsourcedPurchaseOrder.from_dict(
-                dict_data
+                cast(Mapping[str, Any], data)
             )
 
             return componentsschemas_purchase_order_type_1
@@ -133,8 +129,8 @@ def sync_detailed(
         id (int):
         body (UpdatePurchaseOrderRequest): Request payload for updating an existing purchase
             order's details, status, and line items Example: {'order_no': 'PO-2024-0156-REVISED',
-            'expected_arrival_date': '2024-02-20', 'status': 'PARTIALLY_RECEIVED', 'additional_info':
-            'Delivery delayed due to weather - updated schedule'}.
+            'expected_arrival_date': '2024-02-20T00:00:00Z', 'status': 'PARTIALLY_RECEIVED',
+            'additional_info': 'Delivery delayed due to weather - updated schedule'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -177,8 +173,8 @@ def sync(
         id (int):
         body (UpdatePurchaseOrderRequest): Request payload for updating an existing purchase
             order's details, status, and line items Example: {'order_no': 'PO-2024-0156-REVISED',
-            'expected_arrival_date': '2024-02-20', 'status': 'PARTIALLY_RECEIVED', 'additional_info':
-            'Delivery delayed due to weather - updated schedule'}.
+            'expected_arrival_date': '2024-02-20T00:00:00Z', 'status': 'PARTIALLY_RECEIVED',
+            'additional_info': 'Delivery delayed due to weather - updated schedule'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -215,8 +211,8 @@ async def asyncio_detailed(
         id (int):
         body (UpdatePurchaseOrderRequest): Request payload for updating an existing purchase
             order's details, status, and line items Example: {'order_no': 'PO-2024-0156-REVISED',
-            'expected_arrival_date': '2024-02-20', 'status': 'PARTIALLY_RECEIVED', 'additional_info':
-            'Delivery delayed due to weather - updated schedule'}.
+            'expected_arrival_date': '2024-02-20T00:00:00Z', 'status': 'PARTIALLY_RECEIVED',
+            'additional_info': 'Delivery delayed due to weather - updated schedule'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -257,8 +253,8 @@ async def asyncio(
         id (int):
         body (UpdatePurchaseOrderRequest): Request payload for updating an existing purchase
             order's details, status, and line items Example: {'order_no': 'PO-2024-0156-REVISED',
-            'expected_arrival_date': '2024-02-20', 'status': 'PARTIALLY_RECEIVED', 'additional_info':
-            'Delivery delayed due to weather - updated schedule'}.
+            'expected_arrival_date': '2024-02-20T00:00:00Z', 'status': 'PARTIALLY_RECEIVED',
+            'additional_info': 'Delivery delayed due to weather - updated schedule'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

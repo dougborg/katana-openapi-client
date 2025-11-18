@@ -176,7 +176,7 @@ class OutsourcedPurchaseOrderRecipeRow:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -210,7 +210,7 @@ class OutsourcedPurchaseOrderRecipeRow:
                 return ingredient_expected_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         ingredient_expected_date = _parse_ingredient_expected_date(
             d.pop("ingredient_expected_date", UNSET)
@@ -221,7 +221,7 @@ class OutsourcedPurchaseOrderRecipeRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
@@ -241,7 +241,7 @@ class OutsourcedPurchaseOrderRecipeRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         cost = _parse_cost(d.pop("cost", UNSET))
 

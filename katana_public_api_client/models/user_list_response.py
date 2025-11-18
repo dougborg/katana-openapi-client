@@ -20,9 +20,9 @@ class UserListResponse:
     """List of system users with their account information and role assignments
 
     Example:
-        {'data': [{'id': 42, 'first_name': 'Sarah', 'last_name': 'Johnson', 'email': 'sarah.johnson@company.com',
-            'role': 'production_manager', 'status': 'active', 'last_login_at': '2024-01-15T14:30:00Z', 'created_at':
-            '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T14:30:00Z'}, {'id': 43, 'first_name': 'Mike', 'last_name':
+        {'data': [{'id': 42, 'firstName': 'Sarah', 'lastName': 'Johnson', 'email': 'sarah.johnson@company.com', 'role':
+            'production_manager', 'status': 'active', 'last_login_at': '2024-01-15T14:30:00Z', 'created_at':
+            '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T14:30:00Z'}, {'id': 43, 'firstName': 'Mike', 'lastName':
             'Chen', 'email': 'mike.chen@company.com', 'role': 'inventory_coordinator', 'status': 'active', 'last_login_at':
             '2024-01-15T10:15:00Z', 'created_at': '2024-01-08T11:00:00Z', 'updated_at': '2024-01-15T10:15:00Z'}]}
     """

@@ -18,8 +18,8 @@ class InventorySafetyStockLevelResponse:
     """Complete safety stock level configuration with metadata including timestamps and deletion status
 
     Example:
-        {'variant_id': 1, 'location_id': 1, 'value': 10, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at':
-            '2020-10-23T10:37:05.085Z'}
+        {'id': 1001, 'variant_id': 1, 'location_id': 1, 'value': 10, 'created_at': '2020-10-23T10:37:05.085Z',
+            'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}
     """
 
     location_id: int
@@ -113,7 +113,7 @@ class InventorySafetyStockLevelResponse:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

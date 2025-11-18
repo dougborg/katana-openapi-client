@@ -231,7 +231,7 @@ class VariantResponse:
                 return deleted_at_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -246,7 +246,7 @@ class VariantResponse:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         product_id = _parse_product_id(d.pop("product_id", UNSET))
 
@@ -255,7 +255,7 @@ class VariantResponse:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         material_id = _parse_material_id(d.pop("material_id", UNSET))
 
@@ -277,7 +277,7 @@ class VariantResponse:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
 
@@ -286,7 +286,7 @@ class VariantResponse:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         minimum_order_quantity = _parse_minimum_order_quantity(
             d.pop("minimum_order_quantity", UNSET)
@@ -318,14 +318,18 @@ class VariantResponse:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                product_or_material_type_0 = Product.from_dict(data)  # type: ignore[arg-type]
+                product_or_material_type_0 = Product.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
 
                 return product_or_material_type_0
             except:  # noqa: E722
                 pass
             if not isinstance(data, dict):
                 raise TypeError()
-            product_or_material_type_1 = Material.from_dict(data)  # type: ignore[arg-type]
+            product_or_material_type_1 = Material.from_dict(
+                cast(Mapping[str, Any], data)
+            )
 
             return product_or_material_type_1
 

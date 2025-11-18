@@ -445,7 +445,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         source = _parse_source(d.pop("source", UNSET))
 
@@ -469,7 +469,7 @@ class SalesOrder:
                 return delivery_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         delivery_date = _parse_delivery_date(d.pop("delivery_date", UNSET))
 
@@ -486,7 +486,7 @@ class SalesOrder:
                 return picked_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         picked_date = _parse_picked_date(d.pop("picked_date", UNSET))
 
@@ -497,7 +497,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)
+            return cast(None | Unset | float, data)  # type: ignore[return-value]
 
         conversion_rate = _parse_conversion_rate(d.pop("conversion_rate", UNSET))
 
@@ -514,7 +514,7 @@ class SalesOrder:
                 return conversion_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         conversion_date = _parse_conversion_date(d.pop("conversion_date", UNSET))
 
@@ -523,7 +523,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         invoicing_status = _parse_invoicing_status(d.pop("invoicing_status", UNSET))
 
@@ -536,7 +536,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
@@ -545,7 +545,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         customer_ref = _parse_customer_ref(d.pop("customer_ref", UNSET))
 
@@ -561,7 +561,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         ecommerce_order_type = _parse_ecommerce_order_type(
             d.pop("ecommerce_order_type", UNSET)
@@ -572,7 +572,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         ecommerce_store_name = _parse_ecommerce_store_name(
             d.pop("ecommerce_store_name", UNSET)
@@ -583,7 +583,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         ecommerce_order_id = _parse_ecommerce_order_id(
             d.pop("ecommerce_order_id", UNSET)
@@ -604,7 +604,7 @@ class SalesOrder:
                 return product_availability_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | SalesOrderProductAvailabilityType0 | Unset, data)
+            return cast(None | SalesOrderProductAvailabilityType0 | Unset, data)  # type: ignore[return-value]
 
         product_availability = _parse_product_availability(
             d.pop("product_availability", UNSET)
@@ -625,7 +625,7 @@ class SalesOrder:
                 return product_expected_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         product_expected_date = _parse_product_expected_date(
             d.pop("product_expected_date", UNSET)
@@ -648,7 +648,7 @@ class SalesOrder:
                 return ingredient_availability_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | SalesOrderIngredientAvailabilityType0 | Unset, data)
+            return cast(None | SalesOrderIngredientAvailabilityType0 | Unset, data)  # type: ignore[return-value]
 
         ingredient_availability = _parse_ingredient_availability(
             d.pop("ingredient_availability", UNSET)
@@ -669,7 +669,7 @@ class SalesOrder:
                 return ingredient_expected_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | Unset | datetime.datetime, data)
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         ingredient_expected_date = _parse_ingredient_expected_date(
             d.pop("ingredient_expected_date", UNSET)
@@ -690,7 +690,7 @@ class SalesOrder:
                 return production_status_type_0
             except:  # noqa: E722
                 pass
-            return cast(None | SalesOrderProductionStatusType0 | Unset, data)
+            return cast(None | SalesOrderProductionStatusType0 | Unset, data)  # type: ignore[return-value]
 
         production_status = _parse_production_status(d.pop("production_status", UNSET))
 
@@ -699,7 +699,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
@@ -708,7 +708,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | Unset | str, data)  # type: ignore[return-value]
 
         tracking_number_url = _parse_tracking_number_url(
             d.pop("tracking_number_url", UNSET)
@@ -719,7 +719,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         billing_address_id = _parse_billing_address_id(
             d.pop("billing_address_id", UNSET)
@@ -730,7 +730,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         shipping_address_id = _parse_shipping_address_id(
             d.pop("shipping_address_id", UNSET)
@@ -741,7 +741,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)
+            return cast(None | Unset | int, data)  # type: ignore[return-value]
 
         linked_manufacturing_order_id = _parse_linked_manufacturing_order_id(
             d.pop("linked_manufacturing_order_id", UNSET)
@@ -757,7 +757,9 @@ class SalesOrder:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                shipping_fee_type_0 = SalesOrderShippingFee.from_dict(data)  # type: ignore[arg-type]
+                shipping_fee_type_0 = SalesOrderShippingFee.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
 
                 return shipping_fee_type_0
             except:  # noqa: E722
