@@ -944,3 +944,46 @@ class TestValidationErrorTooSmallTooBigFormatting:
 
         # Check that the error string includes too_big-specific formatting
         assert "Field 'tags' must have maximum items: 10" in error_str
+
+
+@pytest.mark.unit
+class TestValidationErrorRequiredFormatting:
+    """Test ValidationError required field error message formatting."""
+
+    def test_validation_error_with_required_field(self):
+        """Test that required field validation errors include missing field in message."""
+        from katana_public_api_client.models.validation_error_detail import (
+            ValidationErrorDetail,
+        )
+        from katana_public_api_client.models.validation_error_detail_info import (
+            ValidationErrorDetailInfo,
+        )
+
+        # Create validation detail with required field error
+        detail_info = ValidationErrorDetailInfo()
+        detail_info.additional_properties = {"missingProperty": "supplier_id"}
+        detail = ValidationErrorDetail(
+            path="",
+            code="required",
+            message="supplier_id is required",
+            info=detail_info,
+        )
+
+        error_response = DetailedErrorResponse(
+            status_code=422,
+            name="UnprocessableEntityError",
+            message="The request body is invalid.",
+            code="VALIDATION_FAILED",
+            details=[detail],
+        )
+
+        error = utils.ValidationError(
+            "Validation failed",
+            422,
+            error_response,
+        )
+
+        error_str = str(error)
+
+        # Check that the error string includes required field-specific formatting
+        assert "Missing required field: 'supplier_id'" in error_str

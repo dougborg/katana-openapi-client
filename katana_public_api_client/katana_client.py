@@ -413,6 +413,29 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                                 )
                                 log_message += f"\n       Additional info: {formatted}"
 
+                        # Special formatting for required field validation errors
+                        elif detail.code == "required":
+                            # Show the missing required field
+                            if "missingProperty" in info:
+                                log_message += f"\n       Missing required field: {info['missingProperty']}"
+
+                            # Show what fields were provided (if we have request body)
+                            if request_body:
+                                provided_fields = list(request_body.keys())
+                                log_message += (
+                                    f"\n       Provided fields: {provided_fields}"
+                                )
+
+                            # Log other info if present (excluding missingProperty)
+                            other_info = {
+                                k: v for k, v in info.items() if k != "missingProperty"
+                            }
+                            if other_info:
+                                formatted = ", ".join(
+                                    f"{k}: {v!r}" for k, v in other_info.items()
+                                )
+                                log_message += f"\n       Additional info: {formatted}"
+
                         else:
                             # Generic formatting for non-enum errors
                             formatted = ", ".join(
