@@ -135,6 +135,13 @@ class ValidationError(APIError):
                             f"  Missing required field: '{missing_field}'"
                         )
 
+                    # Pattern validation errors
+                    elif detail.code == "pattern" and "pattern" in info:
+                        pattern = info["pattern"]
+                        error_details.append(
+                            f"  Field '{field}' must match pattern: {pattern}"
+                        )
+
             if error_details:
                 msg += "\n" + "\n".join(error_details)
 
