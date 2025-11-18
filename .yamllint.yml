@@ -39,6 +39,7 @@ ignore: |
   node_modules/
   dist/
   build/
+  site/
   *.egg-info/
   katana_public_api_client/generated/
   docs/original openapi files/
