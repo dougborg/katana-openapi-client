@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## v0.35.0 (2025-11-21)
+
+### Bug Fixes
+
+- **client**: Add SalesOrderFulfillmentRow to SerialNumberResourceType enum
+  ([`701580e`](https://github.com/dougborg/katana-openapi-client/commit/701580eadd9acb56cf03a83138f6d257d1b21bb0))
+
+### Features
+
+- **mcp**: Update client dependency to v0.34.0
+  ([`42be36e`](https://github.com/dougborg/katana-openapi-client/commit/42be36e94d75b521970de8e231f9166fb9897457))
+
 ## v0.34.0 (2025-11-18)
 
 ### Bug Fixes
