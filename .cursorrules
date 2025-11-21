@@ -65,9 +65,9 @@ This is a **Python client library and MCP server** for the Katana Manufacturing 
 
 **Validation Tiers** (use the right one for the context):
 - `uv run poe quick-check` (~5-10s) - Format + lint only → During development
-- `uv run poe agent-check` (~8-12s) - Format + lint + ty → Before committing
-- `uv run poe check` (~30s) - Full validation → **REQUIRED before PR**
-- `uv run poe full-check` (~40s) - Everything + docs → Before review
+- `uv run poe agent-check` (~10-15s) - Format + lint + ty → Before committing
+- `uv run poe check` (~40s) - Full validation → **REQUIRED before PR**
+- `uv run poe full-check` (~50s) - Everything + docs → Before review
 
 **Development**:
 - `uv sync --all-extras` - Install dependencies
@@ -94,7 +94,7 @@ This is a **Python client library and MCP server** for the Katana Manufacturing 
 - `uv run poe lint`: ~11s (timeout: 15+ minutes)
 - `uv run poe test`: ~16s (timeout: 30+ minutes)
 - `uv run poe test-coverage`: ~22s (timeout: 45+ minutes)
-- `uv run poe check`: ~30s (timeout: 60+ minutes)
+- `uv run poe check`: ~40s (timeout: 60+ minutes)
 - `uv run poe docs-build`: ~2.5 minutes (timeout: 60+ minutes)
 - `uv run poe regenerate-client`: ~2+ minutes (timeout: 60+ minutes)
 
@@ -103,7 +103,7 @@ This is a **Python client library and MCP server** for the Katana Manufacturing 
 ### Python Style
 
 - **Type hints**: Required for all function parameters and return types
-- **Python versions**: 3.11, 3.12, 3.13 supported
+- **Python versions**: 3.12, 3.13, 3.14 supported (requires >=3.12)
 - **Package manager**: uv (required)
 - **Task runner**: poethepoet (poe) - all tasks via `uv run poe <task>`
 - **Code formatter**: Ruff (replaces Black, isort)
