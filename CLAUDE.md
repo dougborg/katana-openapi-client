@@ -92,6 +92,13 @@ When asked to fix linting, type checking, or test errors:
 - Import causing circular dependency? → Restructure the code or use `TYPE_CHECKING`
   block
 
+**Never**:
+
+- Add `# noqa`, `# type: ignore`, or similar comments to silence errors
+- Skip tests instead of fixing them
+- Exclude files or directories from linting or type checking
+- Commit code with known errors or failures
+
 ### MANDATORY COMPLETION CHECKLIST
 
 **Before ANY coding task is considered complete, ALL of the following MUST be true:**
