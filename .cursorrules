@@ -192,13 +192,31 @@ Key feature: **Elicitation pattern** (preview with `confirm=false`, execute with
 
 **NEVER say "but these were pre-existing issues so they are fine to ignore" or ANYTHING like that. This is FORBIDDEN.**
 
-When fixing linting, type checking, or test errors:
+When asked to fix linting, type checking, or test errors:
 
-- ✅ **FIX THE ACTUAL ISSUES** - do not use `noqa`, `type: ignore`, exclusions, or skips
-- ✅ **NO SHORTCUTS** - do not exclude files from linting, skip tests, or ignore type errors
-- ✅ **NO EXCUSES** - "unrelated to my changes" is not a valid reason to ignore errors
-- ✅ **REFACTOR INSTEAD** - if a function has too many parameters, use a dataclass; if a name conflicts with a built-in, rename it
-- ✅ **PRE-EXISTING ISSUES ARE NOT EXCUSES** - ALL tests must pass, ALL linting must pass, regardless of when the issues were introduced
+- **FIX THE ACTUAL ISSUES** - do not use `noqa`, `type: ignore`, exclusions, or skips
+- **NO SHORTCUTS** - do not exclude files from linting, skip tests, or ignore type errors
+- **NO EXCUSES** - "unrelated to my changes" is not a valid reason to ignore errors
+- **NO RATIONALIZING** - if you think you have a good reason to ignore an error, you are wrong
+- **AGENT CODE IS NOT SACRED** - code written by agents must meet the same quality standards
+- **REFACTOR INSTEAD** - if a function has too many parameters, use a dataclass; if a name conflicts with a built-in, rename it
+- **ASK FIRST** - only use ignores/exclusions after explicitly asking and receiving permission
+- **PRE-EXISTING ISSUES ARE NOT EXCUSES** - ALL tests must pass, ALL linting must pass, regardless of when the issues were introduced
+- If you are unsure how to fix an error properly, ask the user for guidance
+- The only acceptable solution is fixing the root cause of the error
+
+**Examples of proper fixes:**
+
+- Too many function parameters (PLR0917)? → Create a dataclass to group related parameters
+- Method name shadows built-in (type checker error)? → Rename the method (e.g., `list()` → `find_all()`)
+- Import causing circular dependency? → Restructure the code or use `TYPE_CHECKING` block
+
+**Never**:
+
+- Add `# noqa`, `# type: ignore`, or similar comments to silence errors
+- Skip tests instead of fixing them
+- Exclude files or directories from linting or type checking
+- Commit code with known errors or failures
 
 ### MANDATORY COMPLETION CHECKLIST
 
