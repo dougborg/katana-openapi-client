@@ -2,6 +2,23 @@
 
 <!-- version list -->
 
+## v0.36.0 (2025-11-22)
+
+### Bug Fixes
+
+- Address Copilot review comments in .cursorrules
+  ([`f1007f4`](https://github.com/dougborg/katana-openapi-client/commit/f1007f4d9e476c725e13d71629aeeca39eb1faf0))
+
+### Chores
+
+- **release**: Mcp v0.18.0
+  ([`7cdd30c`](https://github.com/dougborg/katana-openapi-client/commit/7cdd30c781b64aec24b14f3ea31ae0f686ca813c))
+
+### Features
+
+- Add Cursor rules for better AI assistance
+  ([`65851d4`](https://github.com/dougborg/katana-openapi-client/commit/65851d4a9880589c62a664dd2b192d62cb5ff0bc))
+
 ## v0.35.0 (2025-11-21)
 
 ### Bug Fixes
