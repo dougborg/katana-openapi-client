@@ -59,6 +59,75 @@ cp .env.example .env  # Add your KATANA_API_KEY
 - **Run tests**: `uv run poe test` (16 seconds with 4 workers, NEVER CANCEL)
 - **Auto-fix issues**: `uv run poe fix`
 
+## CRITICAL: Zero Tolerance for Ignoring Errors - ABSOLUTE REQUIREMENT
+
+**NEVER say "but these were pre-existing issues so they are fine to ignore" or ANYTHING
+like that. This is FORBIDDEN.**
+
+When asked to fix linting, type checking, or test errors:
+
+- **FIX THE ACTUAL ISSUES** - do not use `noqa`, `type: ignore`, exclusions, or skips
+- **NO SHORTCUTS** - do not exclude files from linting, skip tests, or ignore type
+  errors
+- **NO EXCUSES** - "unrelated to my changes" is not a valid reason to ignore errors
+- **NO RATIONALIZING** - if you think you have a good reason to ignore an error, you are
+  wrong
+- **AGENT CODE IS NOT SACRED** - code written by agents must meet the same quality
+  standards
+- **REFACTOR INSTEAD** - if a function has too many parameters, use a dataclass; if a
+  name conflicts with a built-in, rename it
+- **ASK FIRST** - only use ignores/exclusions after explicitly asking and receiving
+  permission
+- **PRE-EXISTING ISSUES ARE NOT EXCUSES** - ALL tests must pass, ALL linting must pass,
+  regardless of when the issues were introduced
+- If you are unsure how to fix an error properly, ask the user for guidance
+- The only acceptable solution is fixing the root cause of the error
+
+**Examples of proper fixes:**
+
+- Too many function parameters (PLR0917)? → Create a dataclass to group related
+  parameters
+- Method name shadows built-in (type checker error)? → Rename the method (e.g., `list()`
+  → `find_all()`)
+- Import causing circular dependency? → Restructure the code or use `TYPE_CHECKING`
+  block
+
+### MANDATORY COMPLETION CHECKLIST
+
+**Before ANY coding task is considered complete, ALL of the following MUST be true:**
+
+1. **ALL tests pass** - This includes:
+
+   - Tests for new code you wrote
+   - ALL existing tests (even if they were broken before)
+   - Tests that seem unrelated to your changes
+   - Integration tests, unit tests, all test suites
+   - **NO EXCEPTIONS** - if a test was broken before, fix it
+
+1. **ALL linting and formatting pass** - This includes:
+
+   - Ruff linting with zero errors
+   - Code formatting with zero issues
+   - Type checking with zero errors
+   - **NO EXCEPTIONS** - if there were linting errors before, fix them
+
+1. **Code is committed** - All changes must be committed to git with appropriate commit
+   messages
+
+1. **Code is pushed to a feature branch** - If not already on a feature branch, create
+   one and push the changes
+
+**Verification commands:**
+
+```bash
+# Run these and ensure ALL pass with zero errors
+uv run poe check          # Lint, type-check, and test
+uv run poe test           # All tests must pass
+uv run poe lint           # All linting must pass
+git status                 # Verify all changes are committed
+git branch                 # Verify you're on a feature branch
+```
+
 ### Testing Commands
 
 - **Basic tests**: `uv run poe test` (4 workers, ~16s)
@@ -164,7 +233,8 @@ parameter.
 
 ## Documentation Structure
 
-This is a monorepo with module-local documentation. Each package has its own `docs/` directory.
+This is a monorepo with module-local documentation. Each package has its own `docs/`
+directory.
 
 ### Key Documentation Files
 
@@ -175,50 +245,71 @@ This is a monorepo with module-local documentation. Each package has its own `do
 - **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Contribution guidelines
 - **[docs/adr/](docs/adr/)** - Shared/monorepo-level ADRs
 - **[docs/UV_USAGE.md](docs/UV_USAGE.md)** - uv package manager guide
-- **[docs/MONOREPO_SEMANTIC_RELEASE.md](docs/MONOREPO_SEMANTIC_RELEASE.md)** - Release guide
+- **[docs/MONOREPO_SEMANTIC_RELEASE.md](docs/MONOREPO_SEMANTIC_RELEASE.md)** - Release
+  guide
 
 **Client Package Documentation:**
 
-- **[katana_public_api_client/docs/guide.md](katana_public_api_client/docs/guide.md)** - Client user guide
-- **[katana_public_api_client/docs/testing.md](katana_public_api_client/docs/testing.md)** - Testing strategy
-- **[katana_public_api_client/docs/cookbook.md](katana_public_api_client/docs/cookbook.md)** - Usage recipes
-- **[katana_public_api_client/docs/adr/](katana_public_api_client/docs/adr/)** - Client ADRs
+- **[katana_public_api_client/docs/guide.md](katana_public_api_client/docs/guide.md)** -
+  Client user guide
+- **[katana_public_api_client/docs/testing.md](katana_public_api_client/docs/testing.md)**
+  \- Testing strategy
+- **[katana_public_api_client/docs/cookbook.md](katana_public_api_client/docs/cookbook.md)**
+  \- Usage recipes
+- **[katana_public_api_client/docs/adr/](katana_public_api_client/docs/adr/)** - Client
+  ADRs
 
 **MCP Server Documentation:**
 
-- **[katana_mcp_server/docs/README.md](katana_mcp_server/docs/README.md)** - MCP docs index
-- **[katana_mcp_server/docs/architecture.md](katana_mcp_server/docs/architecture.md)** - MCP architecture
-- **[katana_mcp_server/docs/development.md](katana_mcp_server/docs/development.md)** - Development guide
+- **[katana_mcp_server/docs/README.md](katana_mcp_server/docs/README.md)** - MCP docs
+  index
+- **[katana_mcp_server/docs/architecture.md](katana_mcp_server/docs/architecture.md)** -
+  MCP architecture
+- **[katana_mcp_server/docs/development.md](katana_mcp_server/docs/development.md)** -
+  Development guide
 - **[katana_mcp_server/docs/adr/](katana_mcp_server/docs/adr/)** - MCP ADRs
 
 ### Architecture Decision Records (ADRs)
 
 ADRs document key architectural decisions with their context and consequences.
 
-**Client ADRs** - [katana_public_api_client/docs/adr/](katana_public_api_client/docs/adr/)
+**Client ADRs** -
+[katana_public_api_client/docs/adr/](katana_public_api_client/docs/adr/)
 
 Core architectural decisions for the client:
 
-- **[ADR-001](katana_public_api_client/docs/adr/0001-transport-layer-resilience.md)**: Transport-Layer Resilience Pattern
-- **[ADR-002](katana_public_api_client/docs/adr/0002-openapi-code-generation.md)**: Generate Client from OpenAPI Specification
-- **[ADR-003](katana_public_api_client/docs/adr/0003-transparent-pagination.md)**: Transparent Automatic Pagination
-- **[ADR-004](katana_public_api_client/docs/adr/0004-defer-observability-to-httpx.md)**: Defer Observability to httpx
-- **[ADR-005](katana_public_api_client/docs/adr/0005-sync-async-apis.md)**: Provide Both Sync and Async APIs
-- **[ADR-006](katana_public_api_client/docs/adr/0006-response-unwrapping-utilities.md)**: Response Unwrapping Utilities
-- **[ADR-007](katana_public_api_client/docs/adr/0007-domain-helper-classes.md)**: Generate Domain Helper Classes
-- **[ADR-008](katana_public_api_client/docs/adr/0008-avoid-builder-pattern.md)**: Avoid Traditional Builder Pattern (PROPOSED)
-- **[ADR-011](katana_public_api_client/docs/adr/0011-pydantic-domain-models.md)**: Pydantic Domain Models
-- **[ADR-012](katana_public_api_client/docs/adr/0012-validation-tiers-for-agent-workflows.md)**: Validation Tiers
+- **[ADR-001](katana_public_api_client/docs/adr/0001-transport-layer-resilience.md)**:
+  Transport-Layer Resilience Pattern
+- **[ADR-002](katana_public_api_client/docs/adr/0002-openapi-code-generation.md)**:
+  Generate Client from OpenAPI Specification
+- **[ADR-003](katana_public_api_client/docs/adr/0003-transparent-pagination.md)**:
+  Transparent Automatic Pagination
+- **[ADR-004](katana_public_api_client/docs/adr/0004-defer-observability-to-httpx.md)**:
+  Defer Observability to httpx
+- **[ADR-005](katana_public_api_client/docs/adr/0005-sync-async-apis.md)**: Provide Both
+  Sync and Async APIs
+- **[ADR-006](katana_public_api_client/docs/adr/0006-response-unwrapping-utilities.md)**:
+  Response Unwrapping Utilities
+- **[ADR-007](katana_public_api_client/docs/adr/0007-domain-helper-classes.md)**:
+  Generate Domain Helper Classes
+- **[ADR-008](katana_public_api_client/docs/adr/0008-avoid-builder-pattern.md)**: Avoid
+  Traditional Builder Pattern (PROPOSED)
+- **[ADR-011](katana_public_api_client/docs/adr/0011-pydantic-domain-models.md)**:
+  Pydantic Domain Models
+- **[ADR-012](katana_public_api_client/docs/adr/0012-validation-tiers-for-agent-workflows.md)**:
+  Validation Tiers
 
 **MCP Server ADRs** - [katana_mcp_server/docs/adr/](katana_mcp_server/docs/adr/)
 
-- **[ADR-010](katana_mcp_server/docs/adr/0010-katana-mcp-server.md)**: Create Katana MCP Server
+- **[ADR-010](katana_mcp_server/docs/adr/0010-katana-mcp-server.md)**: Create Katana MCP
+  Server
 
 **Shared/Monorepo ADRs** - [docs/adr/](docs/adr/)
 
 - **[ADR-009](docs/adr/0009-migrate-from-poetry-to-uv.md)**: Migrate from Poetry to uv
 
-When making architectural decisions or understanding design choices, **consult the ADRs first** - they explain the "why" behind the codebase structure.
+When making architectural decisions or understanding design choices, **consult the ADRs
+first** - they explain the "why" behind the codebase structure.
 
 ## Development Environment
 
@@ -392,12 +483,13 @@ separate package in a monorepo using uv workspace.
   [katana_mcp_server/docs/implementation-plan.md](katana_mcp_server/docs/implementation-plan.md)
   \- Current plan with 10 tools, 6 resources, 3 prompts
 - **MCP Architecture Design**:
-  [katana_mcp_server/docs/architecture.md](katana_mcp_server/docs/architecture.md)
-  \- MCP best practices and patterns
-- **ADR-010**: [katana_mcp_server/docs/adr/0010-katana-mcp-server.md](katana_mcp_server/docs/adr/0010-katana-mcp-server.md)
+  [katana_mcp_server/docs/architecture.md](katana_mcp_server/docs/architecture.md) - MCP
+  best practices and patterns
+- **ADR-010**:
+  [katana_mcp_server/docs/adr/0010-katana-mcp-server.md](katana_mcp_server/docs/adr/0010-katana-mcp-server.md)
   \- Core architecture decisions
-- **MCP Documentation Index**: [katana_mcp_server/docs/README.md](katana_mcp_server/docs/README.md) -
-  All MCP docs
+- **MCP Documentation Index**:
+  [katana_mcp_server/docs/README.md](katana_mcp_server/docs/README.md) - All MCP docs
 - **GitHub Issues**:
   [mcp-server label](https://github.com/dougborg/katana-openapi-client/labels/mcp-server)
 
