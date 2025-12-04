@@ -1146,8 +1146,11 @@ async def fetch_all_orders_efficiently(
     """
     Fetch all orders with efficient pagination.
 
-    The KatanaClient automatically handles pagination, but you can
-    control the page size and limits for better performance.
+    Auto-pagination is ON by default for all GET requests. All pages are
+    collected automatically. Use `limit` to control page size and `max_pages`
+    on the client for safety limits.
+
+    To get a specific page instead, use an explicit `page` parameter.
 
     Args:
         page_size: Number of items per page (default 100, max 100)

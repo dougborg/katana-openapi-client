@@ -203,8 +203,22 @@ from katana_public_api_client import KatanaClient
 from katana_public_api_client.api.product import get_all_products
 
 async with KatanaClient() as client:
+    # Auto-pagination is ON by default - all pages collected automatically
     response = await get_all_products.asyncio_detailed(
-        client=client, limit=50  # Auto-pagination if needed
+        client=client, limit=50  # Sets page size (all pages still collected)
+    )
+
+    # Explicit page param disables auto-pagination (get specific page only)
+    response = await get_all_products.asyncio_detailed(
+        client=client, page=2, limit=50  # Get page 2 only
+    )
+
+    # Limit total items collected (via httpx client)
+    httpx_client = client.get_async_httpx_client()
+    response = await httpx_client.get(
+        "/products",
+        params={"limit": 50},           # Page size
+        extensions={"max_items": 200}   # Stop after 200 items
     )
 ```
 

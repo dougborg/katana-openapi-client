@@ -395,7 +395,18 @@ class PaginationTransport(AsyncHTTPTransport):
     Transport layer that adds automatic pagination for GET requests.
 
     This transport wraps another transport and automatically collects all pages
-    for requests that use 'page' or 'limit' parameters.
+    for GET requests by default.
+
+    Auto-pagination behavior:
+    - ON by default for all GET requests (will paginate if response has pagination info)
+    - Disabled when explicit `page` parameter is in URL (e.g., `?page=2`)
+    - Disabled when request has `extensions={"auto_pagination": False}`
+    - Only applies to GET requests (POST, PUT, etc. are never paginated)
+
+    Controlling pagination limits:
+    - `max_pages` (constructor): Maximum number of pages to fetch
+    - `max_items` (extension): Maximum total items to collect, e.g.,
+      `extensions={"max_items": 200}` stops after 200 items
     """
 
     def __init__(
@@ -426,14 +437,26 @@ class PaginationTransport(AsyncHTTPTransport):
         self.logger = logger or logging.getLogger(__name__)
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        """Handle request with automatic pagination for GET requests with page/limit params."""
-        # Check if this is a paginated request
-        should_paginate = (
-            request.method == "GET"
-            and hasattr(request, "url")
+        """Handle request with automatic pagination for GET requests.
+
+        Auto-pagination is ON by default for GET requests. It is disabled when:
+        - `extensions={"auto_pagination": False}` is set, OR
+        - An explicit `page` parameter is in the URL (e.g., `?page=2`)
+        """
+        # Check if auto-pagination is explicitly disabled via request extensions
+        auto_pagination = request.extensions.get("auto_pagination", True)
+
+        # Also disable if caller explicitly specified a page parameter
+        has_explicit_page = (
+            hasattr(request, "url")
             and request.url
             and request.url.params
-            and ("page" in request.url.params or "limit" in request.url.params)
+            and "page" in request.url.params
+        )
+
+        # Only paginate GET requests when auto_pagination is enabled and no explicit page
+        should_paginate = (
+            request.method == "GET" and auto_pagination and not has_explicit_page
         )
 
         if should_paginate:
@@ -451,23 +474,27 @@ class PaginationTransport(AsyncHTTPTransport):
         while combining data from multiple pages.
 
         Args:
-            request: The HTTP request to handle (must be a GET request with pagination parameters).
+            request: The HTTP request to handle (must be a GET request).
 
         Returns:
             A combined HTTP response containing data from all collected pages with
             pagination metadata in the response body.
 
         Note:
-            - Only GET requests with 'limit' parameter trigger auto-pagination
-            - Requests with explicit 'page' parameter are treated as single-page requests
+            - Auto-pagination is ON by default for all GET requests
+            - If response has no pagination info, returns the single response as-is
             - The response contains an 'auto_paginated' flag in the pagination metadata
             - Data from all pages is combined into a single 'data' array
+            - Use `extensions={"max_items": N}` to limit total items collected
         """
         all_data: list[Any] = []
         current_page = 1
         total_pages: int | None = None
         page_num = 1
         response: httpx.Response | None = None
+
+        # Get max_items limit from extensions (None = unlimited)
+        max_items: int | None = request.extensions.get("max_items")
 
         # Parse initial parameters
         url_params = dict(request.url.params)
@@ -477,6 +504,20 @@ class PaginationTransport(AsyncHTTPTransport):
         for page_num in range(1, self.max_pages + 1):
             # Update the page parameter
             url_params["page"] = str(page_num)
+
+            # Adjust limit if max_items is set and we're approaching the limit
+            if max_items is not None:
+                remaining = max_items - len(all_data)
+                if remaining <= 0:
+                    break
+                # Get original limit or use a reasonable default
+                original_limit = request.url.params.get("limit")
+                if original_limit:
+                    # Only reduce limit, never increase it
+                    url_params["limit"] = str(min(int(original_limit), remaining))
+                else:
+                    # No original limit, use remaining as limit
+                    url_params["limit"] = str(remaining)
 
             # Create a new request with updated parameters
             paginated_request = httpx.Request(
@@ -517,6 +558,15 @@ class PaginationTransport(AsyncHTTPTransport):
                     items = data.get("data", data if isinstance(data, list) else [])
                     all_data.extend(items)
 
+                    # Check max_items limit
+                    if max_items is not None and len(all_data) >= max_items:
+                        all_data = all_data[:max_items]  # Truncate to exact limit
+                        self.logger.info(
+                            "Reached max_items limit (%d), stopping pagination",
+                            max_items,
+                        )
+                        break
+
                     # Check if we're done
                     # Break if we've reached the last known page or got an empty page
                     if (total_pages and current_page >= total_pages) or len(items) == 0:
@@ -532,6 +582,9 @@ class PaginationTransport(AsyncHTTPTransport):
                 else:
                     # No pagination info found, treat as single page
                     all_data = data.get("data", data if isinstance(data, list) else [])
+                    # Apply max_items limit even for single page
+                    if max_items is not None and len(all_data) > max_items:
+                        all_data = all_data[:max_items]
                     break
 
             except (json.JSONDecodeError, KeyError) as e:
@@ -719,26 +772,41 @@ class KatanaClient(AuthenticatedClient):
     Features:
     - Automatic retries on network errors and server errors (5xx)
     - Automatic rate limit handling with Retry-After header support
-    - Smart auto-pagination that detects and handles paginated responses automatically
+    - Auto-pagination ON by default for all GET requests (collects all pages automatically)
     - Rich logging and observability
     - Minimal configuration - just works out of the box
 
+    Auto-pagination behavior:
+    - ON by default for all GET requests
+    - Automatically detects paginated responses and collects all pages
+    - Disabled when explicit `page` parameter is in URL (e.g., `?page=2`)
+    - Disabled per-request via extensions: `extensions={"auto_pagination": False}`
+    - Control max pages via `max_pages` constructor parameter
+    - Limit total items via extensions: `extensions={"max_items": 200}`
+
     Usage:
-        # Auto-pagination happens automatically - just call the API
         async with KatanaClient() as client:
             from katana_public_api_client.api.product import get_all_products
 
-            # This automatically collects all pages if pagination is detected
+            # Auto-pagination is ON by default - all pages collected automatically
             response = await get_all_products.asyncio_detailed(
                 client=client,  # Pass client directly - no .client needed!
-                limit=50  # All pages collected automatically
+                limit=50  # Page size (all pages still collected)
             )
 
-            # Get specific page only (add page=X to disable auto-pagination)
+            # Get a specific page only (explicit page param disables auto-pagination)
             response = await get_all_products.asyncio_detailed(
                 client=client,
-                page=1,      # Get specific page
-                limit=100    # Set page size
+                page=2,      # Get page 2 only
+                limit=50
+            )
+
+            # Limit total items collected (via httpx client)
+            httpx_client = client.get_async_httpx_client()
+            response = await httpx_client.get(
+                "/products",
+                params={"limit": 50},           # Page size
+                extensions={"max_items": 200}   # Stop after 200 items
             )
 
             # Control max pages globally
