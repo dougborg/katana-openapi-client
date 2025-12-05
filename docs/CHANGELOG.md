@@ -2,6 +2,42 @@
 
 <!-- version list -->
 
+## v0.37.0 (2025-12-05)
+
+### Bug Fixes
+
+- **client**: Address code review feedback on auto-pagination
+  ([#191](https://github.com/dougborg/katana-openapi-client/pull/191),
+  [`8dc3cfc`](https://github.com/dougborg/katana-openapi-client/commit/8dc3cfcb1e9751b2c204a709846bee9dd1cc9eea))
+
+- **mcp**: Consolidate test fixtures to resolve conftest plugin conflict
+  ([#191](https://github.com/dougborg/katana-openapi-client/pull/191),
+  [`8dc3cfc`](https://github.com/dougborg/katana-openapi-client/commit/8dc3cfcb1e9751b2c204a709846bee9dd1cc9eea))
+
+### Chores
+
+- **actions)(deps**: Bump actions/checkout in the github-actions group
+  ([#190](https://github.com/dougborg/katana-openapi-client/pull/190),
+  [`76ad170`](https://github.com/dougborg/katana-openapi-client/commit/76ad170e6855db06ac464e69729fb4a34267d581))
+
+- **release**: Mcp v0.19.0
+  ([`33b13f6`](https://github.com/dougborg/katana-openapi-client/commit/33b13f640bcdfbad0cc1395ef114158e6d79dec2))
+
+### Documentation
+
+- Add strict quality standards - no ignoring pre-existing issues
+  ([#188](https://github.com/dougborg/katana-openapi-client/pull/188),
+  [`c7424a2`](https://github.com/dougborg/katana-openapi-client/commit/c7424a290477dffff0f9a1f18c046764c3654b91))
+
+### Features
+
+- **client**: Improve auto-pagination with explicit controls
+  ([#191](https://github.com/dougborg/katana-openapi-client/pull/191),
+  [`8dc3cfc`](https://github.com/dougborg/katana-openapi-client/commit/8dc3cfcb1e9751b2c204a709846bee9dd1cc9eea))
+
+- **mcp**: Update client dependency to v0.36.0
+  ([`e31ddb5`](https://github.com/dougborg/katana-openapi-client/commit/e31ddb52bacb9c9a0c62eaad19239c4f241d4d15))
+
 ## v0.36.0 (2025-11-22)
 
 ### Bug Fixes
