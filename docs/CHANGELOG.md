@@ -2,6 +2,49 @@
 
 <!-- version list -->
 
+## v0.38.0 (2025-12-05)
+
+### Bug Fixes
+
+- **client**: Address code review feedback on auto-pagination
+  ([#193](https://github.com/dougborg/katana-openapi-client/pull/193),
+  [`b85351b`](https://github.com/dougborg/katana-openapi-client/commit/b85351b7ee449b8ca0971c07bd6e160e27d4ae94))
+
+- **client**: Enable auto-pagination by default in generated code
+  ([#193](https://github.com/dougborg/katana-openapi-client/pull/193),
+  [`b85351b`](https://github.com/dougborg/katana-openapi-client/commit/b85351b7ee449b8ca0971c07bd6e160e27d4ae94))
+
+- **client**: Improve auto-pagination defaults and explicit controls
+  ([#193](https://github.com/dougborg/katana-openapi-client/pull/193),
+  [`b85351b`](https://github.com/dougborg/katana-openapi-client/commit/b85351b7ee449b8ca0971c07bd6e160e27d4ae94))
+
+- **client**: Make regex pattern more robust for page defaults
+  ([#193](https://github.com/dougborg/katana-openapi-client/pull/193),
+  [`b85351b`](https://github.com/dougborg/katana-openapi-client/commit/b85351b7ee449b8ca0971c07bd6e160e27d4ae94))
+
+- **mcp**: Consolidate test fixtures to resolve conftest plugin conflict
+  ([#193](https://github.com/dougborg/katana-openapi-client/pull/193),
+  [`b85351b`](https://github.com/dougborg/katana-openapi-client/commit/b85351b7ee449b8ca0971c07bd6e160e27d4ae94))
+
+### Chores
+
+- Add .cursor/ to .gitignore
+  ([#193](https://github.com/dougborg/katana-openapi-client/pull/193),
+  [`b85351b`](https://github.com/dougborg/katana-openapi-client/commit/b85351b7ee449b8ca0971c07bd6e160e27d4ae94))
+
+- **release**: Mcp v0.20.0
+  ([`ce3a2a6`](https://github.com/dougborg/katana-openapi-client/commit/ce3a2a6cf5ee911b9247d30ab52a6d9453864446))
+
+### Features
+
+- **client**: Improve auto-pagination with explicit controls
+  ([#193](https://github.com/dougborg/katana-openapi-client/pull/193),
+  [`b85351b`](https://github.com/dougborg/katana-openapi-client/commit/b85351b7ee449b8ca0971c07bd6e160e27d4ae94))
+
+- **mcp**: Update client dependency to v0.37.0
+  ([#192](https://github.com/dougborg/katana-openapi-client/pull/192),
+  [`c8c62c4`](https://github.com/dougborg/katana-openapi-client/commit/c8c62c4c35765e32aec8d30e10f45ed14954cc3f))
+
 ## v0.37.0 (2025-12-05)
 
 ### Bug Fixes
