@@ -109,31 +109,71 @@ async with KatanaClient() as client:
 
 ## 🔄 Smart Pagination
 
-All pagination is now handled automatically and transparently:
+Auto-pagination is **ON by default** for all GET requests. All pages are automatically
+collected into a single response.
 
-### Automatic Pagination Usage
+### Automatic Pagination (Default)
 
 ```python
 async with KatanaClient() as client:
     # Get ALL products across all pages automatically
     all_products = await get_all_products.asyncio_detailed(
         client=client,
-        is_sellable=True  # API filter parameters
+        is_sellable=True,  # API filter parameters
+        limit=250  # Page size (all pages still collected)
     )
     print(f"Total products: {len(all_products.parsed.data)}")
 ```
 
-### Automatic Pagination Features
+### Single Page Request (Explicit Page)
+
+To get a specific page instead of all pages, add an explicit `page` parameter. **Note:**
+ANY explicit page value (including `page=1`) disables auto-pagination:
 
 ```python
 async with KatanaClient() as client:
-    # Built-in safety limits and automatic pagination
-    products = await get_all_products.asyncio_detailed(
+    # Get ONLY page 2 (auto-pagination disabled when page is explicit)
+    page2_products = await get_all_products.asyncio_detailed(
         client=client,
-        limit=250  # Optimize page size - automatically paginated
+        page=2,       # Explicit page disables auto-pagination
+        limit=50
     )
-    # All pages are automatically collected into a single response
+    # Returns just the 50 items on page 2
+
+    # page=1 ALSO disables auto-pagination (returns only first page)
+    first_page = await get_all_products.asyncio_detailed(
+        client=client,
+        page=1,       # Get ONLY page 1, not all pages
+        limit=50
+    )
 ```
+
+### Limiting Total Items
+
+To limit the total number of items collected (not just page size), use the `max_items`
+extension via the httpx client:
+
+```python
+async with KatanaClient() as client:
+    httpx_client = client.get_async_httpx_client()
+    response = await httpx_client.get(
+        "/products",
+        params={"limit": 50},           # 50 items per page
+        extensions={"max_items": 200}   # Stop after 200 items total
+    )
+```
+
+The transport intelligently adjusts the `limit` on the final request to fetch only
+what's needed, avoiding over-fetching.
+
+### Pagination Behavior Summary
+
+| Parameter       | Scope     | Effect                                            |
+| --------------- | --------- | ------------------------------------------------- |
+| `limit=50`      | URL param | Page size (50 items per request)                  |
+| `page=2`        | URL param | Get specific page only (disables auto-pagination) |
+| `max_pages=5`   | Client    | Max pages to fetch                                |
+| `max_items=200` | Extension | Max total items to collect                        |
 
 ## ⚙️ Configuration
 
@@ -457,16 +497,23 @@ async with KatanaClient(timeout=1.0) as client:
     pass
 ```
 
-### 3. Use Automatic Pagination for Large Datasets
+### 3. Let Auto-Pagination Handle Large Datasets
 
 ```python
-# ✅ Good: Automatic pagination for large datasets
+# ✅ Good: Auto-pagination is ON by default with safety limits
 all_products = await get_all_products.asyncio_detailed(
     client=client,
-    # Automatically handles all pages with built-in safety limits
+    limit=250  # Sets page size; all pages collected automatically
 )
 
-# ❌ Bad: Manual pagination without safety limits
+# ✅ Good: Use explicit page when you need just one page
+page2 = await get_all_products.asyncio_detailed(
+    client=client,
+    page=2,    # Explicit page = single page only
+    limit=100
+)
+
+# ❌ Bad: Manual pagination loop without safety limits
 page = 1
 while True:  # Could run forever!
     response = await get_all_products.asyncio_detailed(

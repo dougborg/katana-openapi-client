@@ -66,6 +66,8 @@ build-backend = "hatchling.build"
 packages = ["src/katana_mcp"]
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "strict"
 markers = [
     "unit: Unit tests with mocks",
     "integration: Integration tests requiring API key",

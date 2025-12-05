@@ -5,11 +5,13 @@ This directory contains examples for the packages in this monorepo.
 ## Structure
 
 - **[client/](client/)** - Examples for `katana-openapi-client` package
-- **[mcp-server/](mcp-server/)** - Examples for `katana-mcp-server` package (coming soon)
+- **[mcp-server/](mcp-server/)** - Examples for `katana-mcp-server` package (coming
+  soon)
 
 ## Katana OpenAPI Client Examples
 
-The `client/` directory contains various examples demonstrating different features and usage patterns of the KatanaClient.
+The `client/` directory contains various examples demonstrating different features and
+usage patterns of the KatanaClient.
 
 ## Prerequisites
 
@@ -54,8 +56,8 @@ uv run python examples/client/basic_usage.py
 
 **Key Features Shown:**
 
-- Auto-pagination happens automatically for GET requests with `limit` parameter
-- Disable auto-pagination by adding explicit `page` parameter
+- Auto-pagination is ON by default for all GET requests
+- Disable auto-pagination by adding explicit `page` parameter (e.g., `page=2`)
 - Configure maximum pages to collect with `max_pages`
 - All requests get automatic retries and error handling
 
@@ -181,7 +183,8 @@ async with KatanaClient() as client:
 
 ## Additional Resources
 
-- [**Cookbook**](../katana_public_api_client/docs/cookbook.md) - Practical recipes for common integration scenarios
+- [**Cookbook**](../katana_public_api_client/docs/cookbook.md) - Practical recipes for
+  common integration scenarios
 - [Client Guide](../katana_public_api_client/docs/guide.md) - Main documentation
 - [Testing Guide](../katana_public_api_client/docs/testing.md) - Testing documentation
 - [uv Package Manager](../docs/UV_USAGE.md) - Package manager guide
@@ -191,7 +194,7 @@ async with KatanaClient() as client:
 When adding new examples:
 
 1. Add the file to the appropriate subdirectory (`client/` or `mcp-server/`)
-2. Include a comprehensive docstring explaining the example
-3. Add proper error handling
-4. Update this README with the new example
-5. Test the example works with a real API key
+1. Include a comprehensive docstring explaining the example
+1. Add proper error handling
+1. Update this README with the new example
+1. Test the example works with a real API key

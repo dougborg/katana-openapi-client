@@ -5,7 +5,9 @@ def test_package_import():
     """Test that the main package can be imported."""
     import katana_mcp
 
-    assert katana_mcp.__version__ == "0.3.0"
+    # Version is dynamically updated by semantic-release, just check format
+    assert katana_mcp.__version__  # Not empty
+    assert "." in katana_mcp.__version__  # Has version separators
 
 
 def test_submodule_imports():

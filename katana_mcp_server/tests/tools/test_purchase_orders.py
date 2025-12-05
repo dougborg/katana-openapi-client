@@ -24,8 +24,7 @@ from katana_public_api_client.models import (
     PurchaseOrderReceiveRow,
     RegularPurchaseOrder,
 )
-
-from .conftest import create_mock_context
+from tests.conftest import create_mock_context
 
 # ============================================================================
 # Test Helpers

@@ -17,7 +17,7 @@ from katana_mcp.tools.foundation.items import (
     _search_items_impl,
 )
 
-from .conftest import create_mock_context
+from tests.conftest import create_mock_context
 
 # ============================================================================
 # Unit Tests (with mocks)

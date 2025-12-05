@@ -467,10 +467,11 @@ class TestPaginationTransport:
         mock_response.status_code = 200
         mock_wrapped_transport.handle_async_request.return_value = mock_response
 
-        request = MagicMock(spec=httpx.Request)
-        request.method = "POST"
-        request.url = MagicMock()
-        request.url.params = {"limit": "50"}
+        # Create a real httpx.Request for POST
+        request = httpx.Request(
+            method="POST",
+            url="https://api.example.com/products",
+        )
 
         response = await transport.handle_async_request(request)
 
@@ -478,18 +479,20 @@ class TestPaginationTransport:
         mock_wrapped_transport.handle_async_request.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_get_without_pagination_params_passes_through(
+    async def test_get_with_auto_pagination_disabled_passes_through(
         self, transport, mock_wrapped_transport
     ):
-        """Test that GET requests without page/limit params pass through."""
+        """Test that GET requests with auto_pagination=False pass through."""
         mock_response = MagicMock(spec=httpx.Response)
         mock_response.status_code = 200
         mock_wrapped_transport.handle_async_request.return_value = mock_response
 
-        request = MagicMock(spec=httpx.Request)
-        request.method = "GET"
-        request.url = MagicMock()
-        request.url.params = {}
+        # Create a GET request with auto_pagination disabled
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+            extensions={"auto_pagination": False},
+        )
 
         response = await transport.handle_async_request(request)
 
@@ -535,10 +538,10 @@ class TestPaginationTransport:
             page3_response,
         ]
 
-        # Create a real httpx.Request with pagination parameters
+        # Create a GET request - auto-pagination is ON by default
         request = httpx.Request(
             method="GET",
-            url="https://api.example.com/products?limit=50",
+            url="https://api.example.com/products",
         )
 
         response = await transport.handle_async_request(request)
