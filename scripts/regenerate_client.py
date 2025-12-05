@@ -591,7 +591,55 @@ def fix_specific_generated_issues(workspace_path: Path) -> bool:
     # Fix ty type errors in generated code
     fix_ty_type_errors(workspace_path)
 
+    # Fix pagination defaults for auto-pagination
+    fix_pagination_defaults(workspace_path)
+
     return True
+
+
+def fix_pagination_defaults(workspace_path: Path) -> None:
+    """Fix pagination defaults to enable auto-pagination by default.
+
+    The openapi-python-client generator creates endpoints with `page: Unset | int = 1`
+    as the default. This causes the page parameter to always be included in requests,
+    which disables KatanaClient's automatic pagination feature.
+
+    This function changes the default to `page: Unset | int = UNSET` so that:
+    - By default, no page param is sent → auto-pagination enabled
+    - Explicitly passing page=N sends that page → auto-pagination disabled
+    """
+    print("🔧 Fixing pagination defaults for auto-pagination support...")
+
+    client_path = workspace_path / "katana_public_api_client"
+    api_path = client_path / "api"
+
+    if not api_path.exists():
+        print("   ⚠️  API directory not found, skipping")
+        return
+
+    fixed_count = 0
+    for py_file in api_path.rglob("*.py"):
+        try:
+            content = py_file.read_text(encoding="utf-8")
+            original = content
+
+            # Change page default from 1 to UNSET
+            # Pattern matches: page: Unset | int = 1, or page: Unset | int = 1)
+            # Using [,)] to handle both trailing comma and closing paren cases
+            content = re.sub(
+                r"(page:\s*Unset\s*\|\s*int\s*=\s*)1(\s*[,)])",
+                r"\1UNSET\2",
+                content,
+            )
+
+            if content != original:
+                py_file.write_text(content, encoding="utf-8")
+                fixed_count += 1
+
+        except Exception as e:
+            print(f"   ⚠️  Could not fix {py_file}: {e}")
+
+    print(f"   ✓ Fixed pagination defaults in {fixed_count} API files")
 
 
 def fix_ty_type_errors(workspace_path: Path) -> None:

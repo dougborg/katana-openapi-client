@@ -15,7 +15,7 @@ def _get_kwargs(
     location_id: Unset | int = UNSET,
     include_deleted: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
     bin_name: Unset | str = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
@@ -87,7 +87,7 @@ def sync_detailed(
     location_id: Unset | int = UNSET,
     include_deleted: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
     bin_name: Unset | str = UNSET,
 ) -> Response[ErrorResponse | StorageBinListResponse]:
     """List all storage bins
@@ -133,7 +133,7 @@ def sync(
     location_id: Unset | int = UNSET,
     include_deleted: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
     bin_name: Unset | str = UNSET,
 ) -> ErrorResponse | StorageBinListResponse | None:
     """List all storage bins
@@ -174,7 +174,7 @@ async def asyncio_detailed(
     location_id: Unset | int = UNSET,
     include_deleted: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
     bin_name: Unset | str = UNSET,
 ) -> Response[ErrorResponse | StorageBinListResponse]:
     """List all storage bins
@@ -218,7 +218,7 @@ async def asyncio(
     location_id: Unset | int = UNSET,
     include_deleted: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
     bin_name: Unset | str = UNSET,
 ) -> ErrorResponse | StorageBinListResponse | None:
     """List all storage bins
