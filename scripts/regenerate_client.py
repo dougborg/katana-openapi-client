@@ -624,9 +624,10 @@ def fix_pagination_defaults(workspace_path: Path) -> None:
             original = content
 
             # Change page default from 1 to UNSET
-            # Pattern matches: page: Unset | int = 1,
+            # Pattern matches: page: Unset | int = 1, or page: Unset | int = 1)
+            # Using [,)] to handle both trailing comma and closing paren cases
             content = re.sub(
-                r"(page:\s*Unset\s*\|\s*int\s*=\s*)1(\s*,)",
+                r"(page:\s*Unset\s*\|\s*int\s*=\s*)1(\s*[,)])",
                 r"\1UNSET\2",
                 content,
             )
