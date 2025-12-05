@@ -25,7 +25,7 @@
 // Re-export the main client
 export { KatanaClient, type KatanaClientOptions } from './client.js';
 
-// Re-export error types
+// Re-export error types and utilities
 export {
   KatanaError,
   AuthenticationError,
@@ -33,6 +33,8 @@ export {
   ValidationError,
   ServerError,
   NetworkError,
+  parseError,
+  type ValidationErrorDetail,
 } from './errors.js';
 
 // Re-export transport utilities for advanced usage
@@ -51,6 +53,9 @@ export {
 
 // Re-export generated SDK functions for direct API access
 export * from './generated/sdk.gen.js';
+
+// Re-export the Client type for advanced usage
+export type { Client } from './generated/client/types.gen.js';
 
 // Re-export all generated types for convenience
 export * from './types.js';

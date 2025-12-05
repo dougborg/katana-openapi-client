@@ -215,9 +215,17 @@ async function performPagination(
 
   logger.info(`Auto-paginating request: ${baseUrl}`);
 
-  // Parse the URL to manipulate parameters
-  const url = new URL(baseUrl, 'http://dummy');
-  const isRelativeUrl = !baseUrl.startsWith('http');
+  // Determine if URL is absolute by trying to parse it
+  let isRelativeUrl: boolean;
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+    isRelativeUrl = false;
+  } catch {
+    // Failed to parse as absolute URL - treat as relative
+    url = new URL(baseUrl, 'http://placeholder.local');
+    isRelativeUrl = true;
+  }
 
   for (pageNum = 1; pageNum <= config.maxPages; pageNum++) {
     // Update page parameter

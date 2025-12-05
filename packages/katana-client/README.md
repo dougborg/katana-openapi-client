@@ -125,29 +125,45 @@ const client = await KatanaClient.create({
 
 ## Error Handling
 
+The client returns standard `Response` objects. Use `parseError` for typed error
+handling:
+
 ```typescript
 import {
   KatanaClient,
-  KatanaError,
+  parseError,
   AuthenticationError,
   RateLimitError,
   ValidationError,
-  ServerError,
-  NetworkError,
 } from 'katana-openapi-client';
 
-try {
-  const response = await client.post('/products', { name: 'Widget' });
-  if (!response.ok) {
-    const error = await response.json();
-    console.error('API error:', error);
-  }
-} catch (error) {
-  if (error instanceof NetworkError) {
-    console.error('Network error - check your connection');
+const response = await client.post('/products', { name: 'Widget' });
+
+if (!response.ok) {
+  const body = await response.json();
+  const error = parseError(response, body);
+
+  if (error instanceof AuthenticationError) {
+    console.error('Invalid API key');
+  } else if (error instanceof RateLimitError) {
+    console.error(`Rate limited. Retry after ${error.retryAfter}s`);
+  } else if (error instanceof ValidationError) {
+    console.error('Validation errors:', error.details);
+    // [{ field: 'name', message: 'Required', code: 'missing' }]
+  } else {
+    console.error(`Error ${error.statusCode}: ${error.message}`);
   }
 }
 ```
+
+Available error classes:
+
+- `AuthenticationError` (401)
+- `RateLimitError` (429) - includes `retryAfter` seconds
+- `ValidationError` (422) - includes `details` array
+- `ServerError` (5xx)
+- `NetworkError` - connection failures
+- `KatanaError` - base class for all errors
 
 ## HTTP Methods
 
@@ -179,14 +195,30 @@ const deleted = await client.delete('/products/123');
 
 ## Advanced: Generated SDK
 
-The package also exports the generated SDK functions for direct API access:
+The package exports generated SDK functions with full TypeScript types. You can use them
+with the resilient client:
 
 ```typescript
-import { getProducts, createProduct } from 'katana-openapi-client';
+import { KatanaClient, getAllProducts, createProduct } from 'katana-openapi-client';
 
-// Note: These use the default client configuration
-// For custom configuration, use KatanaClient instead
+// Create the resilient client
+const katana = await KatanaClient.create();
+
+// Use SDK functions with the resilient client
+const { data, error } = await getAllProducts({ client: katana.sdk });
+if (data) {
+  console.log(`Found ${data.length} products`);
+}
+
+// Or use the config shorthand
+const result = await getAllProducts(katana.getConfig());
 ```
+
+The SDK functions provide:
+
+- Full TypeScript types for all request/response bodies
+- Auto-completion for query parameters
+- Type-safe error handling
 
 ## Environment Variables
 

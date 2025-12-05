@@ -11,6 +11,8 @@ import {
   type PaginationConfig,
   DEFAULT_PAGINATION_CONFIG,
 } from './transport/pagination.js';
+import { createClient, createConfig } from './generated/client/index.js';
+import type { Client } from './generated/client/types.gen.js';
 
 /**
  * Configuration options for KatanaClient
@@ -163,8 +165,9 @@ function createNoOpLogger() {
 export class KatanaClient {
   private readonly apiKey: string;
   private readonly baseUrl: string;
-  private readonly resilientFetch: typeof fetch;
+  private readonly authenticatedFetch: typeof fetch;
   private readonly logger: NonNullable<KatanaClientOptions['logger']>;
+  private readonly _sdkClient: Client;
 
   private constructor(
     apiKey: string,
@@ -176,7 +179,7 @@ export class KatanaClient {
 
     const baseFetch = options.fetch ?? globalThis.fetch;
 
-    // Create the fetch chain: base -> resilient (retry) -> paginated
+    // Create the fetch chain: base -> resilient (retry) -> paginated -> authenticated
     const retryConfig: RetryConfig = {
       ...DEFAULT_RETRY_CONFIG,
       ...options.retry,
@@ -195,11 +198,45 @@ export class KatanaClient {
     });
 
     // Then wrap with pagination (uses the retry-enabled fetch)
-    this.resilientFetch = createPaginatedFetch(fetchWithRetry, {
+    const paginatedFetch = createPaginatedFetch(fetchWithRetry, {
       pagination: paginationConfig,
       autoPagination: options.autoPagination !== false,
       logger: this.logger,
     });
+
+    // Finally wrap with authentication - this is the SINGLE source of auth
+    this.authenticatedFetch = this.createAuthenticatedFetch(paginatedFetch);
+
+    // Create SDK client with the same authenticated fetch
+    this._sdkClient = createClient(
+      createConfig({
+        baseUrl: this.baseUrl,
+        fetch: this.authenticatedFetch,
+      })
+    );
+  }
+
+  /**
+   * Create a fetch function that automatically adds authentication headers.
+   * This is the SINGLE location where auth headers are added.
+   */
+  private createAuthenticatedFetch(baseFetch: typeof fetch): typeof fetch {
+    const apiKey = this.apiKey;
+
+    return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const headers = new Headers(init?.headers);
+      headers.set('Authorization', `Bearer ${apiKey}`);
+
+      // Add Content-Type for requests with body if not already set
+      if (!headers.has('Content-Type') && init?.body) {
+        headers.set('Content-Type', 'application/json');
+      }
+
+      return baseFetch(input, {
+        ...init,
+        headers,
+      });
+    };
   }
 
   /**
@@ -274,17 +311,8 @@ export class KatanaClient {
     // Build full URL
     const url = path.startsWith('http') ? path : `${this.baseUrl}${path}`;
 
-    // Merge headers with authentication
-    const headers = new Headers(init?.headers);
-    headers.set('Authorization', `Bearer ${this.apiKey}`);
-    if (!headers.has('Content-Type') && init?.body) {
-      headers.set('Content-Type', 'application/json');
-    }
-
-    return this.resilientFetch(url, {
-      ...init,
-      headers,
-    });
+    // Use the single authenticated fetch (includes retry + pagination + auth)
+    return this.authenticatedFetch(url, init);
   }
 
   /**
@@ -363,5 +391,43 @@ export class KatanaClient {
    */
   getBaseUrl(): string {
     return this.baseUrl;
+  }
+
+  /**
+   * Get the underlying @hey-api/client-fetch Client instance
+   *
+   * This client is pre-configured with:
+   * - Automatic retries with exponential backoff
+   * - Rate limiting awareness (429 handling)
+   * - Auto-pagination for GET requests
+   * - Authentication via Bearer token
+   *
+   * Use this to call generated SDK functions with the resilient client:
+   *
+   * @example
+   * ```typescript
+   * import { getAllProducts } from 'katana-openapi-client';
+   *
+   * const client = await KatanaClient.create();
+   * const { data, error } = await getAllProducts({ client: client.sdk });
+   * ```
+   */
+  get sdk(): Client {
+    return this._sdkClient;
+  }
+
+  /**
+   * Get a configuration object for use with generated SDK functions
+   *
+   * @example
+   * ```typescript
+   * import { getAllProducts } from 'katana-openapi-client';
+   *
+   * const client = await KatanaClient.create();
+   * const { data, error } = await getAllProducts(client.getConfig());
+   * ```
+   */
+  getConfig(): { client: Client } {
+    return { client: this._sdkClient };
   }
 }
