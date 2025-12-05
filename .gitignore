@@ -85,6 +85,7 @@ logs/
 # IDE and Editor files
 .vscode/
 .idea/
+.cursor/.mcp.json
 *.swp
 *.swo
 *~
