@@ -211,7 +211,7 @@ async function performPagination(
   const allData: unknown[] = [];
   let totalPages: number | undefined;
   let lastResponse: Response | undefined;
-  let pageNum = 1;
+  let pageNum: number;
 
   logger.info(`Auto-paginating request: ${baseUrl}`);
 

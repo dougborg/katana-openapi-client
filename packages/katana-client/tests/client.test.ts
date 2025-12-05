@@ -5,7 +5,7 @@
  * retry and pagination transport layers.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { KatanaClient } from '../src/client.js';
 
 describe('KatanaClient', () => {

@@ -95,7 +95,7 @@ describe('SDK Integration', () => {
         autoPagination: true, // enabled
       });
 
-      const result = await getAllProducts({ client: katana.sdk });
+      await getAllProducts({ client: katana.sdk });
 
       // Should have made 2 requests (one for each page)
       expect(mockFetch).toHaveBeenCalledTimes(2);

@@ -4,12 +4,11 @@
  * These tests mirror the Python client's test_transport_auto_pagination.py
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   createPaginatedFetch,
   extractPaginationInfo,
   hasExplicitPageParam,
-  DEFAULT_PAGINATION_CONFIG,
 } from '../../src/transport/pagination.js';
 
 describe('hasExplicitPageParam', () => {
