@@ -14,8 +14,7 @@ from katana_public_api_client.models import (
     ManufacturingOrder,
     ManufacturingOrderStatus,
 )
-
-from .conftest import create_mock_context
+from tests.conftest import create_mock_context
 
 # ============================================================================
 # Unit Tests (with mocks)

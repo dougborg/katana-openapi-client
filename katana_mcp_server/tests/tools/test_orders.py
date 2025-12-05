@@ -15,8 +15,7 @@ from katana_public_api_client.models import (
     SalesOrderFulfillment,
 )
 from katana_public_api_client.models.sales_order_status import SalesOrderStatus
-
-from .conftest import create_mock_context
+from tests.conftest import create_mock_context
 
 # ============================================================================
 # Manufacturing Order Tests

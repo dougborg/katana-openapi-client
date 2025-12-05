@@ -14,8 +14,8 @@ from katana_mcp.tools.foundation.inventory import (
     list_low_stock_items,
 )
 
-# Import the fixture
-pytest_plugins = ["tests.tools.conftest"]
+# The mock_context fixture is now in tests/conftest.py
+# It's automatically available to all tests in this package
 
 
 class TestMCPParameterPassing:
