@@ -669,10 +669,22 @@ class PaginationTransport(AsyncHTTPTransport):
                         result[field] = int(value)
                     except ValueError:
                         self.logger.warning(
-                            "Invalid pagination value for %s: %r", field, value
+                            "Invalid pagination value for %s: %r, removing field",
+                            field,
+                            value,
                         )
+                        # Remove invalid field so fallback values are used
+                        del result[field]
                 # Already an int or float - ensure it's int
                 elif isinstance(value, float):
+                    # Warn if float has a fractional part (unexpected for pagination)
+                    if value != int(value):
+                        self.logger.warning(
+                            "Pagination value %s has fractional part: %r, truncating to %d",
+                            field,
+                            value,
+                            int(value),
+                        )
                     result[field] = int(value)
                 # If it's already an int, leave it as is
 
