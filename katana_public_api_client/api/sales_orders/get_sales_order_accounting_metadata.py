@@ -15,7 +15,7 @@ from ...models.sales_order_accounting_metadata_list_response import (
 def _get_kwargs(
     *,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
     sales_order_id: Unset | int = UNSET,
     fulfillment_id: Unset | float = UNSET,
 ) -> dict[str, Any]:
@@ -86,7 +86,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
     sales_order_id: Unset | int = UNSET,
     fulfillment_id: Unset | float = UNSET,
 ) -> Response[ErrorResponse | SalesOrderAccountingMetadataListResponse]:
@@ -127,7 +127,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
     sales_order_id: Unset | int = UNSET,
     fulfillment_id: Unset | float = UNSET,
 ) -> ErrorResponse | SalesOrderAccountingMetadataListResponse | None:
@@ -163,7 +163,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
     sales_order_id: Unset | int = UNSET,
     fulfillment_id: Unset | float = UNSET,
 ) -> Response[ErrorResponse | SalesOrderAccountingMetadataListResponse]:
@@ -202,7 +202,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
     sales_order_id: Unset | int = UNSET,
     fulfillment_id: Unset | float = UNSET,
 ) -> ErrorResponse | SalesOrderAccountingMetadataListResponse | None:

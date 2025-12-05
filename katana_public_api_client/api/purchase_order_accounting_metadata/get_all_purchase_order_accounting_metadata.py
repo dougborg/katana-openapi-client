@@ -17,7 +17,7 @@ def _get_kwargs(
     purchase_order_id: Unset | float = UNSET,
     received_items_group_id: Unset | float = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -88,7 +88,7 @@ def sync_detailed(
     purchase_order_id: Unset | float = UNSET,
     received_items_group_id: Unset | float = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> Response[ErrorResponse | PurchaseOrderAccountingMetadataListResponse]:
     """List all purchase order accounting metadata
 
@@ -130,7 +130,7 @@ def sync(
     purchase_order_id: Unset | float = UNSET,
     received_items_group_id: Unset | float = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> ErrorResponse | PurchaseOrderAccountingMetadataListResponse | None:
     """List all purchase order accounting metadata
 
@@ -167,7 +167,7 @@ async def asyncio_detailed(
     purchase_order_id: Unset | float = UNSET,
     received_items_group_id: Unset | float = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> Response[ErrorResponse | PurchaseOrderAccountingMetadataListResponse]:
     """List all purchase order accounting metadata
 
@@ -207,7 +207,7 @@ async def asyncio(
     purchase_order_id: Unset | float = UNSET,
     received_items_group_id: Unset | float = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> ErrorResponse | PurchaseOrderAccountingMetadataListResponse | None:
     """List all purchase order accounting metadata
 

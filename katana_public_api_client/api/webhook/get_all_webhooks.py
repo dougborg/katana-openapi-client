@@ -16,7 +16,7 @@ def _get_kwargs(
     url_query: Unset | str = UNSET,
     enabled: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -92,7 +92,7 @@ def sync_detailed(
     url_query: Unset | str = UNSET,
     enabled: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> Response[ErrorResponse | WebhookListResponse]:
     """List all webhooks
 
@@ -138,7 +138,7 @@ def sync(
     url_query: Unset | str = UNSET,
     enabled: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> ErrorResponse | WebhookListResponse | None:
     """List all webhooks
 
@@ -179,7 +179,7 @@ async def asyncio_detailed(
     url_query: Unset | str = UNSET,
     enabled: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> Response[ErrorResponse | WebhookListResponse]:
     """List all webhooks
 
@@ -223,7 +223,7 @@ async def asyncio(
     url_query: Unset | str = UNSET,
     enabled: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> ErrorResponse | WebhookListResponse | None:
     """List all webhooks
 

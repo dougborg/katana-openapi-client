@@ -15,7 +15,7 @@ def _get_kwargs(
     working_area: Unset | str = UNSET,
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -89,7 +89,7 @@ def sync_detailed(
     working_area: Unset | str = UNSET,
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> Response[ErrorResponse | list["Operator"]]:
     """Get all operators
 
@@ -131,7 +131,7 @@ def sync(
     working_area: Unset | str = UNSET,
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> ErrorResponse | list["Operator"] | None:
     """Get all operators
 
@@ -168,7 +168,7 @@ async def asyncio_detailed(
     working_area: Unset | str = UNSET,
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> Response[ErrorResponse | list["Operator"]]:
     """Get all operators
 
@@ -208,7 +208,7 @@ async def asyncio(
     working_area: Unset | str = UNSET,
     resource_id: Unset | int = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> ErrorResponse | list["Operator"] | None:
     """Get all operators
 

@@ -21,7 +21,7 @@ def _get_kwargs(
     batch_created_at_max: Unset | str = UNSET,
     include_empty: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -108,7 +108,7 @@ def sync_detailed(
     batch_created_at_max: Unset | str = UNSET,
     include_empty: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> Response[BatchStockListResponse | ErrorResponse]:
     """List current batch stock
 
@@ -170,7 +170,7 @@ def sync(
     batch_created_at_max: Unset | str = UNSET,
     include_empty: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> BatchStockListResponse | ErrorResponse | None:
     """List current batch stock
 
@@ -227,7 +227,7 @@ async def asyncio_detailed(
     batch_created_at_max: Unset | str = UNSET,
     include_empty: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> Response[BatchStockListResponse | ErrorResponse]:
     """List current batch stock
 
@@ -287,7 +287,7 @@ async def asyncio(
     batch_created_at_max: Unset | str = UNSET,
     include_empty: Unset | bool = UNSET,
     limit: Unset | int = 50,
-    page: Unset | int = 1,
+    page: Unset | int = UNSET,
 ) -> BatchStockListResponse | ErrorResponse | None:
     """List current batch stock
 
