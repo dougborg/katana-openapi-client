@@ -489,3 +489,441 @@ class TestPaginationHeaderValidation:
         # Should not raise ValueError
         response = await transport.handle_async_request(request)
         assert response.status_code == 200
+
+
+class TestPaginationStringComparison:
+    """Test that pagination correctly handles string values from JSON headers.
+
+    The X-Pagination header returns values as strings (e.g., "page":"5", "total_pages":"41").
+    Without proper conversion, string comparison "5" >= "41" returns True (lexicographic),
+    causing pagination to stop prematurely at page 5 instead of continuing to page 41.
+    """
+
+    @pytest.fixture
+    def mock_wrapped_transport(self):
+        """Create a mock wrapped transport."""
+        return AsyncMock(spec=httpx.AsyncHTTPTransport)
+
+    @pytest.fixture
+    def transport(self, mock_wrapped_transport):
+        """Create a pagination transport instance for testing."""
+        return PaginationTransport(
+            wrapped_transport=mock_wrapped_transport,
+            max_pages=50,  # Higher limit to test multi-page scenarios
+        )
+
+    @pytest.mark.asyncio
+    async def test_string_pagination_values_in_header_are_converted(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that string pagination values in X-Pagination header are correctly converted.
+
+        This reproduces the bug where "5" >= "41" (string comparison) is True,
+        causing pagination to stop at page 5 instead of continuing to page 41.
+        """
+        pages_fetched = []
+
+        def create_response(page_num, total_pages=10):
+            """Create a response with string pagination values in X-Pagination header."""
+            pages_fetched.append(page_num)
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = {"data": [{"id": page_num}]}
+            # String values in X-Pagination header - this is what Katana API returns
+            mock_resp.headers = {
+                "X-Pagination": json.dumps(
+                    {
+                        "page": str(page_num),  # String "5" not integer 5
+                        "total_pages": str(total_pages),  # String "10" not integer 10
+                    }
+                )
+            }
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        call_count = 0
+
+        async def create_paginated_response(req):
+            nonlocal call_count
+            call_count += 1
+            page = int(req.url.params.get("page", 1))
+            return create_response(page, total_pages=10)
+
+        mock_wrapped_transport.handle_async_request.side_effect = (
+            create_paginated_response
+        )
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        response = await transport.handle_async_request(request)
+
+        # Should have fetched ALL 10 pages, not stopped early due to string comparison
+        assert call_count == 10, (
+            f"Expected 10 pages but only fetched {call_count}. "
+            f"Pages fetched: {pages_fetched}. "
+            "String comparison bug may be present if stopped at page 5 or less."
+        )
+        combined_data = json.loads(response.content)
+        assert len(combined_data["data"]) == 10
+
+    @pytest.mark.asyncio
+    async def test_string_page_5_not_greater_than_total_41(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test the specific bug case: page "5" should NOT be >= total_pages "41".
+
+        This is the exact scenario reported where pagination stopped at page 5
+        because "5" >= "41" is True in string comparison.
+        """
+        pages_fetched = []
+
+        def create_response(page_num):
+            pages_fetched.append(page_num)
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = {"data": [{"id": page_num}]}
+            mock_resp.headers = {
+                "X-Pagination": json.dumps(
+                    {
+                        "page": str(page_num),  # Will be "5" on page 5
+                        "total_pages": "41",  # String "41"
+                    }
+                )
+            }
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        call_count = 0
+
+        async def create_paginated_response(req):
+            nonlocal call_count
+            call_count += 1
+            page = int(req.url.params.get("page", 1))
+            return create_response(page)
+
+        mock_wrapped_transport.handle_async_request.side_effect = (
+            create_paginated_response
+        )
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        response = await transport.handle_async_request(request)
+
+        # Should have fetched all 41 pages (or hit max_pages=50 limit)
+        assert call_count == 41, (
+            f"Expected 41 pages but fetched {call_count}. "
+            f"Pages fetched: {sorted(pages_fetched)}. "
+            "Bug: string '5' >= '41' is True, incorrectly stopping pagination."
+        )
+        combined_data = json.loads(response.content)
+        assert len(combined_data["data"]) == 41
+
+    @pytest.mark.asyncio
+    async def test_string_values_in_response_body_pagination(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that string pagination values in response body are also converted."""
+        pages_fetched = []
+
+        def create_response(page_num, total_pages=8):
+            pages_fetched.append(page_num)
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            # Pagination in response body with string values
+            mock_resp.json.return_value = {
+                "data": [{"id": page_num}],
+                "pagination": {
+                    "page": str(page_num),  # String values
+                    "total_pages": str(total_pages),
+                },
+            }
+            mock_resp.headers = {}  # No X-Pagination header
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        call_count = 0
+
+        async def create_paginated_response(req):
+            nonlocal call_count
+            call_count += 1
+            page = int(req.url.params.get("page", 1))
+            return create_response(page, total_pages=8)
+
+        mock_wrapped_transport.handle_async_request.side_effect = (
+            create_paginated_response
+        )
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        response = await transport.handle_async_request(request)
+
+        # Should have fetched all 8 pages
+        assert call_count == 8, (
+            f"Expected 8 pages but fetched {call_count}. "
+            f"Pages fetched: {pages_fetched}."
+        )
+        combined_data = json.loads(response.content)
+        assert len(combined_data["data"]) == 8
+
+    @pytest.mark.asyncio
+    async def test_mixed_integer_and_string_pagination_values(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that pagination works with a mix of integer and string values."""
+        pages_fetched = []
+
+        def create_response(page_num, total_pages=6):
+            pages_fetched.append(page_num)
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = {
+                "data": [{"id": page_num}],
+                "pagination": {
+                    "page": page_num,  # Integer
+                    "total_pages": str(total_pages),  # String
+                },
+            }
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        call_count = 0
+
+        async def create_paginated_response(req):
+            nonlocal call_count
+            call_count += 1
+            page = int(req.url.params.get("page", 1))
+            return create_response(page, total_pages=6)
+
+        mock_wrapped_transport.handle_async_request.side_effect = (
+            create_paginated_response
+        )
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        response = await transport.handle_async_request(request)
+
+        assert call_count == 6
+        combined_data = json.loads(response.content)
+        assert len(combined_data["data"]) == 6
+
+    @pytest.mark.asyncio
+    async def test_float_pagination_values_are_truncated_with_warning(
+        self, transport, mock_wrapped_transport, caplog
+    ):
+        """Test that float pagination values are truncated to int with a warning."""
+        import logging
+
+        def create_response(page_num, total_pages=3):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = {
+                "data": [{"id": page_num}],
+                "pagination": {
+                    "page": float(page_num),  # Float value like 1.0
+                    "total_pages": 3.7,  # Float with fractional part - should warn
+                },
+            }
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        call_count = 0
+
+        async def create_paginated_response(req):
+            nonlocal call_count
+            call_count += 1
+            page = int(req.url.params.get("page", 1))
+            return create_response(page, total_pages=3)
+
+        mock_wrapped_transport.handle_async_request.side_effect = (
+            create_paginated_response
+        )
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        with caplog.at_level(logging.WARNING):
+            response = await transport.handle_async_request(request)
+
+        # Should have fetched 3 pages (3.7 truncated to 3)
+        assert call_count == 3
+        combined_data = json.loads(response.content)
+        assert len(combined_data["data"]) == 3
+
+        # Should have logged a warning about the fractional value
+        assert any("fractional part" in record.message for record in caplog.records)
+
+    @pytest.mark.asyncio
+    async def test_invalid_string_pagination_value_logs_warning_and_removes_field(
+        self, transport, mock_wrapped_transport, caplog
+    ):
+        """Test that invalid string pagination values log a warning and are removed.
+
+        When a pagination field contains an invalid string (e.g., "not-a-number"),
+        it should be removed from the pagination info so fallback values are used,
+        preventing type comparison errors.
+        """
+        import logging
+
+        mock_resp = MagicMock(spec=httpx.Response)
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "data": [{"id": 1}],
+            "pagination": {
+                "page": "not-a-number",  # Invalid string - will be removed
+                "total_pages": "1",  # Valid - will be converted to int
+            },
+        }
+        mock_resp.headers = {}
+
+        async def mock_aread():
+            pass
+
+        mock_resp.aread = mock_aread
+        mock_wrapped_transport.handle_async_request.return_value = mock_resp
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        with caplog.at_level(logging.WARNING):
+            response = await transport.handle_async_request(request)
+
+        # Should succeed - invalid "page" is removed, fallback page_num=1 is used
+        assert response.status_code == 200
+
+        # Should have logged a warning about the invalid value being removed
+        assert any(
+            "Invalid pagination value" in record.message
+            and "removing field" in record.message
+            for record in caplog.records
+        )
+
+    @pytest.mark.asyncio
+    async def test_x_pagination_header_non_dict_falls_back_to_body(
+        self, transport, mock_wrapped_transport, caplog
+    ):
+        """Test that non-dict X-Pagination header falls back to response body pagination."""
+        import logging
+
+        mock_resp = MagicMock(spec=httpx.Response)
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "data": [{"id": 1}],
+            "pagination": {
+                "page": 1,
+                "total_pages": 1,
+            },
+        }
+        # X-Pagination is valid JSON but not a dict (e.g., null or array)
+        mock_resp.headers = {"X-Pagination": "null"}
+
+        async def mock_aread():
+            pass
+
+        mock_resp.aread = mock_aread
+        mock_wrapped_transport.handle_async_request.return_value = mock_resp
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        with caplog.at_level(logging.WARNING):
+            response = await transport.handle_async_request(request)
+
+        # Should succeed - falls back to body pagination
+        assert response.status_code == 200
+
+        # Should have logged a warning about non-dict header
+        assert any(
+            "X-Pagination header is not a JSON object" in record.message
+            for record in caplog.records
+        )
+
+    @pytest.mark.asyncio
+    async def test_empty_x_pagination_header_falls_back_to_body(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that empty X-Pagination dict falls back to response body pagination."""
+        pages_fetched = []
+
+        def create_response(page_num, total_pages=3):
+            pages_fetched.append(page_num)
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = {
+                "data": [{"id": page_num}],
+                "pagination": {
+                    "page": page_num,
+                    "total_pages": total_pages,
+                },
+            }
+            # X-Pagination is valid JSON but empty dict
+            mock_resp.headers = {"X-Pagination": "{}"}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        call_count = 0
+
+        async def create_paginated_response(req):
+            nonlocal call_count
+            call_count += 1
+            page = int(req.url.params.get("page", 1))
+            return create_response(page, total_pages=3)
+
+        mock_wrapped_transport.handle_async_request.side_effect = (
+            create_paginated_response
+        )
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        response = await transport.handle_async_request(request)
+
+        # Should have fetched all 3 pages using body pagination
+        assert call_count == 3
+        combined_data = json.loads(response.content)
+        assert len(combined_data["data"]) == 3
