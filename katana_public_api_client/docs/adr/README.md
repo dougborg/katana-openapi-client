@@ -1,14 +1,17 @@
 # Architecture Decision Records - Katana OpenAPI Client
 
-This directory contains Architecture Decision Records (ADRs) specific to the `katana-openapi-client` package.
+This directory contains Architecture Decision Records (ADRs) specific to the
+`katana-openapi-client` package.
 
 ## What is an ADR?
 
-An Architecture Decision Record (ADR) is a document that captures an important architectural decision made along with its context and consequences.
+An Architecture Decision Record (ADR) is a document that captures an important
+architectural decision made along with its context and consequences.
 
 ## Format
 
-We use the format proposed by Michael Nygard in his article [Documenting Architecture Decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions):
+We use the format proposed by Michael Nygard in his article
+[Documenting Architecture Decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions):
 
 - **Title**: A short noun phrase describing the decision
 - **Status**: Proposed | Accepted | Deprecated | Superseded
@@ -19,9 +22,9 @@ We use the format proposed by Michael Nygard in his article [Documenting Archite
 ## ADR Lifecycle
 
 1. **Proposed**: The ADR is proposed and under discussion
-2. **Accepted**: The ADR has been accepted and is being implemented
-3. **Deprecated**: The ADR is no longer recommended but still in use
-4. **Superseded**: The ADR has been replaced by another ADR
+1. **Accepted**: The ADR has been accepted and is being implemented
+1. **Deprecated**: The ADR is no longer recommended but still in use
+1. **Superseded**: The ADR has been replaced by another ADR
 
 ## Index
 
@@ -39,15 +42,16 @@ We use the format proposed by Michael Nygard in his article [Documenting Archite
 
 ### Proposed Architecture Decisions
 
-- [ADR-008: Avoid Traditional Builder Pattern](0008-avoid-builder-pattern.md) - **PROPOSED**
+- [ADR-008: Avoid Traditional Builder Pattern](0008-avoid-builder-pattern.md) -
+  **PROPOSED**
 
 ## Creating a New ADR
 
 1. Copy the template from the shared ADR directory
-2. Update the number (NNNN) to be the next sequential number
-3. Fill in the sections
-4. Create a PR for discussion
-5. After acceptance, update status to "Accepted"
+1. Update the number (NNNN) to be the next sequential number
+1. Fill in the sections
+1. Create a PR for discussion
+1. After acceptance, update status to "Accepted"
 
 ## Related Documentation
 

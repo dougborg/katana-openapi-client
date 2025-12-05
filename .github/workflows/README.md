@@ -105,7 +105,8 @@ released
 - Extract the new client version number
 - Update `katana_mcp_server/pyproject.toml` dependency specification
 - Update `uv.lock` file
-- Create a PR with conventional commit message `feat(mcp): update client dependency to vX.Y.Z`
+- Create a PR with conventional commit message
+  `feat(mcp): update client dependency to vX.Y.Z`
 
 **Permissions:** `contents: write`, `pull-requests: write`
 
@@ -118,8 +119,8 @@ released
 1. Updates dependency and creates PR for review
 1. When PR is merged, triggers new MCP release via `feat(mcp):` commit
 
-See [Automated Dependency
-Management](../../docs/MONOREPO_SEMANTIC_RELEASE.md#automated-dependency-management)
+See
+[Automated Dependency Management](../../docs/MONOREPO_SEMANTIC_RELEASE.md#automated-dependency-management)
 for details.
 
 ### [copilot-setup-steps.yml](copilot-setup-steps.yml)
@@ -248,7 +249,8 @@ When adding new workflows:
 **MCP release not triggering after dependency update:**
 
 - Ensure the dependency update PR was merged to `main`
-- Check that PR commit message follows format: `feat(mcp): update client dependency to vX.Y.Z`
+- Check that PR commit message follows format:
+  `feat(mcp): update client dependency to vX.Y.Z`
 - Review release workflow logs for MCP changes detection
 - Verify semantic-release configuration in `katana_mcp_server/pyproject.toml`
 

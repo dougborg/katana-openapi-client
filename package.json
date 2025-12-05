@@ -1,0 +1,23 @@
+{
+  "name": "katana-openapi-client-monorepo",
+  "private": true,
+  "packageManager": "pnpm@9.14.4",
+  "scripts": {
+    "generate": "pnpm -r run generate",
+    "generate:client": "pnpm --filter katana-openapi-client run generate",
+    "generate:react": "pnpm --filter katana-openapi-client-react run generate",
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "clean": "pnpm -r run clean"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.10",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

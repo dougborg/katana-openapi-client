@@ -173,3 +173,7 @@ tools.json
 
 # Claude
 .claude/settings.local.json
+
+# Node.js / TypeScript packages
+node_modules/
+*.tsbuildinfo
