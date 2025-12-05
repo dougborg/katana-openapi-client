@@ -834,3 +834,96 @@ class TestPaginationStringComparison:
             and "removing field" in record.message
             for record in caplog.records
         )
+
+    @pytest.mark.asyncio
+    async def test_x_pagination_header_non_dict_falls_back_to_body(
+        self, transport, mock_wrapped_transport, caplog
+    ):
+        """Test that non-dict X-Pagination header falls back to response body pagination."""
+        import logging
+
+        mock_resp = MagicMock(spec=httpx.Response)
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "data": [{"id": 1}],
+            "pagination": {
+                "page": 1,
+                "total_pages": 1,
+            },
+        }
+        # X-Pagination is valid JSON but not a dict (e.g., null or array)
+        mock_resp.headers = {"X-Pagination": "null"}
+
+        async def mock_aread():
+            pass
+
+        mock_resp.aread = mock_aread
+        mock_wrapped_transport.handle_async_request.return_value = mock_resp
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        with caplog.at_level(logging.WARNING):
+            response = await transport.handle_async_request(request)
+
+        # Should succeed - falls back to body pagination
+        assert response.status_code == 200
+
+        # Should have logged a warning about non-dict header
+        assert any(
+            "X-Pagination header is not a JSON object" in record.message
+            for record in caplog.records
+        )
+
+    @pytest.mark.asyncio
+    async def test_empty_x_pagination_header_falls_back_to_body(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that empty X-Pagination dict falls back to response body pagination."""
+        pages_fetched = []
+
+        def create_response(page_num, total_pages=3):
+            pages_fetched.append(page_num)
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = {
+                "data": [{"id": page_num}],
+                "pagination": {
+                    "page": page_num,
+                    "total_pages": total_pages,
+                },
+            }
+            # X-Pagination is valid JSON but empty dict
+            mock_resp.headers = {"X-Pagination": "{}"}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        call_count = 0
+
+        async def create_paginated_response(req):
+            nonlocal call_count
+            call_count += 1
+            page = int(req.url.params.get("page", 1))
+            return create_response(page, total_pages=3)
+
+        mock_wrapped_transport.handle_async_request.side_effect = (
+            create_paginated_response
+        )
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        response = await transport.handle_async_request(request)
+
+        # Should have fetched all 3 pages using body pagination
+        assert call_count == 3
+        combined_data = json.loads(response.content)
+        assert len(combined_data["data"]) == 3

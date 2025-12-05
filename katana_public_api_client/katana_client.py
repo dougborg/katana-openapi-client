@@ -706,12 +706,20 @@ class PaginationTransport(AsyncHTTPTransport):
         # Check for X-Pagination header (JSON format)
         if "X-Pagination" in response.headers:
             try:
-                pagination_info = json.loads(response.headers["X-Pagination"])
-                # Convert numeric string values to integers to avoid string comparison bugs
-                # (e.g., "5" >= "41" is True in string comparison but should be False)
-                pagination_info = self._normalize_pagination_values(pagination_info)
-                return pagination_info
-            except (json.JSONDecodeError, KeyError):
+                header_data = json.loads(response.headers["X-Pagination"])
+                # Validate that parsed JSON is a dictionary
+                if not isinstance(header_data, dict):
+                    self.logger.warning(
+                        "X-Pagination header is not a JSON object: %r", header_data
+                    )
+                else:
+                    # Convert numeric string values to integers to avoid string comparison bugs
+                    # (e.g., "5" >= "41" is True in string comparison but should be False)
+                    pagination_info = self._normalize_pagination_values(header_data)
+                    # Only return early if we got valid pagination data
+                    if pagination_info:
+                        return pagination_info
+            except json.JSONDecodeError:
                 pass
 
         # Check for individual headers (with validation for malformed values)
