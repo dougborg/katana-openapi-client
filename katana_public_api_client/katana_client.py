@@ -630,18 +630,96 @@ class PaginationTransport(AsyncHTTPTransport):
 
         return combined_response
 
+    def _normalize_pagination_values(
+        self, pagination_info: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Convert numeric pagination values from strings to integers.
+
+        JSON parsing may return numeric values as strings (e.g., "41" instead of 41).
+        String comparison produces incorrect results: "5" >= "41" is True because
+        "5" > "4" lexicographically. This method ensures all numeric pagination
+        fields are proper integers for correct comparisons.
+
+        Args:
+            pagination_info: Dictionary containing pagination metadata.
+
+        Returns:
+            Dictionary with numeric fields converted to integers.
+        """
+        # Fields that should be integers for pagination comparisons
+        numeric_fields = [
+            "page",
+            "total_pages",
+            "total_items",
+            "limit",
+            "offset",
+            "count",
+            "per_page",
+            "current_page",
+            "last_page",
+        ]
+
+        result = pagination_info.copy()
+        for field in numeric_fields:
+            if field in result:
+                value = result[field]
+                # Convert string numbers to integers
+                if isinstance(value, str):
+                    try:
+                        result[field] = int(value)
+                    except ValueError:
+                        self.logger.warning(
+                            "Invalid pagination value for %s: %r, removing field",
+                            field,
+                            value,
+                        )
+                        # Remove invalid field so fallback values are used
+                        del result[field]
+                # Already an int or float - ensure it's int
+                elif isinstance(value, float):
+                    # Warn if float has a fractional part (unexpected for pagination)
+                    if value != int(value):
+                        self.logger.warning(
+                            "Pagination value %s has fractional part: %r, truncating to %d",
+                            field,
+                            value,
+                            int(value),
+                        )
+                    result[field] = int(value)
+                # If it's already an int, leave it as is
+
+        return result
+
     def _extract_pagination_info(
         self, response: httpx.Response, data: dict[str, Any]
     ) -> dict[str, Any] | None:
-        """Extract pagination information from response headers or body."""
+        """Extract pagination information from response headers or body.
+
+        Note:
+            All numeric pagination values (page, total_pages, total_items, etc.)
+            are converted to integers to ensure correct comparisons. This is important
+            because JSON parsing may return string values, and string comparison
+            (e.g., "5" >= "41") produces incorrect results.
+        """
         pagination_info: dict[str, Any] = {}
 
         # Check for X-Pagination header (JSON format)
         if "X-Pagination" in response.headers:
             try:
-                pagination_info = json.loads(response.headers["X-Pagination"])
-                return pagination_info
-            except (json.JSONDecodeError, KeyError):
+                header_data = json.loads(response.headers["X-Pagination"])
+                # Validate that parsed JSON is a dictionary
+                if not isinstance(header_data, dict):
+                    self.logger.warning(
+                        "X-Pagination header is not a JSON object: %r", header_data
+                    )
+                else:
+                    # Convert numeric string values to integers to avoid string comparison bugs
+                    # (e.g., "5" >= "41" is True in string comparison but should be False)
+                    pagination_info = self._normalize_pagination_values(header_data)
+                    # Only return early if we got valid pagination data
+                    if pagination_info:
+                        return pagination_info
+            except json.JSONDecodeError:
                 pass
 
         # Check for individual headers (with validation for malformed values)
@@ -675,6 +753,10 @@ class PaginationTransport(AsyncHTTPTransport):
             meta_pagination = cast(Any, data["meta"]["pagination"])
             if isinstance(meta_pagination, dict):
                 pagination_info.update(cast(dict[str, Any], meta_pagination))
+
+        # Normalize all numeric values to ensure correct comparisons
+        if pagination_info:
+            pagination_info = self._normalize_pagination_values(pagination_info)
 
         return pagination_info if pagination_info else None
 

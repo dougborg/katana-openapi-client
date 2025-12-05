@@ -2,6 +2,33 @@
 
 <!-- version list -->
 
+## v0.39.0 (2025-12-05)
+
+### Bug Fixes
+
+- **client**: Address Copilot review feedback for pagination normalization
+  ([#195](https://github.com/dougborg/katana-openapi-client/pull/195),
+  [`5665061`](https://github.com/dougborg/katana-openapi-client/commit/5665061e87fc77fddc610e1009e4e3ec6a0dccf7))
+
+- **client**: Convert pagination string values to integers for correct comparison
+  ([#195](https://github.com/dougborg/katana-openapi-client/pull/195),
+  [`5665061`](https://github.com/dougborg/katana-openapi-client/commit/5665061e87fc77fddc610e1009e4e3ec6a0dccf7))
+
+- **client**: Improve pagination value normalization edge case handling
+  ([#195](https://github.com/dougborg/katana-openapi-client/pull/195),
+  [`5665061`](https://github.com/dougborg/katana-openapi-client/commit/5665061e87fc77fddc610e1009e4e3ec6a0dccf7))
+
+### Chores
+
+- **release**: Mcp v0.21.0
+  ([`86c11de`](https://github.com/dougborg/katana-openapi-client/commit/86c11de0e981296408a8fe4be42315983959f8c7))
+
+### Features
+
+- **mcp**: Update client dependency to v0.38.0
+  ([#194](https://github.com/dougborg/katana-openapi-client/pull/194),
+  [`9d9a4f3`](https://github.com/dougborg/katana-openapi-client/commit/9d9a4f324c8d9e988bac9251f764104aa8a7a24e))
+
 ## v0.38.0 (2025-12-05)
 
 ### Bug Fixes
