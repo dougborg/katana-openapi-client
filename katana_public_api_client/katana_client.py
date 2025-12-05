@@ -510,14 +510,15 @@ class PaginationTransport(AsyncHTTPTransport):
                 remaining = max_items - len(all_data)
                 if remaining <= 0:
                     break
-                # Get original limit or use a reasonable default
+                # Get original limit or use a sensible default (Katana API max is 250)
                 original_limit = request.url.params.get("limit")
+                default_page_size = 250
                 if original_limit:
                     # Only reduce limit, never increase it
                     url_params["limit"] = str(min(int(original_limit), remaining))
                 else:
-                    # No original limit, use remaining as limit
-                    url_params["limit"] = str(remaining)
+                    # No original limit, use min of default page size and remaining
+                    url_params["limit"] = str(min(default_page_size, remaining))
 
             # Create a new request with updated parameters
             paginated_request = httpx.Request(
@@ -643,11 +644,23 @@ class PaginationTransport(AsyncHTTPTransport):
             except (json.JSONDecodeError, KeyError):
                 pass
 
-        # Check for individual headers
+        # Check for individual headers (with validation for malformed values)
         if "X-Total-Pages" in response.headers:
-            pagination_info["total_pages"] = int(response.headers["X-Total-Pages"])
+            try:
+                pagination_info["total_pages"] = int(response.headers["X-Total-Pages"])
+            except ValueError:
+                self.logger.warning(
+                    "Invalid X-Total-Pages header value: %s",
+                    response.headers["X-Total-Pages"],
+                )
         if "X-Current-Page" in response.headers:
-            pagination_info["page"] = int(response.headers["X-Current-Page"])
+            try:
+                pagination_info["page"] = int(response.headers["X-Current-Page"])
+            except ValueError:
+                self.logger.warning(
+                    "Invalid X-Current-Page header value: %s",
+                    response.headers["X-Current-Page"],
+                )
 
         # Check for pagination in response body
         if "pagination" in data:
@@ -779,7 +792,7 @@ class KatanaClient(AuthenticatedClient):
     Auto-pagination behavior:
     - ON by default for all GET requests
     - Automatically detects paginated responses and collects all pages
-    - Disabled when explicit `page` parameter is in URL (e.g., `?page=2`)
+    - Disabled when ANY explicit `page` parameter is in URL (including `page=1`)
     - Disabled per-request via extensions: `extensions={"auto_pagination": False}`
     - Control max pages via `max_pages` constructor parameter
     - Limit total items via extensions: `extensions={"max_items": 200}`
@@ -794,10 +807,10 @@ class KatanaClient(AuthenticatedClient):
                 limit=50  # Page size (all pages still collected)
             )
 
-            # Get a specific page only (explicit page param disables auto-pagination)
+            # Get a specific page only (ANY explicit page param disables auto-pagination)
             response = await get_all_products.asyncio_detailed(
                 client=client,
-                page=2,      # Get page 2 only
+                page=2,      # Get page 2 only (page=1 also disables auto-pagination)
                 limit=50
             )
 

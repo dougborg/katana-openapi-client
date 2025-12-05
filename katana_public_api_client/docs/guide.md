@@ -127,7 +127,8 @@ async with KatanaClient() as client:
 
 ### Single Page Request (Explicit Page)
 
-To get a specific page instead of all pages, add an explicit `page` parameter:
+To get a specific page instead of all pages, add an explicit `page` parameter. **Note:**
+ANY explicit page value (including `page=1`) disables auto-pagination:
 
 ```python
 async with KatanaClient() as client:
@@ -138,6 +139,13 @@ async with KatanaClient() as client:
         limit=50
     )
     # Returns just the 50 items on page 2
+
+    # page=1 ALSO disables auto-pagination (returns only first page)
+    first_page = await get_all_products.asyncio_detailed(
+        client=client,
+        page=1,       # Get ONLY page 1, not all pages
+        limit=50
+    )
 ```
 
 ### Limiting Total Items

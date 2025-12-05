@@ -329,3 +329,163 @@ class TestTransportAutoPagination:
         # Verify that the second request had limit=5
         assert len(captured_requests) == 2
         assert captured_requests[1].url.params.get("limit") == "5"
+
+    @pytest.mark.asyncio
+    async def test_max_items_uses_default_page_size_when_no_limit(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that max_items uses default page size (250) when no limit specified."""
+
+        def create_response(data):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = data
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        # Capture requests to verify the limit used
+        captured_requests = []
+
+        async def capture_request(req):
+            captured_requests.append(req)
+            # Return page data
+            limit = int(req.url.params.get("limit", 250))
+            data = {
+                "data": [{"id": i} for i in range(1, min(limit, 100) + 1)],
+                "pagination": {"page": 1, "total_pages": 1},
+            }
+            return create_response(data)
+
+        mock_wrapped_transport.handle_async_request.side_effect = capture_request
+
+        # Request with max_items but NO limit parameter
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",  # No limit param
+            extensions={"max_items": 500},
+        )
+
+        await transport.handle_async_request(request)
+
+        # First request should use min(default_page_size=250, remaining=500) = 250
+        assert len(captured_requests) >= 1
+        assert captured_requests[0].url.params.get("limit") == "250"
+
+    @pytest.mark.asyncio
+    async def test_max_items_respects_small_remaining_over_default(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that max_items uses remaining items when smaller than default page size."""
+
+        def create_response(data):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = data
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        # Capture requests to verify the limit used
+        captured_requests = []
+
+        async def capture_request(req):
+            captured_requests.append(req)
+            limit = int(req.url.params.get("limit", 250))
+            data = {
+                "data": [{"id": i} for i in range(1, min(limit, 50) + 1)],
+                "pagination": {"page": 1, "total_pages": 1},
+            }
+            return create_response(data)
+
+        mock_wrapped_transport.handle_async_request.side_effect = capture_request
+
+        # Request with small max_items (less than default page size 250)
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",  # No limit param
+            extensions={"max_items": 50},
+        )
+
+        await transport.handle_async_request(request)
+
+        # Should use min(default=250, remaining=50) = 50
+        assert len(captured_requests) >= 1
+        assert captured_requests[0].url.params.get("limit") == "50"
+
+
+class TestPaginationHeaderValidation:
+    """Test validation of pagination headers."""
+
+    @pytest.fixture
+    def mock_wrapped_transport(self):
+        """Create a mock wrapped transport."""
+        return AsyncMock(spec=httpx.AsyncHTTPTransport)
+
+    @pytest.fixture
+    def transport(self, mock_wrapped_transport):
+        """Create a pagination transport instance for testing."""
+        return PaginationTransport(
+            wrapped_transport=mock_wrapped_transport,
+            max_pages=5,
+        )
+
+    @pytest.mark.asyncio
+    async def test_malformed_total_pages_header_handled_gracefully(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that malformed X-Total-Pages header doesn't crash pagination."""
+        mock_resp = MagicMock(spec=httpx.Response)
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"data": [{"id": 1}]}
+        # Malformed header value (non-numeric)
+        mock_resp.headers = {"X-Total-Pages": "invalid"}
+
+        async def mock_aread():
+            pass
+
+        mock_resp.aread = mock_aread
+        mock_wrapped_transport.handle_async_request.return_value = mock_resp
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        # Should not raise ValueError, should gracefully handle malformed header
+        response = await transport.handle_async_request(request)
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_malformed_current_page_header_handled_gracefully(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that malformed X-Current-Page header doesn't crash pagination."""
+        mock_resp = MagicMock(spec=httpx.Response)
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"data": [{"id": 1}]}
+        # Malformed header value
+        mock_resp.headers = {"X-Current-Page": "abc", "X-Total-Pages": "1"}
+
+        async def mock_aread():
+            pass
+
+        mock_resp.aread = mock_aread
+        mock_wrapped_transport.handle_async_request.return_value = mock_resp
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        # Should not raise ValueError
+        response = await transport.handle_async_request(request)
+        assert response.status_code == 200
