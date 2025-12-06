@@ -2,14 +2,14 @@
  * Tests for error classes and parsing utilities
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  KatanaError,
   AuthenticationError,
-  RateLimitError,
-  ValidationError,
-  ServerError,
+  KatanaError,
   NetworkError,
+  RateLimitError,
+  ServerError,
+  ValidationError,
   parseError,
 } from '../src/errors.js';
 
@@ -137,9 +137,7 @@ describe('parseError', () => {
   it('should return ValidationError for 422', () => {
     const response = new Response(null, { status: 422 });
     const body = {
-      errors: [
-        { field: 'name', message: 'Required' },
-      ],
+      errors: [{ field: 'name', message: 'Required' }],
     };
     const error = parseError(response, body);
     expect(error).toBeInstanceOf(ValidationError);
@@ -150,9 +148,7 @@ describe('parseError', () => {
   it('should parse validation details from detail array format', () => {
     const response = new Response(null, { status: 422 });
     const body = {
-      detail: [
-        { loc: ['body', 'name'], msg: 'field required', type: 'value_error.missing' },
-      ],
+      detail: [{ loc: ['body', 'name'], msg: 'field required', type: 'value_error.missing' }],
     };
     const error = parseError(response, body);
     expect(error).toBeInstanceOf(ValidationError);

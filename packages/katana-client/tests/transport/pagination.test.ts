@@ -4,7 +4,7 @@
  * These tests mirror the Python client's test_transport_auto_pagination.py
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createPaginatedFetch,
   extractPaginationInfo,
@@ -116,7 +116,9 @@ describe('createPaginatedFetch', () => {
       await paginatedFetch('https://api.example.com/products', { method: 'POST' });
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/products', { method: 'POST' });
+      expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/products', {
+        method: 'POST',
+      });
     });
 
     it('should not paginate when explicit page param is present', async () => {

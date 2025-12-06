@@ -37,7 +37,10 @@ export class KatanaError extends Error {
  * Authentication error (401 Unauthorized)
  */
 export class AuthenticationError extends KatanaError {
-  constructor(message = 'Authentication failed', options?: { response?: Response; body?: unknown }) {
+  constructor(
+    message = 'Authentication failed',
+    options?: { response?: Response; body?: unknown }
+  ) {
     super(message, { ...options, statusCode: 401 });
     this.name = 'AuthenticationError';
   }
@@ -123,7 +126,7 @@ export function parseError(response: Response, body?: unknown): KatanaError {
 
   if (status === 429) {
     const retryAfterHeader = response.headers.get('Retry-After');
-    const retryAfter = retryAfterHeader ? parseInt(retryAfterHeader, 10) : undefined;
+    const retryAfter = retryAfterHeader ? Number.parseInt(retryAfterHeader, 10) : undefined;
     return new RateLimitError('Rate limit exceeded - retry after delay', {
       response,
       body,
@@ -149,9 +152,10 @@ export function parseError(response: Response, body?: unknown): KatanaError {
   }
 
   // Generic client error
-  const message = typeof body === 'object' && body !== null && 'message' in body
-    ? String((body as Record<string, unknown>).message)
-    : `Request failed with status ${status}`;
+  const message =
+    typeof body === 'object' && body !== null && 'message' in body
+      ? String((body as Record<string, unknown>).message)
+      : `Request failed with status ${status}`;
 
   return new KatanaError(message, {
     statusCode: status,

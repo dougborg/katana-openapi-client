@@ -5,7 +5,7 @@
  * with the resilient client (retry, pagination, authentication).
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { KatanaClient } from '../src/client.js';
 import { getAllProducts } from '../src/generated/sdk.gen.js';
 
@@ -46,9 +46,7 @@ describe('SDK Integration', () => {
         headers: { 'Content-Type': 'application/json' },
       });
 
-      mockFetch
-        .mockResolvedValueOnce(rateLimitResponse)
-        .mockResolvedValueOnce(successResponse);
+      mockFetch.mockResolvedValueOnce(rateLimitResponse).mockResolvedValueOnce(successResponse);
 
       const katana = KatanaClient.withApiKey(TEST_API_KEY, {
         fetch: mockFetch,
@@ -86,9 +84,7 @@ describe('SDK Integration', () => {
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
 
-      mockFetch
-        .mockResolvedValueOnce(page1Response)
-        .mockResolvedValueOnce(page2Response);
+      mockFetch.mockResolvedValueOnce(page1Response).mockResolvedValueOnce(page2Response);
 
       const katana = KatanaClient.withApiKey(TEST_API_KEY, {
         fetch: mockFetch,
@@ -146,10 +142,10 @@ describe('SDK Integration', () => {
     });
 
     it('should throw on error when throwOnError is true', async () => {
-      const errorResponse = new Response(
-        JSON.stringify({ message: 'Server Error' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
+      const errorResponse = new Response(JSON.stringify({ message: 'Server Error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
       mockFetch.mockResolvedValueOnce(errorResponse);
 
       const katana = KatanaClient.withApiKey(TEST_API_KEY, {

@@ -5,7 +5,7 @@
  * retry and pagination transport layers.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { KatanaClient } from '../src/client.js';
 
 describe('KatanaClient', () => {
@@ -31,13 +31,53 @@ describe('KatanaClient', () => {
     });
   });
 
+  describe('create', () => {
+    it('should throw descriptive error when no API key is available', async () => {
+      // Temporarily remove env var if present
+      const originalEnv = process.env.KATANA_API_KEY;
+      // biome-ignore lint/performance/noDelete: Need to actually remove env var, not set to "undefined" string
+      delete process.env.KATANA_API_KEY;
+
+      try {
+        await expect(KatanaClient.create()).rejects.toThrow(
+          /API key required.*apiKey option.*KATANA_API_KEY.*--env-file/
+        );
+      } finally {
+        // Restore env var
+        if (originalEnv) {
+          process.env.KATANA_API_KEY = originalEnv;
+        }
+      }
+    });
+
+    it('should create client with API key from environment variable', async () => {
+      const originalEnv = process.env.KATANA_API_KEY;
+      process.env.KATANA_API_KEY = 'env-api-key';
+
+      try {
+        const client = await KatanaClient.create();
+        expect(client).toBeInstanceOf(KatanaClient);
+      } finally {
+        if (originalEnv) {
+          process.env.KATANA_API_KEY = originalEnv;
+        } else {
+          // biome-ignore lint/performance/noDelete: Need to actually remove env var, not set to "undefined" string
+          delete process.env.KATANA_API_KEY;
+        }
+      }
+    });
+  });
+
   describe('fetch method', () => {
     it('should add Authorization header to requests', async () => {
       const response = new Response(JSON.stringify({ data: [] }), { status: 200 });
       mockFetch.mockResolvedValueOnce(response);
 
       // Disable auto-pagination to test basic fetch behavior
-      const client = KatanaClient.withApiKey(TEST_API_KEY, { fetch: mockFetch, autoPagination: false });
+      const client = KatanaClient.withApiKey(TEST_API_KEY, {
+        fetch: mockFetch,
+        autoPagination: false,
+      });
       await client.fetch('/products');
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
@@ -51,7 +91,10 @@ describe('KatanaClient', () => {
       mockFetch.mockResolvedValueOnce(response);
 
       // Disable auto-pagination to test basic fetch behavior
-      const client = KatanaClient.withApiKey(TEST_API_KEY, { fetch: mockFetch, autoPagination: false });
+      const client = KatanaClient.withApiKey(TEST_API_KEY, {
+        fetch: mockFetch,
+        autoPagination: false,
+      });
       await client.fetch('https://other.api.com/endpoint');
 
       const [url] = mockFetch.mock.calls[0];
