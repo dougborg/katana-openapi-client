@@ -225,11 +225,30 @@ The SDK functions provide:
 - `KATANA_API_KEY` - API key for authentication
 - `KATANA_BASE_URL` - Override the base URL (optional)
 
-To load environment variables from a `.env` file, use Node.js native support (v20.6+):
+### Loading from .env files
+
+**Node.js 20.6+** (recommended):
 
 ```bash
 node --env-file=.env your-script.js
 ```
+
+**Node.js 18-20.5** (use dotenv):
+
+```bash
+npm install dotenv
+```
+
+```typescript
+import 'dotenv/config';
+import { KatanaClient } from 'katana-openapi-client';
+
+const client = KatanaClient.withApiKey(process.env.KATANA_API_KEY!);
+```
+
+> **Note**: This library supports Node.js 18+ but does not bundle dotenv. If you need
+> .env file loading on Node.js < 20.6, install dotenv as a direct dependency in your
+> project.
 
 ## License
 
