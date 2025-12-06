@@ -4,12 +4,12 @@
  * These tests mirror the Python client's test_rate_limit_retry.py
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  shouldRetry,
+  DEFAULT_RETRY_CONFIG,
   calculateRetryDelay,
   createResilientFetch,
-  DEFAULT_RETRY_CONFIG,
+  shouldRetry,
 } from '../../src/transport/resilient.js';
 
 describe('shouldRetry', () => {
@@ -196,9 +196,7 @@ describe('createResilientFetch', () => {
     const rateLimitResponse = new Response(null, { status: 429 });
     const successResponse = new Response(JSON.stringify({ data: 'test' }), { status: 200 });
 
-    mockFetch
-      .mockResolvedValueOnce(rateLimitResponse)
-      .mockResolvedValueOnce(successResponse);
+    mockFetch.mockResolvedValueOnce(rateLimitResponse).mockResolvedValueOnce(successResponse);
 
     const resilientFetch = createResilientFetch({
       baseFetch: mockFetch,
@@ -239,9 +237,7 @@ describe('createResilientFetch', () => {
     const networkError = new Error('Network error');
     const successResponse = new Response(JSON.stringify({ data: 'test' }), { status: 200 });
 
-    mockFetch
-      .mockRejectedValueOnce(networkError)
-      .mockResolvedValueOnce(successResponse);
+    mockFetch.mockRejectedValueOnce(networkError).mockResolvedValueOnce(successResponse);
 
     const resilientFetch = createResilientFetch({
       baseFetch: mockFetch,

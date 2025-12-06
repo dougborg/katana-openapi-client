@@ -225,6 +225,12 @@ The SDK functions provide:
 - `KATANA_API_KEY` - API key for authentication
 - `KATANA_BASE_URL` - Override the base URL (optional)
 
+To load environment variables from a `.env` file, use Node.js native support (v20.6+):
+
+```bash
+node --env-file=.env your-script.js
+```
+
 ## License
 
 MIT

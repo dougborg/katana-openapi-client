@@ -80,16 +80,16 @@ export function extractPaginationInfo(
   // Check for individual headers
   const xTotalPages = headers.get('X-Total-Pages');
   if (xTotalPages) {
-    const parsed = parseInt(xTotalPages, 10);
-    if (!isNaN(parsed)) {
+    const parsed = Number.parseInt(xTotalPages, 10);
+    if (!Number.isNaN(parsed)) {
       info.total_pages = parsed;
     }
   }
 
   const xCurrentPage = headers.get('X-Current-Page');
   if (xCurrentPage) {
-    const parsed = parseInt(xCurrentPage, 10);
-    if (!isNaN(parsed)) {
+    const parsed = Number.parseInt(xCurrentPage, 10);
+    if (!Number.isNaN(parsed)) {
       info.page = parsed;
     }
   }
@@ -184,7 +184,8 @@ export function createPaginatedFetch(
     }
 
     // Get the URL
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const url =
+      typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
 
     // Check if auto-pagination should be disabled
     const hasExplicitPage = hasExplicitPageParam(url);
@@ -206,7 +207,11 @@ async function performPagination(
   baseUrl: string,
   init: RequestInit | undefined,
   config: PaginationConfig,
-  logger: { debug: (msg: string, ...args: unknown[]) => void; info: (msg: string, ...args: unknown[]) => void; warn: (msg: string, ...args: unknown[]) => void }
+  logger: {
+    debug: (msg: string, ...args: unknown[]) => void;
+    info: (msg: string, ...args: unknown[]) => void;
+    warn: (msg: string, ...args: unknown[]) => void;
+  }
 ): Promise<Response> {
   const allData: unknown[] = [];
   let totalPages: number | undefined;
@@ -240,15 +245,13 @@ async function performPagination(
 
       const originalLimit = url.searchParams.get('limit');
       const limitToUse = originalLimit
-        ? Math.min(parseInt(originalLimit, 10), remaining)
+        ? Math.min(Number.parseInt(originalLimit, 10), remaining)
         : Math.min(config.defaultPageSize, remaining);
       url.searchParams.set('limit', String(limitToUse));
     }
 
     // Build the request URL
-    const requestUrl = isRelativeUrl
-      ? `${url.pathname}${url.search}`
-      : url.toString();
+    const requestUrl = isRelativeUrl ? `${url.pathname}${url.search}` : url.toString();
 
     // Make the request
     const response = await baseFetch(requestUrl, init);
@@ -264,7 +267,7 @@ async function performPagination(
     try {
       body = await response.json();
     } catch {
-      logger.warn(`Failed to parse paginated response as JSON`);
+      logger.warn('Failed to parse paginated response as JSON');
       return response;
     }
 
@@ -277,11 +280,7 @@ async function performPagination(
       }
 
       // Extract data items
-      const items = Array.isArray(body.data)
-        ? body.data
-        : Array.isArray(body)
-          ? body
-          : [];
+      const items = Array.isArray(body.data) ? body.data : Array.isArray(body) ? body : [];
       allData.push(...items);
 
       // Check maxItems limit
@@ -301,11 +300,7 @@ async function performPagination(
       );
     } else {
       // No pagination info - treat as single page
-      const items = Array.isArray(body.data)
-        ? body.data
-        : Array.isArray(body)
-          ? body
-          : [];
+      const items = Array.isArray(body.data) ? body.data : Array.isArray(body) ? body : [];
       allData.push(...items);
 
       // Apply maxItems limit

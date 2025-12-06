@@ -5,14 +5,18 @@
  * and pagination - mirroring the Python client's behavior.
  */
 
-import { createResilientFetch, type RetryConfig, DEFAULT_RETRY_CONFIG } from './transport/resilient.js';
-import {
-  createPaginatedFetch,
-  type PaginationConfig,
-  DEFAULT_PAGINATION_CONFIG,
-} from './transport/pagination.js';
 import { createClient, createConfig } from './generated/client/index.js';
 import type { Client } from './generated/client/types.gen.js';
+import {
+  DEFAULT_PAGINATION_CONFIG,
+  type PaginationConfig,
+  createPaginatedFetch,
+} from './transport/pagination.js';
+import {
+  DEFAULT_RETRY_CONFIG,
+  type RetryConfig,
+  createResilientFetch,
+} from './transport/resilient.js';
 
 /**
  * Configuration options for KatanaClient
@@ -76,14 +80,15 @@ const DEFAULT_BASE_URL = 'https://api.katanamrp.com/v1';
  * Priority order:
  * 1. Explicit apiKey parameter
  * 2. KATANA_API_KEY environment variable
- * 3. .env file (Node.js only, via dotenv)
- * 4. ~/.netrc file (Node.js only)
+ *
+ * Note: This library does not load .env files automatically.
+ * Use `node --env-file=.env` (Node.js 20.6+) or load env vars yourself.
  *
  * @param explicitKey - Explicitly provided API key
  * @returns Resolved API key
  * @throws Error if no API key is found
  */
-async function resolveApiKey(explicitKey?: string): Promise<string> {
+function resolveApiKey(explicitKey?: string): string {
   // 1. Explicit key takes precedence
   if (explicitKey) {
     return explicitKey;
@@ -94,25 +99,9 @@ async function resolveApiKey(explicitKey?: string): Promise<string> {
     return process.env.KATANA_API_KEY;
   }
 
-  // 3. Try loading from .env file (Node.js only)
-  if (typeof process !== 'undefined' && typeof require !== 'undefined') {
-    try {
-      // Dynamic import to avoid bundling dotenv in browser builds
-      const dotenv = await import('dotenv');
-      dotenv.config();
-      if (process.env.KATANA_API_KEY) {
-        return process.env.KATANA_API_KEY;
-      }
-    } catch {
-      // dotenv not available or failed to load
-    }
-  }
-
-  // 4. Try netrc (Node.js only) - not implemented for initial version
-  // This would require parsing ~/.netrc file
-
   throw new Error(
-    'API key required. Provide via: apiKey option, KATANA_API_KEY environment variable, or .env file'
+    'API key required. Provide via: apiKey option or KATANA_API_KEY environment variable. ' +
+      'Use `node --env-file=.env` to load from .env file.'
   );
 }
 
@@ -169,10 +158,7 @@ export class KatanaClient {
   private readonly logger: NonNullable<KatanaClientOptions['logger']>;
   private readonly _sdkClient: Client;
 
-  private constructor(
-    apiKey: string,
-    options: Omit<KatanaClientOptions, 'apiKey'> = {}
-  ) {
+  private constructor(apiKey: string, options: Omit<KatanaClientOptions, 'apiKey'> = {}) {
     this.apiKey = apiKey;
     this.baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
     this.logger = options.logger ?? createNoOpLogger();
@@ -251,7 +237,7 @@ export class KatanaClient {
    * ```
    */
   static async create(options: KatanaClientOptions = {}): Promise<KatanaClient> {
-    const apiKey = await resolveApiKey(options.apiKey);
+    const apiKey = resolveApiKey(options.apiKey);
     return new KatanaClient(apiKey, options);
   }
 
@@ -270,7 +256,10 @@ export class KatanaClient {
    * const client = KatanaClient.withApiKey('your-api-key');
    * ```
    */
-  static withApiKey(apiKey: string, options: Omit<KatanaClientOptions, 'apiKey'> = {}): KatanaClient {
+  static withApiKey(
+    apiKey: string,
+    options: Omit<KatanaClientOptions, 'apiKey'> = {}
+  ): KatanaClient {
     return new KatanaClient(apiKey, options);
   }
 

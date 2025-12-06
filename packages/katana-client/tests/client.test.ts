@@ -5,7 +5,7 @@
  * retry and pagination transport layers.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { KatanaClient } from '../src/client.js';
 
 describe('KatanaClient', () => {
@@ -37,7 +37,10 @@ describe('KatanaClient', () => {
       mockFetch.mockResolvedValueOnce(response);
 
       // Disable auto-pagination to test basic fetch behavior
-      const client = KatanaClient.withApiKey(TEST_API_KEY, { fetch: mockFetch, autoPagination: false });
+      const client = KatanaClient.withApiKey(TEST_API_KEY, {
+        fetch: mockFetch,
+        autoPagination: false,
+      });
       await client.fetch('/products');
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
@@ -51,7 +54,10 @@ describe('KatanaClient', () => {
       mockFetch.mockResolvedValueOnce(response);
 
       // Disable auto-pagination to test basic fetch behavior
-      const client = KatanaClient.withApiKey(TEST_API_KEY, { fetch: mockFetch, autoPagination: false });
+      const client = KatanaClient.withApiKey(TEST_API_KEY, {
+        fetch: mockFetch,
+        autoPagination: false,
+      });
       await client.fetch('https://other.api.com/endpoint');
 
       const [url] = mockFetch.mock.calls[0];
