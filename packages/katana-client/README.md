@@ -250,6 +250,15 @@ const client = KatanaClient.withApiKey(process.env.KATANA_API_KEY!);
 > .env file loading on Node.js < 20.6, install dotenv as a direct dependency in your
 > project.
 
+## Documentation
+
+For more detailed documentation:
+
+- **[Client Guide](docs/guide.md)** - Comprehensive usage guide
+- **[Cookbook](docs/cookbook.md)** - Common patterns and recipes
+- **[Testing Guide](docs/testing.md)** - Testing strategy and patterns
+- **[Architecture Decisions](docs/adr/README.md)** - Design decisions and rationale
+
 ## License
 
 MIT
