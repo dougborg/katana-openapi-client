@@ -12,7 +12,8 @@ This directory contains all documentation specific to the `katana-mcp-server` pa
 
 ### Architecture & Design
 
-- **[Architecture Design](architecture.md)** - Comprehensive MCP architecture and patterns
+- **[Architecture Design](architecture.md)** - Comprehensive MCP architecture and
+  patterns
 - **[Implementation Plan](implementation-plan.md)** - MCP v0.1.0 implementation roadmap
 - **[StockTrim Migration](stocktrim-migration.md)** - Migration to production patterns
 - **[ADRs](adr/README.md)** - Architecture Decision Records
@@ -36,4 +37,5 @@ The MCP server is published as a separate package:
 
 This monorepo also contains:
 
-- **[katana-openapi-client](../../katana_public_api_client/docs/README.md)** - Python client for Katana Manufacturing API
+- **[katana-openapi-client](../../katana_public_api_client/docs/README.md)** - Python
+  client for Katana Manufacturing API

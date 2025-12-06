@@ -1,6 +1,7 @@
 # Katana OpenAPI Client Documentation
 
-This directory contains all documentation specific to the `katana-openapi-client` package.
+This directory contains all documentation specific to the `katana-openapi-client`
+package.
 
 ## Documentation Index
 
@@ -19,10 +20,12 @@ This directory contains all documentation specific to the `katana-openapi-client
 
 - **[Main Repository README](../../README.md)** - Project overview
 - **[Contributing Guide](../../docs/CONTRIBUTING.md)** - How to contribute
-- **[API Documentation](https://dougborg.github.io/katana-openapi-client/)** - Live docs site
+- **[API Documentation](https://dougborg.github.io/katana-openapi-client/)** - Live docs
+  site
 
 ## Related Packages
 
 This monorepo also contains:
 
-- **[katana-mcp-server](../../katana_mcp_server/docs/README.md)** - MCP server for Claude Code integration
+- **[katana-mcp-server](../../katana_mcp_server/docs/README.md)** - MCP server for
+  Claude Code integration

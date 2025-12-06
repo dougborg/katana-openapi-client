@@ -1,0 +1,11 @@
+# Build output
+dist/
+
+# Node.js
+node_modules/
+
+# TypeScript
+*.tsbuildinfo
+
+# Test coverage
+coverage/
