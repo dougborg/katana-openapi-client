@@ -28,7 +28,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint src --ext .ts",
+    "lint": "biome check src tests",
+    "lint:fix": "biome check --write src tests",
+    "format": "biome format --write src tests",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
@@ -55,17 +57,11 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "dependencies": {
-    "dotenv": "^17.2.3"
-  },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
     "@hey-api/openapi-ts": "^0.88.0",
     "@types/node": "^24.10.1",
-    "@typescript-eslint/eslint-plugin": "^8.17.0",
-    "@typescript-eslint/parser": "^8.17.0",
     "@vitest/coverage-v8": "^4.0.15",
-    "eslint": "^9.16.0",
-    "msw": "^2.6.8",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^4.0.15"

@@ -85,13 +85,13 @@ export function calculateRetryDelay(
     const retryAfter = response.headers.get('Retry-After');
     if (retryAfter) {
       // Retry-After can be a number of seconds or a date
-      const seconds = parseInt(retryAfter, 10);
-      if (!isNaN(seconds)) {
+      const seconds = Number.parseInt(retryAfter, 10);
+      if (!Number.isNaN(seconds)) {
         return seconds * 1000;
       }
       // Try parsing as a date
       const retryDate = Date.parse(retryAfter);
-      if (!isNaN(retryDate)) {
+      if (!Number.isNaN(retryDate)) {
         const delayMs = retryDate - Date.now();
         if (delayMs > 0) {
           return delayMs;
@@ -102,7 +102,7 @@ export function calculateRetryDelay(
 
   // Exponential backoff: 2^attempt * backoffFactor
   // attempt 0: 1s, attempt 1: 2s, attempt 2: 4s, attempt 3: 8s, attempt 4: 16s
-  return Math.pow(2, attempt) * config.backoffFactor * 1000;
+  return 2 ** attempt * config.backoffFactor * 1000;
 }
 
 /**
@@ -166,7 +166,8 @@ export function createResilientFetch(options: ResilientFetchOptions = {}): typeo
 
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const method = init?.method ?? 'GET';
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const url =
+      typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
 
     let lastResponse: Response | undefined;
     let lastError: Error | undefined;
