@@ -48,6 +48,7 @@ dependencies = [
   # Legacy dependencies (keeping for compatibility)
   "urllib3>=2.5.0,<4.0.0",
   "pydantic>=2,<3",
+  "email-validator>=2.0.0",  # Required for Pydantic EmailStr fields
   "typing-extensions>=4.7.0",
   "httpx-retries (>=0.4.3,<0.5.0)",
 ]
@@ -94,6 +95,7 @@ dev = [
   "types-urllib3>=1.26.0",
   # OpenAPI tools
   "openapi-python-client>=0.25.2",
+  "datamodel-code-generator>=0.26.0",
   # Semantic release
   "python-semantic-release>=9.0.0",
 ]
@@ -350,6 +352,32 @@ paths = [
   "docs/original openapi files/",
 ]
 
+# =============================================================================
+# datamodel-code-generator Configuration
+# =============================================================================
+# Used to generate Pydantic v2 models from the OpenAPI specification.
+# Run with: datamodel-codegen (reads config from this file)
+# See: https://koxudaxi.github.io/datamodel-code-generator/pyproject_toml/
+
+[tool.datamodel-codegen]
+input = "docs/katana-openapi.yaml"
+input-file-type = "openapi"
+output-model-type = "pydantic_v2.BaseModel"
+target-python-version = "3.12"
+use-annotated = true
+use-standard-collections = true
+use-union-operator = true
+field-constraints = true
+reuse-model = true
+snake-case-field = true
+use-double-quotes = true
+collapse-root-models = true
+use-default-kwarg = true
+union-mode = "left_to_right"
+base-class = "katana_public_api_client.models_pydantic._base.KatanaPydanticBase"
+disable-warnings = true
+disable-timestamp = true
+
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
 version_variables = ["katana_public_api_client/__init__.py:__version__"]
@@ -455,6 +483,8 @@ test-schema = "pytest -m schema_validation"  # Run schema validation tests only 
 # OpenAPI and Code Generation Tasks
 # -----------------------------------------------------------------------------
 regenerate-client = "python scripts/regenerate_client.py"
+generate-pydantic = "python scripts/generate_pydantic_models.py"
+regenerate-all = ["regenerate-client", "generate-pydantic"]
 validate-openapi = "openapi-spec-validator docs/katana-openapi.yaml"
 validate-openapi-redocly = "npx @redocly/cli lint docs/katana-openapi.yaml"
 
