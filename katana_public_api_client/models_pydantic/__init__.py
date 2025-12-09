@@ -61,7 +61,7 @@ models handle API communication internally.
 
 # Import generated models (populated by generation script)
 # This will be updated by the generate_pydantic_models.py script
-import contextlib
+import logging
 
 from ._base import KatanaPydanticBase
 from ._registry import (
@@ -75,17 +75,37 @@ from ._registry import (
     register,
 )
 
-with contextlib.suppress(ImportError):
+_logger = logging.getLogger(__name__)
+
+# Try to import generated models
+try:
     from ._generated import *  # noqa: F403
+
+    _GENERATED_MODELS_AVAILABLE = True
+except ImportError as e:
+    # Generated models not yet created - this is expected before running
+    # the generation script for the first time
+    _GENERATED_MODELS_AVAILABLE = False
+    _logger.debug(
+        "Pydantic models not yet generated. Run 'uv run poe generate-pydantic' "
+        "to generate them. Import error: %s",
+        e,
+    )
 
 # Import auto-registration (populated by generation script)
 try:
     from ._auto_registry import register_all_models as _register_all
 
     _register_all()
-except ImportError:
-    # Auto-registry not yet created
-    pass
+    _REGISTRY_AVAILABLE = True
+except ImportError as e:
+    # Auto-registry not yet created - this is expected before generation
+    _REGISTRY_AVAILABLE = False
+    _logger.debug(
+        "Auto-registry not yet generated. Run 'uv run poe generate-pydantic' "
+        "to generate it. Import error: %s",
+        e,
+    )
 
 __all__ = [
     # Base class

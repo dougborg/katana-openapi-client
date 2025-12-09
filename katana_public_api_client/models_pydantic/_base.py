@@ -91,12 +91,13 @@ class KatanaPydanticBase(BaseModel):
             A new instance of this Pydantic model.
 
         Raises:
-            ValueError: If the attrs object type doesn't match the expected type.
+            ValueError: If attrs_obj is None or type doesn't match expected.
         """
         from . import _registry
 
         if attrs_obj is None:
-            return None  # type: ignore[return-value]
+            msg = f"Cannot convert None to {cls.__name__}"
+            raise ValueError(msg)
 
         # Extract field values from attrs object
         data: dict[str, Any] = {}
@@ -229,7 +230,22 @@ class KatanaPydanticBase(BaseModel):
 
 
 def _convert_nested_value(value: Any, registry: Any) -> Any:
-    """Convert a nested value from attrs to pydantic representation."""
+    """Convert a nested value from attrs to pydantic representation.
+
+    Args:
+        value: The value to convert.
+        registry: The model registry module.
+
+    Returns:
+        The converted value suitable for a Pydantic model.
+
+    Note:
+        If an attrs object is not registered in the registry, a warning is logged
+        and the original attrs object is returned as-is. This may cause issues
+        with Pydantic validation.
+    """
+    import logging
+
     if value is None:
         return None
 
@@ -253,6 +269,13 @@ def _convert_nested_value(value: Any, registry: Any) -> Any:
         pydantic_class = registry.get_pydantic_class(type(value))
         if pydantic_class:
             return pydantic_class.from_attrs(value)
+        # Warn about unregistered attrs classes
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            "Nested attrs class %s is not registered in the pydantic registry. "
+            "Conversion may fail or produce unexpected results.",
+            type(value).__name__,
+        )
 
     return value
 

@@ -19,11 +19,19 @@ import ast
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
+
+
+class GenerationError(Exception):
+    """Raised when code generation fails."""
+
+    def __init__(self, message: str, exit_code: int = 1) -> None:
+        super().__init__(message)
+        self.exit_code = exit_code
+
 
 # Domain groupings that preserve discriminator relationships
 # Key: group name, Value: list of class name patterns (exact match or prefix match with *)
@@ -188,7 +196,21 @@ def run_command(
     cwd: Path | None = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
-    """Run a command and return the result."""
+    """Run a command and return the result.
+
+    Args:
+        cmd: Command and arguments to run.
+        cwd: Working directory for the command.
+        check: If True, raise GenerationError on non-zero exit code.
+
+    Returns:
+        The completed process result.
+
+    Raises:
+        GenerationError: If check is True and command exits with non-zero code.
+    """
+    import sys
+
     print(f"  Running: {' '.join(cmd)}")
     if cwd:
         print(f"    Working directory: {cwd}")
@@ -201,16 +223,22 @@ def run_command(
         print(result.stderr, file=sys.stderr)
 
     if check and result.returncode != 0:
-        print(f"Command failed with exit code {result.returncode}")
-        sys.exit(result.returncode)
+        msg = f"Command failed with exit code {result.returncode}: {' '.join(cmd)}"
+        raise GenerationError(msg, exit_code=result.returncode)
 
     return result
 
 
-def generate_single_file(output_path: Path) -> bool:
+def generate_single_file(output_path: Path) -> None:
     """Generate Pydantic models to a single file using datamodel-codegen.
 
     The tool reads configuration from pyproject.toml.
+
+    Args:
+        output_path: Path where the generated file will be written.
+
+    Raises:
+        GenerationError: If generation fails or output file is not created.
     """
     print("Generating Pydantic models from OpenAPI spec...")
 
@@ -223,16 +251,15 @@ def generate_single_file(output_path: Path) -> bool:
     result = run_command(cmd, check=False)
 
     if result.returncode != 0:
-        print("Failed to generate models")
-        return False
+        msg = f"datamodel-codegen failed with exit code {result.returncode}"
+        raise GenerationError(msg, exit_code=result.returncode)
 
     if not output_path.exists():
-        print("Generated file not found")
-        return False
+        msg = f"Generated file not found at {output_path}"
+        raise GenerationError(msg)
 
     lines = len(output_path.read_text().splitlines())
     print(f"  Generated {lines} lines")
-    return True
 
 
 def parse_generated_file(
@@ -249,7 +276,8 @@ def parse_generated_file(
     classes: list[ClassInfo] = []
     type_aliases: list[TypeAliasInfo] = []
 
-    for node in ast.walk(tree):
+    # Process only top-level nodes (imports, classes, and type aliases)
+    for node in ast.iter_child_nodes(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
                 imports.append(
@@ -270,10 +298,7 @@ def parse_generated_file(
                     module=module,
                 )
             )
-
-    # Extract class definitions and type aliases from top-level
-    for node in ast.iter_child_nodes(tree):
-        if isinstance(node, ast.ClassDef):
+        elif isinstance(node, ast.ClassDef):
             # Get bases as strings
             bases = []
             for base in node.bases:
@@ -302,23 +327,23 @@ def parse_generated_file(
                     line_end=end_line,
                 )
             )
-        elif isinstance(node, ast.Assign):
-            # Check for type alias: Name = Name (e.g., ConfigAttribute2 = ConfigAttribute)
-            if (
-                len(node.targets) == 1
-                and isinstance(node.targets[0], ast.Name)
-                and isinstance(node.value, ast.Name)
-            ):
-                alias_name = node.targets[0].id
-                target_name = node.value.id
-                source = ast.get_source_segment(content, node) or ""
-                type_aliases.append(
-                    TypeAliasInfo(
-                        name=alias_name,
-                        source=source,
-                        target=target_name,
-                    )
+        elif (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and isinstance(node.value, ast.Name)
+        ):
+            # Type alias: Name = Name (e.g., ConfigAttribute2 = ConfigAttribute)
+            alias_name = node.targets[0].id
+            target_name = node.value.id
+            source = ast.get_source_segment(content, node) or ""
+            type_aliases.append(
+                TypeAliasInfo(
+                    name=alias_name,
+                    source=source,
+                    target=target_name,
                 )
+            )
 
     # Fix MRO issues: remove BaseEntity from classes that inherit from entity subtypes
     # DeletableEntity, UpdatableEntity, ArchivableEntity all inherit from BaseEntity
@@ -902,8 +927,7 @@ def main() -> None:
         temp_file = Path(tmp.name)
 
     try:
-        if not generate_single_file(temp_file):
-            sys.exit(1)
+        generate_single_file(temp_file)
 
         # Step 2: Parse the generated file
         imports, classes, type_aliases = parse_generated_file(temp_file)
@@ -962,4 +986,10 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    try:
+        main()
+    except GenerationError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(e.exit_code)

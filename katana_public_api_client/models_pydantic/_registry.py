@@ -31,7 +31,44 @@ def register(attrs_class: type, pydantic_class: type[KatanaPydanticBase]) -> Non
     Args:
         attrs_class: The attrs model class (from models/).
         pydantic_class: The corresponding Pydantic model class.
+
+    Raises:
+        TypeError: If attrs_class is not an attrs class or pydantic_class is not
+            a subclass of KatanaPydanticBase.
+        ValueError: If the classes are already registered with different mappings.
     """
+    # Import KatanaPydanticBase at runtime to avoid circular imports
+    from ._base import KatanaPydanticBase as BaseClass
+
+    # Validate attrs_class has attrs attributes
+    if not hasattr(attrs_class, "__attrs_attrs__"):
+        msg = f"{attrs_class.__name__} is not an attrs class (missing __attrs_attrs__)"
+        raise TypeError(msg)
+
+    # Validate pydantic_class is a proper Pydantic model
+    if not isinstance(pydantic_class, type) or not issubclass(
+        pydantic_class, BaseClass
+    ):
+        msg = f"{pydantic_class.__name__} is not a subclass of KatanaPydanticBase"
+        raise TypeError(msg)
+
+    # Check for conflicting registrations
+    existing_pydantic = _attrs_to_pydantic.get(attrs_class)
+    if existing_pydantic is not None and existing_pydantic is not pydantic_class:
+        msg = (
+            f"{attrs_class.__name__} is already registered to "
+            f"{existing_pydantic.__name__}, cannot register to {pydantic_class.__name__}"
+        )
+        raise ValueError(msg)
+
+    existing_attrs = _pydantic_to_attrs.get(pydantic_class)
+    if existing_attrs is not None and existing_attrs is not attrs_class:
+        msg = (
+            f"{pydantic_class.__name__} is already registered to "
+            f"{existing_attrs.__name__}, cannot register to {attrs_class.__name__}"
+        )
+        raise ValueError(msg)
+
     _attrs_to_pydantic[attrs_class] = pydantic_class
     _pydantic_to_attrs[pydantic_class] = attrs_class
     _attrs_name_to_class[attrs_class.__name__] = attrs_class
