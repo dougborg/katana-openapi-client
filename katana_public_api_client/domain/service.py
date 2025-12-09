@@ -9,10 +9,9 @@ leveraging its `from_attrs()` conversion while adding business-specific methods.
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic import Field
+from pydantic import AwareDatetime, Field
 
 from .base import KatanaBaseModel
 
@@ -77,7 +76,7 @@ class KatanaService(KatanaBaseModel):
     custom_field_collection_id: int | None = Field(
         None, description="Custom field collection ID"
     )
-    archived_at: datetime | None = Field(
+    archived_at: AwareDatetime | None = Field(
         None, description="Timestamp when service was archived"
     )
 
