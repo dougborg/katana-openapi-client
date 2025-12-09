@@ -9,6 +9,7 @@ leveraging its `from_attrs()` conversion while adding business-specific methods.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field
@@ -113,8 +114,8 @@ class KatanaProduct(KatanaBaseModel):
     custom_field_collection_id: int | None = Field(
         None, description="Custom field collection ID"
     )
-    archived_at: str | None = Field(
-        None, description="Timestamp when product was archived (ISO string)"
+    archived_at: datetime | None = Field(
+        None, description="Timestamp when product was archived"
     )
 
     # ============ Nested Data ============
@@ -151,11 +152,6 @@ class KatanaProduct(KatanaBaseModel):
         variant_count = len(generated.variants) if generated.variants else 0
         config_count = len(generated.configs) if generated.configs else 0
 
-        # Handle archived_at datetime conversion
-        archived_at_str: str | None = None
-        if generated.archived_at and hasattr(generated.archived_at, "isoformat"):
-            archived_at_str = generated.archived_at.isoformat()
-
         return cls(
             id=generated.id,
             name=generated.name,
@@ -176,7 +172,7 @@ class KatanaProduct(KatanaBaseModel):
             purchase_uom_conversion_rate=generated.purchase_uom_conversion_rate,
             additional_info=generated.additional_info,
             custom_field_collection_id=generated.custom_field_collection_id,
-            archived_at=archived_at_str,
+            archived_at=generated.archived_at,
             variant_count=variant_count,
             config_count=config_count,
             created_at=generated.created_at,
@@ -297,7 +293,7 @@ class KatanaProduct(KatanaBaseModel):
             "Config Count": self.config_count,
             "Created At": self.created_at.isoformat() if self.created_at else "",
             "Updated At": self.updated_at.isoformat() if self.updated_at else "",
-            "Archived At": self.archived_at or "",
+            "Archived At": self.archived_at.isoformat() if self.archived_at else "",
         }
 
 

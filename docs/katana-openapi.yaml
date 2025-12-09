@@ -1441,11 +1441,13 @@ components:
               type:
                 - string
                 - "null"
+              format: date-time
               description: Nullable archive timestamp
             deleted_at:
               type:
                 - string
                 - "null"
+              format: date-time
               description: Nullable deletion timestamp
       example:
         id: 12345

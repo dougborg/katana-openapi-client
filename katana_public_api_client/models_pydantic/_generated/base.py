@@ -68,8 +68,8 @@ class ArchivableDeletableEntity(BaseEntity):
         Field(description="Timestamp when the entity was last updated"),
     ] = None
     archived_at: Annotated[
-        str | None, Field(description="Nullable archive timestamp")
+        AwareDatetime | None, Field(description="Nullable archive timestamp")
     ] = None
     deleted_at: Annotated[
-        str | None, Field(description="Nullable deletion timestamp")
+        AwareDatetime | None, Field(description="Nullable deletion timestamp")
     ] = None

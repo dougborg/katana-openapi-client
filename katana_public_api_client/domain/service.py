@@ -9,6 +9,7 @@ leveraging its `from_attrs()` conversion while adding business-specific methods.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field
@@ -76,8 +77,8 @@ class KatanaService(KatanaBaseModel):
     custom_field_collection_id: int | None = Field(
         None, description="Custom field collection ID"
     )
-    archived_at: str | None = Field(
-        None, description="Timestamp when service was archived (ISO string)"
+    archived_at: datetime | None = Field(
+        None, description="Timestamp when service was archived"
     )
 
     # ============ Nested Data ============
@@ -120,9 +121,6 @@ class KatanaService(KatanaBaseModel):
                 if hasattr(generated.type, "value")
                 else generated.type
             )
-
-        # Note: In Service model, archived_at and deleted_at are already strings
-        # (from ArchivableDeletableEntity base class)
 
         return cls(
             id=generated.id,
@@ -246,8 +244,8 @@ class KatanaService(KatanaBaseModel):
             "Variant Count": self.variant_count,
             "Created At": self.created_at.isoformat() if self.created_at else "",
             "Updated At": self.updated_at.isoformat() if self.updated_at else "",
-            "Archived At": self.archived_at or "",
-            "Deleted At": self.deleted_at or "",
+            "Archived At": self.archived_at.isoformat() if self.archived_at else "",
+            "Deleted At": self.deleted_at.isoformat() if self.deleted_at else "",
         }
 
 
