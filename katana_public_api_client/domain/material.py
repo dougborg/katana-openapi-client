@@ -2,15 +2,22 @@
 
 This module provides a Pydantic model representing a Material (raw material or component)
 optimized for ETL, data processing, and business logic.
+
+The domain model uses composition with the auto-generated Pydantic model from OpenAPI,
+leveraging its `from_attrs()` conversion while adding business-specific methods.
 """
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field
 
 from .base import KatanaBaseModel
+
+if TYPE_CHECKING:
+    from ..models.material import Material as AttrsMaterial
+    from ..models_pydantic._generated.inventory import Material as GeneratedMaterial
 
 
 class KatanaMaterial(KatanaBaseModel):
@@ -24,11 +31,8 @@ class KatanaMaterial(KatanaBaseModel):
     - Data validation
     - JSON schema generation
 
-    Unlike the generated attrs model, this model:
-    - Has no Unset sentinel values
-    - Provides ETL-friendly methods
-    - Is immutable by default
-    - Clean Optional types
+    This model uses composition with the auto-generated Pydantic model,
+    exposing a curated subset of fields with business methods.
 
     Example:
         ```python
@@ -103,6 +107,88 @@ class KatanaMaterial(KatanaBaseModel):
         0, ge=0, description="Number of variants for this material"
     )
     config_count: int = Field(0, ge=0, description="Number of configuration attributes")
+
+    # ============ Factory Methods ============
+
+    @classmethod
+    def from_generated(cls, generated: GeneratedMaterial) -> KatanaMaterial:
+        """Create a KatanaMaterial from a generated Pydantic Material model.
+
+        This method extracts the curated subset of fields from the generated model.
+
+        Args:
+            generated: The auto-generated Pydantic Material model.
+
+        Returns:
+            A new KatanaMaterial instance with business methods.
+
+        Example:
+            ```python
+            from katana_public_api_client.models_pydantic import Material
+
+            # Convert from generated pydantic model
+            generated = Material.from_attrs(attrs_material)
+            domain = KatanaMaterial.from_generated(generated)
+            ```
+        """
+        # Count nested collections
+        variant_count = len(generated.variants) if generated.variants else 0
+        config_count = len(generated.configs) if generated.configs else 0
+
+        # Handle archived_at datetime conversion
+        archived_at_str: str | None = None
+        if generated.archived_at and hasattr(generated.archived_at, "isoformat"):
+            archived_at_str = generated.archived_at.isoformat()
+
+        return cls(
+            id=generated.id,
+            name=generated.name,
+            type="material",
+            uom=generated.uom,
+            category_name=generated.category_name,
+            is_sellable=generated.is_sellable,
+            batch_tracked=generated.batch_tracked,
+            default_supplier_id=generated.default_supplier_id,
+            purchase_uom=generated.purchase_uom,
+            purchase_uom_conversion_rate=generated.purchase_uom_conversion_rate,
+            additional_info=generated.additional_info,
+            custom_field_collection_id=generated.custom_field_collection_id,
+            archived_at=archived_at_str,
+            variant_count=variant_count,
+            config_count=config_count,
+            created_at=generated.created_at,
+            updated_at=generated.updated_at,
+            deleted_at=None,  # Material uses archived_at, not deleted_at
+        )
+
+    @classmethod
+    def from_attrs(cls, attrs_material: AttrsMaterial) -> KatanaMaterial:
+        """Create a KatanaMaterial from an attrs Material model (API response).
+
+        This method leverages the generated Pydantic model's `from_attrs()` method
+        to handle UNSET sentinel conversion, then creates the domain model.
+
+        Args:
+            attrs_material: The attrs Material model from API response.
+
+        Returns:
+            A new KatanaMaterial instance with business methods.
+
+        Example:
+            ```python
+            from katana_public_api_client.api.material import get_material
+            from katana_public_api_client.utils import unwrap
+
+            response = await get_material.asyncio_detailed(client=client, id=123)
+            attrs_material = unwrap(response)
+            domain = KatanaMaterial.from_attrs(attrs_material)
+            ```
+        """
+        from ..models_pydantic._generated.inventory import Material as GeneratedMaterial
+
+        # Use generated model's from_attrs() to handle UNSET conversion
+        generated = GeneratedMaterial.from_attrs(attrs_material)
+        return cls.from_generated(generated)
 
     # ============ Business Logic Methods ============
 

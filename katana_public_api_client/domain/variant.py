@@ -2,15 +2,22 @@
 
 This module provides a Pydantic model representing a Variant (product or material SKU)
 optimized for ETL, data processing, and business logic.
+
+The domain model uses composition with the auto-generated Pydantic model from OpenAPI,
+leveraging its `from_attrs()` conversion while adding business-specific methods.
 """
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field
 
 from .base import KatanaBaseModel
+
+if TYPE_CHECKING:
+    from ..models.variant import Variant as AttrsVariant
+    from ..models_pydantic._generated.inventory import Variant as GeneratedVariant
 
 
 class KatanaVariant(KatanaBaseModel):
@@ -23,11 +30,8 @@ class KatanaVariant(KatanaBaseModel):
     - Data validation
     - JSON schema generation
 
-    Unlike the generated attrs model, this model:
-    - Has no Unset sentinel values
-    - Provides ETL-friendly methods
-    - Is immutable by default
-    - Clean Optional types
+    This model uses composition with the auto-generated Pydantic model,
+    exposing a curated subset of fields with business methods.
 
     Example:
         ```python
@@ -101,6 +105,136 @@ class KatanaVariant(KatanaBaseModel):
     custom_fields: list[dict[str, str]] = Field(
         default_factory=list, description="Custom field values"
     )
+
+    # ============ Factory Methods ============
+
+    @classmethod
+    def from_generated(
+        cls,
+        generated: GeneratedVariant,
+        product_or_material_name: str | None = None,
+    ) -> KatanaVariant:
+        """Create a KatanaVariant from a generated Pydantic Variant model.
+
+        This method extracts the curated subset of fields from the generated model
+        and converts nested objects (config_attributes, custom_fields) to simple dicts.
+
+        Args:
+            generated: The auto-generated Pydantic Variant model.
+            product_or_material_name: Optional name of parent product/material
+                (must be provided separately as it comes from extend query).
+
+        Returns:
+            A new KatanaVariant instance with business methods.
+
+        Example:
+            ```python
+            from katana_public_api_client.models_pydantic import Variant
+
+            # Convert from generated pydantic model
+            generated = Variant.from_attrs(attrs_variant)
+            domain = KatanaVariant.from_generated(generated)
+            ```
+        """
+        # Convert config attributes to simple dicts
+        config_attrs: list[dict[str, str]] = []
+        if generated.config_attributes:
+            for attr in generated.config_attributes:
+                config_attrs.append(
+                    {
+                        "config_name": getattr(attr, "config_name", "") or "",
+                        "config_value": getattr(attr, "config_value", "") or "",
+                    }
+                )
+
+        # Convert custom fields to simple dicts
+        custom: list[dict[str, str]] = []
+        if generated.custom_fields:
+            for field in generated.custom_fields:
+                custom.append(
+                    {
+                        "field_name": getattr(field, "field_name", "") or "",
+                        "field_value": getattr(field, "field_value", "") or "",
+                    }
+                )
+
+        # Extract type value from enum if present
+        type_value = None
+        if generated.type is not None:
+            type_value = (
+                generated.type.value
+                if hasattr(generated.type, "value")
+                else generated.type
+            )
+
+        return cls(
+            id=generated.id,
+            sku=generated.sku,
+            sales_price=generated.sales_price,
+            purchase_price=generated.purchase_price,
+            product_id=generated.product_id,
+            material_id=generated.material_id,
+            product_or_material_name=product_or_material_name,
+            type=type_value,
+            internal_barcode=generated.internal_barcode,
+            registered_barcode=generated.registered_barcode,
+            supplier_item_codes=generated.supplier_item_codes or [],
+            lead_time=generated.lead_time,
+            minimum_order_quantity=generated.minimum_order_quantity,
+            config_attributes=config_attrs,
+            custom_fields=custom,
+            created_at=generated.created_at,
+            updated_at=generated.updated_at,
+            deleted_at=generated.deleted_at,
+        )
+
+    @classmethod
+    def from_attrs(
+        cls,
+        attrs_variant: AttrsVariant,
+        product_or_material_name: str | None = None,
+    ) -> KatanaVariant:
+        """Create a KatanaVariant from an attrs Variant model (API response).
+
+        This method leverages the generated Pydantic model's `from_attrs()` method
+        to handle UNSET sentinel conversion, then creates the domain model.
+
+        Args:
+            attrs_variant: The attrs Variant model from API response.
+            product_or_material_name: Optional name of parent product/material
+                (must be provided separately as it comes from extend query).
+
+        Returns:
+            A new KatanaVariant instance with business methods.
+
+        Example:
+            ```python
+            from katana_public_api_client.api.variant import get_variant
+            from katana_public_api_client.utils import unwrap
+
+            response = await get_variant.asyncio_detailed(client=client, id=123)
+            attrs_variant = unwrap(response)
+            domain = KatanaVariant.from_attrs(attrs_variant)
+            ```
+        """
+        from ..models_pydantic._generated.inventory import Variant as GeneratedVariant
+
+        # Use generated model's from_attrs() to handle UNSET conversion
+        generated = GeneratedVariant.from_attrs(attrs_variant)
+
+        # Extract product_or_material_name from extended data if not provided
+        if product_or_material_name is None and hasattr(
+            attrs_variant, "product_or_material"
+        ):
+            from ..client_types import UNSET
+
+            pom = attrs_variant.product_or_material
+            if pom is not UNSET and pom is not None and hasattr(pom, "name"):
+                name = pom.name
+                if name is not UNSET and isinstance(name, str):
+                    product_or_material_name = name
+
+        return cls.from_generated(generated, product_or_material_name)
 
     # ============ Business Logic Methods ============
 

@@ -2,15 +2,22 @@
 
 This module provides a Pydantic model representing a Product (finished good or component)
 optimized for ETL, data processing, and business logic.
+
+The domain model uses composition with the auto-generated Pydantic model from OpenAPI,
+leveraging its `from_attrs()` conversion while adding business-specific methods.
 """
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field
 
 from .base import KatanaBaseModel
+
+if TYPE_CHECKING:
+    from ..models.product import Product as AttrsProduct
+    from ..models_pydantic._generated.inventory import Product as GeneratedProduct
 
 
 class KatanaProduct(KatanaBaseModel):
@@ -24,11 +31,8 @@ class KatanaProduct(KatanaBaseModel):
     - Data validation
     - JSON schema generation
 
-    Unlike the generated attrs model, this model:
-    - Has no Unset sentinel values
-    - Provides ETL-friendly methods
-    - Is immutable by default
-    - Clean Optional types
+    This model uses composition with the auto-generated Pydantic model,
+    exposing a curated subset of fields with business methods.
 
     Example:
         ```python
@@ -119,6 +123,95 @@ class KatanaProduct(KatanaBaseModel):
         0, ge=0, description="Number of variants for this product"
     )
     config_count: int = Field(0, ge=0, description="Number of configuration attributes")
+
+    # ============ Factory Methods ============
+
+    @classmethod
+    def from_generated(cls, generated: GeneratedProduct) -> KatanaProduct:
+        """Create a KatanaProduct from a generated Pydantic Product model.
+
+        This method extracts the curated subset of fields from the generated model.
+
+        Args:
+            generated: The auto-generated Pydantic Product model.
+
+        Returns:
+            A new KatanaProduct instance with business methods.
+
+        Example:
+            ```python
+            from katana_public_api_client.models_pydantic import Product
+
+            # Convert from generated pydantic model
+            generated = Product.from_attrs(attrs_product)
+            domain = KatanaProduct.from_generated(generated)
+            ```
+        """
+        # Count nested collections
+        variant_count = len(generated.variants) if generated.variants else 0
+        config_count = len(generated.configs) if generated.configs else 0
+
+        # Handle archived_at datetime conversion
+        archived_at_str: str | None = None
+        if generated.archived_at and hasattr(generated.archived_at, "isoformat"):
+            archived_at_str = generated.archived_at.isoformat()
+
+        return cls(
+            id=generated.id,
+            name=generated.name,
+            type="product",
+            uom=generated.uom,
+            category_name=generated.category_name,
+            is_sellable=generated.is_sellable,
+            is_producible=generated.is_producible,
+            is_purchasable=generated.is_purchasable,
+            is_auto_assembly=generated.is_auto_assembly,
+            batch_tracked=generated.batch_tracked,
+            serial_tracked=generated.serial_tracked,
+            operations_in_sequence=generated.operations_in_sequence,
+            default_supplier_id=generated.default_supplier_id,
+            lead_time=generated.lead_time,
+            minimum_order_quantity=generated.minimum_order_quantity,
+            purchase_uom=generated.purchase_uom,
+            purchase_uom_conversion_rate=generated.purchase_uom_conversion_rate,
+            additional_info=generated.additional_info,
+            custom_field_collection_id=generated.custom_field_collection_id,
+            archived_at=archived_at_str,
+            variant_count=variant_count,
+            config_count=config_count,
+            created_at=generated.created_at,
+            updated_at=generated.updated_at,
+            deleted_at=None,  # Product uses archived_at, not deleted_at
+        )
+
+    @classmethod
+    def from_attrs(cls, attrs_product: AttrsProduct) -> KatanaProduct:
+        """Create a KatanaProduct from an attrs Product model (API response).
+
+        This method leverages the generated Pydantic model's `from_attrs()` method
+        to handle UNSET sentinel conversion, then creates the domain model.
+
+        Args:
+            attrs_product: The attrs Product model from API response.
+
+        Returns:
+            A new KatanaProduct instance with business methods.
+
+        Example:
+            ```python
+            from katana_public_api_client.api.product import get_product
+            from katana_public_api_client.utils import unwrap
+
+            response = await get_product.asyncio_detailed(client=client, id=123)
+            attrs_product = unwrap(response)
+            domain = KatanaProduct.from_attrs(attrs_product)
+            ```
+        """
+        from ..models_pydantic._generated.inventory import Product as GeneratedProduct
+
+        # Use generated model's from_attrs() to handle UNSET conversion
+        generated = GeneratedProduct.from_attrs(attrs_product)
+        return cls.from_generated(generated)
 
     # ============ Business Logic Methods ============
 

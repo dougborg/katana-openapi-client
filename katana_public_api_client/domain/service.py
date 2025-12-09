@@ -2,15 +2,22 @@
 
 This module provides a Pydantic model representing a Service (external service)
 optimized for ETL, data processing, and business logic.
+
+The domain model uses composition with the auto-generated Pydantic model from OpenAPI,
+leveraging its `from_attrs()` conversion while adding business-specific methods.
 """
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field
 
 from .base import KatanaBaseModel
+
+if TYPE_CHECKING:
+    from ..models.service import Service as AttrsService
+    from ..models_pydantic._generated.inventory import Service as GeneratedService
 
 
 class KatanaService(KatanaBaseModel):
@@ -23,11 +30,8 @@ class KatanaService(KatanaBaseModel):
     - Data validation
     - JSON schema generation
 
-    Unlike the generated attrs model, this model:
-    - Has no Unset sentinel values
-    - Provides ETL-friendly methods
-    - Is immutable by default
-    - Clean Optional types
+    This model uses composition with the auto-generated Pydantic model,
+    exposing a curated subset of fields with business methods.
 
     Example:
         ```python
@@ -81,6 +85,89 @@ class KatanaService(KatanaBaseModel):
     variant_count: int = Field(
         0, ge=0, description="Number of variants for this service"
     )
+
+    # ============ Factory Methods ============
+
+    @classmethod
+    def from_generated(cls, generated: GeneratedService) -> KatanaService:
+        """Create a KatanaService from a generated Pydantic Service model.
+
+        This method extracts the curated subset of fields from the generated model.
+
+        Args:
+            generated: The auto-generated Pydantic Service model.
+
+        Returns:
+            A new KatanaService instance with business methods.
+
+        Example:
+            ```python
+            from katana_public_api_client.models_pydantic import Service
+
+            # Convert from generated pydantic model
+            generated = Service.from_attrs(attrs_service)
+            domain = KatanaService.from_generated(generated)
+            ```
+        """
+        # Count nested collections
+        variant_count = len(generated.variants) if generated.variants else 0
+
+        # Extract type value from enum if present
+        type_value: Literal["service"] | None = None
+        if generated.type is not None:
+            type_value = (
+                generated.type.value
+                if hasattr(generated.type, "value")
+                else generated.type
+            )
+
+        # Note: In Service model, archived_at and deleted_at are already strings
+        # (from ArchivableDeletableEntity base class)
+
+        return cls(
+            id=generated.id,
+            name=generated.name,
+            type=type_value,
+            uom=generated.uom,
+            category_name=generated.category_name,
+            is_sellable=generated.is_sellable,
+            additional_info=generated.additional_info,
+            custom_field_collection_id=generated.custom_field_collection_id,
+            archived_at=generated.archived_at,
+            variant_count=variant_count,
+            created_at=generated.created_at,
+            updated_at=generated.updated_at,
+            deleted_at=generated.deleted_at,
+        )
+
+    @classmethod
+    def from_attrs(cls, attrs_service: AttrsService) -> KatanaService:
+        """Create a KatanaService from an attrs Service model (API response).
+
+        This method leverages the generated Pydantic model's `from_attrs()` method
+        to handle UNSET sentinel conversion, then creates the domain model.
+
+        Args:
+            attrs_service: The attrs Service model from API response.
+
+        Returns:
+            A new KatanaService instance with business methods.
+
+        Example:
+            ```python
+            from katana_public_api_client.api.service import get_service
+            from katana_public_api_client.utils import unwrap
+
+            response = await get_service.asyncio_detailed(client=client, id=123)
+            attrs_service = unwrap(response)
+            domain = KatanaService.from_attrs(attrs_service)
+            ```
+        """
+        from ..models_pydantic._generated.inventory import Service as GeneratedService
+
+        # Use generated model's from_attrs() to handle UNSET conversion
+        generated = GeneratedService.from_attrs(attrs_service)
+        return cls.from_generated(generated)
 
     # ============ Business Logic Methods ============
 
