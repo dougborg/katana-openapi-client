@@ -57,8 +57,8 @@ class KatanaService(KatanaBaseModel):
 
     id: int = Field(..., description="Unique service ID")
     name: str | None = Field(None, description="Service name")
-    type_: Literal["service"] | None = Field(
-        None, alias="type", description="Entity type"
+    type_: Literal["service"] = Field(
+        "service", alias="type", description="Entity type (always 'service')"
     )
 
     # ============ Classification & Units ============
@@ -112,19 +112,11 @@ class KatanaService(KatanaBaseModel):
         # Count nested collections
         variant_count = len(generated.variants) if generated.variants else 0
 
-        # Extract type value from enum if present
-        type_value: Literal["service"] | None = None
-        if generated.type is not None:
-            type_value = (
-                generated.type.value
-                if hasattr(generated.type, "value")
-                else generated.type
-            )
-
+        # Type is always "service" for Service entities
         return cls(
             id=generated.id,
             name=generated.name,
-            type=type_value,
+            type="service",  # Always "service" - required field
             uom=generated.uom,
             category_name=generated.category_name,
             is_sellable=generated.is_sellable,
@@ -236,7 +228,7 @@ class KatanaService(KatanaBaseModel):
         return {
             "ID": self.id,
             "Name": self.get_display_name(),
-            "Type": self.type_ or "service",
+            "Type": self.type_,
             "Category": self.category_name or "",
             "UOM": self.uom or "",
             "Is Sellable": self.is_sellable or False,

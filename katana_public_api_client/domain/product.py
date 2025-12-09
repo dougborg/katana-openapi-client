@@ -92,19 +92,24 @@ class KatanaProduct(KatanaBaseModel):
 
     default_supplier_id: int | None = Field(None, description="Default supplier ID")
     lead_time: int | None = Field(
-        None, ge=0, description="Lead time in days to fulfill order"
+        None, ge=0, le=999, description="Lead time in days to fulfill order"
     )
     minimum_order_quantity: float | None = Field(
-        None, ge=0, description="Minimum order quantity"
+        None, ge=0, le=999_999_999, description="Minimum order quantity"
     )
 
     # ============ Purchase Unit Conversion ============
 
     purchase_uom: str | None = Field(
-        None, description="Purchase unit of measure (if different from base UOM)"
+        None,
+        max_length=7,
+        description="Purchase unit of measure (if different from base UOM)",
     )
     purchase_uom_conversion_rate: float | None = Field(
-        None, ge=0, description="Conversion rate from purchase UOM to base UOM"
+        None,
+        ge=0,
+        le=1_000_000_000_000,
+        description="Conversion rate from purchase UOM to base UOM",
     )
 
     # ============ Additional Info ============

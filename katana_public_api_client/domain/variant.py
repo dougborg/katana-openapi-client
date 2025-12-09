@@ -58,8 +58,12 @@ class KatanaVariant(KatanaBaseModel):
 
     # ============ Pricing Fields ============
 
-    sales_price: float | None = Field(None, ge=0, description="Sales price")
-    purchase_price: float | None = Field(None, ge=0, description="Purchase cost")
+    sales_price: float | None = Field(
+        None, ge=0, le=100_000_000_000, description="Sales price"
+    )
+    purchase_price: float | None = Field(
+        None, ge=0, le=100_000_000_000, description="Purchase cost"
+    )
 
     # ============ Relationship Fields ============
 
@@ -75,8 +79,9 @@ class KatanaVariant(KatanaBaseModel):
 
     # ============ Classification ============
 
-    type_: Literal["product", "material", "service"] | None = Field(
-        None, alias="type", description="Variant type"
+    # Note: OpenAPI spec only allows "product" or "material" for variants
+    type_: Literal["product", "material"] | None = Field(
+        None, alias="type", description="Variant type (product or material)"
     )
 
     # ============ Inventory & Barcode Fields ============
@@ -90,10 +95,10 @@ class KatanaVariant(KatanaBaseModel):
     # ============ Ordering Fields ============
 
     lead_time: int | None = Field(
-        None, ge=0, description="Lead time in days to fulfill order"
+        None, ge=0, le=999, description="Lead time in days to fulfill order"
     )
     minimum_order_quantity: float | None = Field(
-        None, ge=0, description="Minimum order quantity"
+        None, ge=0, le=999_999_999, description="Minimum order quantity"
     )
 
     # ============ Configuration & Custom Data ============
@@ -159,13 +164,16 @@ class KatanaVariant(KatanaBaseModel):
                 )
 
         # Extract type value from enum if present
-        type_value = None
+        # Only "product" or "material" are valid per OpenAPI spec
+        type_value: Literal["product", "material"] | None = None
         if generated.type is not None:
-            type_value = (
+            raw_type = (
                 generated.type.value
                 if hasattr(generated.type, "value")
                 else generated.type
             )
+            if raw_type in ("product", "material"):
+                type_value = raw_type  # type: ignore[assignment]
 
         return cls(
             id=generated.id,

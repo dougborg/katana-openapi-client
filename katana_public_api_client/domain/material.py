@@ -85,10 +85,15 @@ class KatanaMaterial(KatanaBaseModel):
     # ============ Purchase Unit Conversion ============
 
     purchase_uom: str | None = Field(
-        None, description="Purchase unit of measure (if different from base UOM)"
+        None,
+        max_length=7,
+        description="Purchase unit of measure (if different from base UOM)",
     )
     purchase_uom_conversion_rate: float | None = Field(
-        None, ge=0, description="Conversion rate from purchase UOM to base UOM"
+        None,
+        ge=0,
+        le=1_000_000_000_000,
+        description="Conversion rate from purchase UOM to base UOM",
     )
 
     # ============ Additional Info ============
