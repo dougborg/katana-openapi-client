@@ -23,6 +23,9 @@ from fastmcp import FastMCP
 from fastmcp.server.middleware.caching import ResponseCachingMiddleware
 from key_value.aio.stores.memory import MemoryStore
 
+# Apply FastMCP patches for Pydantic 2.12+ compatibility BEFORE registering tools
+# This must be imported early, before any tools are registered
+import katana_mcp._fastmcp_patches  # noqa: F401
 from katana_mcp import __version__
 from katana_mcp.logging import get_logger, setup_logging
 from katana_public_api_client import KatanaClient
