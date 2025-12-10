@@ -2,6 +2,95 @@
 
 <!-- version list -->
 
+## v0.40.0 (2025-12-10)
+
+### Bug Fixes
+
+- Address self-review feedback and exclude integration tests
+  ([#198](https://github.com/dougborg/katana-openapi-client/pull/198),
+  [`5fb337d`](https://github.com/dougborg/katana-openapi-client/commit/5fb337d9dabc0d03b60de306f9497dfe007e4181))
+
+- **client**: Address PR review feedback - remove unused code
+  ([#197](https://github.com/dougborg/katana-openapi-client/pull/197),
+  [`744aabc`](https://github.com/dougborg/katana-openapi-client/commit/744aabccc62ee9a926681de8675e25a15aba0b74))
+
+- **client**: Align domain model types and constraints with OpenAPI spec
+  ([#199](https://github.com/dougborg/katana-openapi-client/pull/199),
+  [`86f454e`](https://github.com/dougborg/katana-openapi-client/commit/86f454e9fbf8fc2284ada4bd9c429d45188e79a6))
+
+- **client**: Use AwareDatetime for all timestamp fields in domain models
+  ([#199](https://github.com/dougborg/katana-openapi-client/pull/199),
+  [`86f454e`](https://github.com/dougborg/katana-openapi-client/commit/86f454e9fbf8fc2284ada4bd9c429d45188e79a6))
+
+- **client**: Use datetime for archived_at and deleted_at fields
+  ([#199](https://github.com/dougborg/katana-openapi-client/pull/199),
+  [`86f454e`](https://github.com/dougborg/katana-openapi-client/commit/86f454e9fbf8fc2284ada4bd9c429d45188e79a6))
+
+### Chores
+
+- **client**: Update dependencies to latest versions
+  ([#197](https://github.com/dougborg/katana-openapi-client/pull/197),
+  [`744aabc`](https://github.com/dougborg/katana-openapi-client/commit/744aabccc62ee9a926681de8675e25a15aba0b74))
+
+- **release**: Mcp v0.22.0
+  ([`72cd376`](https://github.com/dougborg/katana-openapi-client/commit/72cd3766338e71a30a22164e370c7f91e74fac6a))
+
+### Documentation
+
+- **client**: Add comprehensive TypeScript client documentation
+  ([#198](https://github.com/dougborg/katana-openapi-client/pull/198),
+  [`5fb337d`](https://github.com/dougborg/katana-openapi-client/commit/5fb337d9dabc0d03b60de306f9497dfe007e4181))
+
+### Features
+
+- **client**: Add auto-generated Pydantic models from OpenAPI
+  ([#199](https://github.com/dougborg/katana-openapi-client/pull/199),
+  [`86f454e`](https://github.com/dougborg/katana-openapi-client/commit/86f454e9fbf8fc2284ada4bd9c429d45188e79a6))
+
+- **client**: Add auto-generated Pydantic v2 models from OpenAPI
+  ([#199](https://github.com/dougborg/katana-openapi-client/pull/199),
+  [`86f454e`](https://github.com/dougborg/katana-openapi-client/commit/86f454e9fbf8fc2284ada4bd9c429d45188e79a6))
+
+- **mcp**: Update client dependency to v0.39.0
+  ([#196](https://github.com/dougborg/katana-openapi-client/pull/196),
+  [`95cda20`](https://github.com/dougborg/katana-openapi-client/commit/95cda20ab5c0381755bd813a36ac56da1f53b5d0))
+
+- **ts-client**: Add TypeScript client with resilient transport
+  ([#197](https://github.com/dougborg/katana-openapi-client/pull/197),
+  [`744aabc`](https://github.com/dougborg/katana-openapi-client/commit/744aabccc62ee9a926681de8675e25a15aba0b74))
+
+- **ts-client**: Add TypeScript client with retry and pagination transport
+  ([#197](https://github.com/dougborg/katana-openapi-client/pull/197),
+  [`744aabc`](https://github.com/dougborg/katana-openapi-client/commit/744aabccc62ee9a926681de8675e25a15aba0b74))
+
+- **ts-client**: Integrate KatanaClient with generated SDK and add tests
+  ([#197](https://github.com/dougborg/katana-openapi-client/pull/197),
+  [`744aabc`](https://github.com/dougborg/katana-openapi-client/commit/744aabccc62ee9a926681de8675e25a15aba0b74))
+
+### Refactoring
+
+- **client**: Improve pydantic models code quality
+  ([#199](https://github.com/dougborg/katana-openapi-client/pull/199),
+  [`86f454e`](https://github.com/dougborg/katana-openapi-client/commit/86f454e9fbf8fc2284ada4bd9c429d45188e79a6))
+
+- **client**: Modernize dependencies for 2025
+  ([#198](https://github.com/dougborg/katana-openapi-client/pull/198),
+  [`5fb337d`](https://github.com/dougborg/katana-openapi-client/commit/5fb337d9dabc0d03b60de306f9497dfe007e4181))
+
+- **client**: Modernize TypeScript client dependencies for 2025
+  ([#198](https://github.com/dougborg/katana-openapi-client/pull/198),
+  [`5fb337d`](https://github.com/dougborg/katana-openapi-client/commit/5fb337d9dabc0d03b60de306f9497dfe007e4181))
+
+- **client**: Use composition pattern for domain models
+  ([#199](https://github.com/dougborg/katana-openapi-client/pull/199),
+  [`86f454e`](https://github.com/dougborg/katana-openapi-client/commit/86f454e9fbf8fc2284ada4bd9c429d45188e79a6))
+
+### Testing
+
+- **client**: Add comprehensive tests for domain model factory methods
+  ([#199](https://github.com/dougborg/katana-openapi-client/pull/199),
+  [`86f454e`](https://github.com/dougborg/katana-openapi-client/commit/86f454e9fbf8fc2284ada4bd9c429d45188e79a6))
+
 ## v0.39.0 (2025-12-05)
 
 ### Bug Fixes
