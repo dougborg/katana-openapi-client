@@ -2,6 +2,25 @@
 
 <!-- version list -->
 
+## v0.41.0 (2025-12-10)
+
+### Bug Fixes
+
+- **client**: Update dependencies to address urllib3 security vulnerabilities
+  ([#202](https://github.com/dougborg/katana-openapi-client/pull/202),
+  [`d4d1fb1`](https://github.com/dougborg/katana-openapi-client/commit/d4d1fb1481e5039cbdf79c35c39465450c647b53))
+
+### Chores
+
+- **release**: Mcp v0.23.0
+  ([`5ade79f`](https://github.com/dougborg/katana-openapi-client/commit/5ade79fb9d863d4a96aa0c7377bf957036b8d7a7))
+
+### Features
+
+- **mcp**: Add create_sales_order tool
+  ([#201](https://github.com/dougborg/katana-openapi-client/pull/201),
+  [`055352c`](https://github.com/dougborg/katana-openapi-client/commit/055352cb8c66a734ff1f7bbafe6d3055fd65061f))
+
 ## v0.40.0 (2025-12-10)
 
 ### Bug Fixes
