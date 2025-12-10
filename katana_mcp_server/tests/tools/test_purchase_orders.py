@@ -404,7 +404,7 @@ async def test_verify_order_document_mixed_discrepancies():
 @pytest.mark.asyncio
 async def test_verify_order_document_empty_po():
     """Test verification when PO has no line items."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock PO with no rows
     mock_po = create_mock_po(order_id=1234, order_no="PO-001", rows=[])
@@ -438,7 +438,7 @@ async def test_verify_order_document_empty_po():
 @pytest.mark.asyncio
 async def test_verify_order_document_po_not_found():
     """Test verification when PO doesn't exist."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock 404 response
     mock_po_response = MagicMock()
