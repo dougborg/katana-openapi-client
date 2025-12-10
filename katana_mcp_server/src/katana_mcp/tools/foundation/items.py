@@ -108,7 +108,7 @@ async def _search_items_impl(
         for variant in variants:
             # Build variant name using domain model method
             # Format: "Product Name / Config1 / Config2 / ..."
-            name = variant.get_display_name()
+            name = variant.get_display_name() or ""
 
             # Determine if variant is sellable (products are sellable, materials are not)
             is_sellable = variant.type_ == "product" if variant.type_ else False
