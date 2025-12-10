@@ -9,6 +9,7 @@ Features:
 - Lifespan management for KatanaClient context
 - Production-ready with transport-layer resilience
 - Structured logging with observability
+- Response caching for improved performance (FastMCP 2.13+)
 """
 
 import os
@@ -19,7 +20,12 @@ from typing import Any
 
 from dotenv import load_dotenv
 from fastmcp import FastMCP
+from fastmcp.server.middleware.caching import ResponseCachingMiddleware
+from key_value.aio.stores.memory import MemoryStore
 
+# Apply FastMCP patches for Pydantic 2.12+ compatibility BEFORE registering tools
+# This must be imported early, before any tools are registered
+import katana_mcp._fastmcp_patches  # noqa: F401
 from katana_mcp import __version__
 from katana_mcp.logging import get_logger, setup_logging
 from katana_public_api_client import KatanaClient
@@ -140,6 +146,14 @@ mcp = FastMCP(
 
     All tools require KATANA_API_KEY environment variable to be set.
     """,
+)
+
+# Add response caching middleware to reduce API calls for repeated requests
+# Uses in-memory storage by default; can be upgraded to DiskStore or RedisStore
+# for persistence or distributed deployments
+mcp.add_middleware(ResponseCachingMiddleware(cache_storage=MemoryStore()))
+logger.info(
+    "middleware_added", middleware="ResponseCachingMiddleware", storage="MemoryStore"
 )
 
 # Register all tools, resources, and prompts with the mcp instance

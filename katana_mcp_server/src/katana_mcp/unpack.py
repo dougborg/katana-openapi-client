@@ -154,10 +154,17 @@ def unpack_pydantic_params(func: Callable) -> Callable:
 
         # Keep non-unpacked parameters, but if we've added KEYWORD_ONLY params
         # before this, we need to make this KEYWORD_ONLY too
+        # Also ensure the annotation is the resolved type (not a string from __future__ annotations)
+        # This is critical for FastMCP's create_function_without_params to work correctly
+        resolved_annotation = type_hints.get(param_name, param.annotation)
         if has_keyword_only and param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD:
-            new_params.append(param.replace(kind=inspect.Parameter.KEYWORD_ONLY))
+            new_params.append(
+                param.replace(
+                    kind=inspect.Parameter.KEYWORD_ONLY, annotation=resolved_annotation
+                )
+            )
         else:
-            new_params.append(param)
+            new_params.append(param.replace(annotation=resolved_annotation))
 
     # Create new signature with flattened parameters
     new_sig = sig.replace(parameters=new_params)
@@ -225,12 +232,14 @@ def unpack_pydantic_params(func: Callable) -> Callable:
 
     # CRITICAL: Also update __annotations__ so get_type_hints() sees the flattened params
     # This is required for FastMCP's ParsedFunction.from_function() to work correctly
+    # We must use resolved type hints (not raw string annotations from __future__ annotations)
     new_annotations = {}
     for param_name, param in new_sig.parameters.items():
         if param.annotation != inspect.Parameter.empty:
-            new_annotations[param_name] = param.annotation
+            # Prefer resolved type hint over raw annotation (handles forward references)
+            new_annotations[param_name] = type_hints.get(param_name, param.annotation)
     if new_sig.return_annotation != inspect.Signature.empty:
-        new_annotations["return"] = new_sig.return_annotation
+        new_annotations["return"] = type_hints.get("return", new_sig.return_annotation)
     wrapper.__annotations__ = new_annotations
 
     return wrapper

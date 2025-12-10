@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastmcp import FastMCP
+from fastmcp.server.middleware.caching import ResponseCachingMiddleware
 from katana_mcp.server import ServerContext, lifespan, main, mcp
 
 from katana_public_api_client import KatanaClient
@@ -226,9 +227,9 @@ class TestMCPServerInitialization:
 
     def test_mcp_server_has_lifespan(self):
         """Test that mcp server has lifespan configured."""
-        # FastMCP stores lifespan status in _has_lifespan attribute
-        assert hasattr(mcp, "_has_lifespan")
-        assert mcp._has_lifespan is True
+        # FastMCP stores lifespan in _lifespan attribute
+        assert hasattr(mcp, "_lifespan")
+        assert mcp._lifespan is not None
 
     def test_mcp_server_has_instructions(self):
         """Test that mcp server has instructions."""
@@ -319,3 +320,38 @@ class TestEnvironmentConfiguration:
             # Verify custom base URL was used
             call_kwargs = mock_client_class.call_args[1]
             assert call_kwargs["base_url"] == custom_url
+
+
+class TestResponseCachingMiddleware:
+    """Tests for ResponseCachingMiddleware configuration."""
+
+    def test_middleware_is_registered(self):
+        """Test that ResponseCachingMiddleware is registered with the MCP server."""
+        assert len(mcp.middleware) >= 1, "Expected at least one middleware registered"
+
+    def test_middleware_is_response_caching_type(self):
+        """Test that the registered middleware is ResponseCachingMiddleware."""
+        caching_middleware = [
+            m for m in mcp.middleware if isinstance(m, ResponseCachingMiddleware)
+        ]
+        assert len(caching_middleware) == 1, (
+            "Expected exactly one ResponseCachingMiddleware"
+        )
+
+    def test_middleware_has_memory_store_backend(self):
+        """Test that the middleware is configured with MemoryStore backend."""
+        from key_value.aio.stores.memory import MemoryStore
+
+        caching_middleware = next(
+            (m for m in mcp.middleware if isinstance(m, ResponseCachingMiddleware)),
+            None,
+        )
+        assert caching_middleware is not None, "ResponseCachingMiddleware not found"
+
+        # The middleware stores the backend in _backend attribute
+        assert hasattr(caching_middleware, "_backend"), (
+            "Middleware should have _backend attribute"
+        )
+        assert isinstance(caching_middleware._backend, MemoryStore), (
+            "Backend should be MemoryStore"
+        )

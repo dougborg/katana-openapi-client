@@ -65,7 +65,8 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/katana_mcp"]
 
-[tool.pytest.ini_options]
+# Pytest Configuration (Native TOML - pytest 9.0+)
+[tool.pytest]
 testpaths = ["tests"]
 asyncio_mode = "strict"
 markers = [
