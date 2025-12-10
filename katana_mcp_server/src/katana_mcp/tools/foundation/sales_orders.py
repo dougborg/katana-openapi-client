@@ -251,16 +251,18 @@ async def _create_sales_order_impl(
                     id=0,  # Will be assigned by API
                     sales_order_id=0,  # Will be assigned by API
                     entity_type=SalesOrderAddressEntityType(addr.entity_type),
-                    first_name=addr.first_name if addr.first_name else UNSET,
-                    last_name=addr.last_name if addr.last_name else UNSET,
-                    company=addr.company if addr.company else UNSET,
-                    phone=addr.phone if addr.phone else UNSET,
-                    line_1=addr.line_1 if addr.line_1 else UNSET,
-                    line_2=addr.line_2 if addr.line_2 else UNSET,
-                    city=addr.city if addr.city else UNSET,
-                    state=addr.state if addr.state else UNSET,
-                    zip_=addr.zip_code if addr.zip_code else UNSET,
-                    country=addr.country if addr.country else UNSET,
+                    first_name=addr.first_name
+                    if addr.first_name is not None
+                    else UNSET,
+                    last_name=addr.last_name if addr.last_name is not None else UNSET,
+                    company=addr.company if addr.company is not None else UNSET,
+                    phone=addr.phone if addr.phone is not None else UNSET,
+                    line_1=addr.line_1 if addr.line_1 is not None else UNSET,
+                    line_2=addr.line_2 if addr.line_2 is not None else UNSET,
+                    city=addr.city if addr.city is not None else UNSET,
+                    state=addr.state if addr.state is not None else UNSET,
+                    zip_=addr.zip_code if addr.zip_code is not None else UNSET,
+                    country=addr.country if addr.country is not None else UNSET,
                 )
                 addresses_list.append(api_addr)
 
