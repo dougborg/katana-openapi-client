@@ -123,7 +123,7 @@ class KatanaDocumentationExtractor:
         main_reference_url = f"{self.base_url}/reference/api-introduction"
         logger.info(f"🔍 Discovering API structure from: {main_reference_url}")
 
-        url, content, title = await self.fetch_page(session, main_reference_url)
+        url, content, _title = await self.fetch_page(session, main_reference_url)
         if content:
             # Extract OpenAPI spec if present
             if not self.openapi_spec:

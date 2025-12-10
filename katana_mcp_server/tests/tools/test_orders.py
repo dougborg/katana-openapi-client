@@ -25,7 +25,7 @@ from tests.conftest import create_mock_context
 @pytest.mark.asyncio
 async def test_fulfill_manufacturing_order_preview():
     """Test fulfill_order preview mode for manufacturing order."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock ManufacturingOrder
     mock_mo = MagicMock(spec=ManufacturingOrder)
@@ -61,7 +61,7 @@ async def test_fulfill_manufacturing_order_preview():
 @pytest.mark.asyncio
 async def test_fulfill_manufacturing_order_confirm():
     """Test fulfill_order confirm mode for manufacturing order."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock ManufacturingOrder for get
     mock_mo = MagicMock(spec=ManufacturingOrder)
@@ -112,7 +112,7 @@ async def test_fulfill_manufacturing_order_confirm():
 @pytest.mark.asyncio
 async def test_fulfill_manufacturing_order_already_done():
     """Test fulfill_order when manufacturing order is already DONE."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock ManufacturingOrder already DONE
     mock_mo = MagicMock(spec=ManufacturingOrder)
@@ -153,7 +153,7 @@ async def test_fulfill_manufacturing_order_already_done():
 @pytest.mark.asyncio
 async def test_fulfill_manufacturing_order_blocked():
     """Test fulfill_order preview when manufacturing order is BLOCKED."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock ManufacturingOrder BLOCKED
     mock_mo = MagicMock(spec=ManufacturingOrder)
@@ -182,7 +182,7 @@ async def test_fulfill_manufacturing_order_blocked():
 @pytest.mark.asyncio
 async def test_fulfill_manufacturing_order_not_found():
     """Test fulfill_order when manufacturing order not found."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock 404 response
     mock_response = MagicMock()
@@ -211,7 +211,7 @@ async def test_fulfill_manufacturing_order_not_found():
 @pytest.mark.asyncio
 async def test_fulfill_sales_order_preview():
     """Test fulfill_order preview mode for sales order."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock SalesOrder
     mock_so = MagicMock(spec=SalesOrder)
@@ -242,7 +242,7 @@ async def test_fulfill_sales_order_preview():
 @pytest.mark.asyncio
 async def test_fulfill_sales_order_confirm():
     """Test fulfill_order confirm mode for sales order."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock SalesOrder for get
     mock_so = MagicMock(spec=SalesOrder)
@@ -288,7 +288,7 @@ async def test_fulfill_sales_order_confirm():
 @pytest.mark.asyncio
 async def test_fulfill_sales_order_already_fulfilled():
     """Test fulfill_order when sales order is already DELIVERED."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock SalesOrder already DELIVERED
     mock_so = MagicMock(spec=SalesOrder)
@@ -333,7 +333,7 @@ async def test_fulfill_sales_order_already_fulfilled():
 @pytest.mark.asyncio
 async def test_fulfill_sales_order_not_found():
     """Test fulfill_order when sales order not found."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock 404 response
     mock_response = MagicMock()
@@ -373,7 +373,7 @@ async def test_fulfill_order_invalid_type():
 @pytest.mark.asyncio
 async def test_fulfill_manufacturing_order_api_error():
     """Test fulfill_order when manufacturing order API returns error."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock ManufacturingOrder
     mock_mo = MagicMock(spec=ManufacturingOrder)
@@ -410,7 +410,7 @@ async def test_fulfill_manufacturing_order_api_error():
 @pytest.mark.asyncio
 async def test_fulfill_sales_order_api_error():
     """Test fulfill_order when sales order fulfillment API returns error."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock SalesOrder
     mock_so = MagicMock(spec=SalesOrder)

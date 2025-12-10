@@ -53,7 +53,7 @@ async def test_create_manufacturing_order_preview():
 @pytest.mark.asyncio
 async def test_create_manufacturing_order_confirm_success():
     """Test create_manufacturing_order with confirm=True succeeds."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock successful API response
     mock_mo = ManufacturingOrder(
@@ -139,7 +139,7 @@ async def test_create_manufacturing_order_missing_optional_fields():
 @pytest.mark.asyncio
 async def test_create_manufacturing_order_confirm_with_minimal_fields():
     """Test create_manufacturing_order with only required fields."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock successful API response with minimal fields
     mock_mo = ManufacturingOrder(
@@ -193,7 +193,7 @@ async def test_create_manufacturing_order_confirm_with_minimal_fields():
 @pytest.mark.asyncio
 async def test_create_manufacturing_order_api_error():
     """Test create_manufacturing_order handles API errors."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock error response
     mock_response = MagicMock()
@@ -226,7 +226,7 @@ async def test_create_manufacturing_order_api_error():
 @pytest.mark.asyncio
 async def test_create_manufacturing_order_api_exception():
     """Test create_manufacturing_order handles API exceptions."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock API call that raises exception
     mock_api_call = AsyncMock(side_effect=Exception("Network error"))

@@ -88,7 +88,7 @@ async def test_create_sales_order_preview_minimal_fields():
 @pytest.mark.asyncio
 async def test_create_sales_order_confirm_success():
     """Test create_sales_order with confirm=True succeeds."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock successful API response
     # Note: SalesOrderStatus uses NOT_SHIPPED as starting status, not PENDING
@@ -149,7 +149,7 @@ async def test_create_sales_order_confirm_success():
 @pytest.mark.asyncio
 async def test_create_sales_order_with_addresses():
     """Test create_sales_order with billing and shipping addresses."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock successful API response
     mock_so = SalesOrder(
@@ -247,7 +247,7 @@ async def test_create_sales_order_with_discount():
 @pytest.mark.asyncio
 async def test_create_sales_order_api_error():
     """Test create_sales_order handles API errors."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock error response
     mock_response = MagicMock()
@@ -280,7 +280,7 @@ async def test_create_sales_order_api_error():
 @pytest.mark.asyncio
 async def test_create_sales_order_api_exception():
     """Test create_sales_order handles API exceptions."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock API call that raises exception
     mock_api_call = AsyncMock(side_effect=Exception("Network error"))
@@ -309,7 +309,7 @@ async def test_create_sales_order_api_exception():
 @pytest.mark.asyncio
 async def test_create_sales_order_confirm_with_minimal_fields():
     """Test create_sales_order with only required fields."""
-    context, lifespan_ctx = create_mock_context()
+    context, _lifespan_ctx = create_mock_context()
 
     # Mock successful API response with minimal fields
     mock_so = SalesOrder(

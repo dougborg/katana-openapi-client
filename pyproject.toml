@@ -39,18 +39,18 @@ classifiers = [
 ]
 dependencies = [
   # Generated client dependencies
-  "httpx>=0.28.0",
-  "attrs>=22.2.0",
-  "python-dateutil>=2.8.0",
+  "httpx>=0.28.1",
+  "attrs>=24.0.0",
+  "python-dateutil>=2.9.0",
   # Enhanced client dependencies
-  "tenacity>=9.0.0",
+  "tenacity>=9.1.0",
   "python-dotenv>=1.0.0",
-  # Legacy dependencies (keeping for compatibility)
-  "urllib3>=2.5.0,<4.0.0",
-  "pydantic>=2,<3",
-  "email-validator>=2.0.0",  # Required for Pydantic EmailStr fields
-  "typing-extensions>=4.7.0",
-  "httpx-retries (>=0.4.3,<0.5.0)",
+  # Security-critical: urllib3 >= 2.6.0 fixes CVE-2025-66471 and CVE-2025-66418
+  "urllib3>=2.6.0",
+  "pydantic>=2.12.0",
+  "email-validator>=2.2.0",  # Required for Pydantic EmailStr fields
+  "typing-extensions>=4.13.0",
+  "httpx-retries>=0.4.5",
 ]
 
 [project.urls]
@@ -67,44 +67,44 @@ katana-release = "semantic_release.cli:main"
 [project.optional-dependencies]
 dev = [
   # Testing
-  "pytest>=7.2.0",
-  "pytest-asyncio>=0.21.0",
-  "pytest-cov>=2.8.0",
-  "pytest-mock>=3.10.0",
-  "pytest-timeout>=2.1.0",
+  "pytest>=9.0.0",
+  "pytest-asyncio>=0.26.0",
+  "pytest-cov>=7.0.0",
+  "pytest-mock>=3.14.0",
+  "pytest-timeout>=2.4.0",
   "pytest-xdist>=3.6.1",
-  "tox>=4.0.0",
+  "tox>=4.25.0",
   # Code quality and linting
-  "ruff>=0.12.4,<0.13",
-  "pre-commit>=4.2.0",
+  "ruff>=0.14.0",
+  "pre-commit>=4.5.0",
   # Build tools
-  "build>=1.0.0",
+  "build>=1.2.0",
   # YAML linting
   "yamllint>=1.37.0",
   # OpenAPI validation
   "pyyaml>=6.0.0",
   "openapi-spec-validator>=0.7.0",
   # Markdown formatting
-  "mdformat>=0.7.17",
-  "mdformat-gfm>=0.3.0",
-  "mdformat-tables>=0.4.0",
+  "mdformat>=0.7.21",
+  "mdformat-gfm>=0.4.1",
+  "mdformat-tables>=1.0.0",
   "mdformat-toc>=0.3.0",
   # Type stubs
-  "types-python-dateutil>=2.8.0",
+  "types-python-dateutil>=2.9.0",
   "types-PyYAML>=6.0.0",
   "types-urllib3>=1.26.0",
   # OpenAPI tools
   "openapi-python-client>=0.25.2",
-  "datamodel-code-generator>=0.26.0",
+  "datamodel-code-generator>=0.27.0",
   # Semantic release
-  "python-semantic-release>=9.0.0",
+  "python-semantic-release>=10.5.0",
 ]
 
 docs = [
   # Documentation - MkDocs
   "mkdocs>=1.6.0",
-  "mkdocs-material>=9.5.0",
-  "mkdocstrings[python]>=0.25.0",
+  "mkdocs-material>=9.7.0",
+  "mkdocstrings[python]>=0.29.0",
   "mkdocs-gen-files>=0.5.0",
   "mkdocs-literate-nav>=0.6.0",
   "mkdocs-swagger-ui-tag>=0.7.1",
