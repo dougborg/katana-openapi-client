@@ -1167,6 +1167,7 @@ components:
           required: "#/components/schemas/RequiredValidationError"
           pattern: "#/components/schemas/PatternValidationError"
           unrecognized_keys: "#/components/schemas/UnrecognizedKeysValidationError"
+          generic: "#/components/schemas/GenericValidationError"
 
     BaseValidationError:
       type: object
@@ -1328,6 +1329,10 @@ components:
         - $ref: "#/components/schemas/BaseValidationError"
         - type: object
           description: Fallback for any validation error codes not explicitly typed
+          properties:
+            code:
+              type: string
+              description: Validation error code for generic errors
 
     OutsourcedPurchaseOrderIngredientAvailability:
       type: string
@@ -1436,11 +1441,13 @@ components:
               type:
                 - string
                 - "null"
+              format: date-time
               description: Nullable archive timestamp
             deleted_at:
               type:
                 - string
                 - "null"
+              format: date-time
               description: Nullable deletion timestamp
       example:
         id: 12345

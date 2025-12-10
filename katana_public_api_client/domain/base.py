@@ -14,10 +14,9 @@ are optimized for:
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any, ClassVar
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 
 class KatanaBaseModel(BaseModel):
@@ -60,13 +59,14 @@ class KatanaBaseModel(BaseModel):
     _api_version: ClassVar[str] = "v1"
 
     # Common timestamp fields (most Katana entities have these)
-    created_at: datetime | None = Field(
+    # Using AwareDatetime to match generated Pydantic models and ensure timezone awareness
+    created_at: AwareDatetime | None = Field(
         None, description="Timestamp when entity was created"
     )
-    updated_at: datetime | None = Field(
+    updated_at: AwareDatetime | None = Field(
         None, description="Timestamp when entity was last updated"
     )
-    deleted_at: datetime | None = Field(
+    deleted_at: AwareDatetime | None = Field(
         None, description="Timestamp when entity was soft-deleted (if applicable)"
     )
 

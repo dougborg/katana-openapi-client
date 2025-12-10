@@ -2,15 +2,22 @@
 
 This module provides a Pydantic model representing a Material (raw material or component)
 optimized for ETL, data processing, and business logic.
+
+The domain model uses composition with the auto-generated Pydantic model from OpenAPI,
+leveraging its `from_attrs()` conversion while adding business-specific methods.
 """
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic import Field
+from pydantic import AwareDatetime, Field
 
 from .base import KatanaBaseModel
+
+if TYPE_CHECKING:
+    from ..models.material import Material as AttrsMaterial
+    from ..models_pydantic._generated.inventory import Material as GeneratedMaterial
 
 
 class KatanaMaterial(KatanaBaseModel):
@@ -24,11 +31,8 @@ class KatanaMaterial(KatanaBaseModel):
     - Data validation
     - JSON schema generation
 
-    Unlike the generated attrs model, this model:
-    - Has no Unset sentinel values
-    - Provides ETL-friendly methods
-    - Is immutable by default
-    - Clean Optional types
+    This model uses composition with the auto-generated Pydantic model,
+    exposing a curated subset of fields with business methods.
 
     Example:
         ```python
@@ -81,10 +85,15 @@ class KatanaMaterial(KatanaBaseModel):
     # ============ Purchase Unit Conversion ============
 
     purchase_uom: str | None = Field(
-        None, description="Purchase unit of measure (if different from base UOM)"
+        None,
+        max_length=7,
+        description="Purchase unit of measure (if different from base UOM)",
     )
     purchase_uom_conversion_rate: float | None = Field(
-        None, ge=0, description="Conversion rate from purchase UOM to base UOM"
+        None,
+        ge=0,
+        le=1_000_000_000_000,
+        description="Conversion rate from purchase UOM to base UOM",
     )
 
     # ============ Additional Info ============
@@ -93,8 +102,8 @@ class KatanaMaterial(KatanaBaseModel):
     custom_field_collection_id: int | None = Field(
         None, description="Custom field collection ID"
     )
-    archived_at: str | None = Field(
-        None, description="Timestamp when material was archived (ISO string)"
+    archived_at: AwareDatetime | None = Field(
+        None, description="Timestamp when material was archived"
     )
 
     # ============ Nested Data ============
@@ -103,6 +112,83 @@ class KatanaMaterial(KatanaBaseModel):
         0, ge=0, description="Number of variants for this material"
     )
     config_count: int = Field(0, ge=0, description="Number of configuration attributes")
+
+    # ============ Factory Methods ============
+
+    @classmethod
+    def from_generated(cls, generated: GeneratedMaterial) -> KatanaMaterial:
+        """Create a KatanaMaterial from a generated Pydantic Material model.
+
+        This method extracts the curated subset of fields from the generated model.
+
+        Args:
+            generated: The auto-generated Pydantic Material model.
+
+        Returns:
+            A new KatanaMaterial instance with business methods.
+
+        Example:
+            ```python
+            from katana_public_api_client.models_pydantic import Material
+
+            # Convert from generated pydantic model
+            generated = Material.from_attrs(attrs_material)
+            domain = KatanaMaterial.from_generated(generated)
+            ```
+        """
+        # Count nested collections
+        variant_count = len(generated.variants) if generated.variants else 0
+        config_count = len(generated.configs) if generated.configs else 0
+
+        return cls(
+            id=generated.id,
+            name=generated.name,
+            type="material",
+            uom=generated.uom,
+            category_name=generated.category_name,
+            is_sellable=generated.is_sellable,
+            batch_tracked=generated.batch_tracked,
+            default_supplier_id=generated.default_supplier_id,
+            purchase_uom=generated.purchase_uom,
+            purchase_uom_conversion_rate=generated.purchase_uom_conversion_rate,
+            additional_info=generated.additional_info,
+            custom_field_collection_id=generated.custom_field_collection_id,
+            archived_at=generated.archived_at,
+            variant_count=variant_count,
+            config_count=config_count,
+            created_at=generated.created_at,
+            updated_at=generated.updated_at,
+            deleted_at=None,  # Material uses archived_at, not deleted_at
+        )
+
+    @classmethod
+    def from_attrs(cls, attrs_material: AttrsMaterial) -> KatanaMaterial:
+        """Create a KatanaMaterial from an attrs Material model (API response).
+
+        This method leverages the generated Pydantic model's `from_attrs()` method
+        to handle UNSET sentinel conversion, then creates the domain model.
+
+        Args:
+            attrs_material: The attrs Material model from API response.
+
+        Returns:
+            A new KatanaMaterial instance with business methods.
+
+        Example:
+            ```python
+            from katana_public_api_client.api.material import get_material
+            from katana_public_api_client.utils import unwrap
+
+            response = await get_material.asyncio_detailed(client=client, id=123)
+            attrs_material = unwrap(response)
+            domain = KatanaMaterial.from_attrs(attrs_material)
+            ```
+        """
+        from ..models_pydantic._generated.inventory import Material as GeneratedMaterial
+
+        # Use generated model's from_attrs() to handle UNSET conversion
+        generated = GeneratedMaterial.from_attrs(attrs_material)
+        return cls.from_generated(generated)
 
     # ============ Business Logic Methods ============
 
@@ -185,7 +271,7 @@ class KatanaMaterial(KatanaBaseModel):
             "Config Count": self.config_count,
             "Created At": self.created_at.isoformat() if self.created_at else "",
             "Updated At": self.updated_at.isoformat() if self.updated_at else "",
-            "Archived At": self.archived_at or "",
+            "Archived At": self.archived_at.isoformat() if self.archived_at else "",
         }
 
 
