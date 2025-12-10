@@ -190,25 +190,26 @@ packages = ["katana_public_api_client"]
 # module = ["katana_public_api_client.katana_client"]
 # disable_error_code = ["misc", "arg-type"]
 
-[tool.pytest.ini_options]
-minversion = "7.0"
-addopts = [
-  "-ra",
-  "--strict-markers",
-  "--strict-config",
-  "--timeout=30",     # 30 second timeout for tests
-  # Note: pytest-xdist is available - use `-n auto` to enable parallel execution
-]
+# =============================================================================
+# Pytest Configuration (Native TOML - pytest 9.0+)
+# =============================================================================
+# Native TOML format under [tool.pytest] provides proper data types.
+# Note: pytest-xdist is available - use `-n auto` to enable parallel execution
+
+[tool.pytest]
+minversion = "9.0"
+addopts = ["-ra", "--strict-markers", "--strict-config", "--timeout=30"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+# Markers must still be a list even in native TOML (linelist type)
 markers = [
   "slow: marks tests as slow",
   "integration: marks tests as integration tests",
   "unit: marks tests as unit tests",
   "asyncio: marks tests as async tests",
   "docs: marks tests as documentation tests (slow, only run in CI docs jobs)",
-  "schema_validation: marks tests that validate OpenAPI schema quality (these tests cause non-deterministic test collection and race conditions when run with pytest-xdist due to dynamic parametrization; run explicitly with -m schema_validation)",
+  "schema_validation: marks tests that validate OpenAPI schema quality (run with pytest-xdist disabled)",
 ]
 
 [tool.coverage.run]
