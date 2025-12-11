@@ -31,6 +31,7 @@ from katana_public_api_client.api.material import delete_material
 from katana_public_api_client.api.product import delete_product
 from katana_public_api_client.api.purchase_order import delete_purchase_order
 from katana_public_api_client.api.sales_order import delete_sales_order
+from katana_public_api_client.utils import unwrap_data
 
 logger = logging.getLogger(__name__)
 
@@ -319,10 +320,8 @@ async def cleanup_orphaned_test_data(client: KatanaClient) -> dict[str, int]:
     for resource_name, list_func, delete_func, get_identifier in cleanup_configs:
         try:
             response = await list_func(client=client)
-            if response.status_code != 200 or response.parsed is None:
-                continue
-
-            items = response.parsed if isinstance(response.parsed, list) else []
+            # Use unwrap_data helper to safely extract data list
+            items = unwrap_data(response, raise_on_error=False, default=[])
             deleted = 0
 
             for item in items:

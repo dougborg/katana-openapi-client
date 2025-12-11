@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger
 from katana_mcp.services import get_services
+from katana_public_api_client.utils import unwrap_data
 
 if TYPE_CHECKING:
     pass
@@ -79,8 +80,8 @@ async def _get_sales_orders_impl(context: Context) -> SalesOrdersResource:
             client=services.client, limit=50
         )
 
-        # Parse response
-        orders_data = response.parsed if response.parsed else []
+        # Parse response - extract data list from Response
+        orders_data = unwrap_data(response, raise_on_error=False, default=[])
 
         # Aggregate into orders list
         orders = []
@@ -251,7 +252,8 @@ async def _get_purchase_orders_impl(context: Context) -> PurchaseOrdersResource:
             client=services.client, limit=50
         )
 
-        orders_data = response.parsed if response.parsed else []
+        # Parse response - extract data list from Response
+        orders_data = unwrap_data(response, raise_on_error=False, default=[])
 
         orders = []
         status_counts: dict[str, int] = {}
@@ -386,7 +388,8 @@ async def _get_manufacturing_orders_impl(
             client=services.client, limit=50
         )
 
-        orders_data = response.parsed if response.parsed else []
+        # Parse response - extract data list from Response
+        orders_data = unwrap_data(response, raise_on_error=False, default=[])
 
         orders = []
         status_counts: dict[str, int] = {}

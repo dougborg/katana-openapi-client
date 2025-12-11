@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger
 from katana_mcp.services import get_services
+from katana_public_api_client.utils import unwrap_data
 
 if TYPE_CHECKING:
     pass
@@ -313,9 +314,11 @@ async def _get_stock_movements_impl(context: Context) -> StockMovementsResource:
             client=services.client, limit=50
         )
 
-        # Parse responses - extract data from Response objects
-        transfers = transfers_response.parsed if transfers_response.parsed else []
-        adjustments = adjustments_response.parsed if adjustments_response.parsed else []
+        # Parse responses - extract data list from Response objects
+        transfers = unwrap_data(transfers_response, raise_on_error=False, default=[])
+        adjustments = unwrap_data(
+            adjustments_response, raise_on_error=False, default=[]
+        )
 
         # Aggregate into unified movements list
         movements = []
