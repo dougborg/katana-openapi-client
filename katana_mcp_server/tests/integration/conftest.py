@@ -2,6 +2,14 @@
 
 These fixtures provide real KatanaClient instances for end-to-end testing.
 All integration tests require KATANA_API_KEY environment variable.
+
+TEST DATA ISOLATION:
+All test data uses the "MCPTEST-<session_id>" namespace prefix for:
+- Easy identification in the Katana UI
+- Automatic cleanup after tests
+- Isolation between concurrent test runs
+
+See test_utils.py for the TestSession class and cleanup utilities.
 """
 
 import os
@@ -13,12 +21,18 @@ import pytest_asyncio
 
 from katana_public_api_client import KatanaClient
 
+from .test_utils import TEST_NAMESPACE_PREFIX, TrackedTestSession, tracked_session
+
 
 def pytest_configure(config):
     """Register custom markers for integration tests."""
     config.addinivalue_line(
         "markers",
         "integration: mark test as integration test requiring API access",
+    )
+    config.addinivalue_line(
+        "markers",
+        "creates_data: mark test as creating real data in Katana (requires cleanup)",
     )
 
 
@@ -99,6 +113,9 @@ async def integration_context(katana_client):
 def unique_sku():
     """Generate a unique SKU for test entities.
 
+    Note: For tests that actually create data, use test_session.namespaced_sku()
+    instead to ensure proper namespace isolation.
+
     Returns:
         str: SKU in format TEST-<timestamp> to avoid collisions
     """
@@ -109,7 +126,49 @@ def unique_sku():
 def unique_order_number():
     """Generate a unique order number for test entities.
 
+    Note: For tests that actually create data, use test_session.namespaced_order_number()
+    instead to ensure proper namespace isolation.
+
     Returns:
         str: Order number in format TEST-PO-<timestamp>
     """
     return f"TEST-PO-{int(time.time() * 1000)}"
+
+
+@pytest_asyncio.fixture(scope="function")
+async def tracked_test_session(katana_client):
+    """Create a test session with automatic resource tracking and cleanup.
+
+    This fixture provides a TestSession that:
+    - Generates namespaced identifiers (SKUs, order numbers, names)
+    - Tracks all created resources
+    - Automatically cleans up resources when the test completes
+
+    Usage:
+        async def test_create_product(tracked_test_session, integration_context):
+            session = tracked_test_session
+            sku = session.namespaced_sku("WIDGET-001")
+
+            # Create the product (using your tool)
+            result = await create_product(sku=sku, ...)
+
+            # Track it for cleanup
+            session.track(ResourceType.PRODUCT, result.id, sku)
+
+            # Test assertions...
+
+        # Resources are cleaned up automatically after test
+
+    Yields:
+        TrackedTestSession: Session object for tracking resources
+    """
+    async with tracked_session(katana_client) as session:
+        yield session
+
+
+# Re-export for convenience
+__all__ = [
+    "TEST_NAMESPACE_PREFIX",
+    "TrackedTestSession",
+    "tracked_session",
+]
