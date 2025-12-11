@@ -169,8 +169,12 @@ class TestPurchaseOrderPreviewWorkflow:
 class TestPurchaseOrderValidation:
     """Test purchase order input validation."""
 
-    async def test_po_requires_items(self, integration_context):
-        """Test that PO creation fails without items."""
+    async def test_po_requires_items(self):
+        """Test that PO creation fails without items.
+
+        Note: This test doesn't need integration_context as it only tests
+        Pydantic validation, not API calls.
+        """
         with pytest.raises(ValueError, match="at least 1"):
             CreatePurchaseOrderRequest(
                 supplier_id=1,
@@ -180,8 +184,12 @@ class TestPurchaseOrderValidation:
                 confirm=False,
             )
 
-    async def test_po_item_requires_positive_quantity(self, integration_context):
-        """Test that PO items require positive quantity."""
+    async def test_po_item_requires_positive_quantity(self):
+        """Test that PO items require positive quantity.
+
+        Note: This test doesn't need integration_context as it only tests
+        Pydantic validation, not API calls.
+        """
         with pytest.raises(ValueError):
             PurchaseOrderItem(
                 variant_id=1,

@@ -127,8 +127,12 @@ class TestManufacturingOrderPreviewWorkflow:
 class TestManufacturingOrderValidation:
     """Test manufacturing order input validation."""
 
-    async def test_mo_requires_positive_quantity(self, integration_context):
-        """Test that MO creation fails with zero or negative quantity."""
+    async def test_mo_requires_positive_quantity(self):
+        """Test that MO creation fails with zero or negative quantity.
+
+        Note: This test doesn't need integration_context as it only tests
+        Pydantic validation, not API calls.
+        """
         with pytest.raises(ValueError):
             CreateManufacturingOrderRequest(
                 variant_id=1,

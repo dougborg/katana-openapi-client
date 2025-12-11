@@ -5,7 +5,7 @@ All integration tests require KATANA_API_KEY environment variable.
 """
 
 import os
-from contextlib import asynccontextmanager
+import time
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -94,35 +94,6 @@ async def integration_context(katana_client):
     yield context
 
 
-@asynccontextmanager
-async def declining_context(katana_client):
-    """Create a context that simulates user declining confirmation.
-
-    Use this context manager when testing workflows where the user
-    declines to confirm an action.
-
-    Usage:
-        async with declining_context(katana_client) as context:
-            result = await some_tool(request, context)
-            assert "declined" in result.message
-    """
-    context = MagicMock()
-    mock_request_context = MagicMock()
-    mock_lifespan_context = MagicMock()
-
-    mock_lifespan_context.client = katana_client
-    mock_request_context.lifespan_context = mock_lifespan_context
-    context.request_context = mock_request_context
-
-    # Mock elicit() to simulate user declining
-    mock_elicit_result = MagicMock()
-    mock_elicit_result.action = "decline"
-    mock_elicit_result.data = None
-    context.elicit = AsyncMock(return_value=mock_elicit_result)
-
-    yield context
-
-
 # Test data generators for creating test entities
 @pytest.fixture
 def unique_sku():
@@ -131,8 +102,6 @@ def unique_sku():
     Returns:
         str: SKU in format TEST-<timestamp> to avoid collisions
     """
-    import time
-
     return f"TEST-{int(time.time() * 1000)}"
 
 
@@ -143,6 +112,4 @@ def unique_order_number():
     Returns:
         str: Order number in format TEST-PO-<timestamp>
     """
-    import time
-
     return f"TEST-PO-{int(time.time() * 1000)}"
