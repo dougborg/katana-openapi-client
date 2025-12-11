@@ -11,7 +11,8 @@ NOTE: These tests use preview mode by default to avoid creating real orders.
 Tests that create actual orders are marked with @pytest.mark.creates_data.
 """
 
-from datetime import UTC
+import time
+from datetime import UTC, datetime
 
 import pytest
 from katana_mcp.tools.foundation.items import (
@@ -109,8 +110,6 @@ class TestPurchaseOrderPreviewWorkflow:
                 )
             )
 
-        import time
-
         order_number = f"TEST-PO-{int(time.time())}"
 
         po_request = CreatePurchaseOrderRequest(
@@ -133,8 +132,6 @@ class TestPurchaseOrderPreviewWorkflow:
         self, integration_context, unique_order_number
     ):
         """Test PO preview with all optional fields populated."""
-        from datetime import datetime
-
         request = CreatePurchaseOrderRequest(
             supplier_id=1,
             location_id=1,

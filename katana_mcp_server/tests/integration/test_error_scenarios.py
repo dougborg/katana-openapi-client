@@ -10,6 +10,7 @@ Most tests in this file use mocked contexts to simulate errors,
 as we cannot reliably trigger real API errors in integration tests.
 """
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -170,8 +171,6 @@ class TestNetworkErrorHandling:
         context, lifespan_ctx = create_mock_context()
 
         # Mock client raising timeout error
-        import asyncio
-
         lifespan_ctx.client.variants.search = AsyncMock(
             side_effect=TimeoutError("Request timed out")
         )
