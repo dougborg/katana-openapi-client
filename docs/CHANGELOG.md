@@ -2,6 +2,93 @@
 
 <!-- version list -->
 
+## v0.42.0 (2025-12-12)
+
+### Bug Fixes
+
+- **client**: Handle boolean string pagination fields (first_page, last_page)
+  ([#210](https://github.com/dougborg/katana-openapi-client/pull/210),
+  [`bb2238d`](https://github.com/dougborg/katana-openapi-client/commit/bb2238d55b0a9639d476e609ff4b70c6e54137cd))
+
+- **docs**: Address PR review comments
+  ([#208](https://github.com/dougborg/katana-openapi-client/pull/208),
+  [`860be5a`](https://github.com/dougborg/katana-openapi-client/commit/860be5aaebe62bc34afae974b89152f5557cb470))
+
+- **docs**: Correct TypeScript ADR references and MCP tool counts
+  ([#208](https://github.com/dougborg/katana-openapi-client/pull/208),
+  [`860be5a`](https://github.com/dougborg/katana-openapi-client/commit/860be5aaebe62bc34afae974b89152f5557cb470))
+
+- **mcp**: Address additional PR review comments
+  ([#205](https://github.com/dougborg/katana-openapi-client/pull/205),
+  [`dd41a07`](https://github.com/dougborg/katana-openapi-client/commit/dd41a07f1b99780f7a8941bdbbfbce0b9615a32c))
+
+- **mcp**: Patch FastMCP for Pydantic 2.12+ compatibility
+  ([#204](https://github.com/dougborg/katana-openapi-client/pull/204),
+  [`9a651b2`](https://github.com/dougborg/katana-openapi-client/commit/9a651b253a72990363c25a76134cb5e63df7a579))
+
+- **mcp**: Remove dead code and unused fixture params from integration tests
+  ([#205](https://github.com/dougborg/katana-openapi-client/pull/205),
+  [`dd41a07`](https://github.com/dougborg/katana-openapi-client/commit/dd41a07f1b99780f7a8941bdbbfbce0b9615a32c))
+
+- **mcp**: Use unwrap_data helper for list response extraction
+  ([#205](https://github.com/dougborg/katana-openapi-client/pull/205),
+  [`dd41a07`](https://github.com/dougborg/katana-openapi-client/commit/dd41a07f1b99780f7a8941bdbbfbce0b9615a32c))
+
+### Chores
+
+- **release**: Mcp v0.24.0
+  ([`85bdbb4`](https://github.com/dougborg/katana-openapi-client/commit/85bdbb48ff82746bb6763b353d3e17fe5573597b))
+
+- **release**: Mcp v0.25.0
+  ([`6748599`](https://github.com/dougborg/katana-openapi-client/commit/6748599d174fe39779d2b0595128739962310b11))
+
+- **release**: Mcp v0.26.0
+  ([`d77f3b6`](https://github.com/dougborg/katana-openapi-client/commit/d77f3b65bda9437aa4b5c4837c24537b3d10fcda))
+
+### Code Style
+
+- **mcp**: Move imports to module level per review feedback
+  ([#205](https://github.com/dougborg/katana-openapi-client/pull/205),
+  [`dd41a07`](https://github.com/dougborg/katana-openapi-client/commit/dd41a07f1b99780f7a8941bdbbfbce0b9615a32c))
+
+### Documentation
+
+- Overhaul documentation for multi-package ecosystem
+  ([#208](https://github.com/dougborg/katana-openapi-client/pull/208),
+  [`860be5a`](https://github.com/dougborg/katana-openapi-client/commit/860be5aaebe62bc34afae974b89152f5557cb470))
+
+### Features
+
+- **mcp**: Add CLI transport options and simplify CLAUDE.md
+  ([#209](https://github.com/dougborg/katana-openapi-client/pull/209),
+  [`103ea19`](https://github.com/dougborg/katana-openapi-client/commit/103ea19854d55d2dac2b3d0783fcf7e8f6391b67))
+
+- **mcp**: Add integration tests for end-to-end workflows
+  ([#205](https://github.com/dougborg/katana-openapi-client/pull/205),
+  [`dd41a07`](https://github.com/dougborg/katana-openapi-client/commit/dd41a07f1b99780f7a8941bdbbfbce0b9615a32c))
+
+- **mcp**: Add response caching middleware and migrate pytest to native TOML
+  ([#204](https://github.com/dougborg/katana-openapi-client/pull/204),
+  [`9a651b2`](https://github.com/dougborg/katana-openapi-client/commit/9a651b253a72990363c25a76134cb5e63df7a579))
+
+- **mcp**: Add test data isolation and cleanup utilities
+  ([#205](https://github.com/dougborg/katana-openapi-client/pull/205),
+  [`dd41a07`](https://github.com/dougborg/katana-openapi-client/commit/dd41a07f1b99780f7a8941bdbbfbce0b9615a32c))
+
+- **mcp**: Update client dependency to v0.41.0
+  ([#203](https://github.com/dougborg/katana-openapi-client/pull/203),
+  [`4b3ea94`](https://github.com/dougborg/katana-openapi-client/commit/4b3ea944f15ea5d664720a957f9be744b9b7c2be))
+
+### Testing
+
+- **client**: Add edge case tests for boolean pagination field conversion
+  ([#210](https://github.com/dougborg/katana-openapi-client/pull/210),
+  [`bb2238d`](https://github.com/dougborg/katana-openapi-client/commit/bb2238d55b0a9639d476e609ff4b70c6e54137cd))
+
+- **client**: Improve test coverage per review feedback
+  ([#210](https://github.com/dougborg/katana-openapi-client/pull/210),
+  [`bb2238d`](https://github.com/dougborg/katana-openapi-client/commit/bb2238d55b0a9639d476e609ff4b70c6e54137cd))
+
 ## v0.41.0 (2025-12-10)
 
 ### Bug Fixes
