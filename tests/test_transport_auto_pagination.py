@@ -927,3 +927,78 @@ class TestPaginationStringComparison:
         assert call_count == 3
         combined_data = json.loads(response.content)
         assert len(combined_data["data"]) == 3
+
+    @pytest.mark.asyncio
+    async def test_boolean_string_pagination_fields_converted(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that first_page/last_page boolean strings are converted to Python booleans."""
+        mock_resp = MagicMock(spec=httpx.Response)
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"data": [{"id": 1}]}
+        # This matches the actual Katana API response format from OpenAPI spec
+        mock_resp.headers = {
+            "X-Pagination": json.dumps(
+                {
+                    "total_records": "142",
+                    "total_pages": "8",
+                    "offset": "50",
+                    "page": "2",
+                    "first_page": "false",
+                    "last_page": "false",
+                }
+            )
+        }
+
+        async def mock_aread():
+            pass
+
+        mock_resp.aread = mock_aread
+        mock_wrapped_transport.handle_async_request.return_value = mock_resp
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products?page=2",  # Explicit page to avoid looping
+        )
+
+        response = await transport.handle_async_request(request)
+
+        assert response.status_code == 200
+        # The response should succeed without any warnings about invalid pagination values
+
+    @pytest.mark.asyncio
+    async def test_boolean_string_true_converted(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that last_page='true' is correctly converted to Python True."""
+        mock_resp = MagicMock(spec=httpx.Response)
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"data": [{"id": 1}]}
+        mock_resp.headers = {
+            "X-Pagination": json.dumps(
+                {
+                    "page": "1",
+                    "total_pages": "1",
+                    "first_page": "true",
+                    "last_page": "true",
+                }
+            )
+        }
+
+        async def mock_aread():
+            pass
+
+        mock_resp.aread = mock_aread
+        mock_wrapped_transport.handle_async_request.return_value = mock_resp
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        response = await transport.handle_async_request(request)
+
+        assert response.status_code == 200
+        # Single page with last_page=true, should return immediately
+        combined_data = json.loads(response.content)
+        assert len(combined_data["data"]) == 1

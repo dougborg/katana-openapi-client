@@ -633,18 +633,22 @@ class PaginationTransport(AsyncHTTPTransport):
     def _normalize_pagination_values(
         self, pagination_info: dict[str, Any]
     ) -> dict[str, Any]:
-        """Convert numeric pagination values from strings to integers.
+        """Convert pagination values from strings to appropriate Python types.
 
         JSON parsing may return numeric values as strings (e.g., "41" instead of 41).
         String comparison produces incorrect results: "5" >= "41" is True because
         "5" > "4" lexicographically. This method ensures all numeric pagination
         fields are proper integers for correct comparisons.
 
+        Additionally, boolean fields like first_page and last_page may come as
+        string values ("true"/"false") and are converted to Python booleans.
+
         Args:
             pagination_info: Dictionary containing pagination metadata.
 
         Returns:
-            Dictionary with numeric fields converted to integers.
+            Dictionary with numeric fields converted to integers and boolean
+            fields converted to booleans.
         """
         # Fields that should be integers for pagination comparisons
         numeric_fields = [
@@ -656,10 +660,18 @@ class PaginationTransport(AsyncHTTPTransport):
             "count",
             "per_page",
             "current_page",
+            "total_records",
+        ]
+
+        # Fields that should be booleans (API returns "true"/"false" strings)
+        boolean_fields = [
+            "first_page",
             "last_page",
         ]
 
         result = pagination_info.copy()
+
+        # Convert numeric fields
         for field in numeric_fields:
             if field in result:
                 value = result[field]
@@ -687,6 +699,27 @@ class PaginationTransport(AsyncHTTPTransport):
                         )
                     result[field] = int(value)
                 # If it's already an int, leave it as is
+
+        # Convert boolean fields ("true"/"false" strings to Python booleans)
+        for field in boolean_fields:
+            if field in result:
+                value = result[field]
+                if isinstance(value, str):
+                    lower_value = value.lower()
+                    if lower_value == "true":
+                        result[field] = True
+                    elif lower_value == "false":
+                        result[field] = False
+                    else:
+                        self.logger.warning(
+                            "Invalid boolean pagination value for %s: %r, removing field",
+                            field,
+                            value,
+                        )
+                        del result[field]
+                elif not isinstance(value, bool):
+                    # Unexpected type - convert truthy/falsy to bool
+                    result[field] = bool(value)
 
         return result
 
