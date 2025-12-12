@@ -40,9 +40,11 @@ class TestPurchaseOrderPreviewWorkflow:
         creating the order in Katana.
         """
         # Create a preview PO with test data
+        # NOTE: IDs (supplier_id=1, location_id=1, variant_id=1/2) are placeholders.
+        # Preview mode doesn't validate these IDs against actual Katana data.
         request = CreatePurchaseOrderRequest(
-            supplier_id=1,  # Test supplier ID
-            location_id=1,  # Test location ID
+            supplier_id=1,
+            location_id=1,
             order_number=unique_order_number,
             items=[
                 PurchaseOrderItem(

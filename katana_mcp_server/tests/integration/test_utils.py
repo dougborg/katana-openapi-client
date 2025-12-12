@@ -31,6 +31,7 @@ from katana_public_api_client.api.material import delete_material
 from katana_public_api_client.api.product import delete_product
 from katana_public_api_client.api.purchase_order import delete_purchase_order
 from katana_public_api_client.api.sales_order import delete_sales_order
+from katana_public_api_client.api.services import delete_service
 from katana_public_api_client.utils import unwrap_data
 
 logger = logging.getLogger(__name__)
@@ -190,6 +191,7 @@ class TrackedTestSession:
         delete_funcs = {
             ResourceType.PRODUCT: delete_product.asyncio_detailed,
             ResourceType.MATERIAL: delete_material.asyncio_detailed,
+            ResourceType.SERVICE: delete_service.asyncio_detailed,
             ResourceType.PURCHASE_ORDER: delete_purchase_order.asyncio_detailed,
             ResourceType.SALES_ORDER: delete_sales_order.asyncio_detailed,
             ResourceType.MANUFACTURING_ORDER: delete_manufacturing_order.asyncio_detailed,
