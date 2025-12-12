@@ -52,7 +52,7 @@ docs/                                # Shared/monorepo documentation
 │   └── 0009-migrate-from-poetry-to-uv.md
 └── reference/                      # Auto-generated API docs (built at runtime)
 
-katana_public_api_client/docs/       # Client-specific documentation
+katana_public_api_client/docs/       # Python client documentation
 ├── README.md                        # Client docs index
 ├── guide.md                         # Client user guide
 ├── cookbook.md                      # Usage recipes
@@ -60,7 +60,7 @@ katana_public_api_client/docs/       # Client-specific documentation
 ├── CHANGELOG.md                     # Client changelog
 └── adr/                            # Client ADRs (001-008, 011-012)
 
-katana_mcp_server/docs/              # MCP server-specific documentation
+katana_mcp_server/docs/              # MCP server documentation
 ├── README.md                        # MCP docs index
 ├── architecture.md                  # MCP architecture design
 ├── development.md                   # Development guide
@@ -69,6 +69,12 @@ katana_mcp_server/docs/              # MCP server-specific documentation
 ├── implementation-plan.md           # Implementation roadmap
 ├── stocktrim-migration.md           # StockTrim migration plan
 └── adr/                            # MCP ADRs (010)
+
+packages/katana-client/docs/         # TypeScript client documentation
+├── guide.md                         # TypeScript usage guide
+├── cookbook.md                      # Usage recipes
+├── testing.md                       # Testing documentation
+└── adr/                            # TypeScript ADRs (014-016)
 ```
 
 ## Configuration

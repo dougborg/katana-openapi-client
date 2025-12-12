@@ -4,10 +4,16 @@ Model Context Protocol (MCP) server for Katana Manufacturing ERP.
 
 ## Features
 
-- **Inventory Management**: Check stock levels, find low stock items, search items
-  (products, materials, services)
+- **Inventory Management**: Check stock, find low stock items, search items, get variant
+  details
+- **Catalog Management**: Create products and materials
+- **Order Management**: Create and manage purchase orders, sales orders, and
+  manufacturing orders
+- **Document Verification**: Verify supplier documents against purchase orders
+- **Two-Step Confirmation**: Preview operations before executing (elicitation pattern)
 - **Environment-based Authentication**: Secure API key management
-- **Built-in Resilience**: Automatic retries, rate limiting, and pagination
+- **Built-in Resilience**: Automatic retries, rate limiting, and pagination via Python
+  client
 - **Type Safety**: Pydantic models for all requests and responses
 
 ## Installation
@@ -376,14 +382,38 @@ pipx install --force dist/katana_mcp_server-*.whl
 
 ## Version
 
-Current version: **0.1.0a1** (alpha release)
+Current version: **0.25.0**
 
-This is an alpha release with 3 inventory management tools. Future releases will add:
+### Available Tools
 
-- Sales order management
-- Purchase order management
-- Manufacturing order management
-- Custom resources and prompts
+**Inventory Tools:**
+
+- `check_inventory` - Check stock levels for a specific SKU
+- `list_low_stock_items` - Find products below stock threshold
+- `search_items` - Search for items by name or SKU
+- `get_variant_details` - Get detailed variant information
+
+**Catalog Tools:**
+
+- `create_product` - Create a new product
+- `create_material` - Create a new material
+
+**Order Tools:**
+
+- `create_purchase_order` - Create purchase orders with two-step confirmation
+- `receive_purchase_order` - Receive items from purchase orders
+- `verify_order_document` - Verify documents against purchase orders
+- `create_manufacturing_order` - Create manufacturing orders
+- `create_sales_order` - Create sales orders with two-step confirmation
+- `fulfill_order` - Fulfill manufacturing or sales orders
+
+### Available Resources
+
+- `katana://inventory/items` - Complete catalog of products, materials, services
+- `katana://inventory/stock-movements` - Recent stock transfers and adjustments
+- `katana://orders/sales-orders` - Recent sales orders
+- `katana://orders/purchase-orders` - Recent purchase orders
+- `katana://orders/manufacturing-orders` - Active manufacturing orders
 
 ## Links
 
