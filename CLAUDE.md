@@ -159,8 +159,19 @@ excluded by default due to pytest-xdist collection issues.
 
 ## Architecture Overview
 
-This is a Python client for the Katana Manufacturing ERP API built with
-**transport-layer resilience**.
+This is a multi-package repository (monorepo) containing clients for the Katana
+Manufacturing ERP API:
+
+- **Python Client** (`katana_public_api_client/`) - Full-featured with transport-layer
+  resilience
+- **MCP Server** (`katana_mcp_server/`) - Model Context Protocol server for AI
+  assistants
+- **TypeScript Client** (`packages/katana-client/`) - Browser-compatible with full type
+  safety
+
+### Python Client Architecture
+
+The Python client is built with **transport-layer resilience**.
 
 ### Core Components
 
@@ -283,6 +294,17 @@ directory.
   Development guide
 - **[katana_mcp_server/docs/adr/](katana_mcp_server/docs/adr/)** - MCP ADRs
 
+**TypeScript Client Documentation:**
+
+- **[packages/katana-client/README.md](packages/katana-client/README.md)** - TypeScript
+  client overview
+- **[packages/katana-client/docs/guide.md](packages/katana-client/docs/guide.md)** -
+  TypeScript usage guide
+- **[packages/katana-client/docs/cookbook.md](packages/katana-client/docs/cookbook.md)**
+  \- Usage recipes
+- **[packages/katana-client/docs/adr/](packages/katana-client/docs/adr/)** - TypeScript
+  ADRs
+
 ### Architecture Decision Records (ADRs)
 
 ADRs document key architectural decisions with their context and consequences.
@@ -317,6 +339,16 @@ Core architectural decisions for the client:
 
 - **[ADR-010](katana_mcp_server/docs/adr/0010-katana-mcp-server.md)**: Create Katana MCP
   Server
+
+**TypeScript Client ADRs** -
+[packages/katana-client/docs/adr/](packages/katana-client/docs/adr/)
+
+- **[ADR-001](packages/katana-client/docs/adr/0001-composable-fetch-wrappers.md)**:
+  Composable Fetch Wrappers
+- **[ADR-002](packages/katana-client/docs/adr/0002-hey-api-code-generation.md)**: Hey
+  API Code Generation
+- **[ADR-003](packages/katana-client/docs/adr/0003-biome-for-linting.md)**: Biome for
+  Linting
 
 **Shared/Monorepo ADRs** - [docs/adr/](docs/adr/)
 
@@ -486,10 +518,10 @@ comprehensive Katana Manufacturing ERP API. Key features:
 - **Recent improvements** include date-time formats and schema restructuring for
   inheritance
 
-## MCP Server Implementation (NEW!)
+## MCP Server Implementation
 
-This repository now includes a **Model Context Protocol (MCP) server** being built as a
-separate package in a monorepo using uv workspace.
+This repository includes a **Model Context Protocol (MCP) server** as a separate package
+in the monorepo using uv workspace.
 
 ### Key Resources for MCP Work:
 
@@ -548,6 +580,44 @@ together"
 
 **Key Feature**: Elicitation pattern (preview with confirm=false, execute with
 confirm=true)
+
+## TypeScript Client
+
+The TypeScript client is located at `packages/katana-client/` and provides a
+browser-compatible API client with the same resilience features as the Python client.
+
+### Key Features:
+
+- **Auto-pagination**: Automatically collects all pages for GET requests (default: on)
+- **Retry strategy**: Same as Python client (429 retried for all methods, 5xx for
+  idempotent only)
+- **Full TypeScript types**: Generated from OpenAPI spec
+- **Tree-shakeable**: Import only what you need
+
+### TypeScript Structure:
+
+```
+packages/katana-client/
+├── package.json              # npm package configuration
+├── src/
+│   ├── client.ts             # KatanaClient with resilience
+│   ├── errors.ts             # Typed error classes
+│   └── generated/            # openapi-ts generated SDK
+├── docs/
+│   ├── guide.md              # Usage guide
+│   ├── cookbook.md           # Recipes
+│   └── adr/                  # Architecture decisions
+└── tests/
+```
+
+### Development:
+
+```bash
+cd packages/katana-client
+pnpm install
+pnpm build
+pnpm test
+```
 
 ## Development Workflow
 
