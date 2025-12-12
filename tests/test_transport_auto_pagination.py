@@ -930,25 +930,30 @@ class TestPaginationStringComparison:
 
     @pytest.mark.asyncio
     async def test_boolean_string_pagination_fields_converted(
-        self, transport, mock_wrapped_transport
+        self, transport, mock_wrapped_transport, caplog
     ):
-        """Test that first_page/last_page boolean strings are converted to Python booleans."""
+        """Test that first_page/last_page boolean strings are converted to Python booleans.
+
+        This test verifies that the boolean string values ("true"/"false") from the
+        Katana API X-Pagination header are properly converted without triggering warnings.
+        """
+        import logging
+
         mock_resp = MagicMock(spec=httpx.Response)
         mock_resp.status_code = 200
-        mock_resp.json.return_value = {"data": [{"id": 1}]}
-        # This matches the actual Katana API response format from OpenAPI spec
-        mock_resp.headers = {
-            "X-Pagination": json.dumps(
-                {
-                    "total_records": "142",
-                    "total_pages": "8",
-                    "offset": "50",
-                    "page": "2",
-                    "first_page": "false",
-                    "last_page": "false",
-                }
-            )
+        # Use body pagination to go through the full pagination flow
+        mock_resp.json.return_value = {
+            "data": [{"id": 1}],
+            "pagination": {
+                "total_records": "142",
+                "total_pages": "1",  # Single page to complete pagination
+                "offset": "0",
+                "page": "1",
+                "first_page": "false",
+                "last_page": "false",
+            },
         }
+        mock_resp.headers = {}
 
         async def mock_aread():
             pass
@@ -958,19 +963,30 @@ class TestPaginationStringComparison:
 
         request = httpx.Request(
             method="GET",
-            url="https://api.example.com/products?page=2",  # Explicit page to avoid looping
+            url="https://api.example.com/products",
         )
 
-        response = await transport.handle_async_request(request)
+        with caplog.at_level(logging.WARNING):
+            response = await transport.handle_async_request(request)
 
         assert response.status_code == 200
-        # The response should succeed without any warnings about invalid pagination values
+        # Verify no warnings about invalid boolean values were logged
+        assert not any(
+            "Invalid boolean pagination value" in record.message
+            for record in caplog.records
+        ), "Should not log warnings for valid boolean strings"
 
     @pytest.mark.asyncio
     async def test_boolean_string_true_converted(
-        self, transport, mock_wrapped_transport
+        self, transport, mock_wrapped_transport, caplog
     ):
-        """Test that last_page='true' is correctly converted to Python True."""
+        """Test that last_page='true' is correctly converted to Python True.
+
+        This test verifies that the boolean string "true" is properly converted
+        and that pagination terminates correctly on the last page.
+        """
+        import logging
+
         mock_resp = MagicMock(spec=httpx.Response)
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"data": [{"id": 1}]}
@@ -996,12 +1012,18 @@ class TestPaginationStringComparison:
             url="https://api.example.com/products",
         )
 
-        response = await transport.handle_async_request(request)
+        with caplog.at_level(logging.WARNING):
+            response = await transport.handle_async_request(request)
 
         assert response.status_code == 200
         # Single page with last_page=true, should return immediately
         combined_data = json.loads(response.content)
         assert len(combined_data["data"]) == 1
+        # Verify no warnings about invalid boolean values were logged
+        assert not any(
+            "Invalid boolean pagination value" in record.message
+            for record in caplog.records
+        ), "Should not log warnings for valid boolean strings"
 
     @pytest.mark.asyncio
     async def test_invalid_boolean_string_logged_and_removed(
