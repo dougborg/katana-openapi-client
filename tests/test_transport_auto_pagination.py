@@ -927,3 +927,177 @@ class TestPaginationStringComparison:
         assert call_count == 3
         combined_data = json.loads(response.content)
         assert len(combined_data["data"]) == 3
+
+    @pytest.mark.asyncio
+    async def test_boolean_string_pagination_fields_converted(
+        self, transport, mock_wrapped_transport, caplog
+    ):
+        """Test that first_page/last_page boolean strings are converted to Python booleans.
+
+        This test verifies that the boolean string values ("true"/"false") from the
+        Katana API X-Pagination header are properly converted without triggering warnings.
+        """
+        import logging
+
+        mock_resp = MagicMock(spec=httpx.Response)
+        mock_resp.status_code = 200
+        # Use body pagination to go through the full pagination flow
+        mock_resp.json.return_value = {
+            "data": [{"id": 1}],
+            "pagination": {
+                "total_records": "142",
+                "total_pages": "1",  # Single page to complete pagination
+                "offset": "0",
+                "page": "1",
+                "first_page": "false",
+                "last_page": "false",
+            },
+        }
+        mock_resp.headers = {}
+
+        async def mock_aread():
+            pass
+
+        mock_resp.aread = mock_aread
+        mock_wrapped_transport.handle_async_request.return_value = mock_resp
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        with caplog.at_level(logging.WARNING):
+            response = await transport.handle_async_request(request)
+
+        assert response.status_code == 200
+        # Verify no warnings about invalid boolean values were logged
+        assert not any(
+            "Invalid boolean pagination value" in record.message
+            for record in caplog.records
+        ), "Should not log warnings for valid boolean strings"
+
+    @pytest.mark.asyncio
+    async def test_boolean_string_true_converted(
+        self, transport, mock_wrapped_transport, caplog
+    ):
+        """Test that last_page='true' is correctly converted to Python True.
+
+        This test verifies that the boolean string "true" is properly converted
+        and that pagination terminates correctly on the last page.
+        """
+        import logging
+
+        mock_resp = MagicMock(spec=httpx.Response)
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"data": [{"id": 1}]}
+        mock_resp.headers = {
+            "X-Pagination": json.dumps(
+                {
+                    "page": "1",
+                    "total_pages": "1",
+                    "first_page": "true",
+                    "last_page": "true",
+                }
+            )
+        }
+
+        async def mock_aread():
+            pass
+
+        mock_resp.aread = mock_aread
+        mock_wrapped_transport.handle_async_request.return_value = mock_resp
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        with caplog.at_level(logging.WARNING):
+            response = await transport.handle_async_request(request)
+
+        assert response.status_code == 200
+        # Single page with last_page=true, should return immediately
+        combined_data = json.loads(response.content)
+        assert len(combined_data["data"]) == 1
+        # Verify no warnings about invalid boolean values were logged
+        assert not any(
+            "Invalid boolean pagination value" in record.message
+            for record in caplog.records
+        ), "Should not log warnings for valid boolean strings"
+
+    @pytest.mark.asyncio
+    async def test_invalid_boolean_string_logged_and_removed(
+        self, transport, mock_wrapped_transport, caplog
+    ):
+        """Test that invalid boolean strings are logged and removed."""
+        import logging
+
+        mock_resp = MagicMock(spec=httpx.Response)
+        mock_resp.status_code = 200
+        # Use response body pagination to test boolean normalization
+        # (X-Pagination header also works, but body is simpler for this test)
+        mock_resp.json.return_value = {
+            "data": [{"id": 1}],
+            "pagination": {
+                "page": 1,
+                "total_pages": 1,
+                "first_page": "yes",  # Invalid boolean value
+                "last_page": "false",
+            },
+        }
+        mock_resp.headers = {}
+
+        async def mock_aread():
+            pass
+
+        mock_resp.aread = mock_aread
+        mock_wrapped_transport.handle_async_request.return_value = mock_resp
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        with caplog.at_level(logging.WARNING):
+            response = await transport.handle_async_request(request)
+
+        assert response.status_code == 200
+        # Should have logged a warning about the invalid boolean value
+        assert any(
+            "Invalid boolean pagination value for first_page" in record.message
+            for record in caplog.records
+        )
+
+    @pytest.mark.asyncio
+    async def test_non_boolean_type_converted_to_bool(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that non-boolean, non-string types are converted using truthiness."""
+        mock_resp = MagicMock(spec=httpx.Response)
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "data": [{"id": 1}],
+            "pagination": {
+                "page": 1,
+                "total_pages": 1,
+                "first_page": 1,  # Integer instead of boolean/string
+                "last_page": 0,  # Integer instead of boolean/string
+            },
+        }
+        mock_resp.headers = {}
+
+        async def mock_aread():
+            pass
+
+        mock_resp.aread = mock_aread
+        mock_wrapped_transport.handle_async_request.return_value = mock_resp
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        response = await transport.handle_async_request(request)
+
+        assert response.status_code == 200
+        # Should convert without errors: 1 -> True, 0 -> False
