@@ -74,7 +74,7 @@ packages/katana-client/docs/         # TypeScript client documentation
 ├── guide.md                         # TypeScript usage guide
 ├── cookbook.md                      # Usage recipes
 ├── testing.md                       # Testing documentation
-└── adr/                            # TypeScript ADRs (014-016)
+└── adr/                            # TypeScript ADRs (001-003)
 ```
 
 ## Configuration

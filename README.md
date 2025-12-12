@@ -4,7 +4,7 @@ Multi-language client ecosystem for the
 [Katana Manufacturing ERP API](https://help.katanamrp.com/api). Production-ready clients
 with automatic resilience, rate limiting, and pagination.
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![TypeScript](https://img.shields.io/badge/typescript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 [![OpenAPI 3.1.0](https://img.shields.io/badge/OpenAPI-3.1.0-green.svg)](https://spec.openapis.org/oas/v3.1.0)
 [![CI](https://github.com/dougborg/katana-openapi-client/actions/workflows/ci.yml/badge.svg)](https://github.com/dougborg/katana-openapi-client/actions/workflows/ci.yml)
@@ -16,7 +16,7 @@ with automatic resilience, rate limiting, and pagination.
 | -------------------------------------------------- | ---------- | ------- | -------------------------------------------------------- |
 | [katana-openapi-client](katana_public_api_client/) | Python     | 0.41.0  | Full-featured API client with transport-layer resilience |
 | [katana-mcp-server](katana_mcp_server/)            | Python     | 0.25.0  | Model Context Protocol server for AI assistants          |
-| [@katana/client](packages/katana-client/)          | TypeScript | 0.0.1   | TypeScript/JavaScript client with full type safety       |
+| [katana-openapi-client](packages/katana-client/)   | TypeScript | 0.0.1   | TypeScript/JavaScript client with full type safety       |
 
 ## Features Comparison
 
@@ -209,7 +209,7 @@ Key architectural decisions are documented as ADRs (Architecture Decision Record
 
 ### Prerequisites
 
-- **Python 3.11+** for Python packages
+- **Python 3.12+** for Python packages
 - **Node.js 18+** for TypeScript package
 - **uv** package manager
   ([install](https://docs.astral.sh/uv/getting-started/installation/))
