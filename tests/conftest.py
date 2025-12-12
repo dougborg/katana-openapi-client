@@ -174,7 +174,7 @@ def async_mock():
     return _async_mock
 
 
-def create_mock_paginated_response(
+def _create_mock_paginated_response(
     page=1, data=None, is_last_page=False, total_pages=1
 ):
     """Helper function to create a properly formatted mock response with X-Pagination header."""
@@ -200,6 +200,20 @@ def create_mock_paginated_response(
         )
     }
     return mock_response
+
+
+# Keep the original name as an alias for backwards compatibility
+create_mock_paginated_response = _create_mock_paginated_response
+
+
+@pytest.fixture
+def mock_paginated_response_factory():
+    """Fixture that provides the create_mock_paginated_response function.
+
+    Use this fixture instead of importing create_mock_paginated_response directly
+    to avoid import path issues when running tests across multiple packages.
+    """
+    return _create_mock_paginated_response
 
 
 def create_paginated_mock_handler(pages_data):

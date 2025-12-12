@@ -246,17 +246,19 @@ class TestMainEntryPoint:
         """Test that main function is defined."""
         assert callable(main)
 
-    def test_main_calls_mcp_run(self):
-        """Test that main calls mcp.run()."""
+    def test_main_calls_mcp_run_with_stdio_default(self):
+        """Test that main calls mcp.run() with stdio transport by default."""
         with patch.object(mcp, "run") as mock_run:
             main()
-            mock_run.assert_called_once()
+            mock_run.assert_called_once_with(transport="stdio")
 
-    def test_main_passes_kwargs_to_run(self):
-        """Test that main passes kwargs to mcp.run()."""
+    def test_main_passes_transport_options_to_run(self):
+        """Test that main passes transport options to mcp.run()."""
         with patch.object(mcp, "run") as mock_run:
-            main(host="localhost", port=8000)
-            mock_run.assert_called_once_with(host="localhost", port=8000)
+            main(transport="sse", host="localhost", port=8000)
+            mock_run.assert_called_once_with(
+                transport="sse", host="localhost", port=8000
+            )
 
 
 class TestEnvironmentConfiguration:
