@@ -16,7 +16,6 @@ import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any
 
 from dotenv import load_dotenv
 from fastmcp import FastMCP
@@ -165,7 +164,7 @@ register_all_tools(mcp)
 register_all_resources(mcp)
 
 
-def main(**kwargs: Any) -> None:
+def main(transport: str = "stdio", host: str = "127.0.0.1", port: int = 8765) -> None:
     """Main entry point for the Katana MCP Server.
 
     This function is called when running the server via:
@@ -174,10 +173,21 @@ def main(**kwargs: Any) -> None:
     - katana-mcp-server (console script)
 
     Args:
-        **kwargs: Additional arguments passed to mcp.run()
+        transport: Transport protocol ("stdio", "sse", or "http"). Default: "stdio"
+        host: Host to bind to for HTTP/SSE transports. Default: "127.0.0.1"
+        port: Port to bind to for HTTP/SSE transports. Default: 8765
     """
-    logger.info("server_starting", version=__version__)
-    mcp.run(**kwargs)
+    logger.info(
+        "server_starting",
+        version=__version__,
+        transport=transport,
+        host=host,
+        port=port,
+    )
+    if transport == "stdio":
+        mcp.run(transport="stdio")
+    else:
+        mcp.run(transport=transport, host=host, port=port)
 
 
 if __name__ == "__main__":

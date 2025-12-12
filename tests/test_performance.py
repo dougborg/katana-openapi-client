@@ -11,11 +11,13 @@ class TestPerformance:
     """Test performance characteristics of the enhanced client."""
 
     @pytest.mark.asyncio
-    async def test_large_pagination_performance(self, katana_client):
+    async def test_large_pagination_performance(
+        self, katana_client, mock_paginated_response_factory
+    ):
         """Test pagination performance with a large number of pages."""
         import json
 
-        from tests.conftest import create_mock_paginated_response
+        create_mock_paginated_response = mock_paginated_response_factory
 
         # Simulate 10 pages of results
         mock_responses = []
@@ -196,11 +198,13 @@ class TestMemoryUsage:
     """Test memory usage characteristics."""
 
     @pytest.mark.asyncio
-    async def test_large_result_set_memory(self, katana_client):
+    async def test_large_result_set_memory(
+        self, katana_client, mock_paginated_response_factory
+    ):
         """Test memory handling with large result sets."""
         import json
 
-        from tests.conftest import create_mock_paginated_response
+        create_mock_paginated_response = mock_paginated_response_factory
 
         # Simulate a very large dataset
         mock_responses = []
@@ -267,12 +271,14 @@ class TestConcurrencyAndRaceConditions:
 
     @pytest.mark.asyncio
     @pytest.mark.slow
-    async def test_concurrent_pagination(self, katana_client):
+    async def test_concurrent_pagination(
+        self, katana_client, mock_paginated_response_factory
+    ):
         """Test multiple concurrent pagination operations."""
         import json
         from typing import Any
 
-        from tests.conftest import create_mock_paginated_response
+        create_mock_paginated_response = mock_paginated_response_factory
 
         # Create different mock responses
         def create_mock_responses(name, total_pages):
