@@ -136,8 +136,8 @@ katana-openapi-client/               # Monorepo root
 ├── katana_mcp_server/               # MCP server package
 │   ├── src/katana_mcp/
 │   │   ├── server.py                # FastMCP server
-│   │   ├── tools/                   # MCP tools (10+)
-│   │   └── resources/               # MCP resources (6)
+│   │   ├── tools/                   # MCP tools (12)
+│   │   └── resources/               # MCP resources (5)
 │   └── docs/                        # Package documentation
 └── packages/
     └── katana-client/               # TypeScript client package
@@ -187,8 +187,12 @@ Key architectural decisions are documented as ADRs (Architecture Decision Record
 **TypeScript Client ADRs**
 ([packages/katana-client/docs/adr/](packages/katana-client/docs/adr/)):
 
-- [ADR-014](packages/katana-client/docs/adr/0014-typescript-client.md): TypeScript
-  Client Design
+- [ADR-001](packages/katana-client/docs/adr/0001-composable-fetch-wrappers.md):
+  Composable Fetch Wrappers
+- [ADR-002](packages/katana-client/docs/adr/0002-hey-api-code-generation.md): Hey API
+  Code Generation
+- [ADR-003](packages/katana-client/docs/adr/0003-biome-for-linting.md): Biome for
+  Linting
 
 **Shared/Monorepo ADRs** ([docs/adr/](docs/adr/)):
 

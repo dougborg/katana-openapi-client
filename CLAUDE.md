@@ -343,11 +343,12 @@ Core architectural decisions for the client:
 **TypeScript Client ADRs** -
 [packages/katana-client/docs/adr/](packages/katana-client/docs/adr/)
 
-- **[ADR-014](packages/katana-client/docs/adr/0014-typescript-client.md)**: TypeScript
-  Client Design
-- **[ADR-015](packages/katana-client/docs/adr/0015-retry-strategy.md)**: Retry Strategy
-- **[ADR-016](packages/katana-client/docs/adr/0016-auto-pagination.md)**:
-  Auto-Pagination
+- **[ADR-001](packages/katana-client/docs/adr/0001-composable-fetch-wrappers.md)**:
+  Composable Fetch Wrappers
+- **[ADR-002](packages/katana-client/docs/adr/0002-hey-api-code-generation.md)**: Hey
+  API Code Generation
+- **[ADR-003](packages/katana-client/docs/adr/0003-biome-for-linting.md)**: Biome for
+  Linting
 
 **Shared/Monorepo ADRs** - [docs/adr/](docs/adr/)
 
