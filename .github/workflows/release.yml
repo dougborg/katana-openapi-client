@@ -86,7 +86,7 @@ jobs:
       - name: Python Semantic Release (Client)
         if: steps.check.outputs.has_changes == 'true'
         id: release
-        uses: python-semantic-release/python-semantic-release@v10.5.2
+        uses: python-semantic-release/python-semantic-release@v10.5.3
         with:
           github_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
           verbosity: 2
@@ -103,7 +103,7 @@ jobs:
           (steps.release.outcome == 'success' &&
           steps.release.outputs.released == 'true') ||
           inputs.force_publish_client == true
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: client-dist
           path: dist/
@@ -152,7 +152,7 @@ jobs:
       - name: Python Semantic Release (MCP)
         if: steps.check.outputs.has_changes == 'true'
         id: release
-        uses: python-semantic-release/python-semantic-release@v10.5.2
+        uses: python-semantic-release/python-semantic-release@v10.5.3
         with:
           github_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
           verbosity: 2
@@ -170,7 +170,7 @@ jobs:
           (steps.release.outcome == 'success' &&
           steps.release.outputs.released == 'true') ||
           inputs.force_publish_mcp == true
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: mcp-dist
           path: dist/
@@ -184,7 +184,7 @@ jobs:
       id-token: write
     steps:
       - name: Download client build artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: client-dist
           path: dist/
@@ -203,7 +203,7 @@ jobs:
       id-token: write
     steps:
       - name: Download MCP build artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: mcp-dist
           path: dist/
