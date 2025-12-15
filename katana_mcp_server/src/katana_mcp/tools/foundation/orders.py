@@ -80,9 +80,10 @@ def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResu
         "\n".join(f"- {action}" for action in response.next_actions) or "No next steps"
     )
 
-    # Calculate total value (placeholder since we don't have actual value)
-    total_value = 0.0
-    items_count = 0
+    # These values are not available in the fulfill response
+    # Mark as N/A rather than showing misleading zeros
+    total_value = "N/A"
+    items_count = "N/A"
 
     try:
         markdown = format_template(

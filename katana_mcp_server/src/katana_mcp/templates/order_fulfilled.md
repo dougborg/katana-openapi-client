@@ -9,7 +9,7 @@ Successfully fulfilled at {fulfilled_at}
 ## Summary
 
 - **Items Fulfilled**: {items_count}
-- **Total Value**: ${total_value:,.2f}
+- **Total Value**: {total_value}
 - **Final Status**: {status}
 
 ## Inventory Updates

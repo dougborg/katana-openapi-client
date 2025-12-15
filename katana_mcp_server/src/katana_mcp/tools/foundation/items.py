@@ -1009,9 +1009,15 @@ def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolRes
     else:
         supplier_info = "No supplier codes registered"
 
-    # Handle None values for template
-    sales_price = response.sales_price if response.sales_price is not None else 0.0
-    cost = response.purchase_price if response.purchase_price is not None else 0.0
+    # Handle None values for template - format as currency string or N/A
+    sales_price = (
+        f"${response.sales_price:,.2f}" if response.sales_price is not None else "N/A"
+    )
+    cost = (
+        f"${response.purchase_price:,.2f}"
+        if response.purchase_price is not None
+        else "N/A"
+    )
     item_type = response.type or "unknown"
     description = response.product_or_material_name or "No description"
 
@@ -1023,10 +1029,10 @@ def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolRes
             item_type=item_type,
             id=response.id,
             description=description,
-            uom="pcs",  # Not available in response, use default
-            is_sellable=item_type == "product",
-            is_producible=False,  # Not available in response
-            is_purchasable=True,  # Assume true for simplicity
+            uom="N/A",  # Not available in variant response
+            is_sellable="Yes" if item_type == "product" else "No",
+            is_producible="N/A",  # Not available in variant response
+            is_purchasable="N/A",  # Not available in variant response
             sales_price=sales_price,
             cost=cost,
             in_stock="N/A",  # Not available in variant response

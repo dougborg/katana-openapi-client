@@ -216,8 +216,8 @@ def test_format_order_fulfilled():
         order_number="MO-001",
         order_id=5678,
         fulfilled_at="2024-11-12T14:30:00Z",
-        items_count=3,
-        total_value=5000.00,
+        items_count="N/A",  # Not available in fulfill response
+        total_value="N/A",  # Not available in fulfill response
         status="DONE",
         inventory_updates="- Finished goods added to stock",
         next_steps="- Check inventory levels",
@@ -225,3 +225,4 @@ def test_format_order_fulfilled():
     assert "Manufacturing" in result
     assert "MO-001" in result
     assert "DONE" in result
+    assert "N/A" in result  # Verify N/A values are rendered

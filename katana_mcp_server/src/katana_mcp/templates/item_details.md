@@ -16,8 +16,8 @@
 
 ## Pricing
 
-- **Sales Price**: ${sales_price:,.2f}
-- **Cost**: ${cost:,.2f}
+- **Sales Price**: {sales_price}
+- **Cost**: {cost}
 
 ## Inventory
 
