@@ -18,8 +18,8 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.templates import format_template
 from katana_mcp.tools.schemas import ConfirmationSchema
+from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
@@ -68,8 +68,6 @@ class FulfillOrderResponse(BaseModel):
 
 def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResult:
     """Convert FulfillOrderResponse to ToolResult with markdown template."""
-    structured_data = response.model_dump()
-
     # Format lists for template
     inventory_updates_text = (
         "\n".join(f"- {update}" for update in response.inventory_updates)
@@ -80,31 +78,19 @@ def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResu
         "\n".join(f"- {action}" for action in response.next_actions) or "No next steps"
     )
 
-    # These values are not available in the fulfill response
-    # Mark as N/A rather than showing misleading zeros
-    total_value = "N/A"
-    items_count = "N/A"
-
-    try:
-        markdown = format_template(
-            "order_fulfilled",
-            order_type=response.order_type.title(),
-            order_number=response.order_number,
-            order_id=response.order_id,
-            fulfilled_at=datetime.now(UTC).isoformat(),
-            items_count=items_count,
-            total_value=total_value,
-            status=response.status,
-            inventory_updates=inventory_updates_text,
-            next_steps=next_steps_text,
-        )
-    except (FileNotFoundError, KeyError) as e:
-        # Fallback if template fails
-        markdown = (
-            f"# {response.message}\n\n{inventory_updates_text}\n\nTemplate error: {e}"
-        )
-
-    return ToolResult(content=markdown, structured_content=structured_data)
+    return make_tool_result(
+        response,
+        "order_fulfilled",
+        order_type=response.order_type.title(),
+        order_number=response.order_number,
+        order_id=response.order_id,
+        fulfilled_at=datetime.now(UTC).isoformat(),
+        items_count="N/A",  # Not available in fulfill response
+        total_value="N/A",  # Not available in fulfill response
+        status=response.status,
+        inventory_updates=inventory_updates_text,
+        next_steps=next_steps_text,
+    )
 
 
 async def _fulfill_order_impl(

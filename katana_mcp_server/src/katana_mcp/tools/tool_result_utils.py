@@ -23,41 +23,51 @@ from katana_mcp.templates import format_template
 def make_tool_result(
     response: BaseModel,
     template_name: str,
-    **extra_template_vars: Any,
+    **template_vars: Any,
 ) -> ToolResult:
     """Create a ToolResult with both markdown and structured content.
 
+    The structured_content always comes from the Pydantic model (response.model_dump()).
+    The template_vars are used ONLY for template rendering and override/extend
+    the response fields as needed for display formatting.
+
     Args:
-        response: Pydantic model response from the tool
+        response: Pydantic model response from the tool (used for structured_content)
         template_name: Name of the markdown template (without .md extension)
-        **extra_template_vars: Additional variables for template rendering
-            that aren't in the response model
+        **template_vars: Variables for template rendering. These can include:
+            - Formatted versions of response fields (e.g., prices as "$1,234.56")
+            - Computed fields (e.g., bullet lists from arrays)
+            - Additional context not in the response model
 
     Returns:
         ToolResult with:
-        - content: Markdown rendered from template
-        - structured_content: Dict from Pydantic model
+        - content: Markdown rendered from template using template_vars
+        - structured_content: Dict from Pydantic model (unmodified)
 
     Example:
-        response = PurchaseOrderResponse(order_number="PO-001", ...)
+        response = PurchaseOrderResponse(order_number="PO-001", total_cost=1500.0, ...)
         return make_tool_result(
             response,
             "order_created",
-            created_at=datetime.now().isoformat(),
+            # Override total_cost with formatted version for display
+            total_cost=1500.0,  # Template uses ${total_cost:,.2f}
+            currency="USD",
+            # Add computed field not in response
+            next_actions_text="- Review order\\n- Track shipment",
         )
     """
-    # Get structured data from Pydantic model
+    # Get structured data from Pydantic model (always unmodified)
     structured_data = response.model_dump()
 
-    # Merge response data with extra template variables
-    template_vars = {**structured_data, **extra_template_vars}
-
-    # Render markdown from template
+    # Render markdown from template using provided vars
     try:
         markdown = format_template(template_name, **template_vars)
     except (FileNotFoundError, KeyError) as e:
         # Fallback to structured data as markdown if template fails
-        markdown = f"# Response\n\n```json\n{response.model_dump_json(indent=2)}\n```\n\nTemplate error: {e}"
+        markdown = (
+            f"# Response\n\n```json\n{response.model_dump_json(indent=2)}\n```\n\n"
+            f"Template error: {e}"
+        )
 
     return ToolResult(
         content=markdown,

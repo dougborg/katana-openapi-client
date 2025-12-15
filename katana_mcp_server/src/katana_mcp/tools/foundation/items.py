@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.templates import format_template
+from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
@@ -76,8 +76,6 @@ def _search_response_to_tool_result(
     response: SearchItemsResponse, query: str
 ) -> ToolResult:
     """Convert SearchItemsResponse to ToolResult with markdown template."""
-    structured_data = response.model_dump()
-
     # Build items table for template
     if response.items:
         items_table = "\n".join(
@@ -92,21 +90,16 @@ def _search_response_to_tool_result(
     material_count = response.total_count - product_count
     service_count = 0
 
-    try:
-        markdown = format_template(
-            "item_search_results",
-            query=query,
-            result_count=response.total_count,
-            items_table=items_table,
-            product_count=product_count,
-            material_count=material_count,
-            service_count=service_count,
-        )
-    except (FileNotFoundError, KeyError) as e:
-        # Fallback if template fails
-        markdown = f"# Search Results\n\nQuery: {query}\nFound: {response.total_count} items\n\n{items_table}\n\nTemplate error: {e}"
-
-    return ToolResult(content=markdown, structured_content=structured_data)
+    return make_tool_result(
+        response,
+        "item_search_results",
+        query=query,
+        result_count=response.total_count,
+        items_table=items_table,
+        product_count=product_count,
+        material_count=material_count,
+        service_count=service_count,
+    )
 
 
 async def _search_items_impl(
@@ -1001,8 +994,6 @@ class VariantDetailsResponse(BaseModel):
 
 def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolResult:
     """Convert VariantDetailsResponse to ToolResult with markdown template."""
-    structured_data = response.model_dump()
-
     # Build supplier info text
     if response.supplier_item_codes:
         supplier_info = "\n".join(f"- {code}" for code in response.supplier_item_codes)
@@ -1021,31 +1012,26 @@ def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolRes
     item_type = response.type or "unknown"
     description = response.product_or_material_name or "No description"
 
-    try:
-        markdown = format_template(
-            "item_details",
-            sku=response.sku,
-            name=response.name,
-            item_type=item_type,
-            id=response.id,
-            description=description,
-            uom="N/A",  # Not available in variant response
-            is_sellable="Yes" if item_type == "product" else "No",
-            is_producible="N/A",  # Not available in variant response
-            is_purchasable="N/A",  # Not available in variant response
-            sales_price=sales_price,
-            cost=cost,
-            in_stock="N/A",  # Not available in variant response
-            available="N/A",
-            allocated="N/A",
-            on_order="N/A",
-            supplier_info=supplier_info,
-        )
-    except (FileNotFoundError, KeyError) as e:
-        # Fallback if template fails
-        markdown = f"# Item Details: {response.sku}\n\n**Name**: {response.name}\n**Type**: {item_type}\n**ID**: {response.id}\n\nTemplate error: {e}"
-
-    return ToolResult(content=markdown, structured_content=structured_data)
+    return make_tool_result(
+        response,
+        "item_details",
+        sku=response.sku,
+        name=response.name,
+        item_type=item_type,
+        id=response.id,
+        description=description,
+        uom="N/A",  # Not available in variant response
+        is_sellable="Yes" if item_type == "product" else "No",
+        is_producible="N/A",  # Not available in variant response
+        is_purchasable="N/A",  # Not available in variant response
+        sales_price=sales_price,
+        cost=cost,
+        in_stock="N/A",  # Not available in variant response
+        available="N/A",
+        allocated="N/A",
+        on_order="N/A",
+        supplier_info=supplier_info,
+    )
 
 
 async def _get_variant_details_impl(

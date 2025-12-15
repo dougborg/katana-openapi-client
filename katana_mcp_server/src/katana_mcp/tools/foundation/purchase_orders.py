@@ -21,8 +21,8 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.templates import format_template
 from katana_mcp.tools.schemas import ConfirmationSchema
+from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
@@ -93,8 +93,6 @@ class PurchaseOrderResponse(BaseModel):
 
 def _po_response_to_tool_result(response: PurchaseOrderResponse) -> ToolResult:
     """Convert PurchaseOrderResponse to ToolResult with markdown template."""
-    structured_data = response.model_dump()
-
     # Format next_actions as bullet list for template
     next_actions_text = "\n".join(f"- {action}" for action in response.next_actions)
 
@@ -102,36 +100,21 @@ def _po_response_to_tool_result(response: PurchaseOrderResponse) -> ToolResult:
     total_cost = response.total_cost if response.total_cost is not None else 0.0
     currency = response.currency if response.currency else "USD"
 
-    try:
-        if response.is_preview:
-            markdown = format_template(
-                "order_preview",
-                order_number=response.order_number,
-                supplier_id=response.supplier_id,
-                location_id=response.location_id,
-                status=response.status,
-                total_cost=total_cost,
-                currency=currency,
-                entity_type=response.entity_type,
-                next_actions_text=next_actions_text,
-            )
-        else:
-            markdown = format_template(
-                "order_created",
-                id=response.id,
-                order_number=response.order_number,
-                supplier_id=response.supplier_id,
-                location_id=response.location_id,
-                status=response.status,
-                total_cost=total_cost,
-                currency=currency,
-                entity_type=response.entity_type,
-            )
-    except (FileNotFoundError, KeyError) as e:
-        # Fallback to message if template fails
-        markdown = f"# {response.message}\n\nTemplate error: {e}"
+    template_name = "order_preview" if response.is_preview else "order_created"
 
-    return ToolResult(content=markdown, structured_content=structured_data)
+    return make_tool_result(
+        response,
+        template_name,
+        id=response.id,
+        order_number=response.order_number,
+        supplier_id=response.supplier_id,
+        location_id=response.location_id,
+        status=response.status,
+        total_cost=total_cost,
+        currency=currency,
+        entity_type=response.entity_type,
+        next_actions_text=next_actions_text,
+    )
 
 
 async def _create_purchase_order_impl(
@@ -395,21 +378,14 @@ def _receive_response_to_tool_result(
     response: ReceivePurchaseOrderResponse,
 ) -> ToolResult:
     """Convert ReceivePurchaseOrderResponse to ToolResult with markdown template."""
-    structured_data = response.model_dump()
-
-    try:
-        markdown = format_template(
-            "order_received",
-            order_id=response.order_id,
-            order_number=response.order_number,
-            items_received=response.items_received,
-            message=response.message,
-        )
-    except (FileNotFoundError, KeyError) as e:
-        # Fallback to message if template fails
-        markdown = f"# {response.message}\n\nTemplate error: {e}"
-
-    return ToolResult(content=markdown, structured_content=structured_data)
+    return make_tool_result(
+        response,
+        "order_received",
+        order_id=response.order_id,
+        order_number=response.order_number,
+        items_received=response.items_received,
+        message=response.message,
+    )
 
 
 async def _receive_purchase_order_impl(
@@ -656,8 +632,6 @@ def _verify_response_to_tool_result(
     response: VerifyOrderDocumentResponse,
 ) -> ToolResult:
     """Convert VerifyOrderDocumentResponse to ToolResult with markdown template."""
-    structured_data = response.model_dump()
-
     # Format matches and discrepancies as text for template
     if response.matches:
         matches_text = "\n".join(
@@ -684,21 +658,16 @@ def _verify_response_to_tool_result(
     else:
         template_name = "order_verification_no_match"
 
-    try:
-        markdown = format_template(
-            template_name,
-            order_id=response.order_id,
-            overall_status=response.overall_status,
-            message=response.message,
-            matches_text=matches_text,
-            discrepancies_text=discrepancies_text,
-            suggested_actions_text=suggested_actions_text,
-        )
-    except (FileNotFoundError, KeyError) as e:
-        # Fallback to message if template fails
-        markdown = f"# {response.message}\n\n{matches_text}\n\n{discrepancies_text}\n\nTemplate error: {e}"
-
-    return ToolResult(content=markdown, structured_content=structured_data)
+    return make_tool_result(
+        response,
+        template_name,
+        order_id=response.order_id,
+        overall_status=response.overall_status,
+        message=response.message,
+        matches_text=matches_text,
+        discrepancies_text=discrepancies_text,
+        suggested_actions_text=suggested_actions_text,
+    )
 
 
 async def _verify_order_document_impl(
