@@ -1,24 +1,20 @@
-# ✅ Purchase Order Verification - Perfect Match
+# Purchase Order Verification - Perfect Match
 
-**Purchase Order**: {order_number} **Order ID**: {order_id} **Verification Status**: All
-items match perfectly
-
-## Items Verified
-
-{items_table}
+**Order ID**: {order_id}
+**Verification Status**: All items match
 
 ## Summary
 
-- **Total Items Verified**: {total_items}
-- **Matches**: {match_count}
-- **Discrepancies**: 0
+- **Overall Status**: {overall_status}
+- **Message**: {message}
 
-## ✅ Next Steps
+## Matches
 
-All items verified successfully. You can proceed with:
+{matches_text}
 
-- Use `receive_purchase_order` to receive these items and update inventory
-- Or review the order details before receiving
+## Next Steps
+
+{suggested_actions_text}
 
 ______________________________________________________________________
 

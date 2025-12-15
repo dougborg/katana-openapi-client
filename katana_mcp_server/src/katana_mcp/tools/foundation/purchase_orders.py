@@ -16,10 +16,12 @@ from enum import Enum
 from typing import Annotated, Any, cast
 
 from fastmcp import Context, FastMCP
+from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
 from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.templates import format_template
 from katana_mcp.tools.schemas import ConfirmationSchema
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
@@ -87,6 +89,49 @@ class PurchaseOrderResponse(BaseModel):
     warnings: list[str] = []
     next_actions: list[str] = []
     message: str
+
+
+def _po_response_to_tool_result(response: PurchaseOrderResponse) -> ToolResult:
+    """Convert PurchaseOrderResponse to ToolResult with markdown template."""
+    structured_data = response.model_dump()
+
+    # Format next_actions as bullet list for template
+    next_actions_text = "\n".join(f"- {action}" for action in response.next_actions)
+
+    # Handle None values for template
+    total_cost = response.total_cost if response.total_cost is not None else 0.0
+    currency = response.currency if response.currency else "USD"
+
+    try:
+        if response.is_preview:
+            markdown = format_template(
+                "order_preview",
+                order_number=response.order_number,
+                supplier_id=response.supplier_id,
+                location_id=response.location_id,
+                status=response.status,
+                total_cost=total_cost,
+                currency=currency,
+                entity_type=response.entity_type,
+                next_actions_text=next_actions_text,
+            )
+        else:
+            markdown = format_template(
+                "order_created",
+                id=response.id,
+                order_number=response.order_number,
+                supplier_id=response.supplier_id,
+                location_id=response.location_id,
+                status=response.status,
+                total_cost=total_cost,
+                currency=currency,
+                entity_type=response.entity_type,
+            )
+    except (FileNotFoundError, KeyError) as e:
+        # Fallback to message if template fails
+        markdown = f"# {response.message}\n\nTemplate error: {e}"
+
+    return ToolResult(content=markdown, structured_content=structured_data)
 
 
 async def _create_purchase_order_impl(
@@ -275,7 +320,7 @@ async def _create_purchase_order_impl(
 @unpack_pydantic_params
 async def create_purchase_order(
     request: Annotated[CreatePurchaseOrderRequest, Unpack()], context: Context
-) -> PurchaseOrderResponse:
+) -> ToolResult:
     """Create a purchase order with two-step confirmation.
 
     This tool supports a two-step confirmation process:
@@ -293,7 +338,7 @@ async def create_purchase_order(
         context: Server context with KatanaClient
 
     Returns:
-        Purchase order response with ID (if created) and details
+        ToolResult with markdown content and structured data
 
     Example:
         Preview:
@@ -306,7 +351,8 @@ async def create_purchase_order(
             Request: Same as above but with "confirm": true
             Returns: Created PO with ID and status
     """
-    return await _create_purchase_order_impl(request, context)
+    response = await _create_purchase_order_impl(request, context)
+    return _po_response_to_tool_result(response)
 
 
 # ============================================================================
@@ -343,6 +389,27 @@ class ReceivePurchaseOrderResponse(BaseModel):
     warnings: list[str] = []
     next_actions: list[str] = []
     message: str = "Receive purchase order tool is a stub - not yet implemented"
+
+
+def _receive_response_to_tool_result(
+    response: ReceivePurchaseOrderResponse,
+) -> ToolResult:
+    """Convert ReceivePurchaseOrderResponse to ToolResult with markdown template."""
+    structured_data = response.model_dump()
+
+    try:
+        markdown = format_template(
+            "order_received",
+            order_id=response.order_id,
+            order_number=response.order_number,
+            items_received=response.items_received,
+            message=response.message,
+        )
+    except (FileNotFoundError, KeyError) as e:
+        # Fallback to message if template fails
+        markdown = f"# {response.message}\n\nTemplate error: {e}"
+
+    return ToolResult(content=markdown, structured_content=structured_data)
 
 
 async def _receive_purchase_order_impl(
@@ -486,7 +553,7 @@ async def _receive_purchase_order_impl(
 @unpack_pydantic_params
 async def receive_purchase_order(
     request: Annotated[ReceivePurchaseOrderRequest, Unpack()], context: Context
-) -> ReceivePurchaseOrderResponse:
+) -> ToolResult:
     """Receive items from a purchase order with two-step confirmation.
 
     This tool supports a two-step confirmation process:
@@ -501,7 +568,7 @@ async def receive_purchase_order(
         context: Server context with KatanaClient
 
     Returns:
-        Receive response with status and details
+        ToolResult with markdown content and structured data
 
     Example:
         Preview:
@@ -512,7 +579,8 @@ async def receive_purchase_order(
             Request: Same as above but with "confirm": true
             Returns: Success message with updated inventory
     """
-    return await _receive_purchase_order_impl(request, context)
+    response = await _receive_purchase_order_impl(request, context)
+    return _receive_response_to_tool_result(response)
 
 
 # ============================================================================
@@ -582,6 +650,55 @@ class VerifyOrderDocumentResponse(BaseModel):
     suggested_actions: list[str] = []
     overall_status: str = Field(..., description="match, partial_match, or no_match")
     message: str
+
+
+def _verify_response_to_tool_result(
+    response: VerifyOrderDocumentResponse,
+) -> ToolResult:
+    """Convert VerifyOrderDocumentResponse to ToolResult with markdown template."""
+    structured_data = response.model_dump()
+
+    # Format matches and discrepancies as text for template
+    if response.matches:
+        matches_text = "\n".join(
+            f"- **{m.sku}**: {m.quantity} units @ ${m.unit_price or 0:.2f} ({m.status})"
+            for m in response.matches
+        )
+    else:
+        matches_text = "No matches found"
+
+    if response.discrepancies:
+        discrepancies_text = "\n".join(f"- {d.message}" for d in response.discrepancies)
+    else:
+        discrepancies_text = "No discrepancies"
+
+    suggested_actions_text = "\n".join(
+        f"- {action}" for action in response.suggested_actions
+    )
+
+    # Choose template based on overall status
+    if response.overall_status == "match":
+        template_name = "order_verification_match"
+    elif response.overall_status == "partial_match":
+        template_name = "order_verification_partial"
+    else:
+        template_name = "order_verification_no_match"
+
+    try:
+        markdown = format_template(
+            template_name,
+            order_id=response.order_id,
+            overall_status=response.overall_status,
+            message=response.message,
+            matches_text=matches_text,
+            discrepancies_text=discrepancies_text,
+            suggested_actions_text=suggested_actions_text,
+        )
+    except (FileNotFoundError, KeyError) as e:
+        # Fallback to message if template fails
+        markdown = f"# {response.message}\n\n{matches_text}\n\n{discrepancies_text}\n\nTemplate error: {e}"
+
+    return ToolResult(content=markdown, structured_content=structured_data)
 
 
 async def _verify_order_document_impl(
@@ -797,7 +914,7 @@ async def _verify_order_document_impl(
 @unpack_pydantic_params
 async def verify_order_document(
     request: Annotated[VerifyOrderDocumentRequest, Unpack()], context: Context
-) -> VerifyOrderDocumentResponse:
+) -> ToolResult:
     """Verify a document against a purchase order.
 
     Compares items from a supplier document (invoice, packing slip, etc.)
@@ -814,7 +931,7 @@ async def verify_order_document(
         context: Server context with KatanaClient
 
     Returns:
-        Verification response with matches and discrepancies
+        ToolResult with markdown content and structured data
 
     Example:
         Request: {
@@ -826,7 +943,8 @@ async def verify_order_document(
         }
         Returns: Verification report with matches/discrepancies
     """
-    return await _verify_order_document_impl(request, context)
+    response = await _verify_order_document_impl(request, context)
+    return _verify_response_to_tool_result(response)
 
 
 def register_tools(mcp: FastMCP) -> None:

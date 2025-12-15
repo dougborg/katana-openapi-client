@@ -9,13 +9,16 @@ These tools provide:
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from typing import Annotated, Literal, cast
 
 from fastmcp import Context, FastMCP
+from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
 from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.templates import format_template
 from katana_mcp.tools.schemas import ConfirmationSchema
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
@@ -61,6 +64,46 @@ class FulfillOrderResponse(BaseModel):
         default_factory=list, description="Suggested next steps"
     )
     message: str
+
+
+def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResult:
+    """Convert FulfillOrderResponse to ToolResult with markdown template."""
+    structured_data = response.model_dump()
+
+    # Format lists for template
+    inventory_updates_text = (
+        "\n".join(f"- {update}" for update in response.inventory_updates)
+        or "No inventory updates"
+    )
+
+    next_steps_text = (
+        "\n".join(f"- {action}" for action in response.next_actions) or "No next steps"
+    )
+
+    # Calculate total value (placeholder since we don't have actual value)
+    total_value = 0.0
+    items_count = 0
+
+    try:
+        markdown = format_template(
+            "order_fulfilled",
+            order_type=response.order_type.title(),
+            order_number=response.order_number,
+            order_id=response.order_id,
+            fulfilled_at=datetime.now(UTC).isoformat(),
+            items_count=items_count,
+            total_value=total_value,
+            status=response.status,
+            inventory_updates=inventory_updates_text,
+            next_steps=next_steps_text,
+        )
+    except (FileNotFoundError, KeyError) as e:
+        # Fallback if template fails
+        markdown = (
+            f"# {response.message}\n\n{inventory_updates_text}\n\nTemplate error: {e}"
+        )
+
+    return ToolResult(content=markdown, structured_content=structured_data)
 
 
 async def _fulfill_order_impl(
@@ -440,7 +483,7 @@ async def _fulfill_order_impl(
 @unpack_pydantic_params
 async def fulfill_order(
     request: Annotated[FulfillOrderRequest, Unpack()], context: Context
-) -> FulfillOrderResponse:
+) -> ToolResult:
     """Fulfill a manufacturing order or sales order with two-step confirmation.
 
     This tool supports a two-step confirmation process:
@@ -467,7 +510,7 @@ async def fulfill_order(
         context: Server context with KatanaClient
 
     Returns:
-        FulfillOrderResponse with details of fulfillment
+        ToolResult with markdown content and structured data
 
     Example:
         Preview Manufacturing Order:
@@ -486,7 +529,8 @@ async def fulfill_order(
             Request: {"order_id": 5678, "order_type": "sales", "confirm": true}
             Returns: Success message with fulfillment details
     """
-    return await _fulfill_order_impl(request, context)
+    response = await _fulfill_order_impl(request, context)
+    return _fulfill_response_to_tool_result(response)
 
 
 def register_tools(mcp: FastMCP) -> None:

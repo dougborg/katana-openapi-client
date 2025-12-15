@@ -1,25 +1,24 @@
-# ⚠️ Purchase Order Verification - Partial Match
+# Purchase Order Verification - Partial Match
 
-**Purchase Order**: {order_number} **Order ID**: {order_id} **Verification Status**:
-Discrepancies found
-
-## Items Verified
-
-{items_table}
-
-## ⚠️ Discrepancies Found
-
-{discrepancies_list}
+**Order ID**: {order_id}
+**Verification Status**: Discrepancies found
 
 ## Summary
 
-- **Total Items Verified**: {total_items}
-- **Matches**: {match_count}
-- **Discrepancies**: {discrepancy_count}
+- **Overall Status**: {overall_status}
+- **Message**: {message}
+
+## Matches
+
+{matches_text}
+
+## Discrepancies
+
+{discrepancies_text}
 
 ## Next Steps
 
-{suggested_actions}
+{suggested_actions_text}
 
 ______________________________________________________________________
 

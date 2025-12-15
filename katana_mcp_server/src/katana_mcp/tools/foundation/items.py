@@ -11,10 +11,12 @@ from enum import Enum
 from typing import Annotated
 
 from fastmcp import Context, FastMCP
+from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.templates import format_template
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
@@ -68,6 +70,43 @@ class SearchItemsResponse(BaseModel):
 
     items: list[ItemInfo]
     total_count: int
+
+
+def _search_response_to_tool_result(
+    response: SearchItemsResponse, query: str
+) -> ToolResult:
+    """Convert SearchItemsResponse to ToolResult with markdown template."""
+    structured_data = response.model_dump()
+
+    # Build items table for template
+    if response.items:
+        items_table = "\n".join(
+            f"- **{item.sku}**: {item.name} (ID: {item.id}, Sellable: {item.is_sellable})"
+            for item in response.items
+        )
+    else:
+        items_table = "No items found matching your query."
+
+    # Count by type (we don't have type info in ItemInfo, so use placeholders)
+    product_count = sum(1 for item in response.items if item.is_sellable)
+    material_count = response.total_count - product_count
+    service_count = 0
+
+    try:
+        markdown = format_template(
+            "item_search_results",
+            query=query,
+            result_count=response.total_count,
+            items_table=items_table,
+            product_count=product_count,
+            material_count=material_count,
+            service_count=service_count,
+        )
+    except (FileNotFoundError, KeyError) as e:
+        # Fallback if template fails
+        markdown = f"# Search Results\n\nQuery: {query}\nFound: {response.total_count} items\n\n{items_table}\n\nTemplate error: {e}"
+
+    return ToolResult(content=markdown, structured_content=structured_data)
 
 
 async def _search_items_impl(
@@ -154,7 +193,7 @@ async def _search_items_impl(
 @unpack_pydantic_params
 async def search_items(
     request: Annotated[SearchItemsRequest, Unpack()], context: Context
-) -> SearchItemsResponse:
+) -> ToolResult:
     """Search for items by name or SKU.
 
     Searches across all SKU-bearing items (variants, products, materials, services)
@@ -165,13 +204,14 @@ async def search_items(
         context: Server context with KatanaClient
 
     Returns:
-        List of matching items with basic info
+        ToolResult with markdown content and structured data
 
     Example:
         Request: {"query": "widget", "limit": 10}
         Returns: {"items": [...], "total_count": 5}
     """
-    return await _search_items_impl(request, context)
+    response = await _search_items_impl(request, context)
+    return _search_response_to_tool_result(response, request.query)
 
 
 # ============================================================================
@@ -959,6 +999,49 @@ class VariantDetailsResponse(BaseModel):
     updated_at: str | None = None
 
 
+def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolResult:
+    """Convert VariantDetailsResponse to ToolResult with markdown template."""
+    structured_data = response.model_dump()
+
+    # Build supplier info text
+    if response.supplier_item_codes:
+        supplier_info = "\n".join(f"- {code}" for code in response.supplier_item_codes)
+    else:
+        supplier_info = "No supplier codes registered"
+
+    # Handle None values for template
+    sales_price = response.sales_price if response.sales_price is not None else 0.0
+    cost = response.purchase_price if response.purchase_price is not None else 0.0
+    item_type = response.type or "unknown"
+    description = response.product_or_material_name or "No description"
+
+    try:
+        markdown = format_template(
+            "item_details",
+            sku=response.sku,
+            name=response.name,
+            item_type=item_type,
+            id=response.id,
+            description=description,
+            uom="pcs",  # Not available in response, use default
+            is_sellable=item_type == "product",
+            is_producible=False,  # Not available in response
+            is_purchasable=True,  # Assume true for simplicity
+            sales_price=sales_price,
+            cost=cost,
+            in_stock="N/A",  # Not available in variant response
+            available="N/A",
+            allocated="N/A",
+            on_order="N/A",
+            supplier_info=supplier_info,
+        )
+    except (FileNotFoundError, KeyError) as e:
+        # Fallback if template fails
+        markdown = f"# Item Details: {response.sku}\n\n**Name**: {response.name}\n**Type**: {item_type}\n**ID**: {response.id}\n\nTemplate error: {e}"
+
+    return ToolResult(content=markdown, structured_content=structured_data)
+
+
 async def _get_variant_details_impl(
     request: GetVariantDetailsRequest, context: Context
 ) -> VariantDetailsResponse:
@@ -1059,7 +1142,7 @@ async def _get_variant_details_impl(
 @observe_tool
 async def get_variant_details(
     request: GetVariantDetailsRequest, context: Context
-) -> VariantDetailsResponse:
+) -> ToolResult:
     """Get detailed variant information by SKU.
 
     Retrieves comprehensive details about a specific variant including pricing,
@@ -1070,7 +1153,7 @@ async def get_variant_details(
         context: Server context with KatanaClient
 
     Returns:
-        Detailed variant information including all properties
+        ToolResult with markdown content and structured data
 
     Example:
         Request: {"sku": "WIDGET-001"}
@@ -1088,7 +1171,8 @@ async def get_variant_details(
             ...
         }
     """
-    return await _get_variant_details_impl(request, context)
+    response = await _get_variant_details_impl(request, context)
+    return _variant_details_to_tool_result(response)
 
 
 def register_tools(mcp: FastMCP) -> None:

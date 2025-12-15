@@ -1,30 +1,26 @@
-# 📄 Purchase Order Preview
+# Purchase Order Preview
 
-**Order Number**: {order_number} **Supplier**: {supplier_name} (#{supplier_id})
-**Location**: {location_name} (#{location_id}) **Status**: {status}
+**Order Number**: {order_number}
+**Supplier ID**: {supplier_id}
+**Location ID**: {location_id}
+**Status**: {status}
 
-## Items
+## Summary
 
-{items_table}
-
-## Totals
-
-- **Subtotal**: ${subtotal:,.2f}
+- **Total Cost**: ${total_cost:,.2f}
 - **Currency**: {currency}
-- **Line Items**: {item_count}
+- **Entity Type**: {entity_type}
 
-## Notes
+## Preview Mode
 
-{notes}
+This is a **preview only**. No order has been created.
 
-## ⚠️ Preview Mode
+To create this purchase order, call again with `confirm=true`.
 
-This is a **preview only**. To create the purchase order:
+## Next Steps
 
-- Set `confirm=true` in your request
-
-To cancel, respond with **No** or make changes to your request.
+{next_actions_text}
 
 ______________________________________________________________________
 
-**Status**: Preview - not yet created
+**Status**: Preview - awaiting confirmation
