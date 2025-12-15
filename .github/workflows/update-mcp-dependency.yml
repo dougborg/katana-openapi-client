@@ -100,7 +100,7 @@ jobs:
 
       - name: Create Pull Request
         if: steps.check-current.outputs.needs_update == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
           commit-message: "feat(mcp): update client dependency to v${{ steps.check-release.outputs.client_version }}"
