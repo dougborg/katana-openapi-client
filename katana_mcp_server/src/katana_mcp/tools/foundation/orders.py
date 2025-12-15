@@ -9,14 +9,17 @@ These tools provide:
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from typing import Annotated, Literal, cast
 
 from fastmcp import Context, FastMCP
+from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
 from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationSchema
+from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
@@ -61,6 +64,36 @@ class FulfillOrderResponse(BaseModel):
         default_factory=list, description="Suggested next steps"
     )
     message: str
+
+
+def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResult:
+    """Convert FulfillOrderResponse to ToolResult with markdown template."""
+    # Format lists for template
+    inventory_updates_text = (
+        "\n".join(f"- {update}" for update in response.inventory_updates)
+        if response.inventory_updates
+        else "No inventory updates"
+    )
+
+    next_steps_text = (
+        "\n".join(f"- {action}" for action in response.next_actions)
+        if response.next_actions
+        else "No next steps"
+    )
+
+    return make_tool_result(
+        response,
+        "order_fulfilled",
+        order_type=response.order_type.title(),
+        order_number=response.order_number,
+        order_id=response.order_id,
+        fulfilled_at=datetime.now(UTC).isoformat(),
+        items_count="N/A",  # Not available in fulfill response
+        total_value="N/A",  # Not available in fulfill response
+        status=response.status,
+        inventory_updates=inventory_updates_text,
+        next_steps=next_steps_text,
+    )
 
 
 async def _fulfill_order_impl(
@@ -440,7 +473,7 @@ async def _fulfill_order_impl(
 @unpack_pydantic_params
 async def fulfill_order(
     request: Annotated[FulfillOrderRequest, Unpack()], context: Context
-) -> FulfillOrderResponse:
+) -> ToolResult:
     """Fulfill a manufacturing order or sales order with two-step confirmation.
 
     This tool supports a two-step confirmation process:
@@ -467,7 +500,7 @@ async def fulfill_order(
         context: Server context with KatanaClient
 
     Returns:
-        FulfillOrderResponse with details of fulfillment
+        ToolResult with markdown content and structured data
 
     Example:
         Preview Manufacturing Order:
@@ -486,7 +519,8 @@ async def fulfill_order(
             Request: {"order_id": 5678, "order_type": "sales", "confirm": true}
             Returns: Success message with fulfillment details
     """
-    return await _fulfill_order_impl(request, context)
+    response = await _fulfill_order_impl(request, context)
+    return _fulfill_response_to_tool_result(response)
 
 
 def register_tools(mcp: FastMCP) -> None:

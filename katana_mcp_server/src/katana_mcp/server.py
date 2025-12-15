@@ -134,17 +134,21 @@ mcp = FastMCP(
     name="katana-erp",
     version=__version__,
     lifespan=lifespan,
-    instructions="""
-    Katana MCP Server provides tools for interacting with Katana Manufacturing ERP.
+    instructions="""Katana MCP Server - Manufacturing ERP tools for inventory, orders, and production.
 
-    Available capabilities:
-    - Inventory management (check stock, search products, low stock alerts)
-    - Sales order management (create, track, list orders)
-    - Purchase order management (create, track, receive orders)
-    - Manufacturing order management (create, track, list active orders)
+**Quick Start:** Use `katana://help` resource for detailed guidance.
 
-    All tools require KATANA_API_KEY environment variable to be set.
-    """,
+**Key Tools:**
+- search_items, get_variant_details, check_inventory - Find and check items
+- create_purchase_order, receive_purchase_order - PO lifecycle
+- create_manufacturing_order, fulfill_order - Production workflow
+- verify_order_document - Document verification
+
+**Safety:** All create/modify operations use preview/confirm pattern.
+Set confirm=false to preview, confirm=true to execute (prompts for confirmation).
+
+**Resources:** katana://inventory/items, katana://sales-orders, katana://purchase-orders, katana://manufacturing-orders
+""",
 )
 
 # Add response caching middleware to reduce API calls for repeated requests

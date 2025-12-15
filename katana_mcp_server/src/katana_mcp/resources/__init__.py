@@ -1,7 +1,7 @@
 """MCP Resources for Katana Manufacturing ERP.
 
 Resources provide read-only views of Katana data that refresh on-demand.
-Resources are organized by domain (inventory, orders) and provide structured
+Resources are organized by domain (inventory, orders, help) and provide structured
 data with summaries, statistics, and actionable next steps.
 
 Available Resources:
@@ -11,6 +11,10 @@ Available Resources:
 - katana://sales-orders - Open/pending sales orders
 - katana://purchase-orders - Open/pending purchase orders
 - katana://manufacturing-orders - Active manufacturing orders
+- katana://help - Main help index (progressive discovery)
+- katana://help/workflows - Detailed workflow guides
+- katana://help/tools - Tool reference documentation
+- katana://help/resources - Resource descriptions
 """
 
 from __future__ import annotations
@@ -36,6 +40,11 @@ def register_all_resources(mcp: FastMCP) -> None:
     from .orders import register_resources as register_order_resources
 
     register_order_resources(mcp)
+
+    # Import and register help resources (progressive discovery)
+    from .help import register_resources as register_help_resources
+
+    register_help_resources(mcp)
 
 
 __all__ = ["register_all_resources"]

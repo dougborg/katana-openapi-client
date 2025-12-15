@@ -1,13 +1,16 @@
-# ✅ Purchase Order Created
+# Purchase Order Created
 
-**Order Number**: {order_number} **Order ID**: {order_id} **Supplier**: Supplier
-#{supplier_id} **Location**: Location #{location_id} **Total**: ${total_cost:,.2f} {currency}
+**Order ID**: {id}
+**Order Number**: {order_number}
+**Supplier ID**: {supplier_id}
+**Location ID**: {location_id}
 
-## Status
+## Summary
 
-Created successfully at {created_at}
-
-**Current Status**: {status}
+- **Total Cost**: ${total_cost:,.2f}
+- **Currency**: {currency}
+- **Status**: {status}
+- **Entity Type**: {entity_type}
 
 ## Next Steps
 
@@ -17,4 +20,4 @@ Created successfully at {created_at}
 
 ______________________________________________________________________
 
-**Status**: Purchase order created - awaiting receipt
+**Status**: Purchase order created successfully

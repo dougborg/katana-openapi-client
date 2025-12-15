@@ -1,18 +1,16 @@
-# ✅ Purchase Order Received
+# Purchase Order Received
 
-**Order Number**: {order_number} **Order ID**: {order_id} **Items Received**:
-{items_received}
+**Order ID**: {order_id}
+**Order Number**: {order_number}
 
-## Status
+## Receipt Summary
 
-Successfully received items at {received_at}
+- **Items Received**: {items_received}
+- **Status**: {message}
 
 ## Inventory Updates
 
-The following changes have been made to your inventory:
-
-- {items_received} line items processed
-- Stock levels updated automatically
+Stock levels have been automatically updated for all received items.
 
 ## Next Steps
 
