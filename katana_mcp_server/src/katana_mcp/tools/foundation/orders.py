@@ -71,11 +71,14 @@ def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResu
     # Format lists for template
     inventory_updates_text = (
         "\n".join(f"- {update}" for update in response.inventory_updates)
-        or "No inventory updates"
+        if response.inventory_updates
+        else "No inventory updates"
     )
 
     next_steps_text = (
-        "\n".join(f"- {action}" for action in response.next_actions) or "No next steps"
+        "\n".join(f"- {action}" for action in response.next_actions)
+        if response.next_actions
+        else "No next steps"
     )
 
     return make_tool_result(
