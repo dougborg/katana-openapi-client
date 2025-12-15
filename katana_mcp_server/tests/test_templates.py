@@ -122,7 +122,7 @@ def test_item_details_template_exists():
     assert "Item Details" in content
     assert "{sku}" in content
     assert "{name}" in content
-    assert "{sales_price" in content
+    assert "{sales_price}" in content
 
 
 def test_stock_summary_template_exists():
