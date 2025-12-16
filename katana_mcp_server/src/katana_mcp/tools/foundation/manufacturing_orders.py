@@ -222,9 +222,8 @@ async def _create_manufacturing_order_impl(
         order_created_date = unwrap_unset(mo.order_created_date, None)
         production_deadline_date = unwrap_unset(mo.production_deadline_date, None)
         additional_info = unwrap_unset(mo.additional_info, None)
-        status = (
-            mo.status.value if mo.status and unwrap_unset(mo.status, None) else None
-        )
+        mo_status = unwrap_unset(mo.status, None)
+        status = mo_status.value if mo_status else None
 
         return ManufacturingOrderResponse(
             id=mo.id,

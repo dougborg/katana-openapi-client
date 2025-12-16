@@ -400,12 +400,30 @@ def is_error(response: Response[Any]) -> bool:
     return response.status_code >= 400
 
 
+@overload
 def unwrap_as[T, ExpectedT](
     response: Response[T],
     expected_type: type[ExpectedT],
     *,
     raise_on_error: bool = True,
-) -> ExpectedT:
+) -> ExpectedT: ...
+
+
+@overload
+def unwrap_as[T, ExpectedT](
+    response: Response[T],
+    expected_type: type[ExpectedT],
+    *,
+    raise_on_error: bool = False,
+) -> ExpectedT | None: ...
+
+
+def unwrap_as[T, ExpectedT](
+    response: Response[T],
+    expected_type: type[ExpectedT],
+    *,
+    raise_on_error: bool = True,
+) -> ExpectedT | None:
     """Unwrap a Response and validate the parsed data is of the expected type.
 
     This is a convenience function that combines unwrap() with type validation.
@@ -415,9 +433,11 @@ def unwrap_as[T, ExpectedT](
         response: The Response object from an API call
         expected_type: The expected type of the parsed response
         raise_on_error: If True, raise exceptions on error status codes.
+            If False, returns None on error instead of raising.
 
     Returns:
-        The parsed response data, typed as ExpectedT
+        The parsed response data, typed as ExpectedT (or ExpectedT | None if
+        raise_on_error=False)
 
     Raises:
         Same exceptions as unwrap(), plus:
@@ -444,7 +464,7 @@ def unwrap_as[T, ExpectedT](
             raise TypeError(
                 f"Expected {expected_type.__name__}, got None from response"
             )
-        return None  # type: ignore[return-value]
+        return None
 
     if not isinstance(result, expected_type):
         raise TypeError(

@@ -92,20 +92,28 @@ async def _get_inventory_items_impl(context: Context) -> InventoryItemsResource:
         # Aggregate into unified item list
         items = []
 
-        # Add products - KatanaProduct has required id/name, optional bool fields default to None
+        # Add products - KatanaProduct has required id/name, optional bool fields
+        # Default to False if None (conservative approach for boolean flags)
         for product in products:
             items.append(
                 {
                     "id": product.id,
                     "name": product.name,
                     "type": "product",
-                    "is_sellable": product.is_sellable or False,
-                    "is_producible": product.is_producible or False,
-                    "is_purchasable": product.is_purchasable or False,
+                    "is_sellable": product.is_sellable
+                    if product.is_sellable is not None
+                    else False,
+                    "is_producible": product.is_producible
+                    if product.is_producible is not None
+                    else False,
+                    "is_purchasable": product.is_purchasable
+                    if product.is_purchasable is not None
+                    else False,
                 }
             )
 
         # Add materials - KatanaMaterial has required id/name
+        # Materials are always purchasable, never sellable or producible
         for material in materials:
             items.append(
                 {
@@ -119,6 +127,7 @@ async def _get_inventory_items_impl(context: Context) -> InventoryItemsResource:
             )
 
         # Add services - KatanaService has required id/name, optional is_sellable
+        # Default to True for services (services are typically sellable)
         for service in services_items:
             items.append(
                 {
