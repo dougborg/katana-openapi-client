@@ -129,11 +129,11 @@ status = unwrap_unset(order.status, None)
 
 `unwrap()` and `unwrap_as()` raise typed exceptions:
 
-- `AuthenticationError` - 401/403
-- `ValidationError` - 400/422
-- `RateLimitError` - 429
-- `ServerError` - 5xx
-- `APIError` - Other errors
+- `AuthenticationError` - 401 Unauthorized
+- `ValidationError` - 422 Unprocessable Entity
+- `RateLimitError` - 429 Too Many Requests
+- `ServerError` - 5xx server errors
+- `APIError` - Other errors (400, 403, 404, etc.)
 
 ## Detailed Documentation
 
