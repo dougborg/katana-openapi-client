@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Annotated, cast
+from typing import Annotated
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
@@ -20,10 +20,12 @@ from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationSchema
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.models import (
     CreateManufacturingOrderRequest as APICreateManufacturingOrderRequest,
     ManufacturingOrder,
 )
+from katana_public_api_client.utils import unwrap_as
 
 logger = logging.getLogger(__name__)
 
@@ -208,70 +210,39 @@ async def _create_manufacturing_order_impl(
             client=services.client, body=api_request
         )
 
-        if response.status_code == 200 and isinstance(
-            response.parsed, ManufacturingOrder
-        ):
-            mo = response.parsed
-            logger.info(f"Successfully created manufacturing order ID {mo.id}")
+        # unwrap_as() raises typed exceptions on error, returns typed ManufacturingOrder
+        mo = unwrap_as(response, ManufacturingOrder)
+        logger.info(f"Successfully created manufacturing order ID {mo.id}")
 
-            # Extract values, handling UNSET with cast for type narrowing
-            order_no: str | None = (
-                cast(str, mo.order_no)
-                if not isinstance(mo.order_no, type(UNSET))
-                else None
-            )
-            variant_id: int = (
-                cast(int, mo.variant_id)
-                if not isinstance(mo.variant_id, type(UNSET))
-                else request.variant_id
-            )
-            planned_quantity: float = (
-                cast(float, mo.planned_quantity)
-                if not isinstance(mo.planned_quantity, type(UNSET))
-                else request.planned_quantity
-            )
-            location_id: int = (
-                cast(int, mo.location_id)
-                if not isinstance(mo.location_id, type(UNSET))
-                else request.location_id
-            )
-            order_created_date: datetime | None = (
-                cast(datetime, mo.order_created_date)
-                if not isinstance(mo.order_created_date, type(UNSET))
-                else None
-            )
-            production_deadline_date: datetime | None = (
-                cast(datetime, mo.production_deadline_date)
-                if not isinstance(mo.production_deadline_date, type(UNSET))
-                else None
-            )
-            additional_info: str | None = (
-                cast(str, mo.additional_info)
-                if not isinstance(mo.additional_info, type(UNSET))
-                else None
-            )
+        # Extract values using unwrap_unset for clean UNSET handling
+        order_no = unwrap_unset(mo.order_no, None)
+        variant_id = unwrap_unset(mo.variant_id, request.variant_id)
+        planned_quantity = unwrap_unset(mo.planned_quantity, request.planned_quantity)
+        location_id = unwrap_unset(mo.location_id, request.location_id)
+        order_created_date = unwrap_unset(mo.order_created_date, None)
+        production_deadline_date = unwrap_unset(mo.production_deadline_date, None)
+        additional_info = unwrap_unset(mo.additional_info, None)
+        status = (
+            mo.status.value if mo.status and unwrap_unset(mo.status, None) else None
+        )
 
-            return ManufacturingOrderResponse(
-                id=mo.id,
-                order_no=order_no,
-                variant_id=variant_id,
-                planned_quantity=planned_quantity,
-                location_id=location_id,
-                status=mo.status.value
-                if mo.status and not isinstance(mo.status, type(UNSET))
-                else None,
-                order_created_date=order_created_date,
-                production_deadline_date=production_deadline_date,
-                additional_info=additional_info,
-                is_preview=False,
-                next_actions=[
-                    f"Manufacturing order created with ID {mo.id}",
-                    "Use production tools to track and complete the order",
-                ],
-                message=f"Successfully created manufacturing order {order_no or mo.id} (ID: {mo.id})",
-            )
-        else:
-            raise Exception(f"API returned unexpected status: {response.status_code}")
+        return ManufacturingOrderResponse(
+            id=mo.id,
+            order_no=order_no,
+            variant_id=variant_id,
+            planned_quantity=planned_quantity,
+            location_id=location_id,
+            status=status,
+            order_created_date=order_created_date,
+            production_deadline_date=production_deadline_date,
+            additional_info=additional_info,
+            is_preview=False,
+            next_actions=[
+                f"Manufacturing order created with ID {mo.id}",
+                "Use production tools to track and complete the order",
+            ],
+            message=f"Successfully created manufacturing order {order_no or mo.id} (ID: {mo.id})",
+        )
 
     except Exception as e:
         logger.error(f"Failed to create manufacturing order: {e}")

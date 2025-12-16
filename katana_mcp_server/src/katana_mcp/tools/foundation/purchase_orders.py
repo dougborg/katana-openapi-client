@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Annotated, Any, cast
+from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
@@ -25,6 +25,7 @@ from katana_mcp.tools.schemas import ConfirmationSchema
 from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.models import (
     CreatePurchaseOrderRequest as APICreatePurchaseOrderRequest,
     CreatePurchaseOrderRequestEntityType,
@@ -32,6 +33,7 @@ from katana_public_api_client.models import (
     PurchaseOrderRowRequest,
     RegularPurchaseOrder,
 )
+from katana_public_api_client.utils import is_success, unwrap, unwrap_as
 
 logger = logging.getLogger(__name__)
 
@@ -247,52 +249,32 @@ async def _create_purchase_order_impl(
             client=services.client, body=api_request
         )
 
-        if response.status_code == 200 and isinstance(
-            response.parsed, RegularPurchaseOrder
-        ):
-            po = response.parsed
-            logger.info(f"Successfully created purchase order ID {po.id}")
+        # unwrap_as() raises typed exceptions on error, returns typed RegularPurchaseOrder
+        po = unwrap_as(response, RegularPurchaseOrder)
+        logger.info(f"Successfully created purchase order ID {po.id}")
 
-            # Extract values, handling UNSET with cast for type narrowing
-            order_no: str = (
-                cast(str, po.order_no)
-                if not isinstance(po.order_no, type(UNSET))
-                else request.order_number
-            )
-            supplier_id: int = (
-                cast(int, po.supplier_id)
-                if not isinstance(po.supplier_id, type(UNSET))
-                else request.supplier_id
-            )
-            location_id: int = (
-                cast(int, po.location_id)
-                if not isinstance(po.location_id, type(UNSET))
-                else request.location_id
-            )
-            currency: str | None = (
-                cast(str, po.currency)
-                if not isinstance(po.currency, type(UNSET)) and po.currency is not None
-                else None
-            )
+        # Extract values using unwrap_unset for clean UNSET handling
+        order_no = unwrap_unset(po.order_no, request.order_number)
+        supplier_id = unwrap_unset(po.supplier_id, request.supplier_id)
+        location_id = unwrap_unset(po.location_id, request.location_id)
+        currency = unwrap_unset(po.currency, None)
 
-            return PurchaseOrderResponse(
-                id=po.id,
-                order_number=order_no,
-                supplier_id=supplier_id,
-                location_id=location_id,
-                status=po.status.value if po.status else "UNKNOWN",
-                entity_type="regular",
-                total_cost=total_cost,
-                currency=currency,
-                is_preview=False,
-                next_actions=[
-                    f"Purchase order created with ID {po.id}",
-                    "Use receive_purchase_order to receive items when they arrive",
-                ],
-                message=f"Successfully created purchase order {order_no} (ID: {po.id})",
-            )
-        else:
-            raise Exception(f"API returned unexpected status: {response.status_code}")
+        return PurchaseOrderResponse(
+            id=po.id,
+            order_number=order_no,
+            supplier_id=supplier_id,
+            location_id=location_id,
+            status=po.status.value if po.status else "UNKNOWN",
+            entity_type="regular",
+            total_cost=total_cost,
+            currency=currency,
+            is_preview=False,
+            next_actions=[
+                f"Purchase order created with ID {po.id}",
+                "Use receive_purchase_order to receive items when they arrive",
+            ],
+            message=f"Successfully created purchase order {order_no} (ID: {po.id})",
+        )
 
     except Exception as e:
         logger.error(f"Failed to create purchase order: {e}")
@@ -420,19 +402,11 @@ async def _receive_purchase_order_impl(
             id=request.order_id, client=services.client
         )
 
-        if po_response.status_code != 200 or not isinstance(
-            po_response.parsed, RegularPurchaseOrder
-        ):
-            raise Exception(
-                f"Failed to fetch purchase order {request.order_id}: {po_response.status_code}"
-            )
+        # unwrap_as() raises typed exceptions on error, returns typed RegularPurchaseOrder
+        po = unwrap_as(po_response, RegularPurchaseOrder)
 
-        po = po_response.parsed
-        order_no = (
-            cast(str, po.order_no)
-            if not isinstance(po.order_no, type(UNSET))
-            else f"PO-{request.order_id}"
-        )
+        # Extract order number safely using unwrap_unset
+        order_no = unwrap_unset(po.order_no, f"PO-{request.order_id}")
 
         # Preview mode - return summary without API call
         if not request.confirm:
@@ -502,23 +476,25 @@ async def _receive_purchase_order_impl(
             client=services.client, body=receive_rows
         )
 
-        if response.status_code == 204:
-            logger.info(
-                f"Successfully received {len(request.items)} items for PO {order_no}"
-            )
-            return ReceivePurchaseOrderResponse(
-                order_id=request.order_id,
-                order_number=order_no,
-                items_received=len(request.items),
-                is_preview=False,
-                next_actions=[
-                    f"Received {len(request.items)} items",
-                    "Inventory has been updated",
-                ],
-                message=f"Successfully received {len(request.items)} items for PO {order_no}",
-            )
-        else:
-            raise Exception(f"API returned unexpected status: {response.status_code}")
+        # Use is_success for 204 No Content response
+        if not is_success(response):
+            # unwrap will raise with appropriate error details
+            unwrap(response)
+
+        logger.info(
+            f"Successfully received {len(request.items)} items for PO {order_no}"
+        )
+        return ReceivePurchaseOrderResponse(
+            order_id=request.order_id,
+            order_number=order_no,
+            items_received=len(request.items),
+            is_preview=False,
+            next_actions=[
+                f"Received {len(request.items)} items",
+                "Inventory has been updated",
+            ],
+            message=f"Successfully received {len(request.items)} items for PO {order_no}",
+        )
 
     except Exception as e:
         logger.error(f"Failed to receive purchase order: {e}")
@@ -701,25 +677,15 @@ async def _verify_order_document_impl(
             id=request.order_id, client=services.client
         )
 
-        if po_response.status_code != 200 or not isinstance(
-            po_response.parsed, RegularPurchaseOrder
-        ):
-            raise Exception(
-                f"Failed to fetch purchase order {request.order_id}: {po_response.status_code}"
-            )
+        # unwrap_as() raises typed exceptions on error, returns typed RegularPurchaseOrder
+        po = unwrap_as(po_response, RegularPurchaseOrder)
 
-        po = po_response.parsed
-        order_no = (
-            cast(str, po.order_no)
-            if not isinstance(po.order_no, type(UNSET))
-            else f"PO-{request.order_id}"
-        )
+        # Extract order number safely using unwrap_unset
+        order_no = unwrap_unset(po.order_no, f"PO-{request.order_id}")
 
-        # Get PO rows
-        if (
-            isinstance(po.purchase_order_rows, type(UNSET))
-            or not po.purchase_order_rows
-        ):
+        # Get PO rows - use unwrap_unset for UNSET check
+        po_rows_raw = unwrap_unset(po.purchase_order_rows, None)
+        if not po_rows_raw:
             return VerifyOrderDocumentResponse(
                 order_id=request.order_id,
                 matches=[],
@@ -729,13 +695,14 @@ async def _verify_order_document_impl(
                 message=f"Purchase order {order_no} has no line items",
             )
 
-        po_rows = po.purchase_order_rows
+        po_rows = po_rows_raw
 
-        # Collect all variant IDs from PO rows
+        # Collect all variant IDs from PO rows using unwrap_unset
         variant_ids = []
         for row in po_rows:
-            if not isinstance(row.variant_id, type(UNSET)):
-                variant_ids.append(cast(int, row.variant_id))
+            variant_id = unwrap_unset(row.variant_id, None)
+            if variant_id is not None:
+                variant_ids.append(variant_id)
 
         # Fetch only the needed variants by ID (API-level filtering)
         try:
@@ -748,9 +715,9 @@ async def _verify_order_document_impl(
         # Build a map of SKU -> PO row for matching
         sku_to_row: dict[str, Any] = {}
         for row in po_rows:
-            if isinstance(row.variant_id, type(UNSET)):
+            variant_id = unwrap_unset(row.variant_id, None)
+            if variant_id is None:
                 continue
-            variant_id = cast(int, row.variant_id)
             variant = variant_by_id.get(variant_id)
             if variant and variant.sku:
                 sku_to_row[variant.sku] = row
@@ -774,16 +741,8 @@ async def _verify_order_document_impl(
                 continue
 
             row = sku_to_row[doc_item.sku]
-            row_qty = (
-                cast(float, row.quantity)
-                if not isinstance(row.quantity, type(UNSET))
-                else 0.0
-            )
-            row_price = (
-                cast(float, row.price_per_unit)
-                if not isinstance(row.price_per_unit, type(UNSET))
-                else 0.0
-            )
+            row_qty = unwrap_unset(row.quantity, 0.0)
+            row_price = unwrap_unset(row.price_per_unit, 0.0)
 
             # Track match status and discrepancies
             has_qty_mismatch = False

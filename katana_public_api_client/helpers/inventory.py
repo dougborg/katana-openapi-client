@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from katana_public_api_client.api.product import get_all_products
+from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.helpers.base import Base
 from katana_public_api_client.models.product import Product
 from katana_public_api_client.utils import unwrap_data
@@ -57,17 +58,15 @@ class Inventory(Base):
         )
         products = unwrap_data(response)
 
-        # Find product by SKU - check both product.sku and variant.sku
+        # Find product by SKU - check variants for matching SKU
+        # Note: Product attrs model doesn't have 'sku' directly - SKU is on Variant
         for product in products:
-            # Check if product has sku attribute directly
-            if hasattr(product, "sku") and product.sku == sku:
-                return product
-
-            # Check variants for matching SKU
-            if hasattr(product, "variants"):
-                for variant in product.variants or []:
-                    if hasattr(variant, "sku") and variant.sku == sku:
-                        return product
+            # Check variants for matching SKU (variants is an attrs field that may be UNSET)
+            variants = unwrap_unset(product.variants, [])
+            for variant in variants or []:
+                # Variant.sku is a required field, always present
+                if variant.sku == sku:
+                    return product
 
         return None
 

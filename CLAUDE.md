@@ -68,6 +68,73 @@ docs: update README          # No release
 
 Use `!` for breaking changes: `feat(client)!: breaking change`
 
+## API Response Handling Best Practices
+
+Use the helper utilities in `katana_public_api_client/utils.py` for consistent response
+handling:
+
+### Response Unwrapping
+
+```python
+from katana_public_api_client.utils import unwrap, unwrap_as, unwrap_data, is_success
+from katana_public_api_client.domain.converters import unwrap_unset
+
+# For single-object responses (200 OK with parsed model)
+order = unwrap_as(response, ManufacturingOrder)  # Type-safe with validation
+
+# For list responses (200 OK with data array)
+items = unwrap_data(response, default=[])  # Extracts .data field
+
+# For success-only responses (201 Created, 204 No Content)
+if is_success(response):
+    # Handle success case
+
+# For attrs model fields that may be UNSET
+status = unwrap_unset(order.status, None)  # Returns None if UNSET
+```
+
+### When to Use Each Pattern
+
+| Scenario            | Pattern                             | Example               |
+| ------------------- | ----------------------------------- | --------------------- |
+| Single object (200) | `unwrap_as(response, Type)`         | Get/update operations |
+| List endpoint (200) | `unwrap_data(response, default=[])` | List operations       |
+| Create (201)        | `is_success(response)`              | POST with no body     |
+| Delete/action (204) | `is_success(response)`              | DELETE, fulfill       |
+| attrs UNSET field   | `unwrap_unset(field, default)`      | Optional API fields   |
+
+### Anti-Patterns to Avoid
+
+```python
+# ❌ DON'T: Manual status code checks
+if response.status_code == 200:
+    result = response.parsed
+# ✅ DO: Use helpers
+result = unwrap_as(response, ExpectedType)
+
+# ❌ DON'T: isinstance with UNSET
+if not isinstance(value, type(UNSET)):
+    use(value)
+# ✅ DO: Use unwrap_unset
+use(unwrap_unset(value, default))
+
+# ❌ DON'T: hasattr for attrs-defined fields
+if hasattr(order, "status"):
+    status = order.status
+# ✅ DO: Use unwrap_unset (attrs fields always exist, may be UNSET)
+status = unwrap_unset(order.status, None)
+```
+
+### Exception Hierarchy
+
+`unwrap()` and `unwrap_as()` raise typed exceptions:
+
+- `AuthenticationError` - 401/403
+- `ValidationError` - 400/422
+- `RateLimitError` - 429
+- `ServerError` - 5xx
+- `APIError` - Other errors
+
 ## Detailed Documentation
 
 **Discover on-demand** - read these when working on specific areas:

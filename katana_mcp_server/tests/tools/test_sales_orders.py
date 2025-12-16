@@ -16,6 +16,7 @@ from katana_public_api_client.models import (
     SalesOrder,
     SalesOrderStatus,
 )
+from katana_public_api_client.utils import APIError
 from tests.conftest import create_mock_context
 
 # ============================================================================
@@ -271,7 +272,7 @@ async def test_create_sales_order_api_error():
             confirm=True,
         )
 
-        with pytest.raises(Exception, match="API returned unexpected status"):
+        with pytest.raises(APIError):
             await _create_sales_order_impl(request, context)
     finally:
         create_so_module.asyncio_detailed = original_asyncio_detailed
