@@ -2,15 +2,40 @@
 # See:
 # https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 #
-# NOTE: Python dependency updates are currently disabled because this project uses uv
-# for package management (see ADR-009), and Dependabot does not yet support the uv
-# ecosystem. When Dependabot adds uv support, Python dependencies can be re-enabled.
-# See: https://github.com/dependabot/dependabot-core/issues/10478
+# Supported ecosystems:
+# - uv: Python dependencies via pyproject.toml and uv.lock (GA since March 2025)
+# - github-actions: Workflow action versions
+# - docker: Base images in Dockerfiles
 #
-# For manual Python dependency updates, use: uv lock --upgrade
+# Note: Dependabot updates uv.lock but may not always update pyproject.toml version
+# constraints. This is expected behavior - the lock file contains the actual pinned
+# versions while pyproject.toml defines acceptable ranges.
+# See: https://github.com/dependabot/dependabot-core/issues/12788
 
 version: 2
 updates:
+  # Python dependencies (uv workspace - root and katana_mcp_server)
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+    groups:
+      # Group minor/patch updates to reduce PR noise
+      python-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
