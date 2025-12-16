@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
-from typing import Annotated, Literal, cast
+from typing import Annotated, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
@@ -21,13 +21,14 @@ from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationSchema
 from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
-from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.models import (
     CreateSalesOrderFulfillmentBody,
     ManufacturingOrder,
     SalesOrder,
     UpdateManufacturingOrderRequest,
 )
+from katana_public_api_client.utils import is_success, unwrap, unwrap_as
 
 logger = logging.getLogger(__name__)
 
@@ -142,21 +143,11 @@ async def _fulfill_order_impl(
                 id=request.order_id, client=services.client
             )
 
-            if mo_response.status_code != 200 or not isinstance(
-                mo_response.parsed, ManufacturingOrder
-            ):
-                raise Exception(
-                    f"Failed to fetch manufacturing order {request.order_id}: {mo_response.status_code}"
-                )
+            # unwrap_as() raises typed exceptions on error, returns typed ManufacturingOrder
+            mo = unwrap_as(mo_response, ManufacturingOrder)
 
-            mo = mo_response.parsed
-
-            # Extract order number safely
-            order_number = (
-                cast(str, mo.order_no)
-                if not isinstance(mo.order_no, type(UNSET))
-                else f"MO-{request.order_id}"
-            )
+            # Extract order number safely using unwrap_unset
+            order_number = unwrap_unset(mo.order_no, f"MO-{request.order_id}")
 
             # Extract current status
             current_status = mo.status.value if mo.status else "UNKNOWN"
@@ -278,35 +269,29 @@ async def _fulfill_order_impl(
                 id=request.order_id, client=services.client, body=update_request
             )
 
-            if update_response.status_code == 200 and isinstance(
-                update_response.parsed, ManufacturingOrder
-            ):
-                updated_mo = update_response.parsed
-                new_status = updated_mo.status.value if updated_mo.status else "UNKNOWN"
+            # unwrap_as() raises typed exceptions on error, returns typed ManufacturingOrder
+            updated_mo = unwrap_as(update_response, ManufacturingOrder)
+            new_status = updated_mo.status.value if updated_mo.status else "UNKNOWN"
 
-                logger.info(
-                    f"Successfully marked manufacturing order {order_number} as DONE"
-                )
+            logger.info(
+                f"Successfully marked manufacturing order {order_number} as DONE"
+            )
 
-                return FulfillOrderResponse(
-                    order_id=request.order_id,
-                    order_type="manufacturing",
-                    order_number=order_number,
-                    status=new_status,
-                    is_preview=False,
-                    inventory_updates=inventory_updates,
-                    warnings=warnings,
-                    next_actions=[
-                        f"Manufacturing order {order_number} completed",
-                        "Inventory has been updated",
-                        "Check stock levels for finished goods",
-                    ],
-                    message=f"Successfully marked manufacturing order {order_number} as DONE",
-                )
-            else:
-                raise Exception(
-                    f"API returned unexpected status: {update_response.status_code}"
-                )
+            return FulfillOrderResponse(
+                order_id=request.order_id,
+                order_type="manufacturing",
+                order_number=order_number,
+                status=new_status,
+                is_preview=False,
+                inventory_updates=inventory_updates,
+                warnings=warnings,
+                next_actions=[
+                    f"Manufacturing order {order_number} completed",
+                    "Inventory has been updated",
+                    "Check stock levels for finished goods",
+                ],
+                message=f"Successfully marked manufacturing order {order_number} as DONE",
+            )
 
         else:  # sales order
             # Fetch sales order
@@ -318,21 +303,11 @@ async def _fulfill_order_impl(
                 id=request.order_id, client=services.client
             )
 
-            if so_response.status_code != 200 or not isinstance(
-                so_response.parsed, SalesOrder
-            ):
-                raise Exception(
-                    f"Failed to fetch sales order {request.order_id}: {so_response.status_code}"
-                )
+            # unwrap_as() raises typed exceptions on error, returns typed SalesOrder
+            so = unwrap_as(so_response, SalesOrder)
 
-            so = so_response.parsed
-
-            # Extract order number safely
-            order_number = (
-                cast(str, so.order_no)
-                if not isinstance(so.order_no, type(UNSET))
-                else f"SO-{request.order_id}"
-            )
+            # Extract order number safely using unwrap_unset
+            order_number = unwrap_unset(so.order_no, f"SO-{request.order_id}")
 
             # Extract current status
             current_status = so.status.value if so.status else "UNKNOWN"
@@ -439,30 +414,30 @@ async def _fulfill_order_impl(
                 )
             )
 
-            if fulfillment_response.status_code == 201:
-                logger.info(
-                    f"Successfully created fulfillment for sales order {order_number}"
-                )
+            # Use is_success for 201 Created response
+            if not is_success(fulfillment_response):
+                # unwrap will raise with appropriate error details
+                unwrap(fulfillment_response)
 
-                return FulfillOrderResponse(
-                    order_id=request.order_id,
-                    order_type="sales",
-                    order_number=order_number,
-                    status="FULFILLED",
-                    is_preview=False,
-                    inventory_updates=inventory_updates,
-                    warnings=warnings,
-                    next_actions=[
-                        f"Sales order {order_number} fulfilled",
-                        "Inventory has been updated",
-                        "Fulfillment record created",
-                    ],
-                    message=f"Successfully fulfilled sales order {order_number}",
-                )
-            else:
-                raise Exception(
-                    f"API returned unexpected status: {fulfillment_response.status_code}"
-                )
+            logger.info(
+                f"Successfully created fulfillment for sales order {order_number}"
+            )
+
+            return FulfillOrderResponse(
+                order_id=request.order_id,
+                order_type="sales",
+                order_number=order_number,
+                status="FULFILLED",
+                is_preview=False,
+                inventory_updates=inventory_updates,
+                warnings=warnings,
+                next_actions=[
+                    f"Sales order {order_number} fulfilled",
+                    "Inventory has been updated",
+                    "Fulfillment record created",
+                ],
+                message=f"Successfully fulfilled sales order {order_number}",
+            )
 
     except Exception as e:
         logger.error(f"Failed to fulfill {request.order_type} order: {e}")

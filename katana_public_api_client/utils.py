@@ -400,6 +400,79 @@ def is_error(response: Response[Any]) -> bool:
     return response.status_code >= 400
 
 
+@overload
+def unwrap_as[T, ExpectedT](
+    response: Response[T],
+    expected_type: type[ExpectedT],
+    *,
+    raise_on_error: bool = True,
+) -> ExpectedT: ...
+
+
+@overload
+def unwrap_as[T, ExpectedT](
+    response: Response[T],
+    expected_type: type[ExpectedT],
+    *,
+    raise_on_error: bool = False,
+) -> ExpectedT | None: ...
+
+
+def unwrap_as[T, ExpectedT](
+    response: Response[T],
+    expected_type: type[ExpectedT],
+    *,
+    raise_on_error: bool = True,
+) -> ExpectedT | None:
+    """Unwrap a Response and validate the parsed data is of the expected type.
+
+    This is a convenience function that combines unwrap() with type validation.
+    It's useful when you expect a specific model type from an API response.
+
+    Args:
+        response: The Response object from an API call
+        expected_type: The expected type of the parsed response
+        raise_on_error: If True, raise exceptions on error status codes.
+            If False, returns None on error instead of raising.
+
+    Returns:
+        The parsed response data, typed as ExpectedT (or ExpectedT | None if
+        raise_on_error=False)
+
+    Raises:
+        Same exceptions as unwrap(), plus:
+        TypeError: If the parsed response is not of the expected type
+
+    Example:
+        ```python
+        from katana_public_api_client import KatanaClient
+        from katana_public_api_client.api.sales_order import get_sales_order
+        from katana_public_api_client.models import SalesOrder
+        from katana_public_api_client.utils import unwrap_as
+
+        async with KatanaClient() as client:
+            response = await get_sales_order.asyncio_detailed(
+                client=client, id=123
+            )
+            order = unwrap_as(response, SalesOrder)  # Type-safe SalesOrder
+            print(order.order_no)
+        ```
+    """
+    result = unwrap(response, raise_on_error=raise_on_error)
+    if result is None:
+        if raise_on_error:
+            raise TypeError(
+                f"Expected {expected_type.__name__}, got None from response"
+            )
+        return None
+
+    if not isinstance(result, expected_type):
+        raise TypeError(
+            f"Expected {expected_type.__name__}, got {type(result).__name__}"
+        )
+    return result
+
+
 def get_error_message[T](response: Response[T]) -> str | None:
     """Extract error message from an error response.
 

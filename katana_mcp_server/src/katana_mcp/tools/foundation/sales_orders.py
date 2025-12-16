@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
-from typing import Annotated, Literal, cast
+from typing import Annotated, Literal
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
@@ -20,6 +20,7 @@ from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationSchema
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.models import (
     CreateSalesOrderRequest as APICreateSalesOrderRequest,
     CreateSalesOrderRequestSalesOrderRowsItem,
@@ -28,6 +29,7 @@ from katana_public_api_client.models import (
     SalesOrderAddress as APISalesOrderAddress,
     SalesOrderAddressEntityType,
 )
+from katana_public_api_client.utils import unwrap_as
 
 logger = logging.getLogger(__name__)
 
@@ -296,40 +298,29 @@ async def _create_sales_order_impl(
             client=services.client, body=api_request
         )
 
-        if response.status_code == 200 and isinstance(response.parsed, SalesOrder):
-            so = response.parsed
-            logger.info(f"Successfully created sales order ID {so.id}")
+        # unwrap_as() raises typed exceptions on error, returns typed SalesOrder
+        so = unwrap_as(response, SalesOrder)
+        logger.info(f"Successfully created sales order ID {so.id}")
 
-            # Extract values, handling UNSET with cast for type narrowing
-            order_no: str = so.order_no
-            customer_id: int = so.customer_id
-            location_id: int = so.location_id
-            currency: str | None = (
-                cast(str, so.currency)
-                if not isinstance(so.currency, type(UNSET)) and so.currency is not None
-                else None
-            )
-            total: float | None = (
-                cast(float, so.total) if not isinstance(so.total, type(UNSET)) else None
-            )
+        # Extract values using unwrap_unset for clean UNSET handling
+        currency = unwrap_unset(so.currency, None)
+        total = unwrap_unset(so.total, None)
 
-            return SalesOrderResponse(
-                id=so.id,
-                order_number=order_no,
-                customer_id=customer_id,
-                location_id=location_id,
-                status=so.status.value if so.status else "UNKNOWN",
-                total=total,
-                currency=currency,
-                is_preview=False,
-                next_actions=[
-                    f"Sales order created with ID {so.id}",
-                    "Use fulfill_order to ship items when ready",
-                ],
-                message=f"Successfully created sales order {order_no} (ID: {so.id})",
-            )
-        else:
-            raise Exception(f"API returned unexpected status: {response.status_code}")
+        return SalesOrderResponse(
+            id=so.id,
+            order_number=so.order_no,
+            customer_id=so.customer_id,
+            location_id=so.location_id,
+            status=so.status.value if so.status else "UNKNOWN",
+            total=total,
+            currency=currency,
+            is_preview=False,
+            next_actions=[
+                f"Sales order created with ID {so.id}",
+                "Use fulfill_order to ship items when ready",
+            ],
+            message=f"Successfully created sales order {so.order_no} (ID: {so.id})",
+        )
 
     except Exception as e:
         logger.error(f"Failed to create sales order: {e}")

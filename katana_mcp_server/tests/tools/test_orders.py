@@ -15,6 +15,7 @@ from katana_public_api_client.models import (
     SalesOrderFulfillment,
 )
 from katana_public_api_client.models.sales_order_status import SalesOrderStatus
+from katana_public_api_client.utils import APIError
 from tests.conftest import create_mock_context
 
 # ============================================================================
@@ -199,7 +200,7 @@ async def test_fulfill_manufacturing_order_not_found():
         order_id=9999, order_type="manufacturing", confirm=False
     )
 
-    with pytest.raises(Exception, match="Failed to fetch manufacturing order"):
+    with pytest.raises(APIError):
         await _fulfill_order_impl(request, context)
 
 
@@ -346,7 +347,7 @@ async def test_fulfill_sales_order_not_found():
 
     request = FulfillOrderRequest(order_id=9999, order_type="sales", confirm=False)
 
-    with pytest.raises(Exception, match="Failed to fetch sales order"):
+    with pytest.raises(APIError):
         await _fulfill_order_impl(request, context)
 
 
@@ -403,7 +404,7 @@ async def test_fulfill_manufacturing_order_api_error():
         order_id=1234, order_type="manufacturing", confirm=True
     )
 
-    with pytest.raises(Exception, match="API returned unexpected status"):
+    with pytest.raises(APIError):
         await _fulfill_order_impl(request, context)
 
 
@@ -438,5 +439,5 @@ async def test_fulfill_sales_order_api_error():
 
     request = FulfillOrderRequest(order_id=5678, order_type="sales", confirm=True)
 
-    with pytest.raises(Exception, match="API returned unexpected status"):
+    with pytest.raises(APIError):
         await _fulfill_order_impl(request, context)

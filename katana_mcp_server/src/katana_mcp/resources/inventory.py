@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger
 from katana_mcp.services import get_services
+from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.utils import unwrap_data
 
 if TYPE_CHECKING:
@@ -82,45 +83,42 @@ async def _get_inventory_items_impl(context: Context) -> InventoryItemsResource:
         materials_response = await services.client.materials.list(limit=100)
         services_response = await services.client.services.list(limit=100)
 
-        # Parse responses - handle both list and paginated response objects
-        products = (
-            products_response
-            if isinstance(products_response, list)
-            else getattr(products_response, "items", [])
-        )
-        materials = (
-            materials_response
-            if isinstance(materials_response, list)
-            else getattr(materials_response, "items", [])
-        )
-        services_items = (
-            services_response
-            if isinstance(services_response, list)
-            else getattr(services_response, "items", [])
-        )
+        # Domain models returned from client helper methods are list[KatanaProduct] etc.
+        # These are Pydantic models with all fields properly defined.
+        products = products_response
+        materials = materials_response
+        services_items = services_response
 
         # Aggregate into unified item list
         items = []
 
-        # Add products
+        # Add products - KatanaProduct has required id/name, optional bool fields
+        # Default to False if None (conservative approach for boolean flags)
         for product in products:
             items.append(
                 {
-                    "id": product.id if hasattr(product, "id") else None,
-                    "name": product.name if hasattr(product, "name") else "Unknown",
+                    "id": product.id,
+                    "name": product.name,
                     "type": "product",
-                    "is_sellable": getattr(product, "is_sellable", False),
-                    "is_producible": getattr(product, "is_producible", False),
-                    "is_purchasable": getattr(product, "is_purchasable", False),
+                    "is_sellable": product.is_sellable
+                    if product.is_sellable is not None
+                    else False,
+                    "is_producible": product.is_producible
+                    if product.is_producible is not None
+                    else False,
+                    "is_purchasable": product.is_purchasable
+                    if product.is_purchasable is not None
+                    else False,
                 }
             )
 
-        # Add materials
+        # Add materials - KatanaMaterial has required id/name
+        # Materials are always purchasable, never sellable or producible
         for material in materials:
             items.append(
                 {
-                    "id": material.id if hasattr(material, "id") else None,
-                    "name": material.name if hasattr(material, "name") else "Unknown",
+                    "id": material.id,
+                    "name": material.name,
                     "type": "material",
                     "is_sellable": False,
                     "is_producible": False,
@@ -128,14 +126,17 @@ async def _get_inventory_items_impl(context: Context) -> InventoryItemsResource:
                 }
             )
 
-        # Add services
+        # Add services - KatanaService has required id/name, optional is_sellable
+        # Default to True for services (services are typically sellable)
         for service in services_items:
             items.append(
                 {
-                    "id": service.id if hasattr(service, "id") else None,
-                    "name": service.name if hasattr(service, "name") else "Unknown",
+                    "id": service.id,
+                    "name": service.name,
                     "type": "service",
-                    "is_sellable": getattr(service, "is_sellable", True),
+                    "is_sellable": service.is_sellable
+                    if service.is_sellable is not None
+                    else True,
                     "is_producible": False,
                     "is_purchasable": False,
                 }
@@ -323,91 +324,57 @@ async def _get_stock_movements_impl(context: Context) -> StockMovementsResource:
         # Aggregate into unified movements list
         movements = []
 
-        # Add transfers
+        # Add transfers - attrs models have all fields defined, use unwrap_unset for optional
         for transfer in transfers:
+            # Prefer transfer_date, fall back to updated_at
+            transfer_date = unwrap_unset(transfer.transfer_date, None)
+            updated_at = unwrap_unset(transfer.updated_at, None)
+            timestamp = (
+                transfer_date.isoformat()
+                if transfer_date
+                else (updated_at.isoformat() if updated_at else None)
+            )
+            status = unwrap_unset(transfer.status, None)
+
             movements.append(
                 {
-                    "id": transfer.id if hasattr(transfer, "id") else None,
-                    "timestamp": (
-                        transfer.transfer_date.isoformat()
-                        if hasattr(transfer, "transfer_date") and transfer.transfer_date
-                        else (
-                            transfer.updated_at.isoformat()
-                            if hasattr(transfer, "updated_at") and transfer.updated_at
-                            else None
-                        )
-                    ),
+                    "id": transfer.id,
+                    "timestamp": timestamp,
                     "type": "transfer",
-                    "number": (
-                        transfer.stock_transfer_number
-                        if hasattr(transfer, "stock_transfer_number")
-                        else None
+                    "number": unwrap_unset(transfer.stock_transfer_number, None),
+                    "source_location_id": unwrap_unset(
+                        transfer.source_location_id, None
                     ),
-                    "source_location_id": (
-                        transfer.source_location_id
-                        if hasattr(transfer, "source_location_id")
-                        else None
+                    "target_location_id": unwrap_unset(
+                        transfer.target_location_id, None
                     ),
-                    "target_location_id": (
-                        transfer.target_location_id
-                        if hasattr(transfer, "target_location_id")
-                        else None
-                    ),
-                    "status": (
-                        transfer.status.value
-                        if hasattr(transfer, "status") and transfer.status
-                        else None
-                    ),
-                    "notes": (
-                        transfer.additional_info
-                        if hasattr(transfer, "additional_info")
-                        else None
-                    ),
+                    "status": status.value if status else None,
+                    "notes": unwrap_unset(transfer.additional_info, None),
                 }
             )
 
-        # Add adjustments
+        # Add adjustments - attrs models have all fields defined, use unwrap_unset for optional
         for adjustment in adjustments:
+            # Prefer adjustment_date, fall back to updated_at
+            adjustment_date = unwrap_unset(adjustment.adjustment_date, None)
+            updated_at = unwrap_unset(adjustment.updated_at, None)
+            timestamp = (
+                adjustment_date.isoformat()
+                if adjustment_date
+                else (updated_at.isoformat() if updated_at else None)
+            )
+            status = unwrap_unset(adjustment.status, None)
+
             movements.append(
                 {
-                    "id": adjustment.id if hasattr(adjustment, "id") else None,
-                    "timestamp": (
-                        adjustment.adjustment_date.isoformat()
-                        if hasattr(adjustment, "adjustment_date")
-                        and adjustment.adjustment_date
-                        else (
-                            adjustment.updated_at.isoformat()
-                            if hasattr(adjustment, "updated_at")
-                            and adjustment.updated_at
-                            else None
-                        )
-                    ),
+                    "id": adjustment.id,
+                    "timestamp": timestamp,
                     "type": "adjustment",
-                    "number": (
-                        adjustment.stock_adjustment_number
-                        if hasattr(adjustment, "stock_adjustment_number")
-                        else None
-                    ),
-                    "location_id": (
-                        adjustment.location_id
-                        if hasattr(adjustment, "location_id")
-                        else None
-                    ),
-                    "reference_no": (
-                        adjustment.reference_no
-                        if hasattr(adjustment, "reference_no")
-                        else None
-                    ),
-                    "status": (
-                        adjustment.status.value
-                        if hasattr(adjustment, "status") and adjustment.status
-                        else None
-                    ),
-                    "notes": (
-                        adjustment.additional_info
-                        if hasattr(adjustment, "additional_info")
-                        else None
-                    ),
+                    "number": unwrap_unset(adjustment.stock_adjustment_number, None),
+                    "location_id": unwrap_unset(adjustment.location_id, None),
+                    "reference_no": unwrap_unset(adjustment.reference_no, None),
+                    "status": status.value if status else None,
+                    "notes": unwrap_unset(adjustment.additional_info, None),
                 }
             )
 

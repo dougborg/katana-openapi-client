@@ -24,6 +24,7 @@ from katana_public_api_client.models import (
     PurchaseOrderReceiveRow,
     RegularPurchaseOrder,
 )
+from katana_public_api_client.utils import APIError
 from tests.conftest import create_mock_context
 
 # ============================================================================
@@ -454,10 +455,8 @@ async def test_verify_order_document_po_not_found():
         ],
     )
 
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(APIError):
         await _verify_order_document_impl(request, context)
-
-    assert "Failed to fetch purchase order 9999" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -873,12 +872,9 @@ async def test_receive_purchase_order_get_po_fails():
         confirm=False,
     )
 
-    # Should raise an exception
-    with pytest.raises(Exception) as exc_info:
+    # Should raise an APIError (404 with parsed=None)
+    with pytest.raises(APIError):
         await _receive_purchase_order_impl(request, context)
-
-    assert "Failed to fetch purchase order" in str(exc_info.value)
-    assert "9999" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -900,6 +896,7 @@ async def test_receive_purchase_order_receive_api_fails():
     # Mock failed receive_purchase_order response
     mock_receive_response = MagicMock()
     mock_receive_response.status_code = 422
+    mock_receive_response.parsed = None  # Explicit None so unwrap raises APIError
 
     lifespan_ctx.client = MagicMock()
 
@@ -919,12 +916,11 @@ async def test_receive_purchase_order_receive_api_fails():
         confirm=True,
     )
 
-    # Should raise an exception
-    with pytest.raises(Exception) as exc_info:
+    # Should raise a ValidationError (422 is validation error)
+    with pytest.raises(
+        APIError
+    ):  # Could be ValidationError but parsed=None so falls back to APIError
         await _receive_purchase_order_impl(request, context)
-
-    assert "API returned unexpected status" in str(exc_info.value)
-    assert "422" in str(exc_info.value)
 
 
 @pytest.mark.asyncio

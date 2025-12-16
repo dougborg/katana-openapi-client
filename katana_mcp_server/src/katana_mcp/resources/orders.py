@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger
 from katana_mcp.services import get_services
+from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.utils import unwrap_data
 
 if TYPE_CHECKING:
@@ -88,47 +89,36 @@ async def _get_sales_orders_impl(context: Context) -> SalesOrdersResource:
         status_counts: dict[str, int] = {}
 
         for order in orders_data:
-            status = (
-                order.status.value
-                if hasattr(order, "status") and order.status
-                else "unknown"
-            )
+            # Extract status - attrs models have all fields defined
+            order_status = unwrap_unset(order.status, None)
+            status = order_status.value if order_status else "unknown"
             status_counts[status] = status_counts.get(status, 0) + 1
+
+            # Prefer order_created_date, fall back to created_at
+            order_created_date = unwrap_unset(order.order_created_date, None)
+            created_at = unwrap_unset(order.created_at, None)
+            created_at_str = (
+                order_created_date.isoformat()
+                if order_created_date
+                else (created_at.isoformat() if created_at else None)
+            )
+            delivery_date = unwrap_unset(order.delivery_date, None)
 
             orders.append(
                 {
-                    "id": order.id if hasattr(order, "id") else None,
-                    "order_number": order.order_no
-                    if hasattr(order, "order_no")
-                    else None,
-                    "customer_id": order.customer_id
-                    if hasattr(order, "customer_id")
-                    else None,
+                    "id": order.id,
+                    "order_number": order.order_no,
+                    "customer_id": order.customer_id,
                     "status": status,
-                    "created_at": (
-                        order.order_created_date.isoformat()
-                        if hasattr(order, "order_created_date")
-                        and order.order_created_date
-                        else (
-                            order.created_at.isoformat()
-                            if hasattr(order, "created_at") and order.created_at
-                            else None
-                        )
-                    ),
-                    "delivery_date": (
-                        order.delivery_date.isoformat()
-                        if hasattr(order, "delivery_date") and order.delivery_date
-                        else None
-                    ),
-                    "total": order.total if hasattr(order, "total") else None,
-                    "currency": order.currency if hasattr(order, "currency") else None,
-                    "source": order.source if hasattr(order, "source") else None,
-                    "location_id": order.location_id
-                    if hasattr(order, "location_id")
+                    "created_at": created_at_str,
+                    "delivery_date": delivery_date.isoformat()
+                    if delivery_date
                     else None,
-                    "notes": order.additional_info
-                    if hasattr(order, "additional_info")
-                    else None,
+                    "total": unwrap_unset(order.total, None),
+                    "currency": unwrap_unset(order.currency, None),
+                    "source": unwrap_unset(order.source, None),
+                    "location_id": order.location_id,
+                    "notes": unwrap_unset(order.additional_info, None),
                 }
             )
 
@@ -259,42 +249,29 @@ async def _get_purchase_orders_impl(context: Context) -> PurchaseOrdersResource:
         status_counts: dict[str, int] = {}
 
         for order in orders_data:
-            status = (
-                order.status.value
-                if hasattr(order, "status") and order.status
-                else "unknown"
-            )
+            # Extract status - attrs models have all fields defined
+            order_status = unwrap_unset(order.status, None)
+            status = order_status.value if order_status else "unknown"
             status_counts[status] = status_counts.get(status, 0) + 1
+
+            # Extract dates
+            created_at = unwrap_unset(order.created_at, None)
+            expected_delivery_date = unwrap_unset(order.expected_delivery_date, None)
 
             orders.append(
                 {
-                    "id": order.id if hasattr(order, "id") else None,
-                    "order_number": order.order_no
-                    if hasattr(order, "order_no")
-                    else None,
-                    "supplier_id": order.supplier_id
-                    if hasattr(order, "supplier_id")
-                    else None,
+                    "id": order.id,
+                    "order_number": unwrap_unset(order.order_no, None),
+                    "supplier_id": unwrap_unset(order.supplier_id, None),
                     "status": status,
-                    "created_at": (
-                        order.created_at.isoformat()
-                        if hasattr(order, "created_at") and order.created_at
-                        else None
-                    ),
-                    "expected_delivery": (
-                        order.expected_delivery_date.isoformat()
-                        if hasattr(order, "expected_delivery_date")
-                        and order.expected_delivery_date
-                        else None
-                    ),
-                    "total": order.total if hasattr(order, "total") else None,
-                    "currency": order.currency if hasattr(order, "currency") else None,
-                    "location_id": order.location_id
-                    if hasattr(order, "location_id")
+                    "created_at": created_at.isoformat() if created_at else None,
+                    "expected_delivery": expected_delivery_date.isoformat()
+                    if expected_delivery_date
                     else None,
-                    "notes": order.additional_info
-                    if hasattr(order, "additional_info")
-                    else None,
+                    "total": unwrap_unset(order.total, None),
+                    "currency": unwrap_unset(order.currency, None),
+                    "location_id": unwrap_unset(order.location_id, None),
+                    "notes": unwrap_unset(order.additional_info, None),
                 }
             )
 
@@ -395,48 +372,31 @@ async def _get_manufacturing_orders_impl(
         status_counts: dict[str, int] = {}
 
         for order in orders_data:
-            status = (
-                order.status.value
-                if hasattr(order, "status") and order.status
-                else "unknown"
-            )
+            # Extract status - attrs models have all fields defined
+            order_status = unwrap_unset(order.status, None)
+            status = order_status.value if order_status else "unknown"
             status_counts[status] = status_counts.get(status, 0) + 1
+
+            # Extract dates
+            created_at = unwrap_unset(order.created_at, None)
+            production_deadline_date = unwrap_unset(
+                order.production_deadline_date, None
+            )
 
             orders.append(
                 {
-                    "id": order.id if hasattr(order, "id") else None,
-                    "mo_number": order.mo_number
-                    if hasattr(order, "mo_number")
-                    else None,
-                    "variant_id": order.variant_id
-                    if hasattr(order, "variant_id")
-                    else None,
+                    "id": order.id,
+                    "mo_number": unwrap_unset(order.mo_number, None),
+                    "variant_id": unwrap_unset(order.variant_id, None),
                     "status": status,
-                    "created_at": (
-                        order.created_at.isoformat()
-                        if hasattr(order, "created_at") and order.created_at
-                        else None
-                    ),
-                    "production_deadline": (
-                        order.production_deadline_date.isoformat()
-                        if hasattr(order, "production_deadline_date")
-                        and order.production_deadline_date
-                        else None
-                    ),
-                    "planned_quantity": (
-                        order.planned_quantity
-                        if hasattr(order, "planned_quantity")
-                        else None
-                    ),
-                    "quantity_done": (
-                        order.quantity_done if hasattr(order, "quantity_done") else None
-                    ),
-                    "location_id": order.location_id
-                    if hasattr(order, "location_id")
+                    "created_at": created_at.isoformat() if created_at else None,
+                    "production_deadline": production_deadline_date.isoformat()
+                    if production_deadline_date
                     else None,
-                    "notes": order.additional_info
-                    if hasattr(order, "additional_info")
-                    else None,
+                    "planned_quantity": unwrap_unset(order.planned_quantity, None),
+                    "quantity_done": unwrap_unset(order.quantity_done, None),
+                    "location_id": unwrap_unset(order.location_id, None),
+                    "notes": unwrap_unset(order.additional_info, None),
                 }
             )
 

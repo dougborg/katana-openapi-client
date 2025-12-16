@@ -14,6 +14,7 @@ from katana_public_api_client.models import (
     ManufacturingOrder,
     ManufacturingOrderStatus,
 )
+from katana_public_api_client.utils import APIError
 from tests.conftest import create_mock_context
 
 # ============================================================================
@@ -216,7 +217,7 @@ async def test_create_manufacturing_order_api_error():
             confirm=True,
         )
 
-        with pytest.raises(Exception, match="API returned unexpected status"):
+        with pytest.raises(APIError):
             await _create_manufacturing_order_impl(request, context)
     finally:
         # Restore original function
