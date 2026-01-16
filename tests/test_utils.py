@@ -47,8 +47,10 @@ class TestUnwrap:
         with pytest.raises(utils.APIError) as exc_info:
             utils.unwrap(response)
 
-        assert "No parsed response data" in str(exc_info.value)
-        assert exc_info.value.status_code == 200
+        error = exc_info.value
+        assert isinstance(error, utils.APIError)
+        assert "No parsed response data" in str(error)
+        assert error.status_code == 200
 
     def test_unwrap_with_none_parsed_returns_none_when_not_raising(self):
         """Test that unwrap returns None when parsed is None and raise_on_error=False."""
@@ -79,9 +81,11 @@ class TestUnwrap:
         with pytest.raises(utils.AuthenticationError) as exc_info:
             utils.unwrap(response)
 
-        assert "Unauthorized: Invalid API key" in str(exc_info.value)
-        assert exc_info.value.status_code == 401
-        assert exc_info.value.error_response == error_response
+        error = exc_info.value
+        assert isinstance(error, utils.AuthenticationError)
+        assert "Unauthorized: Invalid API key" in str(error)
+        assert error.status_code == 401
+        assert error.error_response == error_response
 
     def test_unwrap_422_raises_validation_error(self):
         """Test that 422 status raises ValidationError."""
@@ -100,9 +104,11 @@ class TestUnwrap:
         with pytest.raises(utils.ValidationError) as exc_info:
             utils.unwrap(response)
 
-        assert "ValidationError: Invalid request data" in str(exc_info.value)
-        assert exc_info.value.status_code == 422
-        assert exc_info.value.validation_errors == []
+        error = exc_info.value
+        assert isinstance(error, utils.ValidationError)
+        assert "ValidationError: Invalid request data" in str(error)
+        assert error.status_code == 422
+        assert error.validation_errors == []
 
     def test_unwrap_with_raise_on_error_false_returns_none(self):
         """Test that unwrap with raise_on_error=False returns None on error."""
@@ -181,8 +187,10 @@ class TestUnwrap:
         with pytest.raises(utils.RateLimitError) as exc_info:
             utils.unwrap(response)
 
-        assert "TooManyRequestsError: Too Many Requests" in str(exc_info.value)
-        assert exc_info.value.status_code == 429
+        error = exc_info.value
+        assert isinstance(error, utils.RateLimitError)
+        assert "TooManyRequestsError: Too Many Requests" in str(error)
+        assert error.status_code == 429
 
     def test_unwrap_500_raises_server_error(self):
         """Test that 500 status raises ServerError."""
@@ -200,8 +208,10 @@ class TestUnwrap:
         with pytest.raises(utils.ServerError) as exc_info:
             utils.unwrap(response)
 
-        assert "InternalServerError: Internal server error" in str(exc_info.value)
-        assert exc_info.value.status_code == 500
+        error = exc_info.value
+        assert isinstance(error, utils.ServerError)
+        assert "InternalServerError: Internal server error" in str(error)
+        assert error.status_code == 500
 
     def test_unwrap_error_with_raise_on_error_false_returns_none(self):
         """Test that errors return None when raise_on_error=False."""

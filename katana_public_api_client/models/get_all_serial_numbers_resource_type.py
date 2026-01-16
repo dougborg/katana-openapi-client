@@ -4,6 +4,7 @@ from enum import Enum
 class GetAllSerialNumbersResourceType(str, Enum):
     MANUFACTURINGORDER = "ManufacturingOrder"
     MANUFACTURINGORDERRECIPEROW = "ManufacturingOrderRecipeRow"
+    PRODUCTIONINGREDIENT = "ProductionIngredient"
     PURCHASEORDERRECIPEROW = "PurchaseOrderRecipeRow"
     PURCHASEORDERROW = "PurchaseOrderRow"
     SALESORDERROW = "SalesOrderRow"

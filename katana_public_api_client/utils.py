@@ -6,7 +6,7 @@ handling errors, extracting data, and formatting display values.
 
 from collections.abc import Callable
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any, TypeVar, overload
+from typing import TYPE_CHECKING, Any, TypeVar, cast, overload
 
 from .client_types import Response, Unset
 from .models.detailed_error_response import DetailedErrorResponse
@@ -229,8 +229,8 @@ def unwrap[T](
         if not raise_on_error:
             return None
 
-        # Type narrowing: at this point parsed is ErrorResponse | DetailedErrorResponse
-        parsed_error = response.parsed
+        # Type narrowing: use cast for ty type checker
+        parsed_error = cast(ErrorResponse | DetailedErrorResponse, response.parsed)
 
         error_name = (
             parsed_error.name if not isinstance(parsed_error.name, Unset) else "Unknown"
@@ -242,13 +242,12 @@ def unwrap[T](
         )
 
         # Handle nested error format
-        if hasattr(parsed_error, "additional_properties"):
-            nested = parsed_error.additional_properties
-            if isinstance(nested, dict) and "error" in nested:
-                nested_error = nested["error"]
-                if isinstance(nested_error, dict):
-                    error_name = str(nested_error.get("name", error_name))
-                    error_message = str(nested_error.get("message", error_message))
+        nested = parsed_error.additional_properties
+        if isinstance(nested, dict) and "error" in nested:
+            nested_error = nested["error"]
+            if isinstance(nested_error, dict):
+                error_name = str(nested_error.get("name", error_name))
+                error_message = str(nested_error.get("message", error_message))
 
         message = f"{error_name}: {error_message}"
 
@@ -494,20 +493,19 @@ def get_error_message[T](response: Response[T]) -> str | None:
     if not isinstance(response.parsed, ErrorResponse | DetailedErrorResponse):
         return None
 
-    # Type narrowing: at this point parsed is ErrorResponse | DetailedErrorResponse
-    parsed_error = response.parsed
+    # Type narrowing: use cast for ty type checker
+    parsed_error = cast(ErrorResponse | DetailedErrorResponse, response.parsed)
 
     error_message = (
         parsed_error.message if not isinstance(parsed_error.message, Unset) else None
     )
 
     # Check nested error format
-    if hasattr(parsed_error, "additional_properties"):
-        nested = parsed_error.additional_properties
-        if isinstance(nested, dict) and "error" in nested:
-            nested_error = nested["error"]
-            if isinstance(nested_error, dict):
-                error_message = str(nested_error.get("message", error_message))
+    nested = parsed_error.additional_properties
+    if isinstance(nested, dict) and "error" in nested:
+        nested_error = nested["error"]
+        if isinstance(nested_error, dict):
+            error_message = str(nested_error.get("message", error_message))
 
     return error_message
 

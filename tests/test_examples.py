@@ -93,10 +93,9 @@ def test_new_cookbook_examples_have_main_function():
         tree = ast.parse(source)
 
         # Find all function definitions (including async)
-        functions = [
-            node.name
-            for node in ast.walk(tree)
-            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+        func_types = (ast.FunctionDef, ast.AsyncFunctionDef)
+        functions: list[str] = [
+            node.name for node in ast.walk(tree) if isinstance(node, func_types)
         ]
 
         assert "main" in functions, f"{example_name} is missing a main() function"
