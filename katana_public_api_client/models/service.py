@@ -35,8 +35,8 @@ class Service:
     id: int
     created_at: Unset | datetime.datetime = UNSET
     updated_at: Unset | datetime.datetime = UNSET
-    archived_at: None | Unset | str = UNSET
-    deleted_at: None | Unset | str = UNSET
+    archived_at: None | Unset | datetime.datetime = UNSET
+    deleted_at: None | Unset | datetime.datetime = UNSET
     name: Unset | str = UNSET
     uom: Unset | str = UNSET
     category_name: Unset | str = UNSET
@@ -61,12 +61,16 @@ class Service:
         archived_at: None | Unset | str
         if isinstance(self.archived_at, Unset):
             archived_at = UNSET
+        elif isinstance(self.archived_at, datetime.datetime):
+            archived_at = self.archived_at.isoformat()
         else:
             archived_at = self.archived_at
 
         deleted_at: None | Unset | str
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
         else:
             deleted_at = self.deleted_at
 
@@ -152,21 +156,37 @@ class Service:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_archived_at(data: object) -> None | Unset | str:
+        def _parse_archived_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                archived_at_type_0 = isoparse(data)
+
+                return archived_at_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
-        def _parse_deleted_at(data: object) -> None | Unset | str:
+        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except:  # noqa: E722
+                pass
+            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

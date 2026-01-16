@@ -173,7 +173,7 @@ class KatanaVariant(KatanaBaseModel):
                 else generated.type
             )
             if raw_type in ("product", "material"):
-                type_value = raw_type  # type: ignore[assignment]
+                type_value = raw_type
 
         return cls(
             id=generated.id,
