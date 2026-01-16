@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 from typing import Any, cast
 
 from katana_public_api_client.api.material import (
@@ -40,7 +41,7 @@ class Materials(Base):
         ...     new_material = await client.materials.create({"name": "Steel"})
     """
 
-    async def list(self, **filters: Any) -> list[KatanaMaterial]:
+    async def list(self, **filters: Any) -> builtins.list[KatanaMaterial]:
         """List all materials with optional filters.
 
         Args:

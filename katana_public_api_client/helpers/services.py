@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 from typing import Any, cast
 
 from katana_public_api_client.api.services import (
@@ -36,7 +37,7 @@ class Services(Base):
         ...     new_service = await client.services.create({"name": "Assembly"})
     """
 
-    async def list(self, **filters: Any) -> list[KatanaService]:
+    async def list(self, **filters: Any) -> builtins.list[KatanaService]:
         """List all services with optional filters.
 
         Args:

@@ -40,7 +40,7 @@ class Products(Base):
         ...     new_product = await client.products.create({"name": "Widget"})
     """
 
-    async def list(self, **filters: Any) -> list[KatanaProduct]:
+    async def list(self, **filters: Any) -> builtins.list[KatanaProduct]:
         """List all products with optional filters.
 
         Args:
