@@ -147,6 +147,7 @@ components:
           - StockTransferRow
           - ManufacturingOrder
           - SystemGenerated
+          - ProductionIngredient
     resource_id:
       name: resource_id
       in: query
@@ -1795,6 +1796,7 @@ components:
                 - StockTransferRow
                 - ManufacturingOrder
                 - SystemGenerated
+                - ProductionIngredient
             resource_id:
               type: integer
               description: Identifier of the resource that initiated the movement.

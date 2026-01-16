@@ -5,6 +5,7 @@ class InventoryMovementResourceType(str, Enum):
     MANUFACTURINGORDER = "ManufacturingOrder"
     MANUFACTURINGORDERRECIPEROW = "ManufacturingOrderRecipeRow"
     PRODUCTION = "Production"
+    PRODUCTIONINGREDIENT = "ProductionIngredient"
     PURCHASEORDERRECIPEROW = "PurchaseOrderRecipeRow"
     PURCHASEORDERROW = "PurchaseOrderRow"
     SALESORDERROW = "SalesOrderRow"
