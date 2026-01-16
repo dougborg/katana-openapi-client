@@ -45,8 +45,8 @@ dependencies = [
   # Enhanced client dependencies
   "tenacity>=9.1.0",
   "python-dotenv>=1.0.0",
-  # Security-critical: urllib3 >= 2.6.0 fixes CVE-2025-66471 and CVE-2025-66418
-  "urllib3>=2.6.0",
+  # Security-critical: urllib3 >= 2.6.3 fixes CVE-2025-66471, CVE-2025-66418, and CVE-2026-21441
+  "urllib3>=2.6.3",
   "pydantic>=2.12.0",
   "email-validator>=2.2.0",  # Required for Pydantic EmailStr fields
   "typing-extensions>=4.13.0",
