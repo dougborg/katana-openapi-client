@@ -452,7 +452,8 @@ format-check = ["format-python-check", "format-markdown-check"]
 # Note: katana_mcp_server/ is excluded as it's a separate workspace package
 # with its own dependencies (fastmcp, structlog) that ty needs to resolve.
 # Type check it separately from its own directory.
-typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'scripts/extract_all_katana_docs.py' --exclude 'katana_mcp_server/'"
+# scripts/ is excluded as it contains utility/development scripts with varied typing.
+typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'scripts/' --exclude 'katana_mcp_server/'"
 lint-ruff = "ruff check ."
 lint-ruff-fix = "ruff check --fix ."
 lint-yaml = "yamllint ."
