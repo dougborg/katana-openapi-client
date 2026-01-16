@@ -2,6 +2,92 @@
 
 <!-- version list -->
 
+## v0.43.0 (2026-01-16)
+
+### Bug Fixes
+
+- **client**: Address PR review comments from Copilot
+  ([#214](https://github.com/dougborg/katana-openapi-client/pull/214),
+  [`1d5200b`](https://github.com/dougborg/katana-openapi-client/commit/1d5200b6bb987d3594705d579a6b35cac37a7286))
+
+- **client**: Resolve type errors for ty 0.0.11 compatibility
+  ([#224](https://github.com/dougborg/katana-openapi-client/pull/224),
+  [`f5ea245`](https://github.com/dougborg/katana-openapi-client/commit/f5ea245094414ba0b9f1fde5260a181a9486ddb1))
+
+- **client**: Resolve type errors for ty 0.0.1a25 compatibility
+  ([#225](https://github.com/dougborg/katana-openapi-client/pull/225),
+  [`13dbf43`](https://github.com/dougborg/katana-openapi-client/commit/13dbf43cf400c16fedd86a87fe44d239aa46b16d))
+
+- **mcp**: Address review comments on hardcoded values
+  ([#213](https://github.com/dougborg/katana-openapi-client/pull/213),
+  [`cbe040e`](https://github.com/dougborg/katana-openapi-client/commit/cbe040eb765e7b38bb664e431e33cf11637aba4b))
+
+- **mcp**: Fix incomplete template variable check in test
+  ([#213](https://github.com/dougborg/katana-openapi-client/pull/213),
+  [`cbe040e`](https://github.com/dougborg/katana-openapi-client/commit/cbe040eb765e7b38bb664e431e33cf11637aba4b))
+
+- **mcp**: Use explicit if-else for empty list fallbacks
+  ([#213](https://github.com/dougborg/katana-openapi-client/pull/213),
+  [`cbe040e`](https://github.com/dougborg/katana-openapi-client/commit/cbe040eb765e7b38bb664e431e33cf11637aba4b))
+
+### Chores
+
+- **actions)(deps**: Bump the github-actions group with 4 updates
+  ([#212](https://github.com/dougborg/katana-openapi-client/pull/212),
+  [`792734d`](https://github.com/dougborg/katana-openapi-client/commit/792734dd6008cfe65339508cb247a2cc7a2c832a))
+
+- **deps)(deps**: Bump the python-minor-patch group across 1 directory with 11 updates
+  ([#224](https://github.com/dougborg/katana-openapi-client/pull/224),
+  [`f5ea245`](https://github.com/dougborg/katana-openapi-client/commit/f5ea245094414ba0b9f1fde5260a181a9486ddb1))
+
+- **deps)(deps**: Bump the python-minor-patch group with 9 updates
+  ([#217](https://github.com/dougborg/katana-openapi-client/pull/217),
+  [`a91edbb`](https://github.com/dougborg/katana-openapi-client/commit/a91edbb2ee228aea30b6eb3f8f8ba48d3325794a))
+
+- **deps)(deps**: Bump types-python-dateutil
+  ([#218](https://github.com/dougborg/katana-openapi-client/pull/218),
+  [`4a9d5b6`](https://github.com/dougborg/katana-openapi-client/commit/4a9d5b61c6163ba314b7ad3f489596172e84f6c3))
+
+- **infra**: Enable Dependabot uv support for Python dependencies
+  ([#216](https://github.com/dougborg/katana-openapi-client/pull/216),
+  [`b00b0a1`](https://github.com/dougborg/katana-openapi-client/commit/b00b0a1241e44b147c3a079ae129137eab0afe74))
+
+- **release**: Mcp v0.27.0
+  ([`38556ce`](https://github.com/dougborg/katana-openapi-client/commit/38556ce6404ae2d3b9f2ae5a3b36e1746a3773bd))
+
+- **release**: Mcp v0.28.0
+  ([`45580ed`](https://github.com/dougborg/katana-openapi-client/commit/45580ed4e2f5d8b8b6361c951d7df35972225fb3))
+
+### Documentation
+
+- Fix exception hierarchy documentation in CLAUDE.md
+  ([#214](https://github.com/dougborg/katana-openapi-client/pull/214),
+  [`1d5200b`](https://github.com/dougborg/katana-openapi-client/commit/1d5200b6bb987d3594705d579a6b35cac37a7286))
+
+### Features
+
+- **client**: Add ProductionIngredient resource type to inventory movements
+  ([#225](https://github.com/dougborg/katana-openapi-client/pull/225),
+  [`13dbf43`](https://github.com/dougborg/katana-openapi-client/commit/13dbf43cf400c16fedd86a87fe44d239aa46b16d))
+
+- **mcp**: Add token reduction patterns and ToolResult integration
+  ([#213](https://github.com/dougborg/katana-openapi-client/pull/213),
+  [`cbe040e`](https://github.com/dougborg/katana-openapi-client/commit/cbe040eb765e7b38bb664e431e33cf11637aba4b))
+
+- **mcp**: Update client dependency to v0.42.0
+  ([#211](https://github.com/dougborg/katana-openapi-client/pull/211),
+  [`990dd93`](https://github.com/dougborg/katana-openapi-client/commit/990dd931430b0d2de5e113f675407f51d52f4259))
+
+### Refactoring
+
+- **client,mcp**: Use consistent helper utilities for API response handling
+  ([#214](https://github.com/dougborg/katana-openapi-client/pull/214),
+  [`1d5200b`](https://github.com/dougborg/katana-openapi-client/commit/1d5200b6bb987d3594705d579a6b35cac37a7286))
+
+- **mcp**: Use shared make_tool_result utility
+  ([#213](https://github.com/dougborg/katana-openapi-client/pull/213),
+  [`cbe040e`](https://github.com/dougborg/katana-openapi-client/commit/cbe040eb765e7b38bb664e431e33cf11637aba4b))
+
 ## v0.42.0 (2025-12-12)
 
 ### Bug Fixes
