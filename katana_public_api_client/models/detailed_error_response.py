@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -30,26 +32,24 @@ T = TypeVar("T", bound="DetailedErrorResponse")
 class DetailedErrorResponse:
     """Enhanced error response containing detailed validation error information for complex request failures"""
 
-    status_code: Unset | float = UNSET
-    name: Unset | str = UNSET
-    message: Unset | str = UNSET
-    code: None | Unset | str = UNSET
+    status_code: float | Unset = UNSET
+    name: str | Unset = UNSET
+    message: str | Unset = UNSET
+    code: None | str | Unset = UNSET
     details: (
-        Unset
-        | list[
-            Union[
-                "EnumValidationError",
-                "GenericValidationError",
-                "InvalidTypeValidationError",
-                "MaxValidationError",
-                "MinValidationError",
-                "PatternValidationError",
-                "RequiredValidationError",
-                "TooBigValidationError",
-                "TooSmallValidationError",
-                "UnrecognizedKeysValidationError",
-            ]
+        list[
+            EnumValidationError
+            | GenericValidationError
+            | InvalidTypeValidationError
+            | MaxValidationError
+            | MinValidationError
+            | PatternValidationError
+            | RequiredValidationError
+            | TooBigValidationError
+            | TooSmallValidationError
+            | UnrecognizedKeysValidationError
         ]
+        | Unset
     ) = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -72,27 +72,30 @@ class DetailedErrorResponse:
 
         message = self.message
 
-        code: None | Unset | str
+        code: None | str | Unset
         if isinstance(self.code, Unset):
             code = UNSET
         else:
             code = self.code
 
-        details: Unset | list[dict[str, Any]] = UNSET
+        details: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.details, Unset):
             details = []
             for details_item_data in self.details:
                 details_item: dict[str, Any]
                 if isinstance(
                     details_item_data,
-                    EnumValidationError
-                    | MinValidationError
-                    | MaxValidationError
-                    | InvalidTypeValidationError
-                    | (TooSmallValidationError | TooBigValidationError)
-                    | RequiredValidationError
-                    | PatternValidationError
-                    | UnrecognizedKeysValidationError,
+                    (
+                        EnumValidationError,
+                        MinValidationError,
+                        MaxValidationError,
+                        InvalidTypeValidationError,
+                        TooSmallValidationError,
+                        TooBigValidationError,
+                        RequiredValidationError,
+                        PatternValidationError,
+                        UnrecognizedKeysValidationError,
+                    ),
                 ):
                     details_item = details_item_data.to_dict()
                 else:
@@ -138,138 +141,162 @@ class DetailedErrorResponse:
 
         message = d.pop("message", UNSET)
 
-        def _parse_code(data: object) -> None | Unset | str:
+        def _parse_code(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         code = _parse_code(d.pop("code", UNSET))
 
-        details = []
         _details = d.pop("details", UNSET)
-        for details_item_data in _details or []:
+        details: (
+            list[
+                EnumValidationError
+                | GenericValidationError
+                | InvalidTypeValidationError
+                | MaxValidationError
+                | MinValidationError
+                | PatternValidationError
+                | RequiredValidationError
+                | TooBigValidationError
+                | TooSmallValidationError
+                | UnrecognizedKeysValidationError
+            ]
+            | Unset
+        ) = UNSET
+        if _details is not UNSET:
+            details = []
+            for details_item_data in _details:
 
-            def _parse_details_item(
-                data: object,
-            ) -> Union[
-                "EnumValidationError",
-                "GenericValidationError",
-                "InvalidTypeValidationError",
-                "MaxValidationError",
-                "MinValidationError",
-                "PatternValidationError",
-                "RequiredValidationError",
-                "TooBigValidationError",
-                "TooSmallValidationError",
-                "UnrecognizedKeysValidationError",
-            ]:
-                try:
-                    if not isinstance(data, dict):
-                        raise TypeError()
-                    componentsschemas_validation_error_detail_type_0 = (
-                        EnumValidationError.from_dict(cast(Mapping[str, Any], data))
-                    )
-
-                    return componentsschemas_validation_error_detail_type_0
-                except:  # noqa: E722
-                    pass
-                try:
-                    if not isinstance(data, dict):
-                        raise TypeError()
-                    componentsschemas_validation_error_detail_type_1 = (
-                        MinValidationError.from_dict(cast(Mapping[str, Any], data))
-                    )
-
-                    return componentsschemas_validation_error_detail_type_1
-                except:  # noqa: E722
-                    pass
-                try:
-                    if not isinstance(data, dict):
-                        raise TypeError()
-                    componentsschemas_validation_error_detail_type_2 = (
-                        MaxValidationError.from_dict(cast(Mapping[str, Any], data))
-                    )
-
-                    return componentsschemas_validation_error_detail_type_2
-                except:  # noqa: E722
-                    pass
-                try:
-                    if not isinstance(data, dict):
-                        raise TypeError()
-                    componentsschemas_validation_error_detail_type_3 = (
-                        InvalidTypeValidationError.from_dict(
-                            cast(Mapping[str, Any], data)
+                def _parse_details_item(
+                    data: object,
+                ) -> (
+                    EnumValidationError
+                    | GenericValidationError
+                    | InvalidTypeValidationError
+                    | MaxValidationError
+                    | MinValidationError
+                    | PatternValidationError
+                    | RequiredValidationError
+                    | TooBigValidationError
+                    | TooSmallValidationError
+                    | UnrecognizedKeysValidationError
+                ):
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_0 = (
+                            EnumValidationError.from_dict(cast(Mapping[str, Any], data))
                         )
-                    )
 
-                    return componentsschemas_validation_error_detail_type_3
-                except:  # noqa: E722
-                    pass
-                try:
-                    if not isinstance(data, dict):
-                        raise TypeError()
-                    componentsschemas_validation_error_detail_type_4 = (
-                        TooSmallValidationError.from_dict(cast(Mapping[str, Any], data))
-                    )
-
-                    return componentsschemas_validation_error_detail_type_4
-                except:  # noqa: E722
-                    pass
-                try:
-                    if not isinstance(data, dict):
-                        raise TypeError()
-                    componentsschemas_validation_error_detail_type_5 = (
-                        TooBigValidationError.from_dict(cast(Mapping[str, Any], data))
-                    )
-
-                    return componentsschemas_validation_error_detail_type_5
-                except:  # noqa: E722
-                    pass
-                try:
-                    if not isinstance(data, dict):
-                        raise TypeError()
-                    componentsschemas_validation_error_detail_type_6 = (
-                        RequiredValidationError.from_dict(cast(Mapping[str, Any], data))
-                    )
-
-                    return componentsschemas_validation_error_detail_type_6
-                except:  # noqa: E722
-                    pass
-                try:
-                    if not isinstance(data, dict):
-                        raise TypeError()
-                    componentsschemas_validation_error_detail_type_7 = (
-                        PatternValidationError.from_dict(cast(Mapping[str, Any], data))
-                    )
-
-                    return componentsschemas_validation_error_detail_type_7
-                except:  # noqa: E722
-                    pass
-                try:
-                    if not isinstance(data, dict):
-                        raise TypeError()
-                    componentsschemas_validation_error_detail_type_8 = (
-                        UnrecognizedKeysValidationError.from_dict(
-                            cast(Mapping[str, Any], data)
+                        return componentsschemas_validation_error_detail_type_0
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_1 = (
+                            MinValidationError.from_dict(cast(Mapping[str, Any], data))
                         )
+
+                        return componentsschemas_validation_error_detail_type_1
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_2 = (
+                            MaxValidationError.from_dict(cast(Mapping[str, Any], data))
+                        )
+
+                        return componentsschemas_validation_error_detail_type_2
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_3 = (
+                            InvalidTypeValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_3
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_4 = (
+                            TooSmallValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_4
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_5 = (
+                            TooBigValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_5
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_6 = (
+                            RequiredValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_6
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_7 = (
+                            PatternValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_7
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_8 = (
+                            UnrecognizedKeysValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_8
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    if not isinstance(data, dict):
+                        raise TypeError()
+                    componentsschemas_validation_error_detail_type_9 = (
+                        GenericValidationError.from_dict(cast(Mapping[str, Any], data))
                     )
 
-                    return componentsschemas_validation_error_detail_type_8
-                except:  # noqa: E722
-                    pass
-                if not isinstance(data, dict):
-                    raise TypeError()
-                componentsschemas_validation_error_detail_type_9 = (
-                    GenericValidationError.from_dict(cast(Mapping[str, Any], data))
-                )
+                    return componentsschemas_validation_error_detail_type_9
 
-                return componentsschemas_validation_error_detail_type_9
+                details_item = _parse_details_item(details_item_data)
 
-            details_item = _parse_details_item(details_item_data)
-
-            details.append(details_item)
+                details.append(details_item)
 
         detailed_error_response = cls(
             status_code=status_code,

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -25,9 +27,9 @@ class StockAdjustmentRow:
 
     variant_id: int
     quantity: float
-    id: Unset | int = UNSET
-    cost_per_unit: Unset | float = UNSET
-    batch_transactions: Unset | list["StockAdjustmentBatchTransaction"] = UNSET
+    id: int | Unset = UNSET
+    cost_per_unit: float | Unset = UNSET
+    batch_transactions: list[StockAdjustmentBatchTransaction] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         variant_id = self.variant_id
@@ -38,7 +40,7 @@ class StockAdjustmentRow:
 
         cost_per_unit = self.cost_per_unit
 
-        batch_transactions: Unset | list[dict[str, Any]] = UNSET
+        batch_transactions: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.batch_transactions, Unset):
             batch_transactions = []
             for batch_transactions_item_data in self.batch_transactions:
@@ -77,14 +79,16 @@ class StockAdjustmentRow:
 
         cost_per_unit = d.pop("cost_per_unit", UNSET)
 
-        batch_transactions = []
         _batch_transactions = d.pop("batch_transactions", UNSET)
-        for batch_transactions_item_data in _batch_transactions or []:
-            batch_transactions_item = StockAdjustmentBatchTransaction.from_dict(
-                batch_transactions_item_data
-            )
+        batch_transactions: list[StockAdjustmentBatchTransaction] | Unset = UNSET
+        if _batch_transactions is not UNSET:
+            batch_transactions = []
+            for batch_transactions_item_data in _batch_transactions:
+                batch_transactions_item = StockAdjustmentBatchTransaction.from_dict(
+                    batch_transactions_item_data
+                )
 
-            batch_transactions.append(batch_transactions_item)
+                batch_transactions.append(batch_transactions_item)
 
         stock_adjustment_row = cls(
             variant_id=variant_id,

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
@@ -26,18 +28,18 @@ class UpdateMaterialRequest:
             {'name': 'Finish', 'values': ['Brushed', 'Mirror', 'Matte']}], 'custom_field_collection_id': 201}
     """
 
-    name: Unset | str = UNSET
-    uom: Unset | str = UNSET
-    category_name: Unset | str = UNSET
-    default_supplier_id: Unset | int = UNSET
-    additional_info: Unset | str = UNSET
-    batch_tracked: Unset | bool = UNSET
-    is_sellable: Unset | bool = UNSET
-    is_archived: Unset | bool = UNSET
-    purchase_uom: Unset | str = UNSET
-    purchase_uom_conversion_rate: Unset | float = UNSET
-    configs: Unset | list["UpdateMaterialRequestConfigsItem"] = UNSET
-    custom_field_collection_id: None | Unset | int = UNSET
+    name: str | Unset = UNSET
+    uom: str | Unset = UNSET
+    category_name: str | Unset = UNSET
+    default_supplier_id: int | Unset = UNSET
+    additional_info: str | Unset = UNSET
+    batch_tracked: bool | Unset = UNSET
+    is_sellable: bool | Unset = UNSET
+    is_archived: bool | Unset = UNSET
+    purchase_uom: str | Unset = UNSET
+    purchase_uom_conversion_rate: float | Unset = UNSET
+    configs: list[UpdateMaterialRequestConfigsItem] | Unset = UNSET
+    custom_field_collection_id: int | None | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -60,14 +62,14 @@ class UpdateMaterialRequest:
 
         purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
-        configs: Unset | list[dict[str, Any]] = UNSET
+        configs: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.configs, Unset):
             configs = []
             for configs_item_data in self.configs:
                 configs_item = configs_item_data.to_dict()
                 configs.append(configs_item)
 
-        custom_field_collection_id: None | Unset | int
+        custom_field_collection_id: int | None | Unset
         if isinstance(self.custom_field_collection_id, Unset):
             custom_field_collection_id = UNSET
         else:
@@ -130,19 +132,23 @@ class UpdateMaterialRequest:
 
         purchase_uom_conversion_rate = d.pop("purchase_uom_conversion_rate", UNSET)
 
-        configs = []
         _configs = d.pop("configs", UNSET)
-        for configs_item_data in _configs or []:
-            configs_item = UpdateMaterialRequestConfigsItem.from_dict(configs_item_data)
+        configs: list[UpdateMaterialRequestConfigsItem] | Unset = UNSET
+        if _configs is not UNSET:
+            configs = []
+            for configs_item_data in _configs:
+                configs_item = UpdateMaterialRequestConfigsItem.from_dict(
+                    configs_item_data
+                )
 
-            configs.append(configs_item)
+                configs.append(configs_item)
 
-        def _parse_custom_field_collection_id(data: object) -> None | Unset | int:
+        def _parse_custom_field_collection_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)  # type: ignore[return-value]
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)

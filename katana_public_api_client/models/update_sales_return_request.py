@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
@@ -21,14 +23,14 @@ class UpdateSalesReturnRequest:
             shipping', 'status': 'RETURNED_ALL'}
     """
 
-    customer_id: Unset | int = UNSET
-    sales_order_id: Unset | int = UNSET
-    order_no: Unset | str = UNSET
-    return_location_id: Unset | int = UNSET
-    currency: Unset | str = UNSET
-    order_created_date: Unset | datetime.datetime = UNSET
-    additional_info: Unset | str = UNSET
-    status: Unset | UpdateSalesReturnRequestStatus = UNSET
+    customer_id: int | Unset = UNSET
+    sales_order_id: int | Unset = UNSET
+    order_no: str | Unset = UNSET
+    return_location_id: int | Unset = UNSET
+    currency: str | Unset = UNSET
+    order_created_date: datetime.datetime | Unset = UNSET
+    additional_info: str | Unset = UNSET
+    status: UpdateSalesReturnRequestStatus | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         customer_id = self.customer_id
@@ -41,13 +43,13 @@ class UpdateSalesReturnRequest:
 
         currency = self.currency
 
-        order_created_date: Unset | str = UNSET
+        order_created_date: str | Unset = UNSET
         if not isinstance(self.order_created_date, Unset):
             order_created_date = self.order_created_date.isoformat()
 
         additional_info = self.additional_info
 
-        status: Unset | str = UNSET
+        status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
@@ -87,7 +89,7 @@ class UpdateSalesReturnRequest:
         currency = d.pop("currency", UNSET)
 
         _order_created_date = d.pop("order_created_date", UNSET)
-        order_created_date: Unset | datetime.datetime
+        order_created_date: datetime.datetime | Unset
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:
@@ -96,7 +98,7 @@ class UpdateSalesReturnRequest:
         additional_info = d.pop("additional_info", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: Unset | UpdateSalesReturnRequestStatus
+        status: UpdateSalesReturnRequestStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:

@@ -13,23 +13,23 @@ from ...models.purchase_order_row_list_response import PurchaseOrderRowListRespo
 
 def _get_kwargs(
     *,
-    ids: Unset | list[int] = UNSET,
-    purchase_order_id: Unset | float = UNSET,
-    variant_id: Unset | int = UNSET,
-    tax_rate_id: Unset | float = UNSET,
-    group_id: Unset | float = UNSET,
-    purchase_uom: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    purchase_order_id: float | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    tax_rate_id: float | Unset = UNSET,
+    group_id: float | Unset = UNSET,
+    purchase_uom: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -51,22 +51,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: str | Unset = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: str | Unset = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: str | Unset = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: str | Unset = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -125,19 +125,19 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    purchase_order_id: Unset | float = UNSET,
-    variant_id: Unset | int = UNSET,
-    tax_rate_id: Unset | float = UNSET,
-    group_id: Unset | float = UNSET,
-    purchase_uom: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    purchase_order_id: float | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    tax_rate_id: float | Unset = UNSET,
+    group_id: float | Unset = UNSET,
+    purchase_uom: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | PurchaseOrderRowListResponse]:
     """List all purchase order rows
 
@@ -145,19 +145,19 @@ def sync_detailed(
       The purchase order rows are returned in sorted order, with the most recent rows appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        purchase_order_id (Union[Unset, float]):
-        variant_id (Union[Unset, int]):
-        tax_rate_id (Union[Unset, float]):
-        group_id (Union[Unset, float]):
-        purchase_uom (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        purchase_order_id (float | Unset):
+        variant_id (int | Unset):
+        tax_rate_id (float | Unset):
+        group_id (float | Unset):
+        purchase_uom (str | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -165,7 +165,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, PurchaseOrderRowListResponse]]
+        Response[ErrorResponse | PurchaseOrderRowListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -194,19 +194,19 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    purchase_order_id: Unset | float = UNSET,
-    variant_id: Unset | int = UNSET,
-    tax_rate_id: Unset | float = UNSET,
-    group_id: Unset | float = UNSET,
-    purchase_uom: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    purchase_order_id: float | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    tax_rate_id: float | Unset = UNSET,
+    group_id: float | Unset = UNSET,
+    purchase_uom: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | PurchaseOrderRowListResponse | None:
     """List all purchase order rows
 
@@ -214,19 +214,19 @@ def sync(
       The purchase order rows are returned in sorted order, with the most recent rows appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        purchase_order_id (Union[Unset, float]):
-        variant_id (Union[Unset, int]):
-        tax_rate_id (Union[Unset, float]):
-        group_id (Union[Unset, float]):
-        purchase_uom (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        purchase_order_id (float | Unset):
+        variant_id (int | Unset):
+        tax_rate_id (float | Unset):
+        group_id (float | Unset):
+        purchase_uom (str | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -234,7 +234,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, PurchaseOrderRowListResponse]
+        ErrorResponse | PurchaseOrderRowListResponse
     """
 
     return sync_detailed(
@@ -258,19 +258,19 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    purchase_order_id: Unset | float = UNSET,
-    variant_id: Unset | int = UNSET,
-    tax_rate_id: Unset | float = UNSET,
-    group_id: Unset | float = UNSET,
-    purchase_uom: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    purchase_order_id: float | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    tax_rate_id: float | Unset = UNSET,
+    group_id: float | Unset = UNSET,
+    purchase_uom: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | PurchaseOrderRowListResponse]:
     """List all purchase order rows
 
@@ -278,19 +278,19 @@ async def asyncio_detailed(
       The purchase order rows are returned in sorted order, with the most recent rows appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        purchase_order_id (Union[Unset, float]):
-        variant_id (Union[Unset, int]):
-        tax_rate_id (Union[Unset, float]):
-        group_id (Union[Unset, float]):
-        purchase_uom (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        purchase_order_id (float | Unset):
+        variant_id (int | Unset):
+        tax_rate_id (float | Unset):
+        group_id (float | Unset):
+        purchase_uom (str | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -298,7 +298,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, PurchaseOrderRowListResponse]]
+        Response[ErrorResponse | PurchaseOrderRowListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -325,19 +325,19 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    purchase_order_id: Unset | float = UNSET,
-    variant_id: Unset | int = UNSET,
-    tax_rate_id: Unset | float = UNSET,
-    group_id: Unset | float = UNSET,
-    purchase_uom: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    purchase_order_id: float | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    tax_rate_id: float | Unset = UNSET,
+    group_id: float | Unset = UNSET,
+    purchase_uom: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | PurchaseOrderRowListResponse | None:
     """List all purchase order rows
 
@@ -345,19 +345,19 @@ async def asyncio(
       The purchase order rows are returned in sorted order, with the most recent rows appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        purchase_order_id (Union[Unset, float]):
-        variant_id (Union[Unset, int]):
-        tax_rate_id (Union[Unset, float]):
-        group_id (Union[Unset, float]):
-        purchase_uom (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        purchase_order_id (float | Unset):
+        variant_id (int | Unset):
+        tax_rate_id (float | Unset):
+        group_id (float | Unset):
+        purchase_uom (str | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -365,7 +365,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, PurchaseOrderRowListResponse]
+        ErrorResponse | PurchaseOrderRowListResponse
     """
 
     return (

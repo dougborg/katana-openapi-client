@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -13,7 +15,7 @@ class CreateRecipesRequestRowsItem:
     quantity: float
     ingredient_variant_id: int
     product_variant_id: float
-    notes: Unset | str = UNSET
+    notes: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         quantity = self.quantity

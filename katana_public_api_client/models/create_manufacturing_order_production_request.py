@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -38,8 +40,8 @@ class CreateManufacturingOrderProductionRequest:
     manufacturing_order_id: int
     quantity: float
     production_date: datetime.datetime
-    ingredients: Unset | list["ManufacturingOrderProductionIngredient"] = UNSET
-    operations: Unset | list["ManufacturingOrderOperationRow"] = UNSET
+    ingredients: list[ManufacturingOrderProductionIngredient] | Unset = UNSET
+    operations: list[ManufacturingOrderOperationRow] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -49,14 +51,14 @@ class CreateManufacturingOrderProductionRequest:
 
         production_date = self.production_date.isoformat()
 
-        ingredients: Unset | list[dict[str, Any]] = UNSET
+        ingredients: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.ingredients, Unset):
             ingredients = []
             for ingredients_item_data in self.ingredients:
                 ingredients_item = ingredients_item_data.to_dict()
                 ingredients.append(ingredients_item)
 
-        operations: Unset | list[dict[str, Any]] = UNSET
+        operations: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.operations, Unset):
             operations = []
             for operations_item_data in self.operations:
@@ -95,23 +97,27 @@ class CreateManufacturingOrderProductionRequest:
 
         production_date = isoparse(d.pop("production_date"))
 
-        ingredients = []
         _ingredients = d.pop("ingredients", UNSET)
-        for ingredients_item_data in _ingredients or []:
-            ingredients_item = ManufacturingOrderProductionIngredient.from_dict(
-                ingredients_item_data
-            )
+        ingredients: list[ManufacturingOrderProductionIngredient] | Unset = UNSET
+        if _ingredients is not UNSET:
+            ingredients = []
+            for ingredients_item_data in _ingredients:
+                ingredients_item = ManufacturingOrderProductionIngredient.from_dict(
+                    ingredients_item_data
+                )
 
-            ingredients.append(ingredients_item)
+                ingredients.append(ingredients_item)
 
-        operations = []
         _operations = d.pop("operations", UNSET)
-        for operations_item_data in _operations or []:
-            operations_item = ManufacturingOrderOperationRow.from_dict(
-                operations_item_data
-            )
+        operations: list[ManufacturingOrderOperationRow] | Unset = UNSET
+        if _operations is not UNSET:
+            operations = []
+            for operations_item_data in _operations:
+                operations_item = ManufacturingOrderOperationRow.from_dict(
+                    operations_item_data
+                )
 
-            operations.append(operations_item)
+                operations.append(operations_item)
 
         create_manufacturing_order_production_request = cls(
             manufacturing_order_id=manufacturing_order_id,

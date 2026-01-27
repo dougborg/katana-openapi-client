@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
@@ -23,23 +25,23 @@ class ArchivableEntity:
     """
 
     id: int
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    archived_at: None | Unset | datetime.datetime = UNSET
+    created_at: datetime.datetime | Unset = UNSET
+    updated_at: datetime.datetime | Unset = UNSET
+    archived_at: datetime.datetime | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        created_at: Unset | str = UNSET
+        created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        archived_at: None | Unset | str
+        archived_at: None | str | Unset
         if isinstance(self.archived_at, Unset):
             archived_at = UNSET
         elif isinstance(self.archived_at, datetime.datetime):
@@ -69,20 +71,20 @@ class ArchivableEntity:
         id = d.pop("id")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_archived_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_archived_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -93,9 +95,9 @@ class ArchivableEntity:
                 archived_at_type_0 = isoparse(data)
 
                 return archived_at_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 

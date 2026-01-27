@@ -15,25 +15,25 @@ from ...models.manufacturing_order_production_list_response import (
 
 def _get_kwargs(
     *,
-    ids: Unset | list[int] = UNSET,
-    manufacturing_order_ids: Unset | list[int] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    ids: list[int] | Unset = UNSET,
+    manufacturing_order_ids: list[int] | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
     params["ids"] = json_ids
 
-    json_manufacturing_order_ids: Unset | list[int] = UNSET
+    json_manufacturing_order_ids: list[int] | Unset = UNSET
     if not isinstance(manufacturing_order_ids, Unset):
         json_manufacturing_order_ids = manufacturing_order_ids
 
@@ -43,22 +43,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: str | Unset = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: str | Unset = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: str | Unset = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: str | Unset = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -121,15 +121,15 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    manufacturing_order_ids: Unset | list[int] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    ids: list[int] | Unset = UNSET,
+    manufacturing_order_ids: list[int] | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
 ) -> Response[ErrorResponse | ManufacturingOrderProductionListResponse]:
     """List all manufacturing orders
 
@@ -139,15 +139,15 @@ def sync_detailed(
       first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        manufacturing_order_ids (Union[Unset, list[int]]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        include_deleted (Union[Unset, bool]):
+        ids (list[int] | Unset):
+        manufacturing_order_ids (list[int] | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        include_deleted (bool | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -155,7 +155,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, ManufacturingOrderProductionListResponse]]
+        Response[ErrorResponse | ManufacturingOrderProductionListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -180,15 +180,15 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    manufacturing_order_ids: Unset | list[int] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    ids: list[int] | Unset = UNSET,
+    manufacturing_order_ids: list[int] | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
 ) -> ErrorResponse | ManufacturingOrderProductionListResponse | None:
     """List all manufacturing orders
 
@@ -198,15 +198,15 @@ def sync(
       first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        manufacturing_order_ids (Union[Unset, list[int]]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        include_deleted (Union[Unset, bool]):
+        ids (list[int] | Unset):
+        manufacturing_order_ids (list[int] | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        include_deleted (bool | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -214,7 +214,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, ManufacturingOrderProductionListResponse]
+        ErrorResponse | ManufacturingOrderProductionListResponse
     """
 
     return sync_detailed(
@@ -234,15 +234,15 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    manufacturing_order_ids: Unset | list[int] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    ids: list[int] | Unset = UNSET,
+    manufacturing_order_ids: list[int] | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
 ) -> Response[ErrorResponse | ManufacturingOrderProductionListResponse]:
     """List all manufacturing orders
 
@@ -252,15 +252,15 @@ async def asyncio_detailed(
       first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        manufacturing_order_ids (Union[Unset, list[int]]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        include_deleted (Union[Unset, bool]):
+        ids (list[int] | Unset):
+        manufacturing_order_ids (list[int] | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        include_deleted (bool | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -268,7 +268,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, ManufacturingOrderProductionListResponse]]
+        Response[ErrorResponse | ManufacturingOrderProductionListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -291,15 +291,15 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    manufacturing_order_ids: Unset | list[int] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    include_deleted: Unset | bool = UNSET,
+    ids: list[int] | Unset = UNSET,
+    manufacturing_order_ids: list[int] | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
 ) -> ErrorResponse | ManufacturingOrderProductionListResponse | None:
     """List all manufacturing orders
 
@@ -309,15 +309,15 @@ async def asyncio(
       first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        manufacturing_order_ids (Union[Unset, list[int]]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        include_deleted (Union[Unset, bool]):
+        ids (list[int] | Unset):
+        manufacturing_order_ids (list[int] | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        include_deleted (bool | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -325,7 +325,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, ManufacturingOrderProductionListResponse]
+        ErrorResponse | ManufacturingOrderProductionListResponse
     """
 
     return (

@@ -97,7 +97,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, ManufacturingOrderRecipeRow]]
+        Response[ErrorResponse | ManufacturingOrderRecipeRow]
     """
 
     kwargs = _get_kwargs(
@@ -136,7 +136,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, ManufacturingOrderRecipeRow]
+        ErrorResponse | ManufacturingOrderRecipeRow
     """
 
     return sync_detailed(
@@ -170,7 +170,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, ManufacturingOrderRecipeRow]]
+        Response[ErrorResponse | ManufacturingOrderRecipeRow]
     """
 
     kwargs = _get_kwargs(
@@ -207,7 +207,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, ManufacturingOrderRecipeRow]
+        ErrorResponse | ManufacturingOrderRecipeRow
     """
 
     return (

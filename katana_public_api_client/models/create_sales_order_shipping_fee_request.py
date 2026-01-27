@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -19,8 +21,8 @@ class CreateSalesOrderShippingFeeRequest:
 
     sales_order_id: int
     amount: float
-    description: Unset | str = UNSET
-    tax_rate_id: Unset | int = UNSET
+    description: str | Unset = UNSET
+    tax_rate_id: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         sales_order_id = self.sales_order_id

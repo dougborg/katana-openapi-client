@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -28,7 +30,7 @@ class WebhookEventPayload:
     resource_type: str
     action: WebhookEvent
     webhook_id: int
-    object_: "WebhookEventPayloadObject"
+    object_: WebhookEventPayloadObject
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

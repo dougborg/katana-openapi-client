@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
@@ -20,7 +22,7 @@ class UnrecognizedKeysValidationError:
     code: UnrecognizedKeysValidationErrorCode
     message: str
     keys: list[str]
-    valid_keys: Unset | list[str] = UNSET
+    valid_keys: list[str] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -32,7 +34,7 @@ class UnrecognizedKeysValidationError:
 
         keys = self.keys
 
-        valid_keys: Unset | list[str] = UNSET
+        valid_keys: list[str] | Unset = UNSET
         if not isinstance(self.valid_keys, Unset):
             valid_keys = self.valid_keys
 

@@ -13,12 +13,12 @@ from ...models.inventory_list_response import InventoryListResponse
 
 def _get_kwargs(
     *,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    include_archived: Unset | bool = UNSET,
-    extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -28,7 +28,7 @@ def _get_kwargs(
 
     params["include_archived"] = include_archived
 
-    json_extend: Unset | list[str] = UNSET
+    json_extend: list[str] | Unset = UNSET
     if not isinstance(extend, Unset):
         json_extend = []
         for extend_item_data in extend:
@@ -95,12 +95,12 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    include_archived: Unset | bool = UNSET,
-    extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> Response[ErrorResponse | InventoryListResponse]:
     """List current inventory
 
@@ -109,12 +109,12 @@ def sync_detailed(
     appearing first.
 
     Args:
-        location_id (Union[Unset, int]):
-        variant_id (Union[Unset, int]):
-        include_archived (Union[Unset, bool]):
-        extend (Union[Unset, list[GetAllInventoryPointExtendItem]]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        location_id (int | Unset):
+        variant_id (int | Unset):
+        include_archived (bool | Unset):
+        extend (list[GetAllInventoryPointExtendItem] | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -123,7 +123,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, InventoryListResponse]]
+        Response[ErrorResponse | InventoryListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -145,12 +145,12 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    include_archived: Unset | bool = UNSET,
-    extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> ErrorResponse | InventoryListResponse | None:
     """List current inventory
 
@@ -159,12 +159,12 @@ def sync(
     appearing first.
 
     Args:
-        location_id (Union[Unset, int]):
-        variant_id (Union[Unset, int]):
-        include_archived (Union[Unset, bool]):
-        extend (Union[Unset, list[GetAllInventoryPointExtendItem]]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        location_id (int | Unset):
+        variant_id (int | Unset):
+        include_archived (bool | Unset):
+        extend (list[GetAllInventoryPointExtendItem] | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -173,7 +173,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, InventoryListResponse]
+        ErrorResponse | InventoryListResponse
     """
 
     return sync_detailed(
@@ -190,12 +190,12 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    include_archived: Unset | bool = UNSET,
-    extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> Response[ErrorResponse | InventoryListResponse]:
     """List current inventory
 
@@ -204,12 +204,12 @@ async def asyncio_detailed(
     appearing first.
 
     Args:
-        location_id (Union[Unset, int]):
-        variant_id (Union[Unset, int]):
-        include_archived (Union[Unset, bool]):
-        extend (Union[Unset, list[GetAllInventoryPointExtendItem]]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        location_id (int | Unset):
+        variant_id (int | Unset):
+        include_archived (bool | Unset):
+        extend (list[GetAllInventoryPointExtendItem] | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -218,7 +218,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, InventoryListResponse]]
+        Response[ErrorResponse | InventoryListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -238,12 +238,12 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    include_archived: Unset | bool = UNSET,
-    extend: Unset | list[GetAllInventoryPointExtendItem] = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> ErrorResponse | InventoryListResponse | None:
     """List current inventory
 
@@ -252,12 +252,12 @@ async def asyncio(
     appearing first.
 
     Args:
-        location_id (Union[Unset, int]):
-        variant_id (Union[Unset, int]):
-        include_archived (Union[Unset, bool]):
-        extend (Union[Unset, list[GetAllInventoryPointExtendItem]]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        location_id (int | Unset):
+        variant_id (int | Unset):
+        include_archived (bool | Unset):
+        extend (list[GetAllInventoryPointExtendItem] | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -266,7 +266,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, InventoryListResponse]
+        ErrorResponse | InventoryListResponse
     """
 
     return (

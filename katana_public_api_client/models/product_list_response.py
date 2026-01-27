@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -28,11 +30,11 @@ class ProductListResponse:
             SS-5PC', 'name': '5-Piece Mixing Bowl Set', 'sales_price': 79.99}]}]}
     """
 
-    data: Unset | list["Product"] = UNSET
+    data: list[Product] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:
@@ -52,12 +54,14 @@ class ProductListResponse:
         from ..models.product import Product
 
         d = dict(src_dict)
-        data = []
         _data = d.pop("data", UNSET)
-        for data_item_data in _data or []:
-            data_item = Product.from_dict(data_item_data)
+        data: list[Product] | Unset = UNSET
+        if _data is not UNSET:
+            data = []
+            for data_item_data in _data:
+                data_item = Product.from_dict(data_item_data)
 
-            data.append(data_item)
+                data.append(data_item)
 
         product_list_response = cls(
             data=data,

@@ -14,28 +14,28 @@ from ...models.variant_list_response import VariantListResponse
 
 def _get_kwargs(
     *,
-    ids: Unset | list[int] = UNSET,
-    product_id: Unset | int = UNSET,
-    material_id: Unset | int = UNSET,
-    sku: Unset | list[str] = UNSET,
-    sales_price: Unset | float = UNSET,
-    purchase_price: Unset | float = UNSET,
-    internal_barcode: Unset | str = UNSET,
-    registered_barcode: Unset | str = UNSET,
-    supplier_item_codes: Unset | list[str] = UNSET,
-    extend: Unset | list[GetAllVariantsExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    include_archived: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    product_id: int | Unset = UNSET,
+    material_id: int | Unset = UNSET,
+    sku: list[str] | Unset = UNSET,
+    sales_price: float | Unset = UNSET,
+    purchase_price: float | Unset = UNSET,
+    internal_barcode: str | Unset = UNSET,
+    registered_barcode: str | Unset = UNSET,
+    supplier_item_codes: list[str] | Unset = UNSET,
+    extend: list[GetAllVariantsExtendItem] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -45,7 +45,7 @@ def _get_kwargs(
 
     params["material_id"] = material_id
 
-    json_sku: Unset | list[str] = UNSET
+    json_sku: list[str] | Unset = UNSET
     if not isinstance(sku, Unset):
         json_sku = sku
 
@@ -59,13 +59,13 @@ def _get_kwargs(
 
     params["registered_barcode"] = registered_barcode
 
-    json_supplier_item_codes: Unset | list[str] = UNSET
+    json_supplier_item_codes: list[str] | Unset = UNSET
     if not isinstance(supplier_item_codes, Unset):
         json_supplier_item_codes = supplier_item_codes
 
     params["supplier_item_codes"] = json_supplier_item_codes
 
-    json_extend: Unset | list[str] = UNSET
+    json_extend: list[str] | Unset = UNSET
     if not isinstance(extend, Unset):
         json_extend = []
         for extend_item_data in extend:
@@ -82,22 +82,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: str | Unset = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: str | Unset = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: str | Unset = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: str | Unset = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -156,24 +156,24 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    product_id: Unset | int = UNSET,
-    material_id: Unset | int = UNSET,
-    sku: Unset | list[str] = UNSET,
-    sales_price: Unset | float = UNSET,
-    purchase_price: Unset | float = UNSET,
-    internal_barcode: Unset | str = UNSET,
-    registered_barcode: Unset | str = UNSET,
-    supplier_item_codes: Unset | list[str] = UNSET,
-    extend: Unset | list[GetAllVariantsExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    include_archived: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    product_id: int | Unset = UNSET,
+    material_id: int | Unset = UNSET,
+    sku: list[str] | Unset = UNSET,
+    sales_price: float | Unset = UNSET,
+    purchase_price: float | Unset = UNSET,
+    internal_barcode: str | Unset = UNSET,
+    registered_barcode: str | Unset = UNSET,
+    supplier_item_codes: list[str] | Unset = UNSET,
+    extend: list[GetAllVariantsExtendItem] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | VariantListResponse]:
     """List all variants
 
@@ -181,24 +181,24 @@ def sync_detailed(
         with the most recent variants appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        product_id (Union[Unset, int]):
-        material_id (Union[Unset, int]):
-        sku (Union[Unset, list[str]]):
-        sales_price (Union[Unset, float]):
-        purchase_price (Union[Unset, float]):
-        internal_barcode (Union[Unset, str]):
-        registered_barcode (Union[Unset, str]):
-        supplier_item_codes (Union[Unset, list[str]]):
-        extend (Union[Unset, list[GetAllVariantsExtendItem]]):
-        include_deleted (Union[Unset, bool]):
-        include_archived (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        product_id (int | Unset):
+        material_id (int | Unset):
+        sku (list[str] | Unset):
+        sales_price (float | Unset):
+        purchase_price (float | Unset):
+        internal_barcode (str | Unset):
+        registered_barcode (str | Unset):
+        supplier_item_codes (list[str] | Unset):
+        extend (list[GetAllVariantsExtendItem] | Unset):
+        include_deleted (bool | Unset):
+        include_archived (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -206,7 +206,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, VariantListResponse]]
+        Response[ErrorResponse | VariantListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -240,24 +240,24 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    product_id: Unset | int = UNSET,
-    material_id: Unset | int = UNSET,
-    sku: Unset | list[str] = UNSET,
-    sales_price: Unset | float = UNSET,
-    purchase_price: Unset | float = UNSET,
-    internal_barcode: Unset | str = UNSET,
-    registered_barcode: Unset | str = UNSET,
-    supplier_item_codes: Unset | list[str] = UNSET,
-    extend: Unset | list[GetAllVariantsExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    include_archived: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    product_id: int | Unset = UNSET,
+    material_id: int | Unset = UNSET,
+    sku: list[str] | Unset = UNSET,
+    sales_price: float | Unset = UNSET,
+    purchase_price: float | Unset = UNSET,
+    internal_barcode: str | Unset = UNSET,
+    registered_barcode: str | Unset = UNSET,
+    supplier_item_codes: list[str] | Unset = UNSET,
+    extend: list[GetAllVariantsExtendItem] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | VariantListResponse | None:
     """List all variants
 
@@ -265,24 +265,24 @@ def sync(
         with the most recent variants appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        product_id (Union[Unset, int]):
-        material_id (Union[Unset, int]):
-        sku (Union[Unset, list[str]]):
-        sales_price (Union[Unset, float]):
-        purchase_price (Union[Unset, float]):
-        internal_barcode (Union[Unset, str]):
-        registered_barcode (Union[Unset, str]):
-        supplier_item_codes (Union[Unset, list[str]]):
-        extend (Union[Unset, list[GetAllVariantsExtendItem]]):
-        include_deleted (Union[Unset, bool]):
-        include_archived (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        product_id (int | Unset):
+        material_id (int | Unset):
+        sku (list[str] | Unset):
+        sales_price (float | Unset):
+        purchase_price (float | Unset):
+        internal_barcode (str | Unset):
+        registered_barcode (str | Unset):
+        supplier_item_codes (list[str] | Unset):
+        extend (list[GetAllVariantsExtendItem] | Unset):
+        include_deleted (bool | Unset):
+        include_archived (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -290,7 +290,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, VariantListResponse]
+        ErrorResponse | VariantListResponse
     """
 
     return sync_detailed(
@@ -319,24 +319,24 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    product_id: Unset | int = UNSET,
-    material_id: Unset | int = UNSET,
-    sku: Unset | list[str] = UNSET,
-    sales_price: Unset | float = UNSET,
-    purchase_price: Unset | float = UNSET,
-    internal_barcode: Unset | str = UNSET,
-    registered_barcode: Unset | str = UNSET,
-    supplier_item_codes: Unset | list[str] = UNSET,
-    extend: Unset | list[GetAllVariantsExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    include_archived: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    product_id: int | Unset = UNSET,
+    material_id: int | Unset = UNSET,
+    sku: list[str] | Unset = UNSET,
+    sales_price: float | Unset = UNSET,
+    purchase_price: float | Unset = UNSET,
+    internal_barcode: str | Unset = UNSET,
+    registered_barcode: str | Unset = UNSET,
+    supplier_item_codes: list[str] | Unset = UNSET,
+    extend: list[GetAllVariantsExtendItem] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | VariantListResponse]:
     """List all variants
 
@@ -344,24 +344,24 @@ async def asyncio_detailed(
         with the most recent variants appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        product_id (Union[Unset, int]):
-        material_id (Union[Unset, int]):
-        sku (Union[Unset, list[str]]):
-        sales_price (Union[Unset, float]):
-        purchase_price (Union[Unset, float]):
-        internal_barcode (Union[Unset, str]):
-        registered_barcode (Union[Unset, str]):
-        supplier_item_codes (Union[Unset, list[str]]):
-        extend (Union[Unset, list[GetAllVariantsExtendItem]]):
-        include_deleted (Union[Unset, bool]):
-        include_archived (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        product_id (int | Unset):
+        material_id (int | Unset):
+        sku (list[str] | Unset):
+        sales_price (float | Unset):
+        purchase_price (float | Unset):
+        internal_barcode (str | Unset):
+        registered_barcode (str | Unset):
+        supplier_item_codes (list[str] | Unset):
+        extend (list[GetAllVariantsExtendItem] | Unset):
+        include_deleted (bool | Unset):
+        include_archived (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -369,7 +369,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, VariantListResponse]]
+        Response[ErrorResponse | VariantListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -401,24 +401,24 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    product_id: Unset | int = UNSET,
-    material_id: Unset | int = UNSET,
-    sku: Unset | list[str] = UNSET,
-    sales_price: Unset | float = UNSET,
-    purchase_price: Unset | float = UNSET,
-    internal_barcode: Unset | str = UNSET,
-    registered_barcode: Unset | str = UNSET,
-    supplier_item_codes: Unset | list[str] = UNSET,
-    extend: Unset | list[GetAllVariantsExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    include_archived: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    product_id: int | Unset = UNSET,
+    material_id: int | Unset = UNSET,
+    sku: list[str] | Unset = UNSET,
+    sales_price: float | Unset = UNSET,
+    purchase_price: float | Unset = UNSET,
+    internal_barcode: str | Unset = UNSET,
+    registered_barcode: str | Unset = UNSET,
+    supplier_item_codes: list[str] | Unset = UNSET,
+    extend: list[GetAllVariantsExtendItem] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | VariantListResponse | None:
     """List all variants
 
@@ -426,24 +426,24 @@ async def asyncio(
         with the most recent variants appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        product_id (Union[Unset, int]):
-        material_id (Union[Unset, int]):
-        sku (Union[Unset, list[str]]):
-        sales_price (Union[Unset, float]):
-        purchase_price (Union[Unset, float]):
-        internal_barcode (Union[Unset, str]):
-        registered_barcode (Union[Unset, str]):
-        supplier_item_codes (Union[Unset, list[str]]):
-        extend (Union[Unset, list[GetAllVariantsExtendItem]]):
-        include_deleted (Union[Unset, bool]):
-        include_archived (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        product_id (int | Unset):
+        material_id (int | Unset):
+        sku (list[str] | Unset):
+        sales_price (float | Unset):
+        purchase_price (float | Unset):
+        internal_barcode (str | Unset):
+        registered_barcode (str | Unset):
+        supplier_item_codes (list[str] | Unset):
+        extend (list[GetAllVariantsExtendItem] | Unset):
+        include_deleted (bool | Unset):
+        include_archived (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -451,7 +451,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, VariantListResponse]
+        ErrorResponse | VariantListResponse
     """
 
     return (

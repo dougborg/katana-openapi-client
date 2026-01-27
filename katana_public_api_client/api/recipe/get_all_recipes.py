@@ -13,16 +13,16 @@ from ...models.recipe_list_response import RecipeListResponse
 
 def _get_kwargs(
     *,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    ingredient_variant_id: Unset | int = UNSET,
-    product_variant_ids: Unset | str = UNSET,
-    product_id: Unset | int = UNSET,
-    recipe_row_id: Unset | int = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    ingredient_variant_id: int | Unset = UNSET,
+    product_variant_ids: str | Unset = UNSET,
+    product_id: int | Unset = UNSET,
+    recipe_row_id: int | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -30,22 +30,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: str | Unset = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: str | Unset = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: str | Unset = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: str | Unset = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -112,32 +112,32 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    ingredient_variant_id: Unset | int = UNSET,
-    product_variant_ids: Unset | str = UNSET,
-    product_id: Unset | int = UNSET,
-    recipe_row_id: Unset | int = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    ingredient_variant_id: int | Unset = UNSET,
+    product_variant_ids: str | Unset = UNSET,
+    product_id: int | Unset = UNSET,
+    recipe_row_id: int | Unset = UNSET,
 ) -> Response[ErrorResponse | RecipeListResponse]:
     """Get all recipes
 
      Returns a list of all recipe rows. The recipes endpoint is deprecated in favor of BOM rows.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        ingredient_variant_id (Union[Unset, int]):
-        product_variant_ids (Union[Unset, str]):
-        product_id (Union[Unset, int]):
-        recipe_row_id (Union[Unset, int]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        ingredient_variant_id (int | Unset):
+        product_variant_ids (str | Unset):
+        product_id (int | Unset):
+        recipe_row_id (int | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -145,7 +145,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, RecipeListResponse]]
+        Response[ErrorResponse | RecipeListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -171,32 +171,32 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    ingredient_variant_id: Unset | int = UNSET,
-    product_variant_ids: Unset | str = UNSET,
-    product_id: Unset | int = UNSET,
-    recipe_row_id: Unset | int = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    ingredient_variant_id: int | Unset = UNSET,
+    product_variant_ids: str | Unset = UNSET,
+    product_id: int | Unset = UNSET,
+    recipe_row_id: int | Unset = UNSET,
 ) -> ErrorResponse | RecipeListResponse | None:
     """Get all recipes
 
      Returns a list of all recipe rows. The recipes endpoint is deprecated in favor of BOM rows.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        ingredient_variant_id (Union[Unset, int]):
-        product_variant_ids (Union[Unset, str]):
-        product_id (Union[Unset, int]):
-        recipe_row_id (Union[Unset, int]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        ingredient_variant_id (int | Unset):
+        product_variant_ids (str | Unset):
+        product_id (int | Unset):
+        recipe_row_id (int | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -204,7 +204,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, RecipeListResponse]
+        ErrorResponse | RecipeListResponse
     """
 
     return sync_detailed(
@@ -225,32 +225,32 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    ingredient_variant_id: Unset | int = UNSET,
-    product_variant_ids: Unset | str = UNSET,
-    product_id: Unset | int = UNSET,
-    recipe_row_id: Unset | int = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    ingredient_variant_id: int | Unset = UNSET,
+    product_variant_ids: str | Unset = UNSET,
+    product_id: int | Unset = UNSET,
+    recipe_row_id: int | Unset = UNSET,
 ) -> Response[ErrorResponse | RecipeListResponse]:
     """Get all recipes
 
      Returns a list of all recipe rows. The recipes endpoint is deprecated in favor of BOM rows.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        ingredient_variant_id (Union[Unset, int]):
-        product_variant_ids (Union[Unset, str]):
-        product_id (Union[Unset, int]):
-        recipe_row_id (Union[Unset, int]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        ingredient_variant_id (int | Unset):
+        product_variant_ids (str | Unset):
+        product_id (int | Unset):
+        recipe_row_id (int | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -258,7 +258,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, RecipeListResponse]]
+        Response[ErrorResponse | RecipeListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -282,32 +282,32 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    ingredient_variant_id: Unset | int = UNSET,
-    product_variant_ids: Unset | str = UNSET,
-    product_id: Unset | int = UNSET,
-    recipe_row_id: Unset | int = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    ingredient_variant_id: int | Unset = UNSET,
+    product_variant_ids: str | Unset = UNSET,
+    product_id: int | Unset = UNSET,
+    recipe_row_id: int | Unset = UNSET,
 ) -> ErrorResponse | RecipeListResponse | None:
     """Get all recipes
 
      Returns a list of all recipe rows. The recipes endpoint is deprecated in favor of BOM rows.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        ingredient_variant_id (Union[Unset, int]):
-        product_variant_ids (Union[Unset, str]):
-        product_id (Union[Unset, int]):
-        recipe_row_id (Union[Unset, int]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        ingredient_variant_id (int | Unset):
+        product_variant_ids (str | Unset):
+        product_id (int | Unset):
+        recipe_row_id (int | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -315,7 +315,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, RecipeListResponse]
+        ErrorResponse | RecipeListResponse
     """
 
     return (

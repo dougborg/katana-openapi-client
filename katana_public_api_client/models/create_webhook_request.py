@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -21,7 +23,7 @@ class CreateWebhookRequest:
 
     url: str
     subscribed_events: list[WebhookEvent]
-    description: Unset | str = UNSET
+    description: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         url = self.url

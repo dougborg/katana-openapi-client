@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
@@ -34,13 +36,13 @@ class StockTransfer:
     stock_transfer_number: str
     source_location_id: int
     target_location_id: int
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
-    status: Unset | StockTransferStatus = UNSET
-    transfer_date: Unset | datetime.datetime = UNSET
-    additional_info: None | Unset | str = UNSET
-    stock_transfer_rows: Unset | list["StockTransferRow"] = UNSET
+    created_at: datetime.datetime | Unset = UNSET
+    updated_at: datetime.datetime | Unset = UNSET
+    deleted_at: datetime.datetime | None | Unset = UNSET
+    status: StockTransferStatus | Unset = UNSET
+    transfer_date: datetime.datetime | Unset = UNSET
+    additional_info: None | str | Unset = UNSET
+    stock_transfer_rows: list[StockTransferRow] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -52,15 +54,15 @@ class StockTransfer:
 
         target_location_id = self.target_location_id
 
-        created_at: Unset | str = UNSET
+        created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | Unset | str
+        deleted_at: None | str | Unset
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -68,21 +70,21 @@ class StockTransfer:
         else:
             deleted_at = self.deleted_at
 
-        status: Unset | str = UNSET
+        status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
-        transfer_date: Unset | str = UNSET
+        transfer_date: str | Unset = UNSET
         if not isinstance(self.transfer_date, Unset):
             transfer_date = self.transfer_date.isoformat()
 
-        additional_info: None | Unset | str
+        additional_info: None | str | Unset
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
         else:
             additional_info = self.additional_info
 
-        stock_transfer_rows: Unset | list[dict[str, Any]] = UNSET
+        stock_transfer_rows: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.stock_transfer_rows, Unset):
             stock_transfer_rows = []
             for stock_transfer_rows_item_data in self.stock_transfer_rows:
@@ -130,20 +132,20 @@ class StockTransfer:
         target_location_id = d.pop("target_location_id")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -154,43 +156,45 @@ class StockTransfer:
                 deleted_at_type_0 = isoparse(data)
 
                 return deleted_at_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         _status = d.pop("status", UNSET)
-        status: Unset | StockTransferStatus
+        status: StockTransferStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
             status = StockTransferStatus(_status)
 
         _transfer_date = d.pop("transfer_date", UNSET)
-        transfer_date: Unset | datetime.datetime
+        transfer_date: datetime.datetime | Unset
         if isinstance(_transfer_date, Unset):
             transfer_date = UNSET
         else:
             transfer_date = isoparse(_transfer_date)
 
-        def _parse_additional_info(data: object) -> None | Unset | str:
+        def _parse_additional_info(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
-        stock_transfer_rows = []
         _stock_transfer_rows = d.pop("stock_transfer_rows", UNSET)
-        for stock_transfer_rows_item_data in _stock_transfer_rows or []:
-            stock_transfer_rows_item = StockTransferRow.from_dict(
-                stock_transfer_rows_item_data
-            )
+        stock_transfer_rows: list[StockTransferRow] | Unset = UNSET
+        if _stock_transfer_rows is not UNSET:
+            stock_transfer_rows = []
+            for stock_transfer_rows_item_data in _stock_transfer_rows:
+                stock_transfer_rows_item = StockTransferRow.from_dict(
+                    stock_transfer_rows_item_data
+                )
 
-            stock_transfer_rows.append(stock_transfer_rows_item)
+                stock_transfer_rows.append(stock_transfer_rows_item)
 
         stock_transfer = cls(
             id=id,

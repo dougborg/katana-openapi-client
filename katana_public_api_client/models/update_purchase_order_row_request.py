@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
@@ -19,15 +21,15 @@ class UpdatePurchaseOrderRowRequest:
             'arrival_date': '2024-02-15T10:00:00Z'}
     """
 
-    quantity: Unset | float = UNSET
-    variant_id: Unset | int = UNSET
-    tax_rate_id: Unset | int = UNSET
-    group_id: Unset | int = UNSET
-    price_per_unit: Unset | float = UNSET
-    purchase_uom_conversion_rate: Unset | float = UNSET
-    purchase_uom: Unset | str = UNSET
-    received_date: Unset | datetime.datetime = UNSET
-    arrival_date: Unset | datetime.datetime = UNSET
+    quantity: float | Unset = UNSET
+    variant_id: int | Unset = UNSET
+    tax_rate_id: int | Unset = UNSET
+    group_id: int | Unset = UNSET
+    price_per_unit: float | Unset = UNSET
+    purchase_uom_conversion_rate: float | Unset = UNSET
+    purchase_uom: str | Unset = UNSET
+    received_date: datetime.datetime | Unset = UNSET
+    arrival_date: datetime.datetime | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         quantity = self.quantity
@@ -44,11 +46,11 @@ class UpdatePurchaseOrderRowRequest:
 
         purchase_uom = self.purchase_uom
 
-        received_date: Unset | str = UNSET
+        received_date: str | Unset = UNSET
         if not isinstance(self.received_date, Unset):
             received_date = self.received_date.isoformat()
 
-        arrival_date: Unset | str = UNSET
+        arrival_date: str | Unset = UNSET
         if not isinstance(self.arrival_date, Unset):
             arrival_date = self.arrival_date.isoformat()
 
@@ -94,14 +96,14 @@ class UpdatePurchaseOrderRowRequest:
         purchase_uom = d.pop("purchase_uom", UNSET)
 
         _received_date = d.pop("received_date", UNSET)
-        received_date: Unset | datetime.datetime
+        received_date: datetime.datetime | Unset
         if isinstance(_received_date, Unset):
             received_date = UNSET
         else:
             received_date = isoparse(_received_date)
 
         _arrival_date = d.pop("arrival_date", UNSET)
-        arrival_date: Unset | datetime.datetime
+        arrival_date: datetime.datetime | Unset
         if isinstance(_arrival_date, Unset):
             arrival_date = UNSET
         else:

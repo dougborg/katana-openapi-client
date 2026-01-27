@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -14,7 +16,7 @@ class CreateStockTransferBody:
     to_location_id: int
     variant_id: int
     quantity: float
-    notes: Unset | str = UNSET
+    notes: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         from_location_id = self.from_location_id

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -29,14 +31,14 @@ class SalesOrderRowListResponse:
             'updated_at': '2024-01-15T10:00:00Z'}]}
 
     Attributes:
-        data (Union[Unset, list['SalesOrderRow']]): Array of sales order row line items with pricing and product details
+        data (list[SalesOrderRow] | Unset): Array of sales order row line items with pricing and product details
     """
 
-    data: Unset | list["SalesOrderRow"] = UNSET
+    data: list[SalesOrderRow] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:
@@ -56,12 +58,14 @@ class SalesOrderRowListResponse:
         from ..models.sales_order_row import SalesOrderRow
 
         d = dict(src_dict)
-        data = []
         _data = d.pop("data", UNSET)
-        for data_item_data in _data or []:
-            data_item = SalesOrderRow.from_dict(data_item_data)
+        data: list[SalesOrderRow] | Unset = UNSET
+        if _data is not UNSET:
+            data = []
+            for data_item_data in _data:
+                data_item = SalesOrderRow.from_dict(data_item_data)
 
-            data.append(data_item)
+                data.append(data_item)
 
         sales_order_row_list_response = cls(
             data=data,

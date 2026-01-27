@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from http import HTTPStatus
-from typing import Any, Union, cast
+from typing import Any, cast
+from urllib.parse import quote
 
 import httpx
 
@@ -16,11 +17,11 @@ from ...models.regular_purchase_order import RegularPurchaseOrder
 def _get_kwargs(
     id: int,
     *,
-    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
+    extend: list[GetPurchaseOrderExtendItem] | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_extend: Unset | list[str] = UNSET
+    json_extend: list[str] | Unset = UNSET
     if not isinstance(extend, Unset):
         json_extend = []
         for extend_item_data in extend:
@@ -33,7 +34,9 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": f"/purchase_orders/{id}",
+        "url": "/purchase_orders/{id}".format(
+            id=quote(str(id), safe=""),
+        ),
         "params": params,
     }
 
@@ -42,12 +45,12 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"] | None:
+) -> ErrorResponse | OutsourcedPurchaseOrder | RegularPurchaseOrder | None:
     if response.status_code == 200:
 
         def _parse_response_200(
             data: object,
-        ) -> Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]:
+        ) -> OutsourcedPurchaseOrder | RegularPurchaseOrder:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
@@ -56,7 +59,7 @@ def _parse_response(
                 )
 
                 return componentsschemas_purchase_order_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             if not isinstance(data, dict):
                 raise TypeError()
@@ -93,7 +96,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]]:
+) -> Response[ErrorResponse | OutsourcedPurchaseOrder | RegularPurchaseOrder]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -106,15 +109,15 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
-) -> Response[ErrorResponse | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]]:
+    extend: list[GetPurchaseOrderExtendItem] | Unset = UNSET,
+) -> Response[ErrorResponse | OutsourcedPurchaseOrder | RegularPurchaseOrder]:
     """Retrieve a purchase order
 
      Retrieves the details of an existing purchase order based on ID
 
     Args:
         id (int):
-        extend (Union[Unset, list[GetPurchaseOrderExtendItem]]):
+        extend (list[GetPurchaseOrderExtendItem] | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -122,7 +125,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, Union['OutsourcedPurchaseOrder', 'RegularPurchaseOrder']]]
+        Response[ErrorResponse | OutsourcedPurchaseOrder | RegularPurchaseOrder]
     """
 
     kwargs = _get_kwargs(
@@ -141,15 +144,15 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
-) -> ErrorResponse | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"] | None:
+    extend: list[GetPurchaseOrderExtendItem] | Unset = UNSET,
+) -> ErrorResponse | OutsourcedPurchaseOrder | RegularPurchaseOrder | None:
     """Retrieve a purchase order
 
      Retrieves the details of an existing purchase order based on ID
 
     Args:
         id (int):
-        extend (Union[Unset, list[GetPurchaseOrderExtendItem]]):
+        extend (list[GetPurchaseOrderExtendItem] | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -157,7 +160,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, Union['OutsourcedPurchaseOrder', 'RegularPurchaseOrder']]
+        ErrorResponse | OutsourcedPurchaseOrder | RegularPurchaseOrder
     """
 
     return sync_detailed(
@@ -171,15 +174,15 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
-) -> Response[ErrorResponse | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]]:
+    extend: list[GetPurchaseOrderExtendItem] | Unset = UNSET,
+) -> Response[ErrorResponse | OutsourcedPurchaseOrder | RegularPurchaseOrder]:
     """Retrieve a purchase order
 
      Retrieves the details of an existing purchase order based on ID
 
     Args:
         id (int):
-        extend (Union[Unset, list[GetPurchaseOrderExtendItem]]):
+        extend (list[GetPurchaseOrderExtendItem] | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -187,7 +190,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, Union['OutsourcedPurchaseOrder', 'RegularPurchaseOrder']]]
+        Response[ErrorResponse | OutsourcedPurchaseOrder | RegularPurchaseOrder]
     """
 
     kwargs = _get_kwargs(
@@ -204,15 +207,15 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    extend: Unset | list[GetPurchaseOrderExtendItem] = UNSET,
-) -> ErrorResponse | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"] | None:
+    extend: list[GetPurchaseOrderExtendItem] | Unset = UNSET,
+) -> ErrorResponse | OutsourcedPurchaseOrder | RegularPurchaseOrder | None:
     """Retrieve a purchase order
 
      Retrieves the details of an existing purchase order based on ID
 
     Args:
         id (int):
-        extend (Union[Unset, list[GetPurchaseOrderExtendItem]]):
+        extend (list[GetPurchaseOrderExtendItem] | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -220,7 +223,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, Union['OutsourcedPurchaseOrder', 'RegularPurchaseOrder']]
+        ErrorResponse | OutsourcedPurchaseOrder | RegularPurchaseOrder
     """
 
     return (

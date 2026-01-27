@@ -12,11 +12,11 @@ from ...models.price_list_list_response import PriceListListResponse
 
 def _get_kwargs(
     *,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    is_active: Unset | bool = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    is_active: bool | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -24,7 +24,7 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -88,22 +88,22 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    is_active: Unset | bool = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    is_active: bool | Unset = UNSET,
 ) -> Response[ErrorResponse | PriceListListResponse]:
     """List price lists
 
      Returns a list of price lists.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
-        is_active (Union[Unset, bool]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        name (str | Unset):
+        is_active (bool | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -111,7 +111,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, PriceListListResponse]]
+        Response[ErrorResponse | PriceListListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -132,22 +132,22 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    is_active: Unset | bool = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    is_active: bool | Unset = UNSET,
 ) -> ErrorResponse | PriceListListResponse | None:
     """List price lists
 
      Returns a list of price lists.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
-        is_active (Union[Unset, bool]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        name (str | Unset):
+        is_active (bool | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -155,7 +155,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, PriceListListResponse]
+        ErrorResponse | PriceListListResponse
     """
 
     return sync_detailed(
@@ -171,22 +171,22 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    is_active: Unset | bool = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    is_active: bool | Unset = UNSET,
 ) -> Response[ErrorResponse | PriceListListResponse]:
     """List price lists
 
      Returns a list of price lists.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
-        is_active (Union[Unset, bool]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        name (str | Unset):
+        is_active (bool | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -194,7 +194,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, PriceListListResponse]]
+        Response[ErrorResponse | PriceListListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -213,22 +213,22 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    is_active: Unset | bool = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    is_active: bool | Unset = UNSET,
 ) -> ErrorResponse | PriceListListResponse | None:
     """List price lists
 
      Returns a list of price lists.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
-        is_active (Union[Unset, bool]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        name (str | Unset):
+        is_active (bool | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -236,7 +236,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, PriceListListResponse]
+        ErrorResponse | PriceListListResponse
     """
 
     return (

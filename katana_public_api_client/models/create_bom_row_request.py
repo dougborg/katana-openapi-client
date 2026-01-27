@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
@@ -23,8 +25,8 @@ class CreateBomRowRequest:
     product_item_id: int
     product_variant_id: int
     ingredient_variant_id: int
-    quantity: None | Unset | float = UNSET
-    notes: None | Unset | str = UNSET
+    quantity: float | None | Unset = UNSET
+    notes: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -34,13 +36,13 @@ class CreateBomRowRequest:
 
         ingredient_variant_id = self.ingredient_variant_id
 
-        quantity: None | Unset | float
+        quantity: float | None | Unset
         if isinstance(self.quantity, Unset):
             quantity = UNSET
         else:
             quantity = self.quantity
 
-        notes: None | Unset | str
+        notes: None | str | Unset
         if isinstance(self.notes, Unset):
             notes = UNSET
         else:
@@ -71,21 +73,21 @@ class CreateBomRowRequest:
 
         ingredient_variant_id = d.pop("ingredient_variant_id")
 
-        def _parse_quantity(data: object) -> None | Unset | float:
+        def _parse_quantity(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         quantity = _parse_quantity(d.pop("quantity", UNSET))
 
-        def _parse_notes(data: object) -> None | Unset | str:
+        def _parse_notes(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         notes = _parse_notes(d.pop("notes", UNSET))
 

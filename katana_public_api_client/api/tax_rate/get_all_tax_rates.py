@@ -13,23 +13,23 @@ from ...models.tax_rate_list_response import TaxRateListResponse
 
 def _get_kwargs(
     *,
-    rate: Unset | float = UNSET,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    is_default_sales: Unset | bool = UNSET,
-    is_default_purchases: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    rate: float | Unset = UNSET,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    is_default_sales: bool | Unset = UNSET,
+    is_default_purchases: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
     params["rate"] = rate
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -45,22 +45,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: str | Unset = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: str | Unset = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: str | Unset = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: str | Unset = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -119,17 +119,17 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    rate: Unset | float = UNSET,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    is_default_sales: Unset | bool = UNSET,
-    is_default_purchases: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    rate: float | Unset = UNSET,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    is_default_sales: bool | Unset = UNSET,
+    is_default_purchases: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | TaxRateListResponse]:
     """List all tax rates
 
@@ -137,17 +137,17 @@ def sync_detailed(
         The tax rate are returned in sorted order, with the most recent tax rate appearing first.
 
     Args:
-        rate (Union[Unset, float]):
-        ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
-        is_default_sales (Union[Unset, bool]):
-        is_default_purchases (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        rate (float | Unset):
+        ids (list[int] | Unset):
+        name (str | Unset):
+        is_default_sales (bool | Unset):
+        is_default_purchases (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -155,7 +155,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, TaxRateListResponse]]
+        Response[ErrorResponse | TaxRateListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -182,17 +182,17 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    rate: Unset | float = UNSET,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    is_default_sales: Unset | bool = UNSET,
-    is_default_purchases: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    rate: float | Unset = UNSET,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    is_default_sales: bool | Unset = UNSET,
+    is_default_purchases: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | TaxRateListResponse | None:
     """List all tax rates
 
@@ -200,17 +200,17 @@ def sync(
         The tax rate are returned in sorted order, with the most recent tax rate appearing first.
 
     Args:
-        rate (Union[Unset, float]):
-        ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
-        is_default_sales (Union[Unset, bool]):
-        is_default_purchases (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        rate (float | Unset):
+        ids (list[int] | Unset):
+        name (str | Unset):
+        is_default_sales (bool | Unset):
+        is_default_purchases (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -218,7 +218,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, TaxRateListResponse]
+        ErrorResponse | TaxRateListResponse
     """
 
     return sync_detailed(
@@ -240,17 +240,17 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    rate: Unset | float = UNSET,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    is_default_sales: Unset | bool = UNSET,
-    is_default_purchases: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    rate: float | Unset = UNSET,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    is_default_sales: bool | Unset = UNSET,
+    is_default_purchases: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | TaxRateListResponse]:
     """List all tax rates
 
@@ -258,17 +258,17 @@ async def asyncio_detailed(
         The tax rate are returned in sorted order, with the most recent tax rate appearing first.
 
     Args:
-        rate (Union[Unset, float]):
-        ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
-        is_default_sales (Union[Unset, bool]):
-        is_default_purchases (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        rate (float | Unset):
+        ids (list[int] | Unset):
+        name (str | Unset):
+        is_default_sales (bool | Unset):
+        is_default_purchases (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -276,7 +276,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, TaxRateListResponse]]
+        Response[ErrorResponse | TaxRateListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -301,17 +301,17 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    rate: Unset | float = UNSET,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    is_default_sales: Unset | bool = UNSET,
-    is_default_purchases: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    rate: float | Unset = UNSET,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    is_default_sales: bool | Unset = UNSET,
+    is_default_purchases: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | TaxRateListResponse | None:
     """List all tax rates
 
@@ -319,17 +319,17 @@ async def asyncio(
         The tax rate are returned in sorted order, with the most recent tax rate appearing first.
 
     Args:
-        rate (Union[Unset, float]):
-        ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
-        is_default_sales (Union[Unset, bool]):
-        is_default_purchases (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        rate (float | Unset):
+        ids (list[int] | Unset):
+        name (str | Unset):
+        is_default_sales (bool | Unset):
+        is_default_purchases (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -337,7 +337,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, TaxRateListResponse]
+        ErrorResponse | TaxRateListResponse
     """
 
     return (

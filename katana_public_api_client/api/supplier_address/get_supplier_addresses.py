@@ -13,31 +13,31 @@ from ...models.supplier_address_list_response import SupplierAddressListResponse
 
 def _get_kwargs(
     *,
-    ids: Unset | list[int] = UNSET,
-    supplier_ids: Unset | list[int] = UNSET,
-    line_1: Unset | str = UNSET,
-    line_2: Unset | str = UNSET,
-    city: Unset | str = UNSET,
-    state: Unset | str = UNSET,
-    zip_: Unset | str = UNSET,
-    country: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    supplier_ids: list[int] | Unset = UNSET,
+    line_1: str | Unset = UNSET,
+    line_2: str | Unset = UNSET,
+    city: str | Unset = UNSET,
+    state: str | Unset = UNSET,
+    zip_: str | Unset = UNSET,
+    country: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
     params["ids"] = json_ids
 
-    json_supplier_ids: Unset | list[int] = UNSET
+    json_supplier_ids: list[int] | Unset = UNSET
     if not isinstance(supplier_ids, Unset):
         json_supplier_ids = supplier_ids
 
@@ -61,22 +61,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: str | Unset = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: str | Unset = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: str | Unset = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: str | Unset = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -135,21 +135,21 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    supplier_ids: Unset | list[int] = UNSET,
-    line_1: Unset | str = UNSET,
-    line_2: Unset | str = UNSET,
-    city: Unset | str = UNSET,
-    state: Unset | str = UNSET,
-    zip_: Unset | str = UNSET,
-    country: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    supplier_ids: list[int] | Unset = UNSET,
+    line_1: str | Unset = UNSET,
+    line_2: str | Unset = UNSET,
+    city: str | Unset = UNSET,
+    state: str | Unset = UNSET,
+    zip_: str | Unset = UNSET,
+    country: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | SupplierAddressListResponse]:
     """List all supplier addresses
 
@@ -158,21 +158,21 @@ def sync_detailed(
     appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        supplier_ids (Union[Unset, list[int]]):
-        line_1 (Union[Unset, str]):
-        line_2 (Union[Unset, str]):
-        city (Union[Unset, str]):
-        state (Union[Unset, str]):
-        zip_ (Union[Unset, str]):
-        country (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        supplier_ids (list[int] | Unset):
+        line_1 (str | Unset):
+        line_2 (str | Unset):
+        city (str | Unset):
+        state (str | Unset):
+        zip_ (str | Unset):
+        country (str | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -180,7 +180,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, SupplierAddressListResponse]]
+        Response[ErrorResponse | SupplierAddressListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -211,21 +211,21 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    supplier_ids: Unset | list[int] = UNSET,
-    line_1: Unset | str = UNSET,
-    line_2: Unset | str = UNSET,
-    city: Unset | str = UNSET,
-    state: Unset | str = UNSET,
-    zip_: Unset | str = UNSET,
-    country: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    supplier_ids: list[int] | Unset = UNSET,
+    line_1: str | Unset = UNSET,
+    line_2: str | Unset = UNSET,
+    city: str | Unset = UNSET,
+    state: str | Unset = UNSET,
+    zip_: str | Unset = UNSET,
+    country: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | SupplierAddressListResponse | None:
     """List all supplier addresses
 
@@ -234,21 +234,21 @@ def sync(
     appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        supplier_ids (Union[Unset, list[int]]):
-        line_1 (Union[Unset, str]):
-        line_2 (Union[Unset, str]):
-        city (Union[Unset, str]):
-        state (Union[Unset, str]):
-        zip_ (Union[Unset, str]):
-        country (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        supplier_ids (list[int] | Unset):
+        line_1 (str | Unset):
+        line_2 (str | Unset):
+        city (str | Unset):
+        state (str | Unset):
+        zip_ (str | Unset):
+        country (str | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -256,7 +256,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, SupplierAddressListResponse]
+        ErrorResponse | SupplierAddressListResponse
     """
 
     return sync_detailed(
@@ -282,21 +282,21 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    supplier_ids: Unset | list[int] = UNSET,
-    line_1: Unset | str = UNSET,
-    line_2: Unset | str = UNSET,
-    city: Unset | str = UNSET,
-    state: Unset | str = UNSET,
-    zip_: Unset | str = UNSET,
-    country: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    supplier_ids: list[int] | Unset = UNSET,
+    line_1: str | Unset = UNSET,
+    line_2: str | Unset = UNSET,
+    city: str | Unset = UNSET,
+    state: str | Unset = UNSET,
+    zip_: str | Unset = UNSET,
+    country: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | SupplierAddressListResponse]:
     """List all supplier addresses
 
@@ -305,21 +305,21 @@ async def asyncio_detailed(
     appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        supplier_ids (Union[Unset, list[int]]):
-        line_1 (Union[Unset, str]):
-        line_2 (Union[Unset, str]):
-        city (Union[Unset, str]):
-        state (Union[Unset, str]):
-        zip_ (Union[Unset, str]):
-        country (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        supplier_ids (list[int] | Unset):
+        line_1 (str | Unset):
+        line_2 (str | Unset):
+        city (str | Unset):
+        state (str | Unset):
+        zip_ (str | Unset):
+        country (str | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -327,7 +327,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, SupplierAddressListResponse]]
+        Response[ErrorResponse | SupplierAddressListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -356,21 +356,21 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    supplier_ids: Unset | list[int] = UNSET,
-    line_1: Unset | str = UNSET,
-    line_2: Unset | str = UNSET,
-    city: Unset | str = UNSET,
-    state: Unset | str = UNSET,
-    zip_: Unset | str = UNSET,
-    country: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    supplier_ids: list[int] | Unset = UNSET,
+    line_1: str | Unset = UNSET,
+    line_2: str | Unset = UNSET,
+    city: str | Unset = UNSET,
+    state: str | Unset = UNSET,
+    zip_: str | Unset = UNSET,
+    country: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | SupplierAddressListResponse | None:
     """List all supplier addresses
 
@@ -379,21 +379,21 @@ async def asyncio(
     appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        supplier_ids (Union[Unset, list[int]]):
-        line_1 (Union[Unset, str]):
-        line_2 (Union[Unset, str]):
-        city (Union[Unset, str]):
-        state (Union[Unset, str]):
-        zip_ (Union[Unset, str]):
-        country (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        supplier_ids (list[int] | Unset):
+        line_1 (str | Unset):
+        line_2 (str | Unset):
+        city (str | Unset):
+        state (str | Unset):
+        zip_ (str | Unset):
+        country (str | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -401,7 +401,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, SupplierAddressListResponse]
+        ErrorResponse | SupplierAddressListResponse
     """
 
     return (

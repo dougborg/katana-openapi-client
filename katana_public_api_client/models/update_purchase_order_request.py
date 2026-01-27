@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
@@ -22,15 +24,15 @@ class UpdatePurchaseOrderRequest:
             'PARTIALLY_RECEIVED', 'additional_info': 'Delivery delayed due to weather - updated schedule'}
     """
 
-    order_no: Unset | str = UNSET
-    supplier_id: Unset | int = UNSET
-    currency: Unset | str = UNSET
-    tracking_location_id: Unset | int = UNSET
-    status: Unset | UpdatePurchaseOrderRequestStatus = UNSET
-    expected_arrival_date: Unset | datetime.datetime = UNSET
-    order_created_date: Unset | datetime.datetime = UNSET
-    location_id: Unset | int = UNSET
-    additional_info: Unset | str = UNSET
+    order_no: str | Unset = UNSET
+    supplier_id: int | Unset = UNSET
+    currency: str | Unset = UNSET
+    tracking_location_id: int | Unset = UNSET
+    status: UpdatePurchaseOrderRequestStatus | Unset = UNSET
+    expected_arrival_date: datetime.datetime | Unset = UNSET
+    order_created_date: datetime.datetime | Unset = UNSET
+    location_id: int | Unset = UNSET
+    additional_info: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         order_no = self.order_no
@@ -41,15 +43,15 @@ class UpdatePurchaseOrderRequest:
 
         tracking_location_id = self.tracking_location_id
 
-        status: Unset | str = UNSET
+        status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
-        expected_arrival_date: Unset | str = UNSET
+        expected_arrival_date: str | Unset = UNSET
         if not isinstance(self.expected_arrival_date, Unset):
             expected_arrival_date = self.expected_arrival_date.isoformat()
 
-        order_created_date: Unset | str = UNSET
+        order_created_date: str | Unset = UNSET
         if not isinstance(self.order_created_date, Unset):
             order_created_date = self.order_created_date.isoformat()
 
@@ -93,21 +95,21 @@ class UpdatePurchaseOrderRequest:
         tracking_location_id = d.pop("tracking_location_id", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: Unset | UpdatePurchaseOrderRequestStatus
+        status: UpdatePurchaseOrderRequestStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
             status = UpdatePurchaseOrderRequestStatus(_status)
 
         _expected_arrival_date = d.pop("expected_arrival_date", UNSET)
-        expected_arrival_date: Unset | datetime.datetime
+        expected_arrival_date: datetime.datetime | Unset
         if isinstance(_expected_arrival_date, Unset):
             expected_arrival_date = UNSET
         else:
             expected_arrival_date = isoparse(_expected_arrival_date)
 
         _order_created_date = d.pop("order_created_date", UNSET)
-        order_created_date: Unset | datetime.datetime
+        order_created_date: datetime.datetime | Unset
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:

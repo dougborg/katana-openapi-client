@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
@@ -33,32 +35,32 @@ class Service:
     """
 
     id: int
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    archived_at: None | Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
-    name: Unset | str = UNSET
-    uom: Unset | str = UNSET
-    category_name: Unset | str = UNSET
-    is_sellable: Unset | bool = UNSET
-    type_: Unset | ServiceType = UNSET
-    additional_info: Unset | str = UNSET
-    custom_field_collection_id: None | Unset | int = UNSET
-    variants: Unset | list["ServiceVariant"] = UNSET
+    created_at: datetime.datetime | Unset = UNSET
+    updated_at: datetime.datetime | Unset = UNSET
+    archived_at: datetime.datetime | None | Unset = UNSET
+    deleted_at: datetime.datetime | None | Unset = UNSET
+    name: str | Unset = UNSET
+    uom: str | Unset = UNSET
+    category_name: str | Unset = UNSET
+    is_sellable: bool | Unset = UNSET
+    type_: ServiceType | Unset = UNSET
+    additional_info: str | Unset = UNSET
+    custom_field_collection_id: int | None | Unset = UNSET
+    variants: list[ServiceVariant] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        created_at: Unset | str = UNSET
+        created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        archived_at: None | Unset | str
+        archived_at: None | str | Unset
         if isinstance(self.archived_at, Unset):
             archived_at = UNSET
         elif isinstance(self.archived_at, datetime.datetime):
@@ -66,7 +68,7 @@ class Service:
         else:
             archived_at = self.archived_at
 
-        deleted_at: None | Unset | str
+        deleted_at: None | str | Unset
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -82,19 +84,19 @@ class Service:
 
         is_sellable = self.is_sellable
 
-        type_: Unset | str = UNSET
+        type_: str | Unset = UNSET
         if not isinstance(self.type_, Unset):
             type_ = self.type_.value
 
         additional_info = self.additional_info
 
-        custom_field_collection_id: None | Unset | int
+        custom_field_collection_id: int | None | Unset
         if isinstance(self.custom_field_collection_id, Unset):
             custom_field_collection_id = UNSET
         else:
             custom_field_collection_id = self.custom_field_collection_id
 
-        variants: Unset | list[dict[str, Any]] = UNSET
+        variants: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.variants, Unset):
             variants = []
             for variants_item_data in self.variants:
@@ -143,20 +145,20 @@ class Service:
         id = d.pop("id")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_archived_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_archived_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -167,13 +169,13 @@ class Service:
                 archived_at_type_0 = isoparse(data)
 
                 return archived_at_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -184,9 +186,9 @@ class Service:
                 deleted_at_type_0 = isoparse(data)
 
                 return deleted_at_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -199,7 +201,7 @@ class Service:
         is_sellable = d.pop("is_sellable", UNSET)
 
         _type_ = d.pop("type", UNSET)
-        type_: Unset | ServiceType
+        type_: ServiceType | Unset
         if isinstance(_type_, Unset):
             type_ = UNSET
         else:
@@ -207,23 +209,25 @@ class Service:
 
         additional_info = d.pop("additional_info", UNSET)
 
-        def _parse_custom_field_collection_id(data: object) -> None | Unset | int:
+        def _parse_custom_field_collection_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)  # type: ignore[return-value]
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)
         )
 
-        variants = []
         _variants = d.pop("variants", UNSET)
-        for variants_item_data in _variants or []:
-            variants_item = ServiceVariant.from_dict(variants_item_data)
+        variants: list[ServiceVariant] | Unset = UNSET
+        if _variants is not UNSET:
+            variants = []
+            for variants_item_data in _variants:
+                variants_item = ServiceVariant.from_dict(variants_item_data)
 
-            variants.append(variants_item)
+                variants.append(variants_item)
 
         service = cls(
             id=id,

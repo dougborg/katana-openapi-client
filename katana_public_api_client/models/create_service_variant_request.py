@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
@@ -24,26 +26,26 @@ class CreateServiceVariantRequest:
     """
 
     sku: str
-    sales_price: None | Unset | float = UNSET
-    default_cost: None | Unset | float = UNSET
-    custom_fields: Unset | list["CreateServiceVariantRequestCustomFieldsItem"] = UNSET
+    sales_price: float | None | Unset = UNSET
+    default_cost: float | None | Unset = UNSET
+    custom_fields: list[CreateServiceVariantRequestCustomFieldsItem] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         sku = self.sku
 
-        sales_price: None | Unset | float
+        sales_price: float | None | Unset
         if isinstance(self.sales_price, Unset):
             sales_price = UNSET
         else:
             sales_price = self.sales_price
 
-        default_cost: None | Unset | float
+        default_cost: float | None | Unset
         if isinstance(self.default_cost, Unset):
             default_cost = UNSET
         else:
             default_cost = self.default_cost
 
-        custom_fields: Unset | list[dict[str, Any]] = UNSET
+        custom_fields: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.custom_fields, Unset):
             custom_fields = []
             for custom_fields_item_data in self.custom_fields:
@@ -75,32 +77,36 @@ class CreateServiceVariantRequest:
         d = dict(src_dict)
         sku = d.pop("sku")
 
-        def _parse_sales_price(data: object) -> None | Unset | float:
+        def _parse_sales_price(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         sales_price = _parse_sales_price(d.pop("sales_price", UNSET))
 
-        def _parse_default_cost(data: object) -> None | Unset | float:
+        def _parse_default_cost(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         default_cost = _parse_default_cost(d.pop("default_cost", UNSET))
 
-        custom_fields = []
         _custom_fields = d.pop("custom_fields", UNSET)
-        for custom_fields_item_data in _custom_fields or []:
-            custom_fields_item = CreateServiceVariantRequestCustomFieldsItem.from_dict(
-                custom_fields_item_data
-            )
+        custom_fields: list[CreateServiceVariantRequestCustomFieldsItem] | Unset = UNSET
+        if _custom_fields is not UNSET:
+            custom_fields = []
+            for custom_fields_item_data in _custom_fields:
+                custom_fields_item = (
+                    CreateServiceVariantRequestCustomFieldsItem.from_dict(
+                        custom_fields_item_data
+                    )
+                )
 
-            custom_fields.append(custom_fields_item)
+                custom_fields.append(custom_fields_item)
 
         create_service_variant_request = cls(
             sku=sku,

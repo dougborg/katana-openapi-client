@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
@@ -31,22 +33,22 @@ class Customer:
 
     id: int
     name: str
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
-    first_name: None | Unset | str = UNSET
-    last_name: None | Unset | str = UNSET
-    company: None | Unset | str = UNSET
-    email: None | Unset | str = UNSET
-    phone: None | Unset | str = UNSET
-    comment: None | Unset | str = UNSET
-    currency: Unset | str = UNSET
-    reference_id: None | Unset | str = UNSET
-    category: None | Unset | str = UNSET
-    discount_rate: None | Unset | float = UNSET
-    default_billing_id: None | Unset | int = UNSET
-    default_shipping_id: None | Unset | int = UNSET
-    addresses: Unset | list["CustomerAddress"] = UNSET
+    created_at: datetime.datetime | Unset = UNSET
+    updated_at: datetime.datetime | Unset = UNSET
+    deleted_at: datetime.datetime | None | Unset = UNSET
+    first_name: None | str | Unset = UNSET
+    last_name: None | str | Unset = UNSET
+    company: None | str | Unset = UNSET
+    email: None | str | Unset = UNSET
+    phone: None | str | Unset = UNSET
+    comment: None | str | Unset = UNSET
+    currency: str | Unset = UNSET
+    reference_id: None | str | Unset = UNSET
+    category: None | str | Unset = UNSET
+    discount_rate: float | None | Unset = UNSET
+    default_billing_id: int | None | Unset = UNSET
+    default_shipping_id: int | None | Unset = UNSET
+    addresses: list[CustomerAddress] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -54,15 +56,15 @@ class Customer:
 
         name = self.name
 
-        created_at: Unset | str = UNSET
+        created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | Unset | str
+        deleted_at: None | str | Unset
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -70,37 +72,37 @@ class Customer:
         else:
             deleted_at = self.deleted_at
 
-        first_name: None | Unset | str
+        first_name: None | str | Unset
         if isinstance(self.first_name, Unset):
             first_name = UNSET
         else:
             first_name = self.first_name
 
-        last_name: None | Unset | str
+        last_name: None | str | Unset
         if isinstance(self.last_name, Unset):
             last_name = UNSET
         else:
             last_name = self.last_name
 
-        company: None | Unset | str
+        company: None | str | Unset
         if isinstance(self.company, Unset):
             company = UNSET
         else:
             company = self.company
 
-        email: None | Unset | str
+        email: None | str | Unset
         if isinstance(self.email, Unset):
             email = UNSET
         else:
             email = self.email
 
-        phone: None | Unset | str
+        phone: None | str | Unset
         if isinstance(self.phone, Unset):
             phone = UNSET
         else:
             phone = self.phone
 
-        comment: None | Unset | str
+        comment: None | str | Unset
         if isinstance(self.comment, Unset):
             comment = UNSET
         else:
@@ -108,37 +110,37 @@ class Customer:
 
         currency = self.currency
 
-        reference_id: None | Unset | str
+        reference_id: None | str | Unset
         if isinstance(self.reference_id, Unset):
             reference_id = UNSET
         else:
             reference_id = self.reference_id
 
-        category: None | Unset | str
+        category: None | str | Unset
         if isinstance(self.category, Unset):
             category = UNSET
         else:
             category = self.category
 
-        discount_rate: None | Unset | float
+        discount_rate: float | None | Unset
         if isinstance(self.discount_rate, Unset):
             discount_rate = UNSET
         else:
             discount_rate = self.discount_rate
 
-        default_billing_id: None | Unset | int
+        default_billing_id: int | None | Unset
         if isinstance(self.default_billing_id, Unset):
             default_billing_id = UNSET
         else:
             default_billing_id = self.default_billing_id
 
-        default_shipping_id: None | Unset | int
+        default_shipping_id: int | None | Unset
         if isinstance(self.default_shipping_id, Unset):
             default_shipping_id = UNSET
         else:
             default_shipping_id = self.default_shipping_id
 
-        addresses: Unset | list[dict[str, Any]] = UNSET
+        addresses: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.addresses, Unset):
             addresses = []
             for addresses_item_data in self.addresses:
@@ -198,20 +200,20 @@ class Customer:
         name = d.pop("name")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -222,123 +224,125 @@ class Customer:
                 deleted_at_type_0 = isoparse(data)
 
                 return deleted_at_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        def _parse_first_name(data: object) -> None | Unset | str:
+        def _parse_first_name(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         first_name = _parse_first_name(d.pop("first_name", UNSET))
 
-        def _parse_last_name(data: object) -> None | Unset | str:
+        def _parse_last_name(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         last_name = _parse_last_name(d.pop("last_name", UNSET))
 
-        def _parse_company(data: object) -> None | Unset | str:
+        def _parse_company(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         company = _parse_company(d.pop("company", UNSET))
 
-        def _parse_email(data: object) -> None | Unset | str:
+        def _parse_email(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         email = _parse_email(d.pop("email", UNSET))
 
-        def _parse_phone(data: object) -> None | Unset | str:
+        def _parse_phone(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         phone = _parse_phone(d.pop("phone", UNSET))
 
-        def _parse_comment(data: object) -> None | Unset | str:
+        def _parse_comment(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         comment = _parse_comment(d.pop("comment", UNSET))
 
         currency = d.pop("currency", UNSET)
 
-        def _parse_reference_id(data: object) -> None | Unset | str:
+        def _parse_reference_id(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         reference_id = _parse_reference_id(d.pop("reference_id", UNSET))
 
-        def _parse_category(data: object) -> None | Unset | str:
+        def _parse_category(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         category = _parse_category(d.pop("category", UNSET))
 
-        def _parse_discount_rate(data: object) -> None | Unset | float:
+        def _parse_discount_rate(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         discount_rate = _parse_discount_rate(d.pop("discount_rate", UNSET))
 
-        def _parse_default_billing_id(data: object) -> None | Unset | int:
+        def _parse_default_billing_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)  # type: ignore[return-value]
 
         default_billing_id = _parse_default_billing_id(
             d.pop("default_billing_id", UNSET)
         )
 
-        def _parse_default_shipping_id(data: object) -> None | Unset | int:
+        def _parse_default_shipping_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)  # type: ignore[return-value]
 
         default_shipping_id = _parse_default_shipping_id(
             d.pop("default_shipping_id", UNSET)
         )
 
-        addresses = []
         _addresses = d.pop("addresses", UNSET)
-        for addresses_item_data in _addresses or []:
-            addresses_item = CustomerAddress.from_dict(addresses_item_data)
+        addresses: list[CustomerAddress] | Unset = UNSET
+        if _addresses is not UNSET:
+            addresses = []
+            for addresses_item_data in _addresses:
+                addresses_item = CustomerAddress.from_dict(addresses_item_data)
 
-            addresses.append(addresses_item)
+                addresses.append(addresses_item)
 
         customer = cls(
             id=id,

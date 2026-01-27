@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -23,11 +25,11 @@ class CreateSupplierRequest:
     """
 
     name: str
-    currency: Unset | str = UNSET
-    email: Unset | str = UNSET
-    phone: Unset | str = UNSET
-    comment: Unset | str = UNSET
-    addresses: Unset | list["SupplierAddressRequest"] = UNSET
+    currency: str | Unset = UNSET
+    email: str | Unset = UNSET
+    phone: str | Unset = UNSET
+    comment: str | Unset = UNSET
+    addresses: list[SupplierAddressRequest] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -40,7 +42,7 @@ class CreateSupplierRequest:
 
         comment = self.comment
 
-        addresses: Unset | list[dict[str, Any]] = UNSET
+        addresses: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.addresses, Unset):
             addresses = []
             for addresses_item_data in self.addresses:
@@ -82,12 +84,14 @@ class CreateSupplierRequest:
 
         comment = d.pop("comment", UNSET)
 
-        addresses = []
         _addresses = d.pop("addresses", UNSET)
-        for addresses_item_data in _addresses or []:
-            addresses_item = SupplierAddressRequest.from_dict(addresses_item_data)
+        addresses: list[SupplierAddressRequest] | Unset = UNSET
+        if _addresses is not UNSET:
+            addresses = []
+            for addresses_item_data in _addresses:
+                addresses_item = SupplierAddressRequest.from_dict(addresses_item_data)
 
-            addresses.append(addresses_item)
+                addresses.append(addresses_item)
 
         create_supplier_request = cls(
             name=name,

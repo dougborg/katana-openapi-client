@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
@@ -25,23 +27,23 @@ class Webhook:
     """
 
     id: int
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    url: Unset | str = UNSET
-    token: Unset | str = UNSET
-    enabled: Unset | bool = UNSET
-    description: None | Unset | str = UNSET
-    subscribed_events: Unset | list[str] = UNSET
+    created_at: datetime.datetime | Unset = UNSET
+    updated_at: datetime.datetime | Unset = UNSET
+    url: str | Unset = UNSET
+    token: str | Unset = UNSET
+    enabled: bool | Unset = UNSET
+    description: None | str | Unset = UNSET
+    subscribed_events: list[str] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        created_at: Unset | str = UNSET
+        created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
@@ -51,13 +53,13 @@ class Webhook:
 
         enabled = self.enabled
 
-        description: None | Unset | str
+        description: None | str | Unset
         if isinstance(self.description, Unset):
             description = UNSET
         else:
             description = self.description
 
-        subscribed_events: Unset | list[str] = UNSET
+        subscribed_events: list[str] | Unset = UNSET
         if not isinstance(self.subscribed_events, Unset):
             subscribed_events = self.subscribed_events
 
@@ -91,14 +93,14 @@ class Webhook:
         id = d.pop("id")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
@@ -110,12 +112,12 @@ class Webhook:
 
         enabled = d.pop("enabled", UNSET)
 
-        def _parse_description(data: object) -> None | Unset | str:
+        def _parse_description(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         description = _parse_description(d.pop("description", UNSET))
 

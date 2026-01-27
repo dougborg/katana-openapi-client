@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -13,27 +15,23 @@ class CreateStocktakeRowRequest:
     """Request payload for creating a new stocktake row for counting specific variants
 
     Example:
-        {'stocktake_id': 4001, 'variant_id': 3001, 'system_quantity': 150.0, 'actual_quantity': 147.0, 'notes': 'Minor
-            count difference noted'}
+        {'stocktake_id': 4001, 'variant_id': 3001, 'counted_quantity': 147.0, 'notes': 'Initial count'}
     """
 
     stocktake_id: int
     variant_id: int
-    system_quantity: float
-    batch_id: Unset | int = UNSET
-    actual_quantity: Unset | float = UNSET
-    notes: Unset | str = UNSET
+    batch_id: int | Unset = UNSET
+    counted_quantity: float | Unset = UNSET
+    notes: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         stocktake_id = self.stocktake_id
 
         variant_id = self.variant_id
 
-        system_quantity = self.system_quantity
-
         batch_id = self.batch_id
 
-        actual_quantity = self.actual_quantity
+        counted_quantity = self.counted_quantity
 
         notes = self.notes
 
@@ -43,13 +41,12 @@ class CreateStocktakeRowRequest:
             {
                 "stocktake_id": stocktake_id,
                 "variant_id": variant_id,
-                "system_quantity": system_quantity,
             }
         )
         if batch_id is not UNSET:
             field_dict["batch_id"] = batch_id
-        if actual_quantity is not UNSET:
-            field_dict["actual_quantity"] = actual_quantity
+        if counted_quantity is not UNSET:
+            field_dict["counted_quantity"] = counted_quantity
         if notes is not UNSET:
             field_dict["notes"] = notes
 
@@ -62,20 +59,17 @@ class CreateStocktakeRowRequest:
 
         variant_id = d.pop("variant_id")
 
-        system_quantity = d.pop("system_quantity")
-
         batch_id = d.pop("batch_id", UNSET)
 
-        actual_quantity = d.pop("actual_quantity", UNSET)
+        counted_quantity = d.pop("counted_quantity", UNSET)
 
         notes = d.pop("notes", UNSET)
 
         create_stocktake_row_request = cls(
             stocktake_id=stocktake_id,
             variant_id=variant_id,
-            system_quantity=system_quantity,
             batch_id=batch_id,
-            actual_quantity=actual_quantity,
+            counted_quantity=counted_quantity,
             notes=notes,
         )
 

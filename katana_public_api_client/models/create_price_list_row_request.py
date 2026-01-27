@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -20,7 +22,7 @@ class CreatePriceListRowRequest:
     price_list_id: int
     variant_id: int
     price: float
-    currency: Unset | str = UNSET
+    currency: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         price_list_id = self.price_list_id

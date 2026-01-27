@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
@@ -18,12 +20,12 @@ class UpdatePriceListRequest:
         {'name': 'Premium Customer Pricing - Updated', 'markup_percentage': 30.0, 'end_date': '2025-12-31T23:59:59Z'}
     """
 
-    name: Unset | str = UNSET
-    currency: Unset | str = UNSET
-    is_default: Unset | bool = UNSET
-    markup_percentage: Unset | float = UNSET
-    start_date: Unset | datetime.datetime = UNSET
-    end_date: Unset | datetime.datetime = UNSET
+    name: str | Unset = UNSET
+    currency: str | Unset = UNSET
+    is_default: bool | Unset = UNSET
+    markup_percentage: float | Unset = UNSET
+    start_date: datetime.datetime | Unset = UNSET
+    end_date: datetime.datetime | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -34,11 +36,11 @@ class UpdatePriceListRequest:
 
         markup_percentage = self.markup_percentage
 
-        start_date: Unset | str = UNSET
+        start_date: str | Unset = UNSET
         if not isinstance(self.start_date, Unset):
             start_date = self.start_date.isoformat()
 
-        end_date: Unset | str = UNSET
+        end_date: str | Unset = UNSET
         if not isinstance(self.end_date, Unset):
             end_date = self.end_date.isoformat()
 
@@ -72,14 +74,14 @@ class UpdatePriceListRequest:
         markup_percentage = d.pop("markup_percentage", UNSET)
 
         _start_date = d.pop("start_date", UNSET)
-        start_date: Unset | datetime.datetime
+        start_date: datetime.datetime | Unset
         if isinstance(_start_date, Unset):
             start_date = UNSET
         else:
             start_date = isoparse(_start_date)
 
         _end_date = d.pop("end_date", UNSET)
-        end_date: Unset | datetime.datetime
+        end_date: datetime.datetime | Unset
         if isinstance(_end_date, Unset):
             end_date = UNSET
         else:

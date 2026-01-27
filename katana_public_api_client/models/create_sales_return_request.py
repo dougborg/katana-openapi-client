@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -28,11 +30,11 @@ class CreateSalesReturnRequest:
     customer_id: int
     order_no: str
     return_location_id: int
-    sales_return_rows: list["CreateSalesReturnRowRequest"]
-    sales_order_id: Unset | int = UNSET
-    currency: Unset | str = UNSET
-    order_created_date: Unset | datetime.datetime = UNSET
-    additional_info: Unset | str = UNSET
+    sales_return_rows: list[CreateSalesReturnRowRequest]
+    sales_order_id: int | Unset = UNSET
+    currency: str | Unset = UNSET
+    order_created_date: datetime.datetime | Unset = UNSET
+    additional_info: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         customer_id = self.customer_id
@@ -50,7 +52,7 @@ class CreateSalesReturnRequest:
 
         currency = self.currency
 
-        order_created_date: Unset | str = UNSET
+        order_created_date: str | Unset = UNSET
         if not isinstance(self.order_created_date, Unset):
             order_created_date = self.order_created_date.isoformat()
 
@@ -102,7 +104,7 @@ class CreateSalesReturnRequest:
         currency = d.pop("currency", UNSET)
 
         _order_created_date = d.pop("order_created_date", UNSET)
-        order_created_date: Unset | datetime.datetime
+        order_created_date: datetime.datetime | Unset
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:

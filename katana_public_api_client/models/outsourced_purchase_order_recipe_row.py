@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
@@ -30,19 +32,19 @@ class OutsourcedPurchaseOrderRecipeRow:
     purchase_order_row_id: int
     ingredient_variant_id: int
     planned_quantity_per_unit: float
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
-    purchase_order_id: Unset | int = UNSET
+    created_at: datetime.datetime | Unset = UNSET
+    updated_at: datetime.datetime | Unset = UNSET
+    deleted_at: datetime.datetime | None | Unset = UNSET
+    purchase_order_id: int | Unset = UNSET
     ingredient_availability: (
-        Unset | OutsourcedPurchaseOrderRecipeRowIngredientAvailability
+        OutsourcedPurchaseOrderRecipeRowIngredientAvailability | Unset
     ) = UNSET
-    ingredient_expected_date: None | Unset | datetime.datetime = UNSET
-    notes: None | Unset | str = UNSET
+    ingredient_expected_date: datetime.datetime | None | Unset = UNSET
+    notes: None | str | Unset = UNSET
     batch_transactions: (
-        Unset | list["OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem"]
+        list[OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem] | Unset
     ) = UNSET
-    cost: None | Unset | float = UNSET
+    cost: float | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -54,15 +56,15 @@ class OutsourcedPurchaseOrderRecipeRow:
 
         planned_quantity_per_unit = self.planned_quantity_per_unit
 
-        created_at: Unset | str = UNSET
+        created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | Unset | str
+        deleted_at: None | str | Unset
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -72,11 +74,11 @@ class OutsourcedPurchaseOrderRecipeRow:
 
         purchase_order_id = self.purchase_order_id
 
-        ingredient_availability: Unset | str = UNSET
+        ingredient_availability: str | Unset = UNSET
         if not isinstance(self.ingredient_availability, Unset):
             ingredient_availability = self.ingredient_availability.value
 
-        ingredient_expected_date: None | Unset | str
+        ingredient_expected_date: None | str | Unset
         if isinstance(self.ingredient_expected_date, Unset):
             ingredient_expected_date = UNSET
         elif isinstance(self.ingredient_expected_date, datetime.datetime):
@@ -84,20 +86,20 @@ class OutsourcedPurchaseOrderRecipeRow:
         else:
             ingredient_expected_date = self.ingredient_expected_date
 
-        notes: None | Unset | str
+        notes: None | str | Unset
         if isinstance(self.notes, Unset):
             notes = UNSET
         else:
             notes = self.notes
 
-        batch_transactions: Unset | list[dict[str, Any]] = UNSET
+        batch_transactions: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.batch_transactions, Unset):
             batch_transactions = []
             for batch_transactions_item_data in self.batch_transactions:
                 batch_transactions_item = batch_transactions_item_data.to_dict()
                 batch_transactions.append(batch_transactions_item)
 
-        cost: None | Unset | float
+        cost: float | None | Unset
         if isinstance(self.cost, Unset):
             cost = UNSET
         else:
@@ -150,20 +152,20 @@ class OutsourcedPurchaseOrderRecipeRow:
         planned_quantity_per_unit = d.pop("planned_quantity_per_unit")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -174,9 +176,9 @@ class OutsourcedPurchaseOrderRecipeRow:
                 deleted_at_type_0 = isoparse(data)
 
                 return deleted_at_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -184,7 +186,7 @@ class OutsourcedPurchaseOrderRecipeRow:
 
         _ingredient_availability = d.pop("ingredient_availability", UNSET)
         ingredient_availability: (
-            Unset | OutsourcedPurchaseOrderRecipeRowIngredientAvailability
+            OutsourcedPurchaseOrderRecipeRowIngredientAvailability | Unset
         )
         if isinstance(_ingredient_availability, Unset):
             ingredient_availability = UNSET
@@ -197,7 +199,7 @@ class OutsourcedPurchaseOrderRecipeRow:
 
         def _parse_ingredient_expected_date(
             data: object,
-        ) -> None | Unset | datetime.datetime:
+        ) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -208,40 +210,44 @@ class OutsourcedPurchaseOrderRecipeRow:
                 ingredient_expected_date_type_0 = isoparse(data)
 
                 return ingredient_expected_date_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         ingredient_expected_date = _parse_ingredient_expected_date(
             d.pop("ingredient_expected_date", UNSET)
         )
 
-        def _parse_notes(data: object) -> None | Unset | str:
+        def _parse_notes(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
-        batch_transactions = []
         _batch_transactions = d.pop("batch_transactions", UNSET)
-        for batch_transactions_item_data in _batch_transactions or []:
-            batch_transactions_item = (
-                OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem.from_dict(
-                    batch_transactions_item_data
+        batch_transactions: (
+            list[OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem] | Unset
+        ) = UNSET
+        if _batch_transactions is not UNSET:
+            batch_transactions = []
+            for batch_transactions_item_data in _batch_transactions:
+                batch_transactions_item = (
+                    OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem.from_dict(
+                        batch_transactions_item_data
+                    )
                 )
-            )
 
-            batch_transactions.append(batch_transactions_item)
+                batch_transactions.append(batch_transactions_item)
 
-        def _parse_cost(data: object) -> None | Unset | float:
+        def _parse_cost(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         cost = _parse_cost(d.pop("cost", UNSET))
 

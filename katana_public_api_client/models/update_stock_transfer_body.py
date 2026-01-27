@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -10,8 +12,8 @@ T = TypeVar("T", bound="UpdateStockTransferBody")
 
 @_attrs_define
 class UpdateStockTransferBody:
-    quantity: Unset | float = UNSET
-    notes: Unset | str = UNSET
+    quantity: float | Unset = UNSET
+    notes: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         quantity = self.quantity

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -31,18 +33,18 @@ class Factory:
 
     display_name: str
     base_currency_code: str
-    name: Unset | str = UNSET
-    address: None | Unset | str = UNSET
-    currency: Unset | str = UNSET
-    timezone: Unset | str = UNSET
-    legal_address: Union[Unset, "FactoryLegalAddress"] = UNSET
-    legal_name: Unset | str = UNSET
-    default_so_delivery_time: Unset | datetime.datetime = UNSET
-    default_po_lead_time: Unset | datetime.datetime = UNSET
-    default_manufacturing_location_id: Unset | int = UNSET
-    default_purchases_location_id: Unset | int = UNSET
-    default_sales_location_id: Unset | int = UNSET
-    inventory_closing_date: Unset | datetime.datetime = UNSET
+    name: str | Unset = UNSET
+    address: None | str | Unset = UNSET
+    currency: str | Unset = UNSET
+    timezone: str | Unset = UNSET
+    legal_address: FactoryLegalAddress | Unset = UNSET
+    legal_name: str | Unset = UNSET
+    default_so_delivery_time: datetime.datetime | Unset = UNSET
+    default_po_lead_time: datetime.datetime | Unset = UNSET
+    default_manufacturing_location_id: int | Unset = UNSET
+    default_purchases_location_id: int | Unset = UNSET
+    default_sales_location_id: int | Unset = UNSET
+    inventory_closing_date: datetime.datetime | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -52,7 +54,7 @@ class Factory:
 
         name = self.name
 
-        address: None | Unset | str
+        address: None | str | Unset
         if isinstance(self.address, Unset):
             address = UNSET
         else:
@@ -62,17 +64,17 @@ class Factory:
 
         timezone = self.timezone
 
-        legal_address: Unset | dict[str, Any] = UNSET
+        legal_address: dict[str, Any] | Unset = UNSET
         if not isinstance(self.legal_address, Unset):
             legal_address = self.legal_address.to_dict()
 
         legal_name = self.legal_name
 
-        default_so_delivery_time: Unset | str = UNSET
+        default_so_delivery_time: str | Unset = UNSET
         if not isinstance(self.default_so_delivery_time, Unset):
             default_so_delivery_time = self.default_so_delivery_time.isoformat()
 
-        default_po_lead_time: Unset | str = UNSET
+        default_po_lead_time: str | Unset = UNSET
         if not isinstance(self.default_po_lead_time, Unset):
             default_po_lead_time = self.default_po_lead_time.isoformat()
 
@@ -82,7 +84,7 @@ class Factory:
 
         default_sales_location_id = self.default_sales_location_id
 
-        inventory_closing_date: Unset | str = UNSET
+        inventory_closing_date: str | Unset = UNSET
         if not isinstance(self.inventory_closing_date, Unset):
             inventory_closing_date = self.inventory_closing_date.isoformat()
 
@@ -134,12 +136,12 @@ class Factory:
 
         name = d.pop("name", UNSET)
 
-        def _parse_address(data: object) -> None | Unset | str:
+        def _parse_address(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         address = _parse_address(d.pop("address", UNSET))
 
@@ -148,7 +150,7 @@ class Factory:
         timezone = d.pop("timezone", UNSET)
 
         _legal_address = d.pop("legal_address", UNSET)
-        legal_address: Unset | FactoryLegalAddress
+        legal_address: FactoryLegalAddress | Unset
         if isinstance(_legal_address, Unset):
             legal_address = UNSET
         else:
@@ -157,14 +159,14 @@ class Factory:
         legal_name = d.pop("legal_name", UNSET)
 
         _default_so_delivery_time = d.pop("default_so_delivery_time", UNSET)
-        default_so_delivery_time: Unset | datetime.datetime
+        default_so_delivery_time: datetime.datetime | Unset
         if isinstance(_default_so_delivery_time, Unset):
             default_so_delivery_time = UNSET
         else:
             default_so_delivery_time = isoparse(_default_so_delivery_time)
 
         _default_po_lead_time = d.pop("default_po_lead_time", UNSET)
-        default_po_lead_time: Unset | datetime.datetime
+        default_po_lead_time: datetime.datetime | Unset
         if isinstance(_default_po_lead_time, Unset):
             default_po_lead_time = UNSET
         else:
@@ -179,7 +181,7 @@ class Factory:
         default_sales_location_id = d.pop("default_sales_location_id", UNSET)
 
         _inventory_closing_date = d.pop("inventory_closing_date", UNSET)
-        inventory_closing_date: Unset | datetime.datetime
+        inventory_closing_date: datetime.datetime | Unset
         if isinstance(_inventory_closing_date, Unset):
             inventory_closing_date = UNSET
         else:

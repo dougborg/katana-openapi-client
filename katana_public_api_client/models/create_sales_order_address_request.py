@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -26,13 +28,13 @@ class CreateSalesOrderAddressRequest:
         address_line_1 (str): Primary address line
         city (str): City name
         country (str): Country code
-        first_name (Union[Unset, str]): First name for the address contact
-        last_name (Union[Unset, str]): Last name for the address contact
-        company (Union[Unset, str]): Company name for the address
-        address_line_2 (Union[Unset, str]): Secondary address line
-        state (Union[Unset, str]): State or province
-        zip_ (Union[Unset, str]): Postal code
-        phone (Union[Unset, str]): Contact phone number
+        first_name (str | Unset): First name for the address contact
+        last_name (str | Unset): Last name for the address contact
+        company (str | Unset): Company name for the address
+        address_line_2 (str | Unset): Secondary address line
+        state (str | Unset): State or province
+        zip_ (str | Unset): Postal code
+        phone (str | Unset): Contact phone number
     """
 
     sales_order_id: int
@@ -40,13 +42,13 @@ class CreateSalesOrderAddressRequest:
     address_line_1: str
     city: str
     country: str
-    first_name: Unset | str = UNSET
-    last_name: Unset | str = UNSET
-    company: Unset | str = UNSET
-    address_line_2: Unset | str = UNSET
-    state: Unset | str = UNSET
-    zip_: Unset | str = UNSET
-    phone: Unset | str = UNSET
+    first_name: str | Unset = UNSET
+    last_name: str | Unset = UNSET
+    company: str | Unset = UNSET
+    address_line_2: str | Unset = UNSET
+    state: str | Unset = UNSET
+    zip_: str | Unset = UNSET
+    phone: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         sales_order_id = self.sales_order_id

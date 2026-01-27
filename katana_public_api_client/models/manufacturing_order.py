@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
@@ -45,48 +47,48 @@ class ManufacturingOrder:
     """
 
     id: int
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
-    status: Unset | ManufacturingOrderStatus = UNSET
-    order_no: Unset | str = UNSET
-    variant_id: Unset | int = UNSET
-    planned_quantity: Unset | float = UNSET
-    actual_quantity: None | Unset | float = UNSET
-    batch_transactions: Unset | list["BatchTransaction"] = UNSET
-    location_id: Unset | int = UNSET
-    order_created_date: Unset | datetime.datetime = UNSET
-    production_deadline_date: Unset | datetime.datetime = UNSET
-    done_date: None | Unset | datetime.datetime = UNSET
-    additional_info: Unset | str = UNSET
-    is_linked_to_sales_order: Unset | bool = UNSET
+    created_at: datetime.datetime | Unset = UNSET
+    updated_at: datetime.datetime | Unset = UNSET
+    deleted_at: datetime.datetime | None | Unset = UNSET
+    status: ManufacturingOrderStatus | Unset = UNSET
+    order_no: str | Unset = UNSET
+    variant_id: int | Unset = UNSET
+    planned_quantity: float | Unset = UNSET
+    actual_quantity: float | None | Unset = UNSET
+    batch_transactions: list[BatchTransaction] | Unset = UNSET
+    location_id: int | Unset = UNSET
+    order_created_date: datetime.datetime | Unset = UNSET
+    production_deadline_date: datetime.datetime | Unset = UNSET
+    done_date: datetime.datetime | None | Unset = UNSET
+    additional_info: str | Unset = UNSET
+    is_linked_to_sales_order: bool | Unset = UNSET
     ingredient_availability: (
         ManufacturingOrderIngredientAvailabilityType0 | None | Unset
     ) = UNSET
-    total_cost: Unset | float = UNSET
-    total_actual_time: Unset | float = UNSET
-    total_planned_time: Unset | float = UNSET
-    sales_order_id: Unset | int = UNSET
-    sales_order_row_id: Unset | int = UNSET
-    sales_order_delivery_deadline: Unset | datetime.datetime = UNSET
-    material_cost: Unset | float = UNSET
-    subassemblies_cost: Unset | float = UNSET
-    operations_cost: Unset | float = UNSET
-    serial_numbers: Unset | list["SerialNumber"] = UNSET
+    total_cost: float | Unset = UNSET
+    total_actual_time: float | Unset = UNSET
+    total_planned_time: float | Unset = UNSET
+    sales_order_id: int | Unset = UNSET
+    sales_order_row_id: int | Unset = UNSET
+    sales_order_delivery_deadline: datetime.datetime | Unset = UNSET
+    material_cost: float | Unset = UNSET
+    subassemblies_cost: float | Unset = UNSET
+    operations_cost: float | Unset = UNSET
+    serial_numbers: list[SerialNumber] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        created_at: Unset | str = UNSET
+        created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | Unset | str
+        deleted_at: None | str | Unset
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -94,7 +96,7 @@ class ManufacturingOrder:
         else:
             deleted_at = self.deleted_at
 
-        status: Unset | str = UNSET
+        status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
@@ -104,13 +106,13 @@ class ManufacturingOrder:
 
         planned_quantity = self.planned_quantity
 
-        actual_quantity: None | Unset | float
+        actual_quantity: float | None | Unset
         if isinstance(self.actual_quantity, Unset):
             actual_quantity = UNSET
         else:
             actual_quantity = self.actual_quantity
 
-        batch_transactions: Unset | list[dict[str, Any]] = UNSET
+        batch_transactions: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.batch_transactions, Unset):
             batch_transactions = []
             for batch_transactions_item_data in self.batch_transactions:
@@ -119,15 +121,15 @@ class ManufacturingOrder:
 
         location_id = self.location_id
 
-        order_created_date: Unset | str = UNSET
+        order_created_date: str | Unset = UNSET
         if not isinstance(self.order_created_date, Unset):
             order_created_date = self.order_created_date.isoformat()
 
-        production_deadline_date: Unset | str = UNSET
+        production_deadline_date: str | Unset = UNSET
         if not isinstance(self.production_deadline_date, Unset):
             production_deadline_date = self.production_deadline_date.isoformat()
 
-        done_date: None | Unset | str
+        done_date: None | str | Unset
         if isinstance(self.done_date, Unset):
             done_date = UNSET
         elif isinstance(self.done_date, datetime.datetime):
@@ -139,7 +141,7 @@ class ManufacturingOrder:
 
         is_linked_to_sales_order = self.is_linked_to_sales_order
 
-        ingredient_availability: None | Unset | str
+        ingredient_availability: None | str | Unset
         if isinstance(self.ingredient_availability, Unset):
             ingredient_availability = UNSET
         elif isinstance(
@@ -159,7 +161,7 @@ class ManufacturingOrder:
 
         sales_order_row_id = self.sales_order_row_id
 
-        sales_order_delivery_deadline: Unset | str = UNSET
+        sales_order_delivery_deadline: str | Unset = UNSET
         if not isinstance(self.sales_order_delivery_deadline, Unset):
             sales_order_delivery_deadline = (
                 self.sales_order_delivery_deadline.isoformat()
@@ -171,7 +173,7 @@ class ManufacturingOrder:
 
         operations_cost = self.operations_cost
 
-        serial_numbers: Unset | list[dict[str, Any]] = UNSET
+        serial_numbers: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.serial_numbers, Unset):
             serial_numbers = []
             for serial_numbers_item_data in self.serial_numbers:
@@ -249,20 +251,20 @@ class ManufacturingOrder:
         id = d.pop("id")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -273,14 +275,14 @@ class ManufacturingOrder:
                 deleted_at_type_0 = isoparse(data)
 
                 return deleted_at_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         _status = d.pop("status", UNSET)
-        status: Unset | ManufacturingOrderStatus
+        status: ManufacturingOrderStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
@@ -292,41 +294,43 @@ class ManufacturingOrder:
 
         planned_quantity = d.pop("planned_quantity", UNSET)
 
-        def _parse_actual_quantity(data: object) -> None | Unset | float:
+        def _parse_actual_quantity(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         actual_quantity = _parse_actual_quantity(d.pop("actual_quantity", UNSET))
 
-        batch_transactions = []
         _batch_transactions = d.pop("batch_transactions", UNSET)
-        for batch_transactions_item_data in _batch_transactions or []:
-            batch_transactions_item = BatchTransaction.from_dict(
-                batch_transactions_item_data
-            )
+        batch_transactions: list[BatchTransaction] | Unset = UNSET
+        if _batch_transactions is not UNSET:
+            batch_transactions = []
+            for batch_transactions_item_data in _batch_transactions:
+                batch_transactions_item = BatchTransaction.from_dict(
+                    batch_transactions_item_data
+                )
 
-            batch_transactions.append(batch_transactions_item)
+                batch_transactions.append(batch_transactions_item)
 
         location_id = d.pop("location_id", UNSET)
 
         _order_created_date = d.pop("order_created_date", UNSET)
-        order_created_date: Unset | datetime.datetime
+        order_created_date: datetime.datetime | Unset
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:
             order_created_date = isoparse(_order_created_date)
 
         _production_deadline_date = d.pop("production_deadline_date", UNSET)
-        production_deadline_date: Unset | datetime.datetime
+        production_deadline_date: datetime.datetime | Unset
         if isinstance(_production_deadline_date, Unset):
             production_deadline_date = UNSET
         else:
             production_deadline_date = isoparse(_production_deadline_date)
 
-        def _parse_done_date(data: object) -> None | Unset | datetime.datetime:
+        def _parse_done_date(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -337,9 +341,9 @@ class ManufacturingOrder:
                 done_date_type_0 = isoparse(data)
 
                 return done_date_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         done_date = _parse_done_date(d.pop("done_date", UNSET))
 
@@ -362,7 +366,7 @@ class ManufacturingOrder:
                 )
 
                 return ingredient_availability_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(
                 ManufacturingOrderIngredientAvailabilityType0 | None | Unset, data
@@ -383,7 +387,7 @@ class ManufacturingOrder:
         sales_order_row_id = d.pop("sales_order_row_id", UNSET)
 
         _sales_order_delivery_deadline = d.pop("sales_order_delivery_deadline", UNSET)
-        sales_order_delivery_deadline: Unset | datetime.datetime
+        sales_order_delivery_deadline: datetime.datetime | Unset
         if isinstance(_sales_order_delivery_deadline, Unset):
             sales_order_delivery_deadline = UNSET
         else:
@@ -395,12 +399,14 @@ class ManufacturingOrder:
 
         operations_cost = d.pop("operations_cost", UNSET)
 
-        serial_numbers = []
         _serial_numbers = d.pop("serial_numbers", UNSET)
-        for serial_numbers_item_data in _serial_numbers or []:
-            serial_numbers_item = SerialNumber.from_dict(serial_numbers_item_data)
+        serial_numbers: list[SerialNumber] | Unset = UNSET
+        if _serial_numbers is not UNSET:
+            serial_numbers = []
+            for serial_numbers_item_data in _serial_numbers:
+                serial_numbers_item = SerialNumber.from_dict(serial_numbers_item_data)
 
-            serial_numbers.append(serial_numbers_item)
+                serial_numbers.append(serial_numbers_item)
 
         manufacturing_order = cls(
             id=id,

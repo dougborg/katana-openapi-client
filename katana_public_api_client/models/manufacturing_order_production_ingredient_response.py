@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
@@ -23,15 +25,15 @@ class ManufacturingOrderProductionIngredientResponse:
             '2023-10-15T10:30:00Z', 'cost': 12.5}
     """
 
-    id: Unset | int = UNSET
-    location_id: Unset | int = UNSET
-    variant_id: Unset | int = UNSET
-    manufacturing_order_id: Unset | int = UNSET
-    manufacturing_order_recipe_row_id: Unset | int = UNSET
-    production_id: Unset | int = UNSET
-    quantity: Unset | float = UNSET
-    production_date: Unset | datetime.datetime = UNSET
-    cost: Unset | float = UNSET
+    id: int | Unset = UNSET
+    location_id: int | Unset = UNSET
+    variant_id: int | Unset = UNSET
+    manufacturing_order_id: int | Unset = UNSET
+    manufacturing_order_recipe_row_id: int | Unset = UNSET
+    production_id: int | Unset = UNSET
+    quantity: float | Unset = UNSET
+    production_date: datetime.datetime | Unset = UNSET
+    cost: float | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -49,7 +51,7 @@ class ManufacturingOrderProductionIngredientResponse:
 
         quantity = self.quantity
 
-        production_date: Unset | str = UNSET
+        production_date: str | Unset = UNSET
         if not isinstance(self.production_date, Unset):
             production_date = self.production_date.isoformat()
 
@@ -101,7 +103,7 @@ class ManufacturingOrderProductionIngredientResponse:
         quantity = d.pop("quantity", UNSET)
 
         _production_date = d.pop("production_date", UNSET)
-        production_date: Unset | datetime.datetime
+        production_date: datetime.datetime | Unset
         if isinstance(_production_date, Unset):
             production_date = UNSET
         else:

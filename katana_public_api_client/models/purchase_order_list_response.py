@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -33,13 +35,13 @@ class PurchaseOrderListResponse:
             '2024-01-30T11:20:00Z', 'deleted_at': None}]}
     """
 
-    data: Unset | list[Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]] = UNSET
+    data: list[OutsourcedPurchaseOrder | RegularPurchaseOrder] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.regular_purchase_order import RegularPurchaseOrder
 
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:
@@ -65,34 +67,38 @@ class PurchaseOrderListResponse:
         from ..models.regular_purchase_order import RegularPurchaseOrder
 
         d = dict(src_dict)
-        data = []
         _data = d.pop("data", UNSET)
-        for data_item_data in _data or []:
+        data: list[OutsourcedPurchaseOrder | RegularPurchaseOrder] | Unset = UNSET
+        if _data is not UNSET:
+            data = []
+            for data_item_data in _data:
 
-            def _parse_data_item(
-                data: object,
-            ) -> Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]:
-                try:
+                def _parse_data_item(
+                    data: object,
+                ) -> OutsourcedPurchaseOrder | RegularPurchaseOrder:
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_purchase_order_type_0 = (
+                            RegularPurchaseOrder.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_purchase_order_type_0
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
                     if not isinstance(data, dict):
                         raise TypeError()
-                    componentsschemas_purchase_order_type_0 = (
-                        RegularPurchaseOrder.from_dict(cast(Mapping[str, Any], data))
+                    componentsschemas_purchase_order_type_1 = (
+                        OutsourcedPurchaseOrder.from_dict(cast(Mapping[str, Any], data))
                     )
 
-                    return componentsschemas_purchase_order_type_0
-                except:  # noqa: E722
-                    pass
-                if not isinstance(data, dict):
-                    raise TypeError()
-                componentsschemas_purchase_order_type_1 = (
-                    OutsourcedPurchaseOrder.from_dict(cast(Mapping[str, Any], data))
-                )
+                    return componentsschemas_purchase_order_type_1
 
-                return componentsschemas_purchase_order_type_1
+                data_item = _parse_data_item(data_item_data)
 
-            data_item = _parse_data_item(data_item_data)
-
-            data.append(data_item)
+                data.append(data_item)
 
         purchase_order_list_response = cls(
             data=data,

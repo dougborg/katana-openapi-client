@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
@@ -12,7 +14,7 @@ T = TypeVar("T", bound="UpdateMaterialRequestConfigsItem")
 class UpdateMaterialRequestConfigsItem:
     name: str
     values: list[str]
-    id: Unset | int = UNSET
+    id: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name

@@ -105,7 +105,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, SalesOrder]]
+        Response[ErrorResponse | SalesOrder]
     """
 
     kwargs = _get_kwargs(
@@ -154,7 +154,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, SalesOrder]
+        ErrorResponse | SalesOrder
     """
 
     return sync_detailed(
@@ -198,7 +198,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, SalesOrder]]
+        Response[ErrorResponse | SalesOrder]
     """
 
     kwargs = _get_kwargs(
@@ -245,7 +245,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, SalesOrder]
+        ErrorResponse | SalesOrder
     """
 
     return (

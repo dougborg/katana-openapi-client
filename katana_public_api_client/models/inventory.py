@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -38,9 +40,9 @@ class Inventory:
     quantity_expected: str
     quantity_missing_or_excess: str
     quantity_potential: str
-    safety_stock_level: Unset | str = UNSET
-    variant: Union[Unset, "Variant"] = UNSET
-    location: Union["DeletableEntity", "LocationType0", Unset] = UNSET
+    safety_stock_level: str | Unset = UNSET
+    variant: Variant | Unset = UNSET
+    location: DeletableEntity | LocationType0 | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -68,11 +70,11 @@ class Inventory:
 
         safety_stock_level = self.safety_stock_level
 
-        variant: Unset | dict[str, Any] = UNSET
+        variant: dict[str, Any] | Unset = UNSET
         if not isinstance(self.variant, Unset):
             variant = self.variant.to_dict()
 
-        location: Unset | dict[str, Any]
+        location: dict[str, Any] | Unset
         if isinstance(self.location, Unset):
             location = UNSET
         elif isinstance(self.location, LocationType0):
@@ -135,15 +137,13 @@ class Inventory:
         safety_stock_level = d.pop("safety_stock_level", UNSET)
 
         _variant = d.pop("variant", UNSET)
-        variant: Unset | Variant
+        variant: Variant | Unset
         if isinstance(_variant, Unset):
             variant = UNSET
         else:
             variant = Variant.from_dict(_variant)
 
-        def _parse_location(
-            data: object,
-        ) -> Union["DeletableEntity", "LocationType0", Unset]:
+        def _parse_location(data: object) -> DeletableEntity | LocationType0 | Unset:
             if isinstance(data, Unset):
                 return data
             try:
@@ -154,7 +154,7 @@ class Inventory:
                 )
 
                 return componentsschemas_location_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             if not isinstance(data, dict):
                 raise TypeError()

@@ -14,27 +14,27 @@ from ...models.material_list_response import MaterialListResponse
 
 def _get_kwargs(
     *,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    uom: Unset | str = UNSET,
-    default_supplier_id: Unset | int = UNSET,
-    is_sellable: Unset | bool = UNSET,
-    batch_tracked: Unset | bool = UNSET,
-    purchase_uom: Unset | str = UNSET,
-    purchase_uom_conversion_rate: Unset | float = UNSET,
-    extend: Unset | list[GetAllMaterialsExtendItem] = UNSET,
-    include_archived: Unset | bool = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    uom: str | Unset = UNSET,
+    default_supplier_id: int | Unset = UNSET,
+    is_sellable: bool | Unset = UNSET,
+    batch_tracked: bool | Unset = UNSET,
+    purchase_uom: str | Unset = UNSET,
+    purchase_uom_conversion_rate: float | Unset = UNSET,
+    extend: list[GetAllMaterialsExtendItem] | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -54,7 +54,7 @@ def _get_kwargs(
 
     params["purchase_uom_conversion_rate"] = purchase_uom_conversion_rate
 
-    json_extend: Unset | list[str] = UNSET
+    json_extend: list[str] | Unset = UNSET
     if not isinstance(extend, Unset):
         json_extend = []
         for extend_item_data in extend:
@@ -71,22 +71,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: str | Unset = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: str | Unset = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: str | Unset = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: str | Unset = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -145,23 +145,23 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    uom: Unset | str = UNSET,
-    default_supplier_id: Unset | int = UNSET,
-    is_sellable: Unset | bool = UNSET,
-    batch_tracked: Unset | bool = UNSET,
-    purchase_uom: Unset | str = UNSET,
-    purchase_uom_conversion_rate: Unset | float = UNSET,
-    extend: Unset | list[GetAllMaterialsExtendItem] = UNSET,
-    include_archived: Unset | bool = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    uom: str | Unset = UNSET,
+    default_supplier_id: int | Unset = UNSET,
+    is_sellable: bool | Unset = UNSET,
+    batch_tracked: bool | Unset = UNSET,
+    purchase_uom: str | Unset = UNSET,
+    purchase_uom_conversion_rate: float | Unset = UNSET,
+    extend: list[GetAllMaterialsExtendItem] | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | MaterialListResponse]:
     """List all materials
 
@@ -169,23 +169,23 @@ def sync_detailed(
         with the most recent materials appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
-        uom (Union[Unset, str]):
-        default_supplier_id (Union[Unset, int]):
-        is_sellable (Union[Unset, bool]):
-        batch_tracked (Union[Unset, bool]):
-        purchase_uom (Union[Unset, str]):
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        extend (Union[Unset, list[GetAllMaterialsExtendItem]]):
-        include_archived (Union[Unset, bool]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        name (str | Unset):
+        uom (str | Unset):
+        default_supplier_id (int | Unset):
+        is_sellable (bool | Unset):
+        batch_tracked (bool | Unset):
+        purchase_uom (str | Unset):
+        purchase_uom_conversion_rate (float | Unset):
+        extend (list[GetAllMaterialsExtendItem] | Unset):
+        include_archived (bool | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -193,7 +193,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, MaterialListResponse]]
+        Response[ErrorResponse | MaterialListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -226,23 +226,23 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    uom: Unset | str = UNSET,
-    default_supplier_id: Unset | int = UNSET,
-    is_sellable: Unset | bool = UNSET,
-    batch_tracked: Unset | bool = UNSET,
-    purchase_uom: Unset | str = UNSET,
-    purchase_uom_conversion_rate: Unset | float = UNSET,
-    extend: Unset | list[GetAllMaterialsExtendItem] = UNSET,
-    include_archived: Unset | bool = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    uom: str | Unset = UNSET,
+    default_supplier_id: int | Unset = UNSET,
+    is_sellable: bool | Unset = UNSET,
+    batch_tracked: bool | Unset = UNSET,
+    purchase_uom: str | Unset = UNSET,
+    purchase_uom_conversion_rate: float | Unset = UNSET,
+    extend: list[GetAllMaterialsExtendItem] | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | MaterialListResponse | None:
     """List all materials
 
@@ -250,23 +250,23 @@ def sync(
         with the most recent materials appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
-        uom (Union[Unset, str]):
-        default_supplier_id (Union[Unset, int]):
-        is_sellable (Union[Unset, bool]):
-        batch_tracked (Union[Unset, bool]):
-        purchase_uom (Union[Unset, str]):
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        extend (Union[Unset, list[GetAllMaterialsExtendItem]]):
-        include_archived (Union[Unset, bool]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        name (str | Unset):
+        uom (str | Unset):
+        default_supplier_id (int | Unset):
+        is_sellable (bool | Unset):
+        batch_tracked (bool | Unset):
+        purchase_uom (str | Unset):
+        purchase_uom_conversion_rate (float | Unset):
+        extend (list[GetAllMaterialsExtendItem] | Unset):
+        include_archived (bool | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -274,7 +274,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, MaterialListResponse]
+        ErrorResponse | MaterialListResponse
     """
 
     return sync_detailed(
@@ -302,23 +302,23 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    uom: Unset | str = UNSET,
-    default_supplier_id: Unset | int = UNSET,
-    is_sellable: Unset | bool = UNSET,
-    batch_tracked: Unset | bool = UNSET,
-    purchase_uom: Unset | str = UNSET,
-    purchase_uom_conversion_rate: Unset | float = UNSET,
-    extend: Unset | list[GetAllMaterialsExtendItem] = UNSET,
-    include_archived: Unset | bool = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    uom: str | Unset = UNSET,
+    default_supplier_id: int | Unset = UNSET,
+    is_sellable: bool | Unset = UNSET,
+    batch_tracked: bool | Unset = UNSET,
+    purchase_uom: str | Unset = UNSET,
+    purchase_uom_conversion_rate: float | Unset = UNSET,
+    extend: list[GetAllMaterialsExtendItem] | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | MaterialListResponse]:
     """List all materials
 
@@ -326,23 +326,23 @@ async def asyncio_detailed(
         with the most recent materials appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
-        uom (Union[Unset, str]):
-        default_supplier_id (Union[Unset, int]):
-        is_sellable (Union[Unset, bool]):
-        batch_tracked (Union[Unset, bool]):
-        purchase_uom (Union[Unset, str]):
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        extend (Union[Unset, list[GetAllMaterialsExtendItem]]):
-        include_archived (Union[Unset, bool]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        name (str | Unset):
+        uom (str | Unset):
+        default_supplier_id (int | Unset):
+        is_sellable (bool | Unset):
+        batch_tracked (bool | Unset):
+        purchase_uom (str | Unset):
+        purchase_uom_conversion_rate (float | Unset):
+        extend (list[GetAllMaterialsExtendItem] | Unset):
+        include_archived (bool | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -350,7 +350,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, MaterialListResponse]]
+        Response[ErrorResponse | MaterialListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -381,23 +381,23 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    name: Unset | str = UNSET,
-    uom: Unset | str = UNSET,
-    default_supplier_id: Unset | int = UNSET,
-    is_sellable: Unset | bool = UNSET,
-    batch_tracked: Unset | bool = UNSET,
-    purchase_uom: Unset | str = UNSET,
-    purchase_uom_conversion_rate: Unset | float = UNSET,
-    extend: Unset | list[GetAllMaterialsExtendItem] = UNSET,
-    include_archived: Unset | bool = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    name: str | Unset = UNSET,
+    uom: str | Unset = UNSET,
+    default_supplier_id: int | Unset = UNSET,
+    is_sellable: bool | Unset = UNSET,
+    batch_tracked: bool | Unset = UNSET,
+    purchase_uom: str | Unset = UNSET,
+    purchase_uom_conversion_rate: float | Unset = UNSET,
+    extend: list[GetAllMaterialsExtendItem] | Unset = UNSET,
+    include_archived: bool | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | MaterialListResponse | None:
     """List all materials
 
@@ -405,23 +405,23 @@ async def asyncio(
         with the most recent materials appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        name (Union[Unset, str]):
-        uom (Union[Unset, str]):
-        default_supplier_id (Union[Unset, int]):
-        is_sellable (Union[Unset, bool]):
-        batch_tracked (Union[Unset, bool]):
-        purchase_uom (Union[Unset, str]):
-        purchase_uom_conversion_rate (Union[Unset, float]):
-        extend (Union[Unset, list[GetAllMaterialsExtendItem]]):
-        include_archived (Union[Unset, bool]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        name (str | Unset):
+        uom (str | Unset):
+        default_supplier_id (int | Unset):
+        is_sellable (bool | Unset):
+        batch_tracked (bool | Unset):
+        purchase_uom (str | Unset):
+        purchase_uom_conversion_rate (float | Unset):
+        extend (list[GetAllMaterialsExtendItem] | Unset):
+        include_archived (bool | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -429,7 +429,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, MaterialListResponse]
+        ErrorResponse | MaterialListResponse
     """
 
     return (

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -21,8 +23,8 @@ class CreateRecipesRequest:
             2.5, 'notes': 'Primary ingredient'}]}
     """
 
-    rows: list["CreateRecipesRequestRowsItem"]
-    keep_current_rows: Unset | bool = UNSET
+    rows: list[CreateRecipesRequestRowsItem]
+    keep_current_rows: bool | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         rows = []

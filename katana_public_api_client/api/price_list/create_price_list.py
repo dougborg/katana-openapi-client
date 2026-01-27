@@ -102,7 +102,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, PriceList]]
+        Response[DetailedErrorResponse | ErrorResponse | PriceList]
     """
 
     kwargs = _get_kwargs(
@@ -137,7 +137,7 @@ def sync(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, PriceList]
+        DetailedErrorResponse | ErrorResponse | PriceList
     """
 
     return sync_detailed(
@@ -167,7 +167,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, PriceList]]
+        Response[DetailedErrorResponse | ErrorResponse | PriceList]
     """
 
     kwargs = _get_kwargs(
@@ -200,7 +200,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, PriceList]
+        DetailedErrorResponse | ErrorResponse | PriceList
     """
 
     return (

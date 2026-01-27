@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from http import HTTPStatus
-from typing import Any, Union, cast
+from typing import Any, cast
 
 import httpx
 
@@ -38,14 +38,15 @@ def _parse_response(
 ) -> (
     DetailedErrorResponse
     | ErrorResponse
-    | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]
+    | OutsourcedPurchaseOrder
+    | RegularPurchaseOrder
     | None
 ):
     if response.status_code == 200:
 
         def _parse_response_200(
             data: object,
-        ) -> Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]:
+        ) -> OutsourcedPurchaseOrder | RegularPurchaseOrder:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
@@ -54,7 +55,7 @@ def _parse_response(
                 )
 
                 return componentsschemas_purchase_order_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             if not isinstance(data, dict):
                 raise TypeError()
@@ -99,7 +100,8 @@ def _build_response(
 ) -> Response[
     DetailedErrorResponse
     | ErrorResponse
-    | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]
+    | OutsourcedPurchaseOrder
+    | RegularPurchaseOrder
 ]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -116,7 +118,8 @@ def sync_detailed(
 ) -> Response[
     DetailedErrorResponse
     | ErrorResponse
-    | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]
+    | OutsourcedPurchaseOrder
+    | RegularPurchaseOrder
 ]:
     """Create a purchase order
 
@@ -140,7 +143,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, Union['OutsourcedPurchaseOrder', 'RegularPurchaseOrder']]]
+        Response[DetailedErrorResponse | ErrorResponse | OutsourcedPurchaseOrder | RegularPurchaseOrder]
     """
 
     kwargs = _get_kwargs(
@@ -161,7 +164,8 @@ def sync(
 ) -> (
     DetailedErrorResponse
     | ErrorResponse
-    | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]
+    | OutsourcedPurchaseOrder
+    | RegularPurchaseOrder
     | None
 ):
     """Create a purchase order
@@ -186,7 +190,7 @@ def sync(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, Union['OutsourcedPurchaseOrder', 'RegularPurchaseOrder']]
+        DetailedErrorResponse | ErrorResponse | OutsourcedPurchaseOrder | RegularPurchaseOrder
     """
 
     return sync_detailed(
@@ -202,7 +206,8 @@ async def asyncio_detailed(
 ) -> Response[
     DetailedErrorResponse
     | ErrorResponse
-    | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]
+    | OutsourcedPurchaseOrder
+    | RegularPurchaseOrder
 ]:
     """Create a purchase order
 
@@ -226,7 +231,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, Union['OutsourcedPurchaseOrder', 'RegularPurchaseOrder']]]
+        Response[DetailedErrorResponse | ErrorResponse | OutsourcedPurchaseOrder | RegularPurchaseOrder]
     """
 
     kwargs = _get_kwargs(
@@ -245,7 +250,8 @@ async def asyncio(
 ) -> (
     DetailedErrorResponse
     | ErrorResponse
-    | Union["OutsourcedPurchaseOrder", "RegularPurchaseOrder"]
+    | OutsourcedPurchaseOrder
+    | RegularPurchaseOrder
     | None
 ):
     """Create a purchase order
@@ -270,7 +276,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, Union['OutsourcedPurchaseOrder', 'RegularPurchaseOrder']]
+        DetailedErrorResponse | ErrorResponse | OutsourcedPurchaseOrder | RegularPurchaseOrder
     """
 
     return (

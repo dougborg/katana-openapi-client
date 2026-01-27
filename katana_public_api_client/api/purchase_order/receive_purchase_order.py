@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Union, cast
+from typing import Any, cast
 
 import httpx
 
@@ -13,7 +13,7 @@ from ...models.purchase_order_receive_row import PurchaseOrderReceiveRow
 
 def _get_kwargs(
     *,
-    body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
+    body: list[PurchaseOrderReceiveRow] | PurchaseOrderReceiveRow,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -90,7 +90,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
+    body: list[PurchaseOrderReceiveRow] | PurchaseOrderReceiveRow,
 ) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Receive a purchase order
 
@@ -103,8 +103,8 @@ def sync_detailed(
         Reverting the receive must also be done through that endpoint.
 
     Args:
-        body (Union['PurchaseOrderReceiveRow', list['PurchaseOrderReceiveRow']]): Request payload
-            for recording the receipt of purchase order items at the facility Example:
+        body (list[PurchaseOrderReceiveRow] | PurchaseOrderReceiveRow): Request payload for
+            recording the receipt of purchase order items at the facility Example:
             [{'purchase_order_row_id': 501, 'quantity': 150, 'received_date': '2024-02-15T10:00:00Z'},
             {'purchase_order_row_id': 502, 'quantity': 75, 'received_date': '2024-02-15T10:00:00Z'}].
 
@@ -114,7 +114,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
+        Response[Any | DetailedErrorResponse | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -131,7 +131,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
+    body: list[PurchaseOrderReceiveRow] | PurchaseOrderReceiveRow,
 ) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Receive a purchase order
 
@@ -144,8 +144,8 @@ def sync(
         Reverting the receive must also be done through that endpoint.
 
     Args:
-        body (Union['PurchaseOrderReceiveRow', list['PurchaseOrderReceiveRow']]): Request payload
-            for recording the receipt of purchase order items at the facility Example:
+        body (list[PurchaseOrderReceiveRow] | PurchaseOrderReceiveRow): Request payload for
+            recording the receipt of purchase order items at the facility Example:
             [{'purchase_order_row_id': 501, 'quantity': 150, 'received_date': '2024-02-15T10:00:00Z'},
             {'purchase_order_row_id': 502, 'quantity': 75, 'received_date': '2024-02-15T10:00:00Z'}].
 
@@ -155,7 +155,7 @@ def sync(
 
 
     Returns:
-        Union[Any, DetailedErrorResponse, ErrorResponse]
+        Any | DetailedErrorResponse | ErrorResponse
     """
 
     return sync_detailed(
@@ -167,7 +167,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
+    body: list[PurchaseOrderReceiveRow] | PurchaseOrderReceiveRow,
 ) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Receive a purchase order
 
@@ -180,8 +180,8 @@ async def asyncio_detailed(
         Reverting the receive must also be done through that endpoint.
 
     Args:
-        body (Union['PurchaseOrderReceiveRow', list['PurchaseOrderReceiveRow']]): Request payload
-            for recording the receipt of purchase order items at the facility Example:
+        body (list[PurchaseOrderReceiveRow] | PurchaseOrderReceiveRow): Request payload for
+            recording the receipt of purchase order items at the facility Example:
             [{'purchase_order_row_id': 501, 'quantity': 150, 'received_date': '2024-02-15T10:00:00Z'},
             {'purchase_order_row_id': 502, 'quantity': 75, 'received_date': '2024-02-15T10:00:00Z'}].
 
@@ -191,7 +191,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[Any, DetailedErrorResponse, ErrorResponse]]
+        Response[Any | DetailedErrorResponse | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -206,7 +206,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    body: Union["PurchaseOrderReceiveRow", list["PurchaseOrderReceiveRow"]],
+    body: list[PurchaseOrderReceiveRow] | PurchaseOrderReceiveRow,
 ) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Receive a purchase order
 
@@ -219,8 +219,8 @@ async def asyncio(
         Reverting the receive must also be done through that endpoint.
 
     Args:
-        body (Union['PurchaseOrderReceiveRow', list['PurchaseOrderReceiveRow']]): Request payload
-            for recording the receipt of purchase order items at the facility Example:
+        body (list[PurchaseOrderReceiveRow] | PurchaseOrderReceiveRow): Request payload for
+            recording the receipt of purchase order items at the facility Example:
             [{'purchase_order_row_id': 501, 'quantity': 150, 'received_date': '2024-02-15T10:00:00Z'},
             {'purchase_order_row_id': 502, 'quantity': 75, 'received_date': '2024-02-15T10:00:00Z'}].
 
@@ -230,7 +230,7 @@ async def asyncio(
 
 
     Returns:
-        Union[Any, DetailedErrorResponse, ErrorResponse]
+        Any | DetailedErrorResponse | ErrorResponse
     """
 
     return (

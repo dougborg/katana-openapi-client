@@ -12,10 +12,10 @@ from ...models.operator import Operator
 
 def _get_kwargs(
     *,
-    working_area: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    working_area: str | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -40,7 +40,7 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | list["Operator"] | None:
+) -> ErrorResponse | list[Operator] | None:
     if response.status_code == 200:
         response_200 = []
         _response_200 = response.json()
@@ -74,7 +74,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | list["Operator"]]:
+) -> Response[ErrorResponse | list[Operator]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -86,20 +86,20 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    working_area: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-) -> Response[ErrorResponse | list["Operator"]]:
+    working_area: str | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+) -> Response[ErrorResponse | list[Operator]]:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
 
     Args:
-        working_area (Union[Unset, str]):
-        resource_id (Union[Unset, int]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        working_area (str | Unset):
+        resource_id (int | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -108,7 +108,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, list['Operator']]]
+        Response[ErrorResponse | list[Operator]]
     """
 
     kwargs = _get_kwargs(
@@ -128,20 +128,20 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    working_area: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-) -> ErrorResponse | list["Operator"] | None:
+    working_area: str | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+) -> ErrorResponse | list[Operator] | None:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
 
     Args:
-        working_area (Union[Unset, str]):
-        resource_id (Union[Unset, int]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        working_area (str | Unset):
+        resource_id (int | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -150,7 +150,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, list['Operator']]
+        ErrorResponse | list[Operator]
     """
 
     return sync_detailed(
@@ -165,20 +165,20 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    working_area: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-) -> Response[ErrorResponse | list["Operator"]]:
+    working_area: str | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+) -> Response[ErrorResponse | list[Operator]]:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
 
     Args:
-        working_area (Union[Unset, str]):
-        resource_id (Union[Unset, int]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        working_area (str | Unset):
+        resource_id (int | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -187,7 +187,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, list['Operator']]]
+        Response[ErrorResponse | list[Operator]]
     """
 
     kwargs = _get_kwargs(
@@ -205,20 +205,20 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    working_area: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-) -> ErrorResponse | list["Operator"] | None:
+    working_area: str | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+) -> ErrorResponse | list[Operator] | None:
     """Get all operators
 
      Retrieves a list of operators based on the provided filters.
 
     Args:
-        working_area (Union[Unset, str]):
-        resource_id (Union[Unset, int]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        working_area (str | Unset):
+        resource_id (int | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -227,7 +227,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, list['Operator']]
+        ErrorResponse | list[Operator]
     """
 
     return (

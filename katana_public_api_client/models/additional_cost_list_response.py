@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -25,11 +27,11 @@ class AdditionalCostListResponse:
             '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}]}
     """
 
-    data: Unset | list["AdditionalCost"] = UNSET
+    data: list[AdditionalCost] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:
@@ -49,12 +51,14 @@ class AdditionalCostListResponse:
         from ..models.additional_cost import AdditionalCost
 
         d = dict(src_dict)
-        data = []
         _data = d.pop("data", UNSET)
-        for data_item_data in _data or []:
-            data_item = AdditionalCost.from_dict(data_item_data)
+        data: list[AdditionalCost] | Unset = UNSET
+        if _data is not UNSET:
+            data = []
+            for data_item_data in _data:
+                data_item = AdditionalCost.from_dict(data_item_data)
 
-            data.append(data_item)
+                data.append(data_item)
 
         additional_cost_list_response = cls(
             data=data,

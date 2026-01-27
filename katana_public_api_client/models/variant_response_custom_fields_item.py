@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -13,8 +15,8 @@ T = TypeVar("T", bound="VariantResponseCustomFieldsItem")
 
 @_attrs_define
 class VariantResponseCustomFieldsItem:
-    field_name: Unset | str = UNSET
-    field_value: Unset | str = UNSET
+    field_name: str | Unset = UNSET
+    field_value: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

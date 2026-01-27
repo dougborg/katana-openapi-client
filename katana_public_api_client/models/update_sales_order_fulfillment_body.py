@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -10,8 +12,8 @@ T = TypeVar("T", bound="UpdateSalesOrderFulfillmentBody")
 
 @_attrs_define
 class UpdateSalesOrderFulfillmentBody:
-    tracking_number: Unset | str = UNSET
-    notes: Unset | str = UNSET
+    tracking_number: str | Unset = UNSET
+    notes: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         tracking_number = self.tracking_number

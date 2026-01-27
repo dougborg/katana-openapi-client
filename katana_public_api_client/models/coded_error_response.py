@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
@@ -15,10 +17,10 @@ T = TypeVar("T", bound="CodedErrorResponse")
 class CodedErrorResponse:
     """Error response with an additional application-specific error code for detailed error handling"""
 
-    status_code: Unset | float = UNSET
-    name: Unset | str = UNSET
-    message: Unset | str = UNSET
-    code: None | Unset | str = UNSET
+    status_code: float | Unset = UNSET
+    name: str | Unset = UNSET
+    message: str | Unset = UNSET
+    code: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -28,7 +30,7 @@ class CodedErrorResponse:
 
         message = self.message
 
-        code: None | Unset | str
+        code: None | str | Unset
         if isinstance(self.code, Unset):
             code = UNSET
         else:
@@ -57,12 +59,12 @@ class CodedErrorResponse:
 
         message = d.pop("message", UNSET)
 
-        def _parse_code(data: object) -> None | Unset | str:
+        def _parse_code(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         code = _parse_code(d.pop("code", UNSET))
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -16,8 +18,8 @@ T = TypeVar("T", bound="CreateProductOperationRowsBody")
 
 @_attrs_define
 class CreateProductOperationRowsBody:
-    rows: list["CreateProductOperationRowsBodyRowsItem"]
-    keep_current_rows: Unset | bool = UNSET
+    rows: list[CreateProductOperationRowsBodyRowsItem]
+    keep_current_rows: bool | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         rows = []

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -19,7 +21,7 @@ class WebhookLogsExport:
         {'url': 'https://katana-exports.s3.amazonaws.com/webhook-logs-2024-01-15.csv?expires=1705392000'}
     """
 
-    url: Unset | str = UNSET
+    url: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

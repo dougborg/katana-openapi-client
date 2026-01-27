@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -28,16 +30,16 @@ class CreateMaterialRequest:
     """
 
     name: str
-    variants: list["CreateVariantRequest"]
-    uom: Unset | str = UNSET
-    category_name: Unset | str = UNSET
-    default_supplier_id: Unset | int = UNSET
-    additional_info: Unset | str = UNSET
-    batch_tracked: Unset | bool = UNSET
-    is_sellable: Unset | bool = UNSET
-    purchase_uom: Unset | str = UNSET
-    purchase_uom_conversion_rate: Unset | float = UNSET
-    configs: Unset | list["MaterialConfig"] = UNSET
+    variants: list[CreateVariantRequest]
+    uom: str | Unset = UNSET
+    category_name: str | Unset = UNSET
+    default_supplier_id: int | Unset = UNSET
+    additional_info: str | Unset = UNSET
+    batch_tracked: bool | Unset = UNSET
+    is_sellable: bool | Unset = UNSET
+    purchase_uom: str | Unset = UNSET
+    purchase_uom_conversion_rate: float | Unset = UNSET
+    configs: list[MaterialConfig] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -63,7 +65,7 @@ class CreateMaterialRequest:
 
         purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
-        configs: Unset | list[dict[str, Any]] = UNSET
+        configs: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.configs, Unset):
             configs = []
             for configs_item_data in self.configs:
@@ -130,12 +132,14 @@ class CreateMaterialRequest:
 
         purchase_uom_conversion_rate = d.pop("purchase_uom_conversion_rate", UNSET)
 
-        configs = []
         _configs = d.pop("configs", UNSET)
-        for configs_item_data in _configs or []:
-            configs_item = MaterialConfig.from_dict(configs_item_data)
+        configs: list[MaterialConfig] | Unset = UNSET
+        if _configs is not UNSET:
+            configs = []
+            for configs_item_data in _configs:
+                configs_item = MaterialConfig.from_dict(configs_item_data)
 
-            configs.append(configs_item)
+                configs.append(configs_item)
 
         create_material_request = cls(
             name=name,

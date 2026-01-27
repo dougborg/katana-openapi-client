@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
@@ -21,12 +23,12 @@ class SalesReturnRow:
     sales_return_id: int
     variant_id: int
     quantity: str
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    return_reason_id: None | Unset | int = UNSET
-    notes: None | Unset | str = UNSET
-    unit_price: None | Unset | float = UNSET
-    total_price: None | Unset | float = UNSET
+    created_at: datetime.datetime | Unset = UNSET
+    updated_at: datetime.datetime | Unset = UNSET
+    return_reason_id: int | None | Unset = UNSET
+    notes: None | str | Unset = UNSET
+    unit_price: float | None | Unset = UNSET
+    total_price: float | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,33 +40,33 @@ class SalesReturnRow:
 
         quantity = self.quantity
 
-        created_at: Unset | str = UNSET
+        created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        return_reason_id: None | Unset | int
+        return_reason_id: int | None | Unset
         if isinstance(self.return_reason_id, Unset):
             return_reason_id = UNSET
         else:
             return_reason_id = self.return_reason_id
 
-        notes: None | Unset | str
+        notes: None | str | Unset
         if isinstance(self.notes, Unset):
             notes = UNSET
         else:
             notes = self.notes
 
-        unit_price: None | Unset | float
+        unit_price: float | None | Unset
         if isinstance(self.unit_price, Unset):
             unit_price = UNSET
         else:
             unit_price = self.unit_price
 
-        total_price: None | Unset | float
+        total_price: float | None | Unset
         if isinstance(self.total_price, Unset):
             total_price = UNSET
         else:
@@ -107,52 +109,52 @@ class SalesReturnRow:
         quantity = d.pop("quantity")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_return_reason_id(data: object) -> None | Unset | int:
+        def _parse_return_reason_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)  # type: ignore[return-value]
 
         return_reason_id = _parse_return_reason_id(d.pop("return_reason_id", UNSET))
 
-        def _parse_notes(data: object) -> None | Unset | str:
+        def _parse_notes(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
-        def _parse_unit_price(data: object) -> None | Unset | float:
+        def _parse_unit_price(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         unit_price = _parse_unit_price(d.pop("unit_price", UNSET))
 
-        def _parse_total_price(data: object) -> None | Unset | float:
+        def _parse_total_price(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         total_price = _parse_total_price(d.pop("total_price", UNSET))
 

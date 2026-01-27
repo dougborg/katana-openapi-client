@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -19,8 +21,8 @@ class ProductOperationRerank:
         {'message': 'Product operation successfully reordered', 'success': True}
     """
 
-    message: Unset | str = UNSET
-    success: Unset | bool = UNSET
+    message: str | Unset = UNSET
+    success: bool | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
