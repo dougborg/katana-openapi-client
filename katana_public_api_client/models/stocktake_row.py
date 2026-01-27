@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
@@ -20,13 +22,14 @@ class StocktakeRow:
     id: int
     stocktake_id: int
     variant_id: int
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    batch_id: None | Unset | int = UNSET
-    in_stock_quantity: None | Unset | float = UNSET
-    counted_quantity: None | Unset | float = UNSET
-    discrepancy_quantity: None | Unset | float = UNSET
-    notes: None | Unset | str = UNSET
+    created_at: datetime.datetime | Unset = UNSET
+    updated_at: datetime.datetime | Unset = UNSET
+    deleted_at: datetime.datetime | None | Unset = UNSET
+    batch_id: int | None | Unset = UNSET
+    in_stock_quantity: float | None | Unset = UNSET
+    counted_quantity: float | None | Unset = UNSET
+    discrepancy_quantity: float | None | Unset = UNSET
+    notes: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,39 +39,47 @@ class StocktakeRow:
 
         variant_id = self.variant_id
 
-        created_at: Unset | str = UNSET
+        created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        batch_id: None | Unset | int
+        deleted_at: None | str | Unset
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
+        else:
+            deleted_at = self.deleted_at
+
+        batch_id: int | None | Unset
         if isinstance(self.batch_id, Unset):
             batch_id = UNSET
         else:
             batch_id = self.batch_id
 
-        in_stock_quantity: None | Unset | float
+        in_stock_quantity: float | None | Unset
         if isinstance(self.in_stock_quantity, Unset):
             in_stock_quantity = UNSET
         else:
             in_stock_quantity = self.in_stock_quantity
 
-        counted_quantity: None | Unset | float
+        counted_quantity: float | None | Unset
         if isinstance(self.counted_quantity, Unset):
             counted_quantity = UNSET
         else:
             counted_quantity = self.counted_quantity
 
-        discrepancy_quantity: None | Unset | float
+        discrepancy_quantity: float | None | Unset
         if isinstance(self.discrepancy_quantity, Unset):
             discrepancy_quantity = UNSET
         else:
             discrepancy_quantity = self.discrepancy_quantity
 
-        notes: None | Unset | str
+        notes: None | str | Unset
         if isinstance(self.notes, Unset):
             notes = UNSET
         else:
@@ -87,6 +98,8 @@ class StocktakeRow:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
         if batch_id is not UNSET:
             field_dict["batch_id"] = batch_id
         if in_stock_quantity is not UNSET:
@@ -110,63 +123,80 @@ class StocktakeRow:
         variant_id = d.pop("variant_id")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_batch_id(data: object) -> None | Unset | int:
+        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)  # type: ignore[return-value]
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
+
+        def _parse_batch_id(data: object) -> int | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | None | Unset, data)  # type: ignore[return-value]
 
         batch_id = _parse_batch_id(d.pop("batch_id", UNSET))
 
-        def _parse_in_stock_quantity(data: object) -> None | Unset | float:
+        def _parse_in_stock_quantity(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         in_stock_quantity = _parse_in_stock_quantity(d.pop("in_stock_quantity", UNSET))
 
-        def _parse_counted_quantity(data: object) -> None | Unset | float:
+        def _parse_counted_quantity(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         counted_quantity = _parse_counted_quantity(d.pop("counted_quantity", UNSET))
 
-        def _parse_discrepancy_quantity(data: object) -> None | Unset | float:
+        def _parse_discrepancy_quantity(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         discrepancy_quantity = _parse_discrepancy_quantity(
             d.pop("discrepancy_quantity", UNSET)
         )
 
-        def _parse_notes(data: object) -> None | Unset | str:
+        def _parse_notes(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
@@ -176,6 +206,7 @@ class StocktakeRow:
             variant_id=variant_id,
             created_at=created_at,
             updated_at=updated_at,
+            deleted_at=deleted_at,
             batch_id=batch_id,
             in_stock_quantity=in_stock_quantity,
             counted_quantity=counted_quantity,

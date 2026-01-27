@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
@@ -21,12 +23,12 @@ T = TypeVar("T", bound="CreateSalesOrderRequestSalesOrderRowsItem")
 class CreateSalesOrderRequestSalesOrderRowsItem:
     quantity: float
     variant_id: int
-    tax_rate_id: None | Unset | int = UNSET
-    location_id: None | Unset | int = UNSET
-    price_per_unit: None | Unset | float = UNSET
-    total_discount: None | Unset | float = UNSET
+    tax_rate_id: int | None | Unset = UNSET
+    location_id: int | None | Unset = UNSET
+    price_per_unit: float | None | Unset = UNSET
+    total_discount: float | None | Unset = UNSET
     attributes: (
-        Unset | list["CreateSalesOrderRequestSalesOrderRowsItemAttributesItem"]
+        list[CreateSalesOrderRequestSalesOrderRowsItemAttributesItem] | Unset
     ) = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -35,31 +37,31 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
 
         variant_id = self.variant_id
 
-        tax_rate_id: None | Unset | int
+        tax_rate_id: int | None | Unset
         if isinstance(self.tax_rate_id, Unset):
             tax_rate_id = UNSET
         else:
             tax_rate_id = self.tax_rate_id
 
-        location_id: None | Unset | int
+        location_id: int | None | Unset
         if isinstance(self.location_id, Unset):
             location_id = UNSET
         else:
             location_id = self.location_id
 
-        price_per_unit: None | Unset | float
+        price_per_unit: float | None | Unset
         if isinstance(self.price_per_unit, Unset):
             price_per_unit = UNSET
         else:
             price_per_unit = self.price_per_unit
 
-        total_discount: None | Unset | float
+        total_discount: float | None | Unset
         if isinstance(self.total_discount, Unset):
             total_discount = UNSET
         else:
             total_discount = self.total_discount
 
-        attributes: Unset | list[dict[str, Any]] = UNSET
+        attributes: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.attributes, Unset):
             attributes = []
             for attributes_item_data in self.attributes:
@@ -98,52 +100,56 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
 
         variant_id = d.pop("variant_id")
 
-        def _parse_tax_rate_id(data: object) -> None | Unset | int:
+        def _parse_tax_rate_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)  # type: ignore[return-value]
 
         tax_rate_id = _parse_tax_rate_id(d.pop("tax_rate_id", UNSET))
 
-        def _parse_location_id(data: object) -> None | Unset | int:
+        def _parse_location_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)  # type: ignore[return-value]
 
         location_id = _parse_location_id(d.pop("location_id", UNSET))
 
-        def _parse_price_per_unit(data: object) -> None | Unset | float:
+        def _parse_price_per_unit(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         price_per_unit = _parse_price_per_unit(d.pop("price_per_unit", UNSET))
 
-        def _parse_total_discount(data: object) -> None | Unset | float:
+        def _parse_total_discount(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         total_discount = _parse_total_discount(d.pop("total_discount", UNSET))
 
-        attributes = []
         _attributes = d.pop("attributes", UNSET)
-        for attributes_item_data in _attributes or []:
-            attributes_item = (
-                CreateSalesOrderRequestSalesOrderRowsItemAttributesItem.from_dict(
-                    attributes_item_data
+        attributes: (
+            list[CreateSalesOrderRequestSalesOrderRowsItemAttributesItem] | Unset
+        ) = UNSET
+        if _attributes is not UNSET:
+            attributes = []
+            for attributes_item_data in _attributes:
+                attributes_item = (
+                    CreateSalesOrderRequestSalesOrderRowsItemAttributesItem.from_dict(
+                        attributes_item_data
+                    )
                 )
-            )
 
-            attributes.append(attributes_item)
+                attributes.append(attributes_item)
 
         create_sales_order_request_sales_order_rows_item = cls(
             quantity=quantity,

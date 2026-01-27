@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
@@ -24,9 +26,9 @@ class Batch:
 
     batch_number: str
     variant_id: int
-    expiration_date: Unset | datetime.datetime = UNSET
-    batch_created_date: Unset | datetime.datetime = UNSET
-    batch_barcode: None | Unset | str = UNSET
+    expiration_date: datetime.datetime | Unset = UNSET
+    batch_created_date: datetime.datetime | Unset = UNSET
+    batch_barcode: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -34,15 +36,15 @@ class Batch:
 
         variant_id = self.variant_id
 
-        expiration_date: Unset | str = UNSET
+        expiration_date: str | Unset = UNSET
         if not isinstance(self.expiration_date, Unset):
             expiration_date = self.expiration_date.isoformat()
 
-        batch_created_date: Unset | str = UNSET
+        batch_created_date: str | Unset = UNSET
         if not isinstance(self.batch_created_date, Unset):
             batch_created_date = self.batch_created_date.isoformat()
 
-        batch_barcode: None | Unset | str
+        batch_barcode: None | str | Unset
         if isinstance(self.batch_barcode, Unset):
             batch_barcode = UNSET
         else:
@@ -73,25 +75,25 @@ class Batch:
         variant_id = d.pop("variant_id")
 
         _expiration_date = d.pop("expiration_date", UNSET)
-        expiration_date: Unset | datetime.datetime
+        expiration_date: datetime.datetime | Unset
         if isinstance(_expiration_date, Unset):
             expiration_date = UNSET
         else:
             expiration_date = isoparse(_expiration_date)
 
         _batch_created_date = d.pop("batch_created_date", UNSET)
-        batch_created_date: Unset | datetime.datetime
+        batch_created_date: datetime.datetime | Unset
         if isinstance(_batch_created_date, Unset):
             batch_created_date = UNSET
         else:
             batch_created_date = isoparse(_batch_created_date)
 
-        def _parse_batch_barcode(data: object) -> None | Unset | str:
+        def _parse_batch_barcode(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         batch_barcode = _parse_batch_barcode(d.pop("batch_barcode", UNSET))
 

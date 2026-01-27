@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
@@ -25,9 +27,9 @@ class CreateManufacturingOrderRequest:
     variant_id: int
     planned_quantity: float
     location_id: int
-    order_created_date: Unset | datetime.datetime = UNSET
-    production_deadline_date: Unset | datetime.datetime = UNSET
-    additional_info: Unset | str = UNSET
+    order_created_date: datetime.datetime | Unset = UNSET
+    production_deadline_date: datetime.datetime | Unset = UNSET
+    additional_info: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -37,11 +39,11 @@ class CreateManufacturingOrderRequest:
 
         location_id = self.location_id
 
-        order_created_date: Unset | str = UNSET
+        order_created_date: str | Unset = UNSET
         if not isinstance(self.order_created_date, Unset):
             order_created_date = self.order_created_date.isoformat()
 
-        production_deadline_date: Unset | str = UNSET
+        production_deadline_date: str | Unset = UNSET
         if not isinstance(self.production_deadline_date, Unset):
             production_deadline_date = self.production_deadline_date.isoformat()
 
@@ -75,14 +77,14 @@ class CreateManufacturingOrderRequest:
         location_id = d.pop("location_id")
 
         _order_created_date = d.pop("order_created_date", UNSET)
-        order_created_date: Unset | datetime.datetime
+        order_created_date: datetime.datetime | Unset
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:
             order_created_date = isoparse(_order_created_date)
 
         _production_deadline_date = d.pop("production_deadline_date", UNSET)
-        production_deadline_date: Unset | datetime.datetime
+        production_deadline_date: datetime.datetime | Unset
         if isinstance(_production_deadline_date, Unset):
             production_deadline_date = UNSET
         else:

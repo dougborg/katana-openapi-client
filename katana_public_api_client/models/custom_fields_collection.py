@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -33,10 +35,10 @@ class CustomFieldsCollection:
 
     id: int
     name: str
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    resource_type: Unset | CustomFieldsCollectionResourceType = UNSET
-    custom_fields: Unset | list["CustomField"] = UNSET
+    created_at: datetime.datetime | Unset = UNSET
+    updated_at: datetime.datetime | Unset = UNSET
+    resource_type: CustomFieldsCollectionResourceType | Unset = UNSET
+    custom_fields: list[CustomField] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -44,19 +46,19 @@ class CustomFieldsCollection:
 
         name = self.name
 
-        created_at: Unset | str = UNSET
+        created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        resource_type: Unset | str = UNSET
+        resource_type: str | Unset = UNSET
         if not isinstance(self.resource_type, Unset):
             resource_type = self.resource_type.value
 
-        custom_fields: Unset | list[dict[str, Any]] = UNSET
+        custom_fields: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.custom_fields, Unset):
             custom_fields = []
             for custom_fields_item_data in self.custom_fields:
@@ -92,32 +94,34 @@ class CustomFieldsCollection:
         name = d.pop("name")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
         _resource_type = d.pop("resource_type", UNSET)
-        resource_type: Unset | CustomFieldsCollectionResourceType
+        resource_type: CustomFieldsCollectionResourceType | Unset
         if isinstance(_resource_type, Unset):
             resource_type = UNSET
         else:
             resource_type = CustomFieldsCollectionResourceType(_resource_type)
 
-        custom_fields = []
         _custom_fields = d.pop("custom_fields", UNSET)
-        for custom_fields_item_data in _custom_fields or []:
-            custom_fields_item = CustomField.from_dict(custom_fields_item_data)
+        custom_fields: list[CustomField] | Unset = UNSET
+        if _custom_fields is not UNSET:
+            custom_fields = []
+            for custom_fields_item_data in _custom_fields:
+                custom_fields_item = CustomField.from_dict(custom_fields_item_data)
 
-            custom_fields.append(custom_fields_item)
+                custom_fields.append(custom_fields_item)
 
         custom_fields_collection = cls(
             id=id,

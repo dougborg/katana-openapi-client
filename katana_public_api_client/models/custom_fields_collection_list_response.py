@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -31,11 +33,11 @@ class CustomFieldsCollectionListResponse:
             '2024-01-14T09:15:00Z'}]}
     """
 
-    data: Unset | list["CustomFieldsCollection"] = UNSET
+    data: list[CustomFieldsCollection] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:
@@ -55,12 +57,14 @@ class CustomFieldsCollectionListResponse:
         from ..models.custom_fields_collection import CustomFieldsCollection
 
         d = dict(src_dict)
-        data = []
         _data = d.pop("data", UNSET)
-        for data_item_data in _data or []:
-            data_item = CustomFieldsCollection.from_dict(data_item_data)
+        data: list[CustomFieldsCollection] | Unset = UNSET
+        if _data is not UNSET:
+            data = []
+            for data_item_data in _data:
+                data_item = CustomFieldsCollection.from_dict(data_item_data)
 
-            data.append(data_item)
+                data.append(data_item)
 
         custom_fields_collection_list_response = cls(
             data=data,

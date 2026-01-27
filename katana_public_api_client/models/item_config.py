@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
@@ -22,8 +24,8 @@ class ItemConfig:
     id: int
     name: str
     values: list[str]
-    product_id: None | Unset | int = UNSET
-    material_id: None | Unset | int = UNSET
+    product_id: int | None | Unset = UNSET
+    material_id: int | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -33,13 +35,13 @@ class ItemConfig:
 
         values = self.values
 
-        product_id: None | Unset | int
+        product_id: int | None | Unset
         if isinstance(self.product_id, Unset):
             product_id = UNSET
         else:
             product_id = self.product_id
 
-        material_id: None | Unset | int
+        material_id: int | None | Unset
         if isinstance(self.material_id, Unset):
             material_id = UNSET
         else:
@@ -70,21 +72,21 @@ class ItemConfig:
 
         values = cast(list[str], d.pop("values"))
 
-        def _parse_product_id(data: object) -> None | Unset | int:
+        def _parse_product_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)  # type: ignore[return-value]
 
         product_id = _parse_product_id(d.pop("product_id", UNSET))
 
-        def _parse_material_id(data: object) -> None | Unset | int:
+        def _parse_material_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)  # type: ignore[return-value]
 
         material_id = _parse_material_id(d.pop("material_id", UNSET))
 

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -29,39 +31,39 @@ class PurchaseOrderBase:
     """Base properties shared by all purchase order types"""
 
     id: int
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
-    status: Unset | PurchaseOrderBaseStatus = UNSET
-    order_no: Unset | str = UNSET
-    entity_type: Unset | PurchaseOrderBaseEntityType = UNSET
-    default_group_id: Unset | int = UNSET
-    supplier_id: Unset | int = UNSET
-    currency: Unset | str = UNSET
-    expected_arrival_date: Unset | datetime.datetime = UNSET
-    order_created_date: Unset | datetime.datetime = UNSET
-    additional_info: Unset | str = UNSET
-    location_id: Unset | int = UNSET
-    total: Unset | float = UNSET
-    total_in_base_currency: Unset | float = UNSET
-    billing_status: Unset | PurchaseOrderBaseBillingStatus = UNSET
-    last_document_status: Unset | PurchaseOrderBaseLastDocumentStatus = UNSET
-    purchase_order_rows: Unset | list["PurchaseOrderRow"] = UNSET
-    supplier: Union[Unset, "Supplier"] = UNSET
+    created_at: datetime.datetime | Unset = UNSET
+    updated_at: datetime.datetime | Unset = UNSET
+    deleted_at: datetime.datetime | None | Unset = UNSET
+    status: PurchaseOrderBaseStatus | Unset = UNSET
+    order_no: str | Unset = UNSET
+    entity_type: PurchaseOrderBaseEntityType | Unset = UNSET
+    default_group_id: int | Unset = UNSET
+    supplier_id: int | Unset = UNSET
+    currency: str | Unset = UNSET
+    expected_arrival_date: datetime.datetime | Unset = UNSET
+    order_created_date: datetime.datetime | Unset = UNSET
+    additional_info: str | Unset = UNSET
+    location_id: int | Unset = UNSET
+    total: float | Unset = UNSET
+    total_in_base_currency: float | Unset = UNSET
+    billing_status: PurchaseOrderBaseBillingStatus | Unset = UNSET
+    last_document_status: PurchaseOrderBaseLastDocumentStatus | Unset = UNSET
+    purchase_order_rows: list[PurchaseOrderRow] | Unset = UNSET
+    supplier: Supplier | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        created_at: Unset | str = UNSET
+        created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | Unset | str
+        deleted_at: None | str | Unset
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -69,13 +71,13 @@ class PurchaseOrderBase:
         else:
             deleted_at = self.deleted_at
 
-        status: Unset | str = UNSET
+        status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
         order_no = self.order_no
 
-        entity_type: Unset | str = UNSET
+        entity_type: str | Unset = UNSET
         if not isinstance(self.entity_type, Unset):
             entity_type = self.entity_type.value
 
@@ -85,11 +87,11 @@ class PurchaseOrderBase:
 
         currency = self.currency
 
-        expected_arrival_date: Unset | str = UNSET
+        expected_arrival_date: str | Unset = UNSET
         if not isinstance(self.expected_arrival_date, Unset):
             expected_arrival_date = self.expected_arrival_date.isoformat()
 
-        order_created_date: Unset | str = UNSET
+        order_created_date: str | Unset = UNSET
         if not isinstance(self.order_created_date, Unset):
             order_created_date = self.order_created_date.isoformat()
 
@@ -101,22 +103,22 @@ class PurchaseOrderBase:
 
         total_in_base_currency = self.total_in_base_currency
 
-        billing_status: Unset | str = UNSET
+        billing_status: str | Unset = UNSET
         if not isinstance(self.billing_status, Unset):
             billing_status = self.billing_status.value
 
-        last_document_status: Unset | str = UNSET
+        last_document_status: str | Unset = UNSET
         if not isinstance(self.last_document_status, Unset):
             last_document_status = self.last_document_status.value
 
-        purchase_order_rows: Unset | list[dict[str, Any]] = UNSET
+        purchase_order_rows: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.purchase_order_rows, Unset):
             purchase_order_rows = []
             for purchase_order_rows_item_data in self.purchase_order_rows:
                 purchase_order_rows_item = purchase_order_rows_item_data.to_dict()
                 purchase_order_rows.append(purchase_order_rows_item)
 
-        supplier: Unset | dict[str, Any] = UNSET
+        supplier: dict[str, Any] | Unset = UNSET
         if not isinstance(self.supplier, Unset):
             supplier = self.supplier.to_dict()
 
@@ -177,20 +179,20 @@ class PurchaseOrderBase:
         id = d.pop("id")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -201,14 +203,14 @@ class PurchaseOrderBase:
                 deleted_at_type_0 = isoparse(data)
 
                 return deleted_at_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         _status = d.pop("status", UNSET)
-        status: Unset | PurchaseOrderBaseStatus
+        status: PurchaseOrderBaseStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
@@ -217,7 +219,7 @@ class PurchaseOrderBase:
         order_no = d.pop("order_no", UNSET)
 
         _entity_type = d.pop("entity_type", UNSET)
-        entity_type: Unset | PurchaseOrderBaseEntityType
+        entity_type: PurchaseOrderBaseEntityType | Unset
         if isinstance(_entity_type, Unset):
             entity_type = UNSET
         else:
@@ -230,14 +232,14 @@ class PurchaseOrderBase:
         currency = d.pop("currency", UNSET)
 
         _expected_arrival_date = d.pop("expected_arrival_date", UNSET)
-        expected_arrival_date: Unset | datetime.datetime
+        expected_arrival_date: datetime.datetime | Unset
         if isinstance(_expected_arrival_date, Unset):
             expected_arrival_date = UNSET
         else:
             expected_arrival_date = isoparse(_expected_arrival_date)
 
         _order_created_date = d.pop("order_created_date", UNSET)
-        order_created_date: Unset | datetime.datetime
+        order_created_date: datetime.datetime | Unset
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:
@@ -252,14 +254,14 @@ class PurchaseOrderBase:
         total_in_base_currency = d.pop("total_in_base_currency", UNSET)
 
         _billing_status = d.pop("billing_status", UNSET)
-        billing_status: Unset | PurchaseOrderBaseBillingStatus
+        billing_status: PurchaseOrderBaseBillingStatus | Unset
         if isinstance(_billing_status, Unset):
             billing_status = UNSET
         else:
             billing_status = PurchaseOrderBaseBillingStatus(_billing_status)
 
         _last_document_status = d.pop("last_document_status", UNSET)
-        last_document_status: Unset | PurchaseOrderBaseLastDocumentStatus
+        last_document_status: PurchaseOrderBaseLastDocumentStatus | Unset
         if isinstance(_last_document_status, Unset):
             last_document_status = UNSET
         else:
@@ -267,17 +269,19 @@ class PurchaseOrderBase:
                 _last_document_status
             )
 
-        purchase_order_rows = []
         _purchase_order_rows = d.pop("purchase_order_rows", UNSET)
-        for purchase_order_rows_item_data in _purchase_order_rows or []:
-            purchase_order_rows_item = PurchaseOrderRow.from_dict(
-                purchase_order_rows_item_data
-            )
+        purchase_order_rows: list[PurchaseOrderRow] | Unset = UNSET
+        if _purchase_order_rows is not UNSET:
+            purchase_order_rows = []
+            for purchase_order_rows_item_data in _purchase_order_rows:
+                purchase_order_rows_item = PurchaseOrderRow.from_dict(
+                    purchase_order_rows_item_data
+                )
 
-            purchase_order_rows.append(purchase_order_rows_item)
+                purchase_order_rows.append(purchase_order_rows_item)
 
         _supplier = d.pop("supplier", UNSET)
-        supplier: Unset | Supplier
+        supplier: Supplier | Unset
         if isinstance(_supplier, Unset):
             supplier = UNSET
         else:

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -19,11 +21,11 @@ class UpdatePurchaseOrderAdditionalCostRowRequest:
         {'additional_cost_id': 1, 'tax_rate_id': 1, 'price': 150.0, 'distribution_method': 'BY_VALUE'}
     """
 
-    additional_cost_id: Unset | int = UNSET
-    tax_rate_id: Unset | int = UNSET
-    price: Unset | float = UNSET
+    additional_cost_id: int | Unset = UNSET
+    tax_rate_id: int | Unset = UNSET
+    price: float | Unset = UNSET
     distribution_method: (
-        Unset | UpdatePurchaseOrderAdditionalCostRowRequestDistributionMethod
+        UpdatePurchaseOrderAdditionalCostRowRequestDistributionMethod | Unset
     ) = UNSET
 
     def to_dict(self) -> dict[str, Any]:
@@ -33,7 +35,7 @@ class UpdatePurchaseOrderAdditionalCostRowRequest:
 
         price = self.price
 
-        distribution_method: Unset | str = UNSET
+        distribution_method: str | Unset = UNSET
         if not isinstance(self.distribution_method, Unset):
             distribution_method = self.distribution_method.value
 
@@ -62,7 +64,7 @@ class UpdatePurchaseOrderAdditionalCostRowRequest:
 
         _distribution_method = d.pop("distribution_method", UNSET)
         distribution_method: (
-            Unset | UpdatePurchaseOrderAdditionalCostRowRequestDistributionMethod
+            UpdatePurchaseOrderAdditionalCostRowRequestDistributionMethod | Unset
         )
         if isinstance(_distribution_method, Unset):
             distribution_method = UNSET

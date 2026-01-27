@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -13,8 +15,8 @@ T = TypeVar("T", bound="SalesOrderRowBatchTransactionsItem")
 
 @_attrs_define
 class SalesOrderRowBatchTransactionsItem:
-    batch_id: Unset | int = UNSET
-    quantity: Unset | float = UNSET
+    batch_id: int | Unset = UNSET
+    quantity: float | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

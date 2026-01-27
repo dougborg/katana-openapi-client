@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -16,8 +18,8 @@ class UpdatePriceListCustomerRequest:
         {'price_list_id': 1003}
     """
 
-    price_list_id: Unset | int = UNSET
-    customer_id: Unset | int = UNSET
+    price_list_id: int | Unset = UNSET
+    customer_id: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         price_list_id = self.price_list_id

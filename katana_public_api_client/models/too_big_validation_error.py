@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -17,8 +19,8 @@ class TooBigValidationError:
     path: str
     code: TooBigValidationErrorCode
     message: str
-    max_length: Unset | int = UNSET
-    max_items: Unset | int = UNSET
+    max_length: int | Unset = UNSET
+    max_items: int | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

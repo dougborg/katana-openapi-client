@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -24,12 +26,12 @@ class UpdateManufacturingOrderOperationRowRequest:
             'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}], 'total_actual_time': 52.3}
     """
 
-    completed_by_operators: Unset | list["Operator"] = UNSET
-    total_actual_time: Unset | float = UNSET
+    completed_by_operators: list[Operator] | Unset = UNSET
+    total_actual_time: float | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        completed_by_operators: Unset | list[dict[str, Any]] = UNSET
+        completed_by_operators: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.completed_by_operators, Unset):
             completed_by_operators = []
             for completed_by_operators_item_data in self.completed_by_operators:
@@ -53,14 +55,16 @@ class UpdateManufacturingOrderOperationRowRequest:
         from ..models.operator import Operator
 
         d = dict(src_dict)
-        completed_by_operators = []
         _completed_by_operators = d.pop("completed_by_operators", UNSET)
-        for completed_by_operators_item_data in _completed_by_operators or []:
-            completed_by_operators_item = Operator.from_dict(
-                completed_by_operators_item_data
-            )
+        completed_by_operators: list[Operator] | Unset = UNSET
+        if _completed_by_operators is not UNSET:
+            completed_by_operators = []
+            for completed_by_operators_item_data in _completed_by_operators:
+                completed_by_operators_item = Operator.from_dict(
+                    completed_by_operators_item_data
+                )
 
-            completed_by_operators.append(completed_by_operators_item)
+                completed_by_operators.append(completed_by_operators_item)
 
         total_actual_time = d.pop("total_actual_time", UNSET)
 

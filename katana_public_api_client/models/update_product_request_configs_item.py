@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
@@ -10,13 +12,13 @@ T = TypeVar("T", bound="UpdateProductRequestConfigsItem")
 
 @_attrs_define
 class UpdateProductRequestConfigsItem:
-    name: Unset | str = UNSET
-    values: Unset | list[str] = UNSET
+    name: str | Unset = UNSET
+    values: list[str] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
 
-        values: Unset | list[str] = UNSET
+        values: list[str] | Unset = UNSET
         if not isinstance(self.values, Unset):
             values = self.values
 

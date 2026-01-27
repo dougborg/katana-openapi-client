@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
@@ -24,8 +26,8 @@ class CustomField:
     name: str
     field_type: str
     label: str
-    required: Unset | bool = UNSET
-    options: Unset | list[str] = UNSET
+    required: bool | Unset = UNSET
+    options: list[str] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,7 +41,7 @@ class CustomField:
 
         required = self.required
 
-        options: Unset | list[str] = UNSET
+        options: list[str] | Unset = UNSET
         if not isinstance(self.options, Unset):
             options = self.options
 

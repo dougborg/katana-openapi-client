@@ -33,7 +33,7 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | list["StocktakeRow"] | None:
+) -> DetailedErrorResponse | ErrorResponse | list[StocktakeRow] | None:
     if response.status_code == 200:
         response_200 = []
         _response_200 = response.json()
@@ -72,7 +72,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | list["StocktakeRow"]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | list[StocktakeRow]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -85,7 +85,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateStocktakeRowRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | list["StocktakeRow"]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | list[StocktakeRow]]:
     """Create a stocktake row
 
      Creates a new stocktake row for counting specific variants.
@@ -93,8 +93,7 @@ def sync_detailed(
     Args:
         body (CreateStocktakeRowRequest): Request payload for creating a new stocktake row for
             counting specific variants Example: {'stocktake_id': 4001, 'variant_id': 3001,
-            'system_quantity': 150.0, 'actual_quantity': 147.0, 'notes': 'Minor count difference
-            noted'}.
+            'counted_quantity': 147.0, 'notes': 'Initial count'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -102,7 +101,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, list['StocktakeRow']]]
+        Response[DetailedErrorResponse | ErrorResponse | list[StocktakeRow]]
     """
 
     kwargs = _get_kwargs(
@@ -120,7 +119,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateStocktakeRowRequest,
-) -> DetailedErrorResponse | ErrorResponse | list["StocktakeRow"] | None:
+) -> DetailedErrorResponse | ErrorResponse | list[StocktakeRow] | None:
     """Create a stocktake row
 
      Creates a new stocktake row for counting specific variants.
@@ -128,8 +127,7 @@ def sync(
     Args:
         body (CreateStocktakeRowRequest): Request payload for creating a new stocktake row for
             counting specific variants Example: {'stocktake_id': 4001, 'variant_id': 3001,
-            'system_quantity': 150.0, 'actual_quantity': 147.0, 'notes': 'Minor count difference
-            noted'}.
+            'counted_quantity': 147.0, 'notes': 'Initial count'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -137,7 +135,7 @@ def sync(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, list['StocktakeRow']]
+        DetailedErrorResponse | ErrorResponse | list[StocktakeRow]
     """
 
     return sync_detailed(
@@ -150,7 +148,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateStocktakeRowRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | list["StocktakeRow"]]:
+) -> Response[DetailedErrorResponse | ErrorResponse | list[StocktakeRow]]:
     """Create a stocktake row
 
      Creates a new stocktake row for counting specific variants.
@@ -158,8 +156,7 @@ async def asyncio_detailed(
     Args:
         body (CreateStocktakeRowRequest): Request payload for creating a new stocktake row for
             counting specific variants Example: {'stocktake_id': 4001, 'variant_id': 3001,
-            'system_quantity': 150.0, 'actual_quantity': 147.0, 'notes': 'Minor count difference
-            noted'}.
+            'counted_quantity': 147.0, 'notes': 'Initial count'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -167,7 +164,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, list['StocktakeRow']]]
+        Response[DetailedErrorResponse | ErrorResponse | list[StocktakeRow]]
     """
 
     kwargs = _get_kwargs(
@@ -183,7 +180,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateStocktakeRowRequest,
-) -> DetailedErrorResponse | ErrorResponse | list["StocktakeRow"] | None:
+) -> DetailedErrorResponse | ErrorResponse | list[StocktakeRow] | None:
     """Create a stocktake row
 
      Creates a new stocktake row for counting specific variants.
@@ -191,8 +188,7 @@ async def asyncio(
     Args:
         body (CreateStocktakeRowRequest): Request payload for creating a new stocktake row for
             counting specific variants Example: {'stocktake_id': 4001, 'variant_id': 3001,
-            'system_quantity': 150.0, 'actual_quantity': 147.0, 'notes': 'Minor count difference
-            noted'}.
+            'counted_quantity': 147.0, 'notes': 'Initial count'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -200,7 +196,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, list['StocktakeRow']]
+        DetailedErrorResponse | ErrorResponse | list[StocktakeRow]
     """
 
     return (

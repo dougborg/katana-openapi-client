@@ -13,16 +13,16 @@ from ...models.stock_adjustment_list_response import StockAdjustmentListResponse
 
 def _get_kwargs(
     *,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    location_id: Unset | int = UNSET,
-    stock_adjustment_number: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    stock_adjustment_number: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -30,7 +30,7 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -42,22 +42,22 @@ def _get_kwargs(
 
     params["include_deleted"] = include_deleted
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: str | Unset = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: str | Unset = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: str | Unset = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: str | Unset = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -116,32 +116,32 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    location_id: Unset | int = UNSET,
-    stock_adjustment_number: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    stock_adjustment_number: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | StockAdjustmentListResponse]:
     """List all stock adjustments
 
      Returns a list of stock adjustments.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        location_id (Union[Unset, int]):
-        stock_adjustment_number (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        location_id (int | Unset):
+        stock_adjustment_number (str | Unset):
+        include_deleted (bool | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -149,7 +149,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, StockAdjustmentListResponse]]
+        Response[ErrorResponse | StockAdjustmentListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -175,32 +175,32 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    location_id: Unset | int = UNSET,
-    stock_adjustment_number: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    stock_adjustment_number: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | StockAdjustmentListResponse | None:
     """List all stock adjustments
 
      Returns a list of stock adjustments.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        location_id (Union[Unset, int]):
-        stock_adjustment_number (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        location_id (int | Unset):
+        stock_adjustment_number (str | Unset):
+        include_deleted (bool | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -208,7 +208,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, StockAdjustmentListResponse]
+        ErrorResponse | StockAdjustmentListResponse
     """
 
     return sync_detailed(
@@ -229,32 +229,32 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    location_id: Unset | int = UNSET,
-    stock_adjustment_number: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    stock_adjustment_number: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | StockAdjustmentListResponse]:
     """List all stock adjustments
 
      Returns a list of stock adjustments.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        location_id (Union[Unset, int]):
-        stock_adjustment_number (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        location_id (int | Unset):
+        stock_adjustment_number (str | Unset):
+        include_deleted (bool | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -262,7 +262,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, StockAdjustmentListResponse]]
+        Response[ErrorResponse | StockAdjustmentListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -286,32 +286,32 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    location_id: Unset | int = UNSET,
-    stock_adjustment_number: Unset | str = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    stock_adjustment_number: str | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | StockAdjustmentListResponse | None:
     """List all stock adjustments
 
      Returns a list of stock adjustments.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        location_id (Union[Unset, int]):
-        stock_adjustment_number (Union[Unset, str]):
-        include_deleted (Union[Unset, bool]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        location_id (int | Unset):
+        stock_adjustment_number (str | Unset):
+        include_deleted (bool | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -319,7 +319,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, StockAdjustmentListResponse]
+        ErrorResponse | StockAdjustmentListResponse
     """
 
     return (

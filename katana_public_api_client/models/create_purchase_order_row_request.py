@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
@@ -23,11 +25,11 @@ class CreatePurchaseOrderRowRequest:
     quantity: float
     variant_id: int
     price_per_unit: float
-    tax_rate_id: Unset | int = UNSET
-    group_id: Unset | int = UNSET
-    purchase_uom_conversion_rate: Unset | float = UNSET
-    purchase_uom: Unset | str = UNSET
-    arrival_date: Unset | datetime.datetime = UNSET
+    tax_rate_id: int | Unset = UNSET
+    group_id: int | Unset = UNSET
+    purchase_uom_conversion_rate: float | Unset = UNSET
+    purchase_uom: str | Unset = UNSET
+    arrival_date: datetime.datetime | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         purchase_order_id = self.purchase_order_id
@@ -46,7 +48,7 @@ class CreatePurchaseOrderRowRequest:
 
         purchase_uom = self.purchase_uom
 
-        arrival_date: Unset | str = UNSET
+        arrival_date: str | Unset = UNSET
         if not isinstance(self.arrival_date, Unset):
             arrival_date = self.arrival_date.isoformat()
 
@@ -93,7 +95,7 @@ class CreatePurchaseOrderRowRequest:
         purchase_uom = d.pop("purchase_uom", UNSET)
 
         _arrival_date = d.pop("arrival_date", UNSET)
-        arrival_date: Unset | datetime.datetime
+        arrival_date: datetime.datetime | Unset
         if isinstance(_arrival_date, Unset):
             arrival_date = UNSET
         else:

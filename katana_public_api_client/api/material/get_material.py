@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -14,11 +15,11 @@ from ...models.material import Material
 def _get_kwargs(
     id: int,
     *,
-    extend: Unset | list[GetMaterialExtendItem] = UNSET,
+    extend: list[GetMaterialExtendItem] | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_extend: Unset | list[str] = UNSET
+    json_extend: list[str] | Unset = UNSET
     if not isinstance(extend, Unset):
         json_extend = []
         for extend_item_data in extend:
@@ -31,7 +32,9 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": f"/materials/{id}",
+        "url": "/materials/{id}".format(
+            id=quote(str(id), safe=""),
+        ),
         "params": params,
     }
 
@@ -82,7 +85,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    extend: Unset | list[GetMaterialExtendItem] = UNSET,
+    extend: list[GetMaterialExtendItem] | Unset = UNSET,
 ) -> Response[ErrorResponse | Material]:
     """Retrieve a material
 
@@ -90,7 +93,7 @@ def sync_detailed(
 
     Args:
         id (int):
-        extend (Union[Unset, list[GetMaterialExtendItem]]):
+        extend (list[GetMaterialExtendItem] | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -98,7 +101,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, Material]]
+        Response[ErrorResponse | Material]
     """
 
     kwargs = _get_kwargs(
@@ -117,7 +120,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    extend: Unset | list[GetMaterialExtendItem] = UNSET,
+    extend: list[GetMaterialExtendItem] | Unset = UNSET,
 ) -> ErrorResponse | Material | None:
     """Retrieve a material
 
@@ -125,7 +128,7 @@ def sync(
 
     Args:
         id (int):
-        extend (Union[Unset, list[GetMaterialExtendItem]]):
+        extend (list[GetMaterialExtendItem] | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -133,7 +136,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, Material]
+        ErrorResponse | Material
     """
 
     return sync_detailed(
@@ -147,7 +150,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    extend: Unset | list[GetMaterialExtendItem] = UNSET,
+    extend: list[GetMaterialExtendItem] | Unset = UNSET,
 ) -> Response[ErrorResponse | Material]:
     """Retrieve a material
 
@@ -155,7 +158,7 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        extend (Union[Unset, list[GetMaterialExtendItem]]):
+        extend (list[GetMaterialExtendItem] | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -163,7 +166,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, Material]]
+        Response[ErrorResponse | Material]
     """
 
     kwargs = _get_kwargs(
@@ -180,7 +183,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    extend: Unset | list[GetMaterialExtendItem] = UNSET,
+    extend: list[GetMaterialExtendItem] | Unset = UNSET,
 ) -> ErrorResponse | Material | None:
     """Retrieve a material
 
@@ -188,7 +191,7 @@ async def asyncio(
 
     Args:
         id (int):
-        extend (Union[Unset, list[GetMaterialExtendItem]]):
+        extend (list[GetMaterialExtendItem] | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -196,7 +199,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, Material]
+        ErrorResponse | Material
     """
 
     return (

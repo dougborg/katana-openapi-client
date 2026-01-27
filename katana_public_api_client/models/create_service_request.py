@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
@@ -24,12 +26,12 @@ class CreateServiceRequest:
     """
 
     name: str
-    variants: list["CreateServiceVariantRequest"]
-    uom: Unset | str = UNSET
-    category_name: Unset | str = UNSET
-    additional_info: Unset | str = UNSET
-    is_sellable: Unset | bool = UNSET
-    custom_field_collection_id: None | Unset | int = UNSET
+    variants: list[CreateServiceVariantRequest]
+    uom: str | Unset = UNSET
+    category_name: str | Unset = UNSET
+    additional_info: str | Unset = UNSET
+    is_sellable: bool | Unset = UNSET
+    custom_field_collection_id: int | None | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -47,7 +49,7 @@ class CreateServiceRequest:
 
         is_sellable = self.is_sellable
 
-        custom_field_collection_id: None | Unset | int
+        custom_field_collection_id: int | None | Unset
         if isinstance(self.custom_field_collection_id, Unset):
             custom_field_collection_id = UNSET
         else:
@@ -96,12 +98,12 @@ class CreateServiceRequest:
 
         is_sellable = d.pop("is_sellable", UNSET)
 
-        def _parse_custom_field_collection_id(data: object) -> None | Unset | int:
+        def _parse_custom_field_collection_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)  # type: ignore[return-value]
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)

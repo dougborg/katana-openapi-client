@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
@@ -26,17 +28,17 @@ class CreateCustomerAddressRequest:
 
     customer_id: int
     entity_type: CreateCustomerAddressRequestEntityType
-    first_name: None | Unset | str = UNSET
-    last_name: None | Unset | str = UNSET
-    company: None | Unset | str = UNSET
-    phone: None | Unset | str = UNSET
-    line_1: None | Unset | str = UNSET
-    line_2: None | Unset | str = UNSET
-    city: None | Unset | str = UNSET
-    state: None | Unset | str = UNSET
-    zip_: None | Unset | str = UNSET
-    country: None | Unset | str = UNSET
-    is_default: Unset | bool = UNSET
+    first_name: None | str | Unset = UNSET
+    last_name: None | str | Unset = UNSET
+    company: None | str | Unset = UNSET
+    phone: None | str | Unset = UNSET
+    line_1: None | str | Unset = UNSET
+    line_2: None | str | Unset = UNSET
+    city: None | str | Unset = UNSET
+    state: None | str | Unset = UNSET
+    zip_: None | str | Unset = UNSET
+    country: None | str | Unset = UNSET
+    is_default: bool | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -44,61 +46,61 @@ class CreateCustomerAddressRequest:
 
         entity_type = self.entity_type.value
 
-        first_name: None | Unset | str
+        first_name: None | str | Unset
         if isinstance(self.first_name, Unset):
             first_name = UNSET
         else:
             first_name = self.first_name
 
-        last_name: None | Unset | str
+        last_name: None | str | Unset
         if isinstance(self.last_name, Unset):
             last_name = UNSET
         else:
             last_name = self.last_name
 
-        company: None | Unset | str
+        company: None | str | Unset
         if isinstance(self.company, Unset):
             company = UNSET
         else:
             company = self.company
 
-        phone: None | Unset | str
+        phone: None | str | Unset
         if isinstance(self.phone, Unset):
             phone = UNSET
         else:
             phone = self.phone
 
-        line_1: None | Unset | str
+        line_1: None | str | Unset
         if isinstance(self.line_1, Unset):
             line_1 = UNSET
         else:
             line_1 = self.line_1
 
-        line_2: None | Unset | str
+        line_2: None | str | Unset
         if isinstance(self.line_2, Unset):
             line_2 = UNSET
         else:
             line_2 = self.line_2
 
-        city: None | Unset | str
+        city: None | str | Unset
         if isinstance(self.city, Unset):
             city = UNSET
         else:
             city = self.city
 
-        state: None | Unset | str
+        state: None | str | Unset
         if isinstance(self.state, Unset):
             state = UNSET
         else:
             state = self.state
 
-        zip_: None | Unset | str
+        zip_: None | str | Unset
         if isinstance(self.zip_, Unset):
             zip_ = UNSET
         else:
             zip_ = self.zip_
 
-        country: None | Unset | str
+        country: None | str | Unset
         if isinstance(self.country, Unset):
             country = UNSET
         else:
@@ -146,93 +148,93 @@ class CreateCustomerAddressRequest:
 
         entity_type = CreateCustomerAddressRequestEntityType(d.pop("entity_type"))
 
-        def _parse_first_name(data: object) -> None | Unset | str:
+        def _parse_first_name(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         first_name = _parse_first_name(d.pop("first_name", UNSET))
 
-        def _parse_last_name(data: object) -> None | Unset | str:
+        def _parse_last_name(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         last_name = _parse_last_name(d.pop("last_name", UNSET))
 
-        def _parse_company(data: object) -> None | Unset | str:
+        def _parse_company(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         company = _parse_company(d.pop("company", UNSET))
 
-        def _parse_phone(data: object) -> None | Unset | str:
+        def _parse_phone(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         phone = _parse_phone(d.pop("phone", UNSET))
 
-        def _parse_line_1(data: object) -> None | Unset | str:
+        def _parse_line_1(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         line_1 = _parse_line_1(d.pop("line_1", UNSET))
 
-        def _parse_line_2(data: object) -> None | Unset | str:
+        def _parse_line_2(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         line_2 = _parse_line_2(d.pop("line_2", UNSET))
 
-        def _parse_city(data: object) -> None | Unset | str:
+        def _parse_city(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         city = _parse_city(d.pop("city", UNSET))
 
-        def _parse_state(data: object) -> None | Unset | str:
+        def _parse_state(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         state = _parse_state(d.pop("state", UNSET))
 
-        def _parse_zip_(data: object) -> None | Unset | str:
+        def _parse_zip_(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         zip_ = _parse_zip_(d.pop("zip", UNSET))
 
-        def _parse_country(data: object) -> None | Unset | str:
+        def _parse_country(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         country = _parse_country(d.pop("country", UNSET))
 

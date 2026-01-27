@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -36,25 +38,25 @@ class CreatePurchaseOrderRequest:
         order_no (str): Unique purchase order number for tracking and reference
         supplier_id (int): Unique identifier of the supplier providing the materials or services
         location_id (int): Primary location where the purchased items will be received and stored
-        purchase_order_rows (list['PurchaseOrderRowRequest']): List of line items being ordered, including quantities
-            and pricing
-        entity_type (Union[Unset, CreatePurchaseOrderRequestEntityType]): Type of purchase order - regular for materials
-            or outsourced for subcontracted work
-        currency (Union[Unset, str]): Active ISO 4217 currency code (e.g. USD, EUR).
-        status (Union[Unset, CreatePurchaseOrderRequestStatus]): Initial status of the purchase order when created
-        order_created_date (Union[Unset, datetime.datetime]): Date when the purchase order was created
-        additional_info (Union[Unset, str]): Optional notes or special instructions for the supplier
+        purchase_order_rows (list[PurchaseOrderRowRequest]): List of line items being ordered, including quantities and
+            pricing
+        entity_type (CreatePurchaseOrderRequestEntityType | Unset): Type of purchase order - regular for materials or
+            outsourced for subcontracted work
+        currency (str | Unset): Active ISO 4217 currency code (e.g. USD, EUR).
+        status (CreatePurchaseOrderRequestStatus | Unset): Initial status of the purchase order when created
+        order_created_date (datetime.datetime | Unset): Date when the purchase order was created
+        additional_info (str | Unset): Optional notes or special instructions for the supplier
     """
 
     order_no: str
     supplier_id: int
     location_id: int
-    purchase_order_rows: list["PurchaseOrderRowRequest"]
-    entity_type: Unset | CreatePurchaseOrderRequestEntityType = UNSET
-    currency: Unset | str = UNSET
-    status: Unset | CreatePurchaseOrderRequestStatus = UNSET
-    order_created_date: Unset | datetime.datetime = UNSET
-    additional_info: Unset | str = UNSET
+    purchase_order_rows: list[PurchaseOrderRowRequest]
+    entity_type: CreatePurchaseOrderRequestEntityType | Unset = UNSET
+    currency: str | Unset = UNSET
+    status: CreatePurchaseOrderRequestStatus | Unset = UNSET
+    order_created_date: datetime.datetime | Unset = UNSET
+    additional_info: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         order_no = self.order_no
@@ -68,17 +70,17 @@ class CreatePurchaseOrderRequest:
             purchase_order_rows_item = purchase_order_rows_item_data.to_dict()
             purchase_order_rows.append(purchase_order_rows_item)
 
-        entity_type: Unset | str = UNSET
+        entity_type: str | Unset = UNSET
         if not isinstance(self.entity_type, Unset):
             entity_type = self.entity_type.value
 
         currency = self.currency
 
-        status: Unset | str = UNSET
+        status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
-        order_created_date: Unset | str = UNSET
+        order_created_date: str | Unset = UNSET
         if not isinstance(self.order_created_date, Unset):
             order_created_date = self.order_created_date.isoformat()
 
@@ -128,7 +130,7 @@ class CreatePurchaseOrderRequest:
             purchase_order_rows.append(purchase_order_rows_item)
 
         _entity_type = d.pop("entity_type", UNSET)
-        entity_type: Unset | CreatePurchaseOrderRequestEntityType
+        entity_type: CreatePurchaseOrderRequestEntityType | Unset
         if isinstance(_entity_type, Unset):
             entity_type = UNSET
         else:
@@ -137,14 +139,14 @@ class CreatePurchaseOrderRequest:
         currency = d.pop("currency", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: Unset | CreatePurchaseOrderRequestStatus
+        status: CreatePurchaseOrderRequestStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
             status = CreatePurchaseOrderRequestStatus(_status)
 
         _order_created_date = d.pop("order_created_date", UNSET)
-        order_created_date: Unset | datetime.datetime
+        order_created_date: datetime.datetime | Unset
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:

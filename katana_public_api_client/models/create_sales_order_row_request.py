@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -20,9 +22,9 @@ class CreateSalesOrderRowRequest:
     sales_order_id: int
     variant_id: int
     quantity: float
-    price_per_unit: Unset | float = UNSET
-    tax_rate_id: Unset | int = UNSET
-    location_id: Unset | int = UNSET
+    price_per_unit: float | Unset = UNSET
+    tax_rate_id: int | Unset = UNSET
+    location_id: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         sales_order_id = self.sales_order_id

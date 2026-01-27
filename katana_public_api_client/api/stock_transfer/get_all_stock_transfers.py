@@ -13,17 +13,17 @@ from ...models.stock_transfer_list_response import StockTransferListResponse
 
 def _get_kwargs(
     *,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    source_location_id: Unset | int = UNSET,
-    target_location_id: Unset | int = UNSET,
-    stock_transfer_number: Unset | str = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    source_location_id: int | Unset = UNSET,
+    target_location_id: int | Unset = UNSET,
+    stock_transfer_number: str | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -31,7 +31,7 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -39,22 +39,22 @@ def _get_kwargs(
 
     params["include_deleted"] = include_deleted
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: str | Unset = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: str | Unset = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: str | Unset = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: str | Unset = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -119,34 +119,34 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    source_location_id: Unset | int = UNSET,
-    target_location_id: Unset | int = UNSET,
-    stock_transfer_number: Unset | str = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    source_location_id: int | Unset = UNSET,
+    target_location_id: int | Unset = UNSET,
+    stock_transfer_number: str | Unset = UNSET,
 ) -> Response[ErrorResponse | StockTransferListResponse]:
     """List all stock transfers
 
      Returns a list of stock transfers.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        include_deleted (Union[Unset, bool]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        source_location_id (Union[Unset, int]):
-        target_location_id (Union[Unset, int]):
-        stock_transfer_number (Union[Unset, str]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        include_deleted (bool | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        source_location_id (int | Unset):
+        target_location_id (int | Unset):
+        stock_transfer_number (str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -154,7 +154,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, StockTransferListResponse]]
+        Response[ErrorResponse | StockTransferListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -181,34 +181,34 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    source_location_id: Unset | int = UNSET,
-    target_location_id: Unset | int = UNSET,
-    stock_transfer_number: Unset | str = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    source_location_id: int | Unset = UNSET,
+    target_location_id: int | Unset = UNSET,
+    stock_transfer_number: str | Unset = UNSET,
 ) -> ErrorResponse | StockTransferListResponse | None:
     """List all stock transfers
 
      Returns a list of stock transfers.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        include_deleted (Union[Unset, bool]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        source_location_id (Union[Unset, int]):
-        target_location_id (Union[Unset, int]):
-        stock_transfer_number (Union[Unset, str]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        include_deleted (bool | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        source_location_id (int | Unset):
+        target_location_id (int | Unset):
+        stock_transfer_number (str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -216,7 +216,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, StockTransferListResponse]
+        ErrorResponse | StockTransferListResponse
     """
 
     return sync_detailed(
@@ -238,34 +238,34 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    source_location_id: Unset | int = UNSET,
-    target_location_id: Unset | int = UNSET,
-    stock_transfer_number: Unset | str = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    source_location_id: int | Unset = UNSET,
+    target_location_id: int | Unset = UNSET,
+    stock_transfer_number: str | Unset = UNSET,
 ) -> Response[ErrorResponse | StockTransferListResponse]:
     """List all stock transfers
 
      Returns a list of stock transfers.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        include_deleted (Union[Unset, bool]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        source_location_id (Union[Unset, int]):
-        target_location_id (Union[Unset, int]):
-        stock_transfer_number (Union[Unset, str]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        include_deleted (bool | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        source_location_id (int | Unset):
+        target_location_id (int | Unset):
+        stock_transfer_number (str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -273,7 +273,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, StockTransferListResponse]]
+        Response[ErrorResponse | StockTransferListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -298,34 +298,34 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    source_location_id: Unset | int = UNSET,
-    target_location_id: Unset | int = UNSET,
-    stock_transfer_number: Unset | str = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    source_location_id: int | Unset = UNSET,
+    target_location_id: int | Unset = UNSET,
+    stock_transfer_number: str | Unset = UNSET,
 ) -> ErrorResponse | StockTransferListResponse | None:
     """List all stock transfers
 
      Returns a list of stock transfers.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        include_deleted (Union[Unset, bool]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        source_location_id (Union[Unset, int]):
-        target_location_id (Union[Unset, int]):
-        stock_transfer_number (Union[Unset, str]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        include_deleted (bool | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        source_location_id (int | Unset):
+        target_location_id (int | Unset):
+        stock_transfer_number (str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -333,7 +333,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, StockTransferListResponse]
+        ErrorResponse | StockTransferListResponse
     """
 
     return (

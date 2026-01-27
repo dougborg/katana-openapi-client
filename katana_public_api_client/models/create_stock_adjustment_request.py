@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -33,10 +35,10 @@ class CreateStockAdjustmentRequest:
     reference_no: str
     location_id: int
     adjustment_date: datetime.datetime
-    stock_adjustment_rows: list["CreateStockAdjustmentRequestStockAdjustmentRowsItem"]
-    reason: Unset | str = UNSET
-    additional_info: Unset | str = UNSET
-    status: Unset | CreateStockAdjustmentRequestStatus = (
+    stock_adjustment_rows: list[CreateStockAdjustmentRequestStockAdjustmentRowsItem]
+    reason: str | Unset = UNSET
+    additional_info: str | Unset = UNSET
+    status: CreateStockAdjustmentRequestStatus | Unset = (
         CreateStockAdjustmentRequestStatus.DRAFT
     )
 
@@ -56,7 +58,7 @@ class CreateStockAdjustmentRequest:
 
         additional_info = self.additional_info
 
-        status: Unset | str = UNSET
+        status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
@@ -108,7 +110,7 @@ class CreateStockAdjustmentRequest:
         additional_info = d.pop("additional_info", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: Unset | CreateStockAdjustmentRequestStatus
+        status: CreateStockAdjustmentRequestStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:

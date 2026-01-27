@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -43,28 +45,28 @@ class Product:
     id: int
     name: str
     type_: ProductType
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    archived_at: None | Unset | datetime.datetime = UNSET
-    uom: Unset | str = UNSET
-    category_name: Unset | str = UNSET
-    is_sellable: Unset | bool = UNSET
-    default_supplier_id: None | Unset | int = UNSET
-    additional_info: Unset | str = UNSET
-    batch_tracked: Unset | bool = UNSET
-    purchase_uom: None | Unset | str = UNSET
-    purchase_uom_conversion_rate: None | Unset | float = UNSET
-    custom_field_collection_id: None | Unset | int = UNSET
-    variants: Unset | list["Variant"] = UNSET
-    configs: Unset | list["ItemConfig"] = UNSET
-    supplier: Union["Supplier", None, Unset] = UNSET
-    is_producible: Unset | bool = UNSET
-    is_purchasable: Unset | bool = UNSET
-    is_auto_assembly: Unset | bool = UNSET
-    serial_tracked: Unset | bool = UNSET
-    operations_in_sequence: Unset | bool = UNSET
-    lead_time: None | Unset | int = UNSET
-    minimum_order_quantity: None | Unset | float = UNSET
+    created_at: datetime.datetime | Unset = UNSET
+    updated_at: datetime.datetime | Unset = UNSET
+    archived_at: datetime.datetime | None | Unset = UNSET
+    uom: str | Unset = UNSET
+    category_name: str | Unset = UNSET
+    is_sellable: bool | Unset = UNSET
+    default_supplier_id: int | None | Unset = UNSET
+    additional_info: str | Unset = UNSET
+    batch_tracked: bool | Unset = UNSET
+    purchase_uom: None | str | Unset = UNSET
+    purchase_uom_conversion_rate: float | None | Unset = UNSET
+    custom_field_collection_id: int | None | Unset = UNSET
+    variants: list[Variant] | Unset = UNSET
+    configs: list[ItemConfig] | Unset = UNSET
+    supplier: None | Supplier | Unset = UNSET
+    is_producible: bool | Unset = UNSET
+    is_purchasable: bool | Unset = UNSET
+    is_auto_assembly: bool | Unset = UNSET
+    serial_tracked: bool | Unset = UNSET
+    operations_in_sequence: bool | Unset = UNSET
+    lead_time: int | None | Unset = UNSET
+    minimum_order_quantity: float | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -76,15 +78,15 @@ class Product:
 
         type_ = self.type_.value
 
-        created_at: Unset | str = UNSET
+        created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        archived_at: None | Unset | str
+        archived_at: None | str | Unset
         if isinstance(self.archived_at, Unset):
             archived_at = UNSET
         elif isinstance(self.archived_at, datetime.datetime):
@@ -98,7 +100,7 @@ class Product:
 
         is_sellable = self.is_sellable
 
-        default_supplier_id: None | Unset | int
+        default_supplier_id: int | None | Unset
         if isinstance(self.default_supplier_id, Unset):
             default_supplier_id = UNSET
         else:
@@ -108,39 +110,39 @@ class Product:
 
         batch_tracked = self.batch_tracked
 
-        purchase_uom: None | Unset | str
+        purchase_uom: None | str | Unset
         if isinstance(self.purchase_uom, Unset):
             purchase_uom = UNSET
         else:
             purchase_uom = self.purchase_uom
 
-        purchase_uom_conversion_rate: None | Unset | float
+        purchase_uom_conversion_rate: float | None | Unset
         if isinstance(self.purchase_uom_conversion_rate, Unset):
             purchase_uom_conversion_rate = UNSET
         else:
             purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
 
-        custom_field_collection_id: None | Unset | int
+        custom_field_collection_id: int | None | Unset
         if isinstance(self.custom_field_collection_id, Unset):
             custom_field_collection_id = UNSET
         else:
             custom_field_collection_id = self.custom_field_collection_id
 
-        variants: Unset | list[dict[str, Any]] = UNSET
+        variants: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.variants, Unset):
             variants = []
             for variants_item_data in self.variants:
                 variants_item = variants_item_data.to_dict()
                 variants.append(variants_item)
 
-        configs: Unset | list[dict[str, Any]] = UNSET
+        configs: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.configs, Unset):
             configs = []
             for configs_item_data in self.configs:
                 configs_item = configs_item_data.to_dict()
                 configs.append(configs_item)
 
-        supplier: None | Unset | dict[str, Any]
+        supplier: dict[str, Any] | None | Unset
         if isinstance(self.supplier, Unset):
             supplier = UNSET
         elif isinstance(self.supplier, Supplier):
@@ -158,13 +160,13 @@ class Product:
 
         operations_in_sequence = self.operations_in_sequence
 
-        lead_time: None | Unset | int
+        lead_time: int | None | Unset
         if isinstance(self.lead_time, Unset):
             lead_time = UNSET
         else:
             lead_time = self.lead_time
 
-        minimum_order_quantity: None | Unset | float
+        minimum_order_quantity: float | None | Unset
         if isinstance(self.minimum_order_quantity, Unset):
             minimum_order_quantity = UNSET
         else:
@@ -240,20 +242,20 @@ class Product:
         type_ = ProductType(d.pop("type"))
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_archived_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_archived_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -264,9 +266,9 @@ class Product:
                 archived_at_type_0 = isoparse(data)
 
                 return archived_at_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
@@ -276,12 +278,12 @@ class Product:
 
         is_sellable = d.pop("is_sellable", UNSET)
 
-        def _parse_default_supplier_id(data: object) -> None | Unset | int:
+        def _parse_default_supplier_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)  # type: ignore[return-value]
 
         default_supplier_id = _parse_default_supplier_id(
             d.pop("default_supplier_id", UNSET)
@@ -291,52 +293,56 @@ class Product:
 
         batch_tracked = d.pop("batch_tracked", UNSET)
 
-        def _parse_purchase_uom(data: object) -> None | Unset | str:
+        def _parse_purchase_uom(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         purchase_uom = _parse_purchase_uom(d.pop("purchase_uom", UNSET))
 
-        def _parse_purchase_uom_conversion_rate(data: object) -> None | Unset | float:
+        def _parse_purchase_uom_conversion_rate(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         purchase_uom_conversion_rate = _parse_purchase_uom_conversion_rate(
             d.pop("purchase_uom_conversion_rate", UNSET)
         )
 
-        def _parse_custom_field_collection_id(data: object) -> None | Unset | int:
+        def _parse_custom_field_collection_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)  # type: ignore[return-value]
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)
         )
 
-        variants = []
         _variants = d.pop("variants", UNSET)
-        for variants_item_data in _variants or []:
-            variants_item = Variant.from_dict(variants_item_data)
+        variants: list[Variant] | Unset = UNSET
+        if _variants is not UNSET:
+            variants = []
+            for variants_item_data in _variants:
+                variants_item = Variant.from_dict(variants_item_data)
 
-            variants.append(variants_item)
+                variants.append(variants_item)
 
-        configs = []
         _configs = d.pop("configs", UNSET)
-        for configs_item_data in _configs or []:
-            configs_item = ItemConfig.from_dict(configs_item_data)
+        configs: list[ItemConfig] | Unset = UNSET
+        if _configs is not UNSET:
+            configs = []
+            for configs_item_data in _configs:
+                configs_item = ItemConfig.from_dict(configs_item_data)
 
-            configs.append(configs_item)
+                configs.append(configs_item)
 
-        def _parse_supplier(data: object) -> Union["Supplier", None, Unset]:
+        def _parse_supplier(data: object) -> None | Supplier | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -347,9 +353,9 @@ class Product:
                 supplier_type_0 = Supplier.from_dict(cast(Mapping[str, Any], data))
 
                 return supplier_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(Union["Supplier", None, Unset], data)
+            return cast(None | Supplier | Unset, data)  # type: ignore[return-value]
 
         supplier = _parse_supplier(d.pop("supplier", UNSET))
 
@@ -363,21 +369,21 @@ class Product:
 
         operations_in_sequence = d.pop("operations_in_sequence", UNSET)
 
-        def _parse_lead_time(data: object) -> None | Unset | int:
+        def _parse_lead_time(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | int, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)  # type: ignore[return-value]
 
         lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
 
-        def _parse_minimum_order_quantity(data: object) -> None | Unset | float:
+        def _parse_minimum_order_quantity(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | float, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)  # type: ignore[return-value]
 
         minimum_order_quantity = _parse_minimum_order_quantity(
             d.pop("minimum_order_quantity", UNSET)

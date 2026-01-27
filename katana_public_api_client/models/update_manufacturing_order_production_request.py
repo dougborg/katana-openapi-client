@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -34,29 +36,29 @@ class UpdateManufacturingOrderProductionRequest:
                 'manufacturing_order_id': 3001, 'operation_id': 402, 'time': 18.0}]}
     """
 
-    quantity: Unset | float = UNSET
-    production_date: Unset | datetime.datetime = UNSET
-    ingredients: Unset | list["UpdateManufacturingOrderProductionIngredientRequest"] = (
+    quantity: float | Unset = UNSET
+    production_date: datetime.datetime | Unset = UNSET
+    ingredients: list[UpdateManufacturingOrderProductionIngredientRequest] | Unset = (
         UNSET
     )
-    operations: Unset | list["UpdateManufacturingOrderOperationRowRequest"] = UNSET
+    operations: list[UpdateManufacturingOrderOperationRowRequest] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         quantity = self.quantity
 
-        production_date: Unset | str = UNSET
+        production_date: str | Unset = UNSET
         if not isinstance(self.production_date, Unset):
             production_date = self.production_date.isoformat()
 
-        ingredients: Unset | list[dict[str, Any]] = UNSET
+        ingredients: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.ingredients, Unset):
             ingredients = []
             for ingredients_item_data in self.ingredients:
                 ingredients_item = ingredients_item_data.to_dict()
                 ingredients.append(ingredients_item)
 
-        operations: Unset | list[dict[str, Any]] = UNSET
+        operations: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.operations, Unset):
             operations = []
             for operations_item_data in self.operations:
@@ -90,31 +92,37 @@ class UpdateManufacturingOrderProductionRequest:
         quantity = d.pop("quantity", UNSET)
 
         _production_date = d.pop("production_date", UNSET)
-        production_date: Unset | datetime.datetime
+        production_date: datetime.datetime | Unset
         if isinstance(_production_date, Unset):
             production_date = UNSET
         else:
             production_date = isoparse(_production_date)
 
-        ingredients = []
         _ingredients = d.pop("ingredients", UNSET)
-        for ingredients_item_data in _ingredients or []:
-            ingredients_item = (
-                UpdateManufacturingOrderProductionIngredientRequest.from_dict(
-                    ingredients_item_data
+        ingredients: (
+            list[UpdateManufacturingOrderProductionIngredientRequest] | Unset
+        ) = UNSET
+        if _ingredients is not UNSET:
+            ingredients = []
+            for ingredients_item_data in _ingredients:
+                ingredients_item = (
+                    UpdateManufacturingOrderProductionIngredientRequest.from_dict(
+                        ingredients_item_data
+                    )
                 )
-            )
 
-            ingredients.append(ingredients_item)
+                ingredients.append(ingredients_item)
 
-        operations = []
         _operations = d.pop("operations", UNSET)
-        for operations_item_data in _operations or []:
-            operations_item = UpdateManufacturingOrderOperationRowRequest.from_dict(
-                operations_item_data
-            )
+        operations: list[UpdateManufacturingOrderOperationRowRequest] | Unset = UNSET
+        if _operations is not UNSET:
+            operations = []
+            for operations_item_data in _operations:
+                operations_item = UpdateManufacturingOrderOperationRowRequest.from_dict(
+                    operations_item_data
+                )
 
-            operations.append(operations_item)
+                operations.append(operations_item)
 
         update_manufacturing_order_production_request = cls(
             quantity=quantity,

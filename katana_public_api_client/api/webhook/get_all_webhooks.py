@@ -12,15 +12,15 @@ from ...models.webhook_list_response import WebhookListResponse
 
 def _get_kwargs(
     *,
-    ids: Unset | list[int] = UNSET,
-    url_query: Unset | str = UNSET,
-    enabled: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    ids: list[int] | Unset = UNSET,
+    url_query: str | Unset = UNSET,
+    enabled: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -88,11 +88,11 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    url_query: Unset | str = UNSET,
-    enabled: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    ids: list[int] | Unset = UNSET,
+    url_query: str | Unset = UNSET,
+    enabled: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> Response[ErrorResponse | WebhookListResponse]:
     """List all webhooks
 
@@ -100,11 +100,11 @@ def sync_detailed(
         with the most recent ones appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        url_query (Union[Unset, str]):
-        enabled (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        ids (list[int] | Unset):
+        url_query (str | Unset):
+        enabled (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -113,7 +113,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, WebhookListResponse]]
+        Response[ErrorResponse | WebhookListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -134,11 +134,11 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    url_query: Unset | str = UNSET,
-    enabled: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    ids: list[int] | Unset = UNSET,
+    url_query: str | Unset = UNSET,
+    enabled: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> ErrorResponse | WebhookListResponse | None:
     """List all webhooks
 
@@ -146,11 +146,11 @@ def sync(
         with the most recent ones appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        url_query (Union[Unset, str]):
-        enabled (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        ids (list[int] | Unset):
+        url_query (str | Unset):
+        enabled (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -159,7 +159,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, WebhookListResponse]
+        ErrorResponse | WebhookListResponse
     """
 
     return sync_detailed(
@@ -175,11 +175,11 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    url_query: Unset | str = UNSET,
-    enabled: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    ids: list[int] | Unset = UNSET,
+    url_query: str | Unset = UNSET,
+    enabled: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> Response[ErrorResponse | WebhookListResponse]:
     """List all webhooks
 
@@ -187,11 +187,11 @@ async def asyncio_detailed(
         with the most recent ones appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        url_query (Union[Unset, str]):
-        enabled (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        ids (list[int] | Unset):
+        url_query (str | Unset):
+        enabled (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -200,7 +200,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, WebhookListResponse]]
+        Response[ErrorResponse | WebhookListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -219,11 +219,11 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    url_query: Unset | str = UNSET,
-    enabled: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    ids: list[int] | Unset = UNSET,
+    url_query: str | Unset = UNSET,
+    enabled: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> ErrorResponse | WebhookListResponse | None:
     """List all webhooks
 
@@ -231,11 +231,11 @@ async def asyncio(
         with the most recent ones appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        url_query (Union[Unset, str]):
-        enabled (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        ids (list[int] | Unset):
+        url_query (str | Unset):
+        enabled (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -244,7 +244,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, WebhookListResponse]
+        ErrorResponse | WebhookListResponse
     """
 
     return (
