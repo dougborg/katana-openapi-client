@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from http import HTTPStatus
-from typing import Any, Union, cast
+from typing import Any, cast
+from urllib.parse import quote
 
 import httpx
 
@@ -17,7 +18,9 @@ def _get_kwargs(
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": f"/locations/{id}",
+        "url": "/locations/{id}".format(
+            id=quote(str(id), safe=""),
+        ),
     }
 
     return _kwargs
@@ -25,12 +28,10 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
+) -> DeletableEntity | LocationType0 | ErrorResponse | None:
     if response.status_code == 200:
 
-        def _parse_response_200(
-            data: object,
-        ) -> Union["DeletableEntity", "LocationType0"]:
+        def _parse_response_200(data: object) -> DeletableEntity | LocationType0:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
@@ -39,7 +40,7 @@ def _parse_response(
                 )
 
                 return componentsschemas_location_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             if not isinstance(data, dict):
                 raise TypeError()
@@ -81,7 +82,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
+) -> Response[DeletableEntity | LocationType0 | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -94,7 +95,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
+) -> Response[DeletableEntity | LocationType0 | ErrorResponse]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -108,7 +109,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]]
+        Response[DeletableEntity | LocationType0 | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -126,7 +127,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
+) -> DeletableEntity | LocationType0 | ErrorResponse | None:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -140,7 +141,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]
+        DeletableEntity | LocationType0 | ErrorResponse
     """
 
     return sync_detailed(
@@ -153,7 +154,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse | Union["DeletableEntity", "LocationType0"]]:
+) -> Response[DeletableEntity | LocationType0 | ErrorResponse]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -167,7 +168,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]]
+        Response[DeletableEntity | LocationType0 | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -183,7 +184,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> ErrorResponse | Union["DeletableEntity", "LocationType0"] | None:
+) -> DeletableEntity | LocationType0 | ErrorResponse | None:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -197,7 +198,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, Union['DeletableEntity', 'LocationType0']]
+        DeletableEntity | LocationType0 | ErrorResponse
     """
 
     return (

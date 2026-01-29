@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -13,11 +15,11 @@ T = TypeVar("T", bound="UpdateProductOperationRowResponse200")
 
 @_attrs_define
 class UpdateProductOperationRowResponse200:
-    id: Unset | int = UNSET
-    product_id: Unset | int = UNSET
-    operation_id: Unset | int = UNSET
-    sequence: Unset | int = UNSET
-    notes: Unset | str = UNSET
+    id: int | Unset = UNSET
+    product_id: int | Unset = UNSET
+    operation_id: int | Unset = UNSET
+    sequence: int | Unset = UNSET
+    notes: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

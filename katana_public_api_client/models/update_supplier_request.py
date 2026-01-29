@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -18,11 +20,11 @@ class UpdateSupplierRequest:
             service.'}
     """
 
-    name: Unset | str = UNSET
-    email: Unset | str = UNSET
-    phone: Unset | str = UNSET
-    currency: Unset | str = UNSET
-    comment: Unset | str = UNSET
+    name: str | Unset = UNSET
+    email: str | Unset = UNSET
+    phone: str | Unset = UNSET
+    currency: str | Unset = UNSET
+    comment: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name

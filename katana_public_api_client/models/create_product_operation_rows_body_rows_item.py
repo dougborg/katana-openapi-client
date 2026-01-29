@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -14,17 +16,17 @@ T = TypeVar("T", bound="CreateProductOperationRowsBodyRowsItem")
 @_attrs_define
 class CreateProductOperationRowsBodyRowsItem:
     product_variant_id: float
-    operation_id: Unset | int = UNSET
-    operation_name: Unset | str = UNSET
-    resource_id: Unset | int = UNSET
-    resource_name: Unset | str = UNSET
-    type_: Unset | CreateProductOperationRowsBodyRowsItemType = (
+    operation_id: int | Unset = UNSET
+    operation_name: str | Unset = UNSET
+    resource_id: int | Unset = UNSET
+    resource_name: str | Unset = UNSET
+    type_: CreateProductOperationRowsBodyRowsItemType | Unset = (
         CreateProductOperationRowsBodyRowsItemType.PROCESS
     )
-    cost_parameter: Unset | float = UNSET
-    cost_per_hour: Unset | float = UNSET
-    planned_time_parameter: Unset | int = UNSET
-    planned_time_per_unit: Unset | int = UNSET
+    cost_parameter: float | Unset = UNSET
+    cost_per_hour: float | Unset = UNSET
+    planned_time_parameter: int | Unset = UNSET
+    planned_time_per_unit: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         product_variant_id = self.product_variant_id
@@ -37,7 +39,7 @@ class CreateProductOperationRowsBodyRowsItem:
 
         resource_name = self.resource_name
 
-        type_: Unset | str = UNSET
+        type_: str | Unset = UNSET
         if not isinstance(self.type_, Unset):
             type_ = self.type_.value
 
@@ -91,7 +93,7 @@ class CreateProductOperationRowsBodyRowsItem:
         resource_name = d.pop("resource_name", UNSET)
 
         _type_ = d.pop("type", UNSET)
-        type_: Unset | CreateProductOperationRowsBodyRowsItemType
+        type_: CreateProductOperationRowsBodyRowsItemType | Unset
         if isinstance(_type_, Unset):
             type_ = UNSET
         else:

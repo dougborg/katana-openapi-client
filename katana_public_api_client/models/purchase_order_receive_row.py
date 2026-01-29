@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -22,8 +24,8 @@ class PurchaseOrderReceiveRow:
 
     purchase_order_row_id: int
     quantity: float
-    received_date: Unset | datetime.datetime = UNSET
-    batch_transactions: Unset | list["PurchaseOrderReceiveRowBatchTransactionsItem"] = (
+    received_date: datetime.datetime | Unset = UNSET
+    batch_transactions: list[PurchaseOrderReceiveRowBatchTransactionsItem] | Unset = (
         UNSET
     )
 
@@ -32,11 +34,11 @@ class PurchaseOrderReceiveRow:
 
         quantity = self.quantity
 
-        received_date: Unset | str = UNSET
+        received_date: str | Unset = UNSET
         if not isinstance(self.received_date, Unset):
             received_date = self.received_date.isoformat()
 
-        batch_transactions: Unset | list[dict[str, Any]] = UNSET
+        batch_transactions: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.batch_transactions, Unset):
             batch_transactions = []
             for batch_transactions_item_data in self.batch_transactions:
@@ -70,22 +72,26 @@ class PurchaseOrderReceiveRow:
         quantity = d.pop("quantity")
 
         _received_date = d.pop("received_date", UNSET)
-        received_date: Unset | datetime.datetime
+        received_date: datetime.datetime | Unset
         if isinstance(_received_date, Unset):
             received_date = UNSET
         else:
             received_date = isoparse(_received_date)
 
-        batch_transactions = []
         _batch_transactions = d.pop("batch_transactions", UNSET)
-        for batch_transactions_item_data in _batch_transactions or []:
-            batch_transactions_item = (
-                PurchaseOrderReceiveRowBatchTransactionsItem.from_dict(
-                    batch_transactions_item_data
+        batch_transactions: (
+            list[PurchaseOrderReceiveRowBatchTransactionsItem] | Unset
+        ) = UNSET
+        if _batch_transactions is not UNSET:
+            batch_transactions = []
+            for batch_transactions_item_data in _batch_transactions:
+                batch_transactions_item = (
+                    PurchaseOrderReceiveRowBatchTransactionsItem.from_dict(
+                        batch_transactions_item_data
+                    )
                 )
-            )
 
-            batch_transactions.append(batch_transactions_item)
+                batch_transactions.append(batch_transactions_item)
 
         purchase_order_receive_row = cls(
             purchase_order_row_id=purchase_order_row_id,

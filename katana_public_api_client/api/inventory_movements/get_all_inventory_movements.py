@@ -16,29 +16,29 @@ from ...models.inventory_movement_list_response import InventoryMovementListResp
 
 def _get_kwargs(
     *,
-    ids: Unset | list[int] = UNSET,
-    variant_ids: Unset | list[int] = UNSET,
-    location_id: Unset | int = UNSET,
-    resource_type: Unset | GetAllInventoryMovementsResourceType = UNSET,
-    resource_id: Unset | int = UNSET,
-    caused_by_order_no: Unset | str = UNSET,
-    caused_by_resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    variant_ids: list[int] | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    resource_type: GetAllInventoryMovementsResourceType | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    caused_by_order_no: str | Unset = UNSET,
+    caused_by_resource_id: int | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
     params["ids"] = json_ids
 
-    json_variant_ids: Unset | list[int] = UNSET
+    json_variant_ids: list[int] | Unset = UNSET
     if not isinstance(variant_ids, Unset):
         json_variant_ids = variant_ids
 
@@ -46,7 +46,7 @@ def _get_kwargs(
 
     params["location_id"] = location_id
 
-    json_resource_type: Unset | str = UNSET
+    json_resource_type: str | Unset = UNSET
     if not isinstance(resource_type, Unset):
         json_resource_type = resource_type.value
 
@@ -62,22 +62,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: str | Unset = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: str | Unset = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: str | Unset = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: str | Unset = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -136,19 +136,19 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    variant_ids: Unset | list[int] = UNSET,
-    location_id: Unset | int = UNSET,
-    resource_type: Unset | GetAllInventoryMovementsResourceType = UNSET,
-    resource_id: Unset | int = UNSET,
-    caused_by_order_no: Unset | str = UNSET,
-    caused_by_resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    variant_ids: list[int] | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    resource_type: GetAllInventoryMovementsResourceType | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    caused_by_order_no: str | Unset = UNSET,
+    caused_by_resource_id: int | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | InventoryMovementListResponse]:
     """List all inventory movements
 
@@ -157,19 +157,19 @@ def sync_detailed(
     sorted order, with the most recent movements appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        variant_ids (Union[Unset, list[int]]):
-        location_id (Union[Unset, int]):
-        resource_type (Union[Unset, GetAllInventoryMovementsResourceType]):
-        resource_id (Union[Unset, int]):
-        caused_by_order_no (Union[Unset, str]):
-        caused_by_resource_id (Union[Unset, int]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        variant_ids (list[int] | Unset):
+        location_id (int | Unset):
+        resource_type (GetAllInventoryMovementsResourceType | Unset):
+        resource_id (int | Unset):
+        caused_by_order_no (str | Unset):
+        caused_by_resource_id (int | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -177,7 +177,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, InventoryMovementListResponse]]
+        Response[ErrorResponse | InventoryMovementListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -206,19 +206,19 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    variant_ids: Unset | list[int] = UNSET,
-    location_id: Unset | int = UNSET,
-    resource_type: Unset | GetAllInventoryMovementsResourceType = UNSET,
-    resource_id: Unset | int = UNSET,
-    caused_by_order_no: Unset | str = UNSET,
-    caused_by_resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    variant_ids: list[int] | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    resource_type: GetAllInventoryMovementsResourceType | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    caused_by_order_no: str | Unset = UNSET,
+    caused_by_resource_id: int | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | InventoryMovementListResponse | None:
     """List all inventory movements
 
@@ -227,19 +227,19 @@ def sync(
     sorted order, with the most recent movements appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        variant_ids (Union[Unset, list[int]]):
-        location_id (Union[Unset, int]):
-        resource_type (Union[Unset, GetAllInventoryMovementsResourceType]):
-        resource_id (Union[Unset, int]):
-        caused_by_order_no (Union[Unset, str]):
-        caused_by_resource_id (Union[Unset, int]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        variant_ids (list[int] | Unset):
+        location_id (int | Unset):
+        resource_type (GetAllInventoryMovementsResourceType | Unset):
+        resource_id (int | Unset):
+        caused_by_order_no (str | Unset):
+        caused_by_resource_id (int | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -247,7 +247,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, InventoryMovementListResponse]
+        ErrorResponse | InventoryMovementListResponse
     """
 
     return sync_detailed(
@@ -271,19 +271,19 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    variant_ids: Unset | list[int] = UNSET,
-    location_id: Unset | int = UNSET,
-    resource_type: Unset | GetAllInventoryMovementsResourceType = UNSET,
-    resource_id: Unset | int = UNSET,
-    caused_by_order_no: Unset | str = UNSET,
-    caused_by_resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    variant_ids: list[int] | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    resource_type: GetAllInventoryMovementsResourceType | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    caused_by_order_no: str | Unset = UNSET,
+    caused_by_resource_id: int | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | InventoryMovementListResponse]:
     """List all inventory movements
 
@@ -292,19 +292,19 @@ async def asyncio_detailed(
     sorted order, with the most recent movements appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        variant_ids (Union[Unset, list[int]]):
-        location_id (Union[Unset, int]):
-        resource_type (Union[Unset, GetAllInventoryMovementsResourceType]):
-        resource_id (Union[Unset, int]):
-        caused_by_order_no (Union[Unset, str]):
-        caused_by_resource_id (Union[Unset, int]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        variant_ids (list[int] | Unset):
+        location_id (int | Unset):
+        resource_type (GetAllInventoryMovementsResourceType | Unset):
+        resource_id (int | Unset):
+        caused_by_order_no (str | Unset):
+        caused_by_resource_id (int | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -312,7 +312,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, InventoryMovementListResponse]]
+        Response[ErrorResponse | InventoryMovementListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -339,19 +339,19 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    variant_ids: Unset | list[int] = UNSET,
-    location_id: Unset | int = UNSET,
-    resource_type: Unset | GetAllInventoryMovementsResourceType = UNSET,
-    resource_id: Unset | int = UNSET,
-    caused_by_order_no: Unset | str = UNSET,
-    caused_by_resource_id: Unset | int = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    variant_ids: list[int] | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    resource_type: GetAllInventoryMovementsResourceType | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    caused_by_order_no: str | Unset = UNSET,
+    caused_by_resource_id: int | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | InventoryMovementListResponse | None:
     """List all inventory movements
 
@@ -360,19 +360,19 @@ async def asyncio(
     sorted order, with the most recent movements appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        variant_ids (Union[Unset, list[int]]):
-        location_id (Union[Unset, int]):
-        resource_type (Union[Unset, GetAllInventoryMovementsResourceType]):
-        resource_id (Union[Unset, int]):
-        caused_by_order_no (Union[Unset, str]):
-        caused_by_resource_id (Union[Unset, int]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        variant_ids (list[int] | Unset):
+        location_id (int | Unset):
+        resource_type (GetAllInventoryMovementsResourceType | Unset):
+        resource_id (int | Unset):
+        caused_by_order_no (str | Unset):
+        caused_by_resource_id (int | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -380,7 +380,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, InventoryMovementListResponse]
+        ErrorResponse | InventoryMovementListResponse
     """
 
     return (

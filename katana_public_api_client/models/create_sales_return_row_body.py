@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -13,8 +15,8 @@ class CreateSalesReturnRowBody:
     sales_return_id: int
     variant_id: int
     quantity: float
-    reason: Unset | str = UNSET
-    notes: Unset | str = UNSET
+    reason: str | Unset = UNSET
+    notes: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         sales_return_id = self.sales_return_id

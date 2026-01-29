@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -30,7 +32,7 @@ class InventoryListResponse:
             '2024-01-15T14:15:00.000Z'}]}
     """
 
-    data: list["Inventory"]
+    data: list[Inventory]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

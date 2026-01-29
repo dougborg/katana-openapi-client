@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -30,15 +32,15 @@ class UpdateManufacturingOrderRecipeRowRequest:
             2.7}], 'cost': 15.25}
     """
 
-    notes: Unset | str = UNSET
-    planned_quantity_per_unit: Unset | float = UNSET
-    total_actual_quantity: Unset | float = UNSET
-    ingredient_availability: Unset | str = UNSET
-    ingredient_expected_date: Unset | datetime.datetime = UNSET
+    notes: str | Unset = UNSET
+    planned_quantity_per_unit: float | Unset = UNSET
+    total_actual_quantity: float | Unset = UNSET
+    ingredient_availability: str | Unset = UNSET
+    ingredient_expected_date: datetime.datetime | Unset = UNSET
     batch_transactions: (
-        Unset | list["UpdateManufacturingOrderRecipeRowRequestBatchTransactionsItem"]
+        list[UpdateManufacturingOrderRecipeRowRequestBatchTransactionsItem] | Unset
     ) = UNSET
-    cost: Unset | float = UNSET
+    cost: float | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -50,11 +52,11 @@ class UpdateManufacturingOrderRecipeRowRequest:
 
         ingredient_availability = self.ingredient_availability
 
-        ingredient_expected_date: Unset | str = UNSET
+        ingredient_expected_date: str | Unset = UNSET
         if not isinstance(self.ingredient_expected_date, Unset):
             ingredient_expected_date = self.ingredient_expected_date.isoformat()
 
-        batch_transactions: Unset | list[dict[str, Any]] = UNSET
+        batch_transactions: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.batch_transactions, Unset):
             batch_transactions = []
             for batch_transactions_item_data in self.batch_transactions:
@@ -99,22 +101,24 @@ class UpdateManufacturingOrderRecipeRowRequest:
         ingredient_availability = d.pop("ingredient_availability", UNSET)
 
         _ingredient_expected_date = d.pop("ingredient_expected_date", UNSET)
-        ingredient_expected_date: Unset | datetime.datetime
+        ingredient_expected_date: datetime.datetime | Unset
         if isinstance(_ingredient_expected_date, Unset):
             ingredient_expected_date = UNSET
         else:
             ingredient_expected_date = isoparse(_ingredient_expected_date)
 
-        batch_transactions = []
         _batch_transactions = d.pop("batch_transactions", UNSET)
-        for batch_transactions_item_data in _batch_transactions or []:
-            batch_transactions_item = (
-                UpdateManufacturingOrderRecipeRowRequestBatchTransactionsItem.from_dict(
+        batch_transactions: (
+            list[UpdateManufacturingOrderRecipeRowRequestBatchTransactionsItem] | Unset
+        ) = UNSET
+        if _batch_transactions is not UNSET:
+            batch_transactions = []
+            for batch_transactions_item_data in _batch_transactions:
+                batch_transactions_item = UpdateManufacturingOrderRecipeRowRequestBatchTransactionsItem.from_dict(
                     batch_transactions_item_data
                 )
-            )
 
-            batch_transactions.append(batch_transactions_item)
+                batch_transactions.append(batch_transactions_item)
 
         cost = d.pop("cost", UNSET)
 

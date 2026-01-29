@@ -19,27 +19,27 @@ from ...models.sales_order_list_response import SalesOrderListResponse
 
 def _get_kwargs(
     *,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    order_no: Unset | str = UNSET,
-    customer_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    status: Unset | str = UNSET,
-    production_status: Unset | str = UNSET,
-    invoicing_status: Unset | str = UNSET,
-    currency: Unset | str = UNSET,
-    source: Unset | str = UNSET,
-    ecommerce_store_name: Unset | str = UNSET,
-    ecommerce_order_id: Unset | str = UNSET,
-    ecommerce_order_type: Unset | str = UNSET,
-    ingredient_availability: Unset | GetAllSalesOrdersIngredientAvailability = UNSET,
-    product_availability: Unset | GetAllSalesOrdersProductAvailability = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    customer_id: int | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    status: str | Unset = UNSET,
+    production_status: str | Unset = UNSET,
+    invoicing_status: str | Unset = UNSET,
+    currency: str | Unset = UNSET,
+    source: str | Unset = UNSET,
+    ecommerce_store_name: str | Unset = UNSET,
+    ecommerce_order_id: str | Unset = UNSET,
+    ecommerce_order_type: str | Unset = UNSET,
+    ingredient_availability: GetAllSalesOrdersIngredientAvailability | Unset = UNSET,
+    product_availability: GetAllSalesOrdersProductAvailability | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -47,7 +47,7 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -55,22 +55,22 @@ def _get_kwargs(
 
     params["include_deleted"] = include_deleted
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: str | Unset = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: str | Unset = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: str | Unset = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: str | Unset = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -97,13 +97,13 @@ def _get_kwargs(
 
     params["ecommerce_order_type"] = ecommerce_order_type
 
-    json_ingredient_availability: Unset | str = UNSET
+    json_ingredient_availability: str | Unset = UNSET
     if not isinstance(ingredient_availability, Unset):
         json_ingredient_availability = ingredient_availability.value
 
     params["ingredient_availability"] = json_ingredient_availability
 
-    json_product_availability: Unset | str = UNSET
+    json_product_availability: str | Unset = UNSET
     if not isinstance(product_availability, Unset):
         json_product_availability = product_availability.value
 
@@ -163,54 +163,54 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    order_no: Unset | str = UNSET,
-    customer_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    status: Unset | str = UNSET,
-    production_status: Unset | str = UNSET,
-    invoicing_status: Unset | str = UNSET,
-    currency: Unset | str = UNSET,
-    source: Unset | str = UNSET,
-    ecommerce_store_name: Unset | str = UNSET,
-    ecommerce_order_id: Unset | str = UNSET,
-    ecommerce_order_type: Unset | str = UNSET,
-    ingredient_availability: Unset | GetAllSalesOrdersIngredientAvailability = UNSET,
-    product_availability: Unset | GetAllSalesOrdersProductAvailability = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    customer_id: int | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    status: str | Unset = UNSET,
+    production_status: str | Unset = UNSET,
+    invoicing_status: str | Unset = UNSET,
+    currency: str | Unset = UNSET,
+    source: str | Unset = UNSET,
+    ecommerce_store_name: str | Unset = UNSET,
+    ecommerce_order_id: str | Unset = UNSET,
+    ecommerce_order_type: str | Unset = UNSET,
+    ingredient_availability: GetAllSalesOrdersIngredientAvailability | Unset = UNSET,
+    product_availability: GetAllSalesOrdersProductAvailability | Unset = UNSET,
 ) -> Response[ErrorResponse | SalesOrderListResponse]:
     """List all sales orders
 
      Returns a list of sales orders you've previously created.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        include_deleted (Union[Unset, bool]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        order_no (Union[Unset, str]):
-        customer_id (Union[Unset, int]):
-        location_id (Union[Unset, int]):
-        status (Union[Unset, str]):
-        production_status (Union[Unset, str]):
-        invoicing_status (Union[Unset, str]):
-        currency (Union[Unset, str]):
-        source (Union[Unset, str]):
-        ecommerce_store_name (Union[Unset, str]):
-        ecommerce_order_id (Union[Unset, str]):
-        ecommerce_order_type (Union[Unset, str]):
-        ingredient_availability (Union[Unset, GetAllSalesOrdersIngredientAvailability]):
-        product_availability (Union[Unset, GetAllSalesOrdersProductAvailability]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        include_deleted (bool | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        order_no (str | Unset):
+        customer_id (int | Unset):
+        location_id (int | Unset):
+        status (str | Unset):
+        production_status (str | Unset):
+        invoicing_status (str | Unset):
+        currency (str | Unset):
+        source (str | Unset):
+        ecommerce_store_name (str | Unset):
+        ecommerce_order_id (str | Unset):
+        ecommerce_order_type (str | Unset):
+        ingredient_availability (GetAllSalesOrdersIngredientAvailability | Unset):
+        product_availability (GetAllSalesOrdersProductAvailability | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -218,7 +218,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, SalesOrderListResponse]]
+        Response[ErrorResponse | SalesOrderListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -255,54 +255,54 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    order_no: Unset | str = UNSET,
-    customer_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    status: Unset | str = UNSET,
-    production_status: Unset | str = UNSET,
-    invoicing_status: Unset | str = UNSET,
-    currency: Unset | str = UNSET,
-    source: Unset | str = UNSET,
-    ecommerce_store_name: Unset | str = UNSET,
-    ecommerce_order_id: Unset | str = UNSET,
-    ecommerce_order_type: Unset | str = UNSET,
-    ingredient_availability: Unset | GetAllSalesOrdersIngredientAvailability = UNSET,
-    product_availability: Unset | GetAllSalesOrdersProductAvailability = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    customer_id: int | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    status: str | Unset = UNSET,
+    production_status: str | Unset = UNSET,
+    invoicing_status: str | Unset = UNSET,
+    currency: str | Unset = UNSET,
+    source: str | Unset = UNSET,
+    ecommerce_store_name: str | Unset = UNSET,
+    ecommerce_order_id: str | Unset = UNSET,
+    ecommerce_order_type: str | Unset = UNSET,
+    ingredient_availability: GetAllSalesOrdersIngredientAvailability | Unset = UNSET,
+    product_availability: GetAllSalesOrdersProductAvailability | Unset = UNSET,
 ) -> ErrorResponse | SalesOrderListResponse | None:
     """List all sales orders
 
      Returns a list of sales orders you've previously created.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        include_deleted (Union[Unset, bool]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        order_no (Union[Unset, str]):
-        customer_id (Union[Unset, int]):
-        location_id (Union[Unset, int]):
-        status (Union[Unset, str]):
-        production_status (Union[Unset, str]):
-        invoicing_status (Union[Unset, str]):
-        currency (Union[Unset, str]):
-        source (Union[Unset, str]):
-        ecommerce_store_name (Union[Unset, str]):
-        ecommerce_order_id (Union[Unset, str]):
-        ecommerce_order_type (Union[Unset, str]):
-        ingredient_availability (Union[Unset, GetAllSalesOrdersIngredientAvailability]):
-        product_availability (Union[Unset, GetAllSalesOrdersProductAvailability]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        include_deleted (bool | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        order_no (str | Unset):
+        customer_id (int | Unset):
+        location_id (int | Unset):
+        status (str | Unset):
+        production_status (str | Unset):
+        invoicing_status (str | Unset):
+        currency (str | Unset):
+        source (str | Unset):
+        ecommerce_store_name (str | Unset):
+        ecommerce_order_id (str | Unset):
+        ecommerce_order_type (str | Unset):
+        ingredient_availability (GetAllSalesOrdersIngredientAvailability | Unset):
+        product_availability (GetAllSalesOrdersProductAvailability | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -310,7 +310,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, SalesOrderListResponse]
+        ErrorResponse | SalesOrderListResponse
     """
 
     return sync_detailed(
@@ -342,54 +342,54 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    order_no: Unset | str = UNSET,
-    customer_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    status: Unset | str = UNSET,
-    production_status: Unset | str = UNSET,
-    invoicing_status: Unset | str = UNSET,
-    currency: Unset | str = UNSET,
-    source: Unset | str = UNSET,
-    ecommerce_store_name: Unset | str = UNSET,
-    ecommerce_order_id: Unset | str = UNSET,
-    ecommerce_order_type: Unset | str = UNSET,
-    ingredient_availability: Unset | GetAllSalesOrdersIngredientAvailability = UNSET,
-    product_availability: Unset | GetAllSalesOrdersProductAvailability = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    customer_id: int | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    status: str | Unset = UNSET,
+    production_status: str | Unset = UNSET,
+    invoicing_status: str | Unset = UNSET,
+    currency: str | Unset = UNSET,
+    source: str | Unset = UNSET,
+    ecommerce_store_name: str | Unset = UNSET,
+    ecommerce_order_id: str | Unset = UNSET,
+    ecommerce_order_type: str | Unset = UNSET,
+    ingredient_availability: GetAllSalesOrdersIngredientAvailability | Unset = UNSET,
+    product_availability: GetAllSalesOrdersProductAvailability | Unset = UNSET,
 ) -> Response[ErrorResponse | SalesOrderListResponse]:
     """List all sales orders
 
      Returns a list of sales orders you've previously created.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        include_deleted (Union[Unset, bool]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        order_no (Union[Unset, str]):
-        customer_id (Union[Unset, int]):
-        location_id (Union[Unset, int]):
-        status (Union[Unset, str]):
-        production_status (Union[Unset, str]):
-        invoicing_status (Union[Unset, str]):
-        currency (Union[Unset, str]):
-        source (Union[Unset, str]):
-        ecommerce_store_name (Union[Unset, str]):
-        ecommerce_order_id (Union[Unset, str]):
-        ecommerce_order_type (Union[Unset, str]):
-        ingredient_availability (Union[Unset, GetAllSalesOrdersIngredientAvailability]):
-        product_availability (Union[Unset, GetAllSalesOrdersProductAvailability]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        include_deleted (bool | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        order_no (str | Unset):
+        customer_id (int | Unset):
+        location_id (int | Unset):
+        status (str | Unset):
+        production_status (str | Unset):
+        invoicing_status (str | Unset):
+        currency (str | Unset):
+        source (str | Unset):
+        ecommerce_store_name (str | Unset):
+        ecommerce_order_id (str | Unset):
+        ecommerce_order_type (str | Unset):
+        ingredient_availability (GetAllSalesOrdersIngredientAvailability | Unset):
+        product_availability (GetAllSalesOrdersProductAvailability | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -397,7 +397,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, SalesOrderListResponse]]
+        Response[ErrorResponse | SalesOrderListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -432,54 +432,54 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    ids: Unset | list[int] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
-    order_no: Unset | str = UNSET,
-    customer_id: Unset | int = UNSET,
-    location_id: Unset | int = UNSET,
-    status: Unset | str = UNSET,
-    production_status: Unset | str = UNSET,
-    invoicing_status: Unset | str = UNSET,
-    currency: Unset | str = UNSET,
-    source: Unset | str = UNSET,
-    ecommerce_store_name: Unset | str = UNSET,
-    ecommerce_order_id: Unset | str = UNSET,
-    ecommerce_order_type: Unset | str = UNSET,
-    ingredient_availability: Unset | GetAllSalesOrdersIngredientAvailability = UNSET,
-    product_availability: Unset | GetAllSalesOrdersProductAvailability = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    ids: list[int] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    customer_id: int | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    status: str | Unset = UNSET,
+    production_status: str | Unset = UNSET,
+    invoicing_status: str | Unset = UNSET,
+    currency: str | Unset = UNSET,
+    source: str | Unset = UNSET,
+    ecommerce_store_name: str | Unset = UNSET,
+    ecommerce_order_id: str | Unset = UNSET,
+    ecommerce_order_type: str | Unset = UNSET,
+    ingredient_availability: GetAllSalesOrdersIngredientAvailability | Unset = UNSET,
+    product_availability: GetAllSalesOrdersProductAvailability | Unset = UNSET,
 ) -> ErrorResponse | SalesOrderListResponse | None:
     """List all sales orders
 
      Returns a list of sales orders you've previously created.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        ids (Union[Unset, list[int]]):
-        include_deleted (Union[Unset, bool]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
-        order_no (Union[Unset, str]):
-        customer_id (Union[Unset, int]):
-        location_id (Union[Unset, int]):
-        status (Union[Unset, str]):
-        production_status (Union[Unset, str]):
-        invoicing_status (Union[Unset, str]):
-        currency (Union[Unset, str]):
-        source (Union[Unset, str]):
-        ecommerce_store_name (Union[Unset, str]):
-        ecommerce_order_id (Union[Unset, str]):
-        ecommerce_order_type (Union[Unset, str]):
-        ingredient_availability (Union[Unset, GetAllSalesOrdersIngredientAvailability]):
-        product_availability (Union[Unset, GetAllSalesOrdersProductAvailability]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        ids (list[int] | Unset):
+        include_deleted (bool | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
+        order_no (str | Unset):
+        customer_id (int | Unset):
+        location_id (int | Unset):
+        status (str | Unset):
+        production_status (str | Unset):
+        invoicing_status (str | Unset):
+        currency (str | Unset):
+        source (str | Unset):
+        ecommerce_store_name (str | Unset):
+        ecommerce_order_id (str | Unset):
+        ecommerce_order_type (str | Unset):
+        ingredient_availability (GetAllSalesOrdersIngredientAvailability | Unset):
+        product_availability (GetAllSalesOrdersProductAvailability | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -487,7 +487,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, SalesOrderListResponse]
+        ErrorResponse | SalesOrderListResponse
     """
 
     return (

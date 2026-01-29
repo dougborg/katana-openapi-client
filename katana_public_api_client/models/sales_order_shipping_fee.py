@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
@@ -23,8 +25,8 @@ class SalesOrderShippingFee:
     id: int
     sales_order_id: int
     amount: str
-    tax_rate_id: Unset | int = UNSET
-    description: None | Unset | str = UNSET
+    tax_rate_id: int | Unset = UNSET
+    description: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,7 +38,7 @@ class SalesOrderShippingFee:
 
         tax_rate_id = self.tax_rate_id
 
-        description: None | Unset | str
+        description: None | str | Unset
         if isinstance(self.description, Unset):
             description = UNSET
         else:
@@ -69,12 +71,12 @@ class SalesOrderShippingFee:
 
         tax_rate_id = d.pop("tax_rate_id", UNSET)
 
-        def _parse_description(data: object) -> None | Unset | str:
+        def _parse_description(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         description = _parse_description(d.pop("description", UNSET))
 

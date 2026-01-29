@@ -3,7 +3,7 @@ from enum import Enum
 
 class StocktakeStatus(str, Enum):
     COMPLETED = "COMPLETED"
-    DRAFT = "DRAFT"
+    COUNTED = "COUNTED"
     IN_PROGRESS = "IN_PROGRESS"
     NOT_STARTED = "NOT_STARTED"
 

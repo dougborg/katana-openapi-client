@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
@@ -24,14 +26,14 @@ class NegativeStock:
                 Equipment', 'quantity_on_hand': -15.0, 'quantity_allocated': 25.0}
     """
 
-    variant_id: Unset | int = UNSET
-    location_id: Unset | int = UNSET
-    latest_negative_stock_date: Unset | datetime.datetime = UNSET
-    name: Unset | str = UNSET
-    sku: Unset | str = UNSET
-    category: Unset | str = UNSET
-    quantity_on_hand: Unset | float = UNSET
-    quantity_allocated: Unset | float = UNSET
+    variant_id: int | Unset = UNSET
+    location_id: int | Unset = UNSET
+    latest_negative_stock_date: datetime.datetime | Unset = UNSET
+    name: str | Unset = UNSET
+    sku: str | Unset = UNSET
+    category: str | Unset = UNSET
+    quantity_on_hand: float | Unset = UNSET
+    quantity_allocated: float | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,7 +41,7 @@ class NegativeStock:
 
         location_id = self.location_id
 
-        latest_negative_stock_date: Unset | str = UNSET
+        latest_negative_stock_date: str | Unset = UNSET
         if not isinstance(self.latest_negative_stock_date, Unset):
             latest_negative_stock_date = self.latest_negative_stock_date.isoformat()
 
@@ -83,7 +85,7 @@ class NegativeStock:
         location_id = d.pop("location_id", UNSET)
 
         _latest_negative_stock_date = d.pop("latest_negative_stock_date", UNSET)
-        latest_negative_stock_date: Unset | datetime.datetime
+        latest_negative_stock_date: datetime.datetime | Unset
         if isinstance(_latest_negative_stock_date, Unset):
             latest_negative_stock_date = UNSET
         else:

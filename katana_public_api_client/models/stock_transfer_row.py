@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -23,8 +25,8 @@ class StockTransferRow:
 
     variant_id: int
     quantity: float
-    id: Unset | int = UNSET
-    batch_transactions: Unset | list["StockTransferRowBatchTransactionsItem"] = UNSET
+    id: int | Unset = UNSET
+    batch_transactions: list[StockTransferRowBatchTransactionsItem] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -34,7 +36,7 @@ class StockTransferRow:
 
         id = self.id
 
-        batch_transactions: Unset | list[dict[str, Any]] = UNSET
+        batch_transactions: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.batch_transactions, Unset):
             batch_transactions = []
             for batch_transactions_item_data in self.batch_transactions:
@@ -69,14 +71,18 @@ class StockTransferRow:
 
         id = d.pop("id", UNSET)
 
-        batch_transactions = []
         _batch_transactions = d.pop("batch_transactions", UNSET)
-        for batch_transactions_item_data in _batch_transactions or []:
-            batch_transactions_item = StockTransferRowBatchTransactionsItem.from_dict(
-                batch_transactions_item_data
-            )
+        batch_transactions: list[StockTransferRowBatchTransactionsItem] | Unset = UNSET
+        if _batch_transactions is not UNSET:
+            batch_transactions = []
+            for batch_transactions_item_data in _batch_transactions:
+                batch_transactions_item = (
+                    StockTransferRowBatchTransactionsItem.from_dict(
+                        batch_transactions_item_data
+                    )
+                )
 
-            batch_transactions.append(batch_transactions_item)
+                batch_transactions.append(batch_transactions_item)
 
         stock_transfer_row = cls(
             variant_id=variant_id,

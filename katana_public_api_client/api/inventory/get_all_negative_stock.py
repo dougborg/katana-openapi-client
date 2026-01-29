@@ -12,15 +12,15 @@ from ...models.negative_stock_list_response import NegativeStockListResponse
 
 def _get_kwargs(
     *,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    latest_negative_stock_date_max: Unset | str = UNSET,
-    latest_negative_stock_date_min: Unset | str = UNSET,
-    name: Unset | str = UNSET,
-    sku: Unset | str = UNSET,
-    category: Unset | str = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    latest_negative_stock_date_max: str | Unset = UNSET,
+    latest_negative_stock_date_min: str | Unset = UNSET,
+    name: str | Unset = UNSET,
+    sku: str | Unset = UNSET,
+    category: str | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -96,15 +96,15 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    latest_negative_stock_date_max: Unset | str = UNSET,
-    latest_negative_stock_date_min: Unset | str = UNSET,
-    name: Unset | str = UNSET,
-    sku: Unset | str = UNSET,
-    category: Unset | str = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    latest_negative_stock_date_max: str | Unset = UNSET,
+    latest_negative_stock_date_min: str | Unset = UNSET,
+    name: str | Unset = UNSET,
+    sku: str | Unset = UNSET,
+    category: str | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> Response[ErrorResponse | NegativeStockListResponse]:
     """List all variants with negative stock
 
@@ -112,15 +112,15 @@ def sync_detailed(
       Each variant has a date of the latest stock movement that resulted in negative stock balance.
 
     Args:
-        location_id (Union[Unset, int]):
-        variant_id (Union[Unset, int]):
-        latest_negative_stock_date_max (Union[Unset, str]):
-        latest_negative_stock_date_min (Union[Unset, str]):
-        name (Union[Unset, str]):
-        sku (Union[Unset, str]):
-        category (Union[Unset, str]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        location_id (int | Unset):
+        variant_id (int | Unset):
+        latest_negative_stock_date_max (str | Unset):
+        latest_negative_stock_date_min (str | Unset):
+        name (str | Unset):
+        sku (str | Unset):
+        category (str | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -129,7 +129,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, NegativeStockListResponse]]
+        Response[ErrorResponse | NegativeStockListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -154,15 +154,15 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    latest_negative_stock_date_max: Unset | str = UNSET,
-    latest_negative_stock_date_min: Unset | str = UNSET,
-    name: Unset | str = UNSET,
-    sku: Unset | str = UNSET,
-    category: Unset | str = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    latest_negative_stock_date_max: str | Unset = UNSET,
+    latest_negative_stock_date_min: str | Unset = UNSET,
+    name: str | Unset = UNSET,
+    sku: str | Unset = UNSET,
+    category: str | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> ErrorResponse | NegativeStockListResponse | None:
     """List all variants with negative stock
 
@@ -170,15 +170,15 @@ def sync(
       Each variant has a date of the latest stock movement that resulted in negative stock balance.
 
     Args:
-        location_id (Union[Unset, int]):
-        variant_id (Union[Unset, int]):
-        latest_negative_stock_date_max (Union[Unset, str]):
-        latest_negative_stock_date_min (Union[Unset, str]):
-        name (Union[Unset, str]):
-        sku (Union[Unset, str]):
-        category (Union[Unset, str]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        location_id (int | Unset):
+        variant_id (int | Unset):
+        latest_negative_stock_date_max (str | Unset):
+        latest_negative_stock_date_min (str | Unset):
+        name (str | Unset):
+        sku (str | Unset):
+        category (str | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -187,7 +187,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, NegativeStockListResponse]
+        ErrorResponse | NegativeStockListResponse
     """
 
     return sync_detailed(
@@ -207,15 +207,15 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    latest_negative_stock_date_max: Unset | str = UNSET,
-    latest_negative_stock_date_min: Unset | str = UNSET,
-    name: Unset | str = UNSET,
-    sku: Unset | str = UNSET,
-    category: Unset | str = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    latest_negative_stock_date_max: str | Unset = UNSET,
+    latest_negative_stock_date_min: str | Unset = UNSET,
+    name: str | Unset = UNSET,
+    sku: str | Unset = UNSET,
+    category: str | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> Response[ErrorResponse | NegativeStockListResponse]:
     """List all variants with negative stock
 
@@ -223,15 +223,15 @@ async def asyncio_detailed(
       Each variant has a date of the latest stock movement that resulted in negative stock balance.
 
     Args:
-        location_id (Union[Unset, int]):
-        variant_id (Union[Unset, int]):
-        latest_negative_stock_date_max (Union[Unset, str]):
-        latest_negative_stock_date_min (Union[Unset, str]):
-        name (Union[Unset, str]):
-        sku (Union[Unset, str]):
-        category (Union[Unset, str]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        location_id (int | Unset):
+        variant_id (int | Unset):
+        latest_negative_stock_date_max (str | Unset):
+        latest_negative_stock_date_min (str | Unset):
+        name (str | Unset):
+        sku (str | Unset):
+        category (str | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -240,7 +240,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, NegativeStockListResponse]]
+        Response[ErrorResponse | NegativeStockListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -263,15 +263,15 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    latest_negative_stock_date_max: Unset | str = UNSET,
-    latest_negative_stock_date_min: Unset | str = UNSET,
-    name: Unset | str = UNSET,
-    sku: Unset | str = UNSET,
-    category: Unset | str = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    latest_negative_stock_date_max: str | Unset = UNSET,
+    latest_negative_stock_date_min: str | Unset = UNSET,
+    name: str | Unset = UNSET,
+    sku: str | Unset = UNSET,
+    category: str | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> ErrorResponse | NegativeStockListResponse | None:
     """List all variants with negative stock
 
@@ -279,15 +279,15 @@ async def asyncio(
       Each variant has a date of the latest stock movement that resulted in negative stock balance.
 
     Args:
-        location_id (Union[Unset, int]):
-        variant_id (Union[Unset, int]):
-        latest_negative_stock_date_max (Union[Unset, str]):
-        latest_negative_stock_date_min (Union[Unset, str]):
-        name (Union[Unset, str]):
-        sku (Union[Unset, str]):
-        category (Union[Unset, str]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        location_id (int | Unset):
+        variant_id (int | Unset):
+        latest_negative_stock_date_max (str | Unset):
+        latest_negative_stock_date_min (str | Unset):
+        name (str | Unset):
+        sku (str | Unset):
+        category (str | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -296,7 +296,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, NegativeStockListResponse]
+        ErrorResponse | NegativeStockListResponse
     """
 
     return (

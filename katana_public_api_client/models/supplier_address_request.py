@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -18,12 +20,12 @@ class SupplierAddressRequest:
     """
 
     line_1: str
-    supplier_id: Unset | int = UNSET
-    line_2: Unset | str = UNSET
-    city: Unset | str = UNSET
-    state: Unset | str = UNSET
-    zip_: Unset | str = UNSET
-    country: Unset | str = UNSET
+    supplier_id: int | Unset = UNSET
+    line_2: str | Unset = UNSET
+    city: str | Unset = UNSET
+    state: str | Unset = UNSET
+    zip_: str | Unset = UNSET
+    country: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         line_1 = self.line_1

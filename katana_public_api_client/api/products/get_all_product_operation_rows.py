@@ -15,19 +15,19 @@ from ...models.get_all_product_operation_rows_response_200 import (
 
 def _get_kwargs(
     *,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    product_id: Unset | int = UNSET,
-    operation_id: Unset | int = UNSET,
-    product_variant_id: Unset | int = UNSET,
-    operation_name: Unset | str = UNSET,
-    resource_name: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    product_operation_row_id: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    product_id: int | Unset = UNSET,
+    operation_id: int | Unset = UNSET,
+    product_variant_id: int | Unset = UNSET,
+    operation_name: str | Unset = UNSET,
+    resource_name: str | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    product_operation_row_id: int | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -49,22 +49,22 @@ def _get_kwargs(
 
     params["product_operation_row_id"] = product_operation_row_id
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: str | Unset = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: str | Unset = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: str | Unset = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: str | Unset = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -123,38 +123,38 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    product_id: Unset | int = UNSET,
-    operation_id: Unset | int = UNSET,
-    product_variant_id: Unset | int = UNSET,
-    operation_name: Unset | str = UNSET,
-    resource_name: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    product_operation_row_id: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    product_id: int | Unset = UNSET,
+    operation_id: int | Unset = UNSET,
+    product_variant_id: int | Unset = UNSET,
+    operation_name: str | Unset = UNSET,
+    resource_name: str | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    product_operation_row_id: int | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | GetAllProductOperationRowsResponse200]:
     """List product operation rows
 
      Returns a list of product operation rows.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        product_id (Union[Unset, int]):
-        operation_id (Union[Unset, int]):
-        product_variant_id (Union[Unset, int]):
-        operation_name (Union[Unset, str]):
-        resource_name (Union[Unset, str]):
-        resource_id (Union[Unset, int]):
-        product_operation_row_id (Union[Unset, int]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        product_id (int | Unset):
+        operation_id (int | Unset):
+        product_variant_id (int | Unset):
+        operation_name (str | Unset):
+        resource_name (str | Unset):
+        resource_id (int | Unset):
+        product_operation_row_id (int | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -162,7 +162,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, GetAllProductOperationRowsResponse200]]
+        Response[ErrorResponse | GetAllProductOperationRowsResponse200]
     """
 
     kwargs = _get_kwargs(
@@ -191,38 +191,38 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    product_id: Unset | int = UNSET,
-    operation_id: Unset | int = UNSET,
-    product_variant_id: Unset | int = UNSET,
-    operation_name: Unset | str = UNSET,
-    resource_name: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    product_operation_row_id: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    product_id: int | Unset = UNSET,
+    operation_id: int | Unset = UNSET,
+    product_variant_id: int | Unset = UNSET,
+    operation_name: str | Unset = UNSET,
+    resource_name: str | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    product_operation_row_id: int | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | GetAllProductOperationRowsResponse200 | None:
     """List product operation rows
 
      Returns a list of product operation rows.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        product_id (Union[Unset, int]):
-        operation_id (Union[Unset, int]):
-        product_variant_id (Union[Unset, int]):
-        operation_name (Union[Unset, str]):
-        resource_name (Union[Unset, str]):
-        resource_id (Union[Unset, int]):
-        product_operation_row_id (Union[Unset, int]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        product_id (int | Unset):
+        operation_id (int | Unset):
+        product_variant_id (int | Unset):
+        operation_name (str | Unset):
+        resource_name (str | Unset):
+        resource_id (int | Unset):
+        product_operation_row_id (int | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -230,7 +230,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, GetAllProductOperationRowsResponse200]
+        ErrorResponse | GetAllProductOperationRowsResponse200
     """
 
     return sync_detailed(
@@ -254,38 +254,38 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    product_id: Unset | int = UNSET,
-    operation_id: Unset | int = UNSET,
-    product_variant_id: Unset | int = UNSET,
-    operation_name: Unset | str = UNSET,
-    resource_name: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    product_operation_row_id: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    product_id: int | Unset = UNSET,
+    operation_id: int | Unset = UNSET,
+    product_variant_id: int | Unset = UNSET,
+    operation_name: str | Unset = UNSET,
+    resource_name: str | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    product_operation_row_id: int | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | GetAllProductOperationRowsResponse200]:
     """List product operation rows
 
      Returns a list of product operation rows.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        product_id (Union[Unset, int]):
-        operation_id (Union[Unset, int]):
-        product_variant_id (Union[Unset, int]):
-        operation_name (Union[Unset, str]):
-        resource_name (Union[Unset, str]):
-        resource_id (Union[Unset, int]):
-        product_operation_row_id (Union[Unset, int]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        product_id (int | Unset):
+        operation_id (int | Unset):
+        product_variant_id (int | Unset):
+        operation_name (str | Unset):
+        resource_name (str | Unset):
+        resource_id (int | Unset):
+        product_operation_row_id (int | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -293,7 +293,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, GetAllProductOperationRowsResponse200]]
+        Response[ErrorResponse | GetAllProductOperationRowsResponse200]
     """
 
     kwargs = _get_kwargs(
@@ -320,38 +320,38 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    product_id: Unset | int = UNSET,
-    operation_id: Unset | int = UNSET,
-    product_variant_id: Unset | int = UNSET,
-    operation_name: Unset | str = UNSET,
-    resource_name: Unset | str = UNSET,
-    resource_id: Unset | int = UNSET,
-    product_operation_row_id: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    product_id: int | Unset = UNSET,
+    operation_id: int | Unset = UNSET,
+    product_variant_id: int | Unset = UNSET,
+    operation_name: str | Unset = UNSET,
+    resource_name: str | Unset = UNSET,
+    resource_id: int | Unset = UNSET,
+    product_operation_row_id: int | Unset = UNSET,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | GetAllProductOperationRowsResponse200 | None:
     """List product operation rows
 
      Returns a list of product operation rows.
 
     Args:
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        product_id (Union[Unset, int]):
-        operation_id (Union[Unset, int]):
-        product_variant_id (Union[Unset, int]):
-        operation_name (Union[Unset, str]):
-        resource_name (Union[Unset, str]):
-        resource_id (Union[Unset, int]):
-        product_operation_row_id (Union[Unset, int]):
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        product_id (int | Unset):
+        operation_id (int | Unset):
+        product_variant_id (int | Unset):
+        operation_name (str | Unset):
+        resource_name (str | Unset):
+        resource_id (int | Unset):
+        product_operation_row_id (int | Unset):
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -359,7 +359,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, GetAllProductOperationRowsResponse200]
+        ErrorResponse | GetAllProductOperationRowsResponse200
     """
 
     return (

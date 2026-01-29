@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -26,7 +28,7 @@ class InventoryMovementListResponse:
             '2023-10-15T14:30:00Z', 'updated_at': '2023-10-15T14:30:00Z'}]}
     """
 
-    data: list["InventoryMovement"]
+    data: list[InventoryMovement]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

@@ -9368,12 +9368,7 @@ components:
               type: integer
             stocktake_number:
               type: string
-              description: Unique identifier for the stocktake process
-            reference_no:
-              type:
-                - string
-                - "null"
-              description: Alternative reference number for the stocktake process
+              description: A string used to identify the stocktake
             location_id:
               type: integer
               description: The location where the stocktake is being performed
@@ -9381,14 +9376,10 @@ components:
               type: string
               enum:
                 - NOT_STARTED
-                - DRAFT
                 - IN_PROGRESS
+                - COUNTED
                 - COMPLETED
               description: Current status of the stocktake process
-            stocktake_date:
-              type: string
-              format: date-time
-              description: Date and time when the stocktake was conducted
             stocktake_created_date:
               type: string
               format: date-time
@@ -9420,17 +9411,12 @@ components:
               type:
                 - string
                 - "null"
-              description: Reason for the stocktake
+              description: A descriptive field for your own information to enable better identification
             additional_info:
               type:
                 - string
                 - "null"
-              description: Additional information about the stocktake
-            notes:
-              type:
-                - string
-                - "null"
-              description: Additional notes or comments about the stocktake
+              description: A string attached to the object to add any internal comments or links to external files
           required:
             - id
             - stocktake_number
@@ -9479,7 +9465,7 @@ components:
             - id
             - stocktake_id
             - variant_id
-        - $ref: "#/components/schemas/UpdatableEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
     SerialNumberStock:
       description: Current stock status and transaction history of individual serialized inventory items
       type: object
@@ -10183,67 +10169,58 @@ components:
       type: object
       additionalProperties: false
       required:
-        - reference_no
+        - stocktake_number
         - location_id
-        - stocktake_date
       properties:
-        reference_no:
+        stocktake_number:
           type: string
-          description: Human-readable reference number for the stocktake
+          description: A string used to identify the stocktake
         location_id:
           type: integer
-          description: ID of the location where the stocktake will be performed
-        stocktake_date:
+          description: The ID of the stocktake location
+        reason:
           type: string
-          format: date-time
-          description: Date and time when the stocktake was performed
-        notes:
-          type: string
-          description: Optional notes about the stocktake
+          description: A descriptive field for your own information to enable better identification
         status:
           type: string
           description: Status of the stocktake
           enum:
-            - DRAFT
+            - NOT_STARTED
             - IN_PROGRESS
+            - COUNTED
             - COMPLETED
-          default: DRAFT
+          default: NOT_STARTED
       example:
-        reference_no: STK-2024-003
+        stocktake_number: STK-2024-003
         location_id: 1
-        stocktake_date: "2024-01-17T09:00:00.000Z"
-        notes: Quarterly inventory count
-        status: DRAFT
+        reason: Quarterly inventory count
+        status: NOT_STARTED
     UpdateStocktakeRequest:
       description: Request payload for updating an existing stocktake
       type: object
       additionalProperties: false
       properties:
-        reference_no:
+        stocktake_number:
           type: string
-          description: Human-readable reference number for the stocktake
+          description: A string used to identify the stocktake
         location_id:
           type: integer
-          description: ID of the location where the stocktake is performed
-        stocktake_date:
+          description: The ID of the stocktake location
+        reason:
           type: string
-          format: date-time
-          description: Date and time when the stocktake was performed
-        notes:
-          type: string
-          description: Optional notes about the stocktake
+          description: A descriptive field for your own information to enable better identification
         status:
           type: string
           description: Status of the stocktake
           enum:
-            - DRAFT
+            - NOT_STARTED
             - IN_PROGRESS
+            - COUNTED
             - COMPLETED
       example:
-        reference_no: STK-2024-003
+        stocktake_number: STK-2024-003
         location_id: 1
-        stocktake_date: "2024-01-17T09:00:00.000Z"
-        notes: Quarterly inventory count - updated
+        reason: Quarterly inventory count - updated
         status: IN_PROGRESS
     CreateStocktakeRowRequest:
       description: Request payload for creating a new stocktake row for counting specific variants
@@ -10252,7 +10229,6 @@ components:
       required:
         - stocktake_id
         - variant_id
-        - system_quantity
       properties:
         stocktake_id:
           type: integer
@@ -10262,51 +10238,31 @@ components:
           description: ID of the variant being counted
         batch_id:
           type: integer
-          description: ID of the specific batch being counted (if applicable)
-        system_quantity:
+          description: ID of the specific batch being counted (required for batch-trackable items)
+        counted_quantity:
           type: number
-          description: System recorded quantity before counting
-        actual_quantity:
-          type: number
-          description: Actual counted quantity
+          description: The actual quantity counted during the stocktake
         notes:
           type: string
           description: Optional notes about the count
       example:
         stocktake_id: 4001
         variant_id: 3001
-        system_quantity: 150.0
-        actual_quantity: 147.0
-        notes: Minor count difference noted
+        counted_quantity: 147.0
+        notes: Initial count
     UpdateStocktakeRowRequest:
       description: Request payload for updating an existing stocktake row
       type: object
       additionalProperties: false
       properties:
-        stocktake_id:
-          type: integer
-          description: ID of the stocktake this row belongs to
-        variant_id:
-          type: integer
-          description: ID of the variant being counted
-        batch_id:
-          type: integer
-          description: ID of the specific batch being counted (if applicable)
-        system_quantity:
+        counted_quantity:
           type: number
-          description: System recorded quantity before counting
-        actual_quantity:
-          type: number
-          description: Actual counted quantity
-        variance_quantity:
-          type: number
-          description: Calculated variance between system and actual quantity
+          description: The actual quantity counted during the stocktake
         notes:
           type: string
           description: Optional notes about the count
       example:
-        actual_quantity: 148.0
-        variance_quantity: -2.0
+        counted_quantity: 148.0
         notes: Recount confirmed minor variance
     SalesReturnListResponse:
       description: Response containing a list of sales returns with customer refund and return processing information

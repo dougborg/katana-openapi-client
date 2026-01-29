@@ -12,11 +12,11 @@ from ...models.storage_bin_list_response import StorageBinListResponse
 
 def _get_kwargs(
     *,
-    location_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    bin_name: Unset | str = UNSET,
+    location_id: int | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    bin_name: str | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -84,11 +84,11 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    bin_name: Unset | str = UNSET,
+    location_id: int | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    bin_name: str | Unset = UNSET,
 ) -> Response[ErrorResponse | StorageBinListResponse]:
     """List all storage bins
 
@@ -97,11 +97,11 @@ def sync_detailed(
     the most recent storage bin appearing first.
 
     Args:
-        location_id (Union[Unset, int]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        bin_name (Union[Unset, str]):
+        location_id (int | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        bin_name (str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -109,7 +109,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, StorageBinListResponse]]
+        Response[ErrorResponse | StorageBinListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -130,11 +130,11 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    bin_name: Unset | str = UNSET,
+    location_id: int | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    bin_name: str | Unset = UNSET,
 ) -> ErrorResponse | StorageBinListResponse | None:
     """List all storage bins
 
@@ -143,11 +143,11 @@ def sync(
     the most recent storage bin appearing first.
 
     Args:
-        location_id (Union[Unset, int]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        bin_name (Union[Unset, str]):
+        location_id (int | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        bin_name (str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -155,7 +155,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, StorageBinListResponse]
+        ErrorResponse | StorageBinListResponse
     """
 
     return sync_detailed(
@@ -171,11 +171,11 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    bin_name: Unset | str = UNSET,
+    location_id: int | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    bin_name: str | Unset = UNSET,
 ) -> Response[ErrorResponse | StorageBinListResponse]:
     """List all storage bins
 
@@ -184,11 +184,11 @@ async def asyncio_detailed(
     the most recent storage bin appearing first.
 
     Args:
-        location_id (Union[Unset, int]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        bin_name (Union[Unset, str]):
+        location_id (int | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        bin_name (str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -196,7 +196,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, StorageBinListResponse]]
+        Response[ErrorResponse | StorageBinListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -215,11 +215,11 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    location_id: Unset | int = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    bin_name: Unset | str = UNSET,
+    location_id: int | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    bin_name: str | Unset = UNSET,
 ) -> ErrorResponse | StorageBinListResponse | None:
     """List all storage bins
 
@@ -228,11 +228,11 @@ async def asyncio(
     the most recent storage bin appearing first.
 
     Args:
-        location_id (Union[Unset, int]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        bin_name (Union[Unset, str]):
+        location_id (int | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        bin_name (str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -240,7 +240,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, StorageBinListResponse]
+        ErrorResponse | StorageBinListResponse
     """
 
     return (

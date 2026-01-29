@@ -87,9 +87,9 @@ def sync_detailed(
 
     Args:
         body (CreateStocktakeRequest): Request payload for creating a new stocktake to perform
-            physical inventory counting Example: {'reference_no': 'STK-2024-003', 'location_id': 1,
-            'stocktake_date': '2024-01-17T09:00:00.000Z', 'notes': 'Quarterly inventory count',
-            'status': 'DRAFT'}.
+            physical inventory counting Example: {'stocktake_number': 'STK-2024-003', 'location_id':
+            1, 'reason': 'Quarterly inventory count', 'status': 'NOT_STARTED'}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -97,7 +97,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, Stocktake]]
+        Response[DetailedErrorResponse | ErrorResponse | Stocktake]
     """
 
     kwargs = _get_kwargs(
@@ -122,9 +122,9 @@ def sync(
 
     Args:
         body (CreateStocktakeRequest): Request payload for creating a new stocktake to perform
-            physical inventory counting Example: {'reference_no': 'STK-2024-003', 'location_id': 1,
-            'stocktake_date': '2024-01-17T09:00:00.000Z', 'notes': 'Quarterly inventory count',
-            'status': 'DRAFT'}.
+            physical inventory counting Example: {'stocktake_number': 'STK-2024-003', 'location_id':
+            1, 'reason': 'Quarterly inventory count', 'status': 'NOT_STARTED'}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -132,7 +132,7 @@ def sync(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, Stocktake]
+        DetailedErrorResponse | ErrorResponse | Stocktake
     """
 
     return sync_detailed(
@@ -152,9 +152,9 @@ async def asyncio_detailed(
 
     Args:
         body (CreateStocktakeRequest): Request payload for creating a new stocktake to perform
-            physical inventory counting Example: {'reference_no': 'STK-2024-003', 'location_id': 1,
-            'stocktake_date': '2024-01-17T09:00:00.000Z', 'notes': 'Quarterly inventory count',
-            'status': 'DRAFT'}.
+            physical inventory counting Example: {'stocktake_number': 'STK-2024-003', 'location_id':
+            1, 'reason': 'Quarterly inventory count', 'status': 'NOT_STARTED'}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -162,7 +162,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, Stocktake]]
+        Response[DetailedErrorResponse | ErrorResponse | Stocktake]
     """
 
     kwargs = _get_kwargs(
@@ -185,9 +185,9 @@ async def asyncio(
 
     Args:
         body (CreateStocktakeRequest): Request payload for creating a new stocktake to perform
-            physical inventory counting Example: {'reference_no': 'STK-2024-003', 'location_id': 1,
-            'stocktake_date': '2024-01-17T09:00:00.000Z', 'notes': 'Quarterly inventory count',
-            'status': 'DRAFT'}.
+            physical inventory counting Example: {'stocktake_number': 'STK-2024-003', 'location_id':
+            1, 'reason': 'Quarterly inventory count', 'status': 'NOT_STARTED'}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -195,7 +195,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, Stocktake]
+        DetailedErrorResponse | ErrorResponse | Stocktake
     """
 
     return (

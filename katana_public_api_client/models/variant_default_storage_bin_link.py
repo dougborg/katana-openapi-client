@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -18,7 +20,7 @@ class VariantDefaultStorageBinLink:
 
     variant_id: int
     bin_name: str
-    location_id: Unset | int = UNSET
+    location_id: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         variant_id = self.variant_id

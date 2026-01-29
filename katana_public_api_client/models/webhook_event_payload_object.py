@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -22,7 +24,7 @@ class WebhookEventPayloadObject:
 
     id: str
     status: str
-    href: Unset | str = UNSET
+    href: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

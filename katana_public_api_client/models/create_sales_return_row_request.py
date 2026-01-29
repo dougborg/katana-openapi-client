@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -14,8 +16,8 @@ class CreateSalesReturnRowRequest:
 
     variant_id: int
     quantity: float
-    return_reason_id: Unset | int = UNSET
-    notes: Unset | str = UNSET
+    return_reason_id: int | Unset = UNSET
+    notes: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         variant_id = self.variant_id

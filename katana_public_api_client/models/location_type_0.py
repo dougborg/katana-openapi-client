@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import (
     define as _attrs_define,
@@ -19,13 +21,13 @@ T = TypeVar("T", bound="LocationType0")
 class LocationType0:
     id: int
     name: str
-    legal_name: Unset | str = UNSET
-    address_id: Unset | int = UNSET
-    address: Union[Unset, "LocationAddress"] = UNSET
-    is_primary: Unset | bool = UNSET
-    sales_allowed: Unset | bool = UNSET
-    purchase_allowed: Unset | bool = UNSET
-    manufacturing_allowed: Unset | bool = UNSET
+    legal_name: str | Unset = UNSET
+    address_id: int | Unset = UNSET
+    address: LocationAddress | Unset = UNSET
+    is_primary: bool | Unset = UNSET
+    sales_allowed: bool | Unset = UNSET
+    purchase_allowed: bool | Unset = UNSET
+    manufacturing_allowed: bool | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -37,7 +39,7 @@ class LocationType0:
 
         address_id = self.address_id
 
-        address: Unset | dict[str, Any] = UNSET
+        address: dict[str, Any] | Unset = UNSET
         if not isinstance(self.address, Unset):
             address = self.address.to_dict()
 
@@ -88,7 +90,7 @@ class LocationType0:
         address_id = d.pop("address_id", UNSET)
 
         _address = d.pop("address", UNSET)
-        address: Unset | LocationAddress
+        address: LocationAddress | Unset
         if isinstance(_address, Unset):
             address = UNSET
         else:

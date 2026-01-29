@@ -12,16 +12,16 @@ from ...models.error_response import ErrorResponse
 
 def _get_kwargs(
     *,
-    batch_id: Unset | int = UNSET,
-    batch_number: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    batch_barcode: Unset | str = UNSET,
-    batch_created_at_min: Unset | str = UNSET,
-    batch_created_at_max: Unset | str = UNSET,
-    include_empty: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    batch_id: int | Unset = UNSET,
+    batch_number: str | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    batch_barcode: str | Unset = UNSET,
+    batch_created_at_min: str | Unset = UNSET,
+    batch_created_at_max: str | Unset = UNSET,
+    include_empty: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -99,16 +99,16 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    batch_id: Unset | int = UNSET,
-    batch_number: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    batch_barcode: Unset | str = UNSET,
-    batch_created_at_min: Unset | str = UNSET,
-    batch_created_at_max: Unset | str = UNSET,
-    include_empty: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    batch_id: int | Unset = UNSET,
+    batch_number: str | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    batch_barcode: str | Unset = UNSET,
+    batch_created_at_min: str | Unset = UNSET,
+    batch_created_at_max: str | Unset = UNSET,
+    include_empty: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> Response[BatchStockListResponse | ErrorResponse]:
     """List current batch stock
 
@@ -117,16 +117,16 @@ def sync_detailed(
     variant_id ASC, and batch_id DESC.
 
     Args:
-        batch_id (Union[Unset, int]):
-        batch_number (Union[Unset, str]):
-        location_id (Union[Unset, int]):
-        variant_id (Union[Unset, int]):
-        batch_barcode (Union[Unset, str]):
-        batch_created_at_min (Union[Unset, str]):
-        batch_created_at_max (Union[Unset, str]):
-        include_empty (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        batch_id (int | Unset):
+        batch_number (str | Unset):
+        location_id (int | Unset):
+        variant_id (int | Unset):
+        batch_barcode (str | Unset):
+        batch_created_at_min (str | Unset):
+        batch_created_at_max (str | Unset):
+        include_empty (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -135,7 +135,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[BatchStockListResponse, ErrorResponse]]
+        Response[BatchStockListResponse | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -161,16 +161,16 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    batch_id: Unset | int = UNSET,
-    batch_number: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    batch_barcode: Unset | str = UNSET,
-    batch_created_at_min: Unset | str = UNSET,
-    batch_created_at_max: Unset | str = UNSET,
-    include_empty: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    batch_id: int | Unset = UNSET,
+    batch_number: str | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    batch_barcode: str | Unset = UNSET,
+    batch_created_at_min: str | Unset = UNSET,
+    batch_created_at_max: str | Unset = UNSET,
+    include_empty: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> BatchStockListResponse | ErrorResponse | None:
     """List current batch stock
 
@@ -179,16 +179,16 @@ def sync(
     variant_id ASC, and batch_id DESC.
 
     Args:
-        batch_id (Union[Unset, int]):
-        batch_number (Union[Unset, str]):
-        location_id (Union[Unset, int]):
-        variant_id (Union[Unset, int]):
-        batch_barcode (Union[Unset, str]):
-        batch_created_at_min (Union[Unset, str]):
-        batch_created_at_max (Union[Unset, str]):
-        include_empty (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        batch_id (int | Unset):
+        batch_number (str | Unset):
+        location_id (int | Unset):
+        variant_id (int | Unset):
+        batch_barcode (str | Unset):
+        batch_created_at_min (str | Unset):
+        batch_created_at_max (str | Unset):
+        include_empty (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -197,7 +197,7 @@ def sync(
 
 
     Returns:
-        Union[BatchStockListResponse, ErrorResponse]
+        BatchStockListResponse | ErrorResponse
     """
 
     return sync_detailed(
@@ -218,16 +218,16 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    batch_id: Unset | int = UNSET,
-    batch_number: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    batch_barcode: Unset | str = UNSET,
-    batch_created_at_min: Unset | str = UNSET,
-    batch_created_at_max: Unset | str = UNSET,
-    include_empty: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    batch_id: int | Unset = UNSET,
+    batch_number: str | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    batch_barcode: str | Unset = UNSET,
+    batch_created_at_min: str | Unset = UNSET,
+    batch_created_at_max: str | Unset = UNSET,
+    include_empty: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> Response[BatchStockListResponse | ErrorResponse]:
     """List current batch stock
 
@@ -236,16 +236,16 @@ async def asyncio_detailed(
     variant_id ASC, and batch_id DESC.
 
     Args:
-        batch_id (Union[Unset, int]):
-        batch_number (Union[Unset, str]):
-        location_id (Union[Unset, int]):
-        variant_id (Union[Unset, int]):
-        batch_barcode (Union[Unset, str]):
-        batch_created_at_min (Union[Unset, str]):
-        batch_created_at_max (Union[Unset, str]):
-        include_empty (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        batch_id (int | Unset):
+        batch_number (str | Unset):
+        location_id (int | Unset):
+        variant_id (int | Unset):
+        batch_barcode (str | Unset):
+        batch_created_at_min (str | Unset):
+        batch_created_at_max (str | Unset):
+        include_empty (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -254,7 +254,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[BatchStockListResponse, ErrorResponse]]
+        Response[BatchStockListResponse | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -278,16 +278,16 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    batch_id: Unset | int = UNSET,
-    batch_number: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    variant_id: Unset | int = UNSET,
-    batch_barcode: Unset | str = UNSET,
-    batch_created_at_min: Unset | str = UNSET,
-    batch_created_at_max: Unset | str = UNSET,
-    include_empty: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
+    batch_id: int | Unset = UNSET,
+    batch_number: str | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    variant_id: int | Unset = UNSET,
+    batch_barcode: str | Unset = UNSET,
+    batch_created_at_min: str | Unset = UNSET,
+    batch_created_at_max: str | Unset = UNSET,
+    include_empty: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
 ) -> BatchStockListResponse | ErrorResponse | None:
     """List current batch stock
 
@@ -296,16 +296,16 @@ async def asyncio(
     variant_id ASC, and batch_id DESC.
 
     Args:
-        batch_id (Union[Unset, int]):
-        batch_number (Union[Unset, str]):
-        location_id (Union[Unset, int]):
-        variant_id (Union[Unset, int]):
-        batch_barcode (Union[Unset, str]):
-        batch_created_at_min (Union[Unset, str]):
-        batch_created_at_max (Union[Unset, str]):
-        include_empty (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
+        batch_id (int | Unset):
+        batch_number (str | Unset):
+        location_id (int | Unset):
+        variant_id (int | Unset):
+        batch_barcode (str | Unset):
+        batch_created_at_min (str | Unset):
+        batch_created_at_max (str | Unset):
+        include_empty (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
 
 
     Raises:
@@ -314,7 +314,7 @@ async def asyncio(
 
 
     Returns:
-        Union[BatchStockListResponse, ErrorResponse]
+        BatchStockListResponse | ErrorResponse
     """
 
     return (

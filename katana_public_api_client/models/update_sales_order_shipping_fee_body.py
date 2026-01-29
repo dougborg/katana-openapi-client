@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -10,8 +12,8 @@ T = TypeVar("T", bound="UpdateSalesOrderShippingFeeBody")
 
 @_attrs_define
 class UpdateSalesOrderShippingFeeBody:
-    amount: Unset | float = UNSET
-    description: Unset | str = UNSET
+    amount: float | Unset = UNSET
+    description: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         amount = self.amount

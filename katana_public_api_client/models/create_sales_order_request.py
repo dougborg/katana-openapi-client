@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
@@ -42,40 +44,40 @@ class CreateSalesOrderRequest:
     Attributes:
         order_no (str): Unique order number for tracking and reference
         customer_id (int): ID of the customer placing the order
-        sales_order_rows (list['CreateSalesOrderRequestSalesOrderRowsItem']): List of products and quantities being
+        sales_order_rows (list[CreateSalesOrderRequestSalesOrderRowsItem]): List of products and quantities being
             ordered
-        tracking_number (Union[None, Unset, str]): Shipping tracking number if already known
-        tracking_number_url (Union[None, Unset, str]): URL for tracking shipment status
-        addresses (Union[Unset, list['SalesOrderAddress']]): Billing and shipping addresses for the order
-        order_created_date (Union[None, Unset, datetime.datetime]): Date when the order was originally created (defaults
-            to current time)
-        delivery_date (Union[None, Unset, datetime.datetime]): Requested delivery date
-        currency (Union[None, Unset, str]): Currency code for the order (defaults to company base currency)
-        location_id (Union[Unset, int]): Primary fulfillment location for the order
-        status (Union[Unset, CreateSalesOrderRequestStatus]): Initial status of the order
-        additional_info (Union[None, Unset, str]): Additional notes or instructions for the order
-        customer_ref (Union[None, Unset, str]): Customer's internal reference number
-        ecommerce_order_type (Union[None, Unset, str]): Type of ecommerce order if applicable
-        ecommerce_store_name (Union[None, Unset, str]): Name of the ecommerce store if order originated from online
-        ecommerce_order_id (Union[None, Unset, str]): Original order ID from the ecommerce platform
+        tracking_number (None | str | Unset): Shipping tracking number if already known
+        tracking_number_url (None | str | Unset): URL for tracking shipment status
+        addresses (list[SalesOrderAddress] | Unset): Billing and shipping addresses for the order
+        order_created_date (datetime.datetime | None | Unset): Date when the order was originally created (defaults to
+            current time)
+        delivery_date (datetime.datetime | None | Unset): Requested delivery date
+        currency (None | str | Unset): Currency code for the order (defaults to company base currency)
+        location_id (int | Unset): Primary fulfillment location for the order
+        status (CreateSalesOrderRequestStatus | Unset): Initial status of the order
+        additional_info (None | str | Unset): Additional notes or instructions for the order
+        customer_ref (None | str | Unset): Customer's internal reference number
+        ecommerce_order_type (None | str | Unset): Type of ecommerce order if applicable
+        ecommerce_store_name (None | str | Unset): Name of the ecommerce store if order originated from online
+        ecommerce_order_id (None | str | Unset): Original order ID from the ecommerce platform
     """
 
     order_no: str
     customer_id: int
-    sales_order_rows: list["CreateSalesOrderRequestSalesOrderRowsItem"]
-    tracking_number: None | Unset | str = UNSET
-    tracking_number_url: None | Unset | str = UNSET
-    addresses: Unset | list["SalesOrderAddress"] = UNSET
-    order_created_date: None | Unset | datetime.datetime = UNSET
-    delivery_date: None | Unset | datetime.datetime = UNSET
-    currency: None | Unset | str = UNSET
-    location_id: Unset | int = UNSET
-    status: Unset | CreateSalesOrderRequestStatus = UNSET
-    additional_info: None | Unset | str = UNSET
-    customer_ref: None | Unset | str = UNSET
-    ecommerce_order_type: None | Unset | str = UNSET
-    ecommerce_store_name: None | Unset | str = UNSET
-    ecommerce_order_id: None | Unset | str = UNSET
+    sales_order_rows: list[CreateSalesOrderRequestSalesOrderRowsItem]
+    tracking_number: None | str | Unset = UNSET
+    tracking_number_url: None | str | Unset = UNSET
+    addresses: list[SalesOrderAddress] | Unset = UNSET
+    order_created_date: datetime.datetime | None | Unset = UNSET
+    delivery_date: datetime.datetime | None | Unset = UNSET
+    currency: None | str | Unset = UNSET
+    location_id: int | Unset = UNSET
+    status: CreateSalesOrderRequestStatus | Unset = UNSET
+    additional_info: None | str | Unset = UNSET
+    customer_ref: None | str | Unset = UNSET
+    ecommerce_order_type: None | str | Unset = UNSET
+    ecommerce_store_name: None | str | Unset = UNSET
+    ecommerce_order_id: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -88,26 +90,26 @@ class CreateSalesOrderRequest:
             sales_order_rows_item = sales_order_rows_item_data.to_dict()
             sales_order_rows.append(sales_order_rows_item)
 
-        tracking_number: None | Unset | str
+        tracking_number: None | str | Unset
         if isinstance(self.tracking_number, Unset):
             tracking_number = UNSET
         else:
             tracking_number = self.tracking_number
 
-        tracking_number_url: None | Unset | str
+        tracking_number_url: None | str | Unset
         if isinstance(self.tracking_number_url, Unset):
             tracking_number_url = UNSET
         else:
             tracking_number_url = self.tracking_number_url
 
-        addresses: Unset | list[dict[str, Any]] = UNSET
+        addresses: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.addresses, Unset):
             addresses = []
             for addresses_item_data in self.addresses:
                 addresses_item = addresses_item_data.to_dict()
                 addresses.append(addresses_item)
 
-        order_created_date: None | Unset | str
+        order_created_date: None | str | Unset
         if isinstance(self.order_created_date, Unset):
             order_created_date = UNSET
         elif isinstance(self.order_created_date, datetime.datetime):
@@ -115,7 +117,7 @@ class CreateSalesOrderRequest:
         else:
             order_created_date = self.order_created_date
 
-        delivery_date: None | Unset | str
+        delivery_date: None | str | Unset
         if isinstance(self.delivery_date, Unset):
             delivery_date = UNSET
         elif isinstance(self.delivery_date, datetime.datetime):
@@ -123,7 +125,7 @@ class CreateSalesOrderRequest:
         else:
             delivery_date = self.delivery_date
 
-        currency: None | Unset | str
+        currency: None | str | Unset
         if isinstance(self.currency, Unset):
             currency = UNSET
         else:
@@ -131,35 +133,35 @@ class CreateSalesOrderRequest:
 
         location_id = self.location_id
 
-        status: Unset | str = UNSET
+        status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
-        additional_info: None | Unset | str
+        additional_info: None | str | Unset
         if isinstance(self.additional_info, Unset):
             additional_info = UNSET
         else:
             additional_info = self.additional_info
 
-        customer_ref: None | Unset | str
+        customer_ref: None | str | Unset
         if isinstance(self.customer_ref, Unset):
             customer_ref = UNSET
         else:
             customer_ref = self.customer_ref
 
-        ecommerce_order_type: None | Unset | str
+        ecommerce_order_type: None | str | Unset
         if isinstance(self.ecommerce_order_type, Unset):
             ecommerce_order_type = UNSET
         else:
             ecommerce_order_type = self.ecommerce_order_type
 
-        ecommerce_store_name: None | Unset | str
+        ecommerce_store_name: None | str | Unset
         if isinstance(self.ecommerce_store_name, Unset):
             ecommerce_store_name = UNSET
         else:
             ecommerce_store_name = self.ecommerce_store_name
 
-        ecommerce_order_id: None | Unset | str
+        ecommerce_order_id: None | str | Unset
         if isinstance(self.ecommerce_order_id, Unset):
             ecommerce_order_id = UNSET
         else:
@@ -224,34 +226,36 @@ class CreateSalesOrderRequest:
 
             sales_order_rows.append(sales_order_rows_item)
 
-        def _parse_tracking_number(data: object) -> None | Unset | str:
+        def _parse_tracking_number(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
-        def _parse_tracking_number_url(data: object) -> None | Unset | str:
+        def _parse_tracking_number_url(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         tracking_number_url = _parse_tracking_number_url(
             d.pop("tracking_number_url", UNSET)
         )
 
-        addresses = []
         _addresses = d.pop("addresses", UNSET)
-        for addresses_item_data in _addresses or []:
-            addresses_item = SalesOrderAddress.from_dict(addresses_item_data)
+        addresses: list[SalesOrderAddress] | Unset = UNSET
+        if _addresses is not UNSET:
+            addresses = []
+            for addresses_item_data in _addresses:
+                addresses_item = SalesOrderAddress.from_dict(addresses_item_data)
 
-            addresses.append(addresses_item)
+                addresses.append(addresses_item)
 
-        def _parse_order_created_date(data: object) -> None | Unset | datetime.datetime:
+        def _parse_order_created_date(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -262,15 +266,15 @@ class CreateSalesOrderRequest:
                 order_created_date_type_0 = isoparse(data)
 
                 return order_created_date_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         order_created_date = _parse_order_created_date(
             d.pop("order_created_date", UNSET)
         )
 
-        def _parse_delivery_date(data: object) -> None | Unset | datetime.datetime:
+        def _parse_delivery_date(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -281,76 +285,76 @@ class CreateSalesOrderRequest:
                 delivery_date_type_0 = isoparse(data)
 
                 return delivery_date_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         delivery_date = _parse_delivery_date(d.pop("delivery_date", UNSET))
 
-        def _parse_currency(data: object) -> None | Unset | str:
+        def _parse_currency(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         currency = _parse_currency(d.pop("currency", UNSET))
 
         location_id = d.pop("location_id", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: Unset | CreateSalesOrderRequestStatus
+        status: CreateSalesOrderRequestStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
             status = CreateSalesOrderRequestStatus(_status)
 
-        def _parse_additional_info(data: object) -> None | Unset | str:
+        def _parse_additional_info(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
-        def _parse_customer_ref(data: object) -> None | Unset | str:
+        def _parse_customer_ref(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         customer_ref = _parse_customer_ref(d.pop("customer_ref", UNSET))
 
-        def _parse_ecommerce_order_type(data: object) -> None | Unset | str:
+        def _parse_ecommerce_order_type(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         ecommerce_order_type = _parse_ecommerce_order_type(
             d.pop("ecommerce_order_type", UNSET)
         )
 
-        def _parse_ecommerce_store_name(data: object) -> None | Unset | str:
+        def _parse_ecommerce_store_name(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         ecommerce_store_name = _parse_ecommerce_store_name(
             d.pop("ecommerce_store_name", UNSET)
         )
 
-        def _parse_ecommerce_order_id(data: object) -> None | Unset | str:
+        def _parse_ecommerce_order_id(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)  # type: ignore[return-value]
 
         ecommerce_order_id = _parse_ecommerce_order_id(
             d.pop("ecommerce_order_id", UNSET)

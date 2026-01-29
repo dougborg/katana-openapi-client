@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -19,20 +21,20 @@ class UpdateSalesOrderAddressRequest:
         {'address_line_1': '456 Oak Avenue', 'phone': '+1-555-0456'}
     """
 
-    entity_type: Unset | UpdateSalesOrderAddressRequestEntityType = UNSET
-    first_name: Unset | str = UNSET
-    last_name: Unset | str = UNSET
-    company: Unset | str = UNSET
-    address_line_1: Unset | str = UNSET
-    address_line_2: Unset | str = UNSET
-    city: Unset | str = UNSET
-    state: Unset | str = UNSET
-    zip_: Unset | str = UNSET
-    country: Unset | str = UNSET
-    phone: Unset | str = UNSET
+    entity_type: UpdateSalesOrderAddressRequestEntityType | Unset = UNSET
+    first_name: str | Unset = UNSET
+    last_name: str | Unset = UNSET
+    company: str | Unset = UNSET
+    address_line_1: str | Unset = UNSET
+    address_line_2: str | Unset = UNSET
+    city: str | Unset = UNSET
+    state: str | Unset = UNSET
+    zip_: str | Unset = UNSET
+    country: str | Unset = UNSET
+    phone: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        entity_type: Unset | str = UNSET
+        entity_type: str | Unset = UNSET
         if not isinstance(self.entity_type, Unset):
             entity_type = self.entity_type.value
 
@@ -88,7 +90,7 @@ class UpdateSalesOrderAddressRequest:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
         d = dict(src_dict)
         _entity_type = d.pop("entity_type", UNSET)
-        entity_type: Unset | UpdateSalesOrderAddressRequestEntityType
+        entity_type: UpdateSalesOrderAddressRequestEntityType | Unset
         if isinstance(_entity_type, Unset):
             entity_type = UNSET
         else:

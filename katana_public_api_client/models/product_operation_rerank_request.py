@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -20,8 +22,8 @@ class ProductOperationRerankRequest:
     """
 
     rank_product_operation_id: int
-    preceeding_product_operation_id: Unset | int = UNSET
-    should_group: Unset | bool = UNSET
+    preceeding_product_operation_id: int | Unset = UNSET
+    should_group: bool | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

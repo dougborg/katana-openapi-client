@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
@@ -37,44 +39,44 @@ class ManufacturingOrderOperationRow:
     """
 
     id: int
-    created_at: Unset | datetime.datetime = UNSET
-    updated_at: Unset | datetime.datetime = UNSET
-    deleted_at: None | Unset | datetime.datetime = UNSET
-    status: Unset | ManufacturingOrderOperationRowStatus = UNSET
-    type_: Unset | str = UNSET
-    rank: Unset | float = UNSET
-    manufacturing_order_id: Unset | int = UNSET
-    operation_id: Unset | int = UNSET
-    operation_name: Unset | str = UNSET
-    resource_id: Unset | int = UNSET
-    resource_name: Unset | str = UNSET
-    assigned_operators: Unset | list["AssignedOperator"] = UNSET
-    completed_by_operators: Unset | list["AssignedOperator"] = UNSET
-    active_operator_id: Unset | float = UNSET
-    planned_time_per_unit: Unset | float = UNSET
-    planned_time_parameter: Unset | float = UNSET
-    total_actual_time: Unset | float = UNSET
-    planned_cost_per_unit: Unset | float = UNSET
-    total_actual_cost: Unset | float = UNSET
-    cost_per_hour: Unset | float = UNSET
-    cost_parameter: Unset | float = UNSET
-    group_boundary: Unset | float = UNSET
-    is_status_actionable: Unset | bool = UNSET
-    completed_at: None | Unset | datetime.datetime = UNSET
+    created_at: datetime.datetime | Unset = UNSET
+    updated_at: datetime.datetime | Unset = UNSET
+    deleted_at: datetime.datetime | None | Unset = UNSET
+    status: ManufacturingOrderOperationRowStatus | Unset = UNSET
+    type_: str | Unset = UNSET
+    rank: float | Unset = UNSET
+    manufacturing_order_id: int | Unset = UNSET
+    operation_id: int | Unset = UNSET
+    operation_name: str | Unset = UNSET
+    resource_id: int | Unset = UNSET
+    resource_name: str | Unset = UNSET
+    assigned_operators: list[AssignedOperator] | Unset = UNSET
+    completed_by_operators: list[AssignedOperator] | Unset = UNSET
+    active_operator_id: float | Unset = UNSET
+    planned_time_per_unit: float | Unset = UNSET
+    planned_time_parameter: float | Unset = UNSET
+    total_actual_time: float | Unset = UNSET
+    planned_cost_per_unit: float | Unset = UNSET
+    total_actual_cost: float | Unset = UNSET
+    cost_per_hour: float | Unset = UNSET
+    cost_parameter: float | Unset = UNSET
+    group_boundary: float | Unset = UNSET
+    is_status_actionable: bool | Unset = UNSET
+    completed_at: datetime.datetime | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        created_at: Unset | str = UNSET
+        created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
-        updated_at: Unset | str = UNSET
+        updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        deleted_at: None | Unset | str
+        deleted_at: None | str | Unset
         if isinstance(self.deleted_at, Unset):
             deleted_at = UNSET
         elif isinstance(self.deleted_at, datetime.datetime):
@@ -82,7 +84,7 @@ class ManufacturingOrderOperationRow:
         else:
             deleted_at = self.deleted_at
 
-        status: Unset | str = UNSET
+        status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
@@ -100,14 +102,14 @@ class ManufacturingOrderOperationRow:
 
         resource_name = self.resource_name
 
-        assigned_operators: Unset | list[dict[str, Any]] = UNSET
+        assigned_operators: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.assigned_operators, Unset):
             assigned_operators = []
             for assigned_operators_item_data in self.assigned_operators:
                 assigned_operators_item = assigned_operators_item_data.to_dict()
                 assigned_operators.append(assigned_operators_item)
 
-        completed_by_operators: Unset | list[dict[str, Any]] = UNSET
+        completed_by_operators: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.completed_by_operators, Unset):
             completed_by_operators = []
             for completed_by_operators_item_data in self.completed_by_operators:
@@ -134,7 +136,7 @@ class ManufacturingOrderOperationRow:
 
         is_status_actionable = self.is_status_actionable
 
-        completed_at: None | Unset | str
+        completed_at: None | str | Unset
         if isinstance(self.completed_at, Unset):
             completed_at = UNSET
         elif isinstance(self.completed_at, datetime.datetime):
@@ -208,20 +210,20 @@ class ManufacturingOrderOperationRow:
         id = d.pop("id")
 
         _created_at = d.pop("created_at", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
             created_at = isoparse(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Unset | datetime.datetime
+        updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_deleted_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -232,14 +234,14 @@ class ManufacturingOrderOperationRow:
                 deleted_at_type_0 = isoparse(data)
 
                 return deleted_at_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         _status = d.pop("status", UNSET)
-        status: Unset | ManufacturingOrderOperationRowStatus
+        status: ManufacturingOrderOperationRowStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
@@ -259,23 +261,27 @@ class ManufacturingOrderOperationRow:
 
         resource_name = d.pop("resource_name", UNSET)
 
-        assigned_operators = []
         _assigned_operators = d.pop("assigned_operators", UNSET)
-        for assigned_operators_item_data in _assigned_operators or []:
-            assigned_operators_item = AssignedOperator.from_dict(
-                assigned_operators_item_data
-            )
+        assigned_operators: list[AssignedOperator] | Unset = UNSET
+        if _assigned_operators is not UNSET:
+            assigned_operators = []
+            for assigned_operators_item_data in _assigned_operators:
+                assigned_operators_item = AssignedOperator.from_dict(
+                    assigned_operators_item_data
+                )
 
-            assigned_operators.append(assigned_operators_item)
+                assigned_operators.append(assigned_operators_item)
 
-        completed_by_operators = []
         _completed_by_operators = d.pop("completed_by_operators", UNSET)
-        for completed_by_operators_item_data in _completed_by_operators or []:
-            completed_by_operators_item = AssignedOperator.from_dict(
-                completed_by_operators_item_data
-            )
+        completed_by_operators: list[AssignedOperator] | Unset = UNSET
+        if _completed_by_operators is not UNSET:
+            completed_by_operators = []
+            for completed_by_operators_item_data in _completed_by_operators:
+                completed_by_operators_item = AssignedOperator.from_dict(
+                    completed_by_operators_item_data
+                )
 
-            completed_by_operators.append(completed_by_operators_item)
+                completed_by_operators.append(completed_by_operators_item)
 
         active_operator_id = d.pop("active_operator_id", UNSET)
 
@@ -297,7 +303,7 @@ class ManufacturingOrderOperationRow:
 
         is_status_actionable = d.pop("is_status_actionable", UNSET)
 
-        def _parse_completed_at(data: object) -> None | Unset | datetime.datetime:
+        def _parse_completed_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -308,9 +314,9 @@ class ManufacturingOrderOperationRow:
                 completed_at_type_0 = isoparse(data)
 
                 return completed_at_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Unset | datetime.datetime, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
 
         completed_at = _parse_completed_at(d.pop("completed_at", UNSET))
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -16,8 +18,8 @@ class StorageBinUpdate:
         {'bin_name': 'A-01-SHELF-2', 'location_id': 2}
     """
 
-    bin_name: Unset | str = UNSET
-    location_id: Unset | int = UNSET
+    bin_name: str | Unset = UNSET
+    location_id: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         bin_name = self.bin_name

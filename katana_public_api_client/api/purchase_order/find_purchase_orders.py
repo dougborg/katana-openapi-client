@@ -19,27 +19,27 @@ from ...models.purchase_order_list_response import PurchaseOrderListResponse
 
 def _get_kwargs(
     *,
-    ids: Unset | list[int] = UNSET,
-    order_no: Unset | str = UNSET,
-    entity_type: Unset | FindPurchaseOrdersEntityType = UNSET,
-    status: Unset | FindPurchaseOrdersStatus = UNSET,
-    billing_status: Unset | FindPurchaseOrdersBillingStatus = UNSET,
-    currency: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    tracking_location_id: Unset | float = UNSET,
-    supplier_id: Unset | float = UNSET,
-    extend: Unset | list[FindPurchaseOrdersExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    entity_type: FindPurchaseOrdersEntityType | Unset = UNSET,
+    status: FindPurchaseOrdersStatus | Unset = UNSET,
+    billing_status: FindPurchaseOrdersBillingStatus | Unset = UNSET,
+    currency: str | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    tracking_location_id: float | Unset = UNSET,
+    supplier_id: float | Unset = UNSET,
+    extend: list[FindPurchaseOrdersExtendItem] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_ids: Unset | list[int] = UNSET
+    json_ids: list[int] | Unset = UNSET
     if not isinstance(ids, Unset):
         json_ids = ids
 
@@ -47,19 +47,19 @@ def _get_kwargs(
 
     params["order_no"] = order_no
 
-    json_entity_type: Unset | str = UNSET
+    json_entity_type: str | Unset = UNSET
     if not isinstance(entity_type, Unset):
         json_entity_type = entity_type.value
 
     params["entity_type"] = json_entity_type
 
-    json_status: Unset | str = UNSET
+    json_status: str | Unset = UNSET
     if not isinstance(status, Unset):
         json_status = status.value
 
     params["status"] = json_status
 
-    json_billing_status: Unset | str = UNSET
+    json_billing_status: str | Unset = UNSET
     if not isinstance(billing_status, Unset):
         json_billing_status = billing_status.value
 
@@ -73,7 +73,7 @@ def _get_kwargs(
 
     params["supplier_id"] = supplier_id
 
-    json_extend: Unset | list[str] = UNSET
+    json_extend: list[str] | Unset = UNSET
     if not isinstance(extend, Unset):
         json_extend = []
         for extend_item_data in extend:
@@ -88,22 +88,22 @@ def _get_kwargs(
 
     params["page"] = page
 
-    json_created_at_min: Unset | str = UNSET
+    json_created_at_min: str | Unset = UNSET
     if not isinstance(created_at_min, Unset):
         json_created_at_min = created_at_min.isoformat()
     params["created_at_min"] = json_created_at_min
 
-    json_created_at_max: Unset | str = UNSET
+    json_created_at_max: str | Unset = UNSET
     if not isinstance(created_at_max, Unset):
         json_created_at_max = created_at_max.isoformat()
     params["created_at_max"] = json_created_at_max
 
-    json_updated_at_min: Unset | str = UNSET
+    json_updated_at_min: str | Unset = UNSET
     if not isinstance(updated_at_min, Unset):
         json_updated_at_min = updated_at_min.isoformat()
     params["updated_at_min"] = json_updated_at_min
 
-    json_updated_at_max: Unset | str = UNSET
+    json_updated_at_max: str | Unset = UNSET
     if not isinstance(updated_at_max, Unset):
         json_updated_at_max = updated_at_max.isoformat()
     params["updated_at_max"] = json_updated_at_max
@@ -162,23 +162,23 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    order_no: Unset | str = UNSET,
-    entity_type: Unset | FindPurchaseOrdersEntityType = UNSET,
-    status: Unset | FindPurchaseOrdersStatus = UNSET,
-    billing_status: Unset | FindPurchaseOrdersBillingStatus = UNSET,
-    currency: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    tracking_location_id: Unset | float = UNSET,
-    supplier_id: Unset | float = UNSET,
-    extend: Unset | list[FindPurchaseOrdersExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    entity_type: FindPurchaseOrdersEntityType | Unset = UNSET,
+    status: FindPurchaseOrdersStatus | Unset = UNSET,
+    billing_status: FindPurchaseOrdersBillingStatus | Unset = UNSET,
+    currency: str | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    tracking_location_id: float | Unset = UNSET,
+    supplier_id: float | Unset = UNSET,
+    extend: list[FindPurchaseOrdersExtendItem] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | PurchaseOrderListResponse]:
     """List all purchase orders
 
@@ -187,23 +187,23 @@ def sync_detailed(
         order, with the most recent purchase orders appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        order_no (Union[Unset, str]):
-        entity_type (Union[Unset, FindPurchaseOrdersEntityType]):
-        status (Union[Unset, FindPurchaseOrdersStatus]):
-        billing_status (Union[Unset, FindPurchaseOrdersBillingStatus]):
-        currency (Union[Unset, str]):
-        location_id (Union[Unset, int]):
-        tracking_location_id (Union[Unset, float]):
-        supplier_id (Union[Unset, float]):
-        extend (Union[Unset, list[FindPurchaseOrdersExtendItem]]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        order_no (str | Unset):
+        entity_type (FindPurchaseOrdersEntityType | Unset):
+        status (FindPurchaseOrdersStatus | Unset):
+        billing_status (FindPurchaseOrdersBillingStatus | Unset):
+        currency (str | Unset):
+        location_id (int | Unset):
+        tracking_location_id (float | Unset):
+        supplier_id (float | Unset):
+        extend (list[FindPurchaseOrdersExtendItem] | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -211,7 +211,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, PurchaseOrderListResponse]]
+        Response[ErrorResponse | PurchaseOrderListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -244,23 +244,23 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    order_no: Unset | str = UNSET,
-    entity_type: Unset | FindPurchaseOrdersEntityType = UNSET,
-    status: Unset | FindPurchaseOrdersStatus = UNSET,
-    billing_status: Unset | FindPurchaseOrdersBillingStatus = UNSET,
-    currency: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    tracking_location_id: Unset | float = UNSET,
-    supplier_id: Unset | float = UNSET,
-    extend: Unset | list[FindPurchaseOrdersExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    entity_type: FindPurchaseOrdersEntityType | Unset = UNSET,
+    status: FindPurchaseOrdersStatus | Unset = UNSET,
+    billing_status: FindPurchaseOrdersBillingStatus | Unset = UNSET,
+    currency: str | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    tracking_location_id: float | Unset = UNSET,
+    supplier_id: float | Unset = UNSET,
+    extend: list[FindPurchaseOrdersExtendItem] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | PurchaseOrderListResponse | None:
     """List all purchase orders
 
@@ -269,23 +269,23 @@ def sync(
         order, with the most recent purchase orders appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        order_no (Union[Unset, str]):
-        entity_type (Union[Unset, FindPurchaseOrdersEntityType]):
-        status (Union[Unset, FindPurchaseOrdersStatus]):
-        billing_status (Union[Unset, FindPurchaseOrdersBillingStatus]):
-        currency (Union[Unset, str]):
-        location_id (Union[Unset, int]):
-        tracking_location_id (Union[Unset, float]):
-        supplier_id (Union[Unset, float]):
-        extend (Union[Unset, list[FindPurchaseOrdersExtendItem]]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        order_no (str | Unset):
+        entity_type (FindPurchaseOrdersEntityType | Unset):
+        status (FindPurchaseOrdersStatus | Unset):
+        billing_status (FindPurchaseOrdersBillingStatus | Unset):
+        currency (str | Unset):
+        location_id (int | Unset):
+        tracking_location_id (float | Unset):
+        supplier_id (float | Unset):
+        extend (list[FindPurchaseOrdersExtendItem] | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -293,7 +293,7 @@ def sync(
 
 
     Returns:
-        Union[ErrorResponse, PurchaseOrderListResponse]
+        ErrorResponse | PurchaseOrderListResponse
     """
 
     return sync_detailed(
@@ -321,23 +321,23 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    order_no: Unset | str = UNSET,
-    entity_type: Unset | FindPurchaseOrdersEntityType = UNSET,
-    status: Unset | FindPurchaseOrdersStatus = UNSET,
-    billing_status: Unset | FindPurchaseOrdersBillingStatus = UNSET,
-    currency: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    tracking_location_id: Unset | float = UNSET,
-    supplier_id: Unset | float = UNSET,
-    extend: Unset | list[FindPurchaseOrdersExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    entity_type: FindPurchaseOrdersEntityType | Unset = UNSET,
+    status: FindPurchaseOrdersStatus | Unset = UNSET,
+    billing_status: FindPurchaseOrdersBillingStatus | Unset = UNSET,
+    currency: str | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    tracking_location_id: float | Unset = UNSET,
+    supplier_id: float | Unset = UNSET,
+    extend: list[FindPurchaseOrdersExtendItem] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> Response[ErrorResponse | PurchaseOrderListResponse]:
     """List all purchase orders
 
@@ -346,23 +346,23 @@ async def asyncio_detailed(
         order, with the most recent purchase orders appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        order_no (Union[Unset, str]):
-        entity_type (Union[Unset, FindPurchaseOrdersEntityType]):
-        status (Union[Unset, FindPurchaseOrdersStatus]):
-        billing_status (Union[Unset, FindPurchaseOrdersBillingStatus]):
-        currency (Union[Unset, str]):
-        location_id (Union[Unset, int]):
-        tracking_location_id (Union[Unset, float]):
-        supplier_id (Union[Unset, float]):
-        extend (Union[Unset, list[FindPurchaseOrdersExtendItem]]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        order_no (str | Unset):
+        entity_type (FindPurchaseOrdersEntityType | Unset):
+        status (FindPurchaseOrdersStatus | Unset):
+        billing_status (FindPurchaseOrdersBillingStatus | Unset):
+        currency (str | Unset):
+        location_id (int | Unset):
+        tracking_location_id (float | Unset):
+        supplier_id (float | Unset):
+        extend (list[FindPurchaseOrdersExtendItem] | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -370,7 +370,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[ErrorResponse, PurchaseOrderListResponse]]
+        Response[ErrorResponse | PurchaseOrderListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -401,23 +401,23 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    ids: Unset | list[int] = UNSET,
-    order_no: Unset | str = UNSET,
-    entity_type: Unset | FindPurchaseOrdersEntityType = UNSET,
-    status: Unset | FindPurchaseOrdersStatus = UNSET,
-    billing_status: Unset | FindPurchaseOrdersBillingStatus = UNSET,
-    currency: Unset | str = UNSET,
-    location_id: Unset | int = UNSET,
-    tracking_location_id: Unset | float = UNSET,
-    supplier_id: Unset | float = UNSET,
-    extend: Unset | list[FindPurchaseOrdersExtendItem] = UNSET,
-    include_deleted: Unset | bool = UNSET,
-    limit: Unset | int = 50,
-    page: Unset | int = UNSET,
-    created_at_min: Unset | datetime.datetime = UNSET,
-    created_at_max: Unset | datetime.datetime = UNSET,
-    updated_at_min: Unset | datetime.datetime = UNSET,
-    updated_at_max: Unset | datetime.datetime = UNSET,
+    ids: list[int] | Unset = UNSET,
+    order_no: str | Unset = UNSET,
+    entity_type: FindPurchaseOrdersEntityType | Unset = UNSET,
+    status: FindPurchaseOrdersStatus | Unset = UNSET,
+    billing_status: FindPurchaseOrdersBillingStatus | Unset = UNSET,
+    currency: str | Unset = UNSET,
+    location_id: int | Unset = UNSET,
+    tracking_location_id: float | Unset = UNSET,
+    supplier_id: float | Unset = UNSET,
+    extend: list[FindPurchaseOrdersExtendItem] | Unset = UNSET,
+    include_deleted: bool | Unset = UNSET,
+    limit: int | Unset = 50,
+    page: int | Unset = 1,
+    created_at_min: datetime.datetime | Unset = UNSET,
+    created_at_max: datetime.datetime | Unset = UNSET,
+    updated_at_min: datetime.datetime | Unset = UNSET,
+    updated_at_max: datetime.datetime | Unset = UNSET,
 ) -> ErrorResponse | PurchaseOrderListResponse | None:
     """List all purchase orders
 
@@ -426,23 +426,23 @@ async def asyncio(
         order, with the most recent purchase orders appearing first.
 
     Args:
-        ids (Union[Unset, list[int]]):
-        order_no (Union[Unset, str]):
-        entity_type (Union[Unset, FindPurchaseOrdersEntityType]):
-        status (Union[Unset, FindPurchaseOrdersStatus]):
-        billing_status (Union[Unset, FindPurchaseOrdersBillingStatus]):
-        currency (Union[Unset, str]):
-        location_id (Union[Unset, int]):
-        tracking_location_id (Union[Unset, float]):
-        supplier_id (Union[Unset, float]):
-        extend (Union[Unset, list[FindPurchaseOrdersExtendItem]]):
-        include_deleted (Union[Unset, bool]):
-        limit (Union[Unset, int]):  Default: 50.
-        page (Union[Unset, int]):  Default: 1.
-        created_at_min (Union[Unset, datetime.datetime]):
-        created_at_max (Union[Unset, datetime.datetime]):
-        updated_at_min (Union[Unset, datetime.datetime]):
-        updated_at_max (Union[Unset, datetime.datetime]):
+        ids (list[int] | Unset):
+        order_no (str | Unset):
+        entity_type (FindPurchaseOrdersEntityType | Unset):
+        status (FindPurchaseOrdersStatus | Unset):
+        billing_status (FindPurchaseOrdersBillingStatus | Unset):
+        currency (str | Unset):
+        location_id (int | Unset):
+        tracking_location_id (float | Unset):
+        supplier_id (float | Unset):
+        extend (list[FindPurchaseOrdersExtendItem] | Unset):
+        include_deleted (bool | Unset):
+        limit (int | Unset):  Default: 50.
+        page (int | Unset):  Default: 1.
+        created_at_min (datetime.datetime | Unset):
+        created_at_max (datetime.datetime | Unset):
+        updated_at_min (datetime.datetime | Unset):
+        updated_at_max (datetime.datetime | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -450,7 +450,7 @@ async def asyncio(
 
 
     Returns:
-        Union[ErrorResponse, PurchaseOrderListResponse]
+        ErrorResponse | PurchaseOrderListResponse
     """
 
     return (

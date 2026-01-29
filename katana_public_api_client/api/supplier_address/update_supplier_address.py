@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -21,7 +22,9 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "patch",
-        "url": f"/supplier_addresses/{id}",
+        "url": "/supplier_addresses/{id}".format(
+            id=quote(str(id), safe=""),
+        ),
     }
 
     _kwargs["json"] = body.to_dict()
@@ -100,7 +103,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, SupplierAddress]]
+        Response[DetailedErrorResponse | ErrorResponse | SupplierAddress]
     """
 
     kwargs = _get_kwargs(
@@ -138,7 +141,7 @@ def sync(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, SupplierAddress]
+        DetailedErrorResponse | ErrorResponse | SupplierAddress
     """
 
     return sync_detailed(
@@ -171,7 +174,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, SupplierAddress]]
+        Response[DetailedErrorResponse | ErrorResponse | SupplierAddress]
     """
 
     kwargs = _get_kwargs(
@@ -207,7 +210,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, SupplierAddress]
+        DetailedErrorResponse | ErrorResponse | SupplierAddress
     """
 
     return (

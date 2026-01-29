@@ -95,7 +95,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, InventorySafetyStockLevel]]
+        Response[DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel]
     """
 
     kwargs = _get_kwargs(
@@ -129,7 +129,7 @@ def sync(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, InventorySafetyStockLevel]
+        DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel
     """
 
     return sync_detailed(
@@ -158,7 +158,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, InventorySafetyStockLevel]]
+        Response[DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel]
     """
 
     kwargs = _get_kwargs(
@@ -190,7 +190,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, InventorySafetyStockLevel]
+        DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel
     """
 
     return (

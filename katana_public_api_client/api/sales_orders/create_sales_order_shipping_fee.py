@@ -103,7 +103,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]]
+        Response[DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee]
     """
 
     kwargs = _get_kwargs(
@@ -137,7 +137,7 @@ def sync(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]
+        DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee
     """
 
     return sync_detailed(
@@ -166,7 +166,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]]
+        Response[DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee]
     """
 
     kwargs = _get_kwargs(
@@ -198,7 +198,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, SalesOrderShippingFee]
+        DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee
     """
 
     return (

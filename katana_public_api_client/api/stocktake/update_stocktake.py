@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -21,7 +22,9 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "patch",
-        "url": f"/stocktakes/{id}",
+        "url": "/stocktakes/{id}".format(
+            id=quote(str(id), safe=""),
+        ),
     }
 
     _kwargs["json"] = body.to_dict()
@@ -97,9 +100,9 @@ def sync_detailed(
     Args:
         id (int):
         body (UpdateStocktakeRequest): Request payload for updating an existing stocktake Example:
-            {'reference_no': 'STK-2024-003', 'location_id': 1, 'stocktake_date':
-            '2024-01-17T09:00:00.000Z', 'notes': 'Quarterly inventory count - updated', 'status':
-            'IN_PROGRESS'}.
+            {'stocktake_number': 'STK-2024-003', 'location_id': 1, 'reason': 'Quarterly inventory
+            count - updated', 'status': 'IN_PROGRESS'}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -107,7 +110,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, Stocktake]]
+        Response[DetailedErrorResponse | ErrorResponse | Stocktake]
     """
 
     kwargs = _get_kwargs(
@@ -137,9 +140,9 @@ def sync(
     Args:
         id (int):
         body (UpdateStocktakeRequest): Request payload for updating an existing stocktake Example:
-            {'reference_no': 'STK-2024-003', 'location_id': 1, 'stocktake_date':
-            '2024-01-17T09:00:00.000Z', 'notes': 'Quarterly inventory count - updated', 'status':
-            'IN_PROGRESS'}.
+            {'stocktake_number': 'STK-2024-003', 'location_id': 1, 'reason': 'Quarterly inventory
+            count - updated', 'status': 'IN_PROGRESS'}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -147,7 +150,7 @@ def sync(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, Stocktake]
+        DetailedErrorResponse | ErrorResponse | Stocktake
     """
 
     return sync_detailed(
@@ -172,9 +175,9 @@ async def asyncio_detailed(
     Args:
         id (int):
         body (UpdateStocktakeRequest): Request payload for updating an existing stocktake Example:
-            {'reference_no': 'STK-2024-003', 'location_id': 1, 'stocktake_date':
-            '2024-01-17T09:00:00.000Z', 'notes': 'Quarterly inventory count - updated', 'status':
-            'IN_PROGRESS'}.
+            {'stocktake_number': 'STK-2024-003', 'location_id': 1, 'reason': 'Quarterly inventory
+            count - updated', 'status': 'IN_PROGRESS'}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -182,7 +185,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[DetailedErrorResponse, ErrorResponse, Stocktake]]
+        Response[DetailedErrorResponse | ErrorResponse | Stocktake]
     """
 
     kwargs = _get_kwargs(
@@ -210,9 +213,9 @@ async def asyncio(
     Args:
         id (int):
         body (UpdateStocktakeRequest): Request payload for updating an existing stocktake Example:
-            {'reference_no': 'STK-2024-003', 'location_id': 1, 'stocktake_date':
-            '2024-01-17T09:00:00.000Z', 'notes': 'Quarterly inventory count - updated', 'status':
-            'IN_PROGRESS'}.
+            {'stocktake_number': 'STK-2024-003', 'location_id': 1, 'reason': 'Quarterly inventory
+            count - updated', 'status': 'IN_PROGRESS'}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -220,7 +223,7 @@ async def asyncio(
 
 
     Returns:
-        Union[DetailedErrorResponse, ErrorResponse, Stocktake]
+        DetailedErrorResponse | ErrorResponse | Stocktake
     """
 
     return (

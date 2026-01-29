@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
@@ -25,11 +27,11 @@ class PurchaseOrderAccountingMetadata:
 
     id: int
     purchaseOrderId: int
-    purchase_order_id: Unset | int = UNSET
-    por_received_group_id: Unset | int = UNSET
-    integration_type: Unset | str = UNSET
-    bill_id: Unset | str = UNSET
-    created_at: Unset | datetime.datetime = UNSET
+    purchase_order_id: int | Unset = UNSET
+    por_received_group_id: int | Unset = UNSET
+    integration_type: str | Unset = UNSET
+    bill_id: str | Unset = UNSET
+    created_at: datetime.datetime | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -45,7 +47,7 @@ class PurchaseOrderAccountingMetadata:
 
         bill_id = self.bill_id
 
-        created_at: Unset | str = UNSET
+        created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
 
@@ -86,7 +88,7 @@ class PurchaseOrderAccountingMetadata:
         bill_id = d.pop("billId", UNSET)
 
         _created_at = d.pop("createdAt", UNSET)
-        created_at: Unset | datetime.datetime
+        created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:

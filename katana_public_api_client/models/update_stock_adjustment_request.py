@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -29,14 +31,14 @@ class UpdateStockAdjustmentRequest:
             'COMPLETED', 'stock_adjustment_rows': [{'variant_id': 501, 'quantity': 95, 'cost_per_unit': 123.45}]}
     """
 
-    reference_no: Unset | str = UNSET
-    location_id: Unset | int = UNSET
-    adjustment_date: Unset | datetime.datetime = UNSET
-    reason: Unset | str = UNSET
-    additional_info: Unset | str = UNSET
-    status: Unset | UpdateStockAdjustmentRequestStatus = UNSET
+    reference_no: str | Unset = UNSET
+    location_id: int | Unset = UNSET
+    adjustment_date: datetime.datetime | Unset = UNSET
+    reason: str | Unset = UNSET
+    additional_info: str | Unset = UNSET
+    status: UpdateStockAdjustmentRequestStatus | Unset = UNSET
     stock_adjustment_rows: (
-        Unset | list["UpdateStockAdjustmentRequestStockAdjustmentRowsItem"]
+        list[UpdateStockAdjustmentRequestStockAdjustmentRowsItem] | Unset
     ) = UNSET
 
     def to_dict(self) -> dict[str, Any]:
@@ -44,7 +46,7 @@ class UpdateStockAdjustmentRequest:
 
         location_id = self.location_id
 
-        adjustment_date: Unset | str = UNSET
+        adjustment_date: str | Unset = UNSET
         if not isinstance(self.adjustment_date, Unset):
             adjustment_date = self.adjustment_date.isoformat()
 
@@ -52,11 +54,11 @@ class UpdateStockAdjustmentRequest:
 
         additional_info = self.additional_info
 
-        status: Unset | str = UNSET
+        status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
-        stock_adjustment_rows: Unset | list[dict[str, Any]] = UNSET
+        stock_adjustment_rows: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.stock_adjustment_rows, Unset):
             stock_adjustment_rows = []
             for stock_adjustment_rows_item_data in self.stock_adjustment_rows:
@@ -95,7 +97,7 @@ class UpdateStockAdjustmentRequest:
         location_id = d.pop("location_id", UNSET)
 
         _adjustment_date = d.pop("adjustment_date", UNSET)
-        adjustment_date: Unset | datetime.datetime
+        adjustment_date: datetime.datetime | Unset
         if isinstance(_adjustment_date, Unset):
             adjustment_date = UNSET
         else:
@@ -106,22 +108,26 @@ class UpdateStockAdjustmentRequest:
         additional_info = d.pop("additional_info", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: Unset | UpdateStockAdjustmentRequestStatus
+        status: UpdateStockAdjustmentRequestStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
             status = UpdateStockAdjustmentRequestStatus(_status)
 
-        stock_adjustment_rows = []
         _stock_adjustment_rows = d.pop("stock_adjustment_rows", UNSET)
-        for stock_adjustment_rows_item_data in _stock_adjustment_rows or []:
-            stock_adjustment_rows_item = (
-                UpdateStockAdjustmentRequestStockAdjustmentRowsItem.from_dict(
-                    stock_adjustment_rows_item_data
+        stock_adjustment_rows: (
+            list[UpdateStockAdjustmentRequestStockAdjustmentRowsItem] | Unset
+        ) = UNSET
+        if _stock_adjustment_rows is not UNSET:
+            stock_adjustment_rows = []
+            for stock_adjustment_rows_item_data in _stock_adjustment_rows:
+                stock_adjustment_rows_item = (
+                    UpdateStockAdjustmentRequestStockAdjustmentRowsItem.from_dict(
+                        stock_adjustment_rows_item_data
+                    )
                 )
-            )
 
-            stock_adjustment_rows.append(stock_adjustment_rows_item)
+                stock_adjustment_rows.append(stock_adjustment_rows_item)
 
         update_stock_adjustment_request = cls(
             reference_no=reference_no,

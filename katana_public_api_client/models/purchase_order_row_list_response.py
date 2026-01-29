@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -29,11 +31,11 @@ class PurchaseOrderRowListResponse:
             '2024-01-28T09:15:00Z', 'updated_at': '2024-02-15T14:30:00Z', 'deleted_at': None}]}
     """
 
-    data: Unset | list["PurchaseOrderRow"] = UNSET
+    data: list[PurchaseOrderRow] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data: Unset | list[dict[str, Any]] = UNSET
+        data: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:
@@ -53,12 +55,14 @@ class PurchaseOrderRowListResponse:
         from ..models.purchase_order_row import PurchaseOrderRow
 
         d = dict(src_dict)
-        data = []
         _data = d.pop("data", UNSET)
-        for data_item_data in _data or []:
-            data_item = PurchaseOrderRow.from_dict(data_item_data)
+        data: list[PurchaseOrderRow] | Unset = UNSET
+        if _data is not UNSET:
+            data = []
+            for data_item_data in _data:
+                data_item = PurchaseOrderRow.from_dict(data_item_data)
 
-            data.append(data_item)
+                data.append(data_item)
 
         purchase_order_row_list_response = cls(
             data=data,

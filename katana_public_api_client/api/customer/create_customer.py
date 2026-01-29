@@ -93,7 +93,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Union[Customer, ErrorResponse]]
+        Response[Customer | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -130,7 +130,7 @@ def sync(
 
 
     Returns:
-        Union[Customer, ErrorResponse]
+        Customer | ErrorResponse
     """
 
     return sync_detailed(
@@ -162,7 +162,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Union[Customer, ErrorResponse]]
+        Response[Customer | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -197,7 +197,7 @@ async def asyncio(
 
 
     Returns:
-        Union[Customer, ErrorResponse]
+        Customer | ErrorResponse
     """
 
     return (

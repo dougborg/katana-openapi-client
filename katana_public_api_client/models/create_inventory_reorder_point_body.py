@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -13,7 +15,7 @@ class CreateInventoryReorderPointBody:
     variant_id: int
     location_id: int
     reorder_point: float
-    reorder_quantity: Unset | float = UNSET
+    reorder_quantity: float | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         variant_id = self.variant_id

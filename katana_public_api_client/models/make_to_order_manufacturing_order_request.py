@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -18,7 +20,7 @@ class MakeToOrderManufacturingOrderRequest:
     """
 
     sales_order_row_id: float
-    create_subassemblies: Unset | bool = False
+    create_subassemblies: bool | Unset = False
 
     def to_dict(self) -> dict[str, Any]:
         sales_order_row_id = self.sales_order_row_id
