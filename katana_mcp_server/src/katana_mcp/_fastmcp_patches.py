@@ -13,7 +13,6 @@ still exist in __signature__.
 This patch updates __signature__ to match __annotations__ when creating
 new function objects.
 
-See: https://github.com/jlowin/fastmcp/issues/XXXX (to be filed)
 """
 
 from __future__ import annotations
