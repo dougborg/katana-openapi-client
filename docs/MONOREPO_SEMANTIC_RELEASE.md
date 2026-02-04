@@ -161,7 +161,6 @@ version, the MCP dependency is **automatically updated** via the
 
 - Ensures MCP always declares compatibility with the latest client
 - Prevents users from installing MCP with an outdated client version
-- Automates a previously manual process documented in issue #XXX
 - Maintains semantic versioning (MINOR bump for dependency updates)
 
 **Edge cases handled:**

@@ -121,7 +121,7 @@ effort estimates and dependencies.
 ## Architecture Review
 
 **Relevant ADRs**:
-- ADR-XXX: [Title]
+- [Relevant ADRs from docs/adr/]
 
 **Patterns to Follow**:
 - [Pattern name from ADR]

@@ -95,7 +95,7 @@ The server has been tested with:
 - MCP Server README:
 https://github.com/dougborg/katana-openapi-client/blob/main/katana_mcp_server/README.md
 - Docker Guide:
-https://github.com/dougborg/katana-openapi-client/blob/main/katana_mcp_server/DOCKER.md
+https://github.com/dougborg/katana-openapi-client/blob/main/katana_mcp_server/docs/docker.md
 ```
 
 ## Files Description

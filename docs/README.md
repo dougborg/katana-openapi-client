@@ -67,7 +67,6 @@ katana_mcp_server/docs/              # MCP server documentation
 ├── deployment.md                    # Deployment guide
 ├── docker.md                        # Docker deployment
 ├── implementation-plan.md           # Implementation roadmap
-├── stocktrim-migration.md           # StockTrim migration plan
 └── adr/                            # MCP ADRs (010)
 
 packages/katana-client/docs/         # TypeScript client documentation

@@ -74,7 +74,6 @@ katana-openapi-client/
 │       ├── deployment.md              # Deployment guide
 │       ├── docker.md                  # Docker guide
 │       ├── implementation-plan.md     # Implementation roadmap
-│       ├── stocktrim-migration.md     # Migration plan
 │       └── adr/                       # MCP ADRs (010)
 │
 ├── docs/                              # SHARED MONOREPO DOCS
