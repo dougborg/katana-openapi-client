@@ -122,7 +122,7 @@ class SupplierAddress:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -153,7 +153,7 @@ class SupplierAddress:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -166,7 +166,7 @@ class SupplierAddress:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         line_2 = _parse_line_2(d.pop("line_2", UNSET))
 
@@ -175,7 +175,7 @@ class SupplierAddress:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         city = _parse_city(d.pop("city", UNSET))
 
@@ -184,7 +184,7 @@ class SupplierAddress:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         state = _parse_state(d.pop("state", UNSET))
 
@@ -193,7 +193,7 @@ class SupplierAddress:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         zip_ = _parse_zip_(d.pop("zip", UNSET))
 
@@ -202,7 +202,7 @@ class SupplierAddress:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         country = _parse_country(d.pop("country", UNSET))
 

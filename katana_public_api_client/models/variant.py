@@ -175,7 +175,7 @@ class Variant:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.variant_config_attributes_item import VariantConfigAttributesItem
         from ..models.variant_custom_fields_item import VariantCustomFieldsItem
 
@@ -211,7 +211,7 @@ class Variant:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -220,7 +220,7 @@ class Variant:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         sales_price = _parse_sales_price(d.pop("sales_price", UNSET))
 
@@ -229,7 +229,7 @@ class Variant:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         product_id = _parse_product_id(d.pop("product_id", UNSET))
 
@@ -238,7 +238,7 @@ class Variant:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         material_id = _parse_material_id(d.pop("material_id", UNSET))
 
@@ -262,7 +262,7 @@ class Variant:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
 
@@ -271,7 +271,7 @@ class Variant:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         minimum_order_quantity = _parse_minimum_order_quantity(
             d.pop("minimum_order_quantity", UNSET)

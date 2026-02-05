@@ -70,7 +70,7 @@ class ManufacturingOrder:
     total_planned_time: float | Unset = UNSET
     sales_order_id: int | Unset = UNSET
     sales_order_row_id: int | Unset = UNSET
-    sales_order_delivery_deadline: datetime.datetime | Unset = UNSET
+    sales_order_delivery_deadline: datetime.datetime | None | Unset = UNSET
     material_cost: float | Unset = UNSET
     subassemblies_cost: float | Unset = UNSET
     operations_cost: float | Unset = UNSET
@@ -161,11 +161,15 @@ class ManufacturingOrder:
 
         sales_order_row_id = self.sales_order_row_id
 
-        sales_order_delivery_deadline: str | Unset = UNSET
-        if not isinstance(self.sales_order_delivery_deadline, Unset):
+        sales_order_delivery_deadline: None | str | Unset
+        if isinstance(self.sales_order_delivery_deadline, Unset):
+            sales_order_delivery_deadline = UNSET
+        elif isinstance(self.sales_order_delivery_deadline, datetime.datetime):
             sales_order_delivery_deadline = (
                 self.sales_order_delivery_deadline.isoformat()
             )
+        else:
+            sales_order_delivery_deadline = self.sales_order_delivery_deadline
 
         material_cost = self.material_cost
 
@@ -243,7 +247,7 @@ class ManufacturingOrder:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.batch_transaction import BatchTransaction
         from ..models.serial_number import SerialNumber
 
@@ -277,7 +281,7 @@ class ManufacturingOrder:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -299,7 +303,7 @@ class ManufacturingOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         actual_quantity = _parse_actual_quantity(d.pop("actual_quantity", UNSET))
 
@@ -343,7 +347,7 @@ class ManufacturingOrder:
                 return done_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         done_date = _parse_done_date(d.pop("done_date", UNSET))
 
@@ -370,7 +374,7 @@ class ManufacturingOrder:
                 pass
             return cast(
                 ManufacturingOrderIngredientAvailabilityType0 | None | Unset, data
-            )  # type: ignore[return-value]
+            )
 
         ingredient_availability = _parse_ingredient_availability(
             d.pop("ingredient_availability", UNSET)
@@ -386,12 +390,26 @@ class ManufacturingOrder:
 
         sales_order_row_id = d.pop("sales_order_row_id", UNSET)
 
-        _sales_order_delivery_deadline = d.pop("sales_order_delivery_deadline", UNSET)
-        sales_order_delivery_deadline: datetime.datetime | Unset
-        if isinstance(_sales_order_delivery_deadline, Unset):
-            sales_order_delivery_deadline = UNSET
-        else:
-            sales_order_delivery_deadline = isoparse(_sales_order_delivery_deadline)
+        def _parse_sales_order_delivery_deadline(
+            data: object,
+        ) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                sales_order_delivery_deadline_type_0 = isoparse(data)
+
+                return sales_order_delivery_deadline_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        sales_order_delivery_deadline = _parse_sales_order_delivery_deadline(
+            d.pop("sales_order_delivery_deadline", UNSET)
+        )
 
         material_cost = d.pop("material_cost", UNSET)
 

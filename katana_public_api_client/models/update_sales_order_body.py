@@ -118,7 +118,7 @@ class UpdateSalesOrderBody:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         order_no = d.pop("order_no", UNSET)
 
@@ -165,7 +165,7 @@ class UpdateSalesOrderBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
@@ -174,7 +174,7 @@ class UpdateSalesOrderBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         customer_ref = _parse_customer_ref(d.pop("customer_ref", UNSET))
 
@@ -183,7 +183,7 @@ class UpdateSalesOrderBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
@@ -192,7 +192,7 @@ class UpdateSalesOrderBody:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         tracking_number_url = _parse_tracking_number_url(
             d.pop("tracking_number_url", UNSET)

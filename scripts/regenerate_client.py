@@ -705,19 +705,9 @@ def fix_ty_type_errors(workspace_path: Path) -> None:
                             count=1,
                         )
 
-            # Fix @classmethod from_dict signatures - only add if not present
-            content = re.sub(
-                r"(    def from_dict\(cls: type\[T\], src_dict: Mapping\[str, Any\]\) -> T:)(?!\s*#\s*type:\s*ignore)",
-                r"\1  # type: ignore[misc]",
-                content,
-            )
-
-            # Fix cast() calls with dict types that have unknown values - already have cast
-            content = re.sub(
-                r"(return cast\([^,]+, data\))(?!\s*#\s*type:\s*ignore)",
-                r"\1  # type: ignore[return-value]",
-                content,
-            )
+            # Note: We previously added # type: ignore[misc] to from_dict methods and
+            # # type: ignore[return-value] to cast() calls, but ty no longer requires these
+            # suppressions. Removed to avoid "unused-ignore-comment" warnings.
 
             if content != original:
                 py_file.write_text(content, encoding="utf-8")

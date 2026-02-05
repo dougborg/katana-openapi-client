@@ -126,7 +126,7 @@ class Factory:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.factory_legal_address import FactoryLegalAddress
 
         d = dict(src_dict)
@@ -141,7 +141,7 @@ class Factory:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         address = _parse_address(d.pop("address", UNSET))
 

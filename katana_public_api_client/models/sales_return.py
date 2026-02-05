@@ -152,7 +152,7 @@ class SalesReturn:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.sales_return_row import SalesReturnRow
 
         d = dict(src_dict)
@@ -193,7 +193,7 @@ class SalesReturn:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -202,7 +202,7 @@ class SalesReturn:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         sales_order_id = _parse_sales_order_id(d.pop("sales_order_id", UNSET))
 
@@ -221,7 +221,7 @@ class SalesReturn:
                 return return_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         return_date = _parse_return_date(d.pop("return_date", UNSET))
 
@@ -237,7 +237,7 @@ class SalesReturn:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
@@ -246,7 +246,7 @@ class SalesReturn:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         refund_status = _parse_refund_status(d.pop("refund_status", UNSET))
 

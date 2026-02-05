@@ -80,7 +80,7 @@ class CreateProductOperationRowsBodyRowsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         product_variant_id = d.pop("product_variant_id")
 

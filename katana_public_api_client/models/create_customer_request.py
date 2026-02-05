@@ -131,7 +131,7 @@ class CreateCustomerRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         name = d.pop("name")
 
@@ -140,7 +140,7 @@ class CreateCustomerRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         first_name = _parse_first_name(d.pop("first_name", UNSET))
 
@@ -149,7 +149,7 @@ class CreateCustomerRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         last_name = _parse_last_name(d.pop("last_name", UNSET))
 
@@ -158,7 +158,7 @@ class CreateCustomerRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         company = _parse_company(d.pop("company", UNSET))
 
@@ -167,7 +167,7 @@ class CreateCustomerRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         email = _parse_email(d.pop("email", UNSET))
 
@@ -176,7 +176,7 @@ class CreateCustomerRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         phone = _parse_phone(d.pop("phone", UNSET))
 
@@ -185,7 +185,7 @@ class CreateCustomerRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         comment = _parse_comment(d.pop("comment", UNSET))
 
@@ -194,7 +194,7 @@ class CreateCustomerRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         currency = _parse_currency(d.pop("currency", UNSET))
 
@@ -203,7 +203,7 @@ class CreateCustomerRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         reference_id = _parse_reference_id(d.pop("reference_id", UNSET))
 
@@ -212,7 +212,7 @@ class CreateCustomerRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         category = _parse_category(d.pop("category", UNSET))
 
@@ -221,7 +221,7 @@ class CreateCustomerRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         discount_rate = _parse_discount_rate(d.pop("discount_rate", UNSET))
 

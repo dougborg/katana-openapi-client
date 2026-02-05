@@ -98,7 +98,7 @@ class SalesReturnRow:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -127,7 +127,7 @@ class SalesReturnRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         return_reason_id = _parse_return_reason_id(d.pop("return_reason_id", UNSET))
 
@@ -136,7 +136,7 @@ class SalesReturnRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
@@ -145,7 +145,7 @@ class SalesReturnRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         unit_price = _parse_unit_price(d.pop("unit_price", UNSET))
 
@@ -154,7 +154,7 @@ class SalesReturnRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         total_price = _parse_total_price(d.pop("total_price", UNSET))
 

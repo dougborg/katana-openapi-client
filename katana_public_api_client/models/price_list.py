@@ -113,7 +113,7 @@ class PriceList:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -146,7 +146,7 @@ class PriceList:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -159,7 +159,7 @@ class PriceList:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         markup_percentage = _parse_markup_percentage(d.pop("markup_percentage", UNSET))
 
@@ -176,7 +176,7 @@ class PriceList:
                 return start_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         start_date = _parse_start_date(d.pop("start_date", UNSET))
 
@@ -193,7 +193,7 @@ class PriceList:
                 return end_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         end_date = _parse_end_date(d.pop("end_date", UNSET))
 

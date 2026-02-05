@@ -64,7 +64,7 @@ class ItemConfig:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -77,7 +77,7 @@ class ItemConfig:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         product_id = _parse_product_id(d.pop("product_id", UNSET))
 
@@ -86,7 +86,7 @@ class ItemConfig:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         material_id = _parse_material_id(d.pop("material_id", UNSET))
 

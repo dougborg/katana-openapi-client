@@ -48,7 +48,7 @@ class ManufacturingOrderRecipeRowListResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.manufacturing_order_recipe_row import ManufacturingOrderRecipeRow
 
         d = dict(src_dict)

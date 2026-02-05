@@ -409,7 +409,7 @@ class SalesOrder:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.sales_order_address import SalesOrderAddress
         from ..models.sales_order_row import SalesOrderRow
         from ..models.sales_order_shipping_fee import SalesOrderShippingFee
@@ -444,7 +444,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         source = _parse_source(d.pop("source", UNSET))
 
@@ -468,7 +468,7 @@ class SalesOrder:
                 return delivery_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         delivery_date = _parse_delivery_date(d.pop("delivery_date", UNSET))
 
@@ -485,7 +485,7 @@ class SalesOrder:
                 return picked_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         picked_date = _parse_picked_date(d.pop("picked_date", UNSET))
 
@@ -496,7 +496,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         conversion_rate = _parse_conversion_rate(d.pop("conversion_rate", UNSET))
 
@@ -513,7 +513,7 @@ class SalesOrder:
                 return conversion_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         conversion_date = _parse_conversion_date(d.pop("conversion_date", UNSET))
 
@@ -522,7 +522,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         invoicing_status = _parse_invoicing_status(d.pop("invoicing_status", UNSET))
 
@@ -535,7 +535,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
@@ -544,7 +544,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         customer_ref = _parse_customer_ref(d.pop("customer_ref", UNSET))
 
@@ -564,7 +564,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         ecommerce_order_type = _parse_ecommerce_order_type(
             d.pop("ecommerce_order_type", UNSET)
@@ -575,7 +575,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         ecommerce_store_name = _parse_ecommerce_store_name(
             d.pop("ecommerce_store_name", UNSET)
@@ -586,7 +586,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         ecommerce_order_id = _parse_ecommerce_order_id(
             d.pop("ecommerce_order_id", UNSET)
@@ -607,7 +607,7 @@ class SalesOrder:
                 return product_availability_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | SalesOrderProductAvailabilityType0 | Unset, data)  # type: ignore[return-value]
+            return cast(None | SalesOrderProductAvailabilityType0 | Unset, data)
 
         product_availability = _parse_product_availability(
             d.pop("product_availability", UNSET)
@@ -628,7 +628,7 @@ class SalesOrder:
                 return product_expected_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         product_expected_date = _parse_product_expected_date(
             d.pop("product_expected_date", UNSET)
@@ -651,7 +651,7 @@ class SalesOrder:
                 return ingredient_availability_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | SalesOrderIngredientAvailabilityType0 | Unset, data)  # type: ignore[return-value]
+            return cast(None | SalesOrderIngredientAvailabilityType0 | Unset, data)
 
         ingredient_availability = _parse_ingredient_availability(
             d.pop("ingredient_availability", UNSET)
@@ -672,7 +672,7 @@ class SalesOrder:
                 return ingredient_expected_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         ingredient_expected_date = _parse_ingredient_expected_date(
             d.pop("ingredient_expected_date", UNSET)
@@ -693,7 +693,7 @@ class SalesOrder:
                 return production_status_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | SalesOrderProductionStatusType0 | Unset, data)  # type: ignore[return-value]
+            return cast(None | SalesOrderProductionStatusType0 | Unset, data)
 
         production_status = _parse_production_status(d.pop("production_status", UNSET))
 
@@ -702,7 +702,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
@@ -711,7 +711,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         tracking_number_url = _parse_tracking_number_url(
             d.pop("tracking_number_url", UNSET)
@@ -722,7 +722,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         billing_address_id = _parse_billing_address_id(
             d.pop("billing_address_id", UNSET)
@@ -733,7 +733,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         shipping_address_id = _parse_shipping_address_id(
             d.pop("shipping_address_id", UNSET)
@@ -744,7 +744,7 @@ class SalesOrder:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         linked_manufacturing_order_id = _parse_linked_manufacturing_order_id(
             d.pop("linked_manufacturing_order_id", UNSET)
@@ -765,7 +765,7 @@ class SalesOrder:
                 return shipping_fee_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | SalesOrderShippingFee | Unset, data)  # type: ignore[return-value]
+            return cast(None | SalesOrderShippingFee | Unset, data)
 
         shipping_fee = _parse_shipping_fee(d.pop("shipping_fee", UNSET))
 

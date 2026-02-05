@@ -138,7 +138,7 @@ class Service:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.service_variant import ServiceVariant
 
         d = dict(src_dict)
@@ -171,7 +171,7 @@ class Service:
                 return archived_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
@@ -188,7 +188,7 @@ class Service:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -214,7 +214,7 @@ class Service:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)

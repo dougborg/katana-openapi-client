@@ -206,7 +206,7 @@ class CreateSalesOrderRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.create_sales_order_request_sales_order_rows_item import (
             CreateSalesOrderRequestSalesOrderRowsItem,
         )
@@ -231,7 +231,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
@@ -240,7 +240,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         tracking_number_url = _parse_tracking_number_url(
             d.pop("tracking_number_url", UNSET)
@@ -268,7 +268,7 @@ class CreateSalesOrderRequest:
                 return order_created_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         order_created_date = _parse_order_created_date(
             d.pop("order_created_date", UNSET)
@@ -287,7 +287,7 @@ class CreateSalesOrderRequest:
                 return delivery_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         delivery_date = _parse_delivery_date(d.pop("delivery_date", UNSET))
 
@@ -296,7 +296,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         currency = _parse_currency(d.pop("currency", UNSET))
 
@@ -314,7 +314,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
@@ -323,7 +323,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         customer_ref = _parse_customer_ref(d.pop("customer_ref", UNSET))
 
@@ -332,7 +332,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         ecommerce_order_type = _parse_ecommerce_order_type(
             d.pop("ecommerce_order_type", UNSET)
@@ -343,7 +343,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         ecommerce_store_name = _parse_ecommerce_store_name(
             d.pop("ecommerce_store_name", UNSET)
@@ -354,7 +354,7 @@ class CreateSalesOrderRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         ecommerce_order_id = _parse_ecommerce_order_id(
             d.pop("ecommerce_order_id", UNSET)

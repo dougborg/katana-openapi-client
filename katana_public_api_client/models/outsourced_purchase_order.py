@@ -200,7 +200,7 @@ class OutsourcedPurchaseOrder:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.purchase_order_row import PurchaseOrderRow
         from ..models.supplier import Supplier
 
@@ -236,7 +236,7 @@ class OutsourcedPurchaseOrder:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -342,7 +342,7 @@ class OutsourcedPurchaseOrder:
                 return ingredient_expected_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         ingredient_expected_date = _parse_ingredient_expected_date(
             d.pop("ingredient_expected_date", UNSET)

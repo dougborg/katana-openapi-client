@@ -149,7 +149,7 @@ class SalesOrderFulfillment:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -174,7 +174,7 @@ class SalesOrderFulfillment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
@@ -183,7 +183,7 @@ class SalesOrderFulfillment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         tracking_number_url = _parse_tracking_number_url(
             d.pop("tracking_number_url", UNSET)
@@ -202,7 +202,7 @@ class SalesOrderFulfillment:
                 return shipped_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         shipped_date = _parse_shipped_date(d.pop("shipped_date", UNSET))
 
@@ -221,7 +221,7 @@ class SalesOrderFulfillment:
                 return estimated_delivery_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         estimated_delivery_date = _parse_estimated_delivery_date(
             d.pop("estimated_delivery_date", UNSET)
@@ -242,7 +242,7 @@ class SalesOrderFulfillment:
                 return actual_delivery_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         actual_delivery_date = _parse_actual_delivery_date(
             d.pop("actual_delivery_date", UNSET)
@@ -253,7 +253,7 @@ class SalesOrderFulfillment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         shipping_cost = _parse_shipping_cost(d.pop("shipping_cost", UNSET))
 
@@ -262,7 +262,7 @@ class SalesOrderFulfillment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         shipping_method = _parse_shipping_method(d.pop("shipping_method", UNSET))
 
@@ -271,7 +271,7 @@ class SalesOrderFulfillment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         carrier = _parse_carrier(d.pop("carrier", UNSET))
 
@@ -280,7 +280,7 @@ class SalesOrderFulfillment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 

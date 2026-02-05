@@ -190,7 +190,7 @@ class PurchaseOrderRow:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.purchase_order_row_batch_transactions_item import (
             PurchaseOrderRowBatchTransactionsItem,
         )
@@ -235,7 +235,7 @@ class PurchaseOrderRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         conversion_rate = _parse_conversion_rate(d.pop("conversion_rate", UNSET))
 
@@ -256,7 +256,7 @@ class PurchaseOrderRow:
                 return conversion_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         conversion_date = _parse_conversion_date(d.pop("conversion_date", UNSET))
 
@@ -273,7 +273,7 @@ class PurchaseOrderRow:
                 return received_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         received_date = _parse_received_date(d.pop("received_date", UNSET))
 
@@ -290,7 +290,7 @@ class PurchaseOrderRow:
                 return arrival_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         arrival_date = _parse_arrival_date(d.pop("arrival_date", UNSET))
 
@@ -312,7 +312,7 @@ class PurchaseOrderRow:
         def _parse_landed_cost(data: object) -> float | str | Unset:
             if isinstance(data, Unset):
                 return data
-            return cast(float | str | Unset, data)  # type: ignore[return-value]
+            return cast(float | str | Unset, data)
 
         landed_cost = _parse_landed_cost(d.pop("landed_cost", UNSET))
 

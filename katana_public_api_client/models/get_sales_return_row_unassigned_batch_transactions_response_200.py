@@ -43,7 +43,7 @@ class GetSalesReturnRowUnassignedBatchTransactionsResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.get_sales_return_row_unassigned_batch_transactions_response_200_data_item import (
             GetSalesReturnRowUnassignedBatchTransactionsResponse200DataItem,
         )

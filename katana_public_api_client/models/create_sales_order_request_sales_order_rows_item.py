@@ -90,7 +90,7 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.create_sales_order_request_sales_order_rows_item_attributes_item import (
             CreateSalesOrderRequestSalesOrderRowsItemAttributesItem,
         )
@@ -105,7 +105,7 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         tax_rate_id = _parse_tax_rate_id(d.pop("tax_rate_id", UNSET))
 
@@ -114,7 +114,7 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         location_id = _parse_location_id(d.pop("location_id", UNSET))
 
@@ -123,7 +123,7 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         price_per_unit = _parse_price_per_unit(d.pop("price_per_unit", UNSET))
 
@@ -132,7 +132,7 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         total_discount = _parse_total_discount(d.pop("total_discount", UNSET))
 

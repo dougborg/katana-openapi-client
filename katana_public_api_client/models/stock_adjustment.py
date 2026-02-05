@@ -134,7 +134,7 @@ class StockAdjustment:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.stock_adjustment_row import StockAdjustmentRow
 
         d = dict(src_dict)
@@ -171,7 +171,7 @@ class StockAdjustment:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -180,7 +180,7 @@ class StockAdjustment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         reference_no = _parse_reference_no(d.pop("reference_no", UNSET))
 
@@ -203,7 +203,7 @@ class StockAdjustment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         reason = _parse_reason(d.pop("reason", UNSET))
 
@@ -212,7 +212,7 @@ class StockAdjustment:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 

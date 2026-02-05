@@ -172,7 +172,7 @@ class InventoryItem:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.item_config import ItemConfig
         from ..models.supplier import Supplier
         from ..models.variant import Variant
@@ -211,7 +211,7 @@ class InventoryItem:
                 return archived_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
@@ -226,7 +226,7 @@ class InventoryItem:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         default_supplier_id = _parse_default_supplier_id(
             d.pop("default_supplier_id", UNSET)
@@ -241,7 +241,7 @@ class InventoryItem:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         purchase_uom = _parse_purchase_uom(d.pop("purchase_uom", UNSET))
 
@@ -250,7 +250,7 @@ class InventoryItem:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         purchase_uom_conversion_rate = _parse_purchase_uom_conversion_rate(
             d.pop("purchase_uom_conversion_rate", UNSET)
@@ -261,7 +261,7 @@ class InventoryItem:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)
@@ -298,7 +298,7 @@ class InventoryItem:
                 return supplier_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | Supplier | Unset, data)  # type: ignore[return-value]
+            return cast(None | Supplier | Unset, data)
 
         supplier = _parse_supplier(d.pop("supplier", UNSET))
 

@@ -783,7 +783,7 @@ class PaginationTransport(AsyncHTTPTransport):
             and isinstance(data["meta"], dict)
             and "pagination" in data["meta"]
         ):
-            meta_pagination = cast(Any, data["meta"]["pagination"])
+            meta_pagination = data["meta"]["pagination"]
             if isinstance(meta_pagination, dict):
                 pagination_info.update(cast(dict[str, Any], meta_pagination))
 

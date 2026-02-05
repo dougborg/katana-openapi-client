@@ -118,7 +118,7 @@ class ServiceVariant:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.service_variant_custom_fields_item import (
             ServiceVariantCustomFieldsItem,
         )
@@ -157,7 +157,7 @@ class ServiceVariant:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -166,7 +166,7 @@ class ServiceVariant:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         sales_price = _parse_sales_price(d.pop("sales_price", UNSET))
 
@@ -175,7 +175,7 @@ class ServiceVariant:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         default_cost = _parse_default_cost(d.pop("default_cost", UNSET))
 

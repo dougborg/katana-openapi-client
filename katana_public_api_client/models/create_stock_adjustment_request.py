@@ -82,7 +82,7 @@ class CreateStockAdjustmentRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.create_stock_adjustment_request_stock_adjustment_rows_item import (
             CreateStockAdjustmentRequestStockAdjustmentRowsItem,
         )

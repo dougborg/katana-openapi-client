@@ -120,7 +120,7 @@ class DetailedErrorResponse:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.enum_validation_error import EnumValidationError
         from ..models.generic_validation_error import GenericValidationError
         from ..models.invalid_type_validation_error import InvalidTypeValidationError
@@ -146,7 +146,7 @@ class DetailedErrorResponse:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         code = _parse_code(d.pop("code", UNSET))
 

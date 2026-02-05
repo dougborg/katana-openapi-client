@@ -137,7 +137,7 @@ class OutsourcedPurchaseOrderRecipeRow:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.outsourced_purchase_order_recipe_row_batch_transactions_item import (
             OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem,
         )
@@ -178,7 +178,7 @@ class OutsourcedPurchaseOrderRecipeRow:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -212,7 +212,7 @@ class OutsourcedPurchaseOrderRecipeRow:
                 return ingredient_expected_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         ingredient_expected_date = _parse_ingredient_expected_date(
             d.pop("ingredient_expected_date", UNSET)
@@ -223,7 +223,7 @@ class OutsourcedPurchaseOrderRecipeRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
@@ -247,7 +247,7 @@ class OutsourcedPurchaseOrderRecipeRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         cost = _parse_cost(d.pop("cost", UNSET))
 

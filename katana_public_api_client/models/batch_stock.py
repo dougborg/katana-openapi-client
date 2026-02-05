@@ -84,7 +84,7 @@ class BatchStock:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         batch_number = d.pop("batch_number")
 
@@ -109,7 +109,7 @@ class BatchStock:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         batch_barcode = _parse_batch_barcode(d.pop("batch_barcode", UNSET))
 

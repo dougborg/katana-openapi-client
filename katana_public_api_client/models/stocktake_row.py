@@ -114,7 +114,7 @@ class StocktakeRow:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -149,7 +149,7 @@ class StocktakeRow:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
@@ -158,7 +158,7 @@ class StocktakeRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         batch_id = _parse_batch_id(d.pop("batch_id", UNSET))
 
@@ -167,7 +167,7 @@ class StocktakeRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         in_stock_quantity = _parse_in_stock_quantity(d.pop("in_stock_quantity", UNSET))
 
@@ -176,7 +176,7 @@ class StocktakeRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         counted_quantity = _parse_counted_quantity(d.pop("counted_quantity", UNSET))
 
@@ -185,7 +185,7 @@ class StocktakeRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         discrepancy_quantity = _parse_discrepancy_quantity(
             d.pop("discrepancy_quantity", UNSET)
@@ -196,7 +196,7 @@ class StocktakeRow:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 

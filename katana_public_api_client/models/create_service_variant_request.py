@@ -69,7 +69,7 @@ class CreateServiceVariantRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.create_service_variant_request_custom_fields_item import (
             CreateServiceVariantRequestCustomFieldsItem,
         )
@@ -82,7 +82,7 @@ class CreateServiceVariantRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         sales_price = _parse_sales_price(d.pop("sales_price", UNSET))
 
@@ -91,7 +91,7 @@ class CreateServiceVariantRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         default_cost = _parse_default_cost(d.pop("default_cost", UNSET))
 

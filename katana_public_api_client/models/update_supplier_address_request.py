@@ -82,7 +82,7 @@ class UpdateSupplierAddressRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
 
         def _parse_line_1(data: object) -> None | str | Unset:
@@ -90,7 +90,7 @@ class UpdateSupplierAddressRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         line_1 = _parse_line_1(d.pop("line_1", UNSET))
 
@@ -99,7 +99,7 @@ class UpdateSupplierAddressRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         line_2 = _parse_line_2(d.pop("line_2", UNSET))
 
@@ -108,7 +108,7 @@ class UpdateSupplierAddressRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         city = _parse_city(d.pop("city", UNSET))
 
@@ -117,7 +117,7 @@ class UpdateSupplierAddressRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         state = _parse_state(d.pop("state", UNSET))
 
@@ -126,7 +126,7 @@ class UpdateSupplierAddressRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         zip_ = _parse_zip_(d.pop("zip", UNSET))
 
@@ -135,7 +135,7 @@ class UpdateSupplierAddressRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         country = _parse_country(d.pop("country", UNSET))
 

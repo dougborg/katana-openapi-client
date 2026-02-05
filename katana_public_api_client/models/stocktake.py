@@ -131,7 +131,7 @@ class Stocktake:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -175,7 +175,7 @@ class Stocktake:
                 return started_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         started_date = _parse_started_date(d.pop("started_date", UNSET))
 
@@ -192,7 +192,7 @@ class Stocktake:
                 return completed_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         completed_date = _parse_completed_date(d.pop("completed_date", UNSET))
 
@@ -205,7 +205,7 @@ class Stocktake:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         stock_adjustment_id = _parse_stock_adjustment_id(
             d.pop("stock_adjustment_id", UNSET)
@@ -216,7 +216,7 @@ class Stocktake:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         reason = _parse_reason(d.pop("reason", UNSET))
 
@@ -225,7 +225,7 @@ class Stocktake:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 

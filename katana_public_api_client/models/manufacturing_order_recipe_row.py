@@ -129,7 +129,7 @@ class ManufacturingOrderRecipeRow:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.manufacturing_order_recipe_row_batch_transactions_item import (
             ManufacturingOrderRecipeRowBatchTransactionsItem,
         )
@@ -164,7 +164,7 @@ class ManufacturingOrderRecipeRow:
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(datetime.datetime | None | Unset, data)  # type: ignore[return-value]
+            return cast(datetime.datetime | None | Unset, data)
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 

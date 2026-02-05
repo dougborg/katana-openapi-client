@@ -65,7 +65,7 @@ class CreateBomRowRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         product_item_id = d.pop("product_item_id")
 
@@ -78,7 +78,7 @@ class CreateBomRowRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)  # type: ignore[return-value]
+            return cast(float | None | Unset, data)
 
         quantity = _parse_quantity(d.pop("quantity", UNSET))
 
@@ -87,7 +87,7 @@ class CreateBomRowRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)  # type: ignore[return-value]
+            return cast(None | str | Unset, data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
 

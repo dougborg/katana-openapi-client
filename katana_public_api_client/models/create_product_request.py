@@ -155,7 +155,7 @@ class CreateProductRequest:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:  # type: ignore[misc]
+    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.create_product_request_configs_item import (
             CreateProductRequestConfigsItem,
         )
@@ -202,7 +202,7 @@ class CreateProductRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
 
@@ -224,7 +224,7 @@ class CreateProductRequest:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(int | None | Unset, data)  # type: ignore[return-value]
+            return cast(int | None | Unset, data)
 
         custom_field_collection_id = _parse_custom_field_collection_id(
             d.pop("custom_field_collection_id", UNSET)
