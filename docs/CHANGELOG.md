@@ -2,6 +2,57 @@
 
 <!-- version list -->
 
+## v0.44.0 (2026-02-05)
+
+### Bug Fixes
+
+- **client**: Align stocktake row schema with Katana API
+  ([#231](https://github.com/dougborg/katana-openapi-client/pull/231),
+  [`2827857`](https://github.com/dougborg/katana-openapi-client/commit/28278571e9a801271d2dcb586e977c5d8705046f))
+
+- **client**: Handle null ingredient_expected_date in ManufacturingOrderRecipeRow
+  ([`6ffd928`](https://github.com/dougborg/katana-openapi-client/commit/6ffd928cee225b07d147b98a2181bb05fa0f9dda))
+
+- **client**: Handle null sales_order_delivery_deadline in ManufacturingOrder
+  ([`c89b8f4`](https://github.com/dougborg/katana-openapi-client/commit/c89b8f48542bb366ee9be2503fcfc50533682ba4))
+
+- **deps**: Bump urllib3 to 2.6.3 for CVE-2026-21441
+  ([#227](https://github.com/dougborg/katana-openapi-client/pull/227),
+  [`1124ea8`](https://github.com/dougborg/katana-openapi-client/commit/1124ea828596e6ae3ab8078a353d63feea0942bc))
+
+### Chores
+
+- **deps)(deps**: Bump the python-minor-patch group with 11 updates
+  ([#228](https://github.com/dougborg/katana-openapi-client/pull/228),
+  [`9b81517`](https://github.com/dougborg/katana-openapi-client/commit/9b8151777e3156ba4b1feaed4cab10299c7f1d6d))
+
+- **deps)(deps**: Bump the python-minor-patch group with 2 updates
+  ([#229](https://github.com/dougborg/katana-openapi-client/pull/229),
+  [`dcfa11f`](https://github.com/dougborg/katana-openapi-client/commit/dcfa11f47c61dc0a055c2143e458122050ffd773))
+
+- **deps)(deps**: Bump types-python-dateutil
+  ([#230](https://github.com/dougborg/katana-openapi-client/pull/230),
+  [`5563c70`](https://github.com/dougborg/katana-openapi-client/commit/5563c703ab0227dc2a1ee2eb28f2e0abd231a71d))
+
+- **deps)(deps-dev**: Bump ty in the python-minor-patch group
+  ([#232](https://github.com/dougborg/katana-openapi-client/pull/232),
+  [`9617414`](https://github.com/dougborg/katana-openapi-client/commit/96174148c049748dc05586142cec3e0e175081bf))
+
+- **release**: Mcp v0.29.0
+  ([`deec6f3`](https://github.com/dougborg/katana-openapi-client/commit/deec6f355a83e93e3f8f471e708d6f0d29722fec))
+
+### Documentation
+
+- Remove stale docs and fix placeholder references
+  ([#233](https://github.com/dougborg/katana-openapi-client/pull/233),
+  [`3f73417`](https://github.com/dougborg/katana-openapi-client/commit/3f734170b1c0e0332acce021a08704d5c79e5aa2))
+
+### Features
+
+- **mcp**: Update client dependency to v0.43.0
+  ([#226](https://github.com/dougborg/katana-openapi-client/pull/226),
+  [`a6e177c`](https://github.com/dougborg/katana-openapi-client/commit/a6e177ce07a01389585528b1ce967c92f76dca13))
+
 ## v0.43.0 (2026-01-16)
 
 ### Bug Fixes
