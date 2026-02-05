@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -38,7 +38,7 @@ class CreateManufacturingOrderRecipeRowRequest:
     notes: str | Unset = UNSET
     total_actual_quantity: float | Unset = UNSET
     ingredient_availability: str | Unset = UNSET
-    ingredient_expected_date: datetime.datetime | Unset = UNSET
+    ingredient_expected_date: datetime.datetime | None | Unset = UNSET
     batch_transactions: (
         list[CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem] | Unset
     ) = UNSET
@@ -58,9 +58,13 @@ class CreateManufacturingOrderRecipeRowRequest:
 
         ingredient_availability = self.ingredient_availability
 
-        ingredient_expected_date: str | Unset = UNSET
-        if not isinstance(self.ingredient_expected_date, Unset):
+        ingredient_expected_date: None | str | Unset
+        if isinstance(self.ingredient_expected_date, Unset):
+            ingredient_expected_date = UNSET
+        elif isinstance(self.ingredient_expected_date, datetime.datetime):
             ingredient_expected_date = self.ingredient_expected_date.isoformat()
+        else:
+            ingredient_expected_date = self.ingredient_expected_date
 
         batch_transactions: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.batch_transactions, Unset):
@@ -114,12 +118,26 @@ class CreateManufacturingOrderRecipeRowRequest:
 
         ingredient_availability = d.pop("ingredient_availability", UNSET)
 
-        _ingredient_expected_date = d.pop("ingredient_expected_date", UNSET)
-        ingredient_expected_date: datetime.datetime | Unset
-        if isinstance(_ingredient_expected_date, Unset):
-            ingredient_expected_date = UNSET
-        else:
-            ingredient_expected_date = isoparse(_ingredient_expected_date)
+        def _parse_ingredient_expected_date(
+            data: object,
+        ) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                ingredient_expected_date_type_0 = isoparse(data)
+
+                return ingredient_expected_date_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        ingredient_expected_date = _parse_ingredient_expected_date(
+            d.pop("ingredient_expected_date", UNSET)
+        )
 
         _batch_transactions = d.pop("batch_transactions", UNSET)
         batch_transactions: (
