@@ -23,9 +23,9 @@ class UpdateProductRequest:
 
         Example:
             {'name': 'Professional Kitchen Knife Set', 'uom': 'set', 'category_name': 'Premium Kitchenware', 'is_sellable':
-                True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly': False, 'default_supplier_id': 1501,
-                'additional_info': 'High-carbon stainless steel with ergonomic handles, dishwasher safe', 'batch_tracked':
-                False, 'serial_tracked': True, 'operations_in_sequence': True, 'purchase_uom': 'set',
+                True, 'is_producible': True, 'is_purchasable': False, 'is_auto_assembly': False, 'is_archived': False,
+                'default_supplier_id': 1501, 'additional_info': 'High-carbon stainless steel with ergonomic handles, dishwasher
+                safe', 'batch_tracked': False, 'serial_tracked': True, 'operations_in_sequence': True, 'purchase_uom': 'set',
                 'purchase_uom_conversion_rate': 1.0, 'custom_field_collection_id': 5, 'configs': [{'name': 'Piece Count',
                 'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle Material', 'values': ['Wood', 'Steel',
                 'Composite']}]}
@@ -38,6 +38,7 @@ class UpdateProductRequest:
     is_producible: bool | Unset = UNSET
     is_purchasable: bool | Unset = UNSET
     is_auto_assembly: bool | Unset = UNSET
+    is_archived: bool | Unset = UNSET
     default_supplier_id: int | Unset = UNSET
     additional_info: str | Unset = UNSET
     batch_tracked: bool | Unset = UNSET
@@ -62,6 +63,8 @@ class UpdateProductRequest:
         is_purchasable = self.is_purchasable
 
         is_auto_assembly = self.is_auto_assembly
+
+        is_archived = self.is_archived
 
         default_supplier_id = self.default_supplier_id
 
@@ -107,6 +110,8 @@ class UpdateProductRequest:
             field_dict["is_purchasable"] = is_purchasable
         if is_auto_assembly is not UNSET:
             field_dict["is_auto_assembly"] = is_auto_assembly
+        if is_archived is not UNSET:
+            field_dict["is_archived"] = is_archived
         if default_supplier_id is not UNSET:
             field_dict["default_supplier_id"] = default_supplier_id
         if additional_info is not UNSET:
@@ -148,6 +153,8 @@ class UpdateProductRequest:
         is_purchasable = d.pop("is_purchasable", UNSET)
 
         is_auto_assembly = d.pop("is_auto_assembly", UNSET)
+
+        is_archived = d.pop("is_archived", UNSET)
 
         default_supplier_id = d.pop("default_supplier_id", UNSET)
 
@@ -193,6 +200,7 @@ class UpdateProductRequest:
             is_producible=is_producible,
             is_purchasable=is_purchasable,
             is_auto_assembly=is_auto_assembly,
+            is_archived=is_archived,
             default_supplier_id=default_supplier_id,
             additional_info=additional_info,
             batch_tracked=batch_tracked,

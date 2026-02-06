@@ -2339,15 +2339,29 @@ components:
         - planned_quantity
         - location_id
       properties:
+        status:
+          type: string
+          description: Initial production status of the manufacturing order
+          enum:
+            - NOT_STARTED
+            - BLOCKED
+            - IN_PROGRESS
+            - DONE
+        order_no:
+          type: string
+          description: Custom manufacturing order number for tracking and reference
         variant_id:
           type: integer
           description: ID of the product variant to manufacture
-        planned_quantity:
-          type: number
-          description: Quantity of the variant to produce
         location_id:
           type: integer
           description: ID of the factory location where production will take place
+        planned_quantity:
+          type: number
+          description: Quantity of the variant to produce
+        actual_quantity:
+          type: number
+          description: Actual quantity produced
         order_created_date:
           type: string
           format: date-time
@@ -2359,6 +2373,11 @@ components:
         additional_info:
           type: string
           description: Optional notes or additional information about the order
+        batch_transactions:
+          type: array
+          description: Batch transactions for produced items
+          items:
+            $ref: "#/components/schemas/BatchTransaction"
       example:
         variant_id: 2101
         planned_quantity: 50
@@ -2524,16 +2543,49 @@ components:
       description: Request payload for updating an existing manufacturing order's properties and production parameters.
       type: object
       properties:
+        status:
+          type: string
+          description: Updated production status of the manufacturing order
+          enum:
+            - NOT_STARTED
+            - BLOCKED
+            - IN_PROGRESS
+            - DONE
+        order_no:
+          type: string
+          description: Updated manufacturing order number for tracking and reference
+        variant_id:
+          type: integer
+          description: Updated ID of the product variant being manufactured
+        location_id:
+          type: integer
+          description: Updated ID of the factory location where production takes place
         planned_quantity:
           type: number
           description: Updated quantity of the variant to produce
-        additional_info:
+        actual_quantity:
+          type: number
+          description: Updated actual quantity produced
+        order_created_date:
           type: string
-          description: Updated notes or additional information about the order
+          format: date-time
+          description: Updated date and time when the manufacturing order was created
         production_deadline_date:
           type: string
           format: date-time
           description: Updated target deadline for completing production
+        done_date:
+          type: string
+          format: date-time
+          description: Timestamp when the manufacturing order was completed
+        additional_info:
+          type: string
+          description: Updated notes or additional information about the order
+        batch_transactions:
+          type: array
+          description: Batch transactions for produced items
+          items:
+            $ref: "#/components/schemas/BatchTransaction"
       example:
         planned_quantity: 75
         additional_info: Increased quantity due to additional customer demand
@@ -2545,19 +2597,22 @@ components:
       type: object
       required:
         - manufacturing_order_id
-        - quantity
-        - production_date
+        - completed_quantity
+        - completed_date
       properties:
         manufacturing_order_id:
           type: integer
           description: ID of the manufacturing order this production run belongs to
-        quantity:
+        completed_quantity:
           type: number
           description: Quantity produced in this production run
-        production_date:
+        completed_date:
           type: string
           format: date-time
           description: Date and time when the production was completed
+        is_final:
+          type: boolean
+          description: Whether this is the final production run that completes the manufacturing order
         ingredients:
           type: array
           description: Ingredients consumed during this production run
@@ -2568,10 +2623,16 @@ components:
           description: Operations performed during this production run
           items:
             $ref: "#/components/schemas/ManufacturingOrderOperationRow"
+        serial_numbers:
+          type: array
+          description: Serial numbers to assign to produced items
+          items:
+            type: string
       example:
         manufacturing_order_id: 3001
-        quantity: 25
-        production_date: "2024-01-20T14:30:00Z"
+        completed_quantity: 25
+        completed_date: "2024-01-20T14:30:00Z"
+        is_final: false
         ingredients:
           - id: 4001
             location_id: 1
@@ -2589,45 +2650,15 @@ components:
             time: 15.0
     UpdateManufacturingOrderProductionRequest:
       description:
-        Request payload for updating an existing production run within a manufacturing order, modifying production
-        quantities and material usage.
+        Request payload for updating an existing production run within a manufacturing order.
       type: object
       properties:
-        quantity:
-          type: number
-          description: Updated quantity produced in this production run
         production_date:
           type: string
           format: date-time
           description: Updated date and time when the production was completed
-        ingredients:
-          type: array
-          description: Updated ingredients consumed during this production run
-          items:
-            $ref: "#/components/schemas/UpdateManufacturingOrderProductionIngredientRequest"
-        operations:
-          type: array
-          description: Updated operations performed during this production run
-          items:
-            $ref: "#/components/schemas/UpdateManufacturingOrderOperationRowRequest"
       example:
-        quantity: 30
         production_date: "2024-01-21T16:00:00Z"
-        ingredients:
-          - id: 4002
-            location_id: 1
-            variant_id: 3102
-            manufacturing_order_id: 3001
-            manufacturing_order_recipe_row_id: 3202
-            production_id: 3502
-            quantity: 60.0
-            production_date: "2024-01-21T16:00:00Z"
-            cost: 150.0
-        operations:
-          - id: 3802
-            manufacturing_order_id: 3001
-            operation_id: 402
-            time: 18.0
     ManufacturingOrderProduction:
       description:
         Represents a completed production run within a manufacturing order, tracking actual quantities produced
@@ -2936,7 +2967,6 @@ components:
       required:
         - manufacturing_order_id
         - operation_id
-        - time
       properties:
         manufacturing_order_id:
           type: integer
@@ -2944,33 +2974,110 @@ components:
         operation_id:
           type: integer
           description: ID of the operation being performed
-        time:
+        type:
+          type: string
+          description: Type of operation (e.g., manual, automatic)
+        operation_name:
+          type: string
+          description: Name of the operation
+        resource_id:
+          type: integer
+          description: ID of the resource (machine/workstation) performing the operation
+        resource_name:
+          type: string
+          description: Name of the resource performing the operation
+        planned_time_parameter:
           type: number
-          description: Estimated time in minutes for this operation
+          description: Parameter for calculating planned time
+        planned_time_per_unit:
+          type: number
+          description: Planned time per unit of output
+        cost_parameter:
+          type: number
+          description: Parameter for calculating operation cost
+        cost_per_hour:
+          type: number
+          description: Hourly cost rate for this operation
+        status:
+          type: string
+          description: Current status of the operation
+        assigned_operators:
+          type: array
+          description: Operators assigned to perform this operation
+          items:
+            $ref: "#/components/schemas/Operator"
       example:
         manufacturing_order_id: 1001
         operation_id: 201
-        time: 45.5
+        type: manual
+        operation_name: Assembly
+        resource_id: 501
+        resource_name: Workstation A
+        planned_time_parameter: 1.0
+        planned_time_per_unit: 15.0
+        cost_parameter: 1.0
+        cost_per_hour: 50.0
+        status: NOT_STARTED
     UpdateManufacturingOrderOperationRowRequest:
       description: Request payload for updating a manufacturing order operation row with actual completion data
       type: object
       properties:
+        manufacturing_order_id:
+          type: integer
+          description: ID of the manufacturing order this operation belongs to
+        operation_id:
+          type: integer
+          description: ID of the operation being performed
+        type:
+          type: string
+          description: Type of operation (e.g., manual, automatic)
+        operation_name:
+          type: string
+          description: Name of the operation
+        resource_id:
+          type: integer
+          description: ID of the resource (machine/workstation) performing the operation
+        resource_name:
+          type: string
+          description: Name of the resource performing the operation
+        planned_time_parameter:
+          type: number
+          description: Parameter for calculating planned time
+        planned_time_per_unit:
+          type: number
+          description: Planned time per unit of output
+        total_actual_time:
+          type: number
+          description: Actual time taken in minutes for this operation
+        cost_parameter:
+          type: number
+          description: Parameter for calculating operation cost
+        cost_per_hour:
+          type: number
+          description: Hourly cost rate for this operation
+        status:
+          type: string
+          description: Current status of the operation
+        assigned_operators:
+          type: array
+          description: Operators assigned to perform this operation
+          items:
+            $ref: "#/components/schemas/Operator"
         completed_by_operators:
           type: array
           description: List of operators who completed this operation
           items:
             $ref: "#/components/schemas/Operator"
-        total_actual_time:
-          type: number
-          description: Actual time taken in minutes for this operation
       example:
+        operation_name: Assembly
+        total_actual_time: 52.3
+        status: DONE
         completed_by_operators:
           - id: 101
             operator_name: John Smith
             created_at: "2024-01-15T08:00:00.000Z"
             updated_at: "2024-01-15T08:00:00.000Z"
             deleted_at: null
-        total_actual_time: 52.3
     ManufacturingOrderOperationRowResponse:
       description: Complete manufacturing order operation details including all metadata and operational parameters
       type: object
@@ -3024,15 +3131,6 @@ components:
         total_actual_quantity:
           type: number
           description: Total actual quantity of ingredient consumed
-        ingredient_availability:
-          type: string
-          description: Availability status of the ingredient
-        ingredient_expected_date:
-          type:
-            - string
-            - "null"
-          format: date-time
-          description: Expected date when ingredient will be available
         batch_transactions:
           type: array
           description: Batch tracking transactions for this ingredient
@@ -3048,29 +3146,26 @@ components:
               quantity:
                 type: number
                 description: Quantity consumed from this batch
-        cost:
-          type: number
-          description: Cost of this ingredient in the manufacturing order
       example:
         manufacturing_order_id: 1001
         variant_id: 2002
         notes: Use fresh ingredients from cold storage
         planned_quantity_per_unit: 0.25
         total_actual_quantity: 5.0
-        ingredient_availability: AVAILABLE
-        ingredient_expected_date: "2023-10-15T08:00:00Z"
         batch_transactions:
           - batch_id: 301
             quantity: 3.0
           - batch_id: 302
             quantity: 2.0
-        cost: 12.5
     UpdateManufacturingOrderRecipeRowRequest:
       description:
         Request payload for updating a manufacturing order recipe row with actual consumption data and revised
         requirements
       type: object
       properties:
+        variant_id:
+          type: integer
+          description: Updated ID of the ingredient variant being consumed
         notes:
           type: string
           description: Additional notes about this ingredient usage
@@ -3080,15 +3175,6 @@ components:
         total_actual_quantity:
           type: number
           description: Updated total actual quantity of ingredient consumed
-        ingredient_availability:
-          type: string
-          description: Current availability status of the ingredient
-        ingredient_expected_date:
-          type:
-            - string
-            - "null"
-          format: date-time
-          description: Updated expected date when ingredient will be available
         batch_transactions:
           type: array
           description: Updated batch tracking transactions for this ingredient
@@ -3101,21 +3187,16 @@ components:
               quantity:
                 type: number
                 description: Quantity consumed from this batch
-        cost:
-          type: number
-          description: Updated cost of this ingredient in the manufacturing order
       example:
+        variant_id: 2002
         notes: Used organic ingredients as requested by customer
         planned_quantity_per_unit: 0.3
         total_actual_quantity: 6.2
-        ingredient_availability: AVAILABLE
-        ingredient_expected_date: "2023-10-15T08:00:00Z"
         batch_transactions:
           - batch_id: 301
             quantity: 3.5
           - batch_id: 302
             quantity: 2.7
-        cost: 15.25
     ManufacturingOrderRecipeRow:
       description:
         Represents an ingredient or component required for a manufacturing order, tracking planned and actual quantities
@@ -4043,6 +4124,9 @@ components:
         is_auto_assembly:
           type: boolean
           description: Whether the product should be automatically assembled when components are available
+        is_archived:
+          type: boolean
+          description: Whether this product is archived and hidden from active use
         default_supplier_id:
           type: integer
           maximum: 2147483647
@@ -4107,6 +4191,7 @@ components:
         is_producible: true
         is_purchasable: false
         is_auto_assembly: false
+        is_archived: false
         default_supplier_id: 1501
         additional_info: High-carbon stainless steel with ergonomic handles, dishwasher safe
         batch_tracked: false
@@ -4306,6 +4391,14 @@ components:
         additional_info:
           type: string
           description: Optional notes or special instructions for the supplier
+        expected_arrival_date:
+          type: string
+          format: date-time
+          description: Expected date when the purchase order items will arrive
+        tracking_location_id:
+          type: integer
+          maximum: 2147483647
+          description: Location ID for tracking outsourced orders
         purchase_order_rows:
           type: array
           minItems: 1
@@ -7668,6 +7761,19 @@ components:
         location_id:
           type: integer
           description: Location where the product should be picked from
+        attributes:
+          type: array
+          description: Custom attributes for this line item
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: string
+        total_discount:
+          type: number
+          description: Total discount amount applied to this line item
       example:
         sales_order_id: 2001
         variant_id: 2101
@@ -7695,6 +7801,34 @@ components:
         location_id:
           type: integer
           description: Location where the product should be picked from
+        total_discount:
+          type: number
+          description: Total discount amount applied to this line item
+        batch_transactions:
+          type: array
+          description: Batch transactions for inventory tracking
+          items:
+            $ref: "#/components/schemas/BatchTransaction"
+        serial_number_transactions:
+          type: array
+          description: Serial number transactions for tracking
+          items:
+            type: object
+            properties:
+              serial_number_id:
+                type: integer
+              quantity:
+                type: number
+        attributes:
+          type: array
+          description: Custom attributes for this line item
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: string
       example:
         quantity: 3
         price_per_unit: 549.99
@@ -8205,34 +8339,25 @@ components:
       type: object
       additionalProperties: false
       required:
-        - reference_no
         - location_id
-        - adjustment_date
         - stock_adjustment_rows
       properties:
-        reference_no:
+        stock_adjustment_number:
           type: string
           description: Human-readable reference number for tracking and audit purposes
-        location_id:
-          type: integer
-          description: ID of the location where the stock adjustment is performed
-        adjustment_date:
+        stock_adjustment_date:
           type: string
           format: date-time
           description: Date and time when the adjustment was performed
+        location_id:
+          type: integer
+          description: ID of the location where the stock adjustment is performed
         reason:
           type: string
           description: Reason for the stock adjustment
         additional_info:
           type: string
           description: Optional notes or comments about the adjustment reason
-        status:
-          type: string
-          description: Status of the stock adjustment
-          enum:
-            - DRAFT
-            - COMPLETED
-          default: DRAFT
         stock_adjustment_rows:
           type: array
           description: Line items specifying variants and quantities to adjust
@@ -8260,12 +8385,11 @@ components:
                 items:
                   $ref: "#/components/schemas/StockAdjustmentBatchTransaction"
       example:
-        reference_no: SA-2024-003
+        stock_adjustment_number: SA-2024-003
+        stock_adjustment_date: "2024-01-17T14:30:00.000Z"
         location_id: 1
-        adjustment_date: "2024-01-17T14:30:00.000Z"
         reason: Cycle count correction
         additional_info: Q1 2024 physical inventory
-        status: DRAFT
         stock_adjustment_rows:
           - variant_id: 501
             quantity: 100
@@ -8278,65 +8402,28 @@ components:
       type: object
       additionalProperties: false
       properties:
-        reference_no:
+        stock_adjustment_number:
           type: string
           description: Human-readable reference number for tracking and audit purposes
-        location_id:
-          type: integer
-          description: ID of the location where the stock adjustment is performed
-        adjustment_date:
+        stock_adjustment_date:
           type: string
           format: date-time
           description: Date and time when the adjustment was performed
+        location_id:
+          type: integer
+          description: ID of the location where the stock adjustment is performed
         reason:
           type: string
           description: Reason for the stock adjustment
         additional_info:
           type: string
           description: Optional notes or comments about the adjustment reason
-        status:
-          type: string
-          description: Status of the stock adjustment
-          enum:
-            - DRAFT
-            - COMPLETED
-        stock_adjustment_rows:
-          type: array
-          description: Line items specifying variants and quantities to adjust
-          minItems: 1
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - variant_id
-              - quantity
-            properties:
-              variant_id:
-                type: integer
-                description: ID of the product or material variant being adjusted
-              quantity:
-                type: number
-                description: Quantity to adjust (positive or negative)
-              cost_per_unit:
-                type: number
-                description: Cost per unit for this adjustment (defaults to current average cost if not specified)
-              batch_transactions:
-                type: array
-                description: Optional batch-specific adjustments for tracked inventory
-                minItems: 1
-                items:
-                  $ref: "#/components/schemas/StockAdjustmentBatchTransaction"
       example:
-        reference_no: SA-2024-003
+        stock_adjustment_number: SA-2024-003
+        stock_adjustment_date: "2024-01-17T14:30:00.000Z"
         location_id: 1
-        adjustment_date: "2024-01-17T14:30:00.000Z"
         reason: Cycle count correction
         additional_info: Cycle count correction - updated with final counts
-        status: COMPLETED
-        stock_adjustment_rows:
-          - variant_id: 501
-            quantity: 95
-            cost_per_unit: 123.45
     StockTransfer:
       description: Inventory transfer record for moving stock between different warehouse locations or facilities
       allOf:
@@ -16828,27 +16915,45 @@ paths:
               type: object
               additionalProperties: false
               required:
-                - from_location_id
-                - to_location_id
-                - variant_id
-                - quantity
+                - source_location_id
+                - target_location_id
               properties:
-                from_location_id:
-                  type: integer
-                  description: Source location ID
-                to_location_id:
-                  type: integer
-                  description: Destination location ID
-                variant_id:
-                  type: integer
-                  description: Product variant ID
-                quantity:
-                  type: number
-                  description: Quantity to transfer
-                  minimum: 0
-                notes:
+                stock_transfer_number:
                   type: string
-                  description: Transfer notes
+                  description: Unique stock transfer number for tracking
+                source_location_id:
+                  type: integer
+                  description: Source location ID where items are transferred from
+                target_location_id:
+                  type: integer
+                  description: Destination location ID where items are transferred to
+                transfer_date:
+                  type: string
+                  format: date-time
+                  description: Date when the transfer was initiated
+                order_created_date:
+                  type: string
+                  format: date-time
+                  description: Date when the transfer order was created
+                expected_arrival_date:
+                  type: string
+                  format: date-time
+                  description: Expected arrival date at destination
+                additional_info:
+                  type: string
+                  description: Additional notes or information about the transfer
+                stock_transfer_rows:
+                  type: array
+                  description: Line items being transferred
+                  items:
+                    type: object
+                    properties:
+                      variant_id:
+                        type: integer
+                        description: Product variant ID
+                      quantity:
+                        type: number
+                        description: Quantity to transfer
       responses:
         "201":
           description: Stock transfer created successfully
@@ -16891,13 +16996,24 @@ paths:
               type: object
               additionalProperties: false
               properties:
-                quantity:
-                  type: number
-                  description: Quantity to transfer
-                  minimum: 0
-                notes:
+                stock_transfer_number:
                   type: string
-                  description: Transfer notes
+                  description: Updated stock transfer number
+                transfer_date:
+                  type: string
+                  format: date-time
+                  description: Updated transfer date
+                order_created_date:
+                  type: string
+                  format: date-time
+                  description: Updated order creation date
+                expected_arrival_date:
+                  type: string
+                  format: date-time
+                  description: Updated expected arrival date
+                additional_info:
+                  type: string
+                  description: Updated additional notes or information
       responses:
         "200":
           description: Stock transfer updated successfully
@@ -17449,12 +17565,44 @@ paths:
                 sales_order_id:
                   type: integer
                   description: Sales order ID
+                picked_date:
+                  type: string
+                  format: date-time
+                  description: Date when items were picked
+                status:
+                  type: string
+                  description: Fulfillment status
+                conversion_rate:
+                  type: number
+                  description: Currency conversion rate
+                conversion_date:
+                  type: string
+                  format: date-time
+                  description: Date of currency conversion
                 tracking_number:
                   type: string
                   description: Shipment tracking number
-                notes:
+                tracking_url:
                   type: string
-                  description: Additional notes for the fulfillment
+                  description: URL for tracking the shipment
+                tracking_carrier:
+                  type: string
+                  description: Shipping carrier name
+                tracking_method:
+                  type: string
+                  description: Shipping method used
+                sales_order_fulfillment_rows:
+                  type: array
+                  description: Fulfillment row items
+                  items:
+                    type: object
+                    properties:
+                      sales_order_row_id:
+                        type: integer
+                        description: Sales order row ID
+                      quantity:
+                        type: number
+                        description: Quantity to fulfill
       responses:
         "201":
           description: Sales order fulfillment created successfully
@@ -17527,12 +17675,35 @@ paths:
               type: object
               additionalProperties: false
               properties:
+                picked_date:
+                  type: string
+                  format: date-time
+                  description: Date when items were picked
+                status:
+                  type: string
+                  description: Fulfillment status
+                conversion_rate:
+                  type: number
+                  description: Currency conversion rate
+                packer_id:
+                  type: number
+                  description: ID of the packer who packed the order
+                conversion_date:
+                  type: string
+                  format: date-time
+                  description: Date of currency conversion
                 tracking_number:
                   type: string
                   description: Shipment tracking number
-                notes:
+                tracking_url:
                   type: string
-                  description: Additional notes for the fulfillment
+                  description: URL for tracking the shipment
+                tracking_carrier:
+                  type: string
+                  description: Shipping carrier name
+                tracking_method:
+                  type: string
+                  description: Shipping method used
       responses:
         "200":
           description: Sales order fulfillment updated successfully

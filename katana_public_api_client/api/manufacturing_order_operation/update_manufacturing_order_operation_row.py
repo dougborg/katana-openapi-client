@@ -93,11 +93,10 @@ def sync_detailed(
     Args:
         id (int):
         body (UpdateManufacturingOrderOperationRowRequest): Request payload for updating a
-            manufacturing order operation row with actual completion data Example:
-            {'completed_by_operators': [{'id': 101, 'operator_name': 'John Smith', 'created_at':
-            '2024-01-15T08:00:00.000Z', 'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at':
-            None}], 'total_actual_time': 52.3}.
-
+            manufacturing order operation row with actual completion data Example: {'operation_name':
+            'Assembly', 'total_actual_time': 52.3, 'status': 'DONE', 'completed_by_operators': [{'id':
+            101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z',
+            'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -137,11 +136,10 @@ def sync(
     Args:
         id (int):
         body (UpdateManufacturingOrderOperationRowRequest): Request payload for updating a
-            manufacturing order operation row with actual completion data Example:
-            {'completed_by_operators': [{'id': 101, 'operator_name': 'John Smith', 'created_at':
-            '2024-01-15T08:00:00.000Z', 'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at':
-            None}], 'total_actual_time': 52.3}.
-
+            manufacturing order operation row with actual completion data Example: {'operation_name':
+            'Assembly', 'total_actual_time': 52.3, 'status': 'DONE', 'completed_by_operators': [{'id':
+            101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z',
+            'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -176,11 +174,10 @@ async def asyncio_detailed(
     Args:
         id (int):
         body (UpdateManufacturingOrderOperationRowRequest): Request payload for updating a
-            manufacturing order operation row with actual completion data Example:
-            {'completed_by_operators': [{'id': 101, 'operator_name': 'John Smith', 'created_at':
-            '2024-01-15T08:00:00.000Z', 'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at':
-            None}], 'total_actual_time': 52.3}.
-
+            manufacturing order operation row with actual completion data Example: {'operation_name':
+            'Assembly', 'total_actual_time': 52.3, 'status': 'DONE', 'completed_by_operators': [{'id':
+            101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z',
+            'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -218,11 +215,10 @@ async def asyncio(
     Args:
         id (int):
         body (UpdateManufacturingOrderOperationRowRequest): Request payload for updating a
-            manufacturing order operation row with actual completion data Example:
-            {'completed_by_operators': [{'id': 101, 'operator_name': 'John Smith', 'created_at':
-            '2024-01-15T08:00:00.000Z', 'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at':
-            None}], 'total_actual_time': 52.3}.
-
+            manufacturing order operation row with actual completion data Example: {'operation_name':
+            'Assembly', 'total_actual_time': 52.3, 'status': 'DONE', 'completed_by_operators': [{'id':
+            101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z',
+            'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

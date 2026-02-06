@@ -85,8 +85,10 @@ def sync_detailed(
     Args:
         body (CreateManufacturingOrderOperationRowRequest): Request payload for creating a new
             manufacturing order operation row to track production operation time and operator
-            assignments Example: {'manufacturing_order_id': 1001, 'operation_id': 201, 'time': 45.5}.
-
+            assignments Example: {'manufacturing_order_id': 1001, 'operation_id': 201, 'type':
+            'manual', 'operation_name': 'Assembly', 'resource_id': 501, 'resource_name': 'Workstation
+            A', 'planned_time_parameter': 1.0, 'planned_time_per_unit': 15.0, 'cost_parameter': 1.0,
+            'cost_per_hour': 50.0, 'status': 'NOT_STARTED'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -121,8 +123,10 @@ def sync(
     Args:
         body (CreateManufacturingOrderOperationRowRequest): Request payload for creating a new
             manufacturing order operation row to track production operation time and operator
-            assignments Example: {'manufacturing_order_id': 1001, 'operation_id': 201, 'time': 45.5}.
-
+            assignments Example: {'manufacturing_order_id': 1001, 'operation_id': 201, 'type':
+            'manual', 'operation_name': 'Assembly', 'resource_id': 501, 'resource_name': 'Workstation
+            A', 'planned_time_parameter': 1.0, 'planned_time_per_unit': 15.0, 'cost_parameter': 1.0,
+            'cost_per_hour': 50.0, 'status': 'NOT_STARTED'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -152,8 +156,10 @@ async def asyncio_detailed(
     Args:
         body (CreateManufacturingOrderOperationRowRequest): Request payload for creating a new
             manufacturing order operation row to track production operation time and operator
-            assignments Example: {'manufacturing_order_id': 1001, 'operation_id': 201, 'time': 45.5}.
-
+            assignments Example: {'manufacturing_order_id': 1001, 'operation_id': 201, 'type':
+            'manual', 'operation_name': 'Assembly', 'resource_id': 501, 'resource_name': 'Workstation
+            A', 'planned_time_parameter': 1.0, 'planned_time_per_unit': 15.0, 'cost_parameter': 1.0,
+            'cost_per_hour': 50.0, 'status': 'NOT_STARTED'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -186,8 +192,10 @@ async def asyncio(
     Args:
         body (CreateManufacturingOrderOperationRowRequest): Request payload for creating a new
             manufacturing order operation row to track production operation time and operator
-            assignments Example: {'manufacturing_order_id': 1001, 'operation_id': 201, 'time': 45.5}.
-
+            assignments Example: {'manufacturing_order_id': 1001, 'operation_id': 201, 'type':
+            'manual', 'operation_name': 'Assembly', 'resource_id': 501, 'resource_name': 'Workstation
+            A', 'planned_time_parameter': 1.0, 'planned_time_per_unit': 15.0, 'cost_parameter': 1.0,
+            'cost_per_hour': 50.0, 'status': 'NOT_STARTED'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

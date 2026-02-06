@@ -84,12 +84,12 @@ def sync_detailed(
     Args:
         body (CreateManufacturingOrderProductionRequest): Request payload for creating a
             production run within a manufacturing order, recording actual production activities and
-            material consumption. Example: {'manufacturing_order_id': 3001, 'quantity': 25,
-            'production_date': '2024-01-20T14:30:00Z', 'ingredients': [{'id': 4001, 'location_id': 1,
-            'variant_id': 3101, 'manufacturing_order_id': 3001, 'manufacturing_order_recipe_row_id':
-            3201, 'production_id': 3501, 'quantity': 50.0, 'production_date': '2024-01-20T14:30:00Z',
-            'cost': 125.0}], 'operations': [{'id': 3801, 'manufacturing_order_id': 3001,
-            'operation_id': 401, 'time': 15.0}]}.
+            material consumption. Example: {'manufacturing_order_id': 3001, 'completed_quantity': 25,
+            'completed_date': '2024-01-20T14:30:00Z', 'is_final': False, 'ingredients': [{'id': 4001,
+            'location_id': 1, 'variant_id': 3101, 'manufacturing_order_id': 3001,
+            'manufacturing_order_recipe_row_id': 3201, 'production_id': 3501, 'quantity': 50.0,
+            'production_date': '2024-01-20T14:30:00Z', 'cost': 125.0}], 'operations': [{'id': 3801,
+            'manufacturing_order_id': 3001, 'operation_id': 401, 'time': 15.0}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -123,12 +123,12 @@ def sync(
     Args:
         body (CreateManufacturingOrderProductionRequest): Request payload for creating a
             production run within a manufacturing order, recording actual production activities and
-            material consumption. Example: {'manufacturing_order_id': 3001, 'quantity': 25,
-            'production_date': '2024-01-20T14:30:00Z', 'ingredients': [{'id': 4001, 'location_id': 1,
-            'variant_id': 3101, 'manufacturing_order_id': 3001, 'manufacturing_order_recipe_row_id':
-            3201, 'production_id': 3501, 'quantity': 50.0, 'production_date': '2024-01-20T14:30:00Z',
-            'cost': 125.0}], 'operations': [{'id': 3801, 'manufacturing_order_id': 3001,
-            'operation_id': 401, 'time': 15.0}]}.
+            material consumption. Example: {'manufacturing_order_id': 3001, 'completed_quantity': 25,
+            'completed_date': '2024-01-20T14:30:00Z', 'is_final': False, 'ingredients': [{'id': 4001,
+            'location_id': 1, 'variant_id': 3101, 'manufacturing_order_id': 3001,
+            'manufacturing_order_recipe_row_id': 3201, 'production_id': 3501, 'quantity': 50.0,
+            'production_date': '2024-01-20T14:30:00Z', 'cost': 125.0}], 'operations': [{'id': 3801,
+            'manufacturing_order_id': 3001, 'operation_id': 401, 'time': 15.0}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -157,12 +157,12 @@ async def asyncio_detailed(
     Args:
         body (CreateManufacturingOrderProductionRequest): Request payload for creating a
             production run within a manufacturing order, recording actual production activities and
-            material consumption. Example: {'manufacturing_order_id': 3001, 'quantity': 25,
-            'production_date': '2024-01-20T14:30:00Z', 'ingredients': [{'id': 4001, 'location_id': 1,
-            'variant_id': 3101, 'manufacturing_order_id': 3001, 'manufacturing_order_recipe_row_id':
-            3201, 'production_id': 3501, 'quantity': 50.0, 'production_date': '2024-01-20T14:30:00Z',
-            'cost': 125.0}], 'operations': [{'id': 3801, 'manufacturing_order_id': 3001,
-            'operation_id': 401, 'time': 15.0}]}.
+            material consumption. Example: {'manufacturing_order_id': 3001, 'completed_quantity': 25,
+            'completed_date': '2024-01-20T14:30:00Z', 'is_final': False, 'ingredients': [{'id': 4001,
+            'location_id': 1, 'variant_id': 3101, 'manufacturing_order_id': 3001,
+            'manufacturing_order_recipe_row_id': 3201, 'production_id': 3501, 'quantity': 50.0,
+            'production_date': '2024-01-20T14:30:00Z', 'cost': 125.0}], 'operations': [{'id': 3801,
+            'manufacturing_order_id': 3001, 'operation_id': 401, 'time': 15.0}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -194,12 +194,12 @@ async def asyncio(
     Args:
         body (CreateManufacturingOrderProductionRequest): Request payload for creating a
             production run within a manufacturing order, recording actual production activities and
-            material consumption. Example: {'manufacturing_order_id': 3001, 'quantity': 25,
-            'production_date': '2024-01-20T14:30:00Z', 'ingredients': [{'id': 4001, 'location_id': 1,
-            'variant_id': 3101, 'manufacturing_order_id': 3001, 'manufacturing_order_recipe_row_id':
-            3201, 'production_id': 3501, 'quantity': 50.0, 'production_date': '2024-01-20T14:30:00Z',
-            'cost': 125.0}], 'operations': [{'id': 3801, 'manufacturing_order_id': 3001,
-            'operation_id': 401, 'time': 15.0}]}.
+            material consumption. Example: {'manufacturing_order_id': 3001, 'completed_quantity': 25,
+            'completed_date': '2024-01-20T14:30:00Z', 'is_final': False, 'ingredients': [{'id': 4001,
+            'location_id': 1, 'variant_id': 3101, 'manufacturing_order_id': 3001,
+            'manufacturing_order_recipe_row_id': 3201, 'production_id': 3501, 'quantity': 50.0,
+            'production_date': '2024-01-20T14:30:00Z', 'cost': 125.0}], 'operations': [{'id': 3801,
+            'manufacturing_order_id': 3001, 'operation_id': 401, 'time': 15.0}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

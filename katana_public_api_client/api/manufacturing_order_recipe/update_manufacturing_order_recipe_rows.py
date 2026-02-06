@@ -92,10 +92,10 @@ def sync_detailed(
         id (int):
         body (UpdateManufacturingOrderRecipeRowRequest): Request payload for updating a
             manufacturing order recipe row with actual consumption data and revised requirements
-            Example: {'notes': 'Used organic ingredients as requested by customer',
-            'planned_quantity_per_unit': 0.3, 'total_actual_quantity': 6.2, 'ingredient_availability':
-            'AVAILABLE', 'ingredient_expected_date': '2023-10-15T08:00:00Z', 'batch_transactions':
-            [{'batch_id': 301, 'quantity': 3.5}, {'batch_id': 302, 'quantity': 2.7}], 'cost': 15.25}.
+            Example: {'variant_id': 2002, 'notes': 'Used organic ingredients as requested by
+            customer', 'planned_quantity_per_unit': 0.3, 'total_actual_quantity': 6.2,
+            'batch_transactions': [{'batch_id': 301, 'quantity': 3.5}, {'batch_id': 302, 'quantity':
+            2.7}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -134,10 +134,10 @@ def sync(
         id (int):
         body (UpdateManufacturingOrderRecipeRowRequest): Request payload for updating a
             manufacturing order recipe row with actual consumption data and revised requirements
-            Example: {'notes': 'Used organic ingredients as requested by customer',
-            'planned_quantity_per_unit': 0.3, 'total_actual_quantity': 6.2, 'ingredient_availability':
-            'AVAILABLE', 'ingredient_expected_date': '2023-10-15T08:00:00Z', 'batch_transactions':
-            [{'batch_id': 301, 'quantity': 3.5}, {'batch_id': 302, 'quantity': 2.7}], 'cost': 15.25}.
+            Example: {'variant_id': 2002, 'notes': 'Used organic ingredients as requested by
+            customer', 'planned_quantity_per_unit': 0.3, 'total_actual_quantity': 6.2,
+            'batch_transactions': [{'batch_id': 301, 'quantity': 3.5}, {'batch_id': 302, 'quantity':
+            2.7}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -171,10 +171,10 @@ async def asyncio_detailed(
         id (int):
         body (UpdateManufacturingOrderRecipeRowRequest): Request payload for updating a
             manufacturing order recipe row with actual consumption data and revised requirements
-            Example: {'notes': 'Used organic ingredients as requested by customer',
-            'planned_quantity_per_unit': 0.3, 'total_actual_quantity': 6.2, 'ingredient_availability':
-            'AVAILABLE', 'ingredient_expected_date': '2023-10-15T08:00:00Z', 'batch_transactions':
-            [{'batch_id': 301, 'quantity': 3.5}, {'batch_id': 302, 'quantity': 2.7}], 'cost': 15.25}.
+            Example: {'variant_id': 2002, 'notes': 'Used organic ingredients as requested by
+            customer', 'planned_quantity_per_unit': 0.3, 'total_actual_quantity': 6.2,
+            'batch_transactions': [{'batch_id': 301, 'quantity': 3.5}, {'batch_id': 302, 'quantity':
+            2.7}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -211,10 +211,10 @@ async def asyncio(
         id (int):
         body (UpdateManufacturingOrderRecipeRowRequest): Request payload for updating a
             manufacturing order recipe row with actual consumption data and revised requirements
-            Example: {'notes': 'Used organic ingredients as requested by customer',
-            'planned_quantity_per_unit': 0.3, 'total_actual_quantity': 6.2, 'ingredient_availability':
-            'AVAILABLE', 'ingredient_expected_date': '2023-10-15T08:00:00Z', 'batch_transactions':
-            [{'batch_id': 301, 'quantity': 3.5}, {'batch_id': 302, 'quantity': 2.7}], 'cost': 15.25}.
+            Example: {'variant_id': 2002, 'notes': 'Used organic ingredients as requested by
+            customer', 'planned_quantity_per_unit': 0.3, 'total_actual_quantity': 6.2,
+            'batch_transactions': [{'batch_id': 301, 'quantity': 3.5}, {'batch_id': 302, 'quantity':
+            2.7}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
