@@ -3532,6 +3532,12 @@ components:
           description: Material configuration options for creating variants
           items:
             $ref: "#/components/schemas/MaterialConfig"
+        custom_field_collection_id:
+          type:
+            - integer
+            - "null"
+          maximum: 2147483647
+          description: ID of the custom field collection to associate with this material
         variants:
           type: array
           minItems: 1
@@ -6539,40 +6545,89 @@ components:
       properties:
         webhook_id:
           type: integer
-          description: |-
-            Filter logs to specific webhook subscription (optional - if not provided, exports all webhook logs)
-        start_date:
+          description: Filter logs to specific webhook subscription (optional - if not provided, exports all webhook logs)
+        event:
           type: string
-          format: date-time
-          description: Start date for log export range (ISO 8601 format)
-        end_date:
-          type: string
-          format: date-time
-          description: End date for log export range (ISO 8601 format)
-        status_filter:
-          type: array
-          description: Filter logs by delivery status (success, failure, retry)
-          items:
-            type: string
-            enum:
-              - success
-              - failure
-              - retry
-        format:
-          type: string
+          description: Filter logs by event type
           enum:
-            - csv
-            - json
-          default: csv
-          description: Export file format preference
+            - sales_order.created
+            - sales_order.packed
+            - sales_order.delivered
+            - sales_order.updated
+            - sales_order.deleted
+            - sales_order.availability_updated
+            - purchase_order.created
+            - purchase_order.updated
+            - purchase_order.deleted
+            - purchase_order.partially_received
+            - purchase_order.received
+            - purchase_order_row.created
+            - purchase_order_row.received
+            - purchase_order_row.updated
+            - purchase_order_row.deleted
+            - outsourced_purchase_order.created
+            - outsourced_purchase_order.updated
+            - outsourced_purchase_order.deleted
+            - outsourced_purchase_order.received
+            - outsourced_purchase_order_row.created
+            - outsourced_purchase_order_row.updated
+            - outsourced_purchase_order_row.deleted
+            - outsourced_purchase_order_row.received
+            - outsourced_purchase_order_recipe_row.created
+            - outsourced_purchase_order_recipe_row.updated
+            - outsourced_purchase_order_recipe_row.deleted
+            - manufacturing_order.created
+            - manufacturing_order.updated
+            - manufacturing_order.deleted
+            - manufacturing_order.in_progress
+            - manufacturing_order.blocked
+            - manufacturing_order.done
+            - manufacturing_order_recipe_row.created
+            - manufacturing_order_recipe_row.updated
+            - manufacturing_order_recipe_row.deleted
+            - manufacturing_order_recipe_row.ingredients_in_stock
+            - manufacturing_order_operation_row.created
+            - manufacturing_order_operation_row.updated
+            - manufacturing_order_operation_row.deleted
+            - manufacturing_order_operation_row.in_progress
+            - manufacturing_order_operation_row.paused
+            - manufacturing_order_operation_row.blocked
+            - manufacturing_order_operation_row.completed
+            - current_inventory.product_updated
+            - current_inventory.material_updated
+            - current_inventory.product_out_of_stock
+            - current_inventory.material_out_of_stock
+            - product.created
+            - product.updated
+            - product.deleted
+            - material.created
+            - material.updated
+            - material.deleted
+            - variant.created
+            - variant.updated
+            - variant.deleted
+            - product_recipe_row.created
+            - product_recipe_row.deleted
+            - product_recipe_row.updated
+        status_code:
+          type: integer
+          description: Filter logs by HTTP status code
+        delivered:
+          type: boolean
+          description: Filter logs by delivery status (true for successful deliveries)
+        created_at_min:
+          type: string
+          description: Minimum creation date for log export range (ISO 8601 format)
+        created_at_max:
+          type: string
+          description: Maximum creation date for log export range (ISO 8601 format)
       example:
         webhook_id: 1
-        start_date: "2024-01-10T00:00:00Z"
-        end_date: "2024-01-15T23:59:59Z"
-        status_filter:
-          - failure
-          - retry
-        format: csv
+        event: sales_order.created
+        status_code: 200
+        delivered: true
+        created_at_min: "2024-01-10T00:00:00Z"
+        created_at_max: "2024-01-15T23:59:59Z"
     WebhookLogsExport:
       type: object
       description: Webhook log export result containing downloadable data for debugging and monitoring webhook delivery
@@ -20043,14 +20098,15 @@ paths:
               type: object
               additionalProperties: false
               properties:
-                amount:
-                  type: number
-                  format: float
-                  description: Shipping fee amount
-                  minimum: 0
                 description:
                   type: string
                   description: Shipping fee description
+                amount:
+                  type: integer
+                  description: Shipping fee amount
+                tax_rate_id:
+                  type: integer
+                  description: ID of the tax rate to apply to the shipping fee
       responses:
         "200":
           description: Sales order shipping fee updated successfully

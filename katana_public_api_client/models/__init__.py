@@ -535,10 +535,7 @@ from .webhook_event_payload_object import WebhookEventPayloadObject
 from .webhook_list_response import WebhookListResponse
 from .webhook_logs_export import WebhookLogsExport
 from .webhook_logs_export_request import WebhookLogsExportRequest
-from .webhook_logs_export_request_format import WebhookLogsExportRequestFormat
-from .webhook_logs_export_request_status_filter_item import (
-    WebhookLogsExportRequestStatusFilterItem,
-)
+from .webhook_logs_export_request_event import WebhookLogsExportRequestEvent
 
 __all__ = (
     "AdditionalCost",
@@ -906,6 +903,5 @@ __all__ = (
     "WebhookListResponse",
     "WebhookLogsExport",
     "WebhookLogsExportRequest",
-    "WebhookLogsExportRequestFormat",
-    "WebhookLogsExportRequestStatusFilterItem",
+    "WebhookLogsExportRequestEvent",
 )
