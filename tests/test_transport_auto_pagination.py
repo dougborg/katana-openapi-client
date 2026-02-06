@@ -442,6 +442,55 @@ class TestTransportAutoPagination:
         )
 
     @pytest.mark.asyncio
+    async def test_zero_limit_falls_back_to_default(
+        self, transport, mock_wrapped_transport, caplog
+    ):
+        """Test that zero limit values fall back to default 250."""
+        import logging
+
+        captured_requests = []
+
+        def create_response(data):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = data
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        async def capture_request(req):
+            captured_requests.append(req)
+            data = {
+                "data": [{"id": 1}],
+                "pagination": {"page": 1, "total_pages": 1},
+            }
+            return create_response(data)
+
+        mock_wrapped_transport.handle_async_request.side_effect = capture_request
+
+        # Request with zero limit - should fall back to 250
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products?limit=0",
+        )
+
+        with caplog.at_level(logging.WARNING):
+            await transport.handle_async_request(request)
+
+        # Verify that the request used limit=250 (default due to zero value)
+        assert len(captured_requests) == 1
+        assert captured_requests[0].url.params.get("limit") == "250"
+
+        # Should have logged a warning about invalid limit
+        assert any(
+            "Invalid limit parameter" in record.message for record in caplog.records
+        )
+
+    @pytest.mark.asyncio
     async def test_max_items_limits_total_items(
         self, transport, mock_wrapped_transport
     ):
