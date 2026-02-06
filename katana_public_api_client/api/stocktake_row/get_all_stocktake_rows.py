@@ -13,8 +13,8 @@ from ...models.stocktake_row_list_response import StocktakeRowListResponse
 
 def _get_kwargs(
     *,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     variant_id: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     stocktake_ids: list[int] | Unset = UNSET,
@@ -126,8 +126,8 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     variant_id: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     stocktake_ids: list[int] | Unset = UNSET,
@@ -191,8 +191,8 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     variant_id: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     stocktake_ids: list[int] | Unset = UNSET,
@@ -251,8 +251,8 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     variant_id: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     stocktake_ids: list[int] | Unset = UNSET,
@@ -314,8 +314,8 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     variant_id: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     stocktake_ids: list[int] | Unset = UNSET,

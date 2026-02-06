@@ -17,8 +17,8 @@ def _get_kwargs(
     *,
     resource_type: GetAllSerialNumbersResourceType | Unset = UNSET,
     resource_id: int | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -90,8 +90,8 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     resource_type: GetAllSerialNumbersResourceType | Unset = UNSET,
     resource_id: int | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> Response[ErrorResponse | SerialNumberListResponse]:
     """List serial numbers
 
@@ -132,8 +132,8 @@ def sync(
     client: AuthenticatedClient | Client,
     resource_type: GetAllSerialNumbersResourceType | Unset = UNSET,
     resource_id: int | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> ErrorResponse | SerialNumberListResponse | None:
     """List serial numbers
 
@@ -169,8 +169,8 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     resource_type: GetAllSerialNumbersResourceType | Unset = UNSET,
     resource_id: int | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> Response[ErrorResponse | SerialNumberListResponse]:
     """List serial numbers
 
@@ -209,8 +209,8 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     resource_type: GetAllSerialNumbersResourceType | Unset = UNSET,
     resource_id: int | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> ErrorResponse | SerialNumberListResponse | None:
     """List serial numbers
 

@@ -600,13 +600,17 @@ def fix_specific_generated_issues(workspace_path: Path) -> bool:
 def fix_pagination_defaults(workspace_path: Path) -> None:
     """Fix pagination defaults to enable auto-pagination by default.
 
-    The openapi-python-client generator creates endpoints with `page: Unset | int = 1`
-    as the default. This causes the page parameter to always be included in requests,
-    which disables KatanaClient's automatic pagination feature.
+    The openapi-python-client generator creates endpoints with:
+    - `page: int | Unset = 1`
+    - `limit: int | Unset = 50`
 
-    This function changes the default to `page: Unset | int = UNSET` so that:
-    - By default, no page param is sent → auto-pagination enabled
-    - Explicitly passing page=N sends that page → auto-pagination disabled
+    These defaults cause page and limit params to always be included in requests,
+    which affects KatanaClient's automatic pagination feature.
+
+    This function changes both defaults to UNSET so that:
+    - By default, no page/limit params are sent → auto-pagination ON with limit=250
+    - Explicitly passing page=N disables auto-pagination (get just that page)
+    - Explicitly passing limit=N uses that limit per page (caller's choice)
     """
     print("🔧 Fixing pagination defaults for auto-pagination support...")
 
@@ -617,29 +621,43 @@ def fix_pagination_defaults(workspace_path: Path) -> None:
         print("   ⚠️  API directory not found, skipping")
         return
 
-    fixed_count = 0
+    page_fixed = 0
+    limit_fixed = 0
     for py_file in api_path.rglob("*.py"):
         try:
             content = py_file.read_text(encoding="utf-8")
             original = content
 
             # Change page default from 1 to UNSET
-            # Pattern matches: page: Unset | int = 1, or page: Unset | int = 1)
+            # Handle both type orderings: "int | Unset" and "Unset | int"
             # Using [,)] to handle both trailing comma and closing paren cases
-            content = re.sub(
-                r"(page:\s*Unset\s*\|\s*int\s*=\s*)1(\s*[,)])",
+            new_content = re.sub(
+                r"(page:\s*(?:int\s*\|\s*Unset|Unset\s*\|\s*int)\s*=\s*)1(\s*[,)])",
                 r"\1UNSET\2",
                 content,
             )
+            if new_content != content:
+                page_fixed += 1
+                content = new_content
+
+            # Change limit default from 50 to UNSET
+            new_content = re.sub(
+                r"(limit:\s*(?:int\s*\|\s*Unset|Unset\s*\|\s*int)\s*=\s*)50(\s*[,)])",
+                r"\1UNSET\2",
+                content,
+            )
+            if new_content != content:
+                limit_fixed += 1
+                content = new_content
 
             if content != original:
                 py_file.write_text(content, encoding="utf-8")
-                fixed_count += 1
 
         except Exception as e:
             print(f"   ⚠️  Could not fix {py_file}: {e}")
 
-    print(f"   ✓ Fixed pagination defaults in {fixed_count} API files")
+    print(f"   ✓ Fixed page defaults in {page_fixed} API files")
+    print(f"   ✓ Fixed limit defaults in {limit_fixed} API files")
 
 
 def fix_ty_type_errors(workspace_path: Path) -> None:

@@ -121,7 +121,7 @@ describe('createPaginatedFetch', () => {
       });
     });
 
-    it('should not paginate when explicit page param is present', async () => {
+    it('should not paginate when explicit page param is present (page > 1)', async () => {
       const response = new Response(
         JSON.stringify({ data: [{ id: 1 }], pagination: { page: 2, total_pages: 5 } }),
         { status: 200 }
@@ -133,6 +133,21 @@ describe('createPaginatedFetch', () => {
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/products?page=2', undefined);
+    });
+
+    it('should not paginate when page=1 is explicitly set', async () => {
+      // ANY explicit page param disables auto-pagination, including page=1
+      const response = new Response(
+        JSON.stringify({ data: [{ id: 1 }], pagination: { page: 1, total_pages: 5 } }),
+        { status: 200 }
+      );
+      mockFetch.mockResolvedValueOnce(response);
+
+      const paginatedFetch = createPaginatedFetch(mockFetch);
+      await paginatedFetch('https://api.example.com/products?page=1');
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/products?page=1', undefined);
     });
 
     it('should not paginate when autoPagination is disabled', async () => {
@@ -330,8 +345,98 @@ describe('createPaginatedFetch', () => {
       expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(mockFetch.mock.calls[0][0]).toContain('page=1');
       expect(mockFetch.mock.calls[1][0]).toContain('page=2');
-      // Original limit should be preserved
+      // Original limit should be preserved (caller's choice)
       expect(mockFetch.mock.calls[0][0]).toContain('limit=50');
+    });
+
+    it('should use limit=250 when no limit specified', async () => {
+      const response = new Response(
+        JSON.stringify({
+          data: [{ id: 1 }],
+          pagination: { page: 1, total_pages: 1, per_page: 250 },
+        }),
+        { status: 200 }
+      );
+
+      mockFetch.mockResolvedValueOnce(response);
+
+      const paginatedFetch = createPaginatedFetch(mockFetch);
+      await paginatedFetch('https://api.example.com/products');
+
+      // Should use default limit of 250 (Katana's max)
+      expect(mockFetch.mock.calls[0][0]).toContain('limit=250');
+    });
+
+    it('should respect caller specified limit', async () => {
+      const response = new Response(
+        JSON.stringify({
+          data: [{ id: 1 }],
+          pagination: { page: 1, total_pages: 1, per_page: 100 },
+        }),
+        { status: 200 }
+      );
+
+      mockFetch.mockResolvedValueOnce(response);
+
+      const paginatedFetch = createPaginatedFetch(mockFetch);
+      await paginatedFetch('https://api.example.com/products?limit=100');
+
+      // Should use caller's limit of 100
+      expect(mockFetch.mock.calls[0][0]).toContain('limit=100');
+    });
+
+    it('should fall back to default limit when limit is invalid', async () => {
+      const response = new Response(
+        JSON.stringify({
+          data: [{ id: 1 }],
+          pagination: { page: 1, total_pages: 1, per_page: 250 },
+        }),
+        { status: 200 }
+      );
+
+      mockFetch.mockResolvedValueOnce(response);
+
+      const paginatedFetch = createPaginatedFetch(mockFetch);
+      await paginatedFetch('https://api.example.com/products?limit=abc');
+
+      // Should fall back to default limit of 250 for invalid limit
+      expect(mockFetch.mock.calls[0][0]).toContain('limit=250');
+    });
+
+    it('should fall back to default limit when limit is negative', async () => {
+      const response = new Response(
+        JSON.stringify({
+          data: [{ id: 1 }],
+          pagination: { page: 1, total_pages: 1, per_page: 250 },
+        }),
+        { status: 200 }
+      );
+
+      mockFetch.mockResolvedValueOnce(response);
+
+      const paginatedFetch = createPaginatedFetch(mockFetch);
+      await paginatedFetch('https://api.example.com/products?limit=-50');
+
+      // Should fall back to default limit of 250 for negative limit
+      expect(mockFetch.mock.calls[0][0]).toContain('limit=250');
+    });
+
+    it('should fall back to default limit when limit is zero', async () => {
+      const response = new Response(
+        JSON.stringify({
+          data: [{ id: 1 }],
+          pagination: { page: 1, total_pages: 1, per_page: 250 },
+        }),
+        { status: 200 }
+      );
+
+      mockFetch.mockResolvedValueOnce(response);
+
+      const paginatedFetch = createPaginatedFetch(mockFetch);
+      await paginatedFetch('https://api.example.com/products?limit=0');
+
+      // Should fall back to default limit of 250 for zero limit
+      expect(mockFetch.mock.calls[0][0]).toContain('limit=250');
     });
 
     it('should handle relative URLs', async () => {
@@ -348,7 +453,8 @@ describe('createPaginatedFetch', () => {
       const paginatedFetch = createPaginatedFetch(mockFetch);
       await paginatedFetch('/products');
 
-      expect(mockFetch).toHaveBeenCalledWith('/products?page=1', undefined);
+      // Should use default limit=250 and add page=1
+      expect(mockFetch).toHaveBeenCalledWith('/products?page=1&limit=250', undefined);
     });
   });
 });

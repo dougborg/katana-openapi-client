@@ -398,8 +398,10 @@ class PaginationTransport(AsyncHTTPTransport):
     for GET requests by default.
 
     Auto-pagination behavior:
-    - ON by default for all GET requests (will paginate if response has pagination info)
-    - Disabled when explicit `page` parameter is in URL (e.g., `?page=2`)
+    - ON by default for GET requests with NO page parameter in URL
+    - Uses 250 items per page (Katana's max) when no limit specified by caller
+    - If caller specifies a limit, that limit is used (caller's choice)
+    - ANY explicit `page` parameter in URL disables auto-pagination (e.g., `?page=1`)
     - Disabled when request has `extensions={"auto_pagination": False}`
     - Only applies to GET requests (POST, PUT, etc. are never paginated)
 
@@ -441,18 +443,17 @@ class PaginationTransport(AsyncHTTPTransport):
 
         Auto-pagination is ON by default for GET requests. It is disabled when:
         - `extensions={"auto_pagination": False}` is set, OR
-        - An explicit `page` parameter is in the URL (e.g., `?page=2`)
+        - ANY explicit `page` parameter is in the URL (e.g., `?page=1` or `?page=2`)
+
+        To get auto-pagination, simply don't pass a page parameter. The transport
+        will automatically use 250 items per page (Katana's max) unless you specify
+        a limit, in which case your limit will be respected.
         """
         # Check if auto-pagination is explicitly disabled via request extensions
         auto_pagination = request.extensions.get("auto_pagination", True)
 
-        # Also disable if caller explicitly specified a page parameter
-        has_explicit_page = (
-            hasattr(request, "url")
-            and request.url
-            and request.url.params
-            and "page" in request.url.params
-        )
+        # ANY page param in URL disables auto-pagination - caller wants specific page
+        has_explicit_page = "page" in request.url.params
 
         # Only paginate GET requests when auto_pagination is enabled and no explicit page
         should_paginate = (
@@ -499,26 +500,38 @@ class PaginationTransport(AsyncHTTPTransport):
         # Parse initial parameters
         url_params = dict(request.url.params)
 
+        # Get caller's limit or default to 250 (Katana's max) for efficiency
+        original_limit = request.url.params.get("limit")
+        try:
+            page_size = int(original_limit) if original_limit else 250
+            if page_size <= 0:
+                self.logger.warning(
+                    "Invalid limit parameter %r (must be positive), using default 250",
+                    original_limit,
+                )
+                page_size = 250
+        except (ValueError, TypeError):
+            self.logger.warning(
+                "Invalid limit parameter %r, using default 250", original_limit
+            )
+            page_size = 250
+
         self.logger.info("Auto-paginating request: %s", request.url)
 
         for page_num in range(1, self.max_pages + 1):
             # Update the page parameter
             url_params["page"] = str(page_num)
 
-            # Adjust limit if max_items is set and we're approaching the limit
+            # Determine limit for this request
             if max_items is not None:
                 remaining = max_items - len(all_data)
                 if remaining <= 0:
                     break
-                # Get original limit or use a sensible default (Katana API max is 250)
-                original_limit = request.url.params.get("limit")
-                default_page_size = 250
-                if original_limit:
-                    # Only reduce limit, never increase it
-                    url_params["limit"] = str(min(int(original_limit), remaining))
-                else:
-                    # No original limit, use min of default page size and remaining
-                    url_params["limit"] = str(min(default_page_size, remaining))
+                # Use min of page size and remaining items
+                url_params["limit"] = str(min(page_size, remaining))
+            else:
+                # Use caller's page size (or default 250)
+                url_params["limit"] = str(page_size)
 
             # Create a new request with updated parameters
             paginated_request = httpx.Request(
@@ -900,14 +913,16 @@ class KatanaClient(AuthenticatedClient):
     Features:
     - Automatic retries on network errors and server errors (5xx)
     - Automatic rate limit handling with Retry-After header support
-    - Auto-pagination ON by default for all GET requests (collects all pages automatically)
+    - Auto-pagination ON by default for GET requests (collects all pages automatically)
+    - Uses 250 items per page (Katana's max) for efficient pagination
     - Rich logging and observability
     - Minimal configuration - just works out of the box
 
     Auto-pagination behavior:
-    - ON by default for all GET requests
-    - Automatically detects paginated responses and collects all pages
-    - Disabled when ANY explicit `page` parameter is in URL (including `page=1`)
+    - ON by default for GET requests with NO page parameter
+    - Uses 250 items per page when no limit specified by caller
+    - If caller specifies a limit, that limit is used per page
+    - ANY explicit `page` parameter disables auto-pagination (e.g., `page=1`)
     - Disabled per-request via extensions: `extensions={"auto_pagination": False}`
     - Control max pages via `max_pages` constructor parameter
     - Limit total items via extensions: `extensions={"max_items": 200}`
@@ -916,16 +931,22 @@ class KatanaClient(AuthenticatedClient):
         async with KatanaClient() as client:
             from katana_public_api_client.api.product import get_all_products
 
-            # Auto-pagination is ON by default - all pages collected automatically
+            # Auto-pagination is ON - all pages collected automatically
+            # Uses 250 items per page for efficiency
             response = await get_all_products.asyncio_detailed(
                 client=client,  # Pass client directly - no .client needed!
-                limit=50  # Page size (all pages still collected)
             )
 
-            # Get a specific page only (ANY explicit page param disables auto-pagination)
+            # Use a custom limit per page (100 instead of 250)
             response = await get_all_products.asyncio_detailed(
                 client=client,
-                page=2,      # Get page 2 only (page=1 also disables auto-pagination)
+                limit=100,   # Use 100 per page
+            )
+
+            # Get a specific page only (ANY page param disables auto-pagination)
+            response = await get_all_products.asyncio_detailed(
+                client=client,
+                page=2,      # Get page 2 only
                 limit=50
             )
 
@@ -933,7 +954,6 @@ class KatanaClient(AuthenticatedClient):
             httpx_client = client.get_async_httpx_client()
             response = await httpx_client.get(
                 "/products",
-                params={"limit": 50},           # Page size
                 extensions={"max_items": 200}   # Stop after 200 items
             )
 

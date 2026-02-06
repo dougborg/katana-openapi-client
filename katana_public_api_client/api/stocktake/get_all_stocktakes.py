@@ -13,8 +13,8 @@ from ...models.stocktake_list_response import StocktakeListResponse
 
 def _get_kwargs(
     *,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
@@ -122,8 +122,8 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
@@ -187,8 +187,8 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
@@ -247,8 +247,8 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
@@ -310,8 +310,8 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
