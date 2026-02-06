@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.44.3 (2026-02-06)
+
+### Bug Fixes
+
+- **client**: Align P2 OpenAPI schemas with Katana official API
+  ([#266](https://github.com/dougborg/katana-openapi-client/pull/266),
+  [`af03314`](https://github.com/dougborg/katana-openapi-client/commit/af033145b709c840aadbd74f8fb7f471a28c5a70))
+
 ## v0.44.2 (2026-02-06)
 
 ### Bug Fixes
