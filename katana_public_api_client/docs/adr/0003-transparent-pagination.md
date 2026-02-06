@@ -11,6 +11,7 @@ Date: 2024-08-13 (estimated based on transport implementation)
 The Katana API uses cursor-based pagination with Link headers:
 
 - Maximum page size: 250 items
+- Default page size: 250 items (transport default for efficiency)
 - Link header provides `next` URL for additional pages
 - Many resources have hundreds or thousands of items
 
