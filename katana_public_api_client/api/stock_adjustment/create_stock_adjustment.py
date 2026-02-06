@@ -87,9 +87,9 @@ def sync_detailed(
 
     Args:
         body (CreateStockAdjustmentRequest): Request payload for creating a new stock adjustment
-            to correct inventory levels Example: {'reference_no': 'SA-2024-003', 'location_id': 1,
-            'adjustment_date': '2024-01-17T14:30:00.000Z', 'reason': 'Cycle count correction',
-            'additional_info': 'Q1 2024 physical inventory', 'status': 'DRAFT',
+            to correct inventory levels Example: {'stock_adjustment_number': 'SA-2024-003',
+            'stock_adjustment_date': '2024-01-17T14:30:00.000Z', 'location_id': 1, 'reason': 'Cycle
+            count correction', 'additional_info': 'Q1 2024 physical inventory',
             'stock_adjustment_rows': [{'variant_id': 501, 'quantity': 100, 'cost_per_unit': 123.45},
             {'variant_id': 502, 'quantity': -25, 'cost_per_unit': 234.56}]}.
 
@@ -124,9 +124,9 @@ def sync(
 
     Args:
         body (CreateStockAdjustmentRequest): Request payload for creating a new stock adjustment
-            to correct inventory levels Example: {'reference_no': 'SA-2024-003', 'location_id': 1,
-            'adjustment_date': '2024-01-17T14:30:00.000Z', 'reason': 'Cycle count correction',
-            'additional_info': 'Q1 2024 physical inventory', 'status': 'DRAFT',
+            to correct inventory levels Example: {'stock_adjustment_number': 'SA-2024-003',
+            'stock_adjustment_date': '2024-01-17T14:30:00.000Z', 'location_id': 1, 'reason': 'Cycle
+            count correction', 'additional_info': 'Q1 2024 physical inventory',
             'stock_adjustment_rows': [{'variant_id': 501, 'quantity': 100, 'cost_per_unit': 123.45},
             {'variant_id': 502, 'quantity': -25, 'cost_per_unit': 234.56}]}.
 
@@ -156,9 +156,9 @@ async def asyncio_detailed(
 
     Args:
         body (CreateStockAdjustmentRequest): Request payload for creating a new stock adjustment
-            to correct inventory levels Example: {'reference_no': 'SA-2024-003', 'location_id': 1,
-            'adjustment_date': '2024-01-17T14:30:00.000Z', 'reason': 'Cycle count correction',
-            'additional_info': 'Q1 2024 physical inventory', 'status': 'DRAFT',
+            to correct inventory levels Example: {'stock_adjustment_number': 'SA-2024-003',
+            'stock_adjustment_date': '2024-01-17T14:30:00.000Z', 'location_id': 1, 'reason': 'Cycle
+            count correction', 'additional_info': 'Q1 2024 physical inventory',
             'stock_adjustment_rows': [{'variant_id': 501, 'quantity': 100, 'cost_per_unit': 123.45},
             {'variant_id': 502, 'quantity': -25, 'cost_per_unit': 234.56}]}.
 
@@ -191,9 +191,9 @@ async def asyncio(
 
     Args:
         body (CreateStockAdjustmentRequest): Request payload for creating a new stock adjustment
-            to correct inventory levels Example: {'reference_no': 'SA-2024-003', 'location_id': 1,
-            'adjustment_date': '2024-01-17T14:30:00.000Z', 'reason': 'Cycle count correction',
-            'additional_info': 'Q1 2024 physical inventory', 'status': 'DRAFT',
+            to correct inventory levels Example: {'stock_adjustment_number': 'SA-2024-003',
+            'stock_adjustment_date': '2024-01-17T14:30:00.000Z', 'location_id': 1, 'reason': 'Cycle
+            count correction', 'additional_info': 'Q1 2024 physical inventory',
             'stock_adjustment_rows': [{'variant_id': 501, 'quantity': 100, 'cost_per_unit': 123.45},
             {'variant_id': 502, 'quantity': -25, 'cost_per_unit': 234.56}]}.
 

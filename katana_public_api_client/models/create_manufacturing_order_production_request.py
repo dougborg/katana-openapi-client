@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -30,26 +30,30 @@ class CreateManufacturingOrderProductionRequest:
     and material consumption.
 
         Example:
-            {'manufacturing_order_id': 3001, 'quantity': 25, 'production_date': '2024-01-20T14:30:00Z', 'ingredients':
-                [{'id': 4001, 'location_id': 1, 'variant_id': 3101, 'manufacturing_order_id': 3001,
+            {'manufacturing_order_id': 3001, 'completed_quantity': 25, 'completed_date': '2024-01-20T14:30:00Z', 'is_final':
+                False, 'ingredients': [{'id': 4001, 'location_id': 1, 'variant_id': 3101, 'manufacturing_order_id': 3001,
                 'manufacturing_order_recipe_row_id': 3201, 'production_id': 3501, 'quantity': 50.0, 'production_date':
                 '2024-01-20T14:30:00Z', 'cost': 125.0}], 'operations': [{'id': 3801, 'manufacturing_order_id': 3001,
                 'operation_id': 401, 'time': 15.0}]}
     """
 
     manufacturing_order_id: int
-    quantity: float
-    production_date: datetime.datetime
+    completed_quantity: float
+    completed_date: datetime.datetime
+    is_final: bool | Unset = UNSET
     ingredients: list[ManufacturingOrderProductionIngredient] | Unset = UNSET
     operations: list[ManufacturingOrderOperationRow] | Unset = UNSET
+    serial_numbers: list[str] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         manufacturing_order_id = self.manufacturing_order_id
 
-        quantity = self.quantity
+        completed_quantity = self.completed_quantity
 
-        production_date = self.production_date.isoformat()
+        completed_date = self.completed_date.isoformat()
+
+        is_final = self.is_final
 
         ingredients: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.ingredients, Unset):
@@ -65,19 +69,27 @@ class CreateManufacturingOrderProductionRequest:
                 operations_item = operations_item_data.to_dict()
                 operations.append(operations_item)
 
+        serial_numbers: list[str] | Unset = UNSET
+        if not isinstance(self.serial_numbers, Unset):
+            serial_numbers = self.serial_numbers
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
                 "manufacturing_order_id": manufacturing_order_id,
-                "quantity": quantity,
-                "production_date": production_date,
+                "completed_quantity": completed_quantity,
+                "completed_date": completed_date,
             }
         )
+        if is_final is not UNSET:
+            field_dict["is_final"] = is_final
         if ingredients is not UNSET:
             field_dict["ingredients"] = ingredients
         if operations is not UNSET:
             field_dict["operations"] = operations
+        if serial_numbers is not UNSET:
+            field_dict["serial_numbers"] = serial_numbers
 
         return field_dict
 
@@ -93,9 +105,11 @@ class CreateManufacturingOrderProductionRequest:
         d = dict(src_dict)
         manufacturing_order_id = d.pop("manufacturing_order_id")
 
-        quantity = d.pop("quantity")
+        completed_quantity = d.pop("completed_quantity")
 
-        production_date = isoparse(d.pop("production_date"))
+        completed_date = isoparse(d.pop("completed_date"))
+
+        is_final = d.pop("is_final", UNSET)
 
         _ingredients = d.pop("ingredients", UNSET)
         ingredients: list[ManufacturingOrderProductionIngredient] | Unset = UNSET
@@ -119,12 +133,16 @@ class CreateManufacturingOrderProductionRequest:
 
                 operations.append(operations_item)
 
+        serial_numbers = cast(list[str], d.pop("serial_numbers", UNSET))
+
         create_manufacturing_order_production_request = cls(
             manufacturing_order_id=manufacturing_order_id,
-            quantity=quantity,
-            production_date=production_date,
+            completed_quantity=completed_quantity,
+            completed_date=completed_date,
+            is_final=is_final,
             ingredients=ingredients,
             operations=operations,
+            serial_numbers=serial_numbers,
         )
 
         create_manufacturing_order_production_request.additional_properties = d

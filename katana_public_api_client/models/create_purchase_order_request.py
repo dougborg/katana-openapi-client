@@ -46,6 +46,8 @@ class CreatePurchaseOrderRequest:
         status (CreatePurchaseOrderRequestStatus | Unset): Initial status of the purchase order when created
         order_created_date (datetime.datetime | Unset): Date when the purchase order was created
         additional_info (str | Unset): Optional notes or special instructions for the supplier
+        expected_arrival_date (datetime.datetime | Unset): Expected date when the purchase order items will arrive
+        tracking_location_id (int | Unset): Location ID for tracking outsourced orders
     """
 
     order_no: str
@@ -57,6 +59,8 @@ class CreatePurchaseOrderRequest:
     status: CreatePurchaseOrderRequestStatus | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
     additional_info: str | Unset = UNSET
+    expected_arrival_date: datetime.datetime | Unset = UNSET
+    tracking_location_id: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         order_no = self.order_no
@@ -86,6 +90,12 @@ class CreatePurchaseOrderRequest:
 
         additional_info = self.additional_info
 
+        expected_arrival_date: str | Unset = UNSET
+        if not isinstance(self.expected_arrival_date, Unset):
+            expected_arrival_date = self.expected_arrival_date.isoformat()
+
+        tracking_location_id = self.tracking_location_id
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update(
@@ -106,6 +116,10 @@ class CreatePurchaseOrderRequest:
             field_dict["order_created_date"] = order_created_date
         if additional_info is not UNSET:
             field_dict["additional_info"] = additional_info
+        if expected_arrival_date is not UNSET:
+            field_dict["expected_arrival_date"] = expected_arrival_date
+        if tracking_location_id is not UNSET:
+            field_dict["tracking_location_id"] = tracking_location_id
 
         return field_dict
 
@@ -154,6 +168,15 @@ class CreatePurchaseOrderRequest:
 
         additional_info = d.pop("additional_info", UNSET)
 
+        _expected_arrival_date = d.pop("expected_arrival_date", UNSET)
+        expected_arrival_date: datetime.datetime | Unset
+        if isinstance(_expected_arrival_date, Unset):
+            expected_arrival_date = UNSET
+        else:
+            expected_arrival_date = isoparse(_expected_arrival_date)
+
+        tracking_location_id = d.pop("tracking_location_id", UNSET)
+
         create_purchase_order_request = cls(
             order_no=order_no,
             supplier_id=supplier_id,
@@ -164,6 +187,8 @@ class CreatePurchaseOrderRequest:
             status=status,
             order_created_date=order_created_date,
             additional_info=additional_info,
+            expected_arrival_date=expected_arrival_date,
+            tracking_location_id=tracking_location_id,
         )
 
         return create_purchase_order_request
