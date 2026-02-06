@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v0.44.1 (2026-02-06)
+
+### Bug Fixes
+
+- **client**: Correct pagination defaults for auto-pagination
+  ([#234](https://github.com/dougborg/katana-openapi-client/pull/234),
+  [`5c97def`](https://github.com/dougborg/katana-openapi-client/commit/5c97deff077316f660278e8c28cadf375762ca34))
+
+### Testing
+
+- **client**: Add missing zero limit edge case test
+  ([#234](https://github.com/dougborg/katana-openapi-client/pull/234),
+  [`5c97def`](https://github.com/dougborg/katana-openapi-client/commit/5c97deff077316f660278e8c28cadf375762ca34))
+
 ## v0.44.0 (2026-02-05)
 
 ### Bug Fixes
