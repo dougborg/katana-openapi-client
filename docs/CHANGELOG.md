@@ -2,6 +2,32 @@
 
 <!-- version list -->
 
+## v0.44.2 (2026-02-06)
+
+### Bug Fixes
+
+- **client**: Add missing is_archived field to UpdateProductRequest
+  ([#265](https://github.com/dougborg/katana-openapi-client/pull/265),
+  [`ddbcc0b`](https://github.com/dougborg/katana-openapi-client/commit/ddbcc0b0bb0a9e3ade60469e2908680eb43f254c))
+
+- **client**: Align P1 OpenAPI schemas with Katana official API
+  ([#265](https://github.com/dougborg/katana-openapi-client/pull/265),
+  [`ddbcc0b`](https://github.com/dougborg/katana-openapi-client/commit/ddbcc0b0bb0a9e3ade60469e2908680eb43f254c))
+
+- **client**: Align P1 OpenAPI schemas with Katana official API spec
+  ([#265](https://github.com/dougborg/katana-openapi-client/pull/265),
+  [`ddbcc0b`](https://github.com/dougborg/katana-openapi-client/commit/ddbcc0b0bb0a9e3ade60469e2908680eb43f254c))
+
+- **scripts**: Remove API key logging to address security warning
+  ([#265](https://github.com/dougborg/katana-openapi-client/pull/265),
+  [`ddbcc0b`](https://github.com/dougborg/katana-openapi-client/commit/ddbcc0b0bb0a9e3ade60469e2908680eb43f254c))
+
+### Documentation
+
+- Add Katana API comprehensive documentation for spec comparison
+  ([#265](https://github.com/dougborg/katana-openapi-client/pull/265),
+  [`ddbcc0b`](https://github.com/dougborg/katana-openapi-client/commit/ddbcc0b0bb0a9e3ade60469e2908680eb43f254c))
+
 ## v0.44.1 (2026-02-06)
 
 ### Bug Fixes
