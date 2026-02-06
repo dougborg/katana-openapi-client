@@ -118,7 +118,7 @@ def sync_detailed(
         id (int):
         body (UpdateManufacturingOrderProductionIngredientRequest): Request payload for updating
             ingredient consumption data in a manufacturing order production batch Example:
-            {'quantity': 3.2, 'production_date': '2023-10-15T11:15:00Z', 'cost': 15.75}.
+            {'batch_transactions': [{'batch_id': 123, 'quantity': 3.2}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -165,7 +165,7 @@ def sync(
         id (int):
         body (UpdateManufacturingOrderProductionIngredientRequest): Request payload for updating
             ingredient consumption data in a manufacturing order production batch Example:
-            {'quantity': 3.2, 'production_date': '2023-10-15T11:15:00Z', 'cost': 15.75}.
+            {'batch_transactions': [{'batch_id': 123, 'quantity': 3.2}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -206,7 +206,7 @@ async def asyncio_detailed(
         id (int):
         body (UpdateManufacturingOrderProductionIngredientRequest): Request payload for updating
             ingredient consumption data in a manufacturing order production batch Example:
-            {'quantity': 3.2, 'production_date': '2023-10-15T11:15:00Z', 'cost': 15.75}.
+            {'batch_transactions': [{'batch_id': 123, 'quantity': 3.2}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -251,7 +251,7 @@ async def asyncio(
         id (int):
         body (UpdateManufacturingOrderProductionIngredientRequest): Request payload for updating
             ingredient consumption data in a manufacturing order production batch Example:
-            {'quantity': 3.2, 'production_date': '2023-10-15T11:15:00Z', 'cost': 15.75}.
+            {'batch_transactions': [{'batch_id': 123, 'quantity': 3.2}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

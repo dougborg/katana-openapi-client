@@ -100,7 +100,7 @@ def sync_detailed(
     Args:
         id (int):
         body (UpdatePriceListCustomerRequest): Request payload for updating an existing price list
-            customer assignment Example: {'price_list_id': 1003}.
+            customer assignment Example: {'customer_id': 2003}.
 
 
     Raises:
@@ -139,7 +139,7 @@ def sync(
     Args:
         id (int):
         body (UpdatePriceListCustomerRequest): Request payload for updating an existing price list
-            customer assignment Example: {'price_list_id': 1003}.
+            customer assignment Example: {'customer_id': 2003}.
 
 
     Raises:
@@ -173,7 +173,7 @@ async def asyncio_detailed(
     Args:
         id (int):
         body (UpdatePriceListCustomerRequest): Request payload for updating an existing price list
-            customer assignment Example: {'price_list_id': 1003}.
+            customer assignment Example: {'customer_id': 2003}.
 
 
     Raises:
@@ -210,7 +210,7 @@ async def asyncio(
     Args:
         id (int):
         body (UpdatePriceListCustomerRequest): Request payload for updating an existing price list
-            customer assignment Example: {'price_list_id': 1003}.
+            customer assignment Example: {'customer_id': 2003}.
 
 
     Raises:

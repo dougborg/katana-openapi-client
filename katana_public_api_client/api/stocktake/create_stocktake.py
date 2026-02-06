@@ -88,7 +88,7 @@ def sync_detailed(
     Args:
         body (CreateStocktakeRequest): Request payload for creating a new stocktake to perform
             physical inventory counting Example: {'stocktake_number': 'STK-2024-003', 'location_id':
-            1, 'reason': 'Quarterly inventory count', 'status': 'NOT_STARTED'}.
+            1, 'reason': 'Quarterly inventory count', 'additional_info': 'Annual audit'}.
 
 
     Raises:
@@ -123,7 +123,7 @@ def sync(
     Args:
         body (CreateStocktakeRequest): Request payload for creating a new stocktake to perform
             physical inventory counting Example: {'stocktake_number': 'STK-2024-003', 'location_id':
-            1, 'reason': 'Quarterly inventory count', 'status': 'NOT_STARTED'}.
+            1, 'reason': 'Quarterly inventory count', 'additional_info': 'Annual audit'}.
 
 
     Raises:
@@ -153,7 +153,7 @@ async def asyncio_detailed(
     Args:
         body (CreateStocktakeRequest): Request payload for creating a new stocktake to perform
             physical inventory counting Example: {'stocktake_number': 'STK-2024-003', 'location_id':
-            1, 'reason': 'Quarterly inventory count', 'status': 'NOT_STARTED'}.
+            1, 'reason': 'Quarterly inventory count', 'additional_info': 'Annual audit'}.
 
 
     Raises:
@@ -186,7 +186,7 @@ async def asyncio(
     Args:
         body (CreateStocktakeRequest): Request payload for creating a new stocktake to perform
             physical inventory counting Example: {'stocktake_number': 'STK-2024-003', 'location_id':
-            1, 'reason': 'Quarterly inventory count', 'status': 'NOT_STARTED'}.
+            1, 'reason': 'Quarterly inventory count', 'additional_info': 'Annual audit'}.
 
 
     Raises:

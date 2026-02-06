@@ -96,9 +96,9 @@ def sync_detailed(
      Assigns a customer to a price list.
 
     Args:
-        body (CreatePriceListCustomerRequest): Request payload for assigning a customer to a price
-            list for custom pricing Example: {'price_list_id': 1002, 'customer_id': 2002}.
-
+        body (CreatePriceListCustomerRequest): Request payload for assigning customers to a price
+            list for custom pricing Example: {'price_list_id': 1002, 'price_list_customers':
+            [{'customer_id': 2002}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -130,9 +130,9 @@ def sync(
      Assigns a customer to a price list.
 
     Args:
-        body (CreatePriceListCustomerRequest): Request payload for assigning a customer to a price
-            list for custom pricing Example: {'price_list_id': 1002, 'customer_id': 2002}.
-
+        body (CreatePriceListCustomerRequest): Request payload for assigning customers to a price
+            list for custom pricing Example: {'price_list_id': 1002, 'price_list_customers':
+            [{'customer_id': 2002}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -159,9 +159,9 @@ async def asyncio_detailed(
      Assigns a customer to a price list.
 
     Args:
-        body (CreatePriceListCustomerRequest): Request payload for assigning a customer to a price
-            list for custom pricing Example: {'price_list_id': 1002, 'customer_id': 2002}.
-
+        body (CreatePriceListCustomerRequest): Request payload for assigning customers to a price
+            list for custom pricing Example: {'price_list_id': 1002, 'price_list_customers':
+            [{'customer_id': 2002}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -191,9 +191,9 @@ async def asyncio(
      Assigns a customer to a price list.
 
     Args:
-        body (CreatePriceListCustomerRequest): Request payload for assigning a customer to a price
-            list for custom pricing Example: {'price_list_id': 1002, 'customer_id': 2002}.
-
+        body (CreatePriceListCustomerRequest): Request payload for assigning customers to a price
+            list for custom pricing Example: {'price_list_id': 1002, 'price_list_customers':
+            [{'customer_id': 2002}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

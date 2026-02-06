@@ -96,9 +96,9 @@ def sync_detailed(
      Creates a new price list row.
 
     Args:
-        body (CreatePriceListRowRequest): Request payload for adding a product variant with
-            specific pricing to a price list for customer-specific pricing management Example:
-            {'price_list_id': 1001, 'variant_id': 201, 'price': 249.99, 'currency': 'USD'}.
+        body (CreatePriceListRowRequest): Request payload for adding product variants with
+            specific pricing to a price list Example: {'price_list_id': 1001, 'price_list_rows':
+            [{'variant_id': 201, 'adjustment_method': 'fixed', 'amount': 249.99}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -130,9 +130,9 @@ def sync(
      Creates a new price list row.
 
     Args:
-        body (CreatePriceListRowRequest): Request payload for adding a product variant with
-            specific pricing to a price list for customer-specific pricing management Example:
-            {'price_list_id': 1001, 'variant_id': 201, 'price': 249.99, 'currency': 'USD'}.
+        body (CreatePriceListRowRequest): Request payload for adding product variants with
+            specific pricing to a price list Example: {'price_list_id': 1001, 'price_list_rows':
+            [{'variant_id': 201, 'adjustment_method': 'fixed', 'amount': 249.99}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -159,9 +159,9 @@ async def asyncio_detailed(
      Creates a new price list row.
 
     Args:
-        body (CreatePriceListRowRequest): Request payload for adding a product variant with
-            specific pricing to a price list for customer-specific pricing management Example:
-            {'price_list_id': 1001, 'variant_id': 201, 'price': 249.99, 'currency': 'USD'}.
+        body (CreatePriceListRowRequest): Request payload for adding product variants with
+            specific pricing to a price list Example: {'price_list_id': 1001, 'price_list_rows':
+            [{'variant_id': 201, 'adjustment_method': 'fixed', 'amount': 249.99}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -191,9 +191,9 @@ async def asyncio(
      Creates a new price list row.
 
     Args:
-        body (CreatePriceListRowRequest): Request payload for adding a product variant with
-            specific pricing to a price list for customer-specific pricing management Example:
-            {'price_list_id': 1001, 'variant_id': 201, 'price': 249.99, 'currency': 'USD'}.
+        body (CreatePriceListRowRequest): Request payload for adding product variants with
+            specific pricing to a price list Example: {'price_list_id': 1001, 'price_list_rows':
+            [{'variant_id': 201, 'adjustment_method': 'fixed', 'amount': 249.99}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

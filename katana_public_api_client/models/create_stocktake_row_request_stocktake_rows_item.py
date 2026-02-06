@@ -7,18 +7,12 @@ from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
 
-T = TypeVar("T", bound="UpdateStocktakeRowRequest")
+T = TypeVar("T", bound="CreateStocktakeRowRequestStocktakeRowsItem")
 
 
 @_attrs_define
-class UpdateStocktakeRowRequest:
-    """Request payload for updating an existing stocktake row
-
-    Example:
-        {'variant_id': 3001, 'batch_id': 501, 'counted_quantity': 148.0, 'notes': 'Recount confirmed minor variance'}
-    """
-
-    variant_id: int | Unset = UNSET
+class CreateStocktakeRowRequestStocktakeRowsItem:
+    variant_id: int
     batch_id: int | None | Unset = UNSET
     notes: None | str | Unset = UNSET
     counted_quantity: float | None | Unset = UNSET
@@ -46,9 +40,11 @@ class UpdateStocktakeRowRequest:
 
         field_dict: dict[str, Any] = {}
 
-        field_dict.update({})
-        if variant_id is not UNSET:
-            field_dict["variant_id"] = variant_id
+        field_dict.update(
+            {
+                "variant_id": variant_id,
+            }
+        )
         if batch_id is not UNSET:
             field_dict["batch_id"] = batch_id
         if notes is not UNSET:
@@ -61,7 +57,7 @@ class UpdateStocktakeRowRequest:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        variant_id = d.pop("variant_id", UNSET)
+        variant_id = d.pop("variant_id")
 
         def _parse_batch_id(data: object) -> int | None | Unset:
             if data is None:
@@ -90,11 +86,11 @@ class UpdateStocktakeRowRequest:
 
         counted_quantity = _parse_counted_quantity(d.pop("counted_quantity", UNSET))
 
-        update_stocktake_row_request = cls(
+        create_stocktake_row_request_stocktake_rows_item = cls(
             variant_id=variant_id,
             batch_id=batch_id,
             notes=notes,
             counted_quantity=counted_quantity,
         )
 
-        return update_stocktake_row_request
+        return create_stocktake_row_request_stocktake_rows_item

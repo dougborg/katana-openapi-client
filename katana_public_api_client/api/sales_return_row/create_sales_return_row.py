@@ -6,7 +6,7 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
-from ...models.create_sales_return_row_body import CreateSalesReturnRowBody
+from ...models.create_sales_return_row_request import CreateSalesReturnRowRequest
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.sales_return_row import SalesReturnRow
@@ -14,7 +14,7 @@ from ...models.sales_return_row import SalesReturnRow
 
 def _get_kwargs(
     *,
-    body: CreateSalesReturnRowBody,
+    body: CreateSalesReturnRowRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -84,14 +84,15 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateSalesReturnRowBody,
+    body: CreateSalesReturnRowRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | SalesReturnRow]:
     """Create a sales return row
 
      Creates a new sales return row.
 
     Args:
-        body (CreateSalesReturnRowBody):
+        body (CreateSalesReturnRowRequest): Request payload for creating a new sales return row
+            with product and quantity information
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -116,14 +117,15 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateSalesReturnRowBody,
+    body: CreateSalesReturnRowRequest,
 ) -> DetailedErrorResponse | ErrorResponse | SalesReturnRow | None:
     """Create a sales return row
 
      Creates a new sales return row.
 
     Args:
-        body (CreateSalesReturnRowBody):
+        body (CreateSalesReturnRowRequest): Request payload for creating a new sales return row
+            with product and quantity information
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -143,14 +145,15 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateSalesReturnRowBody,
+    body: CreateSalesReturnRowRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | SalesReturnRow]:
     """Create a sales return row
 
      Creates a new sales return row.
 
     Args:
-        body (CreateSalesReturnRowBody):
+        body (CreateSalesReturnRowRequest): Request payload for creating a new sales return row
+            with product and quantity information
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -173,14 +176,15 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateSalesReturnRowBody,
+    body: CreateSalesReturnRowRequest,
 ) -> DetailedErrorResponse | ErrorResponse | SalesReturnRow | None:
     """Create a sales return row
 
      Creates a new sales return row.
 
     Args:
-        body (CreateSalesReturnRowBody):
+        body (CreateSalesReturnRowRequest): Request payload for creating a new sales return row
+            with product and quantity information
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

@@ -18,18 +18,18 @@ class ProductOperationRerankRequest:
     """Request payload for reordering product operations within a manufacturing workflow to optimize production sequence
 
     Example:
-        {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group': True}
+        {'rank_product_operation_id': 501, 'preceding_product_operation_id': 499, 'should_group': True}
     """
 
     rank_product_operation_id: int
-    preceeding_product_operation_id: int | Unset = UNSET
+    preceding_product_operation_id: int | Unset = UNSET
     should_group: bool | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         rank_product_operation_id = self.rank_product_operation_id
 
-        preceeding_product_operation_id = self.preceeding_product_operation_id
+        preceding_product_operation_id = self.preceding_product_operation_id
 
         should_group = self.should_group
 
@@ -40,9 +40,9 @@ class ProductOperationRerankRequest:
                 "rank_product_operation_id": rank_product_operation_id,
             }
         )
-        if preceeding_product_operation_id is not UNSET:
-            field_dict["preceeding_product_operation_id"] = (
-                preceeding_product_operation_id
+        if preceding_product_operation_id is not UNSET:
+            field_dict["preceding_product_operation_id"] = (
+                preceding_product_operation_id
             )
         if should_group is not UNSET:
             field_dict["should_group"] = should_group
@@ -54,15 +54,13 @@ class ProductOperationRerankRequest:
         d = dict(src_dict)
         rank_product_operation_id = d.pop("rank_product_operation_id")
 
-        preceeding_product_operation_id = d.pop(
-            "preceeding_product_operation_id", UNSET
-        )
+        preceding_product_operation_id = d.pop("preceding_product_operation_id", UNSET)
 
         should_group = d.pop("should_group", UNSET)
 
         product_operation_rerank_request = cls(
             rank_product_operation_id=rank_product_operation_id,
-            preceeding_product_operation_id=preceeding_product_operation_id,
+            preceding_product_operation_id=preceding_product_operation_id,
             should_group=should_group,
         )
 

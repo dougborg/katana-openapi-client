@@ -100,8 +100,8 @@ def sync_detailed(
     Args:
         id (int):
         body (UpdateStocktakeRowRequest): Request payload for updating an existing stocktake row
-            Example: {'counted_quantity': 148.0, 'notes': 'Recount confirmed minor variance'}.
-
+            Example: {'variant_id': 3001, 'batch_id': 501, 'counted_quantity': 148.0, 'notes':
+            'Recount confirmed minor variance'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -139,8 +139,8 @@ def sync(
     Args:
         id (int):
         body (UpdateStocktakeRowRequest): Request payload for updating an existing stocktake row
-            Example: {'counted_quantity': 148.0, 'notes': 'Recount confirmed minor variance'}.
-
+            Example: {'variant_id': 3001, 'batch_id': 501, 'counted_quantity': 148.0, 'notes':
+            'Recount confirmed minor variance'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -173,8 +173,8 @@ async def asyncio_detailed(
     Args:
         id (int):
         body (UpdateStocktakeRowRequest): Request payload for updating an existing stocktake row
-            Example: {'counted_quantity': 148.0, 'notes': 'Recount confirmed minor variance'}.
-
+            Example: {'variant_id': 3001, 'batch_id': 501, 'counted_quantity': 148.0, 'notes':
+            'Recount confirmed minor variance'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -210,8 +210,8 @@ async def asyncio(
     Args:
         id (int):
         body (UpdateStocktakeRowRequest): Request payload for updating an existing stocktake row
-            Example: {'counted_quantity': 148.0, 'notes': 'Recount confirmed minor variance'}.
-
+            Example: {'variant_id': 3001, 'batch_id': 501, 'counted_quantity': 148.0, 'notes':
+            'Recount confirmed minor variance'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

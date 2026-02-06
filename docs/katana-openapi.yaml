@@ -2828,20 +2828,15 @@ components:
       description: Request payload for updating ingredient consumption data in a manufacturing order production batch
       type: object
       properties:
-        quantity:
-          type: number
-          description: Updated actual quantity of ingredient consumed
-        production_date:
-          type: string
-          format: date-time
-          description: Updated date when the ingredient was consumed in production
-        cost:
-          type: number
-          description: Updated cost of the ingredient consumed
+        batch_transactions:
+          type: array
+          description: Batch transactions for tracking ingredient consumption from specific batches
+          items:
+            $ref: "#/components/schemas/BatchTransaction"
       example:
-        quantity: 3.2
-        production_date: "2023-10-15T11:15:00Z"
-        cost: 15.75
+        batch_transactions:
+          - batch_id: 123
+            quantity: 3.2
     ManufacturingOrderOperationRow:
       description:
         Represents an individual operation step within a manufacturing order, tracking production operations, operator
@@ -7160,6 +7155,37 @@ components:
             - number
             - "null"
           description: Default discount percentage applied to all orders (0-100)
+        addresses:
+          type: array
+          description: Customer addresses to create with the customer
+          items:
+            type: object
+            properties:
+              entity_type:
+                type: string
+                enum:
+                  - billing
+                  - shipping
+              first_name:
+                type: string
+              last_name:
+                type: string
+              company:
+                type: string
+              phone:
+                type: string
+              line_1:
+                type: string
+              line_2:
+                type: string
+              city:
+                type: string
+              state:
+                type: string
+              zip:
+                type: string
+              country:
+                type: string
       required:
         - name
       example:
@@ -7839,7 +7865,7 @@ components:
       required:
         - sales_order_id
         - entity_type
-        - address_line_1
+        - line_1
         - city
         - country
       properties:
@@ -7861,10 +7887,10 @@ components:
         company:
           type: string
           description: Company name for the address
-        address_line_1:
+        line_1:
           type: string
           description: Primary address line
-        address_line_2:
+        line_2:
           type: string
           description: Secondary address line
         city:
@@ -7888,7 +7914,7 @@ components:
         first_name: John
         last_name: Johnson
         company: Johnson's Restaurant
-        address_line_1: 123 Main Street
+        line_1: 123 Main Street
         city: Portland
         state: OR
         zip: "97201"
@@ -7899,12 +7925,6 @@ components:
       type: object
       additionalProperties: false
       properties:
-        entity_type:
-          type: string
-          enum:
-            - billing
-            - shipping
-          description: Type of address (billing or shipping)
         first_name:
           type: string
           description: First name for the address contact
@@ -7914,10 +7934,10 @@ components:
         company:
           type: string
           description: Company name for the address
-        address_line_1:
+        line_1:
           type: string
           description: Primary address line
-        address_line_2:
+        line_2:
           type: string
           description: Secondary address line
         city:
@@ -7936,7 +7956,7 @@ components:
           type: string
           description: Contact phone number
       example:
-        address_line_1: 456 Oak Avenue
+        line_1: 456 Oak Avenue
         phone: +1-555-0456
     SalesOrderListResponse:
       description: Response containing a list of sales orders with pagination support for retrieving customer order data
@@ -8685,88 +8705,74 @@ components:
         deleted_at: null
     CreatePriceListRequest:
       description:
-        Request payload for creating a new price list with market-specific pricing configurations and time-based
-        validity
+        Request payload for creating a new price list with market-specific pricing configurations
       type: object
       additionalProperties: false
       required:
         - name
-        - currency
       properties:
         name:
           type: string
           description: Descriptive name for the price list (e.g., "Premium Customer Pricing", "Wholesale Rates")
-        currency:
-          type: string
-          pattern: ^[A-Z]{3}$
-          description: ISO 4217 currency code for all prices in this list (e.g., USD, EUR, GBP)
-        is_default:
-          type: boolean
-          description: Whether this price list should be the default fallback for customers without specific price lists
-        markup_percentage:
-          type: number
-          description: Percentage markup applied to base costs to calculate pricing in this list
-        start_date:
-          type: string
-          format: date-time
-          description: Date and time when this price list becomes active
-        end_date:
-          type: string
-          format: date-time
-          description: Date and time when this price list expires
       example:
         name: Premium Customer Pricing
-        currency: USD
-        is_default: false
-        markup_percentage: 25.0
-        start_date: "2024-01-01T00:00:00Z"
-        end_date: "2024-12-31T23:59:59Z"
     CreatePriceListRowRequest:
       description:
-        Request payload for adding a product variant with specific pricing to a price list for customer-specific
-        pricing management
+        Request payload for adding product variants with specific pricing to a price list
       type: object
       additionalProperties: false
       required:
         - price_list_id
-        - variant_id
-        - price
+        - price_list_rows
       properties:
         price_list_id:
           type: integer
           description: ID of the price list to add the variant pricing to
-        variant_id:
-          type: integer
-          description: ID of the product variant to set custom pricing for
-        price:
-          type: number
-          description: Custom price for this variant in the price list's currency
-        currency:
-          type: string
-          pattern: ^[A-Z]{3}$
-          description: ISO 4217 currency code (must match the price list's currency)
+        price_list_rows:
+          type: array
+          description: Array of price list row items to create
+          items:
+            type: object
+            properties:
+              variant_id:
+                type: integer
+                description: ID of the product variant
+              adjustment_method:
+                type: string
+                description: Method for price adjustment
+              amount:
+                type: number
+                description: Adjustment amount
       example:
         price_list_id: 1001
-        variant_id: 201
-        price: 249.99
-        currency: USD
+        price_list_rows:
+          - variant_id: 201
+            adjustment_method: fixed
+            amount: 249.99
     CreatePriceListCustomerRequest:
-      description: Request payload for assigning a customer to a price list for custom pricing
+      description: Request payload for assigning customers to a price list for custom pricing
       type: object
       additionalProperties: false
       required:
         - price_list_id
-        - customer_id
+        - price_list_customers
       properties:
         price_list_id:
           type: integer
           description: ID of the price list
-        customer_id:
-          type: integer
-          description: ID of the customer to assign to price list
+        price_list_customers:
+          type: array
+          description: Array of customers to assign to the price list
+          items:
+            type: object
+            properties:
+              customer_id:
+                type: integer
+                description: ID of the customer to assign
       example:
         price_list_id: 1002
-        customer_id: 2002
+        price_list_customers:
+          - customer_id: 2002
     UpdatePriceListRequest:
       description: Request payload for updating an existing price list
       type: object
@@ -8775,62 +8781,36 @@ components:
         name:
           type: string
           description: Descriptive name for the price list
-        currency:
-          type: string
-          pattern: ^[A-Z]{3}$
-          description: ISO 4217 currency code for all prices in this list
-        is_default:
+        is_active:
           type: boolean
-          description: Whether this price list should be the default fallback
-        markup_percentage:
-          type: number
-          description: Percentage markup applied to base costs
-        start_date:
-          type: string
-          format: date-time
-          description: Date and time when this price list becomes active
-        end_date:
-          type: string
-          format: date-time
-          description: Date and time when this price list expires
+          description: Whether the price list is active
       example:
         name: Premium Customer Pricing - Updated
-        markup_percentage: 30.0
-        end_date: "2025-12-31T23:59:59Z"
+        is_active: true
     UpdatePriceListRowRequest:
       description: Request payload for updating an existing price list row
       type: object
       additionalProperties: false
       properties:
-        price_list_id:
-          type: integer
-          description: ID of the price list to add the variant pricing to
-        variant_id:
-          type: integer
-          description: ID of the product variant to set custom pricing for
-        price:
-          type: number
-          description: Custom price for this variant in the price list's currency
-        currency:
+        adjustment_method:
           type: string
-          pattern: ^[A-Z]{3}$
-          description: ISO 4217 currency code (must match the price list's currency)
+          description: Method for price adjustment
+        amount:
+          type: number
+          description: Adjustment amount
       example:
-        price: 259.99
-        currency: USD
+        adjustment_method: fixed
+        amount: 259.99
     UpdatePriceListCustomerRequest:
       description: Request payload for updating an existing price list customer assignment
       type: object
       additionalProperties: false
       properties:
-        price_list_id:
-          type: integer
-          description: ID of the price list
         customer_id:
           type: integer
           description: ID of the customer to assign to price list
       example:
-        price_list_id: 1003
+        customer_id: 2003
     PriceListRow:
       description:
         Individual product variant pricing entry within a price list for customer-specific or market-specific pricing
@@ -9704,79 +9684,36 @@ components:
       type: object
       additionalProperties: false
       required:
-        - customer_id
-        - order_no
+        - sales_order_id
         - return_location_id
-        - sales_return_rows
       properties:
-        customer_id:
-          type: integer
-          description: ID of the customer initiating the return
         sales_order_id:
           type: integer
           description: ID of the original sales order being returned
-        order_no:
-          type: string
-          description: Return order reference number
-        return_location_id:
-          type: integer
-          description: ID of the location where items are being returned to
-        currency:
-          type: string
-          description: Currency code (e.g., USD, EUR)
         order_created_date:
           type: string
           format: date-time
-          description: Date when the original order was created
+          description: Creation date of the return. If missing then current timestamp will be used.
+        return_location_id:
+          type: integer
+          description: ID of the location where items are being returned to
+        order_no:
+          type: string
+          description: Return order reference number
         additional_info:
           type: string
           description: Optional notes or comments about the return
-        sales_return_rows:
-          type: array
-          minItems: 1
-          items:
-            $ref: "#/components/schemas/CreateSalesReturnRowRequest"
-          description: Array of items being returned
       example:
-        customer_id: 1001
         sales_order_id: 2001
-        order_no: SR-2023-001
-        return_location_id: 1
-        currency: USD
         order_created_date: "2023-10-10T10:00:00Z"
+        return_location_id: 1
+        order_no: SR-2023-001
         additional_info: Customer reported damaged items during shipping
-        sales_return_rows:
-          - variant_id: 2002
-            quantity: 2
-            return_reason_id: 1
-            notes: Packaging was damaged
     UpdateSalesReturnRequest:
       description: Request payload for updating an existing sales return
       type: object
       additionalProperties: false
       properties:
-        customer_id:
-          type: integer
-          description: ID of the customer initiating the return
-        sales_order_id:
-          type: integer
-          description: ID of the original sales order being returned
-        order_no:
-          type: string
-          description: Return order reference number
-        return_location_id:
-          type: integer
-          description: ID of the location where items are being returned to
-        currency:
-          type: string
-          description: Currency code (e.g., USD, EUR)
-        order_created_date:
-          type: string
-          format: date-time
-          description: Date when the original order was created
-        additional_info:
-          type: string
-          description: Optional notes or comments about the return
         status:
           type: string
           enum:
@@ -9784,15 +9721,31 @@ components:
             - RETURNED_ALL
             - RESTOCKED_ALL
           description: Status of the sales return
+        return_date:
+          type: string
+          format: date-time
+          description: Date of the return. Updatable only when current return status is not restockedAll.
+        order_created_date:
+          type: string
+          format: date-time
+          description: Creation date of the return. Updatable only when current return status is not restockedAll.
+        return_location_id:
+          type: integer
+          description: ID of the location where items are being returned to. Updatable only when current return status is not restockedAll.
+        order_no:
+          type: string
+          description: Return order reference number. Updatable only when current return status is not restockedAll.
+        additional_info:
+          type:
+            - string
+            - "null"
+          description: Additional information about the return. Updatable only when current return status is not restockedAll.
       example:
-        customer_id: 1001
-        sales_order_id: 2001
+        status: RETURNED_ALL
+        return_date: "2023-10-12T10:00:00Z"
         order_no: SR-2023-001
         return_location_id: 1
-        currency: USD
-        order_created_date: "2023-10-10T10:00:00Z"
         additional_info: Customer reported damaged items during shipping
-        status: RETURNED_ALL
     SalesReturnRow:
       description: Individual line item within a sales return specifying returned product, quantity, and refund details
       allOf:
@@ -9840,21 +9793,29 @@ components:
       type: object
       additionalProperties: false
       required:
+        - sales_return_id
         - variant_id
+        - fulfillment_row_id
         - quantity
       properties:
+        sales_return_id:
+          type: integer
+          description: ID of the sales return this row belongs to
         variant_id:
           type: integer
           description: ID of the variant being returned
+        fulfillment_row_id:
+          type: integer
+          description: ID of the fulfillment row this return is associated with
         quantity:
-          type: number
+          type: string
           description: Quantity being returned
-        return_reason_id:
+        restock_location_id:
+          type: integer
+          description: Restock location ID. If missing then default from sales order fulfillment row will be used.
+        reason_id:
           type: integer
           description: ID of the return reason
-        notes:
-          type: string
-          description: Optional notes about this returned item
     User:
       allOf:
         - $ref: "#/components/schemas/UpdatableEntity"
@@ -10096,9 +10057,6 @@ components:
             - string
             - "null"
           description: Country name or country code
-        is_default:
-          type: boolean
-          description: Whether this should be set as the default address for the specified entity type
       required:
         - customer_id
         - entity_type
@@ -10115,7 +10073,6 @@ components:
         state: CA
         zip: "94102"
         country: US
-        is_default: true
     PriceListListResponse:
       description:
         Response containing a paginated list of price lists configured for customer-specific and market-specific
@@ -10276,20 +10233,36 @@ components:
         reason:
           type: string
           description: A descriptive field for your own information to enable better identification
-        status:
+        additional_info:
           type: string
-          description: Status of the stocktake
-          enum:
-            - NOT_STARTED
-            - IN_PROGRESS
-            - COUNTED
-            - COMPLETED
-          default: NOT_STARTED
+          description: Additional notes or information about the stocktake
+        created_date:
+          type: string
+          format: date-time
+          description: Date when the stocktake was created
+        set_remaining_items_as_counted:
+          type: boolean
+          description: Whether to set remaining uncounted items as counted
+        stocktake_rows:
+          type: array
+          description: Array of stocktake row items
+          items:
+            type: object
+            properties:
+              variant_id:
+                type: integer
+                description: ID of the variant to count
+              batch_id:
+                type: integer
+                description: ID of the batch
+              counted_quantity:
+                type: number
+                description: Counted quantity
       example:
         stocktake_number: STK-2024-003
         location_id: 1
         reason: Quarterly inventory count
-        status: NOT_STARTED
+        additional_info: Annual audit
     UpdateStocktakeRequest:
       description: Request payload for updating an existing stocktake
       type: object
@@ -10312,51 +10285,100 @@ components:
             - IN_PROGRESS
             - COUNTED
             - COMPLETED
+        additional_info:
+          type: string
+          description: Additional notes or information about the stocktake
+        created_date:
+          type: string
+          format: date-time
+          description: Date when the stocktake was created
+        completed_date:
+          type: string
+          format: date-time
+          description: Date when the stocktake was completed
+        set_remaining_items_as_counted:
+          type: boolean
+          description: Whether to set remaining uncounted items as counted
       example:
         stocktake_number: STK-2024-003
         location_id: 1
         reason: Quarterly inventory count - updated
         status: IN_PROGRESS
     CreateStocktakeRowRequest:
-      description: Request payload for creating a new stocktake row for counting specific variants
+      description: Request payload for creating stocktake rows for counting specific variants
       type: object
       additionalProperties: false
       required:
         - stocktake_id
-        - variant_id
+        - stocktake_rows
       properties:
         stocktake_id:
           type: integer
           description: ID of the stocktake this row belongs to
-        variant_id:
-          type: integer
-          description: ID of the variant being counted
-        batch_id:
-          type: integer
-          description: ID of the specific batch being counted (required for batch-trackable items)
-        counted_quantity:
-          type: number
-          description: The actual quantity counted during the stocktake
-        notes:
-          type: string
-          description: Optional notes about the count
+        stocktake_rows:
+          type: array
+          maxItems: 250
+          description: Array of stocktake rows to create
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - variant_id
+            properties:
+              variant_id:
+                type: integer
+                description: ID of the variant being counted
+              batch_id:
+                type:
+                  - integer
+                  - "null"
+                description: ID of the specific batch being counted (required for batch-trackable items)
+              notes:
+                type:
+                  - string
+                  - "null"
+                maxLength: 540
+                description: Optional notes about the count
+              counted_quantity:
+                type:
+                  - number
+                  - "null"
+                minimum: 0
+                description: The actual quantity counted during the stocktake
       example:
         stocktake_id: 4001
-        variant_id: 3001
-        counted_quantity: 147.0
-        notes: Initial count
+        stocktake_rows:
+          - variant_id: 3001
+            counted_quantity: 147.0
+            notes: Initial count
     UpdateStocktakeRowRequest:
       description: Request payload for updating an existing stocktake row
       type: object
       additionalProperties: false
       properties:
-        counted_quantity:
-          type: number
-          description: The actual quantity counted during the stocktake
+        variant_id:
+          type: integer
+          description: ID of the variant being counted
+        batch_id:
+          type:
+            - integer
+            - "null"
+          description: ID of the specific batch being counted (required for batch-trackable items)
         notes:
-          type: string
+          type:
+            - string
+            - "null"
+          maxLength: 540
           description: Optional notes about the count
+        counted_quantity:
+          type:
+            - number
+            - "null"
+          minimum: 0
+          description: The actual quantity counted during the stocktake
       example:
+        variant_id: 3001
+        batch_id: 501
         counted_quantity: 148.0
         notes: Recount confirmed minor variance
     SalesReturnListResponse:
@@ -10521,7 +10543,7 @@ components:
         rank_product_operation_id:
           type: integer
           description: ID of the product operation to be reordered
-        preceeding_product_operation_id:
+        preceding_product_operation_id:
           type: integer
           description: ID of the operation that should precede the operation being moved
         should_group:
@@ -10529,7 +10551,7 @@ components:
           description: Whether operations should be grouped together in the sequence
       example:
         rank_product_operation_id: 501
-        preceeding_product_operation_id: 499
+        preceding_product_operation_id: 499
         should_group: true
     ProductOperationRerank:
       description: Response confirming the success of a product operation reordering request
@@ -15605,29 +15627,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required:
-                - sales_return_id
-                - variant_id
-                - quantity
-              properties:
-                sales_return_id:
-                  type: integer
-                  description: Sales return ID
-                variant_id:
-                  type: integer
-                  description: Product variant ID
-                quantity:
-                  type: number
-                  description: Quantity being returned
-                  minimum: 0
-                reason:
-                  type: string
-                  description: Reason for return
-                notes:
-                  type: string
-                  description: Additional notes
+              $ref: "#/components/schemas/CreateSalesReturnRowRequest"
       responses:
         "201":
           description: Sales return row created successfully
@@ -15701,15 +15701,30 @@ paths:
               additionalProperties: false
               properties:
                 quantity:
-                  type: number
-                  description: Quantity being returned
-                  minimum: 0
-                reason:
                   type: string
-                  description: Reason for return
-                notes:
-                  type: string
-                  description: Additional notes
+                  description: Quantity being returned. Updatable only when current return status is NOT_RETURNED.
+                restock_location_id:
+                  type: integer
+                  description: Restock location ID. Updatable only when current return status is NOT_RETURNED or RETURNED.
+                reason_id:
+                  type: integer
+                  description: Reason ID. Updatable only when current return status is NOT_RETURNED.
+                batch_transactions:
+                  type: array
+                  description: Batch transactions. Updatable only when current return status is NOT_RETURNED or RETURNED.
+                  minItems: 1
+                  items:
+                    type: object
+                    required:
+                      - batch_id
+                      - quantity
+                    properties:
+                      batch_id:
+                        type: integer
+                        description: Batch ID
+                      quantity:
+                        type: number
+                        description: Quantity
       responses:
         "200":
           description: Sales return row updated successfully
@@ -15974,6 +15989,9 @@ paths:
               type: object
               additionalProperties: false
               properties:
+                ingredient_variant_id:
+                  type: integer
+                  description: ID of the ingredient variant
                 quantity:
                   type: number
                   description: Ingredient quantity required
@@ -17856,11 +17874,6 @@ paths:
             schema:
               type: object
               properties:
-                entity_type:
-                  type: string
-                  enum:
-                    - billing
-                    - shipping
                 first_name:
                   type:
                     - string
@@ -17901,8 +17914,6 @@ paths:
                   type:
                     - string
                     - "null"
-                is_default:
-                  type: boolean
       responses:
         "200":
           description: Customer address updated
@@ -19242,7 +19253,7 @@ paths:
               required:
                 - variant_id
                 - location_id
-                - reorder_point
+                - value
               properties:
                 variant_id:
                   type: integer
@@ -19250,13 +19261,9 @@ paths:
                 location_id:
                   type: integer
                   description: Location ID
-                reorder_point:
+                value:
                   type: number
                   description: Minimum stock level that triggers reorder
-                  minimum: 0
-                reorder_quantity:
-                  type: number
-                  description: Quantity to reorder when reorder point is reached
                   minimum: 0
       responses:
         "201":
@@ -19341,20 +19348,36 @@ paths:
               type: object
               additionalProperties: false
               required:
-                - outsourced_purchase_order_id
-                - recipe_row_id
-                - quantity
+                - purchase_order_row_id
+                - ingredient_variant_id
+                - planned_quantity_per_unit
               properties:
-                outsourced_purchase_order_id:
+                purchase_order_row_id:
                   type: integer
-                  description: Outsourced purchase order ID
-                recipe_row_id:
+                  description: Purchase order row ID
+                ingredient_variant_id:
                   type: integer
-                  description: Recipe row ID
-                quantity:
+                  description: Ingredient variant ID
+                planned_quantity_per_unit:
                   type: number
-                  description: Quantity required
+                  description: Planned quantity per unit of production
                   minimum: 0
+                notes:
+                  type: string
+                  description: Additional notes about this ingredient requirement
+                batch_transactions:
+                  type: array
+                  description: Batch allocation transactions for this ingredient
+                  items:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      batch_id:
+                        type: integer
+                        description: Batch ID
+                      quantity:
+                        type: number
+                        description: Quantity
       responses:
         "201":
           description: Outsourced purchase order recipe row created successfully
@@ -19427,10 +19450,29 @@ paths:
               type: object
               additionalProperties: false
               properties:
-                quantity:
+                ingredient_variant_id:
+                  type: integer
+                  description: Ingredient variant ID. Updatable only when received_date is null.
+                planned_quantity_per_unit:
                   type: number
-                  description: Quantity required
+                  description: Planned quantity per unit. Updatable only when received_date is null.
                   minimum: 0
+                notes:
+                  type: string
+                  description: Additional notes about this ingredient requirement
+                batch_transactions:
+                  type: array
+                  description: Batch allocation transactions for this ingredient
+                  items:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      batch_id:
+                        type: integer
+                        description: Batch ID
+                      quantity:
+                        type: number
+                        description: Quantity
       responses:
         "200":
           description: Outsourced purchase order recipe row updated successfully
@@ -19739,13 +19781,33 @@ paths:
               type: object
               additionalProperties: false
               properties:
-                sequence:
+                operation_id:
                   type: integer
-                  description: Operation sequence
-                  minimum: 1
-                notes:
+                  description: ID of the operation
+                operation_name:
                   type: string
-                  description: Operation notes
+                  description: Name of the operation
+                type:
+                  type: string
+                  description: Type of operation
+                resource_id:
+                  type: integer
+                  description: ID of the resource performing the operation
+                resource_name:
+                  type: string
+                  description: Name of the resource
+                planned_time_parameter:
+                  type: number
+                  description: Parameter for calculating planned time
+                planned_time_per_unit:
+                  type: number
+                  description: Planned time per unit
+                cost_parameter:
+                  type: number
+                  description: Parameter for calculating cost
+                cost_per_hour:
+                  type: number
+                  description: Hourly cost rate
       responses:
         "200":
           description: Product operation row updated successfully

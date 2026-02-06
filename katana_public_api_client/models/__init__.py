@@ -23,6 +23,10 @@ from .create_customer_address_request_entity_type import (
     CreateCustomerAddressRequestEntityType,
 )
 from .create_customer_request import CreateCustomerRequest
+from .create_customer_request_addresses_item import CreateCustomerRequestAddressesItem
+from .create_customer_request_addresses_item_entity_type import (
+    CreateCustomerRequestAddressesItemEntityType,
+)
 from .create_inventory_reorder_point_body import CreateInventoryReorderPointBody
 from .create_manufacturing_order_operation_row_request import (
     CreateManufacturingOrderOperationRowRequest,
@@ -44,9 +48,18 @@ from .create_material_request import CreateMaterialRequest
 from .create_outsourced_purchase_order_recipe_row_body import (
     CreateOutsourcedPurchaseOrderRecipeRowBody,
 )
+from .create_outsourced_purchase_order_recipe_row_body_batch_transactions_item import (
+    CreateOutsourcedPurchaseOrderRecipeRowBodyBatchTransactionsItem,
+)
 from .create_price_list_customer_request import CreatePriceListCustomerRequest
+from .create_price_list_customer_request_price_list_customers_item import (
+    CreatePriceListCustomerRequestPriceListCustomersItem,
+)
 from .create_price_list_request import CreatePriceListRequest
 from .create_price_list_row_request import CreatePriceListRowRequest
+from .create_price_list_row_request_price_list_rows_item import (
+    CreatePriceListRowRequestPriceListRowsItem,
+)
 from .create_product_operation_rows_body import CreateProductOperationRowsBody
 from .create_product_operation_rows_body_rows_item import (
     CreateProductOperationRowsBodyRowsItem,
@@ -92,7 +105,6 @@ from .create_sales_order_row_request_attributes_item import (
 )
 from .create_sales_order_shipping_fee_request import CreateSalesOrderShippingFeeRequest
 from .create_sales_return_request import CreateSalesReturnRequest
-from .create_sales_return_row_body import CreateSalesReturnRowBody
 from .create_sales_return_row_request import CreateSalesReturnRowRequest
 from .create_serial_numbers_body import CreateSerialNumbersBody
 from .create_serial_numbers_body_resource_type import (
@@ -112,8 +124,13 @@ from .create_stock_transfer_body_stock_transfer_rows_item import (
     CreateStockTransferBodyStockTransferRowsItem,
 )
 from .create_stocktake_request import CreateStocktakeRequest
-from .create_stocktake_request_status import CreateStocktakeRequestStatus
+from .create_stocktake_request_stocktake_rows_item import (
+    CreateStocktakeRequestStocktakeRowsItem,
+)
 from .create_stocktake_row_request import CreateStocktakeRowRequest
+from .create_stocktake_row_request_stocktake_rows_item import (
+    CreateStocktakeRowRequestStocktakeRowsItem,
+)
 from .create_supplier_address_request import CreateSupplierAddressRequest
 from .create_supplier_request import CreateSupplierRequest
 from .create_tax_rate_request import CreateTaxRateRequest
@@ -411,9 +428,6 @@ from .unrecognized_keys_validation_error_code import UnrecognizedKeysValidationE
 from .updatable_entity import UpdatableEntity
 from .update_bom_row_request import UpdateBomRowRequest
 from .update_customer_address_body import UpdateCustomerAddressBody
-from .update_customer_address_body_entity_type import (
-    UpdateCustomerAddressBodyEntityType,
-)
 from .update_customer_request import UpdateCustomerRequest
 from .update_manufacturing_order_operation_row_request import (
     UpdateManufacturingOrderOperationRowRequest,
@@ -439,6 +453,9 @@ from .update_material_request_configs_item import UpdateMaterialRequestConfigsIt
 from .update_outsourced_purchase_order_recipe_row_body import (
     UpdateOutsourcedPurchaseOrderRecipeRowBody,
 )
+from .update_outsourced_purchase_order_recipe_row_body_batch_transactions_item import (
+    UpdateOutsourcedPurchaseOrderRecipeRowBodyBatchTransactionsItem,
+)
 from .update_price_list_customer_request import UpdatePriceListCustomerRequest
 from .update_price_list_request import UpdatePriceListRequest
 from .update_price_list_row_request import UpdatePriceListRowRequest
@@ -459,9 +476,6 @@ from .update_purchase_order_request_status import UpdatePurchaseOrderRequestStat
 from .update_purchase_order_row_request import UpdatePurchaseOrderRowRequest
 from .update_recipe_row_body import UpdateRecipeRowBody
 from .update_sales_order_address_request import UpdateSalesOrderAddressRequest
-from .update_sales_order_address_request_entity_type import (
-    UpdateSalesOrderAddressRequestEntityType,
-)
 from .update_sales_order_body import UpdateSalesOrderBody
 from .update_sales_order_body_status import UpdateSalesOrderBodyStatus
 from .update_sales_order_fulfillment_body import UpdateSalesOrderFulfillmentBody
@@ -476,6 +490,9 @@ from .update_sales_order_shipping_fee_body import UpdateSalesOrderShippingFeeBod
 from .update_sales_return_request import UpdateSalesReturnRequest
 from .update_sales_return_request_status import UpdateSalesReturnRequestStatus
 from .update_sales_return_row_body import UpdateSalesReturnRowBody
+from .update_sales_return_row_body_batch_transactions_item import (
+    UpdateSalesReturnRowBodyBatchTransactionsItem,
+)
 from .update_service_request import UpdateServiceRequest
 from .update_stock_adjustment_request import UpdateStockAdjustmentRequest
 from .update_stock_transfer_body import UpdateStockTransferBody
@@ -545,6 +562,8 @@ __all__ = (
     "CreateCustomerAddressRequest",
     "CreateCustomerAddressRequestEntityType",
     "CreateCustomerRequest",
+    "CreateCustomerRequestAddressesItem",
+    "CreateCustomerRequestAddressesItemEntityType",
     "CreateInventoryReorderPointBody",
     "CreateManufacturingOrderOperationRowRequest",
     "CreateManufacturingOrderProductionRequest",
@@ -554,9 +573,12 @@ __all__ = (
     "CreateManufacturingOrderRequestStatus",
     "CreateMaterialRequest",
     "CreateOutsourcedPurchaseOrderRecipeRowBody",
+    "CreateOutsourcedPurchaseOrderRecipeRowBodyBatchTransactionsItem",
     "CreatePriceListCustomerRequest",
+    "CreatePriceListCustomerRequestPriceListCustomersItem",
     "CreatePriceListRequest",
     "CreatePriceListRowRequest",
+    "CreatePriceListRowRequestPriceListRowsItem",
     "CreateProductOperationRowsBody",
     "CreateProductOperationRowsBodyRowsItem",
     "CreateProductOperationRowsBodyRowsItemType",
@@ -582,7 +604,6 @@ __all__ = (
     "CreateSalesOrderRowRequestAttributesItem",
     "CreateSalesOrderShippingFeeRequest",
     "CreateSalesReturnRequest",
-    "CreateSalesReturnRowBody",
     "CreateSalesReturnRowRequest",
     "CreateSerialNumbersBody",
     "CreateSerialNumbersBodyResourceType",
@@ -594,8 +615,9 @@ __all__ = (
     "CreateStockTransferBody",
     "CreateStockTransferBodyStockTransferRowsItem",
     "CreateStocktakeRequest",
-    "CreateStocktakeRequestStatus",
+    "CreateStocktakeRequestStocktakeRowsItem",
     "CreateStocktakeRowRequest",
+    "CreateStocktakeRowRequestStocktakeRowsItem",
     "CreateSupplierAddressRequest",
     "CreateSupplierRequest",
     "CreateTaxRateRequest",
@@ -813,7 +835,6 @@ __all__ = (
     "UpdatableEntity",
     "UpdateBomRowRequest",
     "UpdateCustomerAddressBody",
-    "UpdateCustomerAddressBodyEntityType",
     "UpdateCustomerRequest",
     "UpdateManufacturingOrderOperationRowRequest",
     "UpdateManufacturingOrderProductionIngredientRequest",
@@ -825,6 +846,7 @@ __all__ = (
     "UpdateMaterialRequest",
     "UpdateMaterialRequestConfigsItem",
     "UpdateOutsourcedPurchaseOrderRecipeRowBody",
+    "UpdateOutsourcedPurchaseOrderRecipeRowBodyBatchTransactionsItem",
     "UpdatePriceListCustomerRequest",
     "UpdatePriceListRequest",
     "UpdatePriceListRowRequest",
@@ -839,7 +861,6 @@ __all__ = (
     "UpdatePurchaseOrderRowRequest",
     "UpdateRecipeRowBody",
     "UpdateSalesOrderAddressRequest",
-    "UpdateSalesOrderAddressRequestEntityType",
     "UpdateSalesOrderBody",
     "UpdateSalesOrderBodyStatus",
     "UpdateSalesOrderFulfillmentBody",
@@ -850,6 +871,7 @@ __all__ = (
     "UpdateSalesReturnRequest",
     "UpdateSalesReturnRequestStatus",
     "UpdateSalesReturnRowBody",
+    "UpdateSalesReturnRowBodyBatchTransactionsItem",
     "UpdateServiceRequest",
     "UpdateStockAdjustmentRequest",
     "UpdateStockTransferBody",

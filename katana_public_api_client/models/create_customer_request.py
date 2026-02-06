@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -9,6 +9,12 @@ from attrs import (
 )
 
 from ..client_types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.create_customer_request_addresses_item import (
+        CreateCustomerRequestAddressesItem,
+    )
+
 
 T = TypeVar("T", bound="CreateCustomerRequest")
 
@@ -35,6 +41,7 @@ class CreateCustomerRequest:
     reference_id: None | str | Unset = UNSET
     category: None | str | Unset = UNSET
     discount_rate: float | None | Unset = UNSET
+    addresses: list[CreateCustomerRequestAddressesItem] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -100,6 +107,13 @@ class CreateCustomerRequest:
         else:
             discount_rate = self.discount_rate
 
+        addresses: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.addresses, Unset):
+            addresses = []
+            for addresses_item_data in self.addresses:
+                addresses_item = addresses_item_data.to_dict()
+                addresses.append(addresses_item)
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -127,11 +141,17 @@ class CreateCustomerRequest:
             field_dict["category"] = category
         if discount_rate is not UNSET:
             field_dict["discount_rate"] = discount_rate
+        if addresses is not UNSET:
+            field_dict["addresses"] = addresses
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.create_customer_request_addresses_item import (
+            CreateCustomerRequestAddressesItem,
+        )
+
         d = dict(src_dict)
         name = d.pop("name")
 
@@ -225,6 +245,17 @@ class CreateCustomerRequest:
 
         discount_rate = _parse_discount_rate(d.pop("discount_rate", UNSET))
 
+        _addresses = d.pop("addresses", UNSET)
+        addresses: list[CreateCustomerRequestAddressesItem] | Unset = UNSET
+        if _addresses is not UNSET:
+            addresses = []
+            for addresses_item_data in _addresses:
+                addresses_item = CreateCustomerRequestAddressesItem.from_dict(
+                    addresses_item_data
+                )
+
+                addresses.append(addresses_item)
+
         create_customer_request = cls(
             name=name,
             first_name=first_name,
@@ -237,6 +268,7 @@ class CreateCustomerRequest:
             reference_id=reference_id,
             category=category,
             discount_rate=discount_rate,
+            addresses=addresses,
         )
 
         create_customer_request.additional_properties = d

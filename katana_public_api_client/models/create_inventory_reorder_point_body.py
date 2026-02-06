@@ -5,8 +5,6 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
-from ..client_types import UNSET, Unset
-
 T = TypeVar("T", bound="CreateInventoryReorderPointBody")
 
 
@@ -14,17 +12,14 @@ T = TypeVar("T", bound="CreateInventoryReorderPointBody")
 class CreateInventoryReorderPointBody:
     variant_id: int
     location_id: int
-    reorder_point: float
-    reorder_quantity: float | Unset = UNSET
+    value: float
 
     def to_dict(self) -> dict[str, Any]:
         variant_id = self.variant_id
 
         location_id = self.location_id
 
-        reorder_point = self.reorder_point
-
-        reorder_quantity = self.reorder_quantity
+        value = self.value
 
         field_dict: dict[str, Any] = {}
 
@@ -32,11 +27,9 @@ class CreateInventoryReorderPointBody:
             {
                 "variant_id": variant_id,
                 "location_id": location_id,
-                "reorder_point": reorder_point,
+                "value": value,
             }
         )
-        if reorder_quantity is not UNSET:
-            field_dict["reorder_quantity"] = reorder_quantity
 
         return field_dict
 
@@ -47,15 +40,12 @@ class CreateInventoryReorderPointBody:
 
         location_id = d.pop("location_id")
 
-        reorder_point = d.pop("reorder_point")
-
-        reorder_quantity = d.pop("reorder_quantity", UNSET)
+        value = d.pop("value")
 
         create_inventory_reorder_point_body = cls(
             variant_id=variant_id,
             location_id=location_id,
-            reorder_point=reorder_point,
-            reorder_quantity=reorder_quantity,
+            value=value,
         )
 
         return create_inventory_reorder_point_body

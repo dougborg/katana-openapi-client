@@ -100,7 +100,7 @@ def sync_detailed(
     Args:
         id (int):
         body (UpdateSalesOrderAddressRequest): Request payload for updating an existing sales
-            order address Example: {'address_line_1': '456 Oak Avenue', 'phone': '+1-555-0456'}.
+            order address Example: {'line_1': '456 Oak Avenue', 'phone': '+1-555-0456'}.
 
 
     Raises:
@@ -139,7 +139,7 @@ def sync(
     Args:
         id (int):
         body (UpdateSalesOrderAddressRequest): Request payload for updating an existing sales
-            order address Example: {'address_line_1': '456 Oak Avenue', 'phone': '+1-555-0456'}.
+            order address Example: {'line_1': '456 Oak Avenue', 'phone': '+1-555-0456'}.
 
 
     Raises:
@@ -173,7 +173,7 @@ async def asyncio_detailed(
     Args:
         id (int):
         body (UpdateSalesOrderAddressRequest): Request payload for updating an existing sales
-            order address Example: {'address_line_1': '456 Oak Avenue', 'phone': '+1-555-0456'}.
+            order address Example: {'line_1': '456 Oak Avenue', 'phone': '+1-555-0456'}.
 
 
     Raises:
@@ -210,7 +210,7 @@ async def asyncio(
     Args:
         id (int):
         body (UpdateSalesOrderAddressRequest): Request payload for updating an existing sales
-            order address Example: {'address_line_1': '456 Oak Avenue', 'phone': '+1-555-0456'}.
+            order address Example: {'line_1': '456 Oak Avenue', 'phone': '+1-555-0456'}.
 
 
     Raises:

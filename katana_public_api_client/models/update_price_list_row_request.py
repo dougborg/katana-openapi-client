@@ -15,53 +15,37 @@ class UpdatePriceListRowRequest:
     """Request payload for updating an existing price list row
 
     Example:
-        {'price': 259.99, 'currency': 'USD'}
+        {'adjustment_method': 'fixed', 'amount': 259.99}
     """
 
-    price_list_id: int | Unset = UNSET
-    variant_id: int | Unset = UNSET
-    price: float | Unset = UNSET
-    currency: str | Unset = UNSET
+    adjustment_method: str | Unset = UNSET
+    amount: float | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        price_list_id = self.price_list_id
+        adjustment_method = self.adjustment_method
 
-        variant_id = self.variant_id
-
-        price = self.price
-
-        currency = self.currency
+        amount = self.amount
 
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
-        if price_list_id is not UNSET:
-            field_dict["price_list_id"] = price_list_id
-        if variant_id is not UNSET:
-            field_dict["variant_id"] = variant_id
-        if price is not UNSET:
-            field_dict["price"] = price
-        if currency is not UNSET:
-            field_dict["currency"] = currency
+        if adjustment_method is not UNSET:
+            field_dict["adjustment_method"] = adjustment_method
+        if amount is not UNSET:
+            field_dict["amount"] = amount
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        price_list_id = d.pop("price_list_id", UNSET)
+        adjustment_method = d.pop("adjustment_method", UNSET)
 
-        variant_id = d.pop("variant_id", UNSET)
-
-        price = d.pop("price", UNSET)
-
-        currency = d.pop("currency", UNSET)
+        amount = d.pop("amount", UNSET)
 
         update_price_list_row_request = cls(
-            price_list_id=price_list_id,
-            variant_id=variant_id,
-            price=price,
-            currency=currency,
+            adjustment_method=adjustment_method,
+            amount=amount,
         )
 
         return update_price_list_row_request

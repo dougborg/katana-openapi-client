@@ -1,68 +1,71 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 
-from ..client_types import UNSET, Unset
+if TYPE_CHECKING:
+    from ..models.create_price_list_row_request_price_list_rows_item import (
+        CreatePriceListRowRequestPriceListRowsItem,
+    )
+
 
 T = TypeVar("T", bound="CreatePriceListRowRequest")
 
 
 @_attrs_define
 class CreatePriceListRowRequest:
-    """Request payload for adding a product variant with specific pricing to a price list for customer-specific pricing
-    management
+    """Request payload for adding product variants with specific pricing to a price list
 
-        Example:
-            {'price_list_id': 1001, 'variant_id': 201, 'price': 249.99, 'currency': 'USD'}
+    Example:
+        {'price_list_id': 1001, 'price_list_rows': [{'variant_id': 201, 'adjustment_method': 'fixed', 'amount':
+            249.99}]}
     """
 
     price_list_id: int
-    variant_id: int
-    price: float
-    currency: str | Unset = UNSET
+    price_list_rows: list[CreatePriceListRowRequestPriceListRowsItem]
 
     def to_dict(self) -> dict[str, Any]:
         price_list_id = self.price_list_id
 
-        variant_id = self.variant_id
-
-        price = self.price
-
-        currency = self.currency
+        price_list_rows = []
+        for price_list_rows_item_data in self.price_list_rows:
+            price_list_rows_item = price_list_rows_item_data.to_dict()
+            price_list_rows.append(price_list_rows_item)
 
         field_dict: dict[str, Any] = {}
 
         field_dict.update(
             {
                 "price_list_id": price_list_id,
-                "variant_id": variant_id,
-                "price": price,
+                "price_list_rows": price_list_rows,
             }
         )
-        if currency is not UNSET:
-            field_dict["currency"] = currency
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.create_price_list_row_request_price_list_rows_item import (
+            CreatePriceListRowRequestPriceListRowsItem,
+        )
+
         d = dict(src_dict)
         price_list_id = d.pop("price_list_id")
 
-        variant_id = d.pop("variant_id")
+        price_list_rows = []
+        _price_list_rows = d.pop("price_list_rows")
+        for price_list_rows_item_data in _price_list_rows:
+            price_list_rows_item = CreatePriceListRowRequestPriceListRowsItem.from_dict(
+                price_list_rows_item_data
+            )
 
-        price = d.pop("price")
-
-        currency = d.pop("currency", UNSET)
+            price_list_rows.append(price_list_rows_item)
 
         create_price_list_row_request = cls(
             price_list_id=price_list_id,
-            variant_id=variant_id,
-            price=price,
-            currency=currency,
+            price_list_rows=price_list_rows,
         )
 
         return create_price_list_row_request

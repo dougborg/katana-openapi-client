@@ -87,7 +87,7 @@ def sync_detailed(
     Args:
         body (ProductOperationRerankRequest): Request payload for reordering product operations
             within a manufacturing workflow to optimize production sequence Example:
-            {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group':
+            {'rank_product_operation_id': 501, 'preceding_product_operation_id': 499, 'should_group':
             True}.
 
     Raises:
@@ -122,7 +122,7 @@ def sync(
     Args:
         body (ProductOperationRerankRequest): Request payload for reordering product operations
             within a manufacturing workflow to optimize production sequence Example:
-            {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group':
+            {'rank_product_operation_id': 501, 'preceding_product_operation_id': 499, 'should_group':
             True}.
 
     Raises:
@@ -152,7 +152,7 @@ async def asyncio_detailed(
     Args:
         body (ProductOperationRerankRequest): Request payload for reordering product operations
             within a manufacturing workflow to optimize production sequence Example:
-            {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group':
+            {'rank_product_operation_id': 501, 'preceding_product_operation_id': 499, 'should_group':
             True}.
 
     Raises:
@@ -185,7 +185,7 @@ async def asyncio(
     Args:
         body (ProductOperationRerankRequest): Request payload for reordering product operations
             within a manufacturing workflow to optimize production sequence Example:
-            {'rank_product_operation_id': 501, 'preceeding_product_operation_id': 499, 'should_group':
+            {'rank_product_operation_id': 501, 'preceding_product_operation_id': 499, 'should_group':
             True}.
 
     Raises:
