@@ -17,8 +17,8 @@ def _get_kwargs(
     variant_id: int | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
     extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -99,8 +99,8 @@ def sync_detailed(
     variant_id: int | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
     extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> Response[ErrorResponse | InventoryListResponse]:
     """List current inventory
 
@@ -149,8 +149,8 @@ def sync(
     variant_id: int | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
     extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> ErrorResponse | InventoryListResponse | None:
     """List current inventory
 
@@ -194,8 +194,8 @@ async def asyncio_detailed(
     variant_id: int | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
     extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> Response[ErrorResponse | InventoryListResponse]:
     """List current inventory
 
@@ -242,8 +242,8 @@ async def asyncio(
     variant_id: int | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
     extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> ErrorResponse | InventoryListResponse | None:
     """List current inventory
 

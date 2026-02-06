@@ -16,8 +16,8 @@ def _get_kwargs(
     *,
     purchase_order_id: float | Unset = UNSET,
     received_items_group_id: float | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -87,8 +87,8 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     purchase_order_id: float | Unset = UNSET,
     received_items_group_id: float | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> Response[ErrorResponse | PurchaseOrderAccountingMetadataListResponse]:
     """List all purchase order accounting metadata
 
@@ -129,8 +129,8 @@ def sync(
     client: AuthenticatedClient | Client,
     purchase_order_id: float | Unset = UNSET,
     received_items_group_id: float | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> ErrorResponse | PurchaseOrderAccountingMetadataListResponse | None:
     """List all purchase order accounting metadata
 
@@ -166,8 +166,8 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     purchase_order_id: float | Unset = UNSET,
     received_items_group_id: float | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> Response[ErrorResponse | PurchaseOrderAccountingMetadataListResponse]:
     """List all purchase order accounting metadata
 
@@ -206,8 +206,8 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     purchase_order_id: float | Unset = UNSET,
     received_items_group_id: float | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> ErrorResponse | PurchaseOrderAccountingMetadataListResponse | None:
     """List all purchase order accounting metadata
 

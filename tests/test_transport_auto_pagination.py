@@ -126,10 +126,10 @@ class TestTransportAutoPagination:
         assert response.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_no_auto_pagination_with_explicit_page_param(
+    async def test_no_auto_pagination_with_explicit_page_greater_than_1(
         self, transport, mock_wrapped_transport
     ):
-        """Test that auto-pagination is disabled when page param is explicit."""
+        """Test that auto-pagination is disabled when page > 1 is specified."""
         mock_response = MagicMock(spec=httpx.Response)
         mock_response.status_code = 200
         mock_wrapped_transport.handle_async_request.return_value = mock_response
@@ -138,6 +138,31 @@ class TestTransportAutoPagination:
         request = httpx.Request(
             method="GET",
             url="https://api.example.com/products?page=2&limit=50",
+        )
+
+        response = await transport.handle_async_request(request)
+
+        # Should call wrapped transport only once (no pagination)
+        mock_wrapped_transport.handle_async_request.assert_called_once()
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_explicit_page_1_disables_auto_pagination(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that any explicit page parameter disables auto-pagination.
+
+        When the caller specifies page=1 (or any page), they want just that page,
+        not all pages. Auto-pagination is only enabled when NO page param is present.
+        """
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 200
+        mock_wrapped_transport.handle_async_request.return_value = mock_response
+
+        # Explicit page=1 should NOT trigger auto-pagination
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products?page=1&limit=50",
         )
 
         response = await transport.handle_async_request(request)
@@ -229,6 +254,194 @@ class TestTransportAutoPagination:
         assert response.status_code == 500
 
     @pytest.mark.asyncio
+    async def test_auto_pagination_defaults_to_limit_250(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that auto-pagination uses limit=250 (Katana's max) when no limit specified.
+
+        When no limit is specified, auto-pagination uses 250 to minimize API requests.
+        """
+        captured_requests = []
+
+        def create_response(data):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = data
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        async def capture_request(req):
+            captured_requests.append(req)
+            # Return single page to end pagination
+            data = {
+                "data": [{"id": 1}],
+                "pagination": {"page": 1, "total_pages": 1},
+            }
+            return create_response(data)
+
+        mock_wrapped_transport.handle_async_request.side_effect = capture_request
+
+        # Request with NO limit parameter - should default to 250
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products",
+        )
+
+        await transport.handle_async_request(request)
+
+        # Verify that the request used limit=250 (the default)
+        assert len(captured_requests) == 1
+        assert captured_requests[0].url.params.get("limit") == "250"
+
+    @pytest.mark.asyncio
+    async def test_auto_pagination_respects_caller_limit(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that auto-pagination respects caller's specified limit.
+
+        When caller specifies a limit, that limit is used per page (caller's choice).
+        """
+        captured_requests = []
+
+        def create_response(data):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = data
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        async def capture_request(req):
+            captured_requests.append(req)
+            # Return single page to end pagination
+            data = {
+                "data": [{"id": 1}],
+                "pagination": {"page": 1, "total_pages": 1},
+            }
+            return create_response(data)
+
+        mock_wrapped_transport.handle_async_request.side_effect = capture_request
+
+        # Request with limit=100 - should use caller's limit
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products?limit=100",
+        )
+
+        await transport.handle_async_request(request)
+
+        # Verify that the request used limit=100 (caller's choice)
+        assert len(captured_requests) == 1
+        assert captured_requests[0].url.params.get("limit") == "100"
+
+    @pytest.mark.asyncio
+    async def test_invalid_limit_falls_back_to_default(
+        self, transport, mock_wrapped_transport, caplog
+    ):
+        """Test that invalid limit values fall back to default 250."""
+        import logging
+
+        captured_requests = []
+
+        def create_response(data):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = data
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        async def capture_request(req):
+            captured_requests.append(req)
+            data = {
+                "data": [{"id": 1}],
+                "pagination": {"page": 1, "total_pages": 1},
+            }
+            return create_response(data)
+
+        mock_wrapped_transport.handle_async_request.side_effect = capture_request
+
+        # Request with invalid limit "abc" - should fall back to 250
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products?limit=abc",
+        )
+
+        with caplog.at_level(logging.WARNING):
+            await transport.handle_async_request(request)
+
+        # Verify that the request used limit=250 (default due to invalid value)
+        assert len(captured_requests) == 1
+        assert captured_requests[0].url.params.get("limit") == "250"
+
+        # Should have logged a warning about invalid limit
+        assert any(
+            "Invalid limit parameter" in record.message for record in caplog.records
+        )
+
+    @pytest.mark.asyncio
+    async def test_negative_limit_falls_back_to_default(
+        self, transport, mock_wrapped_transport, caplog
+    ):
+        """Test that negative limit values fall back to default 250."""
+        import logging
+
+        captured_requests = []
+
+        def create_response(data):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = data
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        async def capture_request(req):
+            captured_requests.append(req)
+            data = {
+                "data": [{"id": 1}],
+                "pagination": {"page": 1, "total_pages": 1},
+            }
+            return create_response(data)
+
+        mock_wrapped_transport.handle_async_request.side_effect = capture_request
+
+        # Request with negative limit - should fall back to 250
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products?limit=-50",
+        )
+
+        with caplog.at_level(logging.WARNING):
+            await transport.handle_async_request(request)
+
+        # Verify that the request used limit=250 (default due to negative value)
+        assert len(captured_requests) == 1
+        assert captured_requests[0].url.params.get("limit") == "250"
+
+        # Should have logged a warning about invalid limit
+        assert any(
+            "Invalid limit parameter" in record.message for record in caplog.records
+        )
+
+    @pytest.mark.asyncio
     async def test_max_items_limits_total_items(
         self, transport, mock_wrapped_transport
     ):
@@ -307,28 +520,32 @@ class TestTransportAutoPagination:
             captured_requests.append(req)
             # Return page data based on which page was requested
             page = int(req.url.params.get("page", 1))
-            limit = int(req.url.params.get("limit", 10))
+            # Simulate API that returns 100 items per page max
             data = {
-                "data": [{"id": i} for i in range(1, limit + 1)],
+                "data": [{"id": i} for i in range(1, 101)],  # Always 100 items
                 "pagination": {"page": page, "total_pages": 3},
             }
             return create_response(data)
 
         mock_wrapped_transport.handle_async_request.side_effect = capture_request
 
-        # Request with limit=10 and max_items=15
-        # After page 1 (10 items), should request only 5 items on page 2
+        # Request with max_items=150
+        # Page 1: requests limit=150, gets 100 items (API max per page)
+        # Page 2: requests limit=50 (150-100=50 remaining), gets 100 items but truncates to 50
         request = httpx.Request(
             method="GET",
-            url="https://api.example.com/products?limit=10",
-            extensions={"max_items": 15},
+            url="https://api.example.com/products",
+            extensions={"max_items": 150},
         )
 
         await transport.handle_async_request(request)
 
-        # Verify that the second request had limit=5
+        # Verify that the second request had reduced limit
         assert len(captured_requests) == 2
-        assert captured_requests[1].url.params.get("limit") == "5"
+        # First request: min(250, 150) = 150
+        assert captured_requests[0].url.params.get("limit") == "150"
+        # Second request: min(250, 50 remaining) = 50
+        assert captured_requests[1].url.params.get("limit") == "50"
 
     @pytest.mark.asyncio
     async def test_max_items_uses_default_page_size_when_no_limit(

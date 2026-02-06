@@ -19,8 +19,8 @@ def _get_kwargs(
     name: str | Unset = UNSET,
     sku: str | Unset = UNSET,
     category: str | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -103,8 +103,8 @@ def sync_detailed(
     name: str | Unset = UNSET,
     sku: str | Unset = UNSET,
     category: str | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> Response[ErrorResponse | NegativeStockListResponse]:
     """List all variants with negative stock
 
@@ -161,8 +161,8 @@ def sync(
     name: str | Unset = UNSET,
     sku: str | Unset = UNSET,
     category: str | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> ErrorResponse | NegativeStockListResponse | None:
     """List all variants with negative stock
 
@@ -214,8 +214,8 @@ async def asyncio_detailed(
     name: str | Unset = UNSET,
     sku: str | Unset = UNSET,
     category: str | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> Response[ErrorResponse | NegativeStockListResponse]:
     """List all variants with negative stock
 
@@ -270,8 +270,8 @@ async def asyncio(
     name: str | Unset = UNSET,
     sku: str | Unset = UNSET,
     category: str | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
 ) -> ErrorResponse | NegativeStockListResponse | None:
     """List all variants with negative stock
 

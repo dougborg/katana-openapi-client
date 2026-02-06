@@ -4,6 +4,13 @@
  * Provides transparent automatic pagination for GET requests,
  * collecting all pages automatically by default.
  *
+ * Auto-pagination behavior:
+ * - ON by default for GET requests with NO page parameter in URL
+ * - Uses 250 items per page (Katana's max) when no limit specified by caller
+ * - If caller specifies a limit, that limit is used per page
+ * - ANY explicit `page` parameter in URL disables auto-pagination (e.g., `?page=1`)
+ * - Only applies to GET requests (POST, PUT, etc. are never paginated)
+ *
  * Mirrors Python client's PaginationTransport pattern from katana_client.py
  */
 
@@ -136,8 +143,10 @@ export interface PaginatedFetchOptions {
  * Create a fetch function with automatic pagination support.
  *
  * Auto-pagination behavior:
- * - ON by default for all GET requests
- * - Disabled when explicit `page` parameter is in URL
+ * - ON by default for GET requests with NO page parameter in URL
+ * - Uses 250 items per page (Katana's max) when no limit specified by caller
+ * - If caller specifies a limit, that limit is used per page
+ * - ANY explicit `page` parameter in URL disables auto-pagination (e.g., `?page=1`)
  * - Disabled when autoPagination option is false
  * - Only applies to GET requests
  *
@@ -151,10 +160,14 @@ export interface PaginatedFetchOptions {
  *   pagination: { maxPages: 50, maxItems: 1000 }
  * });
  *
- * // Auto-paginate: collects all pages
+ * // Auto-paginate: collects all pages (uses limit=250 per page)
  * const response = await paginatedFetch('https://api.katanamrp.com/v1/products');
  *
- * // Disable auto-pagination with explicit page
+ * // Auto-paginate with custom limit per page
+ * const custom = await paginatedFetch('https://api.katanamrp.com/v1/products?limit=100');
+ *
+ * // Disable auto-pagination with explicit page (ANY page value)
+ * const page1 = await paginatedFetch('https://api.katanamrp.com/v1/products?page=1');
  * const page2 = await paginatedFetch('https://api.katanamrp.com/v1/products?page=2');
  * ```
  */
@@ -232,22 +245,30 @@ async function performPagination(
     isRelativeUrl = true;
   }
 
+  // Get caller's limit or default to 250 (Katana's max) for efficiency
+  const originalLimit = url.searchParams.get('limit');
+  const parsedLimit = originalLimit ? Number.parseInt(originalLimit, 10) : null;
+  const pageSize =
+    parsedLimit && !Number.isNaN(parsedLimit) && parsedLimit > 0
+      ? parsedLimit
+      : config.defaultPageSize;
+
   for (pageNum = 1; pageNum <= config.maxPages; pageNum++) {
     // Update page parameter
     url.searchParams.set('page', String(pageNum));
 
-    // Adjust limit if maxItems is set and we're approaching it
+    // Determine limit for this request
     if (config.maxItems !== undefined) {
       const remaining = config.maxItems - allData.length;
       if (remaining <= 0) {
         break;
       }
 
-      const originalLimit = url.searchParams.get('limit');
-      const limitToUse = originalLimit
-        ? Math.min(Number.parseInt(originalLimit, 10), remaining)
-        : Math.min(config.defaultPageSize, remaining);
-      url.searchParams.set('limit', String(limitToUse));
+      // Use min of page size and remaining items
+      url.searchParams.set('limit', String(Math.min(pageSize, remaining)));
+    } else {
+      // Use caller's page size (or default 250)
+      url.searchParams.set('limit', String(pageSize));
     }
 
     // Build the request URL

@@ -15,8 +15,8 @@ from ...models.get_all_product_operation_rows_response_200 import (
 
 def _get_kwargs(
     *,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     product_id: int | Unset = UNSET,
     operation_id: int | Unset = UNSET,
     product_variant_id: int | Unset = UNSET,
@@ -123,8 +123,8 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     product_id: int | Unset = UNSET,
     operation_id: int | Unset = UNSET,
     product_variant_id: int | Unset = UNSET,
@@ -191,8 +191,8 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     product_id: int | Unset = UNSET,
     operation_id: int | Unset = UNSET,
     product_variant_id: int | Unset = UNSET,
@@ -254,8 +254,8 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     product_id: int | Unset = UNSET,
     operation_id: int | Unset = UNSET,
     product_variant_id: int | Unset = UNSET,
@@ -320,8 +320,8 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     product_id: int | Unset = UNSET,
     operation_id: int | Unset = UNSET,
     product_variant_id: int | Unset = UNSET,

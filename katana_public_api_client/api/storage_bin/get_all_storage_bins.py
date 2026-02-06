@@ -14,8 +14,8 @@ def _get_kwargs(
     *,
     location_id: int | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     bin_name: str | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
@@ -86,8 +86,8 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     location_id: int | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     bin_name: str | Unset = UNSET,
 ) -> Response[ErrorResponse | StorageBinListResponse]:
     """List all storage bins
@@ -132,8 +132,8 @@ def sync(
     client: AuthenticatedClient | Client,
     location_id: int | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     bin_name: str | Unset = UNSET,
 ) -> ErrorResponse | StorageBinListResponse | None:
     """List all storage bins
@@ -173,8 +173,8 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     location_id: int | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     bin_name: str | Unset = UNSET,
 ) -> Response[ErrorResponse | StorageBinListResponse]:
     """List all storage bins
@@ -217,8 +217,8 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     location_id: int | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
-    limit: int | Unset = 50,
-    page: int | Unset = 1,
+    limit: int | Unset = UNSET,
+    page: int | Unset = UNSET,
     bin_name: str | Unset = UNSET,
 ) -> ErrorResponse | StorageBinListResponse | None:
     """List all storage bins
