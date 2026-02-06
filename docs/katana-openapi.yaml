@@ -4043,6 +4043,9 @@ components:
         is_auto_assembly:
           type: boolean
           description: Whether the product should be automatically assembled when components are available
+        is_archived:
+          type: boolean
+          description: Whether this product is archived and hidden from active use
         default_supplier_id:
           type: integer
           maximum: 2147483647
@@ -4107,6 +4110,7 @@ components:
         is_producible: true
         is_purchasable: false
         is_auto_assembly: false
+        is_archived: false
         default_supplier_id: 1501
         additional_info: High-carbon stainless steel with ergonomic handles, dishwasher safe
         batch_tracked: false
