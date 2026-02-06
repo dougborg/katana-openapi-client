@@ -128,10 +128,7 @@ async def main():
     print("MCP Resources Test")
     print("=" * 60)
     print(f"API Base URL: {base_url}")
-    masked_key = (
-        f"{'*' * (len(api_key) - 4)}{api_key[-4:]}" if len(api_key) > 4 else "****"
-    )
-    print(f"API Key: {masked_key}")
+    print("API Key: [configured]")
 
     # Initialize KatanaClient
     async with KatanaClient(
