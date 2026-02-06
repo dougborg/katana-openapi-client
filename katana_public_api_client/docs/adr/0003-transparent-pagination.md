@@ -10,8 +10,8 @@ Date: 2024-08-13 (estimated based on transport implementation)
 
 The Katana API uses cursor-based pagination with Link headers:
 
-- Default page size: 50 items
 - Maximum page size: 250 items
+- Default page size: 250 items (transport default for efficiency)
 - Link header provides `next` URL for additional pages
 - Many resources have hundreds or thousands of items
 
@@ -36,11 +36,11 @@ We will implement **transparent automatic pagination** at the transport layer.
 
 When a paginated endpoint is called:
 
-1. Fetch first page (default limit: 50)
+1. Fetch first page (default limit: 250, Katana's max for efficiency)
 1. Check for `Link` header with `rel="next"`
 1. Automatically fetch additional pages
 1. Aggregate results into single response
-1. Respect safety limit (max 100 pages = 5,000-25,000 items)
+1. Respect safety limit (max 100 pages = 25,000 items)
 1. Return complete dataset transparently
 
 Implementation in `AutoPaginationTransport`:
@@ -227,8 +227,8 @@ Auto-pagination only triggers when:
 ```python
 MAX_PAGES = 100  # Default safety limit
 
-# With default limit=50:  50 × 100 = 5,000 items max
-# With limit=250:         250 × 100 = 25,000 items max
+# With default limit=250: 250 × 100 = 25,000 items max
+# With custom limit=50:   50 × 100 = 5,000 items max
 ```
 
 Users can override if needed:
