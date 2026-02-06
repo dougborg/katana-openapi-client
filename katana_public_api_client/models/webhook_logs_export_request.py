@@ -1,17 +1,12 @@
 from __future__ import annotations
 
-import datetime
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.webhook_logs_export_request_format import WebhookLogsExportRequestFormat
-from ..models.webhook_logs_export_request_status_filter_item import (
-    WebhookLogsExportRequestStatusFilterItem,
-)
+from ..models.webhook_logs_export_request_event import WebhookLogsExportRequestEvent
 
 T = TypeVar("T", bound="WebhookLogsExportRequest")
 
@@ -21,51 +16,47 @@ class WebhookLogsExportRequest:
     """Request parameters for exporting webhook delivery logs for analysis and debugging
 
     Example:
-        {'webhook_id': 1, 'start_date': '2024-01-10T00:00:00Z', 'end_date': '2024-01-15T23:59:59Z', 'status_filter':
-            ['failure', 'retry'], 'format': 'csv'}
+        {'webhook_id': 1, 'event': 'sales_order.created', 'status_code': 200, 'delivered': True, 'created_at_min':
+            '2024-01-10T00:00:00Z', 'created_at_max': '2024-01-15T23:59:59Z'}
     """
 
     webhook_id: int | Unset = UNSET
-    start_date: datetime.datetime | Unset = UNSET
-    end_date: datetime.datetime | Unset = UNSET
-    status_filter: list[WebhookLogsExportRequestStatusFilterItem] | Unset = UNSET
-    format_: WebhookLogsExportRequestFormat | Unset = WebhookLogsExportRequestFormat.CSV
+    event: WebhookLogsExportRequestEvent | Unset = UNSET
+    status_code: int | Unset = UNSET
+    delivered: bool | Unset = UNSET
+    created_at_min: str | Unset = UNSET
+    created_at_max: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         webhook_id = self.webhook_id
 
-        start_date: str | Unset = UNSET
-        if not isinstance(self.start_date, Unset):
-            start_date = self.start_date.isoformat()
+        event: str | Unset = UNSET
+        if not isinstance(self.event, Unset):
+            event = self.event.value
 
-        end_date: str | Unset = UNSET
-        if not isinstance(self.end_date, Unset):
-            end_date = self.end_date.isoformat()
+        status_code = self.status_code
 
-        status_filter: list[str] | Unset = UNSET
-        if not isinstance(self.status_filter, Unset):
-            status_filter = []
-            for status_filter_item_data in self.status_filter:
-                status_filter_item = status_filter_item_data.value
-                status_filter.append(status_filter_item)
+        delivered = self.delivered
 
-        format_: str | Unset = UNSET
-        if not isinstance(self.format_, Unset):
-            format_ = self.format_.value
+        created_at_min = self.created_at_min
+
+        created_at_max = self.created_at_max
 
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
         if webhook_id is not UNSET:
             field_dict["webhook_id"] = webhook_id
-        if start_date is not UNSET:
-            field_dict["start_date"] = start_date
-        if end_date is not UNSET:
-            field_dict["end_date"] = end_date
-        if status_filter is not UNSET:
-            field_dict["status_filter"] = status_filter
-        if format_ is not UNSET:
-            field_dict["format"] = format_
+        if event is not UNSET:
+            field_dict["event"] = event
+        if status_code is not UNSET:
+            field_dict["status_code"] = status_code
+        if delivered is not UNSET:
+            field_dict["delivered"] = delivered
+        if created_at_min is not UNSET:
+            field_dict["created_at_min"] = created_at_min
+        if created_at_max is not UNSET:
+            field_dict["created_at_max"] = created_at_max
 
         return field_dict
 
@@ -74,44 +65,28 @@ class WebhookLogsExportRequest:
         d = dict(src_dict)
         webhook_id = d.pop("webhook_id", UNSET)
 
-        _start_date = d.pop("start_date", UNSET)
-        start_date: datetime.datetime | Unset
-        if isinstance(_start_date, Unset):
-            start_date = UNSET
+        _event = d.pop("event", UNSET)
+        event: WebhookLogsExportRequestEvent | Unset
+        if isinstance(_event, Unset):
+            event = UNSET
         else:
-            start_date = isoparse(_start_date)
+            event = WebhookLogsExportRequestEvent(_event)
 
-        _end_date = d.pop("end_date", UNSET)
-        end_date: datetime.datetime | Unset
-        if isinstance(_end_date, Unset):
-            end_date = UNSET
-        else:
-            end_date = isoparse(_end_date)
+        status_code = d.pop("status_code", UNSET)
 
-        _status_filter = d.pop("status_filter", UNSET)
-        status_filter: list[WebhookLogsExportRequestStatusFilterItem] | Unset = UNSET
-        if _status_filter is not UNSET:
-            status_filter = []
-            for status_filter_item_data in _status_filter:
-                status_filter_item = WebhookLogsExportRequestStatusFilterItem(
-                    status_filter_item_data
-                )
+        delivered = d.pop("delivered", UNSET)
 
-                status_filter.append(status_filter_item)
+        created_at_min = d.pop("created_at_min", UNSET)
 
-        _format_ = d.pop("format", UNSET)
-        format_: WebhookLogsExportRequestFormat | Unset
-        if isinstance(_format_, Unset):
-            format_ = UNSET
-        else:
-            format_ = WebhookLogsExportRequestFormat(_format_)
+        created_at_max = d.pop("created_at_max", UNSET)
 
         webhook_logs_export_request = cls(
             webhook_id=webhook_id,
-            start_date=start_date,
-            end_date=end_date,
-            status_filter=status_filter,
-            format_=format_,
+            event=event,
+            status_code=status_code,
+            delivered=delivered,
+            created_at_min=created_at_min,
+            created_at_max=created_at_max,
         )
 
         return webhook_logs_export_request

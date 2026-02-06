@@ -89,9 +89,9 @@ def sync_detailed(
 
     Args:
         body (WebhookLogsExportRequest): Request parameters for exporting webhook delivery logs
-            for analysis and debugging Example: {'webhook_id': 1, 'start_date':
-            '2024-01-10T00:00:00Z', 'end_date': '2024-01-15T23:59:59Z', 'status_filter': ['failure',
-            'retry'], 'format': 'csv'}.
+            for analysis and debugging Example: {'webhook_id': 1, 'event': 'sales_order.created',
+            'status_code': 200, 'delivered': True, 'created_at_min': '2024-01-10T00:00:00Z',
+            'created_at_max': '2024-01-15T23:59:59Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -126,9 +126,9 @@ def sync(
 
     Args:
         body (WebhookLogsExportRequest): Request parameters for exporting webhook delivery logs
-            for analysis and debugging Example: {'webhook_id': 1, 'start_date':
-            '2024-01-10T00:00:00Z', 'end_date': '2024-01-15T23:59:59Z', 'status_filter': ['failure',
-            'retry'], 'format': 'csv'}.
+            for analysis and debugging Example: {'webhook_id': 1, 'event': 'sales_order.created',
+            'status_code': 200, 'delivered': True, 'created_at_min': '2024-01-10T00:00:00Z',
+            'created_at_max': '2024-01-15T23:59:59Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -158,9 +158,9 @@ async def asyncio_detailed(
 
     Args:
         body (WebhookLogsExportRequest): Request parameters for exporting webhook delivery logs
-            for analysis and debugging Example: {'webhook_id': 1, 'start_date':
-            '2024-01-10T00:00:00Z', 'end_date': '2024-01-15T23:59:59Z', 'status_filter': ['failure',
-            'retry'], 'format': 'csv'}.
+            for analysis and debugging Example: {'webhook_id': 1, 'event': 'sales_order.created',
+            'status_code': 200, 'delivered': True, 'created_at_min': '2024-01-10T00:00:00Z',
+            'created_at_max': '2024-01-15T23:59:59Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -193,9 +193,9 @@ async def asyncio(
 
     Args:
         body (WebhookLogsExportRequest): Request parameters for exporting webhook delivery logs
-            for analysis and debugging Example: {'webhook_id': 1, 'start_date':
-            '2024-01-10T00:00:00Z', 'end_date': '2024-01-15T23:59:59Z', 'status_filter': ['failure',
-            'retry'], 'format': 'csv'}.
+            for analysis and debugging Example: {'webhook_id': 1, 'event': 'sales_order.created',
+            'status_code': 200, 'delivered': True, 'created_at_min': '2024-01-10T00:00:00Z',
+            'created_at_max': '2024-01-15T23:59:59Z'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

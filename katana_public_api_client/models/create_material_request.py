@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
@@ -40,6 +40,7 @@ class CreateMaterialRequest:
     purchase_uom: str | Unset = UNSET
     purchase_uom_conversion_rate: float | Unset = UNSET
     configs: list[MaterialConfig] | Unset = UNSET
+    custom_field_collection_id: int | None | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -72,6 +73,12 @@ class CreateMaterialRequest:
                 configs_item = configs_item_data.to_dict()
                 configs.append(configs_item)
 
+        custom_field_collection_id: int | None | Unset
+        if isinstance(self.custom_field_collection_id, Unset):
+            custom_field_collection_id = UNSET
+        else:
+            custom_field_collection_id = self.custom_field_collection_id
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update(
@@ -98,6 +105,8 @@ class CreateMaterialRequest:
             field_dict["purchase_uom_conversion_rate"] = purchase_uom_conversion_rate
         if configs is not UNSET:
             field_dict["configs"] = configs
+        if custom_field_collection_id is not UNSET:
+            field_dict["custom_field_collection_id"] = custom_field_collection_id
 
         return field_dict
 
@@ -141,6 +150,17 @@ class CreateMaterialRequest:
 
                 configs.append(configs_item)
 
+        def _parse_custom_field_collection_id(data: object) -> int | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | None | Unset, data)
+
+        custom_field_collection_id = _parse_custom_field_collection_id(
+            d.pop("custom_field_collection_id", UNSET)
+        )
+
         create_material_request = cls(
             name=name,
             variants=variants,
@@ -153,6 +173,7 @@ class CreateMaterialRequest:
             purchase_uom=purchase_uom,
             purchase_uom_conversion_rate=purchase_uom_conversion_rate,
             configs=configs,
+            custom_field_collection_id=custom_field_collection_id,
         )
 
         return create_material_request
