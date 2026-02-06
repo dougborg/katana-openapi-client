@@ -1,76 +1,71 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 
-from ..client_types import UNSET, Unset
+if TYPE_CHECKING:
+    from ..models.create_stocktake_row_request_stocktake_rows_item import (
+        CreateStocktakeRowRequestStocktakeRowsItem,
+    )
+
 
 T = TypeVar("T", bound="CreateStocktakeRowRequest")
 
 
 @_attrs_define
 class CreateStocktakeRowRequest:
-    """Request payload for creating a new stocktake row for counting specific variants
+    """Request payload for creating stocktake rows for counting specific variants
 
     Example:
-        {'stocktake_id': 4001, 'variant_id': 3001, 'counted_quantity': 147.0, 'notes': 'Initial count'}
+        {'stocktake_id': 4001, 'stocktake_rows': [{'variant_id': 3001, 'counted_quantity': 147.0, 'notes': 'Initial
+            count'}]}
     """
 
     stocktake_id: int
-    variant_id: int
-    batch_id: int | Unset = UNSET
-    counted_quantity: float | Unset = UNSET
-    notes: str | Unset = UNSET
+    stocktake_rows: list[CreateStocktakeRowRequestStocktakeRowsItem]
 
     def to_dict(self) -> dict[str, Any]:
         stocktake_id = self.stocktake_id
 
-        variant_id = self.variant_id
-
-        batch_id = self.batch_id
-
-        counted_quantity = self.counted_quantity
-
-        notes = self.notes
+        stocktake_rows = []
+        for stocktake_rows_item_data in self.stocktake_rows:
+            stocktake_rows_item = stocktake_rows_item_data.to_dict()
+            stocktake_rows.append(stocktake_rows_item)
 
         field_dict: dict[str, Any] = {}
 
         field_dict.update(
             {
                 "stocktake_id": stocktake_id,
-                "variant_id": variant_id,
+                "stocktake_rows": stocktake_rows,
             }
         )
-        if batch_id is not UNSET:
-            field_dict["batch_id"] = batch_id
-        if counted_quantity is not UNSET:
-            field_dict["counted_quantity"] = counted_quantity
-        if notes is not UNSET:
-            field_dict["notes"] = notes
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.create_stocktake_row_request_stocktake_rows_item import (
+            CreateStocktakeRowRequestStocktakeRowsItem,
+        )
+
         d = dict(src_dict)
         stocktake_id = d.pop("stocktake_id")
 
-        variant_id = d.pop("variant_id")
+        stocktake_rows = []
+        _stocktake_rows = d.pop("stocktake_rows")
+        for stocktake_rows_item_data in _stocktake_rows:
+            stocktake_rows_item = CreateStocktakeRowRequestStocktakeRowsItem.from_dict(
+                stocktake_rows_item_data
+            )
 
-        batch_id = d.pop("batch_id", UNSET)
-
-        counted_quantity = d.pop("counted_quantity", UNSET)
-
-        notes = d.pop("notes", UNSET)
+            stocktake_rows.append(stocktake_rows_item)
 
         create_stocktake_row_request = cls(
             stocktake_id=stocktake_id,
-            variant_id=variant_id,
-            batch_id=batch_id,
-            counted_quantity=counted_quantity,
-            notes=notes,
+            stocktake_rows=stocktake_rows,
         )
 
         return create_stocktake_row_request

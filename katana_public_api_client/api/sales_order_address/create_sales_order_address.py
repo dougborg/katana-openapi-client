@@ -88,8 +88,8 @@ def sync_detailed(
     Args:
         body (CreateSalesOrderAddressRequest): Request payload for creating a new sales order
             address Example: {'sales_order_id': 2001, 'entity_type': 'shipping', 'first_name': 'John',
-            'last_name': 'Johnson', 'company': "Johnson's Restaurant", 'address_line_1': '123 Main
-            Street', 'city': 'Portland', 'state': 'OR', 'zip': '97201', 'country': 'US', 'phone':
+            'last_name': 'Johnson', 'company': "Johnson's Restaurant", 'line_1': '123 Main Street',
+            'city': 'Portland', 'state': 'OR', 'zip': '97201', 'country': 'US', 'phone':
             '+1-555-0123'}.
 
     Raises:
@@ -124,8 +124,8 @@ def sync(
     Args:
         body (CreateSalesOrderAddressRequest): Request payload for creating a new sales order
             address Example: {'sales_order_id': 2001, 'entity_type': 'shipping', 'first_name': 'John',
-            'last_name': 'Johnson', 'company': "Johnson's Restaurant", 'address_line_1': '123 Main
-            Street', 'city': 'Portland', 'state': 'OR', 'zip': '97201', 'country': 'US', 'phone':
+            'last_name': 'Johnson', 'company': "Johnson's Restaurant", 'line_1': '123 Main Street',
+            'city': 'Portland', 'state': 'OR', 'zip': '97201', 'country': 'US', 'phone':
             '+1-555-0123'}.
 
     Raises:
@@ -155,8 +155,8 @@ async def asyncio_detailed(
     Args:
         body (CreateSalesOrderAddressRequest): Request payload for creating a new sales order
             address Example: {'sales_order_id': 2001, 'entity_type': 'shipping', 'first_name': 'John',
-            'last_name': 'Johnson', 'company': "Johnson's Restaurant", 'address_line_1': '123 Main
-            Street', 'city': 'Portland', 'state': 'OR', 'zip': '97201', 'country': 'US', 'phone':
+            'last_name': 'Johnson', 'company': "Johnson's Restaurant", 'line_1': '123 Main Street',
+            'city': 'Portland', 'state': 'OR', 'zip': '97201', 'country': 'US', 'phone':
             '+1-555-0123'}.
 
     Raises:
@@ -189,8 +189,8 @@ async def asyncio(
     Args:
         body (CreateSalesOrderAddressRequest): Request payload for creating a new sales order
             address Example: {'sales_order_id': 2001, 'entity_type': 'shipping', 'first_name': 'John',
-            'last_name': 'Johnson', 'company': "Johnson's Restaurant", 'address_line_1': '123 Main
-            Street', 'city': 'Portland', 'state': 'OR', 'zip': '97201', 'country': 'US', 'phone':
+            'last_name': 'Johnson', 'company': "Johnson's Restaurant", 'line_1': '123 Main Street',
+            'city': 'Portland', 'state': 'OR', 'zip': '97201', 'country': 'US', 'phone':
             '+1-555-0123'}.
 
     Raises:

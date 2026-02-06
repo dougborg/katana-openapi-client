@@ -100,7 +100,7 @@ def sync_detailed(
     Args:
         id (int):
         body (UpdatePriceListRowRequest): Request payload for updating an existing price list row
-            Example: {'price': 259.99, 'currency': 'USD'}.
+            Example: {'adjustment_method': 'fixed', 'amount': 259.99}.
 
 
     Raises:
@@ -139,7 +139,7 @@ def sync(
     Args:
         id (int):
         body (UpdatePriceListRowRequest): Request payload for updating an existing price list row
-            Example: {'price': 259.99, 'currency': 'USD'}.
+            Example: {'adjustment_method': 'fixed', 'amount': 259.99}.
 
 
     Raises:
@@ -173,7 +173,7 @@ async def asyncio_detailed(
     Args:
         id (int):
         body (UpdatePriceListRowRequest): Request payload for updating an existing price list row
-            Example: {'price': 259.99, 'currency': 'USD'}.
+            Example: {'adjustment_method': 'fixed', 'amount': 259.99}.
 
 
     Raises:
@@ -210,7 +210,7 @@ async def asyncio(
     Args:
         id (int):
         body (UpdatePriceListRowRequest): Request payload for updating an existing price list row
-            Example: {'price': 259.99, 'currency': 'USD'}.
+            Example: {'adjustment_method': 'fixed', 'amount': 259.99}.
 
 
     Raises:

@@ -100,8 +100,8 @@ def sync_detailed(
     Args:
         id (int):
         body (UpdatePriceListRequest): Request payload for updating an existing price list
-            Example: {'name': 'Premium Customer Pricing - Updated', 'markup_percentage': 30.0,
-            'end_date': '2025-12-31T23:59:59Z'}.
+            Example: {'name': 'Premium Customer Pricing - Updated', 'is_active': True}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -139,8 +139,8 @@ def sync(
     Args:
         id (int):
         body (UpdatePriceListRequest): Request payload for updating an existing price list
-            Example: {'name': 'Premium Customer Pricing - Updated', 'markup_percentage': 30.0,
-            'end_date': '2025-12-31T23:59:59Z'}.
+            Example: {'name': 'Premium Customer Pricing - Updated', 'is_active': True}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -173,8 +173,8 @@ async def asyncio_detailed(
     Args:
         id (int):
         body (UpdatePriceListRequest): Request payload for updating an existing price list
-            Example: {'name': 'Premium Customer Pricing - Updated', 'markup_percentage': 30.0,
-            'end_date': '2025-12-31T23:59:59Z'}.
+            Example: {'name': 'Premium Customer Pricing - Updated', 'is_active': True}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -210,8 +210,8 @@ async def asyncio(
     Args:
         id (int):
         body (UpdatePriceListRequest): Request payload for updating an existing price list
-            Example: {'name': 'Premium Customer Pricing - Updated', 'markup_percentage': 30.0,
-            'end_date': '2025-12-31T23:59:59Z'}.
+            Example: {'name': 'Premium Customer Pricing - Updated', 'is_active': True}.
+
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

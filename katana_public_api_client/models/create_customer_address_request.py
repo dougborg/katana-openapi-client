@@ -23,7 +23,7 @@ class CreateCustomerAddressRequest:
     Example:
         {'customer_id': 2003, 'entity_type': 'shipping', 'first_name': 'Maria', 'last_name': 'Garcia', 'company': 'Cafe
             Central', 'phone': '+1-555-0127', 'line_1': '789 Main Street', 'line_2': 'Unit 5', 'city': 'San Francisco',
-            'state': 'CA', 'zip': '94102', 'country': 'US', 'is_default': True}
+            'state': 'CA', 'zip': '94102', 'country': 'US'}
     """
 
     customer_id: int
@@ -38,7 +38,6 @@ class CreateCustomerAddressRequest:
     state: None | str | Unset = UNSET
     zip_: None | str | Unset = UNSET
     country: None | str | Unset = UNSET
-    is_default: bool | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -106,8 +105,6 @@ class CreateCustomerAddressRequest:
         else:
             country = self.country
 
-        is_default = self.is_default
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -136,8 +133,6 @@ class CreateCustomerAddressRequest:
             field_dict["zip"] = zip_
         if country is not UNSET:
             field_dict["country"] = country
-        if is_default is not UNSET:
-            field_dict["is_default"] = is_default
 
         return field_dict
 
@@ -238,8 +233,6 @@ class CreateCustomerAddressRequest:
 
         country = _parse_country(d.pop("country", UNSET))
 
-        is_default = d.pop("is_default", UNSET)
-
         create_customer_address_request = cls(
             customer_id=customer_id,
             entity_type=entity_type,
@@ -253,7 +246,6 @@ class CreateCustomerAddressRequest:
             state=state,
             zip_=zip_,
             country=country,
-            is_default=is_default,
         )
 
         create_customer_address_request.additional_properties = d

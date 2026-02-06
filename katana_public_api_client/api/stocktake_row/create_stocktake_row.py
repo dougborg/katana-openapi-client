@@ -91,9 +91,9 @@ def sync_detailed(
      Creates a new stocktake row for counting specific variants.
 
     Args:
-        body (CreateStocktakeRowRequest): Request payload for creating a new stocktake row for
-            counting specific variants Example: {'stocktake_id': 4001, 'variant_id': 3001,
-            'counted_quantity': 147.0, 'notes': 'Initial count'}.
+        body (CreateStocktakeRowRequest): Request payload for creating stocktake rows for counting
+            specific variants Example: {'stocktake_id': 4001, 'stocktake_rows': [{'variant_id': 3001,
+            'counted_quantity': 147.0, 'notes': 'Initial count'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -125,9 +125,9 @@ def sync(
      Creates a new stocktake row for counting specific variants.
 
     Args:
-        body (CreateStocktakeRowRequest): Request payload for creating a new stocktake row for
-            counting specific variants Example: {'stocktake_id': 4001, 'variant_id': 3001,
-            'counted_quantity': 147.0, 'notes': 'Initial count'}.
+        body (CreateStocktakeRowRequest): Request payload for creating stocktake rows for counting
+            specific variants Example: {'stocktake_id': 4001, 'stocktake_rows': [{'variant_id': 3001,
+            'counted_quantity': 147.0, 'notes': 'Initial count'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -154,9 +154,9 @@ async def asyncio_detailed(
      Creates a new stocktake row for counting specific variants.
 
     Args:
-        body (CreateStocktakeRowRequest): Request payload for creating a new stocktake row for
-            counting specific variants Example: {'stocktake_id': 4001, 'variant_id': 3001,
-            'counted_quantity': 147.0, 'notes': 'Initial count'}.
+        body (CreateStocktakeRowRequest): Request payload for creating stocktake rows for counting
+            specific variants Example: {'stocktake_id': 4001, 'stocktake_rows': [{'variant_id': 3001,
+            'counted_quantity': 147.0, 'notes': 'Initial count'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -186,9 +186,9 @@ async def asyncio(
      Creates a new stocktake row for counting specific variants.
 
     Args:
-        body (CreateStocktakeRowRequest): Request payload for creating a new stocktake row for
-            counting specific variants Example: {'stocktake_id': 4001, 'variant_id': 3001,
-            'counted_quantity': 147.0, 'notes': 'Initial count'}.
+        body (CreateStocktakeRowRequest): Request payload for creating stocktake rows for counting
+            specific variants Example: {'stocktake_id': 4001, 'stocktake_rows': [{'variant_id': 3001,
+            'counted_quantity': 147.0, 'notes': 'Initial count'}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

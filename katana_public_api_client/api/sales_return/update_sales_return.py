@@ -100,10 +100,9 @@ def sync_detailed(
     Args:
         id (int):
         body (UpdateSalesReturnRequest): Request payload for updating an existing sales return
-            Example: {'customer_id': 1001, 'sales_order_id': 2001, 'order_no': 'SR-2023-001',
-            'return_location_id': 1, 'currency': 'USD', 'order_created_date': '2023-10-10T10:00:00Z',
-            'additional_info': 'Customer reported damaged items during shipping', 'status':
-            'RETURNED_ALL'}.
+            Example: {'status': 'RETURNED_ALL', 'return_date': '2023-10-12T10:00:00Z', 'order_no':
+            'SR-2023-001', 'return_location_id': 1, 'additional_info': 'Customer reported damaged
+            items during shipping'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -141,10 +140,9 @@ def sync(
     Args:
         id (int):
         body (UpdateSalesReturnRequest): Request payload for updating an existing sales return
-            Example: {'customer_id': 1001, 'sales_order_id': 2001, 'order_no': 'SR-2023-001',
-            'return_location_id': 1, 'currency': 'USD', 'order_created_date': '2023-10-10T10:00:00Z',
-            'additional_info': 'Customer reported damaged items during shipping', 'status':
-            'RETURNED_ALL'}.
+            Example: {'status': 'RETURNED_ALL', 'return_date': '2023-10-12T10:00:00Z', 'order_no':
+            'SR-2023-001', 'return_location_id': 1, 'additional_info': 'Customer reported damaged
+            items during shipping'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -177,10 +175,9 @@ async def asyncio_detailed(
     Args:
         id (int):
         body (UpdateSalesReturnRequest): Request payload for updating an existing sales return
-            Example: {'customer_id': 1001, 'sales_order_id': 2001, 'order_no': 'SR-2023-001',
-            'return_location_id': 1, 'currency': 'USD', 'order_created_date': '2023-10-10T10:00:00Z',
-            'additional_info': 'Customer reported damaged items during shipping', 'status':
-            'RETURNED_ALL'}.
+            Example: {'status': 'RETURNED_ALL', 'return_date': '2023-10-12T10:00:00Z', 'order_no':
+            'SR-2023-001', 'return_location_id': 1, 'additional_info': 'Customer reported damaged
+            items during shipping'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -216,10 +213,9 @@ async def asyncio(
     Args:
         id (int):
         body (UpdateSalesReturnRequest): Request payload for updating an existing sales return
-            Example: {'customer_id': 1001, 'sales_order_id': 2001, 'order_no': 'SR-2023-001',
-            'return_location_id': 1, 'currency': 'USD', 'order_created_date': '2023-10-10T10:00:00Z',
-            'additional_info': 'Customer reported damaged items during shipping', 'status':
-            'RETURNED_ALL'}.
+            Example: {'status': 'RETURNED_ALL', 'return_date': '2023-10-12T10:00:00Z', 'order_no':
+            'SR-2023-001', 'return_location_id': 1, 'additional_info': 'Customer reported damaged
+            items during shipping'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

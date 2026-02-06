@@ -9,16 +9,12 @@ from attrs import (
 )
 
 from ..client_types import UNSET, Unset
-from ..models.update_customer_address_body_entity_type import (
-    UpdateCustomerAddressBodyEntityType,
-)
 
 T = TypeVar("T", bound="UpdateCustomerAddressBody")
 
 
 @_attrs_define
 class UpdateCustomerAddressBody:
-    entity_type: UpdateCustomerAddressBodyEntityType | Unset = UNSET
     first_name: None | str | Unset = UNSET
     last_name: None | str | Unset = UNSET
     company: None | str | Unset = UNSET
@@ -29,14 +25,9 @@ class UpdateCustomerAddressBody:
     state: None | str | Unset = UNSET
     zip_: None | str | Unset = UNSET
     country: None | str | Unset = UNSET
-    is_default: bool | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        entity_type: str | Unset = UNSET
-        if not isinstance(self.entity_type, Unset):
-            entity_type = self.entity_type.value
-
         first_name: None | str | Unset
         if isinstance(self.first_name, Unset):
             first_name = UNSET
@@ -97,13 +88,9 @@ class UpdateCustomerAddressBody:
         else:
             country = self.country
 
-        is_default = self.is_default
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
-        if entity_type is not UNSET:
-            field_dict["entity_type"] = entity_type
         if first_name is not UNSET:
             field_dict["first_name"] = first_name
         if last_name is not UNSET:
@@ -124,20 +111,12 @@ class UpdateCustomerAddressBody:
             field_dict["zip"] = zip_
         if country is not UNSET:
             field_dict["country"] = country
-        if is_default is not UNSET:
-            field_dict["is_default"] = is_default
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        _entity_type = d.pop("entity_type", UNSET)
-        entity_type: UpdateCustomerAddressBodyEntityType | Unset
-        if isinstance(_entity_type, Unset):
-            entity_type = UNSET
-        else:
-            entity_type = UpdateCustomerAddressBodyEntityType(_entity_type)
 
         def _parse_first_name(data: object) -> None | str | Unset:
             if data is None:
@@ -229,10 +208,7 @@ class UpdateCustomerAddressBody:
 
         country = _parse_country(d.pop("country", UNSET))
 
-        is_default = d.pop("is_default", UNSET)
-
         update_customer_address_body = cls(
-            entity_type=entity_type,
             first_name=first_name,
             last_name=last_name,
             company=company,
@@ -243,7 +219,6 @@ class UpdateCustomerAddressBody:
             state=state,
             zip_=zip_,
             country=country,
-            is_default=is_default,
         )
 
         update_customer_address_body.additional_properties = d

@@ -19,19 +19,19 @@ class CreateSalesOrderAddressRequest:
 
     Example:
         {'sales_order_id': 2001, 'entity_type': 'shipping', 'first_name': 'John', 'last_name': 'Johnson', 'company':
-            "Johnson's Restaurant", 'address_line_1': '123 Main Street', 'city': 'Portland', 'state': 'OR', 'zip': '97201',
+            "Johnson's Restaurant", 'line_1': '123 Main Street', 'city': 'Portland', 'state': 'OR', 'zip': '97201',
             'country': 'US', 'phone': '+1-555-0123'}
 
     Attributes:
         sales_order_id (int): ID of the sales order this address belongs to
         entity_type (CreateSalesOrderAddressRequestEntityType): Type of address (billing or shipping)
-        address_line_1 (str): Primary address line
+        line_1 (str): Primary address line
         city (str): City name
         country (str): Country code
         first_name (str | Unset): First name for the address contact
         last_name (str | Unset): Last name for the address contact
         company (str | Unset): Company name for the address
-        address_line_2 (str | Unset): Secondary address line
+        line_2 (str | Unset): Secondary address line
         state (str | Unset): State or province
         zip_ (str | Unset): Postal code
         phone (str | Unset): Contact phone number
@@ -39,13 +39,13 @@ class CreateSalesOrderAddressRequest:
 
     sales_order_id: int
     entity_type: CreateSalesOrderAddressRequestEntityType
-    address_line_1: str
+    line_1: str
     city: str
     country: str
     first_name: str | Unset = UNSET
     last_name: str | Unset = UNSET
     company: str | Unset = UNSET
-    address_line_2: str | Unset = UNSET
+    line_2: str | Unset = UNSET
     state: str | Unset = UNSET
     zip_: str | Unset = UNSET
     phone: str | Unset = UNSET
@@ -55,7 +55,7 @@ class CreateSalesOrderAddressRequest:
 
         entity_type = self.entity_type.value
 
-        address_line_1 = self.address_line_1
+        line_1 = self.line_1
 
         city = self.city
 
@@ -67,7 +67,7 @@ class CreateSalesOrderAddressRequest:
 
         company = self.company
 
-        address_line_2 = self.address_line_2
+        line_2 = self.line_2
 
         state = self.state
 
@@ -81,7 +81,7 @@ class CreateSalesOrderAddressRequest:
             {
                 "sales_order_id": sales_order_id,
                 "entity_type": entity_type,
-                "address_line_1": address_line_1,
+                "line_1": line_1,
                 "city": city,
                 "country": country,
             }
@@ -92,8 +92,8 @@ class CreateSalesOrderAddressRequest:
             field_dict["last_name"] = last_name
         if company is not UNSET:
             field_dict["company"] = company
-        if address_line_2 is not UNSET:
-            field_dict["address_line_2"] = address_line_2
+        if line_2 is not UNSET:
+            field_dict["line_2"] = line_2
         if state is not UNSET:
             field_dict["state"] = state
         if zip_ is not UNSET:
@@ -110,7 +110,7 @@ class CreateSalesOrderAddressRequest:
 
         entity_type = CreateSalesOrderAddressRequestEntityType(d.pop("entity_type"))
 
-        address_line_1 = d.pop("address_line_1")
+        line_1 = d.pop("line_1")
 
         city = d.pop("city")
 
@@ -122,7 +122,7 @@ class CreateSalesOrderAddressRequest:
 
         company = d.pop("company", UNSET)
 
-        address_line_2 = d.pop("address_line_2", UNSET)
+        line_2 = d.pop("line_2", UNSET)
 
         state = d.pop("state", UNSET)
 
@@ -133,13 +133,13 @@ class CreateSalesOrderAddressRequest:
         create_sales_order_address_request = cls(
             sales_order_id=sales_order_id,
             entity_type=entity_type,
-            address_line_1=address_line_1,
+            line_1=line_1,
             city=city,
             country=country,
             first_name=first_name,
             last_name=last_name,
             company=company,
-            address_line_2=address_line_2,
+            line_2=line_2,
             state=state,
             zip_=zip_,
             phone=phone,
