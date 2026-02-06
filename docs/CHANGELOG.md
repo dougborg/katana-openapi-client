@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v0.44.4 (2026-02-06)
+
+### Bug Fixes
+
+- **client**: Align P3 OpenAPI schemas with Katana official API
+  ([#267](https://github.com/dougborg/katana-openapi-client/pull/267),
+  [`9cd8ba0`](https://github.com/dougborg/katana-openapi-client/commit/9cd8ba01ff18efddc192b6641ff8f25cd3ed23a4))
+
+### Documentation
+
+- **client**: Add default page size to ADR-003 context
+  ([#235](https://github.com/dougborg/katana-openapi-client/pull/235),
+  [`ca346ff`](https://github.com/dougborg/katana-openapi-client/commit/ca346ffa61149a81872c186af3216d449334531e))
+
+- **client**: Update ADR-003 to reflect limit=250 default
+  ([#235](https://github.com/dougborg/katana-openapi-client/pull/235),
+  [`ca346ff`](https://github.com/dougborg/katana-openapi-client/commit/ca346ffa61149a81872c186af3216d449334531e))
+
 ## v0.44.3 (2026-02-06)
 
 ### Bug Fixes
