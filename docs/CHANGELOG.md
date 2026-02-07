@@ -2,6 +2,62 @@
 
 <!-- version list -->
 
+## v0.44.5 (2026-02-07)
+
+### Bug Fixes
+
+- Address second round of PR review comments
+  ([#268](https://github.com/dougborg/katana-openapi-client/pull/268),
+  [`8aa46b9`](https://github.com/dougborg/katana-openapi-client/commit/8aa46b9a990dbae3015b42d8413806bfd6161cf7))
+
+- **client**: Address PR review comments
+  ([#268](https://github.com/dougborg/katana-openapi-client/pull/268),
+  [`8aa46b9`](https://github.com/dougborg/katana-openapi-client/commit/8aa46b9a990dbae3015b42d8413806bfd6161cf7))
+
+- **client**: Address second round of PR review comments
+  ([#268](https://github.com/dougborg/katana-openapi-client/pull/268),
+  [`8aa46b9`](https://github.com/dougborg/katana-openapi-client/commit/8aa46b9a990dbae3015b42d8413806bfd6161cf7))
+
+- **client**: Align P4 OpenAPI schemas with Katana official API
+  ([#268](https://github.com/dougborg/katana-openapi-client/pull/268),
+  [`8aa46b9`](https://github.com/dougborg/katana-openapi-client/commit/8aa46b9a990dbae3015b42d8413806bfd6161cf7))
+
+- **client**: Preserve original response shape in PaginationTransport
+  ([#268](https://github.com/dougborg/katana-openapi-client/pull/268),
+  [`8aa46b9`](https://github.com/dougborg/katana-openapi-client/commit/8aa46b9a990dbae3015b42d8413806bfd6161cf7))
+
+- **client**: Regenerate TypeScript client for P4 schema alignment
+  ([#268](https://github.com/dougborg/katana-openapi-client/pull/268),
+  [`8aa46b9`](https://github.com/dougborg/katana-openapi-client/commit/8aa46b9a990dbae3015b42d8413806bfd6161cf7))
+
+- **mcp**: Update stock adjustment field references after P4 alignment
+  ([#268](https://github.com/dougborg/katana-openapi-client/pull/268),
+  [`8aa46b9`](https://github.com/dougborg/katana-openapi-client/commit/8aa46b9a990dbae3015b42d8413806bfd6161cf7))
+
+### Documentation
+
+- Add Katana API questions document for P4 alignment follow-up
+  ([#268](https://github.com/dougborg/katana-openapi-client/pull/268),
+  [`8aa46b9`](https://github.com/dougborg/katana-openapi-client/commit/8aa46b9a990dbae3015b42d8413806bfd6161cf7))
+
+- Add live API investigation findings to API questions document
+  ([#268](https://github.com/dougborg/katana-openapi-client/pull/268),
+  [`8aa46b9`](https://github.com/dougborg/katana-openapi-client/commit/8aa46b9a990dbae3015b42d8413806bfd6161cf7))
+
+- Update endpoint and model counts after P4 alignment
+  ([#268](https://github.com/dougborg/katana-openapi-client/pull/268),
+  [`8aa46b9`](https://github.com/dougborg/katana-openapi-client/commit/8aa46b9a990dbae3015b42d8413806bfd6161cf7))
+
+- Update endpoint count in OpenAPI docs page
+  ([#268](https://github.com/dougborg/katana-openapi-client/pull/268),
+  [`8aa46b9`](https://github.com/dougborg/katana-openapi-client/commit/8aa46b9a990dbae3015b42d8413806bfd6161cf7))
+
+### Refactoring
+
+- **client**: Extract 22 inline schemas to named schemas in OpenAPI spec
+  ([#268](https://github.com/dougborg/katana-openapi-client/pull/268),
+  [`8aa46b9`](https://github.com/dougborg/katana-openapi-client/commit/8aa46b9a990dbae3015b42d8413806bfd6161cf7))
+
 ## v0.44.4 (2026-02-06)
 
 ### Bug Fixes
