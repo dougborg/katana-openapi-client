@@ -27,11 +27,12 @@ class SalesOrderAddress:
             'updated_at': '2024-01-15T10:00:00Z'}
 
     Attributes:
-        id (int): Unique identifier for the address record
+        id (int): Unique identifier
         sales_order_id (int): ID of the sales order this address belongs to
         entity_type (SalesOrderAddressEntityType): Type of address - billing for invoicing or shipping for delivery
         created_at (datetime.datetime | Unset): Timestamp when the entity was first created
         updated_at (datetime.datetime | Unset): Timestamp when the entity was last updated
+        deleted_at (datetime.datetime | None | Unset): Nullable deletion timestamp
         first_name (None | str | Unset): First name of the contact person
         last_name (None | str | Unset): Last name of the contact person
         company (None | str | Unset): Company name for business deliveries
@@ -49,6 +50,7 @@ class SalesOrderAddress:
     entity_type: SalesOrderAddressEntityType
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
+    deleted_at: datetime.datetime | None | Unset = UNSET
     first_name: None | str | Unset = UNSET
     last_name: None | str | Unset = UNSET
     company: None | str | Unset = UNSET
@@ -75,6 +77,14 @@ class SalesOrderAddress:
         updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
+
+        deleted_at: None | str | Unset
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
+        else:
+            deleted_at = self.deleted_at
 
         first_name: None | str | Unset
         if isinstance(self.first_name, Unset):
@@ -149,6 +159,8 @@ class SalesOrderAddress:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
         if first_name is not UNSET:
             field_dict["first_name"] = first_name
         if last_name is not UNSET:
@@ -194,6 +206,23 @@ class SalesOrderAddress:
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
+
+        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         def _parse_first_name(data: object) -> None | str | Unset:
             if data is None:
@@ -291,6 +320,7 @@ class SalesOrderAddress:
             entity_type=entity_type,
             created_at=created_at,
             updated_at=updated_at,
+            deleted_at=deleted_at,
             first_name=first_name,
             last_name=last_name,
             company=company,

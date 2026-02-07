@@ -55,6 +55,9 @@ class ManufacturingOrder:
     variant_id: int | Unset = UNSET
     planned_quantity: float | Unset = UNSET
     actual_quantity: float | None | Unset = UNSET
+    completed_quantity: float | None | Unset = UNSET
+    remaining_quantity: float | None | Unset = UNSET
+    includes_partial_completions: bool | Unset = UNSET
     batch_transactions: list[BatchTransaction] | Unset = UNSET
     location_id: int | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
@@ -111,6 +114,20 @@ class ManufacturingOrder:
             actual_quantity = UNSET
         else:
             actual_quantity = self.actual_quantity
+
+        completed_quantity: float | None | Unset
+        if isinstance(self.completed_quantity, Unset):
+            completed_quantity = UNSET
+        else:
+            completed_quantity = self.completed_quantity
+
+        remaining_quantity: float | None | Unset
+        if isinstance(self.remaining_quantity, Unset):
+            remaining_quantity = UNSET
+        else:
+            remaining_quantity = self.remaining_quantity
+
+        includes_partial_completions = self.includes_partial_completions
 
         batch_transactions: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.batch_transactions, Unset):
@@ -207,6 +224,12 @@ class ManufacturingOrder:
             field_dict["planned_quantity"] = planned_quantity
         if actual_quantity is not UNSET:
             field_dict["actual_quantity"] = actual_quantity
+        if completed_quantity is not UNSET:
+            field_dict["completed_quantity"] = completed_quantity
+        if remaining_quantity is not UNSET:
+            field_dict["remaining_quantity"] = remaining_quantity
+        if includes_partial_completions is not UNSET:
+            field_dict["includes_partial_completions"] = includes_partial_completions
         if batch_transactions is not UNSET:
             field_dict["batch_transactions"] = batch_transactions
         if location_id is not UNSET:
@@ -306,6 +329,30 @@ class ManufacturingOrder:
             return cast(float | None | Unset, data)
 
         actual_quantity = _parse_actual_quantity(d.pop("actual_quantity", UNSET))
+
+        def _parse_completed_quantity(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        completed_quantity = _parse_completed_quantity(
+            d.pop("completed_quantity", UNSET)
+        )
+
+        def _parse_remaining_quantity(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        remaining_quantity = _parse_remaining_quantity(
+            d.pop("remaining_quantity", UNSET)
+        )
+
+        includes_partial_completions = d.pop("includes_partial_completions", UNSET)
 
         _batch_transactions = d.pop("batch_transactions", UNSET)
         batch_transactions: list[BatchTransaction] | Unset = UNSET
@@ -436,6 +483,9 @@ class ManufacturingOrder:
             variant_id=variant_id,
             planned_quantity=planned_quantity,
             actual_quantity=actual_quantity,
+            completed_quantity=completed_quantity,
+            remaining_quantity=remaining_quantity,
+            includes_partial_completions=includes_partial_completions,
             batch_transactions=batch_transactions,
             location_id=location_id,
             order_created_date=order_created_date,

@@ -126,6 +126,7 @@ DOMAIN_GROUPS: dict[str, list[str]] = {
         "CreateSalesReturn*",
         "UpdateSalesOrder*",
         "UpdateSalesReturn*",
+        "Address1",  # Extends SalesOrderAddress - must be co-located to avoid circular imports
     ],
     "manufacturing": [
         "ManufacturingOrder*",

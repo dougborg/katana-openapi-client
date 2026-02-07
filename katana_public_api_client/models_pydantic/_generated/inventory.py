@@ -8,7 +8,7 @@ To regenerate, run:
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import AwareDatetime, ConfigDict, Field
 
@@ -86,9 +86,6 @@ class ItemConfig(BaseEntity):
 
 
 class InventoryMovement(UpdatableEntity):
-    id: Annotated[
-        int, Field(description="Unique identifier for the inventory movement.")
-    ]
     variant_id: Annotated[
         int,
         Field(
@@ -329,6 +326,14 @@ class Inventory(KatanaPydanticBase):
             ],
         ),
     ] = None
+    archived_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Timestamp when this inventory record was archived"),
+    ] = None
+    default_storage_bin: Annotated[
+        Any | None,
+        Field(description="Default storage bin for this inventory at this location"),
+    ] = None
 
 
 class InventoryListResponse(KatanaPydanticBase):
@@ -504,6 +509,12 @@ class UpdateProductRequest(KatanaPydanticBase):
         bool | None,
         Field(
             description="Whether the product should be automatically assembled when components are available"
+        ),
+    ] = None
+    is_archived: Annotated[
+        bool | None,
+        Field(
+            description="Whether this product is archived and hidden from active use"
         ),
     ] = None
     default_supplier_id: Annotated[
@@ -926,6 +937,13 @@ class CreateMaterialRequest(KatanaPydanticBase):
         list[MaterialConfig] | None,
         Field(description="Material configuration options for creating variants"),
     ] = None
+    custom_field_collection_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the custom field collection to associate with this material",
+            le=2147483647,
+        ),
+    ] = None
     variants: Annotated[
         list[CreateVariantRequest],
         Field(
@@ -1183,6 +1201,22 @@ class Material(InventoryItem):
             description='Item type discriminator. Material objects are of type "material"'
         ),
     ]
+    deleted_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Timestamp when this material was soft-deleted"),
+    ] = None
+    serial_tracked: Annotated[
+        bool | None,
+        Field(
+            description="Whether inventory movements are tracked by individual serial numbers"
+        ),
+    ] = None
+    operations_in_sequence: Annotated[
+        bool | None,
+        Field(
+            description="Whether manufacturing operations must be completed in a specific sequence"
+        ),
+    ] = None
 
 
 class MaterialListResponse(KatanaPydanticBase):
@@ -1240,6 +1274,10 @@ class Product(InventoryItem):
         Field(
             description="Configuration attributes that define variant combinations (size, color, etc.)"
         ),
+    ] = None
+    deleted_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Timestamp when this product was soft-deleted"),
     ] = None
 
 

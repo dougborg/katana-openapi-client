@@ -21,7 +21,7 @@ T = TypeVar("T", bound="SerialNumberStock")
 class SerialNumberStock:
     """Current stock status and transaction history of individual serialized inventory items"""
 
-    id: str
+    id: int
     serial_number: str
     in_stock: bool
     transactions: list[SerialNumberStockTransactionsItem]

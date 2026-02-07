@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -25,7 +25,7 @@ class SerialNumber:
     serial_number: str | Unset = UNSET
     resource_type: SerialNumberResourceType | Unset = UNSET
     resource_id: int | Unset = UNSET
-    transaction_date: datetime.datetime | Unset = UNSET
+    transaction_date: datetime.datetime | None | Unset = UNSET
     quantity_change: int | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -42,9 +42,13 @@ class SerialNumber:
 
         resource_id = self.resource_id
 
-        transaction_date: str | Unset = UNSET
-        if not isinstance(self.transaction_date, Unset):
+        transaction_date: None | str | Unset
+        if isinstance(self.transaction_date, Unset):
+            transaction_date = UNSET
+        elif isinstance(self.transaction_date, datetime.datetime):
             transaction_date = self.transaction_date.isoformat()
+        else:
+            transaction_date = self.transaction_date
 
         quantity_change = self.quantity_change
 
@@ -86,12 +90,22 @@ class SerialNumber:
 
         resource_id = d.pop("resource_id", UNSET)
 
-        _transaction_date = d.pop("transaction_date", UNSET)
-        transaction_date: datetime.datetime | Unset
-        if isinstance(_transaction_date, Unset):
-            transaction_date = UNSET
-        else:
-            transaction_date = isoparse(_transaction_date)
+        def _parse_transaction_date(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                transaction_date_type_0 = isoparse(data)
+
+                return transaction_date_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        transaction_date = _parse_transaction_date(d.pop("transaction_date", UNSET))
 
         quantity_change = d.pop("quantity_change", UNSET)
 

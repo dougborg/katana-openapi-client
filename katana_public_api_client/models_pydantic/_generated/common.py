@@ -8,7 +8,7 @@ To regenerate, run:
 
 from __future__ import annotations
 
-from enum import StrEnum
+from enum import Enum, StrEnum
 from typing import Annotated, Any
 
 from pydantic import AwareDatetime, ConfigDict, Field, RootModel
@@ -41,6 +41,7 @@ class ResourceType(StrEnum):
     stock_transfer_row = "StockTransferRow"
     manufacturing_order = "ManufacturingOrder"
     system_generated = "SystemGenerated"
+    production_ingredient = "ProductionIngredient"
 
 
 class Type(StrEnum):
@@ -128,7 +129,8 @@ class IngredientAvailability(StrEnum):
     not_applicable = "NOT_APPLICABLE"
 
 
-class Status1(StrEnum):
+class Status3(StrEnum):
+    not_started = "NOT_STARTED"
     in_progress = "IN_PROGRESS"
     completed = "COMPLETED"
     paused = "PAUSED"
@@ -198,11 +200,11 @@ class EntityType(StrEnum):
     outsourced = "outsourced"
 
 
-class Status2(StrEnum):
+class Status4(StrEnum):
     not_received = "NOT_RECEIVED"
 
 
-class Status3(StrEnum):
+class Status5(StrEnum):
     not_received = "NOT_RECEIVED"
     partially_received = "PARTIALLY_RECEIVED"
     received = "RECEIVED"
@@ -229,7 +231,7 @@ class EntityType3(StrEnum):
     outsourced = "outsourced"
 
 
-class Status4(StrEnum):
+class Status6(StrEnum):
     not_received = "NOT_RECEIVED"
     received = "RECEIVED"
     partially_received = "PARTIALLY_RECEIVED"
@@ -325,6 +327,14 @@ class Type5(StrEnum):
     product = "product"
     material = "material"
     service = "service"
+
+
+class ConfigAttribute2(ConfigAttribute):
+    pass
+
+
+class CustomField3(CustomField):
+    pass
 
 
 class ConfigAttribute3(KatanaPydanticBase):
@@ -452,15 +462,88 @@ class Object(KatanaPydanticBase):
     ] = None
 
 
-class StatusFilterEnum(StrEnum):
-    success = "success"
-    failure = "failure"
-    retry = "retry"
-
-
-class Format(StrEnum):
-    csv = "csv"
-    json = "json"
+class Event(StrEnum):
+    sales_order_created = "sales_order.created"
+    sales_order_packed = "sales_order.packed"
+    sales_order_delivered = "sales_order.delivered"
+    sales_order_updated = "sales_order.updated"
+    sales_order_deleted = "sales_order.deleted"
+    sales_order_availability_updated = "sales_order.availability_updated"
+    purchase_order_created = "purchase_order.created"
+    purchase_order_updated = "purchase_order.updated"
+    purchase_order_deleted = "purchase_order.deleted"
+    purchase_order_partially_received = "purchase_order.partially_received"
+    purchase_order_received = "purchase_order.received"
+    purchase_order_row_created = "purchase_order_row.created"
+    purchase_order_row_received = "purchase_order_row.received"
+    purchase_order_row_updated = "purchase_order_row.updated"
+    purchase_order_row_deleted = "purchase_order_row.deleted"
+    outsourced_purchase_order_created = "outsourced_purchase_order.created"
+    outsourced_purchase_order_updated = "outsourced_purchase_order.updated"
+    outsourced_purchase_order_deleted = "outsourced_purchase_order.deleted"
+    outsourced_purchase_order_received = "outsourced_purchase_order.received"
+    outsourced_purchase_order_row_created = "outsourced_purchase_order_row.created"
+    outsourced_purchase_order_row_updated = "outsourced_purchase_order_row.updated"
+    outsourced_purchase_order_row_deleted = "outsourced_purchase_order_row.deleted"
+    outsourced_purchase_order_row_received = "outsourced_purchase_order_row.received"
+    outsourced_purchase_order_recipe_row_created = (
+        "outsourced_purchase_order_recipe_row.created"
+    )
+    outsourced_purchase_order_recipe_row_updated = (
+        "outsourced_purchase_order_recipe_row.updated"
+    )
+    outsourced_purchase_order_recipe_row_deleted = (
+        "outsourced_purchase_order_recipe_row.deleted"
+    )
+    manufacturing_order_created = "manufacturing_order.created"
+    manufacturing_order_updated = "manufacturing_order.updated"
+    manufacturing_order_deleted = "manufacturing_order.deleted"
+    manufacturing_order_in_progress = "manufacturing_order.in_progress"
+    manufacturing_order_blocked = "manufacturing_order.blocked"
+    manufacturing_order_done = "manufacturing_order.done"
+    manufacturing_order_recipe_row_created = "manufacturing_order_recipe_row.created"
+    manufacturing_order_recipe_row_updated = "manufacturing_order_recipe_row.updated"
+    manufacturing_order_recipe_row_deleted = "manufacturing_order_recipe_row.deleted"
+    manufacturing_order_recipe_row_ingredients_in_stock = (
+        "manufacturing_order_recipe_row.ingredients_in_stock"
+    )
+    manufacturing_order_operation_row_created = (
+        "manufacturing_order_operation_row.created"
+    )
+    manufacturing_order_operation_row_updated = (
+        "manufacturing_order_operation_row.updated"
+    )
+    manufacturing_order_operation_row_deleted = (
+        "manufacturing_order_operation_row.deleted"
+    )
+    manufacturing_order_operation_row_in_progress = (
+        "manufacturing_order_operation_row.in_progress"
+    )
+    manufacturing_order_operation_row_paused = (
+        "manufacturing_order_operation_row.paused"
+    )
+    manufacturing_order_operation_row_blocked = (
+        "manufacturing_order_operation_row.blocked"
+    )
+    manufacturing_order_operation_row_completed = (
+        "manufacturing_order_operation_row.completed"
+    )
+    current_inventory_product_updated = "current_inventory.product_updated"
+    current_inventory_material_updated = "current_inventory.material_updated"
+    current_inventory_product_out_of_stock = "current_inventory.product_out_of_stock"
+    current_inventory_material_out_of_stock = "current_inventory.material_out_of_stock"
+    product_created = "product.created"
+    product_updated = "product.updated"
+    product_deleted = "product.deleted"
+    material_created = "material.created"
+    material_updated = "material.updated"
+    material_deleted = "material.deleted"
+    variant_created = "variant.created"
+    variant_updated = "variant.updated"
+    variant_deleted = "variant.deleted"
+    product_recipe_row_created = "product_recipe_row.created"
+    product_recipe_row_deleted = "product_recipe_row.deleted"
+    product_recipe_row_updated = "product_recipe_row.updated"
 
 
 class CustomField5(KatanaPydanticBase):
@@ -471,12 +554,135 @@ class CustomField5(KatanaPydanticBase):
     field_value: Annotated[str, Field(description="Custom field value", max_length=100)]
 
 
+class DemandForecastPeriod(KatanaPydanticBase):
+    period_start: Annotated[
+        AwareDatetime,
+        Field(description="Period start date in ISO 8601 format (inclusive)"),
+    ]
+    period_end: Annotated[
+        AwareDatetime,
+        Field(description="Period end date in ISO 8601 format (inclusive)"),
+    ]
+    in_stock: Annotated[
+        str | None, Field(description="In-stock quantity at the start of the period")
+    ] = None
+    expected: Annotated[
+        str | None, Field(description="Expected incoming quantity during the period")
+    ] = None
+    committed: Annotated[
+        str | None, Field(description="Total forecasted demand quantity for the period")
+    ] = None
+
+
+class DemandForecastResponse(KatanaPydanticBase):
+    variant_id: Annotated[
+        int, Field(description="ID of the variant this forecast is for")
+    ]
+    location_id: Annotated[
+        int, Field(description="ID of the location this forecast is for")
+    ]
+    in_stock: Annotated[
+        str | None,
+        Field(
+            description="Current in-stock quantity for this variant at this location"
+        ),
+    ] = None
+    periods: Annotated[
+        list[DemandForecastPeriod] | None,
+        Field(description="Array of forecast periods with stock and demand data"),
+    ] = None
+
+
+class Period(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    period_start: Annotated[
+        AwareDatetime,
+        Field(description="Period start date in ISO 8601 format (inclusive)"),
+    ]
+    period_end: Annotated[
+        AwareDatetime,
+        Field(description="Period end date in ISO 8601 format (inclusive)"),
+    ]
+    committed: Annotated[
+        str, Field(description="Total forecasted demand quantity for the period")
+    ]
+
+
+class CreateDemandForecastRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    variant_id: Annotated[
+        int, Field(description="ID of the variant to add forecast for", le=2147483647)
+    ]
+    location_id: Annotated[
+        int, Field(description="ID of the location to add forecast for", le=2147483647)
+    ]
+    periods: Annotated[
+        list[Period],
+        Field(
+            description="Array of forecast periods to add", max_length=100, min_length=1
+        ),
+    ]
+
+
+class Period1(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    period_start: Annotated[
+        AwareDatetime,
+        Field(description="Period start date in ISO 8601 format (inclusive)"),
+    ]
+    period_end: Annotated[
+        AwareDatetime,
+        Field(description="Period end date in ISO 8601 format (inclusive)"),
+    ]
+
+
+class ClearDemandForecastRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    variant_id: Annotated[
+        int, Field(description="ID of the variant to clear forecast for", le=2147483647)
+    ]
+    location_id: Annotated[
+        int,
+        Field(description="ID of the location to clear forecast for", le=2147483647),
+    ]
+    periods: Annotated[
+        list[Period1],
+        Field(
+            description="Array of forecast periods to clear",
+            max_length=100,
+            min_length=1,
+        ),
+    ]
+
+
 class EntityType4(StrEnum):
     billing = "billing"
     shipping = "shipping"
 
 
-class Status5(StrEnum):
+class Address(KatanaPydanticBase):
+    entity_type: EntityType4 | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    company: str | None = None
+    phone: str | None = None
+    line_1: str | None = None
+    line_2: str | None = None
+    city: str | None = None
+    state: str | None = None
+    zip: str | None = None
+    country: str | None = None
+
+
+class Status7(StrEnum):
     not_shipped = "NOT_SHIPPED"
     partially_packed = "PARTIALLY_PACKED"
     partially_delivered = "PARTIALLY_DELIVERED"
@@ -507,30 +713,84 @@ class Attribute(KatanaPydanticBase):
 
 
 class Attribute1(KatanaPydanticBase):
+    name: str | None = None
+    value: str | None = None
+
+
+class Attribute3(KatanaPydanticBase):
     key: Annotated[str | None, Field(description="Attribute name")] = None
     value: Annotated[str | None, Field(description="Attribute value")] = None
 
 
-class Status6(StrEnum):
+class Status8(StrEnum):
     not_shipped = "NOT_SHIPPED"
     pending = "PENDING"
 
 
-class Status7(StrEnum):
-    draft = "DRAFT"
-    completed = "COMPLETED"
+class Status9(StrEnum):
+    packed = "PACKED"
+    delivered = "DELIVERED"
 
 
-class Status10(StrEnum):
-    draft = "DRAFT"
-    completed = "COMPLETED"
-    received = "received"
+class InvoiceStatus(Enum):
+    not_invoiced = "NOT_INVOICED"
+    invoiced = "INVOICED"
+    partially_invoiced = "PARTIALLY_INVOICED"
 
 
 class AdjustmentMethod(StrEnum):
     fixed = "fixed"
     percentage = "percentage"
     markup = "markup"
+
+
+class ProductOperationRow(KatanaPydanticBase):
+    product_id: Annotated[int | None, Field(description="Product ID")] = None
+    product_operation_row_id: Annotated[
+        int, Field(description="Unique identifier for the product operation row")
+    ]
+    product_variant_id: Annotated[
+        int | None, Field(description="Product variant ID")
+    ] = None
+    operation_id: Annotated[int | None, Field(description="Operation ID")] = None
+    operation_name: Annotated[
+        str | None, Field(description="Name of the operation")
+    ] = None
+    type: Annotated[str | None, Field(description="Operation type (e.g., process)")] = (
+        None
+    )
+    resource_id: Annotated[
+        int | None, Field(description="Resource ID assigned to operation")
+    ] = None
+    resource_name: Annotated[
+        str | None, Field(description="Name of the assigned resource")
+    ] = None
+    cost_per_hour: Annotated[
+        float | None, Field(description="Cost per hour for this operation")
+    ] = None
+    cost_parameter: Annotated[
+        str | None, Field(description="Cost calculation parameter")
+    ] = None
+    planned_cost_per_unit: Annotated[
+        float | None, Field(description="Planned cost per unit")
+    ] = None
+    planned_time_per_unit: Annotated[
+        float | None, Field(description="Planned time per unit")
+    ] = None
+    planned_time_parameter: Annotated[
+        str | None, Field(description="Time parameter for planning")
+    ] = None
+    rank: Annotated[int | None, Field(description="Operation sequence rank")] = None
+    group_boundary: Annotated[
+        str | None, Field(description="Group boundary marker")
+    ] = None
+    created_at: Annotated[
+        AwareDatetime | None, Field(description="Timestamp when the row was created")
+    ] = None
+    updated_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Timestamp when the row was last updated"),
+    ] = None
 
 
 class Row(KatanaPydanticBase):
@@ -634,14 +894,15 @@ class CustomFieldModel(KatanaPydanticBase):
     id: Annotated[int, Field(description="Unique identifier for the custom field")]
     name: Annotated[str, Field(description="Internal name/key for the custom field")]
     field_type: Annotated[
-        str,
+        str | None,
         Field(
             description="Type of the custom field (text, number, date, select, etc.)"
         ),
-    ]
+    ] = None
     label: Annotated[
-        str, Field(description="Display label for the custom field in user interfaces")
-    ]
+        str | None,
+        Field(description="Display label for the custom field in user interfaces"),
+    ] = None
     required: Annotated[
         bool | None,
         Field(description="Whether this field is required when filling out the form"),
@@ -652,10 +913,10 @@ class CustomFieldModel(KatanaPydanticBase):
     ] = None
 
 
-class Status11(StrEnum):
+class Status10(StrEnum):
     not_started = "NOT_STARTED"
-    draft = "DRAFT"
     in_progress = "IN_PROGRESS"
+    counted = "COUNTED"
     completed = "COMPLETED"
 
 
@@ -668,12 +929,12 @@ class Transaction(KatanaPydanticBase):
         str, Field(description="Type of resource (ManufacturingOrder, etc.)")
     ]
     transaction_date: Annotated[
-        AwareDatetime, Field(description="Date and time of transaction")
-    ]
+        AwareDatetime | None, Field(description="Date and time of transaction")
+    ] = None
     quantity_change: Annotated[int, Field(description="Quantity change in transaction")]
 
 
-class Status12(StrEnum):
+class Status11(StrEnum):
     not_returned = "NOT_RETURNED"
     returned_all = "RETURNED_ALL"
     restocked_all = "RESTOCKED_ALL"
@@ -714,12 +975,6 @@ class User(UpdatableEntity):
     ] = None
 
 
-class Status14(StrEnum):
-    draft = "DRAFT"
-    in_progress = "IN_PROGRESS"
-    completed = "COMPLETED"
-
-
 class UserListResponse(KatanaPydanticBase):
     data: Annotated[
         list[User] | None,
@@ -741,7 +996,7 @@ class ProductOperationRerankRequest(KatanaPydanticBase):
     rank_product_operation_id: Annotated[
         int, Field(description="ID of the product operation to be reordered")
     ]
-    preceeding_product_operation_id: Annotated[
+    preceding_product_operation_id: Annotated[
         int | None,
         Field(
             description="ID of the operation that should precede the operation being moved"
@@ -772,7 +1027,13 @@ class IntegrationType(StrEnum):
     custom = "custom"
 
 
-class CustomFieldsCollection(UpdatableEntity):
+class OperatorListResponse(KatanaPydanticBase):
+    data: Annotated[
+        list[Operator] | None, Field(description="Array of operator objects")
+    ] = None
+
+
+class CustomFieldsCollection(DeletableEntity):
     id: Annotated[
         int, Field(description="Unique identifier for the custom fields collection")
     ]
@@ -803,8 +1064,3 @@ class CustomFieldsCollectionListResponse(KatanaPydanticBase):
             description="Array of custom field collections with their field definitions and configuration"
         ),
     ] = None
-
-
-# Type aliases
-ConfigAttribute2 = ConfigAttribute
-CustomField3 = CustomField

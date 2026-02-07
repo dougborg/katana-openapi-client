@@ -47,6 +47,9 @@ from katana_public_api_client.models.bom_row import BomRow as AttrsBomRow
 from katana_public_api_client.models.bom_row_list_response import (
     BomRowListResponse as AttrsBomRowListResponse,
 )
+from katana_public_api_client.models.clear_demand_forecast_request import (
+    ClearDemandForecastRequest as AttrsClearDemandForecastRequest,
+)
 from katana_public_api_client.models.coded_error_response import (
     CodedErrorResponse as AttrsCodedErrorResponse,
 )
@@ -58,6 +61,9 @@ from katana_public_api_client.models.create_customer_address_request import (
 )
 from katana_public_api_client.models.create_customer_request import (
     CreateCustomerRequest as AttrsCreateCustomerRequest,
+)
+from katana_public_api_client.models.create_demand_forecast_request import (
+    CreateDemandForecastRequest as AttrsCreateDemandForecastRequest,
 )
 from katana_public_api_client.models.create_manufacturing_order_operation_row_request import (
     CreateManufacturingOrderOperationRowRequest as AttrsCreateManufacturingOrderOperationRowRequest,
@@ -166,6 +172,12 @@ from katana_public_api_client.models.customer_list_response import (
 from katana_public_api_client.models.deletable_entity import (
     DeletableEntity as AttrsDeletableEntity,
 )
+from katana_public_api_client.models.demand_forecast_period import (
+    DemandForecastPeriod as AttrsDemandForecastPeriod,
+)
+from katana_public_api_client.models.demand_forecast_response import (
+    DemandForecastResponse as AttrsDemandForecastResponse,
+)
 from katana_public_api_client.models.detailed_error_response import (
     DetailedErrorResponse as AttrsDetailedErrorResponse,
 )
@@ -267,6 +279,9 @@ from katana_public_api_client.models.negative_stock_list_response import (
     NegativeStockListResponse as AttrsNegativeStockListResponse,
 )
 from katana_public_api_client.models.operator import Operator as AttrsOperator
+from katana_public_api_client.models.operator_list_response import (
+    OperatorListResponse as AttrsOperatorListResponse,
+)
 from katana_public_api_client.models.outsourced_purchase_order import (
     OutsourcedPurchaseOrder as AttrsOutsourcedPurchaseOrder,
 )
@@ -304,6 +319,9 @@ from katana_public_api_client.models.product_operation_rerank import (
 )
 from katana_public_api_client.models.product_operation_rerank_request import (
     ProductOperationRerankRequest as AttrsProductOperationRerankRequest,
+)
+from katana_public_api_client.models.product_operation_row import (
+    ProductOperationRow as AttrsProductOperationRow,
 )
 from katana_public_api_client.models.purchase_order_accounting_metadata import (
     PurchaseOrderAccountingMetadata as AttrsPurchaseOrderAccountingMetadata,
@@ -397,6 +415,9 @@ from katana_public_api_client.models.serial_number_list_response import (
 )
 from katana_public_api_client.models.serial_number_stock import (
     SerialNumberStock as AttrsSerialNumberStock,
+)
+from katana_public_api_client.models.serial_number_stock_list_response import (
+    SerialNumberStockListResponse as AttrsSerialNumberStockListResponse,
 )
 from katana_public_api_client.models.service import Service as AttrsService
 from katana_public_api_client.models.service_list_response import (
@@ -601,15 +622,21 @@ from ._generated.common import (
     AdditionalCost as PydanticAdditionalCost,
     AdditionalCostListResponse as PydanticAdditionalCostListResponse,
     AssignedOperator as PydanticAssignedOperator,
+    ClearDemandForecastRequest as PydanticClearDemandForecastRequest,
+    CreateDemandForecastRequest as PydanticCreateDemandForecastRequest,
     CreateTaxRateRequest as PydanticCreateTaxRateRequest,
     CustomField as PydanticCustomField,
     CustomFieldsCollection as PydanticCustomFieldsCollection,
     CustomFieldsCollectionListResponse as PydanticCustomFieldsCollectionListResponse,
+    DemandForecastPeriod as PydanticDemandForecastPeriod,
+    DemandForecastResponse as PydanticDemandForecastResponse,
     Factory as PydanticFactory,
     LocationAddress as PydanticLocationAddress,
     Operator as PydanticOperator,
+    OperatorListResponse as PydanticOperatorListResponse,
     ProductOperationRerank as PydanticProductOperationRerank,
     ProductOperationRerankRequest as PydanticProductOperationRerankRequest,
+    ProductOperationRow as PydanticProductOperationRow,
     TaxRate as PydanticTaxRate,
     TaxRateListResponse as PydanticTaxRateListResponse,
     UnlinkVariantBinLocationRequest as PydanticUnlinkVariantBinLocationRequest,
@@ -792,6 +819,7 @@ from ._generated.stock import (
     SerialNumber as PydanticSerialNumber,
     SerialNumberListResponse as PydanticSerialNumberListResponse,
     SerialNumberStock as PydanticSerialNumberStock,
+    SerialNumberStockListResponse as PydanticSerialNumberStockListResponse,
     StockAdjustment as PydanticStockAdjustment,
     StockAdjustmentBatchTransaction as PydanticStockAdjustmentBatchTransaction,
     StockAdjustmentListResponse as PydanticStockAdjustmentListResponse,
@@ -841,10 +869,12 @@ def register_all_models() -> None:
     register(AttrsBatchTransaction, PydanticBatchTransaction)
     register(AttrsBomRow, PydanticBomRow)
     register(AttrsBomRowListResponse, PydanticBomRowListResponse)
+    register(AttrsClearDemandForecastRequest, PydanticClearDemandForecastRequest)
     register(AttrsCodedErrorResponse, PydanticCodedErrorResponse)
     register(AttrsCreateBomRowRequest, PydanticCreateBomRowRequest)
     register(AttrsCreateCustomerAddressRequest, PydanticCreateCustomerAddressRequest)
     register(AttrsCreateCustomerRequest, PydanticCreateCustomerRequest)
+    register(AttrsCreateDemandForecastRequest, PydanticCreateDemandForecastRequest)
     register(
         AttrsCreateManufacturingOrderOperationRowRequest,
         PydanticCreateManufacturingOrderOperationRowRequest,
@@ -906,6 +936,8 @@ def register_all_models() -> None:
     register(AttrsCustomerAddressListResponse, PydanticCustomerAddressListResponse)
     register(AttrsCustomerListResponse, PydanticCustomerListResponse)
     register(AttrsDeletableEntity, PydanticDeletableEntity)
+    register(AttrsDemandForecastPeriod, PydanticDemandForecastPeriod)
+    register(AttrsDemandForecastResponse, PydanticDemandForecastResponse)
     register(AttrsDetailedErrorResponse, PydanticDetailedErrorResponse)
     register(AttrsEnumValidationError, PydanticEnumValidationError)
     register(AttrsErrorResponse, PydanticErrorResponse)
@@ -971,6 +1003,7 @@ def register_all_models() -> None:
     register(AttrsNegativeStock, PydanticNegativeStock)
     register(AttrsNegativeStockListResponse, PydanticNegativeStockListResponse)
     register(AttrsOperator, PydanticOperator)
+    register(AttrsOperatorListResponse, PydanticOperatorListResponse)
     register(AttrsOutsourcedPurchaseOrder, PydanticOutsourcedPurchaseOrder)
     register(
         AttrsOutsourcedPurchaseOrderRecipeRow, PydanticOutsourcedPurchaseOrderRecipeRow
@@ -990,6 +1023,7 @@ def register_all_models() -> None:
     register(AttrsProductListResponse, PydanticProductListResponse)
     register(AttrsProductOperationRerank, PydanticProductOperationRerank)
     register(AttrsProductOperationRerankRequest, PydanticProductOperationRerankRequest)
+    register(AttrsProductOperationRow, PydanticProductOperationRow)
     register(
         AttrsPurchaseOrderAccountingMetadata, PydanticPurchaseOrderAccountingMetadata
     )
@@ -1042,6 +1076,7 @@ def register_all_models() -> None:
     register(AttrsSerialNumber, PydanticSerialNumber)
     register(AttrsSerialNumberListResponse, PydanticSerialNumberListResponse)
     register(AttrsSerialNumberStock, PydanticSerialNumberStock)
+    register(AttrsSerialNumberStockListResponse, PydanticSerialNumberStockListResponse)
     register(AttrsService, PydanticService)
     register(AttrsServiceListResponse, PydanticServiceListResponse)
     register(AttrsServiceVariant, PydanticServiceVariant)

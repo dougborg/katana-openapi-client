@@ -318,7 +318,7 @@ class TestErrorLoggingTransport:
         # Should extract from nested error object
         assert "Validation error 422" in error_message
         assert "UnprocessableEntityError" in error_message
-        assert "Nested validation details (1 errors)" in error_message
+        assert "Validation details (1 errors)" in error_message
         assert "Path: body.default_supplier_id" in error_message
         assert "Code: invalid_type" in error_message
         assert "Message: Expected number, received string" in error_message

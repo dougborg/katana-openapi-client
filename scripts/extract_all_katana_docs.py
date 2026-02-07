@@ -193,19 +193,42 @@ class KatanaDocumentationExtractor:
         return all_pages
 
     def extract_openapi_from_html(self, html_content: str) -> dict[str, Any] | None:
-        """Extract the embedded OpenAPI specification from README.io HTML."""
-        # Look for the data-initial-props attribute
-        match = re.search(r'data-initial-props="({.*?})"', html_content)
-        if not match:
-            return None
+        """Extract the embedded OpenAPI specification from README.io HTML.
 
-        try:
-            # Decode HTML entities and parse JSON
-            json_str = html.unescape(match.group(1))
-            data = json.loads(json_str)
-            return data.get("oasDefinition")
-        except (json.JSONDecodeError, KeyError):
-            return None
+        README.io embeds the spec in two possible ways:
+        1. Legacy: data-initial-props attribute with HTML-encoded JSON containing oasDefinition
+        2. Current: A large <script> tag containing raw JSON with document.api.schema
+        """
+        # Strategy 1 (legacy): Look for the data-initial-props attribute
+        match = re.search(r'data-initial-props="({.*?})"', html_content)
+        if match:
+            try:
+                json_str = html.unescape(match.group(1))
+                data = json.loads(json_str)
+                spec = data.get("oasDefinition")
+                if spec:
+                    return spec
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+        # Strategy 2 (current): Find large script tags containing JSON with API schema
+        soup = BeautifulSoup(html_content, "html.parser")
+        for script_tag in soup.find_all("script"):
+            if not isinstance(script_tag, Tag):
+                continue
+            script_text = script_tag.string
+            if not script_text or len(script_text) < 100000:
+                continue
+            try:
+                data = json.loads(script_text)
+                # Navigate to document.api.schema
+                schema = data.get("document", {}).get("api", {}).get("schema")
+                if schema and isinstance(schema, dict) and "paths" in schema:
+                    return schema
+            except (json.JSONDecodeError, KeyError, TypeError):
+                continue
+
+        return None
 
     def extract_content_from_html(self, html_content: str) -> str:
         """Extract meaningful content from HTML using specific README.io DOM structure."""
@@ -606,6 +629,10 @@ class KatanaDocumentationExtractor:
             "deletecustomeraddress": ("/customer_addresses/{id}", "delete"),
             # Custom Fields
             "getcustomfieldscollections": ("/custom_fields_collections", "get"),
+            # Demand Forecasts
+            "getdemandforecasts": ("/demand_forecasts", "get"),
+            "createdemandforecast": ("/demand_forecasts", "post"),
+            "deletedemandforecast": ("/demand_forecasts", "delete"),
             # Storage Bins
             "getallstoragebins": ("/bin_locations", "get"),
             "updatedefaultstoragebin": ("/bin_locations/{id}", "patch"),

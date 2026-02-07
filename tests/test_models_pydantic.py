@@ -209,27 +209,26 @@ class TestModelInstantiation:
 class TestEnumDefaults:
     """Tests for enum default values."""
 
-    def test_status_enum_defaults_are_valid(self) -> None:
-        """Test that status enum defaults use proper enum values."""
+    def test_create_stock_adjustment_request_valid(self) -> None:
+        """Test that CreateStockAdjustmentRequest accepts current schema fields."""
         from datetime import datetime
 
         from katana_public_api_client.models_pydantic._generated import (
             CreateStockAdjustmentRequest,
-            Status7,
             StockAdjustmentRow1,
         )
 
-        # This should not raise - the default should be Status7.draft (an enum value)
+        # This should not raise - model accepts current fields
         request = CreateStockAdjustmentRequest(
-            reference_no="TEST-001",
+            stock_adjustment_number="TEST-001",
             location_id=1,
-            adjustment_date=datetime.now(UTC),
+            stock_adjustment_date=datetime.now(UTC),
             stock_adjustment_rows=[
                 StockAdjustmentRow1(variant_id=1, quantity=10.0),
             ],
         )
-        # The status should have a valid default (Status7.draft)
-        assert request.status == Status7.draft
+        assert request.location_id == 1
+        assert request.stock_adjustment_number == "TEST-001"
 
 
 class TestTypeAliases:
@@ -261,8 +260,8 @@ class TestMROFix:
     def test_sales_order_has_correct_inheritance(self) -> None:
         """Test that SalesOrder inherits correctly."""
         from katana_public_api_client.models_pydantic._generated import (
+            DeletableEntity,
             SalesOrder,
-            UpdatableEntity,
         )
 
-        assert issubclass(SalesOrder, UpdatableEntity)
+        assert issubclass(SalesOrder, DeletableEntity)

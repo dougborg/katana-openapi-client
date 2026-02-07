@@ -48,6 +48,8 @@ class ManufacturingOrderRecipeRow:
         list[ManufacturingOrderRecipeRowBatchTransactionsItem] | Unset
     ) = UNSET
     cost: float | Unset = UNSET
+    total_consumed_quantity: float | Unset = UNSET
+    total_remaining_quantity: float | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -98,6 +100,10 @@ class ManufacturingOrderRecipeRow:
 
         cost = self.cost
 
+        total_consumed_quantity = self.total_consumed_quantity
+
+        total_remaining_quantity = self.total_remaining_quantity
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -129,6 +135,10 @@ class ManufacturingOrderRecipeRow:
             field_dict["batch_transactions"] = batch_transactions
         if cost is not UNSET:
             field_dict["cost"] = cost
+        if total_consumed_quantity is not UNSET:
+            field_dict["total_consumed_quantity"] = total_consumed_quantity
+        if total_remaining_quantity is not UNSET:
+            field_dict["total_remaining_quantity"] = total_remaining_quantity
 
         return field_dict
 
@@ -222,6 +232,10 @@ class ManufacturingOrderRecipeRow:
 
         cost = d.pop("cost", UNSET)
 
+        total_consumed_quantity = d.pop("total_consumed_quantity", UNSET)
+
+        total_remaining_quantity = d.pop("total_remaining_quantity", UNSET)
+
         manufacturing_order_recipe_row = cls(
             id=id,
             created_at=created_at,
@@ -236,6 +250,8 @@ class ManufacturingOrderRecipeRow:
             ingredient_expected_date=ingredient_expected_date,
             batch_transactions=batch_transactions,
             cost=cost,
+            total_consumed_quantity=total_consumed_quantity,
+            total_remaining_quantity=total_remaining_quantity,
         )
 
         manufacturing_order_recipe_row.additional_properties = d

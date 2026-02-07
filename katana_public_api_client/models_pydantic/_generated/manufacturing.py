@@ -22,7 +22,7 @@ from .common import (
     Operator,
     Row,
     Status,
-    Status1,
+    Status3,
 )
 from .stock import (
     BatchTransaction,
@@ -34,11 +34,18 @@ from .stock import (
 
 
 class CreateManufacturingOrderRequest(KatanaPydanticBase):
+    status: Annotated[
+        Status | None,
+        Field(description="Initial production status of the manufacturing order"),
+    ] = None
+    order_no: Annotated[
+        str | None,
+        Field(
+            description="Custom manufacturing order number for tracking and reference"
+        ),
+    ] = None
     variant_id: Annotated[
         int, Field(description="ID of the product variant to manufacture")
-    ]
-    planned_quantity: Annotated[
-        float, Field(description="Quantity of the variant to produce")
     ]
     location_id: Annotated[
         int,
@@ -46,6 +53,12 @@ class CreateManufacturingOrderRequest(KatanaPydanticBase):
             description="ID of the factory location where production will take place"
         ),
     ]
+    planned_quantity: Annotated[
+        float, Field(description="Quantity of the variant to produce")
+    ]
+    actual_quantity: Annotated[
+        float | None, Field(description="Actual quantity produced")
+    ] = None
     order_created_date: Annotated[
         AwareDatetime | None,
         Field(
@@ -60,19 +73,67 @@ class CreateManufacturingOrderRequest(KatanaPydanticBase):
         str | None,
         Field(description="Optional notes or additional information about the order"),
     ] = None
+    batch_transactions: Annotated[
+        list[BatchTransaction] | None,
+        Field(description="Batch transactions for produced items"),
+    ] = None
 
 
 class UpdateManufacturingOrderRequest(KatanaPydanticBase):
+    status: Annotated[
+        Status | None,
+        Field(description="Updated production status of the manufacturing order"),
+    ] = None
+    order_no: Annotated[
+        str | None,
+        Field(
+            description="Updated manufacturing order number for tracking and reference"
+        ),
+    ] = None
+    variant_id: Annotated[
+        int | None,
+        Field(description="Updated ID of the product variant being manufactured"),
+    ] = None
+    location_id: Annotated[
+        int | None,
+        Field(
+            description="Updated ID of the factory location where production takes place"
+        ),
+    ] = None
     planned_quantity: Annotated[
         float | None, Field(description="Updated quantity of the variant to produce")
+    ] = None
+    actual_quantity: Annotated[
+        float | None, Field(description="Updated actual quantity produced")
+    ] = None
+    order_created_date: Annotated[
+        AwareDatetime | None,
+        Field(
+            description="Updated date and time when the manufacturing order was created"
+        ),
+    ] = None
+    production_deadline_date: Annotated[
+        AwareDatetime | None,
+        Field(description="Updated target deadline for completing production"),
+    ] = None
+    done_date: Annotated[
+        AwareDatetime | None,
+        Field(description="Timestamp when the manufacturing order was completed"),
     ] = None
     additional_info: Annotated[
         str | None,
         Field(description="Updated notes or additional information about the order"),
     ] = None
-    production_deadline_date: Annotated[
+    batch_transactions: Annotated[
+        list[BatchTransaction] | None,
+        Field(description="Batch transactions for produced items"),
+    ] = None
+
+
+class UpdateManufacturingOrderProductionRequest(KatanaPydanticBase):
+    production_date: Annotated[
         AwareDatetime | None,
-        Field(description="Updated target deadline for completing production"),
+        Field(description="Updated date and time when the production was completed"),
     ] = None
 
 
@@ -89,32 +150,12 @@ class ManufacturingOrderProductionIngredient(DeletableEntity):
 
 
 class UpdateManufacturingOrderProductionIngredientRequest(KatanaPydanticBase):
-    quantity: Annotated[
-        float | None,
-        Field(description="Updated actual quantity of ingredient consumed"),
-    ] = None
-    production_date: Annotated[
-        AwareDatetime | None,
+    batch_transactions: Annotated[
+        list[BatchTransaction] | None,
         Field(
-            description="Updated date when the ingredient was consumed in production"
+            description="Batch transactions for tracking ingredient consumption from specific batches"
         ),
     ] = None
-    cost: Annotated[
-        float | None, Field(description="Updated cost of the ingredient consumed")
-    ] = None
-
-
-class CreateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
-    manufacturing_order_id: Annotated[
-        int,
-        Field(description="ID of the manufacturing order this operation belongs to"),
-    ]
-    operation_id: Annotated[
-        int, Field(description="ID of the operation being performed")
-    ]
-    time: Annotated[
-        float, Field(description="Estimated time in minutes for this operation")
-    ]
 
 
 class ManufacturingOrderOperationProduction(DeletableEntity):
@@ -148,24 +189,17 @@ class CreateManufacturingOrderRecipeRowRequest(KatanaPydanticBase):
     total_actual_quantity: Annotated[
         float | None, Field(description="Total actual quantity of ingredient consumed")
     ] = None
-    ingredient_availability: Annotated[
-        str | None, Field(description="Availability status of the ingredient")
-    ] = None
-    ingredient_expected_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Expected date when ingredient will be available"),
-    ] = None
     batch_transactions: Annotated[
         list[BatchTransaction1] | None,
         Field(description="Batch tracking transactions for this ingredient"),
     ] = None
-    cost: Annotated[
-        float | None,
-        Field(description="Cost of this ingredient in the manufacturing order"),
-    ] = None
 
 
 class UpdateManufacturingOrderRecipeRowRequest(KatanaPydanticBase):
+    variant_id: Annotated[
+        int | None,
+        Field(description="Updated ID of the ingredient variant being consumed"),
+    ] = None
     notes: Annotated[
         str | None, Field(description="Additional notes about this ingredient usage")
     ] = None
@@ -179,20 +213,9 @@ class UpdateManufacturingOrderRecipeRowRequest(KatanaPydanticBase):
         float | None,
         Field(description="Updated total actual quantity of ingredient consumed"),
     ] = None
-    ingredient_availability: Annotated[
-        str | None, Field(description="Current availability status of the ingredient")
-    ] = None
-    ingredient_expected_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Updated expected date when ingredient will be available"),
-    ] = None
     batch_transactions: Annotated[
         list[BatchTransaction2] | None,
         Field(description="Updated batch tracking transactions for this ingredient"),
-    ] = None
-    cost: Annotated[
-        float | None,
-        Field(description="Updated cost of this ingredient in the manufacturing order"),
     ] = None
 
 
@@ -240,6 +263,14 @@ class ManufacturingOrderRecipeRow(DeletableEntity):
     cost: Annotated[
         float | None,
         Field(description="Total cost of this ingredient for the manufacturing order"),
+    ] = None
+    total_consumed_quantity: Annotated[
+        float | None,
+        Field(description="Total quantity consumed so far from this ingredient"),
+    ] = None
+    total_remaining_quantity: Annotated[
+        float | None,
+        Field(description="Remaining quantity needed from this ingredient"),
     ] = None
 
 
@@ -354,6 +385,9 @@ class BomRow(KatanaPydanticBase):
     ] = None
     notes: Annotated[
         str | None, Field(description="Additional notes for this BOM row")
+    ] = None
+    rank: Annotated[
+        int | None, Field(description="Sort rank for ordering BOM rows")
     ] = None
     created_at: Annotated[
         AwareDatetime | None,
@@ -512,6 +546,20 @@ class ManufacturingOrder(DeletableEntity):
         float | None,
         Field(description="Actual quantity produced, null if production not completed"),
     ] = None
+    completed_quantity: Annotated[
+        float | None,
+        Field(
+            description="Total quantity completed so far (including partial completions)"
+        ),
+    ] = None
+    remaining_quantity: Annotated[
+        float | None,
+        Field(description="Remaining quantity to produce (planned - completed)"),
+    ] = None
+    includes_partial_completions: Annotated[
+        bool | None,
+        Field(description="Whether this order has been partially completed"),
+    ] = None
     batch_transactions: Annotated[
         list[BatchTransaction] | None,
         Field(
@@ -599,6 +647,10 @@ class ManufacturingOrderProduction(DeletableEntity):
             description="ID of the manufacturing order this production run belongs to"
         ),
     ] = None
+    factory_id: Annotated[
+        int | None,
+        Field(description="ID of the factory where this production run was performed"),
+    ] = None
     quantity: Annotated[
         float | None,
         Field(description="Actual quantity produced in this production run"),
@@ -631,7 +683,7 @@ class ManufacturingOrderProductionListResponse(KatanaPydanticBase):
 class ManufacturingOrderOperationRow(DeletableEntity):
     id: int
     status: Annotated[
-        Status1 | None, Field(description="Current status of the operation")
+        Status3 | None, Field(description="Current status of the operation")
     ] = None
     type: Annotated[
         str | None, Field(description="Type classification of the operation")
@@ -690,6 +742,12 @@ class ManufacturingOrderOperationRow(DeletableEntity):
     total_actual_cost: Annotated[
         float | None, Field(description="Total actual cost incurred for this operation")
     ] = None
+    total_consumed_time: Annotated[
+        float | None, Field(description="Total time consumed so far for this operation")
+    ] = None
+    total_remaining_time: Annotated[
+        float | None, Field(description="Remaining time estimated for this operation")
+    ] = None
     cost_per_hour: Annotated[
         float | None, Field(description="Hourly cost rate for this operation")
     ] = None
@@ -711,15 +769,104 @@ class ManufacturingOrderOperationRow(DeletableEntity):
     ] = None
 
 
-class UpdateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
-    completed_by_operators: Annotated[
+class CreateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
+    manufacturing_order_id: Annotated[
+        int,
+        Field(description="ID of the manufacturing order this operation belongs to"),
+    ]
+    operation_id: Annotated[
+        int, Field(description="ID of the operation being performed")
+    ]
+    type: Annotated[
+        str | None, Field(description="Type of operation (e.g., manual, automatic)")
+    ] = None
+    operation_name: Annotated[
+        str | None, Field(description="Name of the operation")
+    ] = None
+    resource_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the resource (machine/workstation) performing the operation"
+        ),
+    ] = None
+    resource_name: Annotated[
+        str | None, Field(description="Name of the resource performing the operation")
+    ] = None
+    planned_time_parameter: Annotated[
+        float | None, Field(description="Parameter for calculating planned time")
+    ] = None
+    planned_time_per_unit: Annotated[
+        float | None, Field(description="Planned time per unit of output")
+    ] = None
+    cost_parameter: Annotated[
+        float | None, Field(description="Parameter for calculating operation cost")
+    ] = None
+    cost_per_hour: Annotated[
+        float | None, Field(description="Hourly cost rate for this operation")
+    ] = None
+    status: Annotated[
+        str | None, Field(description="Current status of the operation")
+    ] = None
+    assigned_operators: Annotated[
         list[Operator] | None,
-        Field(description="List of operators who completed this operation"),
+        Field(description="Operators assigned to perform this operation"),
+    ] = None
+
+
+class UpdateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
+    manufacturing_order_id: Annotated[
+        int | None,
+        Field(description="ID of the manufacturing order this operation belongs to"),
+    ] = None
+    operation_id: Annotated[
+        int | None, Field(description="ID of the operation being performed")
+    ] = None
+    type: Annotated[
+        str | None, Field(description="Type of operation (e.g., manual, automatic)")
+    ] = None
+    operation_name: Annotated[
+        str | None, Field(description="Name of the operation")
+    ] = None
+    resource_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the resource (machine/workstation) performing the operation"
+        ),
+    ] = None
+    resource_name: Annotated[
+        str | None, Field(description="Name of the resource performing the operation")
+    ] = None
+    planned_time_parameter: Annotated[
+        float | None, Field(description="Parameter for calculating planned time")
+    ] = None
+    planned_time_per_unit: Annotated[
+        float | None, Field(description="Planned time per unit of output")
     ] = None
     total_actual_time: Annotated[
         float | None,
         Field(description="Actual time taken in minutes for this operation"),
     ] = None
+    cost_parameter: Annotated[
+        float | None, Field(description="Parameter for calculating operation cost")
+    ] = None
+    cost_per_hour: Annotated[
+        float | None, Field(description="Hourly cost rate for this operation")
+    ] = None
+    status: Annotated[
+        str | None, Field(description="Current status of the operation")
+    ] = None
+    assigned_operators: Annotated[
+        list[Operator] | None,
+        Field(description="Operators assigned to perform this operation"),
+    ] = None
+    completed_by_operators: Annotated[
+        list[Operator] | None,
+        Field(description="List of operators who completed this operation"),
+    ] = None
+
+
+class ManufacturingOrderOperationRowResponse(ManufacturingOrderOperationRow):
+    pass
 
 
 class ManufacturingOrderListResponse(KatanaPydanticBase):
@@ -743,13 +890,19 @@ class CreateManufacturingOrderProductionRequest(KatanaPydanticBase):
             description="ID of the manufacturing order this production run belongs to"
         ),
     ]
-    quantity: Annotated[
+    completed_quantity: Annotated[
         float, Field(description="Quantity produced in this production run")
     ]
-    production_date: Annotated[
+    completed_date: Annotated[
         AwareDatetime,
         Field(description="Date and time when the production was completed"),
     ]
+    is_final: Annotated[
+        bool | None,
+        Field(
+            description="Whether this is the final production run that completes the manufacturing order"
+        ),
+    ] = None
     ingredients: Annotated[
         list[ManufacturingOrderProductionIngredient] | None,
         Field(description="Ingredients consumed during this production run"),
@@ -758,26 +911,7 @@ class CreateManufacturingOrderProductionRequest(KatanaPydanticBase):
         list[ManufacturingOrderOperationRow] | None,
         Field(description="Operations performed during this production run"),
     ] = None
-
-
-class UpdateManufacturingOrderProductionRequest(KatanaPydanticBase):
-    quantity: Annotated[
-        float | None,
-        Field(description="Updated quantity produced in this production run"),
+    serial_numbers: Annotated[
+        list[str] | None,
+        Field(description="Serial numbers to assign to produced items"),
     ] = None
-    production_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Updated date and time when the production was completed"),
-    ] = None
-    ingredients: Annotated[
-        list[UpdateManufacturingOrderProductionIngredientRequest] | None,
-        Field(description="Updated ingredients consumed during this production run"),
-    ] = None
-    operations: Annotated[
-        list[UpdateManufacturingOrderOperationRowRequest] | None,
-        Field(description="Updated operations performed during this production run"),
-    ] = None
-
-
-# Type aliases
-ManufacturingOrderOperationRowResponse = ManufacturingOrderOperationRow

@@ -21,14 +21,13 @@ class PurchaseOrderAccountingMetadata:
     financial record synchronization
 
         Example:
-            {'id': 156, 'purchase_order_id': 8001, 'purchaseOrderId': 8001, 'porReceivedGroupId': 2001, 'integrationType':
-                'quickbooks', 'billId': 'BILL-2024-001', 'createdAt': '2024-01-15T11:30:00Z'}
+            {'id': 156, 'purchase_order_id': 8001, 'received_items_group_id': 2001, 'integration_type': 'quickBooks',
+                'bill_id': 'BILL-2024-001', 'created_at': '2024-01-15T11:30:00Z'}
     """
 
     id: int
-    purchaseOrderId: int
-    purchase_order_id: int | Unset = UNSET
-    por_received_group_id: int | Unset = UNSET
+    purchase_order_id: int
+    received_items_group_id: int | Unset = UNSET
     integration_type: str | Unset = UNSET
     bill_id: str | Unset = UNSET
     created_at: datetime.datetime | Unset = UNSET
@@ -37,11 +36,9 @@ class PurchaseOrderAccountingMetadata:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        purchaseOrderId = self.purchaseOrderId
-
         purchase_order_id = self.purchase_order_id
 
-        por_received_group_id = self.por_received_group_id
+        received_items_group_id = self.received_items_group_id
 
         integration_type = self.integration_type
 
@@ -56,19 +53,17 @@ class PurchaseOrderAccountingMetadata:
         field_dict.update(
             {
                 "id": id,
-                "purchaseOrderId": purchaseOrderId,
+                "purchase_order_id": purchase_order_id,
             }
         )
-        if purchase_order_id is not UNSET:
-            field_dict["purchase_order_id"] = purchase_order_id
-        if por_received_group_id is not UNSET:
-            field_dict["porReceivedGroupId"] = por_received_group_id
+        if received_items_group_id is not UNSET:
+            field_dict["received_items_group_id"] = received_items_group_id
         if integration_type is not UNSET:
-            field_dict["integrationType"] = integration_type
+            field_dict["integration_type"] = integration_type
         if bill_id is not UNSET:
-            field_dict["billId"] = bill_id
+            field_dict["bill_id"] = bill_id
         if created_at is not UNSET:
-            field_dict["createdAt"] = created_at
+            field_dict["created_at"] = created_at
 
         return field_dict
 
@@ -77,17 +72,15 @@ class PurchaseOrderAccountingMetadata:
         d = dict(src_dict)
         id = d.pop("id")
 
-        purchaseOrderId = d.pop("purchaseOrderId")
+        purchase_order_id = d.pop("purchase_order_id")
 
-        purchase_order_id = d.pop("purchase_order_id", UNSET)
+        received_items_group_id = d.pop("received_items_group_id", UNSET)
 
-        por_received_group_id = d.pop("porReceivedGroupId", UNSET)
+        integration_type = d.pop("integration_type", UNSET)
 
-        integration_type = d.pop("integrationType", UNSET)
+        bill_id = d.pop("bill_id", UNSET)
 
-        bill_id = d.pop("billId", UNSET)
-
-        _created_at = d.pop("createdAt", UNSET)
+        _created_at = d.pop("created_at", UNSET)
         created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
             created_at = UNSET
@@ -96,9 +89,8 @@ class PurchaseOrderAccountingMetadata:
 
         purchase_order_accounting_metadata = cls(
             id=id,
-            purchaseOrderId=purchaseOrderId,
             purchase_order_id=purchase_order_id,
-            por_received_group_id=por_received_group_id,
+            received_items_group_id=received_items_group_id,
             integration_type=integration_type,
             bill_id=bill_id,
             created_at=created_at,

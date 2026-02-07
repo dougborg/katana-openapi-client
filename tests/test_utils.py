@@ -90,6 +90,7 @@ class TestUnwrap:
     def test_unwrap_422_raises_validation_error(self):
         """Test that 422 status raises ValidationError."""
         error_response = DetailedErrorResponse(
+            status_code=422,
             name="ValidationError",
             message="Invalid request data",
             details=[],

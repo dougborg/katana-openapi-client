@@ -15,22 +15,22 @@ from pydantic import AwareDatetime, ConfigDict, Field, RootModel
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
-from .base import DeletableEntity, UpdatableEntity
+from .base import DeletableEntity
 from .common import (
     BillingStatus,
     DistributionMethod,
     EntityType,
     IngredientAvailability2,
     LastDocumentStatus,
-    Status2,
-    Status3,
     Status4,
+    Status5,
+    Status6,
 )
 from .contacts import Supplier
 from .stock import (
     BatchTransaction4,
     BatchTransaction5,
-    BatchTransaction8,
+    BatchTransaction10,
 )
 
 
@@ -77,7 +77,7 @@ class PurchaseOrderRowRequest(KatanaPydanticBase):
     ] = None
 
 
-class PurchaseOrderRow(UpdatableEntity):
+class PurchaseOrderRow(DeletableEntity):
     id: Annotated[
         int | None,
         Field(description="Unique identifier for this purchase order line item"),
@@ -204,7 +204,7 @@ class UpdatePurchaseOrderRequest(KatanaPydanticBase):
         ),
     ] = None
     status: Annotated[
-        Status4 | None,
+        Status6 | None,
         Field(description="Current status indicating progress of order fulfillment"),
     ] = None
     expected_arrival_date: Annotated[
@@ -536,43 +536,28 @@ class PurchaseOrderAccountingMetadata(KatanaPydanticBase):
         int, Field(description="Unique identifier for the accounting metadata record")
     ]
     purchase_order_id: Annotated[
-        int | None,
-        Field(description="ID of the purchase order linked to the accounting system"),
-    ] = None
-    purchase_order_id_1: Annotated[
         int,
-        Field(
-            alias="purchaseOrderId",
-            description="Alternative purchase order ID field for accounting system compatibility",
-        ),
+        Field(description="ID of the purchase order linked to the accounting system"),
     ]
-    por_received_group_id: Annotated[
+    received_items_group_id: Annotated[
         int | None,
         Field(
-            alias="porReceivedGroupId",
-            description="ID of the received items group for accounting cost allocation",
+            description="ID of the received items group for accounting cost allocation"
         ),
     ] = None
     integration_type: Annotated[
         str | None,
         Field(
-            alias="integrationType",
-            description="Type of accounting system integration (e.g., quickbooks, xero, sage)",
+            description="Type of accounting system integration (e.g., quickBooks, xero, sage)"
         ),
     ] = None
     bill_id: Annotated[
         str | None,
-        Field(
-            alias="billId",
-            description="Bill identifier in the external accounting system",
-        ),
+        Field(description="Bill identifier in the external accounting system"),
     ] = None
     created_at: Annotated[
         AwareDatetime | None,
-        Field(
-            alias="createdAt",
-            description="Date and time when the accounting metadata was created",
-        ),
+        Field(description="Date and time when the accounting metadata was created"),
     ] = None
 
 
@@ -616,7 +601,7 @@ class OutsourcedPurchaseOrderRecipeRow(DeletableEntity):
         Field(description="Additional notes about this ingredient requirement"),
     ] = None
     batch_transactions: Annotated[
-        list[BatchTransaction8] | None,
+        list[BatchTransaction10] | None,
         Field(description="Batch allocation transactions for this ingredient"),
     ] = None
     cost: Annotated[
@@ -653,7 +638,7 @@ class CreatePurchaseOrderRequest(KatanaPydanticBase):
         ),
     ] = None
     status: Annotated[
-        Status2 | None,
+        Status4 | None,
         Field(description="Initial status of the purchase order when created"),
     ] = None
     order_created_date: Annotated[
@@ -670,6 +655,14 @@ class CreatePurchaseOrderRequest(KatanaPydanticBase):
     additional_info: Annotated[
         str | None,
         Field(description="Optional notes or special instructions for the supplier"),
+    ] = None
+    expected_arrival_date: Annotated[
+        AwareDatetime | None,
+        Field(description="Expected date when the purchase order items will arrive"),
+    ] = None
+    tracking_location_id: Annotated[
+        int | None,
+        Field(description="Location ID for tracking outsourced orders", le=2147483647),
     ] = None
     purchase_order_rows: Annotated[
         list[PurchaseOrderRowRequest],
@@ -688,7 +681,7 @@ class OutsourcedPurchaseOrderRecipeRowListResponse(KatanaPydanticBase):
 
 
 class PurchaseOrderBase(DeletableEntity):
-    status: Annotated[Status3 | None, Field(description="Status of the order.")] = None
+    status: Annotated[Status5 | None, Field(description="Status of the order.")] = None
     order_no: Annotated[
         str | None,
         Field(
@@ -796,6 +789,12 @@ class OutsourcedPurchaseOrder(PurchaseOrderBase):
 
 class PurchaseOrderListResponse(KatanaPydanticBase):
     data: Annotated[
-        list[RegularPurchaseOrder | OutsourcedPurchaseOrder] | None,
+        list[
+            Annotated[
+                RegularPurchaseOrder | OutsourcedPurchaseOrder,
+                Field(discriminator="entity_type"),
+            ]
+        ]
+        | None,
         Field(description="Array of purchase order objects"),
     ] = None

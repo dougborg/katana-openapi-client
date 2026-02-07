@@ -29,6 +29,8 @@ class InventoryMovement:
     """
 
     id: int
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
     variant_id: int
     location_id: int
     resource_type: InventoryMovementResourceType
@@ -38,8 +40,6 @@ class InventoryMovement:
     value_per_unit: float
     value_in_stock_after: float
     average_cost_after: float
-    created_at: datetime.datetime | Unset = UNSET
-    updated_at: datetime.datetime | Unset = UNSET
     resource_id: int | Unset = UNSET
     caused_by_order_no: str | Unset = UNSET
     caused_by_resource_id: int | Unset = UNSET
@@ -48,6 +48,10 @@ class InventoryMovement:
 
     def to_dict(self) -> dict[str, Any]:
         id = self.id
+
+        created_at = self.created_at.isoformat()
+
+        updated_at = self.updated_at.isoformat()
 
         variant_id = self.variant_id
 
@@ -67,14 +71,6 @@ class InventoryMovement:
 
         average_cost_after = self.average_cost_after
 
-        created_at: str | Unset = UNSET
-        if not isinstance(self.created_at, Unset):
-            created_at = self.created_at.isoformat()
-
-        updated_at: str | Unset = UNSET
-        if not isinstance(self.updated_at, Unset):
-            updated_at = self.updated_at.isoformat()
-
         resource_id = self.resource_id
 
         caused_by_order_no = self.caused_by_order_no
@@ -88,6 +84,8 @@ class InventoryMovement:
         field_dict.update(
             {
                 "id": id,
+                "created_at": created_at,
+                "updated_at": updated_at,
                 "variant_id": variant_id,
                 "location_id": location_id,
                 "resource_type": resource_type,
@@ -99,10 +97,6 @@ class InventoryMovement:
                 "average_cost_after": average_cost_after,
             }
         )
-        if created_at is not UNSET:
-            field_dict["created_at"] = created_at
-        if updated_at is not UNSET:
-            field_dict["updated_at"] = updated_at
         if resource_id is not UNSET:
             field_dict["resource_id"] = resource_id
         if caused_by_order_no is not UNSET:
@@ -118,6 +112,10 @@ class InventoryMovement:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         id = d.pop("id")
+
+        created_at = isoparse(d.pop("created_at"))
+
+        updated_at = isoparse(d.pop("updated_at"))
 
         variant_id = d.pop("variant_id")
 
@@ -137,20 +135,6 @@ class InventoryMovement:
 
         average_cost_after = d.pop("average_cost_after")
 
-        _created_at = d.pop("created_at", UNSET)
-        created_at: datetime.datetime | Unset
-        if isinstance(_created_at, Unset):
-            created_at = UNSET
-        else:
-            created_at = isoparse(_created_at)
-
-        _updated_at = d.pop("updated_at", UNSET)
-        updated_at: datetime.datetime | Unset
-        if isinstance(_updated_at, Unset):
-            updated_at = UNSET
-        else:
-            updated_at = isoparse(_updated_at)
-
         resource_id = d.pop("resource_id", UNSET)
 
         caused_by_order_no = d.pop("caused_by_order_no", UNSET)
@@ -161,6 +145,8 @@ class InventoryMovement:
 
         inventory_movement = cls(
             id=id,
+            created_at=created_at,
+            updated_at=updated_at,
             variant_id=variant_id,
             location_id=location_id,
             resource_type=resource_type,
@@ -170,8 +156,6 @@ class InventoryMovement:
             value_per_unit=value_per_unit,
             value_in_stock_after=value_in_stock_after,
             average_cost_after=average_cost_after,
-            created_at=created_at,
-            updated_at=updated_at,
             resource_id=resource_id,
             caused_by_order_no=caused_by_order_no,
             caused_by_resource_id=caused_by_resource_id,

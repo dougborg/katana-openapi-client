@@ -87,6 +87,7 @@ def pytest_generate_tests(metafunc):
                 endpoints_without_pagination = [
                     "/serial_numbers_stock",
                     "/custom_fields_collections",
+                    "/demand_forecasts",
                 ]
 
                 if path in endpoints_without_pagination:

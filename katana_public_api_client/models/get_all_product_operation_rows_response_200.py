@@ -11,9 +11,7 @@ from attrs import (
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.get_all_product_operation_rows_response_200_data_item import (
-        GetAllProductOperationRowsResponse200DataItem,
-    )
+    from ..models.product_operation_row import ProductOperationRow
 
 
 T = TypeVar("T", bound="GetAllProductOperationRowsResponse200")
@@ -21,7 +19,7 @@ T = TypeVar("T", bound="GetAllProductOperationRowsResponse200")
 
 @_attrs_define
 class GetAllProductOperationRowsResponse200:
-    data: list[GetAllProductOperationRowsResponse200DataItem] | Unset = UNSET
+    data: list[ProductOperationRow] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -42,19 +40,15 @@ class GetAllProductOperationRowsResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.get_all_product_operation_rows_response_200_data_item import (
-            GetAllProductOperationRowsResponse200DataItem,
-        )
+        from ..models.product_operation_row import ProductOperationRow
 
         d = dict(src_dict)
         _data = d.pop("data", UNSET)
-        data: list[GetAllProductOperationRowsResponse200DataItem] | Unset = UNSET
+        data: list[ProductOperationRow] | Unset = UNSET
         if _data is not UNSET:
             data = []
             for data_item_data in _data:
-                data_item = GetAllProductOperationRowsResponse200DataItem.from_dict(
-                    data_item_data
-                )
+                data_item = ProductOperationRow.from_dict(data_item_data)
 
                 data.append(data_item)
 

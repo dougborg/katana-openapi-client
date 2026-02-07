@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -11,6 +11,12 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.sales_return_row_batch_transactions_item import (
+        SalesReturnRowBatchTransactionsItem,
+    )
+
 
 T = TypeVar("T", bound="SalesReturnRow")
 
@@ -25,10 +31,12 @@ class SalesReturnRow:
     quantity: str
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
-    return_reason_id: int | None | Unset = UNSET
-    notes: None | str | Unset = UNSET
-    unit_price: float | None | Unset = UNSET
-    total_price: float | None | Unset = UNSET
+    fulfillment_row_id: int | Unset = UNSET
+    sales_order_row_id: int | Unset = UNSET
+    net_price_per_unit: None | str | Unset = UNSET
+    reason_id: int | None | Unset = UNSET
+    restock_location_id: int | None | Unset = UNSET
+    batch_transactions: list[SalesReturnRowBatchTransactionsItem] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -48,29 +56,34 @@ class SalesReturnRow:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
-        return_reason_id: int | None | Unset
-        if isinstance(self.return_reason_id, Unset):
-            return_reason_id = UNSET
-        else:
-            return_reason_id = self.return_reason_id
+        fulfillment_row_id = self.fulfillment_row_id
 
-        notes: None | str | Unset
-        if isinstance(self.notes, Unset):
-            notes = UNSET
-        else:
-            notes = self.notes
+        sales_order_row_id = self.sales_order_row_id
 
-        unit_price: float | None | Unset
-        if isinstance(self.unit_price, Unset):
-            unit_price = UNSET
+        net_price_per_unit: None | str | Unset
+        if isinstance(self.net_price_per_unit, Unset):
+            net_price_per_unit = UNSET
         else:
-            unit_price = self.unit_price
+            net_price_per_unit = self.net_price_per_unit
 
-        total_price: float | None | Unset
-        if isinstance(self.total_price, Unset):
-            total_price = UNSET
+        reason_id: int | None | Unset
+        if isinstance(self.reason_id, Unset):
+            reason_id = UNSET
         else:
-            total_price = self.total_price
+            reason_id = self.reason_id
+
+        restock_location_id: int | None | Unset
+        if isinstance(self.restock_location_id, Unset):
+            restock_location_id = UNSET
+        else:
+            restock_location_id = self.restock_location_id
+
+        batch_transactions: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.batch_transactions, Unset):
+            batch_transactions = []
+            for batch_transactions_item_data in self.batch_transactions:
+                batch_transactions_item = batch_transactions_item_data.to_dict()
+                batch_transactions.append(batch_transactions_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -86,19 +99,27 @@ class SalesReturnRow:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
-        if return_reason_id is not UNSET:
-            field_dict["return_reason_id"] = return_reason_id
-        if notes is not UNSET:
-            field_dict["notes"] = notes
-        if unit_price is not UNSET:
-            field_dict["unit_price"] = unit_price
-        if total_price is not UNSET:
-            field_dict["total_price"] = total_price
+        if fulfillment_row_id is not UNSET:
+            field_dict["fulfillment_row_id"] = fulfillment_row_id
+        if sales_order_row_id is not UNSET:
+            field_dict["sales_order_row_id"] = sales_order_row_id
+        if net_price_per_unit is not UNSET:
+            field_dict["net_price_per_unit"] = net_price_per_unit
+        if reason_id is not UNSET:
+            field_dict["reason_id"] = reason_id
+        if restock_location_id is not UNSET:
+            field_dict["restock_location_id"] = restock_location_id
+        if batch_transactions is not UNSET:
+            field_dict["batch_transactions"] = batch_transactions
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.sales_return_row_batch_transactions_item import (
+            SalesReturnRowBatchTransactionsItem,
+        )
+
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -122,41 +143,51 @@ class SalesReturnRow:
         else:
             updated_at = isoparse(_updated_at)
 
-        def _parse_return_reason_id(data: object) -> int | None | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(int | None | Unset, data)
+        fulfillment_row_id = d.pop("fulfillment_row_id", UNSET)
 
-        return_reason_id = _parse_return_reason_id(d.pop("return_reason_id", UNSET))
+        sales_order_row_id = d.pop("sales_order_row_id", UNSET)
 
-        def _parse_notes(data: object) -> None | str | Unset:
+        def _parse_net_price_per_unit(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
             return cast(None | str | Unset, data)
 
-        notes = _parse_notes(d.pop("notes", UNSET))
+        net_price_per_unit = _parse_net_price_per_unit(
+            d.pop("net_price_per_unit", UNSET)
+        )
 
-        def _parse_unit_price(data: object) -> float | None | Unset:
+        def _parse_reason_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(int | None | Unset, data)
 
-        unit_price = _parse_unit_price(d.pop("unit_price", UNSET))
+        reason_id = _parse_reason_id(d.pop("reason_id", UNSET))
 
-        def _parse_total_price(data: object) -> float | None | Unset:
+        def _parse_restock_location_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(int | None | Unset, data)
 
-        total_price = _parse_total_price(d.pop("total_price", UNSET))
+        restock_location_id = _parse_restock_location_id(
+            d.pop("restock_location_id", UNSET)
+        )
+
+        _batch_transactions = d.pop("batch_transactions", UNSET)
+        batch_transactions: list[SalesReturnRowBatchTransactionsItem] | Unset = UNSET
+        if _batch_transactions is not UNSET:
+            batch_transactions = []
+            for batch_transactions_item_data in _batch_transactions:
+                batch_transactions_item = SalesReturnRowBatchTransactionsItem.from_dict(
+                    batch_transactions_item_data
+                )
+
+                batch_transactions.append(batch_transactions_item)
 
         sales_return_row = cls(
             id=id,
@@ -165,10 +196,12 @@ class SalesReturnRow:
             quantity=quantity,
             created_at=created_at,
             updated_at=updated_at,
-            return_reason_id=return_reason_id,
-            notes=notes,
-            unit_price=unit_price,
-            total_price=total_price,
+            fulfillment_row_id=fulfillment_row_id,
+            sales_order_row_id=sales_order_row_id,
+            net_price_per_unit=net_price_per_unit,
+            reason_id=reason_id,
+            restock_location_id=restock_location_id,
+            batch_transactions=batch_transactions,
         )
 
         sales_return_row.additional_properties = d

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
@@ -7,6 +8,7 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
+from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -43,6 +45,8 @@ class Inventory:
     safety_stock_level: str | Unset = UNSET
     variant: Variant | Unset = UNSET
     location: DeletableEntity | LocationType0 | Unset = UNSET
+    archived_at: datetime.datetime | None | Unset = UNSET
+    default_storage_bin: Any | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -82,6 +86,16 @@ class Inventory:
         else:
             location = self.location.to_dict()
 
+        archived_at: None | str | Unset
+        if isinstance(self.archived_at, Unset):
+            archived_at = UNSET
+        elif isinstance(self.archived_at, datetime.datetime):
+            archived_at = self.archived_at.isoformat()
+        else:
+            archived_at = self.archived_at
+
+        default_storage_bin = self.default_storage_bin
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -104,6 +118,10 @@ class Inventory:
             field_dict["variant"] = variant
         if location is not UNSET:
             field_dict["location"] = location
+        if archived_at is not UNSET:
+            field_dict["archived_at"] = archived_at
+        if default_storage_bin is not UNSET:
+            field_dict["default_storage_bin"] = default_storage_bin
 
         return field_dict
 
@@ -166,6 +184,25 @@ class Inventory:
 
         location = _parse_location(d.pop("location", UNSET))
 
+        def _parse_archived_at(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                archived_at_type_0 = isoparse(data)
+
+                return archived_at_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
+
+        default_storage_bin = d.pop("default_storage_bin", UNSET)
+
         inventory = cls(
             variant_id=variant_id,
             location_id=location_id,
@@ -180,6 +217,8 @@ class Inventory:
             safety_stock_level=safety_stock_level,
             variant=variant,
             location=location,
+            archived_at=archived_at,
+            default_storage_bin=default_storage_bin,
         )
 
         inventory.additional_properties = d

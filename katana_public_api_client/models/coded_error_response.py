@@ -17,9 +17,9 @@ T = TypeVar("T", bound="CodedErrorResponse")
 class CodedErrorResponse:
     """Error response with an additional application-specific error code for detailed error handling"""
 
-    status_code: float | Unset = UNSET
-    name: str | Unset = UNSET
-    message: str | Unset = UNSET
+    status_code: float
+    name: str
+    message: str
     code: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -38,13 +38,13 @@ class CodedErrorResponse:
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
-        if status_code is not UNSET:
-            field_dict["statusCode"] = status_code
-        if name is not UNSET:
-            field_dict["name"] = name
-        if message is not UNSET:
-            field_dict["message"] = message
+        field_dict.update(
+            {
+                "statusCode": status_code,
+                "name": name,
+                "message": message,
+            }
+        )
         if code is not UNSET:
             field_dict["code"] = code
 
@@ -53,11 +53,11 @@ class CodedErrorResponse:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        status_code = d.pop("statusCode", UNSET)
+        status_code = d.pop("statusCode")
 
-        name = d.pop("name", UNSET)
+        name = d.pop("name")
 
-        message = d.pop("message", UNSET)
+        message = d.pop("message")
 
         def _parse_code(data: object) -> None | str | Unset:
             if data is None:

@@ -5,9 +5,9 @@ extracted from https://developer.katanamrp.com.
 
 ## Content Summary
 
-- **Total pages processed**: 249
-- **OpenAPI specification**: ❌ Not found
-- **API endpoints**: Unknown
+- **Total pages processed**: 250
+- **OpenAPI specification**: ✅ Extracted (104 paths, 2026-01-20)
+- **API endpoints**: 104 paths
 - **Failed URLs**: 0
 
 ## Files

@@ -49,12 +49,8 @@ class Code(StrEnum):
     enum = "enum"
 
 
-class EnumValidationError(KatanaPydanticBase):
-    path: Annotated[str, Field(description="JSON path to the field with the error")]
+class EnumValidationError(BaseValidationError):
     code: Annotated[Literal["enum"], Field(description="Validation error code")]
-    message: Annotated[
-        str, Field(description="Human-readable validation error message")
-    ]
     allowed_values: Annotated[list[str], Field(description="List of valid enum values")]
 
 
@@ -62,12 +58,8 @@ class Code1(StrEnum):
     min = "min"
 
 
-class MinValidationError(KatanaPydanticBase):
-    path: Annotated[str, Field(description="JSON path to the field with the error")]
+class MinValidationError(BaseValidationError):
     code: Annotated[Literal["min"], Field(description="Validation error code")]
-    message: Annotated[
-        str, Field(description="Human-readable validation error message")
-    ]
     minimum: Annotated[float, Field(description="Minimum allowed value")]
 
 
@@ -75,12 +67,8 @@ class Code2(StrEnum):
     max = "max"
 
 
-class MaxValidationError(KatanaPydanticBase):
-    path: Annotated[str, Field(description="JSON path to the field with the error")]
+class MaxValidationError(BaseValidationError):
     code: Annotated[Literal["max"], Field(description="Validation error code")]
-    message: Annotated[
-        str, Field(description="Human-readable validation error message")
-    ]
     maximum: Annotated[float, Field(description="Maximum allowed value")]
 
 
@@ -88,12 +76,8 @@ class Code3(StrEnum):
     invalid_type = "invalid_type"
 
 
-class InvalidTypeValidationError(KatanaPydanticBase):
-    path: Annotated[str, Field(description="JSON path to the field with the error")]
+class InvalidTypeValidationError(BaseValidationError):
     code: Annotated[Literal["invalid_type"], Field(description="Validation error code")]
-    message: Annotated[
-        str, Field(description="Human-readable validation error message")
-    ]
     expected_type: Annotated[str, Field(description="Expected type for the field")]
 
 
@@ -101,12 +85,8 @@ class Code4(StrEnum):
     too_small = "too_small"
 
 
-class TooSmallValidationError(KatanaPydanticBase):
-    path: Annotated[str, Field(description="JSON path to the field with the error")]
+class TooSmallValidationError(BaseValidationError):
     code: Annotated[Literal["too_small"], Field(description="Validation error code")]
-    message: Annotated[
-        str, Field(description="Human-readable validation error message")
-    ]
     min_length: Annotated[
         int | None, Field(description="Minimum string length required")
     ] = None
@@ -119,12 +99,8 @@ class Code5(StrEnum):
     too_big = "too_big"
 
 
-class TooBigValidationError(KatanaPydanticBase):
-    path: Annotated[str, Field(description="JSON path to the field with the error")]
+class TooBigValidationError(BaseValidationError):
     code: Annotated[Literal["too_big"], Field(description="Validation error code")]
-    message: Annotated[
-        str, Field(description="Human-readable validation error message")
-    ]
     max_length: Annotated[
         int | None, Field(description="Maximum string length allowed")
     ] = None
@@ -137,12 +113,8 @@ class Code6(StrEnum):
     required = "required"
 
 
-class RequiredValidationError(KatanaPydanticBase):
-    path: Annotated[str, Field(description="JSON path to the field with the error")]
+class RequiredValidationError(BaseValidationError):
     code: Annotated[Literal["required"], Field(description="Validation error code")]
-    message: Annotated[
-        str, Field(description="Human-readable validation error message")
-    ]
     missing_property: Annotated[
         str, Field(description="Name of the required field that is missing")
     ]
@@ -152,12 +124,8 @@ class Code7(StrEnum):
     pattern = "pattern"
 
 
-class PatternValidationError(KatanaPydanticBase):
-    path: Annotated[str, Field(description="JSON path to the field with the error")]
+class PatternValidationError(BaseValidationError):
     code: Annotated[Literal["pattern"], Field(description="Validation error code")]
-    message: Annotated[
-        str, Field(description="Human-readable validation error message")
-    ]
     pattern: Annotated[
         str, Field(description="Regular expression pattern that must be matched")
     ]
@@ -167,13 +135,9 @@ class Code8(StrEnum):
     unrecognized_keys = "unrecognized_keys"
 
 
-class UnrecognizedKeysValidationError(KatanaPydanticBase):
-    path: Annotated[str, Field(description="JSON path to the field with the error")]
+class UnrecognizedKeysValidationError(BaseValidationError):
     code: Annotated[
         Literal["unrecognized_keys"], Field(description="Validation error code")
-    ]
-    message: Annotated[
-        str, Field(description="Human-readable validation error message")
     ]
     keys: Annotated[list[str], Field(description="List of unrecognized field names")]
     valid_keys: Annotated[
@@ -181,30 +145,29 @@ class UnrecognizedKeysValidationError(KatanaPydanticBase):
     ] = None
 
 
-class GenericValidationError(KatanaPydanticBase):
-    path: Annotated[str, Field(description="JSON path to the field with the error")]
+class GenericValidationError(BaseValidationError):
     code: Annotated[
         Literal["generic"],
         Field(description="Validation error code for generic errors"),
-    ]
-    message: Annotated[
-        str, Field(description="Human-readable validation error message")
     ]
 
 
 class DetailedErrorResponse(CodedErrorResponse):
     details: Annotated[
         list[
-            EnumValidationError
-            | MinValidationError
-            | MaxValidationError
-            | InvalidTypeValidationError
-            | TooSmallValidationError
-            | TooBigValidationError
-            | RequiredValidationError
-            | PatternValidationError
-            | UnrecognizedKeysValidationError
-            | GenericValidationError
+            Annotated[
+                EnumValidationError
+                | MinValidationError
+                | MaxValidationError
+                | InvalidTypeValidationError
+                | TooSmallValidationError
+                | TooBigValidationError
+                | RequiredValidationError
+                | PatternValidationError
+                | UnrecognizedKeysValidationError
+                | GenericValidationError,
+                Field(discriminator="code"),
+            ]
         ]
         | None,
         Field(description="Detailed validation error information"),

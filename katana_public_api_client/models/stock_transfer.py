@@ -11,7 +11,6 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.stock_transfer_status import StockTransferStatus
 
 if TYPE_CHECKING:
     from ..models.stock_transfer_row import StockTransferRow
@@ -25,11 +24,13 @@ class StockTransfer:
     """Inventory transfer record for moving stock between different warehouse locations or facilities
 
     Example:
-        {'id': 3001, 'stock_transfer_number': 'ST-2024-001', 'source_location_id': 1, 'target_location_id': 2, 'status':
-            'COMPLETED', 'transfer_date': '2024-01-15T16:00:00.000Z', 'additional_info': 'Rebalancing inventory between
-            warehouses', 'stock_transfer_rows': [{'id': 4001, 'variant_id': 2001, 'quantity': 50, 'batch_transactions':
-            [{'batch_id': 5001, 'quantity': 30}, {'batch_id': 5002, 'quantity': 20}]}], 'created_at':
-            '2024-01-15T16:00:00.000Z', 'updated_at': '2024-01-15T16:00:00.000Z', 'deleted_at': None}
+        {'id': 1, 'stock_transfer_number': 'ST-1', 'source_location_id': 1, 'target_location_id': 2, 'transfer_date':
+            '2021-10-06T11:47:13.846Z', 'order_created_date': '2021-10-01T11:47:13.846Z', 'expected_arrival_date':
+            '2021-10-20T11:47:13.846Z', 'additional_info': 'transfer additional info', 'stock_transfer_rows': [{'id': 1,
+            'variant_id': 1, 'quantity': 100, 'cost_per_unit': 123.45, 'batch_transactions': [{'batch_id': 1, 'quantity':
+            50}, {'batch_id': 2, 'quantity': 50}], 'deleted_at': None}, {'id': 2, 'variant_id': 2, 'quantity': 150,
+            'cost_per_unit': 234.56, 'batch_transactions': [{'batch_id': 3, 'quantity': 150}], 'deleted_at': None}],
+            'created_at': '2021-10-06T11:47:13.846Z', 'updated_at': '2021-10-06T11:47:13.846Z', 'deleted_at': None}
     """
 
     id: int
@@ -39,8 +40,10 @@ class StockTransfer:
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
     deleted_at: datetime.datetime | None | Unset = UNSET
-    status: StockTransferStatus | Unset = UNSET
+    status: str | Unset = UNSET
     transfer_date: datetime.datetime | Unset = UNSET
+    order_created_date: datetime.datetime | None | Unset = UNSET
+    expected_arrival_date: datetime.datetime | None | Unset = UNSET
     additional_info: None | str | Unset = UNSET
     stock_transfer_rows: list[StockTransferRow] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -70,13 +73,27 @@ class StockTransfer:
         else:
             deleted_at = self.deleted_at
 
-        status: str | Unset = UNSET
-        if not isinstance(self.status, Unset):
-            status = self.status.value
+        status = self.status
 
         transfer_date: str | Unset = UNSET
         if not isinstance(self.transfer_date, Unset):
             transfer_date = self.transfer_date.isoformat()
+
+        order_created_date: None | str | Unset
+        if isinstance(self.order_created_date, Unset):
+            order_created_date = UNSET
+        elif isinstance(self.order_created_date, datetime.datetime):
+            order_created_date = self.order_created_date.isoformat()
+        else:
+            order_created_date = self.order_created_date
+
+        expected_arrival_date: None | str | Unset
+        if isinstance(self.expected_arrival_date, Unset):
+            expected_arrival_date = UNSET
+        elif isinstance(self.expected_arrival_date, datetime.datetime):
+            expected_arrival_date = self.expected_arrival_date.isoformat()
+        else:
+            expected_arrival_date = self.expected_arrival_date
 
         additional_info: None | str | Unset
         if isinstance(self.additional_info, Unset):
@@ -111,6 +128,10 @@ class StockTransfer:
             field_dict["status"] = status
         if transfer_date is not UNSET:
             field_dict["transfer_date"] = transfer_date
+        if order_created_date is not UNSET:
+            field_dict["order_created_date"] = order_created_date
+        if expected_arrival_date is not UNSET:
+            field_dict["expected_arrival_date"] = expected_arrival_date
         if additional_info is not UNSET:
             field_dict["additional_info"] = additional_info
         if stock_transfer_rows is not UNSET:
@@ -162,12 +183,7 @@ class StockTransfer:
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        _status = d.pop("status", UNSET)
-        status: StockTransferStatus | Unset
-        if isinstance(_status, Unset):
-            status = UNSET
-        else:
-            status = StockTransferStatus(_status)
+        status = d.pop("status", UNSET)
 
         _transfer_date = d.pop("transfer_date", UNSET)
         transfer_date: datetime.datetime | Unset
@@ -175,6 +191,46 @@ class StockTransfer:
             transfer_date = UNSET
         else:
             transfer_date = isoparse(_transfer_date)
+
+        def _parse_order_created_date(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                order_created_date_type_0 = isoparse(data)
+
+                return order_created_date_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        order_created_date = _parse_order_created_date(
+            d.pop("order_created_date", UNSET)
+        )
+
+        def _parse_expected_arrival_date(
+            data: object,
+        ) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                expected_arrival_date_type_0 = isoparse(data)
+
+                return expected_arrival_date_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        expected_arrival_date = _parse_expected_arrival_date(
+            d.pop("expected_arrival_date", UNSET)
+        )
 
         def _parse_additional_info(data: object) -> None | str | Unset:
             if data is None:
@@ -206,6 +262,8 @@ class StockTransfer:
             deleted_at=deleted_at,
             status=status,
             transfer_date=transfer_date,
+            order_created_date=order_created_date,
+            expected_arrival_date=expected_arrival_date,
             additional_info=additional_info,
             stock_transfer_rows=stock_transfer_rows,
         )

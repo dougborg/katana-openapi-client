@@ -24,8 +24,8 @@ class CustomField:
 
     id: int
     name: str
-    field_type: str
-    label: str
+    field_type: str | Unset = UNSET
+    label: str | Unset = UNSET
     required: bool | Unset = UNSET
     options: list[str] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -51,10 +51,12 @@ class CustomField:
             {
                 "id": id,
                 "name": name,
-                "field_type": field_type,
-                "label": label,
             }
         )
+        if field_type is not UNSET:
+            field_dict["field_type"] = field_type
+        if label is not UNSET:
+            field_dict["label"] = label
         if required is not UNSET:
             field_dict["required"] = required
         if options is not UNSET:
@@ -69,9 +71,9 @@ class CustomField:
 
         name = d.pop("name")
 
-        field_type = d.pop("field_type")
+        field_type = d.pop("field_type", UNSET)
 
-        label = d.pop("label")
+        label = d.pop("label", UNSET)
 
         required = d.pop("required", UNSET)
 

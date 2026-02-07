@@ -20,13 +20,14 @@ class StorageBinResponse:
     """Complete storage bin record with location details and system metadata for warehouse organization
 
     Example:
-        {'id': 12345, 'bin_name': 'A-01-SHELF-1', 'location_id': 1, 'created_at': '2020-10-23T10:37:05.085Z',
-            'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}
+        {'id': 12345, 'name': 'Bin-2', 'bin_name': 'Bin-2', 'location_id': 12346, 'created_at':
+            '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}
     """
 
     bin_name: str
     location_id: int
     id: int
+    name: str | Unset = UNSET
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
     deleted_at: datetime.datetime | None | Unset = UNSET
@@ -38,6 +39,8 @@ class StorageBinResponse:
         location_id = self.location_id
 
         id = self.id
+
+        name = self.name
 
         created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
@@ -64,6 +67,8 @@ class StorageBinResponse:
                 "id": id,
             }
         )
+        if name is not UNSET:
+            field_dict["name"] = name
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
@@ -81,6 +86,8 @@ class StorageBinResponse:
         location_id = d.pop("location_id")
 
         id = d.pop("id")
+
+        name = d.pop("name", UNSET)
 
         _created_at = d.pop("created_at", UNSET)
         created_at: datetime.datetime | Unset
@@ -117,6 +124,7 @@ class StorageBinResponse:
             bin_name=bin_name,
             location_id=location_id,
             id=id,
+            name=name,
             created_at=created_at,
             updated_at=updated_at,
             deleted_at=deleted_at,

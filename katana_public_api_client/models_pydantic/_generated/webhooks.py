@@ -11,12 +11,12 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Annotated
 
-from pydantic import AnyUrl, AwareDatetime, ConfigDict, Field
+from pydantic import AnyUrl, ConfigDict, Field
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
 from .base import UpdatableEntity
-from .common import Format, Object, StatusFilterEnum
+from .common import Event, Object
 
 
 class WebhookEvent(StrEnum):
@@ -242,21 +242,30 @@ class WebhookLogsExportRequest(KatanaPydanticBase):
             description="Filter logs to specific webhook subscription (optional - if not provided, exports all webhook logs)"
         ),
     ] = None
-    start_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Start date for log export range (ISO 8601 format)"),
+    event: Annotated[Event | None, Field(description="Filter logs by event type")] = (
+        None
+    )
+    status_code: Annotated[
+        int | None, Field(description="Filter logs by HTTP status code")
     ] = None
-    end_date: Annotated[
-        AwareDatetime | None,
-        Field(description="End date for log export range (ISO 8601 format)"),
+    delivered: Annotated[
+        bool | None,
+        Field(
+            description="Filter logs by delivery status (true for successful deliveries)"
+        ),
     ] = None
-    status_filter: Annotated[
-        list[StatusFilterEnum] | None,
-        Field(description="Filter logs by delivery status (success, failure, retry)"),
+    created_at_min: Annotated[
+        str | None,
+        Field(
+            description="Minimum creation date for log export range (ISO 8601 format)"
+        ),
     ] = None
-    format: Annotated[
-        Format | None, Field(description="Export file format preference")
-    ] = Format.csv
+    created_at_max: Annotated[
+        str | None,
+        Field(
+            description="Maximum creation date for log export range (ISO 8601 format)"
+        ),
+    ] = None
 
 
 class WebhookLogsExport(KatanaPydanticBase):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -11,35 +11,51 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+from ..models.sales_order_fulfillment_invoice_status import (
+    SalesOrderFulfillmentInvoiceStatus,
+)
+from ..models.sales_order_fulfillment_status import SalesOrderFulfillmentStatus
+
+if TYPE_CHECKING:
+    from ..models.sales_order_fulfillment_sales_order_fulfillment_rows_item import (
+        SalesOrderFulfillmentSalesOrderFulfillmentRowsItem,
+    )
+
 
 T = TypeVar("T", bound="SalesOrderFulfillment")
 
 
 @_attrs_define
 class SalesOrderFulfillment:
-    """Shipping and delivery record for a sales order, tracking the physical fulfillment process from shipment to delivery
+    """Shipping and delivery record for a sales order, tracking the physical fulfillment process including picking,
+    packing, and shipment tracking
 
-    Example:
-        {'id': 2701, 'sales_order_id': 2001, 'tracking_number': 'UPS1234567890', 'tracking_number_url':
-            'https://www.ups.com/track?track=UPS1234567890', 'shipped_date': '2024-01-20T16:30:00Z',
-            'estimated_delivery_date': '2024-01-22T14:00:00Z', 'actual_delivery_date': None, 'shipping_cost': 25.99,
-            'shipping_method': 'UPS Ground', 'carrier': 'UPS', 'notes': 'Signature required for delivery', 'created_at':
-            '2024-01-20T16:30:00Z', 'updated_at': '2024-01-20T16:30:00Z'}
+        Example:
+            {'id': 1, 'sales_order_id': 1, 'picked_date': '2020-10-23T10:37:05.085Z', 'status': 'DELIVERED',
+                'invoice_status': 'NOT_INVOICED', 'conversion_rate': 2, 'conversion_date': '2020-10-23T10:37:05.085Z',
+                'tracking_number': '12345678', 'tracking_url': 'https://tracking-number-url', 'tracking_carrier': 'UPS',
+                'tracking_method': 'ground', 'packer_id': 1, 'sales_order_fulfillment_rows': [{'sales_order_row_id': 1,
+                'quantity': 2, 'batch_transactions': [{'batch_id': 1, 'quantity': 2}], 'serial_numbers': [1]}], 'created_at':
+                '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z'}
     """
 
     id: int
     sales_order_id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
+    picked_date: datetime.datetime | None | Unset = UNSET
+    status: SalesOrderFulfillmentStatus | Unset = UNSET
+    invoice_status: SalesOrderFulfillmentInvoiceStatus | Unset = UNSET
+    conversion_rate: float | None | Unset = UNSET
+    conversion_date: datetime.datetime | None | Unset = UNSET
     tracking_number: None | str | Unset = UNSET
-    tracking_number_url: None | str | Unset = UNSET
-    shipped_date: datetime.datetime | None | Unset = UNSET
-    estimated_delivery_date: datetime.datetime | None | Unset = UNSET
-    actual_delivery_date: datetime.datetime | None | Unset = UNSET
-    shipping_cost: float | None | Unset = UNSET
-    shipping_method: None | str | Unset = UNSET
-    carrier: None | str | Unset = UNSET
-    notes: None | str | Unset = UNSET
+    tracking_url: None | str | Unset = UNSET
+    tracking_carrier: None | str | Unset = UNSET
+    tracking_method: None | str | Unset = UNSET
+    packer_id: int | None | Unset = UNSET
+    sales_order_fulfillment_rows: (
+        list[SalesOrderFulfillmentSalesOrderFulfillmentRowsItem] | Unset
+    ) = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -55,65 +71,76 @@ class SalesOrderFulfillment:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
+        picked_date: None | str | Unset
+        if isinstance(self.picked_date, Unset):
+            picked_date = UNSET
+        elif isinstance(self.picked_date, datetime.datetime):
+            picked_date = self.picked_date.isoformat()
+        else:
+            picked_date = self.picked_date
+
+        status: str | Unset = UNSET
+        if not isinstance(self.status, Unset):
+            status = self.status.value
+
+        invoice_status: str | Unset = UNSET
+        if not isinstance(self.invoice_status, Unset):
+            invoice_status = self.invoice_status.value
+
+        conversion_rate: float | None | Unset
+        if isinstance(self.conversion_rate, Unset):
+            conversion_rate = UNSET
+        else:
+            conversion_rate = self.conversion_rate
+
+        conversion_date: None | str | Unset
+        if isinstance(self.conversion_date, Unset):
+            conversion_date = UNSET
+        elif isinstance(self.conversion_date, datetime.datetime):
+            conversion_date = self.conversion_date.isoformat()
+        else:
+            conversion_date = self.conversion_date
+
         tracking_number: None | str | Unset
         if isinstance(self.tracking_number, Unset):
             tracking_number = UNSET
         else:
             tracking_number = self.tracking_number
 
-        tracking_number_url: None | str | Unset
-        if isinstance(self.tracking_number_url, Unset):
-            tracking_number_url = UNSET
+        tracking_url: None | str | Unset
+        if isinstance(self.tracking_url, Unset):
+            tracking_url = UNSET
         else:
-            tracking_number_url = self.tracking_number_url
+            tracking_url = self.tracking_url
 
-        shipped_date: None | str | Unset
-        if isinstance(self.shipped_date, Unset):
-            shipped_date = UNSET
-        elif isinstance(self.shipped_date, datetime.datetime):
-            shipped_date = self.shipped_date.isoformat()
+        tracking_carrier: None | str | Unset
+        if isinstance(self.tracking_carrier, Unset):
+            tracking_carrier = UNSET
         else:
-            shipped_date = self.shipped_date
+            tracking_carrier = self.tracking_carrier
 
-        estimated_delivery_date: None | str | Unset
-        if isinstance(self.estimated_delivery_date, Unset):
-            estimated_delivery_date = UNSET
-        elif isinstance(self.estimated_delivery_date, datetime.datetime):
-            estimated_delivery_date = self.estimated_delivery_date.isoformat()
+        tracking_method: None | str | Unset
+        if isinstance(self.tracking_method, Unset):
+            tracking_method = UNSET
         else:
-            estimated_delivery_date = self.estimated_delivery_date
+            tracking_method = self.tracking_method
 
-        actual_delivery_date: None | str | Unset
-        if isinstance(self.actual_delivery_date, Unset):
-            actual_delivery_date = UNSET
-        elif isinstance(self.actual_delivery_date, datetime.datetime):
-            actual_delivery_date = self.actual_delivery_date.isoformat()
+        packer_id: int | None | Unset
+        if isinstance(self.packer_id, Unset):
+            packer_id = UNSET
         else:
-            actual_delivery_date = self.actual_delivery_date
+            packer_id = self.packer_id
 
-        shipping_cost: float | None | Unset
-        if isinstance(self.shipping_cost, Unset):
-            shipping_cost = UNSET
-        else:
-            shipping_cost = self.shipping_cost
-
-        shipping_method: None | str | Unset
-        if isinstance(self.shipping_method, Unset):
-            shipping_method = UNSET
-        else:
-            shipping_method = self.shipping_method
-
-        carrier: None | str | Unset
-        if isinstance(self.carrier, Unset):
-            carrier = UNSET
-        else:
-            carrier = self.carrier
-
-        notes: None | str | Unset
-        if isinstance(self.notes, Unset):
-            notes = UNSET
-        else:
-            notes = self.notes
+        sales_order_fulfillment_rows: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.sales_order_fulfillment_rows, Unset):
+            sales_order_fulfillment_rows = []
+            for (
+                sales_order_fulfillment_rows_item_data
+            ) in self.sales_order_fulfillment_rows:
+                sales_order_fulfillment_rows_item = (
+                    sales_order_fulfillment_rows_item_data.to_dict()
+                )
+                sales_order_fulfillment_rows.append(sales_order_fulfillment_rows_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -127,29 +154,37 @@ class SalesOrderFulfillment:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
+        if picked_date is not UNSET:
+            field_dict["picked_date"] = picked_date
+        if status is not UNSET:
+            field_dict["status"] = status
+        if invoice_status is not UNSET:
+            field_dict["invoice_status"] = invoice_status
+        if conversion_rate is not UNSET:
+            field_dict["conversion_rate"] = conversion_rate
+        if conversion_date is not UNSET:
+            field_dict["conversion_date"] = conversion_date
         if tracking_number is not UNSET:
             field_dict["tracking_number"] = tracking_number
-        if tracking_number_url is not UNSET:
-            field_dict["tracking_number_url"] = tracking_number_url
-        if shipped_date is not UNSET:
-            field_dict["shipped_date"] = shipped_date
-        if estimated_delivery_date is not UNSET:
-            field_dict["estimated_delivery_date"] = estimated_delivery_date
-        if actual_delivery_date is not UNSET:
-            field_dict["actual_delivery_date"] = actual_delivery_date
-        if shipping_cost is not UNSET:
-            field_dict["shipping_cost"] = shipping_cost
-        if shipping_method is not UNSET:
-            field_dict["shipping_method"] = shipping_method
-        if carrier is not UNSET:
-            field_dict["carrier"] = carrier
-        if notes is not UNSET:
-            field_dict["notes"] = notes
+        if tracking_url is not UNSET:
+            field_dict["tracking_url"] = tracking_url
+        if tracking_carrier is not UNSET:
+            field_dict["tracking_carrier"] = tracking_carrier
+        if tracking_method is not UNSET:
+            field_dict["tracking_method"] = tracking_method
+        if packer_id is not UNSET:
+            field_dict["packer_id"] = packer_id
+        if sales_order_fulfillment_rows is not UNSET:
+            field_dict["sales_order_fulfillment_rows"] = sales_order_fulfillment_rows
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.sales_order_fulfillment_sales_order_fulfillment_rows_item import (
+            SalesOrderFulfillmentSalesOrderFulfillmentRowsItem,
+        )
+
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -169,6 +204,63 @@ class SalesOrderFulfillment:
         else:
             updated_at = isoparse(_updated_at)
 
+        def _parse_picked_date(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                picked_date_type_0 = isoparse(data)
+
+                return picked_date_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        picked_date = _parse_picked_date(d.pop("picked_date", UNSET))
+
+        _status = d.pop("status", UNSET)
+        status: SalesOrderFulfillmentStatus | Unset
+        if isinstance(_status, Unset):
+            status = UNSET
+        else:
+            status = SalesOrderFulfillmentStatus(_status)
+
+        _invoice_status = d.pop("invoice_status", UNSET)
+        invoice_status: SalesOrderFulfillmentInvoiceStatus | Unset
+        if isinstance(_invoice_status, Unset):
+            invoice_status = UNSET
+        else:
+            invoice_status = SalesOrderFulfillmentInvoiceStatus(_invoice_status)
+
+        def _parse_conversion_rate(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        conversion_rate = _parse_conversion_rate(d.pop("conversion_rate", UNSET))
+
+        def _parse_conversion_date(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                conversion_date_type_0 = isoparse(data)
+
+                return conversion_date_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        conversion_date = _parse_conversion_date(d.pop("conversion_date", UNSET))
+
         def _parse_tracking_number(data: object) -> None | str | Unset:
             if data is None:
                 return data
@@ -178,126 +270,73 @@ class SalesOrderFulfillment:
 
         tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
 
-        def _parse_tracking_number_url(data: object) -> None | str | Unset:
+        def _parse_tracking_url(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
             return cast(None | str | Unset, data)
 
-        tracking_number_url = _parse_tracking_number_url(
-            d.pop("tracking_number_url", UNSET)
-        )
+        tracking_url = _parse_tracking_url(d.pop("tracking_url", UNSET))
 
-        def _parse_shipped_date(data: object) -> datetime.datetime | None | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                shipped_date_type_0 = isoparse(data)
-
-                return shipped_date_type_0
-            except (TypeError, ValueError, AttributeError, KeyError):
-                pass
-            return cast(datetime.datetime | None | Unset, data)
-
-        shipped_date = _parse_shipped_date(d.pop("shipped_date", UNSET))
-
-        def _parse_estimated_delivery_date(
-            data: object,
-        ) -> datetime.datetime | None | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                estimated_delivery_date_type_0 = isoparse(data)
-
-                return estimated_delivery_date_type_0
-            except (TypeError, ValueError, AttributeError, KeyError):
-                pass
-            return cast(datetime.datetime | None | Unset, data)
-
-        estimated_delivery_date = _parse_estimated_delivery_date(
-            d.pop("estimated_delivery_date", UNSET)
-        )
-
-        def _parse_actual_delivery_date(
-            data: object,
-        ) -> datetime.datetime | None | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                actual_delivery_date_type_0 = isoparse(data)
-
-                return actual_delivery_date_type_0
-            except (TypeError, ValueError, AttributeError, KeyError):
-                pass
-            return cast(datetime.datetime | None | Unset, data)
-
-        actual_delivery_date = _parse_actual_delivery_date(
-            d.pop("actual_delivery_date", UNSET)
-        )
-
-        def _parse_shipping_cost(data: object) -> float | None | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(float | None | Unset, data)
-
-        shipping_cost = _parse_shipping_cost(d.pop("shipping_cost", UNSET))
-
-        def _parse_shipping_method(data: object) -> None | str | Unset:
+        def _parse_tracking_carrier(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
             return cast(None | str | Unset, data)
 
-        shipping_method = _parse_shipping_method(d.pop("shipping_method", UNSET))
+        tracking_carrier = _parse_tracking_carrier(d.pop("tracking_carrier", UNSET))
 
-        def _parse_carrier(data: object) -> None | str | Unset:
+        def _parse_tracking_method(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
             return cast(None | str | Unset, data)
 
-        carrier = _parse_carrier(d.pop("carrier", UNSET))
+        tracking_method = _parse_tracking_method(d.pop("tracking_method", UNSET))
 
-        def _parse_notes(data: object) -> None | str | Unset:
+        def _parse_packer_id(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(int | None | Unset, data)
 
-        notes = _parse_notes(d.pop("notes", UNSET))
+        packer_id = _parse_packer_id(d.pop("packer_id", UNSET))
+
+        _sales_order_fulfillment_rows = d.pop("sales_order_fulfillment_rows", UNSET)
+        sales_order_fulfillment_rows: (
+            list[SalesOrderFulfillmentSalesOrderFulfillmentRowsItem] | Unset
+        ) = UNSET
+        if _sales_order_fulfillment_rows is not UNSET:
+            sales_order_fulfillment_rows = []
+            for sales_order_fulfillment_rows_item_data in _sales_order_fulfillment_rows:
+                sales_order_fulfillment_rows_item = (
+                    SalesOrderFulfillmentSalesOrderFulfillmentRowsItem.from_dict(
+                        sales_order_fulfillment_rows_item_data
+                    )
+                )
+
+                sales_order_fulfillment_rows.append(sales_order_fulfillment_rows_item)
 
         sales_order_fulfillment = cls(
             id=id,
             sales_order_id=sales_order_id,
             created_at=created_at,
             updated_at=updated_at,
+            picked_date=picked_date,
+            status=status,
+            invoice_status=invoice_status,
+            conversion_rate=conversion_rate,
+            conversion_date=conversion_date,
             tracking_number=tracking_number,
-            tracking_number_url=tracking_number_url,
-            shipped_date=shipped_date,
-            estimated_delivery_date=estimated_delivery_date,
-            actual_delivery_date=actual_delivery_date,
-            shipping_cost=shipping_cost,
-            shipping_method=shipping_method,
-            carrier=carrier,
-            notes=notes,
+            tracking_url=tracking_url,
+            tracking_carrier=tracking_carrier,
+            tracking_method=tracking_method,
+            packer_id=packer_id,
+            sales_order_fulfillment_rows=sales_order_fulfillment_rows,
         )
 
         sales_order_fulfillment.additional_properties = d

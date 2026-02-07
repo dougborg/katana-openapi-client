@@ -176,24 +176,28 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
 
         # Prefer DetailedErrorResponse for 422, else ErrorResponse
         if status_code == 422:
-            try:
-                detailed_error = DetailedErrorResponse.from_dict(error_data)
-                # Debug log the parsed error structure
-                self.logger.debug(
-                    f"Parsed DetailedErrorResponse - "
-                    f"details type: {type(detailed_error.details)}, "
-                    f"details value: {detailed_error.details}, "
-                    f"is Unset: {isinstance(detailed_error.details, Unset)}, "
-                    f"raw error_data: {error_data}"
-                )
-                self._log_detailed_error(
-                    detailed_error, method, url, status_code, request_body
-                )
-                return
-            except (TypeError, ValueError, AttributeError) as e:
-                self.logger.debug(
-                    f"Failed to parse as DetailedErrorResponse: {type(e).__name__}: {e}"
-                )
+            # Try parsing directly, then try unwrapping nested 'error' key
+            parse_attempts = [error_data]
+            if isinstance(error_data, dict) and "error" in error_data:
+                parse_attempts.append(error_data["error"])
+            for attempt_data in parse_attempts:
+                try:
+                    detailed_error = DetailedErrorResponse.from_dict(attempt_data)
+                    self.logger.debug(
+                        f"Parsed DetailedErrorResponse - "
+                        f"details type: {type(detailed_error.details)}, "
+                        f"details value: {detailed_error.details}, "
+                        f"is Unset: {isinstance(detailed_error.details, Unset)}, "
+                        f"raw error_data: {error_data}"
+                    )
+                    self._log_detailed_error(
+                        detailed_error, method, url, status_code, request_body
+                    )
+                    return
+                except (TypeError, ValueError, AttributeError, KeyError) as e:
+                    self.logger.debug(
+                        f"Failed to parse as DetailedErrorResponse: {type(e).__name__}: {e}"
+                    )
 
         try:
             error_response = ErrorResponse.from_dict(error_data)
@@ -569,7 +573,10 @@ class PaginationTransport(AsyncHTTPTransport):
                     total_pages = pagination_info.get("total_pages")
 
                     # Extract the actual data items
-                    items = data.get("data", data if isinstance(data, list) else [])
+                    if isinstance(data, list):
+                        items = data
+                    else:
+                        items = data.get("data", [])
                     all_data.extend(items)
 
                     # Check max_items limit
@@ -595,7 +602,10 @@ class PaginationTransport(AsyncHTTPTransport):
                     )
                 else:
                     # No pagination info found, treat as single page
-                    all_data = data.get("data", data if isinstance(data, list) else [])
+                    if isinstance(data, list):
+                        all_data = data
+                    else:
+                        all_data = data.get("data", [])
                     # Apply max_items limit even for single page
                     if max_items is not None and len(all_data) > max_items:
                         all_data = all_data[:max_items]
