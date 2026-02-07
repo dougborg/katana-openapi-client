@@ -206,8 +206,8 @@ class TestModelInstantiation:
             Product(**incomplete_kwargs)
 
 
-class TestEnumDefaults:
-    """Tests for enum default values."""
+class TestRequestModels:
+    """Tests for request model instantiation."""
 
     def test_create_stock_adjustment_request_valid(self) -> None:
         """Test that CreateStockAdjustmentRequest accepts current schema fields."""

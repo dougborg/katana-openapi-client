@@ -122,8 +122,6 @@ class TestRealAPIIntegration:
     )
     async def test_real_api_pagination(self, api_key, base_url):
         """Test pagination with real API."""
-        import asyncio
-
         async with KatanaClient(api_key=api_key, base_url=base_url) as client:
             try:
 
@@ -296,7 +294,7 @@ class TestRealAPIIntegration:
 
 # --- Schema Validation Integration Tests ---
 
-# Mapping of all GET list endpoints: (api_module_path, function_name, spec_path, item_schema_name)
+# Mapping of all GET list endpoints: (api_module_path, spec_path, schema_name)
 # api_module_path is relative to katana_public_api_client.api
 LIST_ENDPOINTS = [
     ("additional_costs.get_additional_costs", "/additional_costs", "AdditionalCost"),

@@ -209,7 +209,7 @@ class KatanaDocumentationExtractor:
                 if spec:
                     return spec
             except (json.JSONDecodeError, KeyError):
-                pass
+                pass  # Legacy format not present, fall through to Strategy 2
 
         # Strategy 2 (current): Find large script tags containing JSON with API schema
         soup = BeautifulSoup(html_content, "html.parser")
