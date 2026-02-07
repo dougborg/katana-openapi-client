@@ -14,7 +14,7 @@ from pydantic import AnyUrl, AwareDatetime, ConfigDict, Field
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
-from .base import BaseEntity, DeletableEntity, UpdatableEntity
+from .base import DeletableEntity, UpdatableEntity
 from .common import (
     Attribute,
     Attribute1,
@@ -665,7 +665,7 @@ class CreateSalesOrderShippingFeeRequest(KatanaPydanticBase):
     ] = None
 
 
-class SalesOrder(DeletableEntity, BaseEntity):
+class SalesOrder(DeletableEntity):
     customer_id: Annotated[
         int, Field(description="Unique identifier of the customer placing the order")
     ]

@@ -14,7 +14,7 @@ from pydantic import ConfigDict, EmailStr, Field, RootModel
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
-from .base import BaseEntity, DeletableEntity, UpdatableEntity
+from .base import DeletableEntity, UpdatableEntity
 from .common import Address, AdjustmentMethod, EntityType4
 
 
@@ -576,7 +576,7 @@ class SupplierListResponse(KatanaPydanticBase):
     ] = None
 
 
-class Customer(DeletableEntity, BaseEntity):
+class Customer(DeletableEntity):
     name: Annotated[
         str,
         Field(

@@ -508,8 +508,9 @@ class TestSchemaValidation:
                     f"katana_public_api_client.api.{api_module_path}"
                 )
 
-                # Respect rate limits
-                await asyncio.sleep(1.1)
+                # Respect rate limits (configurable via env var)
+                delay = float(os.getenv("SCHEMA_TEST_DELAY", "1.1"))
+                await asyncio.sleep(delay)
 
                 try:
                     # Some endpoints (e.g. custom_fields_collections) don't

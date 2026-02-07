@@ -387,11 +387,16 @@ def fix_mro_issues(classes: list[ClassInfo]) -> list[ClassInfo]:
 
         if has_base_entity and has_entity_subtype:
             # Remove BaseEntity from the inheritance list in the source
-            # The source looks like: class Customer(BaseEntity, DeletableEntity):
+            # Handles both orderings: (BaseEntity, DeletableEntity) and (DeletableEntity, BaseEntity)
             fixed_source = re.sub(
                 r"class\s+(\w+)\s*\(\s*BaseEntity\s*,\s*",
                 r"class \1(",
                 cls.source,
+            )
+            fixed_source = re.sub(
+                r",\s*BaseEntity\s*\)",
+                ")",
+                fixed_source,
             )
             new_bases = [b for b in cls.bases if b != "BaseEntity"]
             fixed_classes.append(
