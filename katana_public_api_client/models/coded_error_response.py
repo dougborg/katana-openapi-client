@@ -17,7 +17,7 @@ T = TypeVar("T", bound="CodedErrorResponse")
 class CodedErrorResponse:
     """Error response with an additional application-specific error code for detailed error handling"""
 
-    status_code: float
+    status_code: int
     name: str
     message: str
     code: None | str | Unset = UNSET

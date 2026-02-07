@@ -606,11 +606,37 @@ class PaginationTransport(AsyncHTTPTransport):
                         len(all_data),
                     )
                 else:
-                    # No pagination info - return original response unchanged
-                    # to preserve its shape (raw list, {"data": [...]}, etc.)
+                    # No pagination info - return response preserving its shape
                     self.logger.info(
                         "No pagination info found, returning single-page response"
                     )
+                    # Apply max_items truncation if set
+                    if max_items is not None:
+                        if isinstance(data, list) and len(data) > max_items:
+                            truncated = json.dumps(data[:max_items]).encode()
+                            headers = dict(response.headers)
+                            headers.pop("content-encoding", None)
+                            headers.pop("content-length", None)
+                            return httpx.Response(
+                                status_code=200,
+                                headers=headers,
+                                content=truncated,
+                                request=request,
+                            )
+                        if isinstance(data, dict) and "data" in data:
+                            items = data["data"]
+                            if isinstance(items, list) and len(items) > max_items:
+                                data["data"] = items[:max_items]
+                                truncated = json.dumps(data).encode()
+                                headers = dict(response.headers)
+                                headers.pop("content-encoding", None)
+                                headers.pop("content-length", None)
+                                return httpx.Response(
+                                    status_code=200,
+                                    headers=headers,
+                                    content=truncated,
+                                    request=request,
+                                )
                     return response
 
             except (json.JSONDecodeError, KeyError) as e:

@@ -18,7 +18,7 @@ from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
 class ErrorResponse(KatanaPydanticBase):
     status_code: Annotated[
-        float | None, Field(alias="statusCode", description="HTTP status code")
+        int | None, Field(alias="statusCode", description="HTTP status code")
     ] = None
     name: Annotated[str | None, Field(description="Error name/type")] = None
     message: Annotated[
@@ -31,7 +31,7 @@ class CodedErrorResponse(ErrorResponse):
         str | None, Field(description="Application-specific error code")
     ] = None
     status_code: Annotated[
-        float, Field(alias="statusCode", description="HTTP status code")
+        int, Field(alias="statusCode", description="HTTP status code")
     ]
     name: Annotated[str, Field(description="Error name/type")]
     message: Annotated[str, Field(description="Human-readable error message")]

@@ -32,7 +32,7 @@ T = TypeVar("T", bound="DetailedErrorResponse")
 class DetailedErrorResponse:
     """Enhanced error response containing detailed validation error information for complex request failures"""
 
-    status_code: float
+    status_code: int
     name: str
     message: str
     code: None | str | Unset = UNSET

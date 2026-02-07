@@ -508,7 +508,9 @@ class TestSchemaValidation:
                     f"katana_public_api_client.api.{api_module_path}"
                 )
 
-                # Respect rate limits (configurable via env var)
+                # Respect Katana's 60 req/60s rate limit.
+                # Override with SCHEMA_TEST_DELAY env var (e.g. "0.5") in
+                # controlled environments to reduce the ~45s total runtime.
                 delay = float(os.getenv("SCHEMA_TEST_DELAY", "1.1"))
                 await asyncio.sleep(delay)
 
