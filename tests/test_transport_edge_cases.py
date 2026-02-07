@@ -426,9 +426,8 @@ class TestPaginationTransportEdgeCases:
 
         response = await transport.handle_async_request(request)
 
-        # Should treat as single page and return data
-        combined_data = json.loads(response.content)
-        assert len(combined_data["data"]) == 2
+        # No pagination info → returns original response unchanged
+        assert response is mock_response
         # Should only make one request
         assert mock_wrapped.handle_async_request.call_count == 1
 

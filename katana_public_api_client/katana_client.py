@@ -497,6 +497,7 @@ class PaginationTransport(AsyncHTTPTransport):
         total_pages: int | None = None
         page_num = 1
         response: httpx.Response | None = None
+        original_is_raw_list = False
 
         # Get max_items limit from extensions (None = unlimited)
         max_items: int | None = request.extensions.get("max_items")
@@ -565,6 +566,10 @@ class PaginationTransport(AsyncHTTPTransport):
 
                 data = response.json()
 
+                # Track original response format on first page
+                if page_num == 1:
+                    original_is_raw_list = isinstance(data, list)
+
                 # Extract pagination info from headers or response body
                 pagination_info = self._extract_pagination_info(response, data)
 
@@ -601,15 +606,12 @@ class PaginationTransport(AsyncHTTPTransport):
                         len(all_data),
                     )
                 else:
-                    # No pagination info found, treat as single page
-                    if isinstance(data, list):
-                        all_data = data
-                    else:
-                        all_data = data.get("data", [])
-                    # Apply max_items limit even for single page
-                    if max_items is not None and len(all_data) > max_items:
-                        all_data = all_data[:max_items]
-                    break
+                    # No pagination info - return original response unchanged
+                    # to preserve its shape (raw list, {"data": [...]}, etc.)
+                    self.logger.info(
+                        "No pagination info found, returning single-page response"
+                    )
+                    return response
 
             except (json.JSONDecodeError, KeyError) as e:
                 self.logger.warning("Failed to parse paginated response: %s", e)
@@ -620,19 +622,22 @@ class PaginationTransport(AsyncHTTPTransport):
             msg = "No response available after pagination"
             raise RuntimeError(msg)
 
-        # Create a combined response
-        combined_data: dict[str, Any] = {"data": all_data}
+        # Create a combined response, preserving the original response shape
+        if original_is_raw_list:
+            # Original endpoint returned a raw JSON list - preserve that format
+            combined_content = json.dumps(all_data).encode()
+        else:
+            combined_data: dict[str, Any] = {"data": all_data}
+            # Add pagination metadata
+            if total_pages:
+                combined_data["pagination"] = {
+                    "total_pages": total_pages,
+                    "collected_pages": page_num,
+                    "total_items": len(all_data),
+                    "auto_paginated": True,
+                }
+            combined_content = json.dumps(combined_data).encode()
 
-        # Add pagination metadata
-        if total_pages:
-            combined_data["pagination"] = {
-                "total_pages": total_pages,
-                "collected_pages": page_num,
-                "total_items": len(all_data),
-                "auto_paginated": True,
-            }
-
-        # Create a new response with the combined data
         # Remove content-encoding headers to avoid compression issues
         headers = dict(response.headers)
         headers.pop("content-encoding", None)
@@ -641,7 +646,7 @@ class PaginationTransport(AsyncHTTPTransport):
         combined_response = httpx.Response(
             status_code=200,
             headers=headers,
-            content=json.dumps(combined_data).encode(),
+            content=combined_content,
             request=request,
         )
 
