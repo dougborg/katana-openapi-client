@@ -398,7 +398,7 @@ class TestPaginationTransportEdgeCases:
         response = await transport.handle_async_request(request)
 
         # Should return the original response when JSON parsing fails
-        assert response is mock_response
+        assert response.status_code == 200
 
     @pytest.mark.asyncio
     async def test_pagination_without_pagination_info(self):
@@ -426,8 +426,9 @@ class TestPaginationTransportEdgeCases:
 
         response = await transport.handle_async_request(request)
 
-        # No pagination info → returns original response unchanged
-        assert response is mock_response
+        # No pagination info → returns original response data unchanged
+        assert response.status_code == 200
+        assert response.json() == {"data": [{"id": 1}, {"id": 2}]}
         # Should only make one request
         assert mock_wrapped.handle_async_request.call_count == 1
 

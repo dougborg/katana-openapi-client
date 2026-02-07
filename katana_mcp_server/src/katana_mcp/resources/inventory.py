@@ -371,6 +371,7 @@ async def _get_stock_movements_impl(context: Context) -> StockMovementsResource:
                     "type": "adjustment",
                     "number": unwrap_unset(adjustment.stock_adjustment_number, None),
                     "location_id": unwrap_unset(adjustment.location_id, None),
+                    "status": None,  # Adjustments have no status; included for schema consistency
                     "reason": unwrap_unset(adjustment.reason, None),
                     "notes": unwrap_unset(adjustment.additional_info, None),
                 }

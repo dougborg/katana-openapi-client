@@ -217,7 +217,7 @@ class KatanaDocumentationExtractor:
             if not isinstance(script_tag, Tag):
                 continue
             script_text = script_tag.string
-            if not script_text or len(script_text) < 100000:
+            if not script_text:
                 continue
             try:
                 data = json.loads(script_text)

@@ -202,8 +202,9 @@ class TestTransportAutoPagination:
         # Should call wrapped transport only once
         mock_wrapped_transport.handle_async_request.assert_called_once()
 
-        # No pagination info → returns original response unchanged
-        assert response is mock_response
+        # No pagination info → returns original response data unchanged
+        assert response.status_code == 200
+        assert response.json() == {"data": [{"id": 1}, {"id": 2}]}
 
     @pytest.mark.asyncio
     async def test_auto_pagination_stops_on_error(
