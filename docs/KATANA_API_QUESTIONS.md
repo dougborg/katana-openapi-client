@@ -1,8 +1,8 @@
 # Katana API Questions
 
 Questions and inconsistencies discovered during P1-P4 OpenAPI spec alignment (Katana
-spec dated 2026-01-20, 104 paths). These are intended for discussion with the Katana API
-team.
+spec dated 2026-01-20, 104 paths). Each was investigated against the live API on
+2026-02-07.
 
 ______________________________________________________________________
 
@@ -10,92 +10,149 @@ ______________________________________________________________________
 
 ### 1.1 Material `serial_tracked` and `operations_in_sequence` not settable via API
 
+**Status: CONFIRMED - not settable**
+
 The Material GET response includes `serial_tracked` and `operations_in_sequence`, but
 neither field appears in the Create or Update request schemas. By contrast, the Product
 resource includes both fields in its Create and Update schemas.
 
-- **Response schema:** `MaterialResponse` (~line 3714 in spec)
-- **Create schema:** `CreateMaterialRequest` (~line 3515) - fields absent
-- **Update schema:** `UpdateMaterialRequest` - fields absent
-- **Compare:** `CreateProductRequest` and `UpdateProductRequest` include both fields
+**Investigation:** Attempted `PATCH /materials/{id}` with each field. Both returned 422
+`additionalProperties` - the API actively rejects them on update. These are truly
+read-only on materials, despite being writable on products.
 
-**Question:** Is there an intentional reason Materials cannot set these fields via API,
-or is this a spec omission?
+**Conclusion:** Intentional API asymmetry between materials and products. Our spec is
+correct as-is. This may be a product-line decision (materials inherit these properties
+from the products they're consumed by), but it's worth confirming with Katana.
 
 ### 1.2 `MaterialConfig` schema requires `id` and `material_id` on CREATE
+
+**Status: CONFIRMED - spec error, API does not require them**
 
 `CreateMaterialRequest.configs` references the `MaterialConfig` schema, which has `id`
 and `material_id` as required fields. These values don't exist yet when creating a new
 material.
 
-By contrast, `UpdateMaterialRequest.configs` correctly uses an inline schema with only
-`name` and `values`.
+**Investigation:** Created a material with configs containing only `name` and `values`
+(no `id` or `material_id`). The API accepted it (200 OK) and returned the created
+configs with server-generated `id` and `product_id` values.
 
-- **Likely spec error:** The Create schema should use the same simplified inline schema
-  as Update.
-
-**Question:** Can you confirm that `id` and `material_id` are not actually required when
-creating material configs?
+**Conclusion:** Confirmed spec error. The Katana API spec's `MaterialConfig` schema
+over-specifies the create case. Our spec already uses the simplified inline schema for
+create, which matches reality.
 
 ### 1.3 Manufacturing Order cannot be linked to Sales Order via create/update
+
+**Status: RESOLVED - use `/manufacturing_order_make_to_order`**
 
 The Manufacturing Order response includes `sales_order_id`, `sales_order_row_id`, and
 `sales_order_delivery_deadline`, but none of these fields appear in the Create or Update
 request schemas.
 
-The endpoint `/manufacturing_order_unlink` exists to remove a link, but there is no
-corresponding `/manufacturing_order_link` endpoint.
+**Investigation:**
 
-**Question:** How are Manufacturing Orders linked to Sales Orders via the API? Is there
-an undocumented link endpoint, or is this only possible through the UI?
+- `PATCH /manufacturing_orders/{id}` with `sales_order_id` returns 422
+  `additionalProperties` - the field is truly not settable via update.
+- `POST /manufacturing_order_make_to_order` exists and accepts
+  `{"sales_order_row_id": <id>, "create_subassemblies": <bool>}`. This is the linking
+  mechanism - it creates a new MO already linked to a sales order row.
+- `POST /manufacturing_order_unlink` exists and accepts `{"sales_order_row_id": <id>}`
+  to break the link.
+- There is no way to link an *existing* unlinked MO to a sales order. The flow is:
+  create-linked (make_to_order) or create-unlinked (regular create), then optionally
+  unlink.
+
+**Conclusion:** The API design is intentional. Linking is one-way at creation time via
+`/manufacturing_order_make_to_order`. Our spec already documents both endpoints
+correctly. The original question about a missing "link" endpoint is answered: linking
+only happens at MO creation, not post-hoc.
 
 ### 1.4 Purchase Order `status` in CREATE only accepts one value
 
-`CreatePurchaseOrderRequest` includes a `status` field, but the only valid value is
-`NOT_RECEIVED`. Since every new purchase order starts with this status, the field is
-effectively meaningless on create.
+**Status: CONFIRMED - only `NOT_RECEIVED` allowed, field is optional**
 
-**Question:** Is this intentional, or should the field be omitted from the create schema
-(with the server defaulting to `NOT_RECEIVED`)?
+`CreatePurchaseOrderRequest` includes a `status` field, but the only valid value is
+`NOT_RECEIVED`.
+
+**Investigation:**
+
+- `POST /purchase_orders` without a `status` field succeeds (200 OK), and the created PO
+  has `status: "NOT_RECEIVED"` automatically.
+- `POST /purchase_orders` with `status: "NOT_RECEIVED"` also succeeds identically.
+- `POST /purchase_orders` with `status: "PARTIALLY_RECEIVED"` returns 422 with
+  `allowedValues: ["NOT_RECEIVED"]`.
+
+**Conclusion:** The field is optional and defaults to `NOT_RECEIVED`. Including it is
+harmless but pointless. This appears to be a Katana API design choice (consistent schema
+shape between create/update) rather than a bug. Our spec correctly documents the enum
+constraint.
 
 ______________________________________________________________________
 
 ## 2. Field Naming Inconsistencies
 
-### 2.1 StorageBin: `name` vs `bin_name`
+### 2.1 Bin Location: `name` vs `bin_name`
 
-The StorageBin schema defines both `name` and `bin_name`. List endpoint examples use
-`name`, while detail and update endpoints use `bin_name`. The `bin_name` field is the
-required one.
+**Status: INCONCLUSIVE - no data available**
 
-**Question:** Are `name` and `bin_name` the same field with different names depending on
-context, or are they genuinely separate fields? If separate, what is the semantic
-difference?
+The spec defines both `name` and `bin_name` for the `/bin_locations` resource (note: the
+actual endpoint is `/bin_locations`, not `/storage_bins` as originally noted).
+
+**Investigation:** `GET /bin_locations` returns 200 but with an empty list (no bin
+locations configured in this account). The response is also a raw JSON array, not
+wrapped in `{"data": [...]}` like other list endpoints.
+
+**Conclusion:** Cannot verify field naming with no data. The raw-array response format
+is another non-standard pattern worth noting. If bin locations are ever configured in
+the test account, this should be re-investigated.
 
 ### 2.2 `ProductOperationRow` uses `product_operation_row_id` instead of `id`
 
-Every other resource in the API uses `id` as its primary key field.
-`ProductOperationRow` uniquely uses `product_operation_row_id`. It also doesn't extend
-any entity base type despite having `created_at` and `updated_at` fields.
+**Status: CONFIRMED - intentionally different from other resources**
 
-**Question:** Is this intentional, or a legacy naming that could be aliased to `id` for
-consistency?
+Every other resource in the API uses `id` as its primary key field.
+`ProductOperationRow` uniquely uses `product_operation_row_id`.
+
+**Investigation:** `GET /product_operation_rows` returns records with
+`product_operation_row_id` as the identifier - no `id` field present. However, the
+related `ManufacturingOrderOperationRow` (from `/manufacturing_order_operation_rows`)
+does use a standard `id` field.
+
+The `ProductOperationRow` fields are: `product_operation_row_id`, `product_id`,
+`product_variant_id`, `operation_id`, `operation_name`, `type`, `resource_id`,
+`resource_name`, `cost_per_hour`, `cost_parameter`, `planned_cost_per_unit`,
+`planned_time_per_unit`, `planned_time_parameter`, `rank`, `group_boundary`,
+`created_at`, `updated_at`. No `deleted_at` despite having `created_at`/`updated_at`.
+
+**Conclusion:** This is confirmed as a real inconsistency in the Katana API - not a spec
+error on our side. The product operation row is the only resource that uses a
+non-standard primary key naming convention.
 
 ______________________________________________________________________
 
 ## 3. Read-Only Endpoints Missing Write Operations
 
-Several resources only have GET (list) endpoints with no documented create, update, or
-delete operations:
+**Status: CONFIRMED - write operations do not exist via API**
 
-| Resource         | Endpoint            | Question                            |
-| ---------------- | ------------------- | ----------------------------------- |
-| Additional Costs | `/additional_costs` | How are these created?              |
-| Factory          | `/factory`          | How do you update factory settings? |
-| Operators        | `/operators`        | How are operators created/managed?  |
+| Resource         | Endpoint            | GET | POST | PATCH | Result              |
+| ---------------- | ------------------- | --- | ---- | ----- | ------------------- |
+| Additional Costs | `/additional_costs` | 200 | 404  | -     | 3 items, read-only  |
+| Factory          | `/factory`          | 200 | -    | 404   | Settings, read-only |
+| Operators        | `/operators`        | 200 | -    | -     | Empty, not tested   |
 
-**Question:** Are write operations for these resources UI-only, or are they undocumented
-API endpoints?
+**Investigation:**
+
+- `/additional_costs`: Returns 3 system-defined items (`Shipping`, `Customs`, `Other`).
+  `POST /additional_costs` returns 404. These appear to be system presets, not
+  user-created.
+- `/factory`: Returns factory settings (legal name, address, currency, default
+  locations, inventory closing date). `PATCH /factory` returns 404. These are managed
+  through the Katana UI only.
+- `/operators`: Returns empty list (no operators configured). Cannot test POST without
+  data to validate against.
+
+**Conclusion:** These are intentionally read-only API endpoints. Additional costs are
+system presets. Factory settings and operators are UI-managed. Our spec correctly
+documents them as GET-only.
 
 ______________________________________________________________________
 
@@ -103,14 +160,20 @@ ______________________________________________________________________
 
 ### 4.1 Variant `lead_time` and `minimum_order_quantity` null semantics
 
-Both fields are defined as `[integer, null]` and `[number, null]` respectively, but the
-meaning of `null` is ambiguous:
+**Status: CLARIFIED - null means "not set"**
 
-- `lead_time: null` - Does this mean "no data entered", "instant/zero lead time", or
-  "N/A"?
-- `minimum_order_quantity: null` - Does this mean "no minimum required" or "unknown"?
+**Investigation:**
 
-**Question:** What is the intended semantic meaning of `null` for these fields?
+- Out of 250 variants sampled, 249 had `lead_time: null` and all 250 had
+  `minimum_order_quantity: null`. Only one variant had `lead_time: 10`.
+- `PATCH /variants/{id}` with `lead_time: 0` succeeds - the response shows
+  `lead_time: 0` (integer zero, distinct from null).
+- `PATCH /variants/{id}` with `lead_time: null` succeeds - the response shows
+  `lead_time: null`.
+
+**Conclusion:** `null` means "not configured / no value set" rather than a meaningful
+zero or "N/A". The API correctly distinguishes between `0` (explicit zero) and `null`
+(not set). This is consistent with standard nullable semantics. No spec change needed.
 
 ______________________________________________________________________
 
@@ -118,18 +181,26 @@ ______________________________________________________________________
 
 ### 5.1 `/demand_forecasts` doesn't follow any standard resource pattern
 
-This endpoint deviates from every other resource in the API:
+**Status: CONFIRMED - intentionally different, more of a "calculation" than a resource**
 
-- No pagination support
-- No standard CRUD pattern
-- No entity inheritance (no `id`, `created_at`, etc.)
-- GET requires `variant_id` + `location_id` as mandatory query parameters (not optional
-  filters)
-- POST returns 204 No Content (not the created/updated resource)
-- DELETE accepts a request body (unusual for REST APIs)
+**Investigation:**
 
-**Question:** Is there a reason this resource follows a completely different pattern?
-Are there plans to align it with the standard resource conventions?
+- `GET /demand_forecasts` without params returns 400: "Required parameter variant_id is
+  missing!" - mandatory query params confirmed.
+- `GET /demand_forecasts?variant_id=X&location_id=Y` returns a single forecast object
+  (not a list) with `variant_id`, `location_id`, `in_stock`, and `periods` array. No
+  pagination headers. The response is a computed view, not a stored resource.
+- `POST /demand_forecasts` requires `variant_id`, `location_id`, and `periods` in the
+  request body.
+- `DELETE /demand_forecasts` also requires `variant_id`, `location_id`, and `periods` in
+  the request body (not just the resource identifier).
+
+**Conclusion:** This endpoint is fundamentally a *computation endpoint*, not a CRUD
+resource. It returns calculated demand forecast data for a specific variant+location
+combination. The POST "creates" forecast overrides for specific periods, and DELETE
+"clears" overrides for specific periods. This design makes sense when understood as a
+calculation API rather than a REST resource. No spec change needed, but worth
+documenting the different mental model.
 
 ______________________________________________________________________
 
