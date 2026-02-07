@@ -47,7 +47,7 @@ cp .env.example .env         # Add KATANA_API_KEY
 - `packages/katana-client/` - TypeScript client
 
 **Key pattern:** Resilience (retries, rate limiting, pagination) is implemented at the
-httpx transport layer - ALL 76+ API endpoints get it automatically.
+httpx transport layer - ALL 100+ API endpoints get it automatically.
 
 ## File Rules
 

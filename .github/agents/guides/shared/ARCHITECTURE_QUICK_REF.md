@@ -25,7 +25,7 @@ individual API methods.
 
 **Key Benefits:**
 
-- ALL 76+ API endpoints get automatic retries, rate limiting, pagination
+- ALL 100+ API endpoints get automatic retries, rate limiting, pagination
 - No modifications to generated code needed
 - Single point of configuration
 
@@ -381,15 +381,16 @@ ______________________________________________________________________
 
 ## API Coverage
 
-### Client Library (76+ Endpoints)
+### Client Library (100+ Endpoints)
 
 - **Products & Inventory** (25+): Products, variants, materials, stock levels
 - **Orders** (20+): Sales orders, purchase orders, fulfillment
 - **Manufacturing** (15+): BOMs, manufacturing orders, operations
 - **Business Relations** (10+): Customers, suppliers, addresses
 - **Configuration** (6+): Locations, webhooks, custom fields
+- **Forecasting** (3): Demand forecasts
 
-### Data Models (150+ Fully-Typed)
+### Data Models (370+ Fully-Typed)
 
 All models generated from OpenAPI specification with:
 
