@@ -6,6 +6,9 @@ import type {
   BatchCreateBomRowsData,
   BatchCreateBomRowsErrors,
   BatchCreateBomRowsResponses,
+  ClearDemandForecastData,
+  ClearDemandForecastErrors,
+  ClearDemandForecastResponses,
   CreateBatchData,
   CreateBatchErrors,
   CreateBatchResponses,
@@ -18,6 +21,9 @@ import type {
   CreateCustomerData,
   CreateCustomerErrors,
   CreateCustomerResponses,
+  CreateDemandForecastData,
+  CreateDemandForecastErrors,
+  CreateDemandForecastResponses,
   CreateInventoryReorderPointData,
   CreateInventoryReorderPointErrors,
   CreateInventoryReorderPointResponses,
@@ -366,6 +372,9 @@ import type {
   GetBatchStockData,
   GetBatchStockErrors,
   GetBatchStockResponses,
+  GetDemandForecastsData,
+  GetDemandForecastsErrors,
+  GetDemandForecastsResponses,
   GetFactoryData,
   GetFactoryErrors,
   GetFactoryResponses,
@@ -3058,6 +3067,68 @@ export const updateCustomer = <ThrowOnError extends boolean = false>(
   >({
     security: [{ scheme: "bearer", type: "http" }],
     url: "/customers/{id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Clear planned demand forecast to variant
+ *
+ * Clears planned demand forecast for a variant in location for the specified periods.
+ */
+export const clearDemandForecast = <ThrowOnError extends boolean = false>(
+  options: Options<ClearDemandForecastData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    ClearDemandForecastResponses,
+    ClearDemandForecastErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/demand_forecasts",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * List planned demand forecast for variant in location
+ *
+ * Returns planned forecasted demand for a variant in given location.
+ */
+export const getDemandForecasts = <ThrowOnError extends boolean = false>(
+  options: Options<GetDemandForecastsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetDemandForecastsResponses,
+    GetDemandForecastsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/demand_forecasts",
+    ...options,
+  });
+
+/**
+ * Add planned demand forecast to variant
+ *
+ * Add planned demand forecast for a variant in location for the specified periods.
+ */
+export const createDemandForecast = <ThrowOnError extends boolean = false>(
+  options: Options<CreateDemandForecastData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateDemandForecastResponses,
+    CreateDemandForecastErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/demand_forecasts",
     ...options,
     headers: {
       "Content-Type": "application/json",
