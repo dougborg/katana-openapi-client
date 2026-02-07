@@ -11,19 +11,17 @@ from attrs import (
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.get_sales_return_row_unassigned_batch_transactions_response_200_data_item import (
-        GetSalesReturnRowUnassignedBatchTransactionsResponse200DataItem,
-    )
+    from ..models.unassigned_batch_transaction import UnassignedBatchTransaction
 
 
-T = TypeVar("T", bound="GetSalesReturnRowUnassignedBatchTransactionsResponse200")
+T = TypeVar("T", bound="UnassignedBatchTransactionListResponse")
 
 
 @_attrs_define
-class GetSalesReturnRowUnassignedBatchTransactionsResponse200:
-    data: (
-        list[GetSalesReturnRowUnassignedBatchTransactionsResponse200DataItem] | Unset
-    ) = UNSET
+class UnassignedBatchTransactionListResponse:
+    """Response containing a list of unassigned batch transactions"""
+
+    data: list[UnassignedBatchTransaction] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -44,31 +42,24 @@ class GetSalesReturnRowUnassignedBatchTransactionsResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.get_sales_return_row_unassigned_batch_transactions_response_200_data_item import (
-            GetSalesReturnRowUnassignedBatchTransactionsResponse200DataItem,
-        )
+        from ..models.unassigned_batch_transaction import UnassignedBatchTransaction
 
         d = dict(src_dict)
         _data = d.pop("data", UNSET)
-        data: (
-            list[GetSalesReturnRowUnassignedBatchTransactionsResponse200DataItem]
-            | Unset
-        ) = UNSET
+        data: list[UnassignedBatchTransaction] | Unset = UNSET
         if _data is not UNSET:
             data = []
             for data_item_data in _data:
-                data_item = GetSalesReturnRowUnassignedBatchTransactionsResponse200DataItem.from_dict(
-                    data_item_data
-                )
+                data_item = UnassignedBatchTransaction.from_dict(data_item_data)
 
                 data.append(data_item)
 
-        get_sales_return_row_unassigned_batch_transactions_response_200 = cls(
+        unassigned_batch_transaction_list_response = cls(
             data=data,
         )
 
-        get_sales_return_row_unassigned_batch_transactions_response_200.additional_properties = d
-        return get_sales_return_row_unassigned_batch_transactions_response_200
+        unassigned_batch_transaction_list_response.additional_properties = d
+        return unassigned_batch_transaction_list_response
 
     @property
     def additional_keys(self) -> list[str]:

@@ -7,11 +7,13 @@ from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
 
-T = TypeVar("T", bound="UpdateSalesOrderShippingFeeBody")
+T = TypeVar("T", bound="UpdateSalesOrderShippingFeeRequest")
 
 
 @_attrs_define
-class UpdateSalesOrderShippingFeeBody:
+class UpdateSalesOrderShippingFeeRequest:
+    """Request payload for updating a sales order shipping fee"""
+
     description: str | Unset = UNSET
     amount: int | Unset = UNSET
     tax_rate_id: int | Unset = UNSET
@@ -44,10 +46,10 @@ class UpdateSalesOrderShippingFeeBody:
 
         tax_rate_id = d.pop("tax_rate_id", UNSET)
 
-        update_sales_order_shipping_fee_body = cls(
+        update_sales_order_shipping_fee_request = cls(
             description=description,
             amount=amount,
             tax_rate_id=tax_rate_id,
         )
 
-        return update_sales_order_shipping_fee_body
+        return update_sales_order_shipping_fee_request

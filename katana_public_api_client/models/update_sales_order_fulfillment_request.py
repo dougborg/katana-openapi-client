@@ -9,11 +9,13 @@ from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
-T = TypeVar("T", bound="UpdateSalesOrderFulfillmentBody")
+T = TypeVar("T", bound="UpdateSalesOrderFulfillmentRequest")
 
 
 @_attrs_define
-class UpdateSalesOrderFulfillmentBody:
+class UpdateSalesOrderFulfillmentRequest:
+    """Request payload for updating a sales order fulfillment"""
+
     picked_date: datetime.datetime | Unset = UNSET
     status: str | Unset = UNSET
     conversion_rate: float | Unset = UNSET
@@ -102,7 +104,7 @@ class UpdateSalesOrderFulfillmentBody:
 
         tracking_method = d.pop("tracking_method", UNSET)
 
-        update_sales_order_fulfillment_body = cls(
+        update_sales_order_fulfillment_request = cls(
             picked_date=picked_date,
             status=status,
             conversion_rate=conversion_rate,
@@ -114,4 +116,4 @@ class UpdateSalesOrderFulfillmentBody:
             tracking_method=tracking_method,
         )
 
-        return update_sales_order_fulfillment_body
+        return update_sales_order_fulfillment_request

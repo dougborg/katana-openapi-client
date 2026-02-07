@@ -7,11 +7,13 @@ from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
 
-T = TypeVar("T", bound="UpdateRecipeRowBody")
+T = TypeVar("T", bound="UpdateRecipeRowRequest")
 
 
 @_attrs_define
-class UpdateRecipeRowBody:
+class UpdateRecipeRowRequest:
+    """Request payload for updating a recipe row"""
+
     ingredient_variant_id: int | Unset = UNSET
     quantity: float | Unset = UNSET
     notes: str | Unset = UNSET
@@ -44,10 +46,10 @@ class UpdateRecipeRowBody:
 
         notes = d.pop("notes", UNSET)
 
-        update_recipe_row_body = cls(
+        update_recipe_row_request = cls(
             ingredient_variant_id=ingredient_variant_id,
             quantity=quantity,
             notes=notes,
         )
 
-        return update_recipe_row_body
+        return update_recipe_row_request

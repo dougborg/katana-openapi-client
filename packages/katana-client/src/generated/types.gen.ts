@@ -6743,6 +6743,651 @@ export type CreateSalesOrderShippingFeeRequest = {
 };
 
 /**
+ * Batch allocation transaction for tracking inventory lots
+ */
+export type BatchTransactionRequest = {
+  /**
+   * Batch ID
+   */
+  batch_id: number;
+  /**
+   * Quantity
+   */
+  quantity: number;
+};
+
+/**
+ * Request payload for updating an existing customer address
+ */
+export type UpdateCustomerAddressRequest = {
+  first_name?: string | null;
+  last_name?: string | null;
+  company?: string | null;
+  phone?: string | null;
+  line_1?: string | null;
+  line_2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  country?: string | null;
+};
+
+/**
+ * Request payload for creating a new inventory reorder point
+ */
+export type CreateInventoryReorderPointRequest = {
+  /**
+   * Product variant ID
+   */
+  variant_id: number;
+  /**
+   * Location ID
+   */
+  location_id: number;
+  /**
+   * Minimum stock level that triggers reorder
+   */
+  value: number;
+};
+
+/**
+ * Request payload for creating a new outsourced purchase order recipe row
+ */
+export type CreateOutsourcedPurchaseOrderRecipeRowRequest = {
+  /**
+   * Purchase order row ID
+   */
+  purchase_order_row_id: number;
+  /**
+   * Ingredient variant ID
+   */
+  ingredient_variant_id: number;
+  /**
+   * Planned quantity per unit of production
+   */
+  planned_quantity_per_unit: number;
+  /**
+   * Additional notes about this ingredient requirement
+   */
+  notes?: string;
+  /**
+   * Batch allocation transactions for this ingredient
+   */
+  batch_transactions?: Array<BatchTransactionRequest>;
+};
+
+/**
+ * Request payload for updating an outsourced purchase order recipe row
+ */
+export type UpdateOutsourcedPurchaseOrderRecipeRowRequest = {
+  /**
+   * Ingredient variant ID. Updatable only when received_date is null.
+   */
+  ingredient_variant_id?: number;
+  /**
+   * Planned quantity per unit. Updatable only when received_date is null.
+   */
+  planned_quantity_per_unit?: number;
+  /**
+   * Additional notes about this ingredient requirement
+   */
+  notes?: string;
+  /**
+   * Batch allocation transactions for this ingredient
+   */
+  batch_transactions?: Array<BatchTransactionRequest>;
+};
+
+/**
+ * A single product operation row item in a bulk create request
+ */
+export type CreateProductOperationRowItem = {
+  product_variant_id: number;
+  /**
+   * If operation ID is used to map the operation, then operation_name is ignored.
+   */
+  operation_id?: number;
+  /**
+   * If operation name is used to map the operation then,
+   * we match to the existing operations by name. If a match is not found, a new one is created.
+   */
+  operation_name?: string;
+  /**
+   * If resource ID is used to map the resource, then resource_name is ignored.
+   */
+  resource_id?: number;
+  /**
+   * If resource name is used to map the resource then we match to the existing resources by name.
+   * If a match is not found, a new one is created.
+   */
+  resource_name?: string;
+  /**
+   * Different operation types allows you to use different cost
+   * calculations depending on the type of product operation
+   * Process: The process operation type is best for when products
+   * are individually built and time is the main driver of cost.
+   * Setup: The setup operation type is best for setting up a
+   * machine for production where the production quantity doesn't
+   * affect cost.
+   * Per unit: The per unit operation type is best when cost of
+   * time isn't a factor, but only the quantity of product made.
+   * Fixed cost: The fixed cost operation type is useful for adding
+   * the expected extra costs that go into producing a product.
+   */
+  type?: "process" | "setup" | "perUnit" | "fixed";
+  /**
+   * The expected cost of an operation, either total or per hour/unit of product (based on type).
+   * Total cost of the operation on a manufacturing order is calculated as follows:
+   * process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
+   * setup: cost = cost_parameter x planned_time_parameter (in
+   * hours)
+   * perUnit: cost = cost_parameter x product quantity
+   * fixed: cost = cost_parameter
+   */
+  cost_parameter?: number;
+  /**
+   * (This field is deprecated in favor of cost_parameter) The expected cost of an
+   * operation, either total or per hour/unit of product (based on type). Total cost
+   * of the operation on a manufacturing order is calculated as follows:
+   * process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
+   * setup: cost = cost_parameter x planned_time_parameter (in
+   * hours)
+   * perUnit: cost = cost_parameter x product quantity
+   * fixed: cost = cost_parameter
+   *
+   * @deprecated
+   */
+  cost_per_hour?: number;
+  /**
+   * The planned duration of an operation, in seconds, to either manufacture one unit of a product or complete a manufacturing order (based on type).
+   */
+  planned_time_parameter?: number;
+  /**
+   * (This field is deprecated in favor of planned_time_parameter) The planned duration of an operation, in seconds, to either manufacture one unit of a product or complete a manufacturing order (based on type).
+   *
+   * @deprecated
+   */
+  planned_time_per_unit?: number;
+};
+
+/**
+ * Request payload for creating product operation rows in bulk
+ */
+export type CreateProductOperationRowsRequest = {
+  /**
+   * Existing production operation lines are kept by default,
+   * and new lines will be added after the existing product operations.
+   * Set to false to delete all existing product operation lines for related products.
+   */
+  keep_current_rows?: boolean;
+  rows: Array<CreateProductOperationRowItem>;
+};
+
+/**
+ * Request payload for updating a product operation row
+ */
+export type UpdateProductOperationRowRequest = {
+  /**
+   * ID of the operation
+   */
+  operation_id?: number;
+  /**
+   * Name of the operation
+   */
+  operation_name?: string;
+  /**
+   * Type of operation
+   */
+  type?: string;
+  /**
+   * ID of the resource performing the operation
+   */
+  resource_id?: number;
+  /**
+   * Name of the resource
+   */
+  resource_name?: string;
+  /**
+   * Parameter for calculating planned time
+   */
+  planned_time_parameter?: number;
+  /**
+   * Planned time per unit
+   */
+  planned_time_per_unit?: number;
+  /**
+   * Parameter for calculating cost
+   */
+  cost_parameter?: number;
+  /**
+   * Hourly cost rate
+   */
+  cost_per_hour?: number;
+};
+
+/**
+ * Request payload for updating a recipe row
+ */
+export type UpdateRecipeRowRequest = {
+  /**
+   * ID of the ingredient variant
+   */
+  ingredient_variant_id?: number;
+  /**
+   * Ingredient quantity required
+   */
+  quantity?: number;
+  /**
+   * Additional notes about the recipe row
+   */
+  notes?: string;
+};
+
+/**
+ * A fulfillment row item specifying which order row and quantity to fulfill
+ */
+export type SalesOrderFulfillmentRowRequest = {
+  /**
+   * Sales order row ID
+   */
+  sales_order_row_id?: number;
+  /**
+   * Quantity to fulfill
+   */
+  quantity?: number;
+};
+
+/**
+ * Request payload for creating a new sales order fulfillment
+ */
+export type CreateSalesOrderFulfillmentRequest = {
+  /**
+   * Sales order ID
+   */
+  sales_order_id: number;
+  /**
+   * Date when items were picked
+   */
+  picked_date?: string;
+  /**
+   * Fulfillment status
+   */
+  status?: string;
+  /**
+   * Currency conversion rate
+   */
+  conversion_rate?: number;
+  /**
+   * Date of currency conversion
+   */
+  conversion_date?: string;
+  /**
+   * Shipment tracking number
+   */
+  tracking_number?: string;
+  /**
+   * URL for tracking the shipment
+   */
+  tracking_url?: string;
+  /**
+   * Shipping carrier name
+   */
+  tracking_carrier?: string;
+  /**
+   * Shipping method used
+   */
+  tracking_method?: string;
+  /**
+   * Fulfillment row items
+   */
+  sales_order_fulfillment_rows?: Array<SalesOrderFulfillmentRowRequest>;
+};
+
+/**
+ * Request payload for updating a sales order fulfillment
+ */
+export type UpdateSalesOrderFulfillmentRequest = {
+  /**
+   * Date when items were picked
+   */
+  picked_date?: string;
+  /**
+   * Fulfillment status
+   */
+  status?: string;
+  /**
+   * Currency conversion rate
+   */
+  conversion_rate?: number;
+  /**
+   * ID of the packer who packed the order
+   */
+  packer_id?: number;
+  /**
+   * Date of currency conversion
+   */
+  conversion_date?: string;
+  /**
+   * Shipment tracking number
+   */
+  tracking_number?: string;
+  /**
+   * URL for tracking the shipment
+   */
+  tracking_url?: string;
+  /**
+   * Shipping carrier name
+   */
+  tracking_carrier?: string;
+  /**
+   * Shipping method used
+   */
+  tracking_method?: string;
+};
+
+/**
+ * Request payload for updating a sales order shipping fee
+ */
+export type UpdateSalesOrderShippingFeeRequest = {
+  /**
+   * Shipping fee description
+   */
+  description?: string;
+  /**
+   * Shipping fee amount
+   */
+  amount?: number;
+  /**
+   * ID of the tax rate to apply to the shipping fee
+   */
+  tax_rate_id?: number;
+};
+
+/**
+ * Request payload for updating a sales order
+ */
+export type UpdateSalesOrderRequest = {
+  /**
+   * Updatable only when sales order status is NOT_SHIPPED or PENDING.
+   */
+  order_no?: string;
+  /**
+   * Updatable only when sales order status is NOT_SHIPPED or PENDING.
+   */
+  customer_id?: number;
+  /**
+   * Date when the order was originally created
+   */
+  order_created_date?: string;
+  /**
+   * Updatable only when sales order status is NOT_SHIPPED or PENDING.
+   */
+  delivery_date?: string;
+  /**
+   * Updatable only when sales order status is NOT_SHIPPED or PENDING.
+   */
+  picked_date?: string;
+  /**
+   * Updatable only when sales order status is NOT_SHIPPED or PENDING.
+   */
+  location_id?: number;
+  /**
+   * When the status is omitted, NOT_SHIPPED is used as default. Use PENDING when you want to create sales order quotes.
+   */
+  status?: "NOT_SHIPPED" | "PENDING" | "PACKED" | "DELIVERED";
+  /**
+   * E.g. USD, EUR. All currently active currency codes in ISO 4217 format. Updatable only when sales
+   * order status is NOT_SHIPPED or PENDING.
+   */
+  currency?: string;
+  /**
+   * Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with 422.
+   */
+  conversion_rate?: number;
+  /**
+   * Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with 422.
+   */
+  conversion_date?: string;
+  /**
+   * Additional notes or instructions for the sales order
+   */
+  additional_info?: string | null;
+  /**
+   * Customer's reference number or purchase order number
+   */
+  customer_ref?: string | null;
+  /**
+   * Shipping carrier tracking number for package tracking
+   */
+  tracking_number?: string | null;
+  /**
+   * URL link to track the shipment on carrier website
+   */
+  tracking_number_url?: string | null;
+};
+
+/**
+ * Request payload for updating a sales return row
+ */
+export type UpdateSalesReturnRowRequest = {
+  /**
+   * Quantity being returned. Updatable only when current return status is NOT_RETURNED.
+   */
+  quantity?: string;
+  /**
+   * Restock location ID. Updatable only when current return status is NOT_RETURNED or RETURNED.
+   */
+  restock_location_id?: number;
+  /**
+   * Reason ID. Updatable only when current return status is NOT_RETURNED.
+   */
+  reason_id?: number;
+  /**
+   * Batch transactions. Updatable only when current return status is NOT_RETURNED or RETURNED.
+   */
+  batch_transactions?: Array<BatchTransactionRequest>;
+};
+
+/**
+ * Request payload for creating serial numbers for a resource
+ */
+export type CreateSerialNumbersRequest = {
+  /**
+   * Resource type
+   */
+  resource_type:
+    | "ManufacturingOrder"
+    | "Production"
+    | "StockAdjustmentRow"
+    | "StockTransferRow"
+    | "PurchaseOrderRow"
+    | "SalesOrderRow";
+  /**
+   * Resource ID
+   */
+  resource_id: number;
+  /**
+   * List of serial numbers to create
+   */
+  serial_numbers: Array<string>;
+};
+
+/**
+ * A stock transfer row item specifying which variant and quantity to transfer
+ */
+export type StockTransferRowRequest = {
+  /**
+   * Product variant ID
+   */
+  variant_id?: number;
+  /**
+   * Quantity to transfer
+   */
+  quantity?: number;
+};
+
+/**
+ * Request payload for creating a new stock transfer
+ */
+export type CreateStockTransferRequest = {
+  /**
+   * Unique stock transfer number for tracking
+   */
+  stock_transfer_number?: string;
+  /**
+   * Source location ID where items are transferred from
+   */
+  source_location_id: number;
+  /**
+   * Destination location ID where items are transferred to
+   */
+  target_location_id: number;
+  /**
+   * Date when the transfer was initiated
+   */
+  transfer_date?: string;
+  /**
+   * Date when the transfer order was created
+   */
+  order_created_date?: string;
+  /**
+   * Expected arrival date at destination
+   */
+  expected_arrival_date?: string;
+  /**
+   * Additional notes or information about the transfer
+   */
+  additional_info?: string;
+  /**
+   * Line items being transferred
+   */
+  stock_transfer_rows?: Array<StockTransferRowRequest>;
+};
+
+/**
+ * Request payload for updating a stock transfer
+ */
+export type UpdateStockTransferRequest = {
+  /**
+   * Updated stock transfer number
+   */
+  stock_transfer_number?: string;
+  /**
+   * Updated transfer date
+   */
+  transfer_date?: string;
+  /**
+   * Updated order creation date
+   */
+  order_created_date?: string;
+  /**
+   * Updated expected arrival date
+   */
+  expected_arrival_date?: string;
+  /**
+   * Updated additional notes or information
+   */
+  additional_info?: string;
+};
+
+/**
+ * Request payload for updating a stock transfer status
+ */
+export type UpdateStockTransferStatusRequest = {
+  /**
+   * New status for the stock transfer
+   */
+  status: "pending" | "in_transit" | "completed" | "cancelled";
+};
+
+/**
+ * Response containing a list of locations
+ */
+export type LocationListResponse = {
+  data?: Array<Location>;
+};
+
+/**
+ * Response containing a list of product operation rows
+ */
+export type ProductOperationRowListResponse = {
+  data?: Array<ProductOperationRow>;
+};
+
+/**
+ * An item from a sales order that is eligible for return
+ */
+export type ReturnableItem = {
+  /**
+   * Product variant ID
+   */
+  variant_id: number;
+  /**
+   * Fulfillment row ID
+   */
+  fulfillment_row_id: number;
+  /**
+   * Quantity available for return
+   */
+  available_for_return_quantity: string;
+  /**
+   * Net price per unit
+   */
+  net_price_per_unit: string;
+  /**
+   * Location ID
+   */
+  location_id: number;
+  /**
+   * Total quantity sold
+   */
+  quantity_sold: string;
+};
+
+/**
+ * A batch transaction not yet assigned to a sales return row
+ */
+export type UnassignedBatchTransaction = {
+  /**
+   * Batch transaction ID
+   */
+  id?: number;
+  /**
+   * Batch ID
+   */
+  batch_id?: number;
+  /**
+   * Transaction quantity
+   */
+  quantity?: number;
+  /**
+   * Transaction status
+   */
+  status?: string;
+};
+
+/**
+ * Response containing a list of unassigned batch transactions
+ */
+export type UnassignedBatchTransactionListResponse = {
+  data?: Array<UnassignedBatchTransaction>;
+};
+
+/**
+ * A reason for returning items from a sales order
+ */
+export type SalesReturnReason = {
+  /**
+   * Return reason ID
+   */
+  id: number;
+  /**
+   * Return reason name
+   */
+  name: string;
+};
+
+/**
  * Filters results by an array of IDs.
  */
 export type Ids = Array<number>;
@@ -8010,9 +8655,7 @@ export type GetAllLocationsResponses = {
   /**
    * List all locations
    */
-  200: {
-    data?: Array<Location>;
-  };
+  200: LocationListResponse;
 };
 
 export type GetAllLocationsResponse =
@@ -12435,33 +13078,7 @@ export type UpdateSalesReturnRowData = {
   /**
    * Sales return row update details
    */
-  body: {
-    /**
-     * Quantity being returned. Updatable only when current return status is NOT_RETURNED.
-     */
-    quantity?: string;
-    /**
-     * Restock location ID. Updatable only when current return status is NOT_RETURNED or RETURNED.
-     */
-    restock_location_id?: number;
-    /**
-     * Reason ID. Updatable only when current return status is NOT_RETURNED.
-     */
-    reason_id?: number;
-    /**
-     * Batch transactions. Updatable only when current return status is NOT_RETURNED or RETURNED.
-     */
-    batch_transactions?: Array<{
-      /**
-       * Batch ID
-       */
-      batch_id: number;
-      /**
-       * Quantity
-       */
-      quantity: number;
-    }>;
-  };
+  body: UpdateSalesReturnRowRequest;
   path: {
     /**
      * Resource identifier
@@ -12550,26 +13167,7 @@ export type GetSalesReturnRowUnassignedBatchTransactionsResponses = {
   /**
    * List of unassigned batch transactions
    */
-  200: {
-    data?: Array<{
-      /**
-       * Batch transaction ID
-       */
-      id?: number;
-      /**
-       * Batch ID
-       */
-      batch_id?: number;
-      /**
-       * Transaction quantity
-       */
-      quantity?: number;
-      /**
-       * Transaction status
-       */
-      status?: string;
-    }>;
-  };
+  200: UnassignedBatchTransactionListResponse;
 };
 
 export type GetSalesReturnRowUnassignedBatchTransactionsResponse =
@@ -12604,16 +13202,7 @@ export type GetSalesReturnReasonsResponses = {
   /**
    * List of return reasons
    */
-  200: Array<{
-    /**
-     * Return reason ID
-     */
-    id: number;
-    /**
-     * Return reason name
-     */
-    name: string;
-  }>;
+  200: Array<SalesReturnReason>;
 };
 
 export type GetSalesReturnReasonsResponse =
@@ -12783,20 +13372,7 @@ export type UpdateRecipeRowData = {
   /**
    * Recipe row update details
    */
-  body: {
-    /**
-     * ID of the ingredient variant
-     */
-    ingredient_variant_id?: number;
-    /**
-     * Ingredient quantity required
-     */
-    quantity?: number;
-    /**
-     * Additional notes about the recipe row
-     */
-    notes?: string;
-  };
+  body: UpdateRecipeRowRequest;
   path: {
     /**
      * Resource identifier
@@ -13426,65 +14002,7 @@ export type UpdateSalesOrderData = {
   /**
    * Sales order update details
    */
-  body: {
-    /**
-     * Updatable only when sales order status is NOT_SHIPPED or PENDING.
-     */
-    order_no?: string;
-    /**
-     * Updatable only when sales order status is NOT_SHIPPED or PENDING.
-     */
-    customer_id?: number;
-    /**
-     * Date when the order was originally created
-     */
-    order_created_date?: string;
-    /**
-     * Updatable only when sales order status is NOT_SHIPPED or PENDING.
-     */
-    delivery_date?: string;
-    /**
-     * Updatable only when sales order status is NOT_SHIPPED or PENDING.
-     */
-    picked_date?: string;
-    /**
-     * Updatable only when sales order status is NOT_SHIPPED or PENDING.
-     */
-    location_id?: number;
-    /**
-     * When the status is omitted, NOT_SHIPPED is used as default. Use PENDING when you want to create sales order quotes.
-     */
-    status?: "NOT_SHIPPED" | "PENDING" | "PACKED" | "DELIVERED";
-    /**
-     * E.g. USD, EUR. All currently active currency codes in ISO 4217 format. Updatable only when sales
-     * order status is NOT_SHIPPED or PENDING.
-     */
-    currency?: string;
-    /**
-     * Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with 422.
-     */
-    conversion_rate?: number;
-    /**
-     * Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with 422.
-     */
-    conversion_date?: string;
-    /**
-     * Additional notes or instructions for the sales order
-     */
-    additional_info?: string | null;
-    /**
-     * Customer's reference number or purchase order number
-     */
-    customer_ref?: string | null;
-    /**
-     * Shipping carrier tracking number for package tracking
-     */
-    tracking_number?: string | null;
-    /**
-     * URL link to track the shipment on carrier website
-     */
-    tracking_number_url?: string | null;
-  };
+  body: UpdateSalesOrderRequest;
   path: {
     /**
      * Resource identifier
@@ -13562,32 +14080,7 @@ export type GetSalesOrderReturnableItemsResponses = {
   /**
    * List of returnable items
    */
-  200: Array<{
-    /**
-     * Product variant ID
-     */
-    variant_id: number;
-    /**
-     * Fulfillment row ID
-     */
-    fulfillment_row_id: number;
-    /**
-     * Quantity available for return
-     */
-    available_for_return_quantity: string;
-    /**
-     * Net price per unit
-     */
-    net_price_per_unit: string;
-    /**
-     * Location ID
-     */
-    location_id: number;
-    /**
-     * Total quantity sold
-     */
-    quantity_sold: string;
-  }>;
+  200: Array<ReturnableItem>;
 };
 
 export type GetSalesOrderReturnableItemsResponse =
@@ -14263,49 +14756,7 @@ export type CreateStockTransferData = {
   /**
    * Stock transfer details
    */
-  body: {
-    /**
-     * Unique stock transfer number for tracking
-     */
-    stock_transfer_number?: string;
-    /**
-     * Source location ID where items are transferred from
-     */
-    source_location_id: number;
-    /**
-     * Destination location ID where items are transferred to
-     */
-    target_location_id: number;
-    /**
-     * Date when the transfer was initiated
-     */
-    transfer_date?: string;
-    /**
-     * Date when the transfer order was created
-     */
-    order_created_date?: string;
-    /**
-     * Expected arrival date at destination
-     */
-    expected_arrival_date?: string;
-    /**
-     * Additional notes or information about the transfer
-     */
-    additional_info?: string;
-    /**
-     * Line items being transferred
-     */
-    stock_transfer_rows?: Array<{
-      /**
-       * Product variant ID
-       */
-      variant_id?: number;
-      /**
-       * Quantity to transfer
-       */
-      quantity?: number;
-    }>;
-  };
+  body: CreateStockTransferRequest;
   path?: never;
   query?: never;
   url: "/stock_transfers";
@@ -14395,28 +14846,7 @@ export type UpdateStockTransferData = {
   /**
    * Stock transfer update details
    */
-  body: {
-    /**
-     * Updated stock transfer number
-     */
-    stock_transfer_number?: string;
-    /**
-     * Updated transfer date
-     */
-    transfer_date?: string;
-    /**
-     * Updated order creation date
-     */
-    order_created_date?: string;
-    /**
-     * Updated expected arrival date
-     */
-    expected_arrival_date?: string;
-    /**
-     * Updated additional notes or information
-     */
-    additional_info?: string;
-  };
+  body: UpdateStockTransferRequest;
   path: {
     /**
      * Resource identifier
@@ -14471,12 +14901,7 @@ export type UpdateStockTransferStatusData = {
   /**
    * Status update details
    */
-  body: {
-    /**
-     * New status for the stock transfer
-     */
-    status: "pending" | "in_transit" | "completed" | "cancelled";
-  };
+  body: UpdateStockTransferStatusRequest;
   path: {
     /**
      * Resource identifier
@@ -15163,57 +15588,7 @@ export type CreateSalesOrderFulfillmentData = {
   /**
    * Sales order fulfillment details
    */
-  body: {
-    /**
-     * Sales order ID
-     */
-    sales_order_id: number;
-    /**
-     * Date when items were picked
-     */
-    picked_date?: string;
-    /**
-     * Fulfillment status
-     */
-    status?: string;
-    /**
-     * Currency conversion rate
-     */
-    conversion_rate?: number;
-    /**
-     * Date of currency conversion
-     */
-    conversion_date?: string;
-    /**
-     * Shipment tracking number
-     */
-    tracking_number?: string;
-    /**
-     * URL for tracking the shipment
-     */
-    tracking_url?: string;
-    /**
-     * Shipping carrier name
-     */
-    tracking_carrier?: string;
-    /**
-     * Shipping method used
-     */
-    tracking_method?: string;
-    /**
-     * Fulfillment row items
-     */
-    sales_order_fulfillment_rows?: Array<{
-      /**
-       * Sales order row ID
-       */
-      sales_order_row_id?: number;
-      /**
-       * Quantity to fulfill
-       */
-      quantity?: number;
-    }>;
-  };
+  body: CreateSalesOrderFulfillmentRequest;
   path?: never;
   query?: never;
   url: "/sales_order_fulfillments";
@@ -15347,44 +15722,7 @@ export type UpdateSalesOrderFulfillmentData = {
   /**
    * Sales order fulfillment update details
    */
-  body: {
-    /**
-     * Date when items were picked
-     */
-    picked_date?: string;
-    /**
-     * Fulfillment status
-     */
-    status?: string;
-    /**
-     * Currency conversion rate
-     */
-    conversion_rate?: number;
-    /**
-     * ID of the packer who packed the order
-     */
-    packer_id?: number;
-    /**
-     * Date of currency conversion
-     */
-    conversion_date?: string;
-    /**
-     * Shipment tracking number
-     */
-    tracking_number?: string;
-    /**
-     * URL for tracking the shipment
-     */
-    tracking_url?: string;
-    /**
-     * Shipping carrier name
-     */
-    tracking_carrier?: string;
-    /**
-     * Shipping method used
-     */
-    tracking_method?: string;
-  };
+  body: UpdateSalesOrderFulfillmentRequest;
   path: {
     /**
      * Resource identifier
@@ -15641,18 +15979,7 @@ export type UpdateCustomerAddressData = {
   /**
    * Customer address update details
    */
-  body: {
-    first_name?: string | null;
-    last_name?: string | null;
-    company?: string | null;
-    phone?: string | null;
-    line_1?: string | null;
-    line_2?: string | null;
-    city?: string | null;
-    state?: string | null;
-    zip?: string | null;
-    country?: string | null;
-  };
+  body: UpdateCustomerAddressRequest;
   path: {
     /**
      * Resource identifier
@@ -17215,26 +17542,7 @@ export type CreateSerialNumbersData = {
   /**
    * Serial number creation details
    */
-  body: {
-    /**
-     * Resource type
-     */
-    resource_type:
-      | "ManufacturingOrder"
-      | "Production"
-      | "StockAdjustmentRow"
-      | "StockTransferRow"
-      | "PurchaseOrderRow"
-      | "SalesOrderRow";
-    /**
-     * Resource ID
-     */
-    resource_id: number;
-    /**
-     * List of serial numbers to create
-     */
-    serial_numbers: Array<string>;
-  };
+  body: CreateSerialNumbersRequest;
   path?: never;
   query?: never;
   url: "/serial_numbers";
@@ -17435,20 +17743,7 @@ export type CreateInventoryReorderPointData = {
   /**
    * Inventory reorder point details
    */
-  body: {
-    /**
-     * Product variant ID
-     */
-    variant_id: number;
-    /**
-     * Location ID
-     */
-    location_id: number;
-    /**
-     * Minimum stock level that triggers reorder
-     */
-    value: number;
-  };
+  body: CreateInventoryReorderPointRequest;
   path?: never;
   query?: never;
   url: "/inventory_reorder_points";
@@ -17574,37 +17869,7 @@ export type CreateOutsourcedPurchaseOrderRecipeRowData = {
   /**
    * Outsourced purchase order recipe row details
    */
-  body: {
-    /**
-     * Purchase order row ID
-     */
-    purchase_order_row_id: number;
-    /**
-     * Ingredient variant ID
-     */
-    ingredient_variant_id: number;
-    /**
-     * Planned quantity per unit of production
-     */
-    planned_quantity_per_unit: number;
-    /**
-     * Additional notes about this ingredient requirement
-     */
-    notes?: string;
-    /**
-     * Batch allocation transactions for this ingredient
-     */
-    batch_transactions?: Array<{
-      /**
-       * Batch ID
-       */
-      batch_id?: number;
-      /**
-       * Quantity
-       */
-      quantity?: number;
-    }>;
-  };
+  body: CreateOutsourcedPurchaseOrderRecipeRowRequest;
   path?: never;
   query?: never;
   url: "/outsourced_purchase_order_recipe_rows";
@@ -17738,33 +18003,7 @@ export type UpdateOutsourcedPurchaseOrderRecipeRowData = {
   /**
    * Outsourced purchase order recipe row update details
    */
-  body: {
-    /**
-     * Ingredient variant ID. Updatable only when received_date is null.
-     */
-    ingredient_variant_id?: number;
-    /**
-     * Planned quantity per unit. Updatable only when received_date is null.
-     */
-    planned_quantity_per_unit?: number;
-    /**
-     * Additional notes about this ingredient requirement
-     */
-    notes?: string;
-    /**
-     * Batch allocation transactions for this ingredient
-     */
-    batch_transactions?: Array<{
-      /**
-       * Batch ID
-       */
-      batch_id?: number;
-      /**
-       * Quantity
-       */
-      quantity?: number;
-    }>;
-  };
+  body: UpdateOutsourcedPurchaseOrderRecipeRowRequest;
   path: {
     /**
      * Resource identifier
@@ -17936,9 +18175,7 @@ export type GetAllProductOperationRowsResponses = {
   /**
    * List of product operation rows
    */
-  200: {
-    data?: Array<ProductOperationRow>;
-  };
+  200: ProductOperationRowListResponse;
 };
 
 export type GetAllProductOperationRowsResponse =
@@ -17948,82 +18185,7 @@ export type CreateProductOperationRowsData = {
   /**
    * New product operation row details
    */
-  body: {
-    /**
-     * Existing production operation lines are kept by default,
-     * and new lines will be added after the existing product operations.
-     * Set to false to delete all existing product operation lines for related products.
-     */
-    keep_current_rows?: boolean;
-    rows: Array<{
-      product_variant_id: number;
-      /**
-       * If operation ID is used to map the operation, then operation_name is ignored.
-       */
-      operation_id?: number;
-      /**
-       * If operation name is used to map the operation then,
-       * we match to the existing operations by name. If a match is not found, a new one is created.
-       */
-      operation_name?: string;
-      /**
-       * If resource ID is used to map the resource, then resource_name is ignored.
-       */
-      resource_id?: number;
-      /**
-       * If resource name is used to map the resource then we match to the existing resources by name.
-       * If a match is not found, a new one is created.
-       */
-      resource_name?: string;
-      /**
-       * Different operation types allows you to use different cost
-       * calculations depending on the type of product operation
-       * Process: The process operation type is best for when products
-       * are individually built and time is the main driver of cost.
-       * Setup: The setup operation type is best for setting up a
-       * machine for production where the production quantity doesn't
-       * affect cost.
-       * Per unit: The per unit operation type is best when cost of
-       * time isn't a factor, but only the quantity of product made.
-       * Fixed cost: The fixed cost operation type is useful for adding
-       * the expected extra costs that go into producing a product.
-       */
-      type?: "process" | "setup" | "perUnit" | "fixed";
-      /**
-       * The expected cost of an operation, either total or per hour/unit of product (based on type).
-       * Total cost of the operation on a manufacturing order is calculated as follows:
-       * process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
-       * setup: cost = cost_parameter x planned_time_parameter (in
-       * hours)
-       * perUnit: cost = cost_parameter x product quantity
-       * fixed: cost = cost_parameter
-       */
-      cost_parameter?: number;
-      /**
-       * (This field is deprecated in favor of cost_parameter) The expected cost of an
-       * operation, either total or per hour/unit of product (based on type). Total cost
-       * of the operation on a manufacturing order is calculated as follows:
-       * process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
-       * setup: cost = cost_parameter x planned_time_parameter (in
-       * hours)
-       * perUnit: cost = cost_parameter x product quantity
-       * fixed: cost = cost_parameter
-       *
-       * @deprecated
-       */
-      cost_per_hour?: number;
-      /**
-       * The planned duration of an operation, in seconds, to either manufacture one unit of a product or complete a manufacturing order (based on type).
-       */
-      planned_time_parameter?: number;
-      /**
-       * (This field is deprecated in favor of planned_time_parameter) The planned duration of an operation, in seconds, to either manufacture one unit of a product or complete a manufacturing order (based on type).
-       *
-       * @deprecated
-       */
-      planned_time_per_unit?: number;
-    }>;
-  };
+  body: CreateProductOperationRowsRequest;
   path?: never;
   query?: never;
   url: "/product_operation_rows";
@@ -18109,44 +18271,7 @@ export type UpdateProductOperationRowData = {
   /**
    * Product operation row update details
    */
-  body: {
-    /**
-     * ID of the operation
-     */
-    operation_id?: number;
-    /**
-     * Name of the operation
-     */
-    operation_name?: string;
-    /**
-     * Type of operation
-     */
-    type?: string;
-    /**
-     * ID of the resource performing the operation
-     */
-    resource_id?: number;
-    /**
-     * Name of the resource
-     */
-    resource_name?: string;
-    /**
-     * Parameter for calculating planned time
-     */
-    planned_time_parameter?: number;
-    /**
-     * Planned time per unit
-     */
-    planned_time_per_unit?: number;
-    /**
-     * Parameter for calculating cost
-     */
-    cost_parameter?: number;
-    /**
-     * Hourly cost rate
-     */
-    cost_per_hour?: number;
-  };
+  body: UpdateProductOperationRowRequest;
   path: {
     /**
      * Resource identifier
@@ -18191,28 +18316,7 @@ export type UpdateProductOperationRowResponses = {
   /**
    * Product operation row updated successfully
    */
-  200: {
-    /**
-     * Product operation row ID
-     */
-    id?: number;
-    /**
-     * Product ID
-     */
-    product_id?: number;
-    /**
-     * Operation ID
-     */
-    operation_id?: number;
-    /**
-     * Operation sequence
-     */
-    sequence?: number;
-    /**
-     * Operation notes
-     */
-    notes?: string;
-  };
+  200: ProductOperationRow;
 };
 
 export type UpdateProductOperationRowResponse =
@@ -18476,20 +18580,7 @@ export type UpdateSalesOrderShippingFeeData = {
   /**
    * Shipping fee update details
    */
-  body: {
-    /**
-     * Shipping fee description
-     */
-    description?: string;
-    /**
-     * Shipping fee amount
-     */
-    amount?: number;
-    /**
-     * ID of the tax rate to apply to the shipping fee
-     */
-    tax_rate_id?: number;
-  };
+  body: UpdateSalesOrderShippingFeeRequest;
   path: {
     /**
      * Resource identifier

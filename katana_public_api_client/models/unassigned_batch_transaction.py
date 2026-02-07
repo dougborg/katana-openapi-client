@@ -10,44 +10,62 @@ from attrs import (
 
 from ..client_types import UNSET, Unset
 
-T = TypeVar("T", bound="CreateSalesOrderFulfillmentBodySalesOrderFulfillmentRowsItem")
+T = TypeVar("T", bound="UnassignedBatchTransaction")
 
 
 @_attrs_define
-class CreateSalesOrderFulfillmentBodySalesOrderFulfillmentRowsItem:
-    sales_order_row_id: int | Unset = UNSET
+class UnassignedBatchTransaction:
+    """A batch transaction not yet assigned to a sales return row"""
+
+    id: int | Unset = UNSET
+    batch_id: int | Unset = UNSET
     quantity: float | Unset = UNSET
+    status: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        sales_order_row_id = self.sales_order_row_id
+        id = self.id
+
+        batch_id = self.batch_id
 
         quantity = self.quantity
+
+        status = self.status
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
-        if sales_order_row_id is not UNSET:
-            field_dict["sales_order_row_id"] = sales_order_row_id
+        if id is not UNSET:
+            field_dict["id"] = id
+        if batch_id is not UNSET:
+            field_dict["batch_id"] = batch_id
         if quantity is not UNSET:
             field_dict["quantity"] = quantity
+        if status is not UNSET:
+            field_dict["status"] = status
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        sales_order_row_id = d.pop("sales_order_row_id", UNSET)
+        id = d.pop("id", UNSET)
+
+        batch_id = d.pop("batch_id", UNSET)
 
         quantity = d.pop("quantity", UNSET)
 
-        create_sales_order_fulfillment_body_sales_order_fulfillment_rows_item = cls(
-            sales_order_row_id=sales_order_row_id,
+        status = d.pop("status", UNSET)
+
+        unassigned_batch_transaction = cls(
+            id=id,
+            batch_id=batch_id,
             quantity=quantity,
+            status=status,
         )
 
-        create_sales_order_fulfillment_body_sales_order_fulfillment_rows_item.additional_properties = d
-        return create_sales_order_fulfillment_body_sales_order_fulfillment_rows_item
+        unassigned_batch_transaction.additional_properties = d
+        return unassigned_batch_transaction
 
     @property
     def additional_keys(self) -> list[str]:

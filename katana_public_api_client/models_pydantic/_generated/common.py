@@ -136,16 +136,6 @@ class Status3(StrEnum):
     paused = "PAUSED"
 
 
-class ResourceType1(StrEnum):
-    manufacturing_order = "ManufacturingOrder"
-    production = "Production"
-    stock_adjustment_row = "StockAdjustmentRow"
-    stock_transfer_row = "StockTransferRow"
-    purchase_order_row = "PurchaseOrderRow"
-    sales_order_row = "SalesOrderRow"
-    sales_order_fulfillment_row = "SalesOrderFulfillmentRow"
-
-
 class Type3(StrEnum):
     material = "material"
 
@@ -1025,6 +1015,44 @@ class IntegrationType(StrEnum):
     quick_books = "quickBooks"
     sage = "sage"
     custom = "custom"
+
+
+class Type7(StrEnum):
+    process = "process"
+    setup = "setup"
+    per_unit = "perUnit"
+    fixed = "fixed"
+
+
+class Status14(StrEnum):
+    not_shipped = "NOT_SHIPPED"
+    pending = "PENDING"
+    packed = "PACKED"
+    delivered = "DELIVERED"
+
+
+class ResourceType3(StrEnum):
+    manufacturing_order = "ManufacturingOrder"
+    production = "Production"
+    stock_adjustment_row = "StockAdjustmentRow"
+    stock_transfer_row = "StockTransferRow"
+    purchase_order_row = "PurchaseOrderRow"
+    sales_order_row = "SalesOrderRow"
+
+
+class Status15(StrEnum):
+    pending = "pending"
+    in_transit = "in_transit"
+    completed = "completed"
+    cancelled = "cancelled"
+
+
+class LocationListResponse(KatanaPydanticBase):
+    data: list[Location1 | DeletableEntity] | None = None
+
+
+class ProductOperationRowListResponse(KatanaPydanticBase):
+    data: list[ProductOperationRow] | None = None
 
 
 class OperatorListResponse(KatanaPydanticBase):

@@ -497,6 +497,19 @@ class PriceListCustomerListResponse(KatanaPydanticBase):
     ] = None
 
 
+class UpdateCustomerAddressRequest(KatanaPydanticBase):
+    first_name: str | None = None
+    last_name: str | None = None
+    company: str | None = None
+    phone: str | None = None
+    line_1: str | None = None
+    line_2: str | None = None
+    city: str | None = None
+    state: str | None = None
+    zip: str | None = None
+    country: str | None = None
+
+
 class CreateSupplierRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",

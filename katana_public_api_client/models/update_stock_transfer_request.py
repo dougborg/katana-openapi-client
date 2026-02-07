@@ -9,11 +9,13 @@ from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
-T = TypeVar("T", bound="UpdateStockTransferBody")
+T = TypeVar("T", bound="UpdateStockTransferRequest")
 
 
 @_attrs_define
-class UpdateStockTransferBody:
+class UpdateStockTransferRequest:
+    """Request payload for updating a stock transfer"""
+
     stock_transfer_number: str | Unset = UNSET
     transfer_date: datetime.datetime | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
@@ -81,7 +83,7 @@ class UpdateStockTransferBody:
 
         additional_info = d.pop("additional_info", UNSET)
 
-        update_stock_transfer_body = cls(
+        update_stock_transfer_request = cls(
             stock_transfer_number=stock_transfer_number,
             transfer_date=transfer_date,
             order_created_date=order_created_date,
@@ -89,4 +91,4 @@ class UpdateStockTransferBody:
             additional_info=additional_info,
         )
 
-        return update_stock_transfer_body
+        return update_stock_transfer_request

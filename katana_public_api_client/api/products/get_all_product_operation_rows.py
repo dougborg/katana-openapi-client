@@ -8,8 +8,8 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
-from ...models.get_all_product_operation_rows_response_200 import (
-    GetAllProductOperationRowsResponse200,
+from ...models.product_operation_row_list_response import (
+    ProductOperationRowListResponse,
 )
 
 
@@ -82,9 +82,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | GetAllProductOperationRowsResponse200 | None:
+) -> ErrorResponse | ProductOperationRowListResponse | None:
     if response.status_code == 200:
-        response_200 = GetAllProductOperationRowsResponse200.from_dict(response.json())
+        response_200 = ProductOperationRowListResponse.from_dict(response.json())
 
         return response_200
 
@@ -111,7 +111,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | GetAllProductOperationRowsResponse200]:
+) -> Response[ErrorResponse | ProductOperationRowListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -136,7 +136,7 @@ def sync_detailed(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
-) -> Response[ErrorResponse | GetAllProductOperationRowsResponse200]:
+) -> Response[ErrorResponse | ProductOperationRowListResponse]:
     """List product operation rows
 
      Returns a list of product operation rows.
@@ -162,7 +162,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[ErrorResponse | GetAllProductOperationRowsResponse200]
+        Response[ErrorResponse | ProductOperationRowListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -204,7 +204,7 @@ def sync(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
-) -> ErrorResponse | GetAllProductOperationRowsResponse200 | None:
+) -> ErrorResponse | ProductOperationRowListResponse | None:
     """List product operation rows
 
      Returns a list of product operation rows.
@@ -230,7 +230,7 @@ def sync(
 
 
     Returns:
-        ErrorResponse | GetAllProductOperationRowsResponse200
+        ErrorResponse | ProductOperationRowListResponse
     """
 
     return sync_detailed(
@@ -267,7 +267,7 @@ async def asyncio_detailed(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
-) -> Response[ErrorResponse | GetAllProductOperationRowsResponse200]:
+) -> Response[ErrorResponse | ProductOperationRowListResponse]:
     """List product operation rows
 
      Returns a list of product operation rows.
@@ -293,7 +293,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[ErrorResponse | GetAllProductOperationRowsResponse200]
+        Response[ErrorResponse | ProductOperationRowListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -333,7 +333,7 @@ async def asyncio(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
-) -> ErrorResponse | GetAllProductOperationRowsResponse200 | None:
+) -> ErrorResponse | ProductOperationRowListResponse | None:
     """List product operation rows
 
      Returns a list of product operation rows.
@@ -359,7 +359,7 @@ async def asyncio(
 
 
     Returns:
-        ErrorResponse | GetAllProductOperationRowsResponse200
+        ErrorResponse | ProductOperationRowListResponse
     """
 
     return (

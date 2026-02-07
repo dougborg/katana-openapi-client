@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class UpdateStockTransferStatusBodyStatus(str, Enum):
+class UpdateStockTransferStatusRequestStatus(str, Enum):
     CANCELLED = "cancelled"
     COMPLETED = "completed"
     IN_TRANSIT = "in_transit"

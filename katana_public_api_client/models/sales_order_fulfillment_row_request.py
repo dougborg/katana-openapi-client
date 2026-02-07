@@ -8,45 +8,48 @@ from attrs import (
     field as _attrs_field,
 )
 
-T = TypeVar("T", bound="GetSalesReturnReasonsResponse200Item")
+from ..client_types import UNSET, Unset
+
+T = TypeVar("T", bound="SalesOrderFulfillmentRowRequest")
 
 
 @_attrs_define
-class GetSalesReturnReasonsResponse200Item:
-    id: int
-    name: str
+class SalesOrderFulfillmentRowRequest:
+    """A fulfillment row item specifying which order row and quantity to fulfill"""
+
+    sales_order_row_id: int | Unset = UNSET
+    quantity: float | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        id = self.id
+        sales_order_row_id = self.sales_order_row_id
 
-        name = self.name
+        quantity = self.quantity
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "id": id,
-                "name": name,
-            }
-        )
+        field_dict.update({})
+        if sales_order_row_id is not UNSET:
+            field_dict["sales_order_row_id"] = sales_order_row_id
+        if quantity is not UNSET:
+            field_dict["quantity"] = quantity
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        id = d.pop("id")
+        sales_order_row_id = d.pop("sales_order_row_id", UNSET)
 
-        name = d.pop("name")
+        quantity = d.pop("quantity", UNSET)
 
-        get_sales_return_reasons_response_200_item = cls(
-            id=id,
-            name=name,
+        sales_order_fulfillment_row_request = cls(
+            sales_order_row_id=sales_order_row_id,
+            quantity=quantity,
         )
 
-        get_sales_return_reasons_response_200_item.additional_properties = d
-        return get_sales_return_reasons_response_200_item
+        sales_order_fulfillment_row_request.additional_properties = d
+        return sales_order_fulfillment_row_request
 
     @property
     def additional_keys(self) -> list[str]:

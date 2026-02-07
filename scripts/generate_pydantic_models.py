@@ -95,6 +95,7 @@ DOMAIN_GROUPS: dict[str, list[str]] = {
         "CreateMaterial*",
         "CreateVariant*",
         "CreateService*",
+        "CreateInventoryReorderPointRequest",
         "UpdateProduct*",
         "UpdateMaterial*",
         "UpdateVariant*",
@@ -107,6 +108,8 @@ DOMAIN_GROUPS: dict[str, list[str]] = {
         "StorageBin*",
         "NegativeStock*",
         "SerialNumber*",
+        "ResourceType1",  # Enum for CreateSerialNumbersRequest - must be co-located
+        "CreateSerial*",
         "CreateStock*",
         "CreateStocktake*",
         "UpdateStock*",
@@ -117,11 +120,16 @@ DOMAIN_GROUPS: dict[str, list[str]] = {
         "OutsourcedPurchaseOrder*",
         "RegularPurchaseOrder*",
         "CreatePurchaseOrder*",
+        "CreateOutsourcedPurchaseOrder*",
         "UpdatePurchaseOrder*",
+        "UpdateOutsourcedPurchaseOrder*",
     ],
     "sales_orders": [
         "SalesOrder*",
         "SalesReturn*",
+        "ReturnableItem",
+        "UnassignedBatchTransaction",
+        "UnassignedBatchTransactionListResponse",
         "CreateSalesOrder*",
         "CreateSalesReturn*",
         "UpdateSalesOrder*",
@@ -140,6 +148,7 @@ DOMAIN_GROUPS: dict[str, list[str]] = {
         "BatchCreateBomRowsRequest",  # Uses CreateBomRowRequest from manufacturing
         "UpdateManufacturing*",
         "UpdateBom*",
+        "UpdateRecipeRowRequest",
         "UnlinkManufacturing*",
     ],
     "contacts": [

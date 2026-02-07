@@ -15,11 +15,13 @@ if TYPE_CHECKING:
     from ..models.location_type_0 import LocationType0
 
 
-T = TypeVar("T", bound="GetAllLocationsResponse200")
+T = TypeVar("T", bound="LocationListResponse")
 
 
 @_attrs_define
-class GetAllLocationsResponse200:
+class LocationListResponse:
+    """Response containing a list of locations"""
+
     data: list[DeletableEntity | LocationType0] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -81,12 +83,12 @@ class GetAllLocationsResponse200:
 
                 data.append(data_item)
 
-        get_all_locations_response_200 = cls(
+        location_list_response = cls(
             data=data,
         )
 
-        get_all_locations_response_200.additional_properties = d
-        return get_all_locations_response_200
+        location_list_response.additional_properties = d
+        return location_list_response
 
     @property
     def additional_keys(self) -> list[str]:

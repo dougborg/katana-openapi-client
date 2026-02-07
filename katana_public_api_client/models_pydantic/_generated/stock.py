@@ -8,6 +8,7 @@ To regenerate, run:
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Annotated
 
 from pydantic import AwareDatetime, ConfigDict, Field
@@ -16,8 +17,9 @@ from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
 from .base import DeletableEntity, UpdatableEntity
 from .common import (
-    ResourceType1,
+    ResourceType3,
     Status10,
+    Status15,
     Transaction,
 )
 
@@ -160,6 +162,16 @@ class BatchTransaction3(KatanaPydanticBase):
     quantity: Annotated[
         float | None, Field(description="Quantity consumed from this batch")
     ] = None
+
+
+class ResourceType1(StrEnum):
+    manufacturing_order = "ManufacturingOrder"
+    production = "Production"
+    stock_adjustment_row = "StockAdjustmentRow"
+    stock_transfer_row = "StockTransferRow"
+    purchase_order_row = "PurchaseOrderRow"
+    sales_order_row = "SalesOrderRow"
+    sales_order_fulfillment_row = "SalesOrderFulfillmentRow"
 
 
 class SerialNumber(KatanaPydanticBase):
@@ -723,6 +735,91 @@ class UpdateStocktakeRowRequest(KatanaPydanticBase):
 class BatchTransaction10(KatanaPydanticBase):
     batch_id: int | None = None
     quantity: float | None = None
+
+
+class BatchTransactionRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    batch_id: Annotated[int, Field(description="Batch ID")]
+    quantity: Annotated[float, Field(description="Quantity")]
+
+
+class CreateSerialNumbersRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    resource_type: Annotated[ResourceType3, Field(description="Resource type")]
+    resource_id: Annotated[int, Field(description="Resource ID")]
+    serial_numbers: Annotated[
+        list[str], Field(description="List of serial numbers to create")
+    ]
+
+
+class StockTransferRowRequest(KatanaPydanticBase):
+    variant_id: Annotated[int | None, Field(description="Product variant ID")] = None
+    quantity: Annotated[float | None, Field(description="Quantity to transfer")] = None
+
+
+class CreateStockTransferRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    stock_transfer_number: Annotated[
+        str | None, Field(description="Unique stock transfer number for tracking")
+    ] = None
+    source_location_id: Annotated[
+        int, Field(description="Source location ID where items are transferred from")
+    ]
+    target_location_id: Annotated[
+        int, Field(description="Destination location ID where items are transferred to")
+    ]
+    transfer_date: Annotated[
+        AwareDatetime | None, Field(description="Date when the transfer was initiated")
+    ] = None
+    order_created_date: Annotated[
+        AwareDatetime | None,
+        Field(description="Date when the transfer order was created"),
+    ] = None
+    expected_arrival_date: Annotated[
+        AwareDatetime | None, Field(description="Expected arrival date at destination")
+    ] = None
+    additional_info: Annotated[
+        str | None,
+        Field(description="Additional notes or information about the transfer"),
+    ] = None
+    stock_transfer_rows: Annotated[
+        list[StockTransferRowRequest] | None,
+        Field(description="Line items being transferred"),
+    ] = None
+
+
+class UpdateStockTransferRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    stock_transfer_number: Annotated[
+        str | None, Field(description="Updated stock transfer number")
+    ] = None
+    transfer_date: Annotated[
+        AwareDatetime | None, Field(description="Updated transfer date")
+    ] = None
+    order_created_date: Annotated[
+        AwareDatetime | None, Field(description="Updated order creation date")
+    ] = None
+    expected_arrival_date: Annotated[
+        AwareDatetime | None, Field(description="Updated expected arrival date")
+    ] = None
+    additional_info: Annotated[
+        str | None, Field(description="Updated additional notes or information")
+    ] = None
+
+
+class UpdateStockTransferStatusRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    status: Annotated[Status15, Field(description="New status for the stock transfer")]
 
 
 class StockTransfer(DeletableEntity):

@@ -10,15 +10,15 @@ from ...client_types import Response
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.sales_order_shipping_fee import SalesOrderShippingFee
-from ...models.update_sales_order_shipping_fee_body import (
-    UpdateSalesOrderShippingFeeBody,
+from ...models.update_sales_order_shipping_fee_request import (
+    UpdateSalesOrderShippingFeeRequest,
 )
 
 
 def _get_kwargs(
     id: int,
     *,
-    body: UpdateSalesOrderShippingFeeBody,
+    body: UpdateSalesOrderShippingFeeRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -96,7 +96,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateSalesOrderShippingFeeBody,
+    body: UpdateSalesOrderShippingFeeRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee]:
     """Update a sales order shipping fee
 
@@ -104,7 +104,8 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateSalesOrderShippingFeeBody):
+        body (UpdateSalesOrderShippingFeeRequest): Request payload for updating a sales order
+            shipping fee
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -131,7 +132,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateSalesOrderShippingFeeBody,
+    body: UpdateSalesOrderShippingFeeRequest,
 ) -> DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee | None:
     """Update a sales order shipping fee
 
@@ -139,7 +140,8 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateSalesOrderShippingFeeBody):
+        body (UpdateSalesOrderShippingFeeRequest): Request payload for updating a sales order
+            shipping fee
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -161,7 +163,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateSalesOrderShippingFeeBody,
+    body: UpdateSalesOrderShippingFeeRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee]:
     """Update a sales order shipping fee
 
@@ -169,7 +171,8 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateSalesOrderShippingFeeBody):
+        body (UpdateSalesOrderShippingFeeRequest): Request payload for updating a sales order
+            shipping fee
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -194,7 +197,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateSalesOrderShippingFeeBody,
+    body: UpdateSalesOrderShippingFeeRequest,
 ) -> DetailedErrorResponse | ErrorResponse | SalesOrderShippingFee | None:
     """Update a sales order shipping fee
 
@@ -202,7 +205,8 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateSalesOrderShippingFeeBody):
+        body (UpdateSalesOrderShippingFeeRequest): Request payload for updating a sales order
+            shipping fee
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

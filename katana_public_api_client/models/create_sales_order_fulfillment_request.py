@@ -10,16 +10,18 @@ from dateutil.parser import isoparse
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.create_sales_order_fulfillment_body_sales_order_fulfillment_rows_item import (
-        CreateSalesOrderFulfillmentBodySalesOrderFulfillmentRowsItem,
+    from ..models.sales_order_fulfillment_row_request import (
+        SalesOrderFulfillmentRowRequest,
     )
 
 
-T = TypeVar("T", bound="CreateSalesOrderFulfillmentBody")
+T = TypeVar("T", bound="CreateSalesOrderFulfillmentRequest")
 
 
 @_attrs_define
-class CreateSalesOrderFulfillmentBody:
+class CreateSalesOrderFulfillmentRequest:
+    """Request payload for creating a new sales order fulfillment"""
+
     sales_order_id: int
     picked_date: datetime.datetime | Unset = UNSET
     status: str | Unset = UNSET
@@ -29,9 +31,7 @@ class CreateSalesOrderFulfillmentBody:
     tracking_url: str | Unset = UNSET
     tracking_carrier: str | Unset = UNSET
     tracking_method: str | Unset = UNSET
-    sales_order_fulfillment_rows: (
-        list[CreateSalesOrderFulfillmentBodySalesOrderFulfillmentRowsItem] | Unset
-    ) = UNSET
+    sales_order_fulfillment_rows: list[SalesOrderFulfillmentRowRequest] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         sales_order_id = self.sales_order_id
@@ -97,8 +97,8 @@ class CreateSalesOrderFulfillmentBody:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.create_sales_order_fulfillment_body_sales_order_fulfillment_rows_item import (
-            CreateSalesOrderFulfillmentBodySalesOrderFulfillmentRowsItem,
+        from ..models.sales_order_fulfillment_row_request import (
+            SalesOrderFulfillmentRowRequest,
         )
 
         d = dict(src_dict)
@@ -131,19 +131,21 @@ class CreateSalesOrderFulfillmentBody:
         tracking_method = d.pop("tracking_method", UNSET)
 
         _sales_order_fulfillment_rows = d.pop("sales_order_fulfillment_rows", UNSET)
-        sales_order_fulfillment_rows: (
-            list[CreateSalesOrderFulfillmentBodySalesOrderFulfillmentRowsItem] | Unset
-        ) = UNSET
+        sales_order_fulfillment_rows: list[SalesOrderFulfillmentRowRequest] | Unset = (
+            UNSET
+        )
         if _sales_order_fulfillment_rows is not UNSET:
             sales_order_fulfillment_rows = []
             for sales_order_fulfillment_rows_item_data in _sales_order_fulfillment_rows:
-                sales_order_fulfillment_rows_item = CreateSalesOrderFulfillmentBodySalesOrderFulfillmentRowsItem.from_dict(
-                    sales_order_fulfillment_rows_item_data
+                sales_order_fulfillment_rows_item = (
+                    SalesOrderFulfillmentRowRequest.from_dict(
+                        sales_order_fulfillment_rows_item_data
+                    )
                 )
 
                 sales_order_fulfillment_rows.append(sales_order_fulfillment_rows_item)
 
-        create_sales_order_fulfillment_body = cls(
+        create_sales_order_fulfillment_request = cls(
             sales_order_id=sales_order_id,
             picked_date=picked_date,
             status=status,
@@ -156,4 +158,4 @@ class CreateSalesOrderFulfillmentBody:
             sales_order_fulfillment_rows=sales_order_fulfillment_rows,
         )
 
-        return create_sales_order_fulfillment_body
+        return create_sales_order_fulfillment_request

@@ -40,6 +40,7 @@ from .common import (
     Type,
     Type1,
     Type5,
+    Type7,
 )
 from .contacts import Supplier, SupplierItemCode
 
@@ -876,6 +877,134 @@ class UpdateServiceRequest(KatanaPydanticBase):
             le=2147483647,
         ),
     ] = None
+
+
+class CreateInventoryReorderPointRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    variant_id: Annotated[int, Field(description="Product variant ID")]
+    location_id: Annotated[int, Field(description="Location ID")]
+    value: Annotated[
+        float, Field(description="Minimum stock level that triggers reorder", ge=0.0)
+    ]
+
+
+class CreateProductOperationRowItem(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    product_variant_id: Annotated[float, Field(ge=1.0, le=2147483647.0)]
+    operation_id: Annotated[
+        int | None,
+        Field(
+            description="If operation ID is used to map the operation, then operation_name is ignored.",
+            ge=1,
+            le=2147483647,
+        ),
+    ] = None
+    operation_name: Annotated[
+        str | None,
+        Field(
+            description="If operation name is used to map the operation then,\nwe match to the existing operations by name. If a match is not found, a new one is created."
+        ),
+    ] = None
+    resource_id: Annotated[
+        int | None,
+        Field(
+            description="If resource ID is used to map the resource, then resource_name is ignored.",
+            ge=1,
+            le=2147483647,
+        ),
+    ] = None
+    resource_name: Annotated[
+        str | None,
+        Field(
+            description="If resource name is used to map the resource then we match to the existing resources by name.\nIf a match is not found, a new one is created."
+        ),
+    ] = None
+    type: Annotated[
+        Type7 | None,
+        Field(
+            description="Different operation types allows you to use different cost\ncalculations depending on the type of product operation\nProcess: The process operation type is best for when products\nare individually built and time is the main driver of cost.\nSetup: The setup operation type is best for setting up a\nmachine for production where the production quantity doesn't\naffect cost.\nPer unit: The per unit operation type is best when cost of\ntime isn't a factor, but only the quantity of product made.\nFixed cost: The fixed cost operation type is useful for adding\nthe expected extra costs that go into producing a product."
+        ),
+    ] = Type7.process
+    cost_parameter: Annotated[
+        float | None,
+        Field(
+            description="The expected cost of an operation, either total or per hour/unit of product (based on type).\nTotal cost of the operation on a manufacturing order is calculated as follows:\nprocess: cost = cost_parameter x planned_time_parameter (in hours) x product quantity\nsetup: cost = cost_parameter x planned_time_parameter (in\nhours)\nperUnit: cost = cost_parameter x product quantity\nfixed: cost = cost_parameter",
+            ge=0.0,
+            le=1e18,
+        ),
+    ] = None
+    cost_per_hour: Annotated[
+        float | None,
+        Field(
+            deprecated=True,
+            description="(This field is deprecated in favor of cost_parameter) The expected cost of an\noperation, either total or per hour/unit of product (based on type). Total cost\nof the operation on a manufacturing order is calculated as follows:\nprocess: cost = cost_parameter x planned_time_parameter (in hours) x product quantity\nsetup: cost = cost_parameter x planned_time_parameter (in\nhours)\nperUnit: cost = cost_parameter x product quantity\nfixed: cost = cost_parameter",
+            ge=0.0,
+            le=1e18,
+        ),
+    ] = None
+    planned_time_parameter: Annotated[
+        int | None,
+        Field(
+            description="The planned duration of an operation, in seconds, to either manufacture one unit of a product or complete a manufacturing order (based on type).",
+            ge=0,
+            le=2147483647,
+        ),
+    ] = None
+    planned_time_per_unit: Annotated[
+        int | None,
+        Field(
+            deprecated=True,
+            description="(This field is deprecated in favor of planned_time_parameter) The planned duration of an operation, in seconds, to either manufacture one unit of a product or complete a manufacturing order (based on type).",
+            ge=0,
+            le=2147483647,
+        ),
+    ] = None
+
+
+class CreateProductOperationRowsRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    keep_current_rows: Annotated[
+        bool | None,
+        Field(
+            description="Existing production operation lines are kept by default,\nand new lines will be added after the existing product operations.\nSet to false to delete all existing product operation lines for related products."
+        ),
+    ] = None
+    rows: Annotated[
+        list[CreateProductOperationRowItem], Field(max_length=150, min_length=1)
+    ]
+
+
+class UpdateProductOperationRowRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    operation_id: Annotated[int | None, Field(description="ID of the operation")] = None
+    operation_name: Annotated[
+        str | None, Field(description="Name of the operation")
+    ] = None
+    type: Annotated[str | None, Field(description="Type of operation")] = None
+    resource_id: Annotated[
+        int | None, Field(description="ID of the resource performing the operation")
+    ] = None
+    resource_name: Annotated[str | None, Field(description="Name of the resource")] = (
+        None
+    )
+    planned_time_parameter: Annotated[
+        float | None, Field(description="Parameter for calculating planned time")
+    ] = None
+    planned_time_per_unit: Annotated[
+        float | None, Field(description="Planned time per unit")
+    ] = None
+    cost_parameter: Annotated[
+        float | None, Field(description="Parameter for calculating cost")
+    ] = None
+    cost_per_hour: Annotated[float | None, Field(description="Hourly cost rate")] = None
 
 
 class CreateMaterialRequest(KatanaPydanticBase):

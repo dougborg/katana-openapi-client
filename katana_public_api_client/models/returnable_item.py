@@ -8,11 +8,13 @@ from attrs import (
     field as _attrs_field,
 )
 
-T = TypeVar("T", bound="GetSalesOrderReturnableItemsResponse200Item")
+T = TypeVar("T", bound="ReturnableItem")
 
 
 @_attrs_define
-class GetSalesOrderReturnableItemsResponse200Item:
+class ReturnableItem:
+    """An item from a sales order that is eligible for return"""
+
     variant_id: int
     fulfillment_row_id: int
     available_for_return_quantity: str
@@ -64,7 +66,7 @@ class GetSalesOrderReturnableItemsResponse200Item:
 
         quantity_sold = d.pop("quantity_sold")
 
-        get_sales_order_returnable_items_response_200_item = cls(
+        returnable_item = cls(
             variant_id=variant_id,
             fulfillment_row_id=fulfillment_row_id,
             available_for_return_quantity=available_for_return_quantity,
@@ -73,8 +75,8 @@ class GetSalesOrderReturnableItemsResponse200Item:
             quantity_sold=quantity_sold,
         )
 
-        get_sales_order_returnable_items_response_200_item.additional_properties = d
-        return get_sales_order_returnable_items_response_200_item
+        returnable_item.additional_properties = d
+        return returnable_item
 
     @property
     def additional_keys(self) -> list[str]:

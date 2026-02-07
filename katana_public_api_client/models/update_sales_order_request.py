@@ -8,20 +8,22 @@ from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.update_sales_order_body_status import UpdateSalesOrderBodyStatus
+from ..models.update_sales_order_request_status import UpdateSalesOrderRequestStatus
 
-T = TypeVar("T", bound="UpdateSalesOrderBody")
+T = TypeVar("T", bound="UpdateSalesOrderRequest")
 
 
 @_attrs_define
-class UpdateSalesOrderBody:
+class UpdateSalesOrderRequest:
+    """Request payload for updating a sales order"""
+
     order_no: str | Unset = UNSET
     customer_id: int | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
     delivery_date: datetime.datetime | Unset = UNSET
     picked_date: datetime.datetime | Unset = UNSET
     location_id: int | Unset = UNSET
-    status: UpdateSalesOrderBodyStatus | Unset = UNSET
+    status: UpdateSalesOrderRequestStatus | Unset = UNSET
     currency: str | Unset = UNSET
     conversion_rate: float | Unset = UNSET
     conversion_date: str | Unset = UNSET
@@ -148,11 +150,11 @@ class UpdateSalesOrderBody:
         location_id = d.pop("location_id", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: UpdateSalesOrderBodyStatus | Unset
+        status: UpdateSalesOrderRequestStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
-            status = UpdateSalesOrderBodyStatus(_status)
+            status = UpdateSalesOrderRequestStatus(_status)
 
         currency = d.pop("currency", UNSET)
 
@@ -198,7 +200,7 @@ class UpdateSalesOrderBody:
             d.pop("tracking_number_url", UNSET)
         )
 
-        update_sales_order_body = cls(
+        update_sales_order_request = cls(
             order_no=order_no,
             customer_id=customer_id,
             order_created_date=order_created_date,
@@ -215,4 +217,4 @@ class UpdateSalesOrderBody:
             tracking_number_url=tracking_number_url,
         )
 
-        return update_sales_order_body
+        return update_sales_order_request

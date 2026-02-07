@@ -12,15 +12,15 @@ from ...models.error_response import ErrorResponse
 from ...models.outsourced_purchase_order_recipe_row import (
     OutsourcedPurchaseOrderRecipeRow,
 )
-from ...models.update_outsourced_purchase_order_recipe_row_body import (
-    UpdateOutsourcedPurchaseOrderRecipeRowBody,
+from ...models.update_outsourced_purchase_order_recipe_row_request import (
+    UpdateOutsourcedPurchaseOrderRecipeRowRequest,
 )
 
 
 def _get_kwargs(
     id: int,
     *,
-    body: UpdateOutsourcedPurchaseOrderRecipeRowBody,
+    body: UpdateOutsourcedPurchaseOrderRecipeRowRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -98,7 +98,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateOutsourcedPurchaseOrderRecipeRowBody,
+    body: UpdateOutsourcedPurchaseOrderRecipeRowRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | OutsourcedPurchaseOrderRecipeRow]:
     """Update an outsourced purchase order recipe row
 
@@ -106,7 +106,8 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateOutsourcedPurchaseOrderRecipeRowBody):
+        body (UpdateOutsourcedPurchaseOrderRecipeRowRequest): Request payload for updating an
+            outsourced purchase order recipe row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -133,7 +134,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateOutsourcedPurchaseOrderRecipeRowBody,
+    body: UpdateOutsourcedPurchaseOrderRecipeRowRequest,
 ) -> DetailedErrorResponse | ErrorResponse | OutsourcedPurchaseOrderRecipeRow | None:
     """Update an outsourced purchase order recipe row
 
@@ -141,7 +142,8 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateOutsourcedPurchaseOrderRecipeRowBody):
+        body (UpdateOutsourcedPurchaseOrderRecipeRowRequest): Request payload for updating an
+            outsourced purchase order recipe row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -163,7 +165,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateOutsourcedPurchaseOrderRecipeRowBody,
+    body: UpdateOutsourcedPurchaseOrderRecipeRowRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | OutsourcedPurchaseOrderRecipeRow]:
     """Update an outsourced purchase order recipe row
 
@@ -171,7 +173,8 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateOutsourcedPurchaseOrderRecipeRowBody):
+        body (UpdateOutsourcedPurchaseOrderRecipeRowRequest): Request payload for updating an
+            outsourced purchase order recipe row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -196,7 +199,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateOutsourcedPurchaseOrderRecipeRowBody,
+    body: UpdateOutsourcedPurchaseOrderRecipeRowRequest,
 ) -> DetailedErrorResponse | ErrorResponse | OutsourcedPurchaseOrderRecipeRow | None:
     """Update an outsourced purchase order recipe row
 
@@ -204,7 +207,8 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateOutsourcedPurchaseOrderRecipeRowBody):
+        body (UpdateOutsourcedPurchaseOrderRecipeRowRequest): Request payload for updating an
+            outsourced purchase order recipe row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

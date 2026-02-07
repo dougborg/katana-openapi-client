@@ -10,16 +10,16 @@ from dateutil.parser import isoparse
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.create_stock_transfer_body_stock_transfer_rows_item import (
-        CreateStockTransferBodyStockTransferRowsItem,
-    )
+    from ..models.stock_transfer_row_request import StockTransferRowRequest
 
 
-T = TypeVar("T", bound="CreateStockTransferBody")
+T = TypeVar("T", bound="CreateStockTransferRequest")
 
 
 @_attrs_define
-class CreateStockTransferBody:
+class CreateStockTransferRequest:
+    """Request payload for creating a new stock transfer"""
+
     source_location_id: int
     target_location_id: int
     stock_transfer_number: str | Unset = UNSET
@@ -27,9 +27,7 @@ class CreateStockTransferBody:
     order_created_date: datetime.datetime | Unset = UNSET
     expected_arrival_date: datetime.datetime | Unset = UNSET
     additional_info: str | Unset = UNSET
-    stock_transfer_rows: list[CreateStockTransferBodyStockTransferRowsItem] | Unset = (
-        UNSET
-    )
+    stock_transfer_rows: list[StockTransferRowRequest] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         source_location_id = self.source_location_id
@@ -84,9 +82,7 @@ class CreateStockTransferBody:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.create_stock_transfer_body_stock_transfer_rows_item import (
-            CreateStockTransferBodyStockTransferRowsItem,
-        )
+        from ..models.stock_transfer_row_request import StockTransferRowRequest
 
         d = dict(src_dict)
         source_location_id = d.pop("source_location_id")
@@ -119,21 +115,17 @@ class CreateStockTransferBody:
         additional_info = d.pop("additional_info", UNSET)
 
         _stock_transfer_rows = d.pop("stock_transfer_rows", UNSET)
-        stock_transfer_rows: (
-            list[CreateStockTransferBodyStockTransferRowsItem] | Unset
-        ) = UNSET
+        stock_transfer_rows: list[StockTransferRowRequest] | Unset = UNSET
         if _stock_transfer_rows is not UNSET:
             stock_transfer_rows = []
             for stock_transfer_rows_item_data in _stock_transfer_rows:
-                stock_transfer_rows_item = (
-                    CreateStockTransferBodyStockTransferRowsItem.from_dict(
-                        stock_transfer_rows_item_data
-                    )
+                stock_transfer_rows_item = StockTransferRowRequest.from_dict(
+                    stock_transfer_rows_item_data
                 )
 
                 stock_transfer_rows.append(stock_transfer_rows_item)
 
-        create_stock_transfer_body = cls(
+        create_stock_transfer_request = cls(
             source_location_id=source_location_id,
             target_location_id=target_location_id,
             stock_transfer_number=stock_transfer_number,
@@ -144,4 +136,4 @@ class CreateStockTransferBody:
             stock_transfer_rows=stock_transfer_rows,
         )
 
-        return create_stock_transfer_body
+        return create_stock_transfer_request

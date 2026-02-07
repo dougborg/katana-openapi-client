@@ -524,6 +524,21 @@ class RecipeListResponse(KatanaPydanticBase):
     ] = None
 
 
+class UpdateRecipeRowRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    ingredient_variant_id: Annotated[
+        int | None, Field(description="ID of the ingredient variant")
+    ] = None
+    quantity: Annotated[
+        float | None, Field(description="Ingredient quantity required", ge=0.0)
+    ] = None
+    notes: Annotated[
+        str | None, Field(description="Additional notes about the recipe row")
+    ] = None
+
+
 class ManufacturingOrder(DeletableEntity):
     id: int | None = None
     status: Annotated[

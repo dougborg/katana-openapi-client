@@ -5,11 +5,13 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
-T = TypeVar("T", bound="CreateInventoryReorderPointBody")
+T = TypeVar("T", bound="CreateInventoryReorderPointRequest")
 
 
 @_attrs_define
-class CreateInventoryReorderPointBody:
+class CreateInventoryReorderPointRequest:
+    """Request payload for creating a new inventory reorder point"""
+
     variant_id: int
     location_id: int
     value: float
@@ -42,10 +44,10 @@ class CreateInventoryReorderPointBody:
 
         value = d.pop("value")
 
-        create_inventory_reorder_point_body = cls(
+        create_inventory_reorder_point_request = cls(
             variant_id=variant_id,
             location_id=location_id,
             value=value,
         )
 
-        return create_inventory_reorder_point_body
+        return create_inventory_reorder_point_request

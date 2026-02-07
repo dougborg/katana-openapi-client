@@ -31,6 +31,7 @@ from .stock import (
     BatchTransaction4,
     BatchTransaction5,
     BatchTransaction10,
+    BatchTransactionRequest,
 )
 
 
@@ -606,6 +607,52 @@ class OutsourcedPurchaseOrderRecipeRow(DeletableEntity):
     ] = None
     cost: Annotated[
         float | None, Field(description="Cost associated with this ingredient")
+    ] = None
+
+
+class CreateOutsourcedPurchaseOrderRecipeRowRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    purchase_order_row_id: Annotated[int, Field(description="Purchase order row ID")]
+    ingredient_variant_id: Annotated[int, Field(description="Ingredient variant ID")]
+    planned_quantity_per_unit: Annotated[
+        float, Field(description="Planned quantity per unit of production", ge=0.0)
+    ]
+    notes: Annotated[
+        str | None,
+        Field(description="Additional notes about this ingredient requirement"),
+    ] = None
+    batch_transactions: Annotated[
+        list[BatchTransactionRequest] | None,
+        Field(description="Batch allocation transactions for this ingredient"),
+    ] = None
+
+
+class UpdateOutsourcedPurchaseOrderRecipeRowRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    ingredient_variant_id: Annotated[
+        int | None,
+        Field(
+            description="Ingredient variant ID. Updatable only when received_date is null."
+        ),
+    ] = None
+    planned_quantity_per_unit: Annotated[
+        float | None,
+        Field(
+            description="Planned quantity per unit. Updatable only when received_date is null.",
+            ge=0.0,
+        ),
+    ] = None
+    notes: Annotated[
+        str | None,
+        Field(description="Additional notes about this ingredient requirement"),
+    ] = None
+    batch_transactions: Annotated[
+        list[BatchTransactionRequest] | None,
+        Field(description="Batch allocation transactions for this ingredient"),
     ] = None
 
 

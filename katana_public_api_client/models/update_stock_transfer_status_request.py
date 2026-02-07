@@ -5,16 +5,18 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
-from ..models.update_stock_transfer_status_body_status import (
-    UpdateStockTransferStatusBodyStatus,
+from ..models.update_stock_transfer_status_request_status import (
+    UpdateStockTransferStatusRequestStatus,
 )
 
-T = TypeVar("T", bound="UpdateStockTransferStatusBody")
+T = TypeVar("T", bound="UpdateStockTransferStatusRequest")
 
 
 @_attrs_define
-class UpdateStockTransferStatusBody:
-    status: UpdateStockTransferStatusBodyStatus
+class UpdateStockTransferStatusRequest:
+    """Request payload for updating a stock transfer status"""
+
+    status: UpdateStockTransferStatusRequestStatus
 
     def to_dict(self) -> dict[str, Any]:
         status = self.status.value
@@ -32,10 +34,10 @@ class UpdateStockTransferStatusBody:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        status = UpdateStockTransferStatusBodyStatus(d.pop("status"))
+        status = UpdateStockTransferStatusRequestStatus(d.pop("status"))
 
-        update_stock_transfer_status_body = cls(
+        update_stock_transfer_status_request = cls(
             status=status,
         )
 
-        return update_stock_transfer_status_body
+        return update_stock_transfer_status_request

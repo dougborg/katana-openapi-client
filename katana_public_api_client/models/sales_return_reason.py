@@ -8,26 +8,28 @@ from attrs import (
     field as _attrs_field,
 )
 
-T = TypeVar("T", bound="UpdateSalesReturnRowBodyBatchTransactionsItem")
+T = TypeVar("T", bound="SalesReturnReason")
 
 
 @_attrs_define
-class UpdateSalesReturnRowBodyBatchTransactionsItem:
-    batch_id: int
-    quantity: float
+class SalesReturnReason:
+    """A reason for returning items from a sales order"""
+
+    id: int
+    name: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        batch_id = self.batch_id
+        id = self.id
 
-        quantity = self.quantity
+        name = self.name
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "batch_id": batch_id,
-                "quantity": quantity,
+                "id": id,
+                "name": name,
             }
         )
 
@@ -36,17 +38,17 @@ class UpdateSalesReturnRowBodyBatchTransactionsItem:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        batch_id = d.pop("batch_id")
+        id = d.pop("id")
 
-        quantity = d.pop("quantity")
+        name = d.pop("name")
 
-        update_sales_return_row_body_batch_transactions_item = cls(
-            batch_id=batch_id,
-            quantity=quantity,
+        sales_return_reason = cls(
+            id=id,
+            name=name,
         )
 
-        update_sales_return_row_body_batch_transactions_item.additional_properties = d
-        return update_sales_return_row_body_batch_transactions_item
+        sales_return_reason.additional_properties = d
+        return sales_return_reason
 
     @property
     def additional_keys(self) -> list[str]:

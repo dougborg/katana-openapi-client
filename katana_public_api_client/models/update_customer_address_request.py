@@ -10,11 +10,13 @@ from attrs import (
 
 from ..client_types import UNSET, Unset
 
-T = TypeVar("T", bound="UpdateCustomerAddressBody")
+T = TypeVar("T", bound="UpdateCustomerAddressRequest")
 
 
 @_attrs_define
-class UpdateCustomerAddressBody:
+class UpdateCustomerAddressRequest:
+    """Request payload for updating an existing customer address"""
+
     first_name: None | str | Unset = UNSET
     last_name: None | str | Unset = UNSET
     company: None | str | Unset = UNSET
@@ -208,7 +210,7 @@ class UpdateCustomerAddressBody:
 
         country = _parse_country(d.pop("country", UNSET))
 
-        update_customer_address_body = cls(
+        update_customer_address_request = cls(
             first_name=first_name,
             last_name=last_name,
             company=company,
@@ -221,8 +223,8 @@ class UpdateCustomerAddressBody:
             country=country,
         )
 
-        update_customer_address_body.additional_properties = d
-        return update_customer_address_body
+        update_customer_address_request.additional_properties = d
+        return update_customer_address_request
 
     @property
     def additional_keys(self) -> list[str]:

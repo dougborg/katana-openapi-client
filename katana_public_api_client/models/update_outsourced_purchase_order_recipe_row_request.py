@@ -8,22 +8,20 @@ from attrs import define as _attrs_define
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.update_outsourced_purchase_order_recipe_row_body_batch_transactions_item import (
-        UpdateOutsourcedPurchaseOrderRecipeRowBodyBatchTransactionsItem,
-    )
+    from ..models.batch_transaction_request import BatchTransactionRequest
 
 
-T = TypeVar("T", bound="UpdateOutsourcedPurchaseOrderRecipeRowBody")
+T = TypeVar("T", bound="UpdateOutsourcedPurchaseOrderRecipeRowRequest")
 
 
 @_attrs_define
-class UpdateOutsourcedPurchaseOrderRecipeRowBody:
+class UpdateOutsourcedPurchaseOrderRecipeRowRequest:
+    """Request payload for updating an outsourced purchase order recipe row"""
+
     ingredient_variant_id: int | Unset = UNSET
     planned_quantity_per_unit: float | Unset = UNSET
     notes: str | Unset = UNSET
-    batch_transactions: (
-        list[UpdateOutsourcedPurchaseOrderRecipeRowBodyBatchTransactionsItem] | Unset
-    ) = UNSET
+    batch_transactions: list[BatchTransactionRequest] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         ingredient_variant_id = self.ingredient_variant_id
@@ -55,9 +53,7 @@ class UpdateOutsourcedPurchaseOrderRecipeRowBody:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.update_outsourced_purchase_order_recipe_row_body_batch_transactions_item import (
-            UpdateOutsourcedPurchaseOrderRecipeRowBodyBatchTransactionsItem,
-        )
+        from ..models.batch_transaction_request import BatchTransactionRequest
 
         d = dict(src_dict)
         ingredient_variant_id = d.pop("ingredient_variant_id", UNSET)
@@ -67,24 +63,21 @@ class UpdateOutsourcedPurchaseOrderRecipeRowBody:
         notes = d.pop("notes", UNSET)
 
         _batch_transactions = d.pop("batch_transactions", UNSET)
-        batch_transactions: (
-            list[UpdateOutsourcedPurchaseOrderRecipeRowBodyBatchTransactionsItem]
-            | Unset
-        ) = UNSET
+        batch_transactions: list[BatchTransactionRequest] | Unset = UNSET
         if _batch_transactions is not UNSET:
             batch_transactions = []
             for batch_transactions_item_data in _batch_transactions:
-                batch_transactions_item = UpdateOutsourcedPurchaseOrderRecipeRowBodyBatchTransactionsItem.from_dict(
+                batch_transactions_item = BatchTransactionRequest.from_dict(
                     batch_transactions_item_data
                 )
 
                 batch_transactions.append(batch_transactions_item)
 
-        update_outsourced_purchase_order_recipe_row_body = cls(
+        update_outsourced_purchase_order_recipe_row_request = cls(
             ingredient_variant_id=ingredient_variant_id,
             planned_quantity_per_unit=planned_quantity_per_unit,
             notes=notes,
             batch_transactions=batch_transactions,
         )
 
-        return update_outsourced_purchase_order_recipe_row_body
+        return update_outsourced_purchase_order_recipe_row_request

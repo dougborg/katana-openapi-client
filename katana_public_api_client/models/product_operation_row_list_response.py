@@ -14,11 +14,13 @@ if TYPE_CHECKING:
     from ..models.product_operation_row import ProductOperationRow
 
 
-T = TypeVar("T", bound="GetAllProductOperationRowsResponse200")
+T = TypeVar("T", bound="ProductOperationRowListResponse")
 
 
 @_attrs_define
-class GetAllProductOperationRowsResponse200:
+class ProductOperationRowListResponse:
+    """Response containing a list of product operation rows"""
+
     data: list[ProductOperationRow] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -52,12 +54,12 @@ class GetAllProductOperationRowsResponse200:
 
                 data.append(data_item)
 
-        get_all_product_operation_rows_response_200 = cls(
+        product_operation_row_list_response = cls(
             data=data,
         )
 
-        get_all_product_operation_rows_response_200.additional_properties = d
-        return get_all_product_operation_rows_response_200
+        product_operation_row_list_response.additional_properties = d
+        return product_operation_row_list_response
 
     @property
     def additional_keys(self) -> list[str]:
