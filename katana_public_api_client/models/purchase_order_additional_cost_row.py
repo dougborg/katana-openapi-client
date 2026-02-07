@@ -35,12 +35,12 @@ class PurchaseOrderAdditionalCostRow:
     name: str | Unset = UNSET
     distribution_method: str | Unset = UNSET
     tax_rate_id: int | Unset = UNSET
-    tax_rate: float | Unset = UNSET
+    tax_rate: float | None | Unset = UNSET
     price: float | Unset = UNSET
-    price_in_base: float | Unset = UNSET
+    price_in_base: float | None | Unset = UNSET
     currency: str | Unset = UNSET
-    currency_conversion_rate: float | Unset = UNSET
-    currency_conversion_rate_fix_date: datetime.datetime | Unset = UNSET
+    currency_conversion_rate: float | None | Unset = UNSET
+    currency_conversion_rate_fix_date: datetime.datetime | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -72,21 +72,37 @@ class PurchaseOrderAdditionalCostRow:
 
         tax_rate_id = self.tax_rate_id
 
-        tax_rate = self.tax_rate
+        tax_rate: float | None | Unset
+        if isinstance(self.tax_rate, Unset):
+            tax_rate = UNSET
+        else:
+            tax_rate = self.tax_rate
 
         price = self.price
 
-        price_in_base = self.price_in_base
+        price_in_base: float | None | Unset
+        if isinstance(self.price_in_base, Unset):
+            price_in_base = UNSET
+        else:
+            price_in_base = self.price_in_base
 
         currency = self.currency
 
-        currency_conversion_rate = self.currency_conversion_rate
+        currency_conversion_rate: float | None | Unset
+        if isinstance(self.currency_conversion_rate, Unset):
+            currency_conversion_rate = UNSET
+        else:
+            currency_conversion_rate = self.currency_conversion_rate
 
-        currency_conversion_rate_fix_date: str | Unset = UNSET
-        if not isinstance(self.currency_conversion_rate_fix_date, Unset):
+        currency_conversion_rate_fix_date: None | str | Unset
+        if isinstance(self.currency_conversion_rate_fix_date, Unset):
+            currency_conversion_rate_fix_date = UNSET
+        elif isinstance(self.currency_conversion_rate_fix_date, datetime.datetime):
             currency_conversion_rate_fix_date = (
                 self.currency_conversion_rate_fix_date.isoformat()
             )
+        else:
+            currency_conversion_rate_fix_date = self.currency_conversion_rate_fix_date
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -174,26 +190,59 @@ class PurchaseOrderAdditionalCostRow:
 
         tax_rate_id = d.pop("tax_rate_id", UNSET)
 
-        tax_rate = d.pop("tax_rate", UNSET)
+        def _parse_tax_rate(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        tax_rate = _parse_tax_rate(d.pop("tax_rate", UNSET))
 
         price = d.pop("price", UNSET)
 
-        price_in_base = d.pop("price_in_base", UNSET)
+        def _parse_price_in_base(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        price_in_base = _parse_price_in_base(d.pop("price_in_base", UNSET))
 
         currency = d.pop("currency", UNSET)
 
-        currency_conversion_rate = d.pop("currency_conversion_rate", UNSET)
+        def _parse_currency_conversion_rate(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
 
-        _currency_conversion_rate_fix_date = d.pop(
-            "currency_conversion_rate_fix_date", UNSET
+        currency_conversion_rate = _parse_currency_conversion_rate(
+            d.pop("currency_conversion_rate", UNSET)
         )
-        currency_conversion_rate_fix_date: datetime.datetime | Unset
-        if isinstance(_currency_conversion_rate_fix_date, Unset):
-            currency_conversion_rate_fix_date = UNSET
-        else:
-            currency_conversion_rate_fix_date = isoparse(
-                _currency_conversion_rate_fix_date
-            )
+
+        def _parse_currency_conversion_rate_fix_date(
+            data: object,
+        ) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                currency_conversion_rate_fix_date_type_0 = isoparse(data)
+
+                return currency_conversion_rate_fix_date_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        currency_conversion_rate_fix_date = _parse_currency_conversion_rate_fix_date(
+            d.pop("currency_conversion_rate_fix_date", UNSET)
+        )
 
         purchase_order_additional_cost_row = cls(
             id=id,

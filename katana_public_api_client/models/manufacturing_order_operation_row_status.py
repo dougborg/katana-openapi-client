@@ -4,6 +4,7 @@ from enum import Enum
 class ManufacturingOrderOperationRowStatus(str, Enum):
     COMPLETED = "COMPLETED"
     IN_PROGRESS = "IN_PROGRESS"
+    NOT_STARTED = "NOT_STARTED"
     PAUSED = "PAUSED"
 
     def __str__(self) -> str:

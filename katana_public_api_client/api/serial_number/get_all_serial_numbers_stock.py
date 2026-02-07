@@ -7,7 +7,7 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
 from ...models.error_response import ErrorResponse
-from ...models.serial_number_stock import SerialNumberStock
+from ...models.serial_number_stock_list_response import SerialNumberStockListResponse
 
 
 def _get_kwargs() -> dict[str, Any]:
@@ -21,14 +21,9 @@ def _get_kwargs() -> dict[str, Any]:
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | list[SerialNumberStock] | None:
+) -> ErrorResponse | SerialNumberStockListResponse | None:
     if response.status_code == 200:
-        response_200 = []
-        _response_200 = response.json()
-        for response_200_item_data in _response_200:
-            response_200_item = SerialNumberStock.from_dict(response_200_item_data)
-
-            response_200.append(response_200_item)
+        response_200 = SerialNumberStockListResponse.from_dict(response.json())
 
         return response_200
 
@@ -55,7 +50,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | list[SerialNumberStock]]:
+) -> Response[ErrorResponse | SerialNumberStockListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -67,7 +62,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse | list[SerialNumberStock]]:
+) -> Response[ErrorResponse | SerialNumberStockListResponse]:
     """List serial number stock
 
      Returns a list of serial number stock.
@@ -78,7 +73,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[ErrorResponse | list[SerialNumberStock]]
+        Response[ErrorResponse | SerialNumberStockListResponse]
     """
 
     kwargs = _get_kwargs()
@@ -93,7 +88,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-) -> ErrorResponse | list[SerialNumberStock] | None:
+) -> ErrorResponse | SerialNumberStockListResponse | None:
     """List serial number stock
 
      Returns a list of serial number stock.
@@ -104,7 +99,7 @@ def sync(
 
 
     Returns:
-        ErrorResponse | list[SerialNumberStock]
+        ErrorResponse | SerialNumberStockListResponse
     """
 
     return sync_detailed(
@@ -115,7 +110,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse | list[SerialNumberStock]]:
+) -> Response[ErrorResponse | SerialNumberStockListResponse]:
     """List serial number stock
 
      Returns a list of serial number stock.
@@ -126,7 +121,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[ErrorResponse | list[SerialNumberStock]]
+        Response[ErrorResponse | SerialNumberStockListResponse]
     """
 
     kwargs = _get_kwargs()
@@ -139,7 +134,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-) -> ErrorResponse | list[SerialNumberStock] | None:
+) -> ErrorResponse | SerialNumberStockListResponse | None:
     """List serial number stock
 
      Returns a list of serial number stock.
@@ -150,7 +145,7 @@ async def asyncio(
 
 
     Returns:
-        ErrorResponse | list[SerialNumberStock]
+        ErrorResponse | SerialNumberStockListResponse
     """
 
     return (

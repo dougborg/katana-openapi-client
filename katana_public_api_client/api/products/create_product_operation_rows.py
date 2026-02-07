@@ -6,14 +6,16 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
-from ...models.create_product_operation_rows_body import CreateProductOperationRowsBody
+from ...models.create_product_operation_rows_request import (
+    CreateProductOperationRowsRequest,
+)
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 
 
 def _get_kwargs(
     *,
-    body: CreateProductOperationRowsBody,
+    body: CreateProductOperationRowsRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -77,7 +79,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateProductOperationRowsBody,
+    body: CreateProductOperationRowsRequest,
 ) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Create product operations
 
@@ -86,7 +88,8 @@ def sync_detailed(
     If rows are successfully created, 204 is returned.
 
     Args:
-        body (CreateProductOperationRowsBody):
+        body (CreateProductOperationRowsRequest): Request payload for creating product operation
+            rows in bulk
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -111,7 +114,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateProductOperationRowsBody,
+    body: CreateProductOperationRowsRequest,
 ) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Create product operations
 
@@ -120,7 +123,8 @@ def sync(
     If rows are successfully created, 204 is returned.
 
     Args:
-        body (CreateProductOperationRowsBody):
+        body (CreateProductOperationRowsRequest): Request payload for creating product operation
+            rows in bulk
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -140,7 +144,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateProductOperationRowsBody,
+    body: CreateProductOperationRowsRequest,
 ) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Create product operations
 
@@ -149,7 +153,8 @@ async def asyncio_detailed(
     If rows are successfully created, 204 is returned.
 
     Args:
-        body (CreateProductOperationRowsBody):
+        body (CreateProductOperationRowsRequest): Request payload for creating product operation
+            rows in bulk
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -172,7 +177,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateProductOperationRowsBody,
+    body: CreateProductOperationRowsRequest,
 ) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Create product operations
 
@@ -181,7 +186,8 @@ async def asyncio(
     If rows are successfully created, 204 is returned.
 
     Args:
-        body (CreateProductOperationRowsBody):
+        body (CreateProductOperationRowsRequest): Request payload for creating product operation
+            rows in bulk
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

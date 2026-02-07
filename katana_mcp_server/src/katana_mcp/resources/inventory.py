@@ -355,15 +355,14 @@ async def _get_stock_movements_impl(context: Context) -> StockMovementsResource:
 
         # Add adjustments - attrs models have all fields defined, use unwrap_unset for optional
         for adjustment in adjustments:
-            # Prefer adjustment_date, fall back to updated_at
-            adjustment_date = unwrap_unset(adjustment.adjustment_date, None)
+            # Prefer stock_adjustment_date, fall back to updated_at
+            adjustment_date = unwrap_unset(adjustment.stock_adjustment_date, None)
             updated_at = unwrap_unset(adjustment.updated_at, None)
             timestamp = (
                 adjustment_date.isoformat()
                 if adjustment_date
                 else (updated_at.isoformat() if updated_at else None)
             )
-            status = unwrap_unset(adjustment.status, None)
 
             movements.append(
                 {
@@ -372,8 +371,8 @@ async def _get_stock_movements_impl(context: Context) -> StockMovementsResource:
                     "type": "adjustment",
                     "number": unwrap_unset(adjustment.stock_adjustment_number, None),
                     "location_id": unwrap_unset(adjustment.location_id, None),
-                    "reference_no": unwrap_unset(adjustment.reference_no, None),
-                    "status": status.value if status else None,
+                    "status": None,  # Adjustments have no status; included for schema consistency
+                    "reason": unwrap_unset(adjustment.reason, None),
                     "notes": unwrap_unset(adjustment.additional_info, None),
                 }
             )

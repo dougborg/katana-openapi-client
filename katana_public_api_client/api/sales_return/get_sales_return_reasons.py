@@ -7,9 +7,7 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
 from ...models.error_response import ErrorResponse
-from ...models.get_sales_return_reasons_response_200_item import (
-    GetSalesReturnReasonsResponse200Item,
-)
+from ...models.sales_return_reason import SalesReturnReason
 
 
 def _get_kwargs() -> dict[str, Any]:
@@ -23,14 +21,12 @@ def _get_kwargs() -> dict[str, Any]:
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | list[GetSalesReturnReasonsResponse200Item] | None:
+) -> ErrorResponse | list[SalesReturnReason] | None:
     if response.status_code == 200:
         response_200 = []
         _response_200 = response.json()
         for response_200_item_data in _response_200:
-            response_200_item = GetSalesReturnReasonsResponse200Item.from_dict(
-                response_200_item_data
-            )
+            response_200_item = SalesReturnReason.from_dict(response_200_item_data)
 
             response_200.append(response_200_item)
 
@@ -59,7 +55,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | list[GetSalesReturnReasonsResponse200Item]]:
+) -> Response[ErrorResponse | list[SalesReturnReason]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -71,7 +67,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse | list[GetSalesReturnReasonsResponse200Item]]:
+) -> Response[ErrorResponse | list[SalesReturnReason]]:
     """Get sales return reasons
 
      Retrieves the list of available return reasons for sales returns.
@@ -82,7 +78,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[ErrorResponse | list[GetSalesReturnReasonsResponse200Item]]
+        Response[ErrorResponse | list[SalesReturnReason]]
     """
 
     kwargs = _get_kwargs()
@@ -97,7 +93,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-) -> ErrorResponse | list[GetSalesReturnReasonsResponse200Item] | None:
+) -> ErrorResponse | list[SalesReturnReason] | None:
     """Get sales return reasons
 
      Retrieves the list of available return reasons for sales returns.
@@ -108,7 +104,7 @@ def sync(
 
 
     Returns:
-        ErrorResponse | list[GetSalesReturnReasonsResponse200Item]
+        ErrorResponse | list[SalesReturnReason]
     """
 
     return sync_detailed(
@@ -119,7 +115,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-) -> Response[ErrorResponse | list[GetSalesReturnReasonsResponse200Item]]:
+) -> Response[ErrorResponse | list[SalesReturnReason]]:
     """Get sales return reasons
 
      Retrieves the list of available return reasons for sales returns.
@@ -130,7 +126,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[ErrorResponse | list[GetSalesReturnReasonsResponse200Item]]
+        Response[ErrorResponse | list[SalesReturnReason]]
     """
 
     kwargs = _get_kwargs()
@@ -143,7 +139,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-) -> ErrorResponse | list[GetSalesReturnReasonsResponse200Item] | None:
+) -> ErrorResponse | list[SalesReturnReason] | None:
     """Get sales return reasons
 
      Retrieves the list of available return reasons for sales returns.
@@ -154,7 +150,7 @@ async def asyncio(
 
 
     Returns:
-        ErrorResponse | list[GetSalesReturnReasonsResponse200Item]
+        ErrorResponse | list[SalesReturnReason]
     """
 
     return (

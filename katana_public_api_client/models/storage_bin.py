@@ -8,6 +8,8 @@ from attrs import (
     field as _attrs_field,
 )
 
+from ..client_types import UNSET, Unset
+
 T = TypeVar("T", bound="StorageBin")
 
 
@@ -16,17 +18,20 @@ class StorageBin:
     """Core storage bin business properties
 
     Example:
-        {'bin_name': 'A-01-SHELF-1', 'location_id': 1}
+        {'bin_name': 'Bin-2', 'location_id': 12346}
     """
 
     bin_name: str
     location_id: int
+    name: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         bin_name = self.bin_name
 
         location_id = self.location_id
+
+        name = self.name
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -36,6 +41,8 @@ class StorageBin:
                 "location_id": location_id,
             }
         )
+        if name is not UNSET:
+            field_dict["name"] = name
 
         return field_dict
 
@@ -46,9 +53,12 @@ class StorageBin:
 
         location_id = d.pop("location_id")
 
+        name = d.pop("name", UNSET)
+
         storage_bin = cls(
             bin_name=bin_name,
             location_id=location_id,
+            name=name,
         )
 
         storage_bin.additional_properties = d

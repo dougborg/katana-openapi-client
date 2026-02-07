@@ -10,13 +10,13 @@ from ...client_types import Response
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.sales_return_row import SalesReturnRow
-from ...models.update_sales_return_row_body import UpdateSalesReturnRowBody
+from ...models.update_sales_return_row_request import UpdateSalesReturnRowRequest
 
 
 def _get_kwargs(
     id: int,
     *,
-    body: UpdateSalesReturnRowBody,
+    body: UpdateSalesReturnRowRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -94,7 +94,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateSalesReturnRowBody,
+    body: UpdateSalesReturnRowRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | SalesReturnRow]:
     """Update a sales return row
 
@@ -102,7 +102,7 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateSalesReturnRowBody):
+        body (UpdateSalesReturnRowRequest): Request payload for updating a sales return row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -129,7 +129,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateSalesReturnRowBody,
+    body: UpdateSalesReturnRowRequest,
 ) -> DetailedErrorResponse | ErrorResponse | SalesReturnRow | None:
     """Update a sales return row
 
@@ -137,7 +137,7 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateSalesReturnRowBody):
+        body (UpdateSalesReturnRowRequest): Request payload for updating a sales return row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -159,7 +159,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateSalesReturnRowBody,
+    body: UpdateSalesReturnRowRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | SalesReturnRow]:
     """Update a sales return row
 
@@ -167,7 +167,7 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateSalesReturnRowBody):
+        body (UpdateSalesReturnRowRequest): Request payload for updating a sales return row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -192,7 +192,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateSalesReturnRowBody,
+    body: UpdateSalesReturnRowRequest,
 ) -> DetailedErrorResponse | ErrorResponse | SalesReturnRow | None:
     """Update a sales return row
 
@@ -200,7 +200,7 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateSalesReturnRowBody):
+        body (UpdateSalesReturnRowRequest): Request payload for updating a sales return row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

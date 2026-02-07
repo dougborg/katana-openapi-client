@@ -10,15 +10,15 @@ from ...client_types import Response
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.sales_order_fulfillment import SalesOrderFulfillment
-from ...models.update_sales_order_fulfillment_body import (
-    UpdateSalesOrderFulfillmentBody,
+from ...models.update_sales_order_fulfillment_request import (
+    UpdateSalesOrderFulfillmentRequest,
 )
 
 
 def _get_kwargs(
     id: int,
     *,
-    body: UpdateSalesOrderFulfillmentBody,
+    body: UpdateSalesOrderFulfillmentRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -96,7 +96,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateSalesOrderFulfillmentBody,
+    body: UpdateSalesOrderFulfillmentRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderFulfillment]:
     """Update a sales order fulfillment
 
@@ -104,7 +104,8 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateSalesOrderFulfillmentBody):
+        body (UpdateSalesOrderFulfillmentRequest): Request payload for updating a sales order
+            fulfillment
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -131,7 +132,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateSalesOrderFulfillmentBody,
+    body: UpdateSalesOrderFulfillmentRequest,
 ) -> DetailedErrorResponse | ErrorResponse | SalesOrderFulfillment | None:
     """Update a sales order fulfillment
 
@@ -139,7 +140,8 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateSalesOrderFulfillmentBody):
+        body (UpdateSalesOrderFulfillmentRequest): Request payload for updating a sales order
+            fulfillment
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -161,7 +163,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateSalesOrderFulfillmentBody,
+    body: UpdateSalesOrderFulfillmentRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderFulfillment]:
     """Update a sales order fulfillment
 
@@ -169,7 +171,8 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateSalesOrderFulfillmentBody):
+        body (UpdateSalesOrderFulfillmentRequest): Request payload for updating a sales order
+            fulfillment
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -194,7 +197,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateSalesOrderFulfillmentBody,
+    body: UpdateSalesOrderFulfillmentRequest,
 ) -> DetailedErrorResponse | ErrorResponse | SalesOrderFulfillment | None:
     """Update a sales order fulfillment
 
@@ -202,7 +205,8 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateSalesOrderFulfillmentBody):
+        body (UpdateSalesOrderFulfillmentRequest): Request payload for updating a sales order
+            fulfillment
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

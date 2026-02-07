@@ -3,11 +3,7 @@
   "info": {
     "title": "RESOURCES",
     "version": "1.0.0",
-    "description": "public api",
-    "license": {
-      "name": "UNKNOWN",
-      "url": "https://opensource.org/license/unknown/"
-    }
+    "description": "public api"
   },
   "servers": [
     {
@@ -1573,7 +1569,7 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "data"
+                  "rows"
                 ],
                 "properties": {
                   "data": {
@@ -4829,10 +4825,8 @@
                 "properties": {
                   "bin_name": {
                     "type": "string"
-                  },
-                  "location_id": {
-                    "type": "integer"
-                  }                }
+                  }
+                }
               }
             }
           }
@@ -8433,7 +8427,7 @@
         "tags": [
           "Manufacturing order production"
         ],
-        "description": "Creates a new manufacturing order production object.",
+        "description": "Creates a new manufacturing order production (partial completion).\n\n**Ingredient and Operation Consumption Behavior:**\n\nThe following behavior applies independently to the 'ingredients' and 'operations' arrays:\n\n- **When an array is provided with data**: Records the specified consumption values.\n- **When an array is provided but empty ([])**: Records production but no consumption for that array.\n- **When an array is omitted**: Automatically creates consumption based on the manufacturing order plan.\n\nThis allows flexible reporting: explicit values, no consumption, or auto-calculated from plan.",
         "operationId": "createManufacturingOrderProduction",
         "requestBody": {
           "description": "new manufacturing order production details",
@@ -10640,9 +10634,6 @@
                   "status"
                 ],
                 "properties": {
-                  "manufacturing_order_id": {
-                    "type": "number"
-                  },
                   "operation_id": {
                     "type": "number",
                     "description": "If operation ID is used to map the operation, then operation_name is ignored."
@@ -16265,7 +16256,7 @@
                           "description": "ID of the variant"
                         },
                         "adjustment_method": {
-                          "type": "string",
+                          "type": "number",
                           "description": "Adjustment method for the price list row",
                           "enum": [
                             "fixed",
@@ -16779,7 +16770,7 @@
                     "description": "ID of the variant"
                   },
                   "adjustment_method": {
-                    "type": "string",
+                    "type": "number",
                     "description": "Adjustment method for the price list row",
                     "enum": [
                       "fixed",
@@ -19959,7 +19950,7 @@
         }
       }
     },
-    "/product_operation_rows": {
+    "/product_operation_rows/": {
       "post": {
         "summary": "Create product operations",
         "tags": [
@@ -36209,7 +36200,8 @@
                 "additionalProperties": false,
                 "required": [
                   "resource_type",
-                  "resource_id"
+                  "resource_id",
+                  "serial_numbers"
                 ],
                 "properties": {
                   "resource_type": {
@@ -48124,6 +48116,675 @@
           }
         }
       }
+    },
+    "/demand_forecasts": {
+      "get": {
+        "summary": "List planned demand forecast for variant in location",
+        "tags": [
+          "Demand forecast"
+        ],
+        "description": "\n    Returns planned forecasted demand for a variant in given location.\n  ",
+        "operationId": "getDemandForecasts",
+        "parameters": [
+          {
+            "name": "variant_id",
+            "required": true,
+            "description": "ID of variant for which to retrieve demand forecast for.",
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query"
+          },
+          {
+            "name": "location_id",
+            "required": true,
+            "description": "ID of location for which to retrieve variant demand forecast for.",
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Planned demand forecast for variant in location.",
+            "headers": {
+              "X-Pagination": {
+                "description": "Pagination metadata",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total_records": {
+                      "type": "number"
+                    },
+                    "total_pages": {
+                      "type": "number"
+                    },
+                    "offset": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "first_page": {
+                      "type": "boolean"
+                    },
+                    "last_page": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              },
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "variant_id": 1,
+                  "location_id": 1,
+                  "in_stock": "100",
+                  "periods": [
+                    {
+                      "period_start": "2024-01-01T00:00:00.000Z",
+                      "period_end": "2024-01-06T23:59:59.999Z",
+                      "in_stock": "125",
+                      "expected": "50",
+                      "committed": "25"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Make sure you've entered your API token correctly.",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 401,
+                  "name": "UnauthorizedError",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The rate limit has been reached. Please try again later.",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 429,
+                  "name": "TooManyRequests",
+                  "message": "Too Many Requests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The server encountered an error. If this persists, please contact support",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 500,
+                  "name": "InternalServerError",
+                  "message": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add planned demand forecast to variant.",
+        "tags": [
+          "Demand forecast"
+        ],
+        "description": "Add planned demand forecast for a variant in location for the specified periods.",
+        "operationId": "createDemandForecast",
+        "requestBody": {
+          "description": "Planned demand forecast for variant in location for specified periods.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "variant_id",
+                  "location_id",
+                  "periods"
+                ],
+                "properties": {
+                  "variant_id": {
+                    "type": "integer",
+                    "maximum": 2147483647
+                  },
+                  "location_id": {
+                    "type": "integer",
+                    "maximum": 2147483647
+                  },
+                  "periods": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "period_start",
+                        "period_end",
+                        "committed"
+                      ],
+                      "properties": {
+                        "period_start": {
+                          "description": "Period start date in ISO 8601 format (inclusive).",
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "period_end": {
+                          "description": "Period end date in ISO 8601 format (inclusive).",
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "committed": {
+                          "description": "Total forecasted demand quantity for the period.",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Planned demand forecast added for variant in location for specified periods.",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Make sure you've entered your API token correctly.",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 401,
+                  "name": "UnauthorizedError",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Make sure data is correct",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 404,
+                  "name": "NotFoundError",
+                  "message": "Not found"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Check the details property for a specific error message.",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 422,
+                  "name": "UnprocessableEntityError",
+                  "message": "The request body is invalid. See error object `details` property for more info.",
+                  "code": "VALIDATION_FAILED",
+                  "details": [
+                    {
+                      "path": ".name",
+                      "code": "maxLength",
+                      "message": "should NOT be longer than 10 characters",
+                      "info": {
+                        "limit": 10
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The rate limit has been reached. Please try again later.",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 429,
+                  "name": "TooManyRequests",
+                  "message": "Too Many Requests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The server encountered an error. If this persists, please contact support",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 500,
+                  "name": "InternalServerError",
+                  "message": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Clear planned demand forecast to variant.",
+        "tags": [
+          "Demand forecast"
+        ],
+        "description": "Clears planned demand forecast for a variant in location for the specified periods.",
+        "operationId": "deleteDemandForecast",
+        "requestBody": {
+          "description": "Clear planned demand forecast for variant in location for specified periods.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "variant_id",
+                  "location_id",
+                  "periods"
+                ],
+                "properties": {
+                  "variant_id": {
+                    "type": "integer",
+                    "maximum": 2147483647
+                  },
+                  "location_id": {
+                    "type": "integer",
+                    "maximum": 2147483647
+                  },
+                  "periods": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "period_start",
+                        "period_end"
+                      ],
+                      "properties": {
+                        "period_start": {
+                          "description": "Period start date in ISO 8601 format (inclusive).",
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "period_end": {
+                          "description": "Period end date in ISO 8601 format (inclusive).",
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Planned demand forecast cleared successfully",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Make sure you've entered your API token correctly.",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 401,
+                  "name": "UnauthorizedError",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Make sure data is correct",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 404,
+                  "name": "NotFoundError",
+                  "message": "Not found"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The rate limit has been reached. Please try again later.",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 429,
+                  "name": "TooManyRequests",
+                  "message": "Too Many Requests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The server encountered an error. If this persists, please contact support",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 500,
+                  "name": "InternalServerError",
+                  "message": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "x-explorer-enabled": false,
@@ -48141,8 +48802,5 @@
       "key": "Authorization",
       "value": "Bearer <Your api key>"
     }
-  ],
-  "x-readme": {
-    "proxy-enabled": true
-  }
+  ]
 }

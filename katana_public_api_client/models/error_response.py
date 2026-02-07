@@ -17,7 +17,7 @@ T = TypeVar("T", bound="ErrorResponse")
 class ErrorResponse:
     """Base error message schema"""
 
-    status_code: float | Unset = UNSET
+    status_code: int | Unset = UNSET
     name: str | Unset = UNSET
     message: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

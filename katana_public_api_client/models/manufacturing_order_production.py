@@ -50,6 +50,7 @@ class ManufacturingOrderProduction:
     updated_at: datetime.datetime | Unset = UNSET
     deleted_at: datetime.datetime | None | Unset = UNSET
     manufacturing_order_id: int | Unset = UNSET
+    factory_id: int | Unset = UNSET
     quantity: float | Unset = UNSET
     production_date: datetime.datetime | Unset = UNSET
     ingredients: list[ManufacturingOrderProductionIngredient] | Unset = UNSET
@@ -77,6 +78,8 @@ class ManufacturingOrderProduction:
             deleted_at = self.deleted_at
 
         manufacturing_order_id = self.manufacturing_order_id
+
+        factory_id = self.factory_id
 
         quantity = self.quantity
 
@@ -120,6 +123,8 @@ class ManufacturingOrderProduction:
             field_dict["deleted_at"] = deleted_at
         if manufacturing_order_id is not UNSET:
             field_dict["manufacturing_order_id"] = manufacturing_order_id
+        if factory_id is not UNSET:
+            field_dict["factory_id"] = factory_id
         if quantity is not UNSET:
             field_dict["quantity"] = quantity
         if production_date is not UNSET:
@@ -179,6 +184,8 @@ class ManufacturingOrderProduction:
 
         manufacturing_order_id = d.pop("manufacturing_order_id", UNSET)
 
+        factory_id = d.pop("factory_id", UNSET)
+
         quantity = d.pop("quantity", UNSET)
 
         _production_date = d.pop("production_date", UNSET)
@@ -225,6 +232,7 @@ class ManufacturingOrderProduction:
             updated_at=updated_at,
             deleted_at=deleted_at,
             manufacturing_order_id=manufacturing_order_id,
+            factory_id=factory_id,
             quantity=quantity,
             production_date=production_date,
             ingredients=ingredients,

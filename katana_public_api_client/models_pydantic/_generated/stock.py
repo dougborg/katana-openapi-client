@@ -8,6 +8,7 @@ To regenerate, run:
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Annotated
 
 from pydantic import AwareDatetime, ConfigDict, Field
@@ -16,11 +17,9 @@ from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
 from .base import DeletableEntity, UpdatableEntity
 from .common import (
-    ResourceType1,
-    Status7,
+    ResourceType3,
     Status10,
-    Status11,
-    Status14,
+    Status15,
     Transaction,
 )
 
@@ -96,7 +95,16 @@ class BatchTransaction(KatanaPydanticBase):
 
 
 class StorageBin(KatanaPydanticBase):
-    bin_name: Annotated[str, Field(description="Name of the storage bin")]
+    name: Annotated[
+        str | None,
+        Field(description="Name of the storage bin (returned by list endpoint)"),
+    ] = None
+    bin_name: Annotated[
+        str,
+        Field(
+            description="Name of the storage bin (used in create/update requests and individual responses)"
+        ),
+    ]
     location_id: Annotated[
         int,
         Field(
@@ -154,6 +162,16 @@ class BatchTransaction3(KatanaPydanticBase):
     quantity: Annotated[
         float | None, Field(description="Quantity consumed from this batch")
     ] = None
+
+
+class ResourceType1(StrEnum):
+    manufacturing_order = "ManufacturingOrder"
+    production = "Production"
+    stock_adjustment_row = "StockAdjustmentRow"
+    stock_transfer_row = "StockTransferRow"
+    purchase_order_row = "PurchaseOrderRow"
+    sales_order_row = "SalesOrderRow"
+    sales_order_fulfillment_row = "SalesOrderFulfillmentRow"
 
 
 class SerialNumber(KatanaPydanticBase):
@@ -265,6 +283,11 @@ class BatchTransaction6(KatanaPydanticBase):
     ] = None
 
 
+class SerialNumberTransaction(KatanaPydanticBase):
+    serial_number_id: int | None = None
+    quantity: float | None = None
+
+
 class StockAdjustmentBatchTransaction(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
@@ -313,21 +336,14 @@ class StockAdjustment(DeletableEntity):
             description="Human-readable reference number for tracking and audit purposes"
         ),
     ]
-    reference_no: Annotated[
-        str | None, Field(description="Alternative reference number (optional)")
+    stock_adjustment_date: Annotated[
+        AwareDatetime | None,
+        Field(description="Date and time when the adjustment was performed"),
     ] = None
     location_id: Annotated[
         int,
         Field(description="ID of the location where the stock adjustment is performed"),
     ]
-    status: Annotated[
-        Status7 | None,
-        Field(description="Current status of the stock adjustment workflow"),
-    ] = None
-    adjustment_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Date and time when the adjustment was performed"),
-    ] = None
     reason: Annotated[
         str | None, Field(description="Reason for the stock adjustment")
     ] = None
@@ -381,19 +397,19 @@ class CreateStockAdjustmentRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    reference_no: Annotated[
-        str,
+    stock_adjustment_number: Annotated[
+        str | None,
         Field(
             description="Human-readable reference number for tracking and audit purposes"
         ),
-    ]
+    ] = None
+    stock_adjustment_date: Annotated[
+        AwareDatetime | None,
+        Field(description="Date and time when the adjustment was performed"),
+    ] = None
     location_id: Annotated[
         int,
         Field(description="ID of the location where the stock adjustment is performed"),
-    ]
-    adjustment_date: Annotated[
-        AwareDatetime,
-        Field(description="Date and time when the adjustment was performed"),
     ]
     reason: Annotated[
         str | None, Field(description="Reason for the stock adjustment")
@@ -402,9 +418,6 @@ class CreateStockAdjustmentRequest(KatanaPydanticBase):
         str | None,
         Field(description="Optional notes or comments about the adjustment reason"),
     ] = None
-    status: Annotated[
-        Status7 | None, Field(description="Status of the stock adjustment")
-    ] = Status7.draft
     stock_adjustment_rows: Annotated[
         list[StockAdjustmentRow1],
         Field(
@@ -418,19 +431,19 @@ class UpdateStockAdjustmentRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    reference_no: Annotated[
+    stock_adjustment_number: Annotated[
         str | None,
         Field(
             description="Human-readable reference number for tracking and audit purposes"
         ),
     ] = None
+    stock_adjustment_date: Annotated[
+        AwareDatetime | None,
+        Field(description="Date and time when the adjustment was performed"),
+    ] = None
     location_id: Annotated[
         int | None,
         Field(description="ID of the location where the stock adjustment is performed"),
-    ] = None
-    adjustment_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Date and time when the adjustment was performed"),
     ] = None
     reason: Annotated[
         str | None, Field(description="Reason for the stock adjustment")
@@ -438,16 +451,6 @@ class UpdateStockAdjustmentRequest(KatanaPydanticBase):
     additional_info: Annotated[
         str | None,
         Field(description="Optional notes or comments about the adjustment reason"),
-    ] = None
-    status: Annotated[
-        Status7 | None, Field(description="Status of the stock adjustment")
-    ] = None
-    stock_adjustment_rows: Annotated[
-        list[StockAdjustmentRow1] | None,
-        Field(
-            description="Line items specifying variants and quantities to adjust",
-            min_length=1,
-        ),
     ] = None
 
 
@@ -467,31 +470,37 @@ class StockTransferRow(KatanaPydanticBase):
     quantity: Annotated[
         float, Field(description="Quantity of the variant being transferred")
     ]
+    cost_per_unit: Annotated[
+        float | None, Field(description="Cost per unit for the transferred variant")
+    ] = None
     batch_transactions: Annotated[
         list[BatchTransaction7] | None,
         Field(description="Batch transaction details for batch-tracked items"),
     ] = None
+    deleted_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Nullable deletion timestamp for the row"),
+    ] = None
 
 
-class Stocktake(UpdatableEntity):
+class BatchTransaction8(KatanaPydanticBase):
+    batch_id: Annotated[int | None, Field(description="ID of the batch")] = None
+    quantity: Annotated[float | None, Field(description="Quantity from this batch")] = (
+        None
+    )
+
+
+class Stocktake(DeletableEntity):
     id: int
     stocktake_number: Annotated[
-        str, Field(description="Unique identifier for the stocktake process")
+        str, Field(description="A string used to identify the stocktake")
     ]
-    reference_no: Annotated[
-        str | None,
-        Field(description="Alternative reference number for the stocktake process"),
-    ] = None
     location_id: Annotated[
         int, Field(description="The location where the stocktake is being performed")
     ]
     status: Annotated[
-        Status11, Field(description="Current status of the stocktake process")
+        Status10, Field(description="Current status of the stocktake process")
     ]
-    stocktake_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Date and time when the stocktake was conducted"),
-    ] = None
     stocktake_created_date: Annotated[
         AwareDatetime | None,
         Field(description="Date and time when the stocktake was created"),
@@ -515,17 +524,21 @@ class Stocktake(UpdatableEntity):
     stock_adjustment_id: Annotated[
         int | None, Field(description="ID of the associated stock adjustment")
     ] = None
-    reason: Annotated[str | None, Field(description="Reason for the stocktake")] = None
-    additional_info: Annotated[
-        str | None, Field(description="Additional information about the stocktake")
-    ] = None
-    notes: Annotated[
+    reason: Annotated[
         str | None,
-        Field(description="Additional notes or comments about the stocktake"),
+        Field(
+            description="A descriptive field for your own information to enable better identification"
+        ),
+    ] = None
+    additional_info: Annotated[
+        str | None,
+        Field(
+            description="A string attached to the object to add any internal comments or links to external files"
+        ),
     ] = None
 
 
-class StocktakeRow(UpdatableEntity):
+class StocktakeRow(DeletableEntity):
     id: int
     stocktake_id: Annotated[
         int, Field(description="The stocktake process this row belongs to")
@@ -553,7 +566,7 @@ class StocktakeRow(UpdatableEntity):
 
 
 class SerialNumberStock(KatanaPydanticBase):
-    id: Annotated[str, Field(description="Serial number stock ID")]
+    id: Annotated[int, Field(description="Serial number stock ID")]
     serial_number: Annotated[str, Field(description="The actual serial number")]
     in_stock: Annotated[
         bool, Field(description="Whether the item is currently in stock")
@@ -562,6 +575,13 @@ class SerialNumberStock(KatanaPydanticBase):
         list[Transaction],
         Field(description="Transaction history for this serial number"),
     ]
+
+
+class BatchTransaction9(KatanaPydanticBase):
+    batch_id: Annotated[int | None, Field(description="ID of the batch")] = None
+    quantity: Annotated[
+        float | None, Field(description="Quantity returned to this batch")
+    ] = None
 
 
 class StocktakeListResponse(KatanaPydanticBase):
@@ -582,51 +602,99 @@ class StocktakeRowListResponse(KatanaPydanticBase):
     ] = None
 
 
+class StocktakeRow1(KatanaPydanticBase):
+    variant_id: Annotated[
+        int | None, Field(description="ID of the variant to count")
+    ] = None
+    batch_id: Annotated[int | None, Field(description="ID of the batch")] = None
+    counted_quantity: Annotated[float | None, Field(description="Counted quantity")] = (
+        None
+    )
+
+
 class CreateStocktakeRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    reference_no: Annotated[
-        str, Field(description="Human-readable reference number for the stocktake")
+    stocktake_number: Annotated[
+        str, Field(description="A string used to identify the stocktake")
     ]
-    location_id: Annotated[
-        int,
-        Field(description="ID of the location where the stocktake will be performed"),
-    ]
-    stocktake_date: Annotated[
-        AwareDatetime,
-        Field(description="Date and time when the stocktake was performed"),
-    ]
-    notes: Annotated[
-        str | None, Field(description="Optional notes about the stocktake")
+    location_id: Annotated[int, Field(description="The ID of the stocktake location")]
+    reason: Annotated[
+        str | None,
+        Field(
+            description="A descriptive field for your own information to enable better identification"
+        ),
     ] = None
-    status: Annotated[Status14 | None, Field(description="Status of the stocktake")] = (
-        Status14.draft
-    )
+    additional_info: Annotated[
+        str | None,
+        Field(description="Additional notes or information about the stocktake"),
+    ] = None
+    created_date: Annotated[
+        AwareDatetime | None, Field(description="Date when the stocktake was created")
+    ] = None
+    set_remaining_items_as_counted: Annotated[
+        bool | None,
+        Field(description="Whether to set remaining uncounted items as counted"),
+    ] = None
+    stocktake_rows: Annotated[
+        list[StocktakeRow1] | None, Field(description="Array of stocktake row items")
+    ] = None
 
 
 class UpdateStocktakeRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    reference_no: Annotated[
-        str | None,
-        Field(description="Human-readable reference number for the stocktake"),
+    stocktake_number: Annotated[
+        str | None, Field(description="A string used to identify the stocktake")
     ] = None
     location_id: Annotated[
-        int | None,
-        Field(description="ID of the location where the stocktake is performed"),
+        int | None, Field(description="The ID of the stocktake location")
     ] = None
-    stocktake_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Date and time when the stocktake was performed"),
+    reason: Annotated[
+        str | None,
+        Field(
+            description="A descriptive field for your own information to enable better identification"
+        ),
+    ] = None
+    status: Annotated[Status10 | None, Field(description="Status of the stocktake")] = (
+        None
+    )
+    additional_info: Annotated[
+        str | None,
+        Field(description="Additional notes or information about the stocktake"),
+    ] = None
+    created_date: Annotated[
+        AwareDatetime | None, Field(description="Date when the stocktake was created")
+    ] = None
+    completed_date: Annotated[
+        AwareDatetime | None, Field(description="Date when the stocktake was completed")
+    ] = None
+    set_remaining_items_as_counted: Annotated[
+        bool | None,
+        Field(description="Whether to set remaining uncounted items as counted"),
+    ] = None
+
+
+class StocktakeRow2(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    variant_id: Annotated[int, Field(description="ID of the variant being counted")]
+    batch_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the specific batch being counted (required for batch-trackable items)"
+        ),
     ] = None
     notes: Annotated[
-        str | None, Field(description="Optional notes about the stocktake")
+        str | None, Field(description="Optional notes about the count", max_length=540)
     ] = None
-    status: Annotated[Status14 | None, Field(description="Status of the stocktake")] = (
-        Status14.draft
-    )
+    counted_quantity: Annotated[
+        float | None,
+        Field(description="The actual quantity counted during the stocktake", ge=0.0),
+    ] = None
 
 
 class CreateStocktakeRowRequest(KatanaPydanticBase):
@@ -636,54 +704,122 @@ class CreateStocktakeRowRequest(KatanaPydanticBase):
     stocktake_id: Annotated[
         int, Field(description="ID of the stocktake this row belongs to")
     ]
-    variant_id: Annotated[int, Field(description="ID of the variant being counted")]
-    batch_id: Annotated[
-        int | None,
-        Field(description="ID of the specific batch being counted (if applicable)"),
-    ] = None
-    system_quantity: Annotated[
-        float, Field(description="System recorded quantity before counting")
+    stocktake_rows: Annotated[
+        list[StocktakeRow2],
+        Field(description="Array of stocktake rows to create", max_length=250),
     ]
-    actual_quantity: Annotated[
-        float | None, Field(description="Actual counted quantity")
-    ] = None
-    notes: Annotated[
-        str | None, Field(description="Optional notes about the count")
-    ] = None
 
 
 class UpdateStocktakeRowRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    stocktake_id: Annotated[
-        int | None, Field(description="ID of the stocktake this row belongs to")
-    ] = None
     variant_id: Annotated[
         int | None, Field(description="ID of the variant being counted")
     ] = None
     batch_id: Annotated[
         int | None,
-        Field(description="ID of the specific batch being counted (if applicable)"),
-    ] = None
-    system_quantity: Annotated[
-        float | None, Field(description="System recorded quantity before counting")
-    ] = None
-    actual_quantity: Annotated[
-        float | None, Field(description="Actual counted quantity")
-    ] = None
-    variance_quantity: Annotated[
-        float | None,
-        Field(description="Calculated variance between system and actual quantity"),
+        Field(
+            description="ID of the specific batch being counted (required for batch-trackable items)"
+        ),
     ] = None
     notes: Annotated[
-        str | None, Field(description="Optional notes about the count")
+        str | None, Field(description="Optional notes about the count", max_length=540)
+    ] = None
+    counted_quantity: Annotated[
+        float | None,
+        Field(description="The actual quantity counted during the stocktake", ge=0.0),
     ] = None
 
 
-class BatchTransaction8(KatanaPydanticBase):
+class BatchTransaction10(KatanaPydanticBase):
     batch_id: int | None = None
     quantity: float | None = None
+
+
+class BatchTransactionRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    batch_id: Annotated[int, Field(description="Batch ID")]
+    quantity: Annotated[float, Field(description="Quantity")]
+
+
+class CreateSerialNumbersRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    resource_type: Annotated[ResourceType3, Field(description="Resource type")]
+    resource_id: Annotated[int, Field(description="Resource ID")]
+    serial_numbers: Annotated[
+        list[str], Field(description="List of serial numbers to create")
+    ]
+
+
+class StockTransferRowRequest(KatanaPydanticBase):
+    variant_id: Annotated[int | None, Field(description="Product variant ID")] = None
+    quantity: Annotated[float | None, Field(description="Quantity to transfer")] = None
+
+
+class CreateStockTransferRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    stock_transfer_number: Annotated[
+        str | None, Field(description="Unique stock transfer number for tracking")
+    ] = None
+    source_location_id: Annotated[
+        int, Field(description="Source location ID where items are transferred from")
+    ]
+    target_location_id: Annotated[
+        int, Field(description="Destination location ID where items are transferred to")
+    ]
+    transfer_date: Annotated[
+        AwareDatetime | None, Field(description="Date when the transfer was initiated")
+    ] = None
+    order_created_date: Annotated[
+        AwareDatetime | None,
+        Field(description="Date when the transfer order was created"),
+    ] = None
+    expected_arrival_date: Annotated[
+        AwareDatetime | None, Field(description="Expected arrival date at destination")
+    ] = None
+    additional_info: Annotated[
+        str | None,
+        Field(description="Additional notes or information about the transfer"),
+    ] = None
+    stock_transfer_rows: Annotated[
+        list[StockTransferRowRequest] | None,
+        Field(description="Line items being transferred"),
+    ] = None
+
+
+class UpdateStockTransferRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    stock_transfer_number: Annotated[
+        str | None, Field(description="Updated stock transfer number")
+    ] = None
+    transfer_date: Annotated[
+        AwareDatetime | None, Field(description="Updated transfer date")
+    ] = None
+    order_created_date: Annotated[
+        AwareDatetime | None, Field(description="Updated order creation date")
+    ] = None
+    expected_arrival_date: Annotated[
+        AwareDatetime | None, Field(description="Updated expected arrival date")
+    ] = None
+    additional_info: Annotated[
+        str | None, Field(description="Updated additional notes or information")
+    ] = None
+
+
+class UpdateStockTransferStatusRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    status: Annotated[Status15, Field(description="New status for the stock transfer")]
 
 
 class StockTransfer(DeletableEntity):
@@ -705,12 +841,19 @@ class StockTransfer(DeletableEntity):
         ),
     ]
     status: Annotated[
-        Status10 | None,
-        Field(description="Current status of the stock transfer workflow"),
+        str | None, Field(description="Current status of the stock transfer workflow")
     ] = None
     transfer_date: Annotated[
         AwareDatetime | None,
         Field(description="Date and time when the transfer was executed"),
+    ] = None
+    order_created_date: Annotated[
+        AwareDatetime | None,
+        Field(description="Date and time when the transfer order was created"),
+    ] = None
+    expected_arrival_date: Annotated[
+        AwareDatetime | None,
+        Field(description="Expected arrival date for the transferred stock"),
     ] = None
     additional_info: Annotated[
         str | None,
@@ -730,4 +873,11 @@ class StockTransferListResponse(KatanaPydanticBase):
         Field(
             description="Array of stock transfer records with source, destination, and status details"
         ),
+    ] = None
+
+
+class SerialNumberStockListResponse(KatanaPydanticBase):
+    data: Annotated[
+        list[SerialNumberStock] | None,
+        Field(description="Array of serial number stock items"),
     ] = None

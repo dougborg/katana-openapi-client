@@ -45,8 +45,10 @@ class SalesOrderRow:
             variant_id (int): ID of the product variant being ordered
             created_at (datetime.datetime | Unset): Timestamp when the entity was first created
             updated_at (datetime.datetime | Unset): Timestamp when the entity was last updated
+            deleted_at (datetime.datetime | None | Unset): Nullable deletion timestamp
             sales_order_id (int | Unset): ID of the sales order this row belongs to
             tax_rate_id (int | None | Unset): ID of the tax rate applied to this line item
+            tax_rate (float | None | Unset): Tax rate percentage applied to this line item
             location_id (int | None | Unset): Location where the product should be picked from
             product_availability (None | SalesOrderRowProductAvailabilityType0 | Unset): Current availability status of the
                 product for this order row
@@ -73,8 +75,10 @@ class SalesOrderRow:
     variant_id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
+    deleted_at: datetime.datetime | None | Unset = UNSET
     sales_order_id: int | Unset = UNSET
     tax_rate_id: int | None | Unset = UNSET
+    tax_rate: float | None | Unset = UNSET
     location_id: int | None | Unset = UNSET
     product_availability: None | SalesOrderRowProductAvailabilityType0 | Unset = UNSET
     product_expected_date: datetime.datetime | None | Unset = UNSET
@@ -107,6 +111,14 @@ class SalesOrderRow:
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
+        deleted_at: None | str | Unset
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
+        else:
+            deleted_at = self.deleted_at
+
         sales_order_id = self.sales_order_id
 
         tax_rate_id: int | None | Unset
@@ -114,6 +126,12 @@ class SalesOrderRow:
             tax_rate_id = UNSET
         else:
             tax_rate_id = self.tax_rate_id
+
+        tax_rate: float | None | Unset
+        if isinstance(self.tax_rate, Unset):
+            tax_rate = UNSET
+        else:
+            tax_rate = self.tax_rate
 
         location_id: int | None | Unset
         if isinstance(self.location_id, Unset):
@@ -210,10 +228,14 @@ class SalesOrderRow:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
         if sales_order_id is not UNSET:
             field_dict["sales_order_id"] = sales_order_id
         if tax_rate_id is not UNSET:
             field_dict["tax_rate_id"] = tax_rate_id
+        if tax_rate is not UNSET:
+            field_dict["tax_rate"] = tax_rate
         if location_id is not UNSET:
             field_dict["location_id"] = location_id
         if product_availability is not UNSET:
@@ -277,6 +299,23 @@ class SalesOrderRow:
         else:
             updated_at = isoparse(_updated_at)
 
+        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
+
         sales_order_id = d.pop("sales_order_id", UNSET)
 
         def _parse_tax_rate_id(data: object) -> int | None | Unset:
@@ -287,6 +326,15 @@ class SalesOrderRow:
             return cast(int | None | Unset, data)
 
         tax_rate_id = _parse_tax_rate_id(d.pop("tax_rate_id", UNSET))
+
+        def _parse_tax_rate(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        tax_rate = _parse_tax_rate(d.pop("tax_rate", UNSET))
 
         def _parse_location_id(data: object) -> int | None | Unset:
             if data is None:
@@ -436,8 +484,10 @@ class SalesOrderRow:
             variant_id=variant_id,
             created_at=created_at,
             updated_at=updated_at,
+            deleted_at=deleted_at,
             sales_order_id=sales_order_id,
             tax_rate_id=tax_rate_id,
+            tax_rate=tax_rate,
             location_id=location_id,
             product_availability=product_availability,
             product_expected_date=product_expected_date,

@@ -62,6 +62,7 @@ class SalesOrder:
         status (SalesOrderStatus): Current fulfillment status of the sales order
         created_at (datetime.datetime | Unset): Timestamp when the entity was first created
         updated_at (datetime.datetime | Unset): Timestamp when the entity was last updated
+        deleted_at (datetime.datetime | None | Unset): Nullable deletion timestamp
         source (None | str | Unset): Source system or channel where the order originated (e.g., Shopify, manual entry)
         order_created_date (datetime.datetime | Unset): Date and time when the sales order was created in the system
         delivery_date (datetime.datetime | None | Unset): Requested or promised delivery date for the order
@@ -105,6 +106,7 @@ class SalesOrder:
     status: SalesOrderStatus
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
+    deleted_at: datetime.datetime | None | Unset = UNSET
     source: None | str | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
     delivery_date: datetime.datetime | None | Unset = UNSET
@@ -157,6 +159,14 @@ class SalesOrder:
         updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
+
+        deleted_at: None | str | Unset
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
+        else:
+            deleted_at = self.deleted_at
 
         source: None | str | Unset
         if isinstance(self.source, Unset):
@@ -349,6 +359,8 @@ class SalesOrder:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
         if source is not UNSET:
             field_dict["source"] = source
         if order_created_date is not UNSET:
@@ -438,6 +450,23 @@ class SalesOrder:
             updated_at = UNSET
         else:
             updated_at = isoparse(_updated_at)
+
+        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         def _parse_source(data: object) -> None | str | Unset:
             if data is None:
@@ -786,6 +815,7 @@ class SalesOrder:
             status=status,
             created_at=created_at,
             updated_at=updated_at,
+            deleted_at=deleted_at,
             source=source,
             order_created_date=order_created_date,
             delivery_date=delivery_date,

@@ -267,8 +267,9 @@ ______________________________________________________________________
 
 - **`katana_public_api_client/katana_client.py`** - Main client with
   `ResilientAsyncTransport`
-- **`katana_public_api_client/api/`** - 76+ generated API endpoint modules (DO NOT EDIT)
-- **`katana_public_api_client/models/`** - 150+ generated data models (DO NOT EDIT)
+- **`katana_public_api_client/api/`** - 100+ generated API endpoint modules (DO NOT
+  EDIT)
+- **`katana_public_api_client/models/`** - 370+ generated data models (DO NOT EDIT)
 - **`katana_public_api_client/domain/`** - Pydantic domain models (EDIT THESE)
 - **`katana_public_api_client/helpers/`** - Helper classes for common operations
 - **`katana_mcp_server/`** - MCP server implementation (separate package)

@@ -8,7 +8,7 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
-from ...models.get_all_locations_response_200 import GetAllLocationsResponse200
+from ...models.location_list_response import LocationListResponse
 
 
 def _get_kwargs(
@@ -90,9 +90,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | GetAllLocationsResponse200 | None:
+) -> ErrorResponse | LocationListResponse | None:
     if response.status_code == 200:
-        response_200 = GetAllLocationsResponse200.from_dict(response.json())
+        response_200 = LocationListResponse.from_dict(response.json())
 
         return response_200
 
@@ -119,7 +119,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | GetAllLocationsResponse200]:
+) -> Response[ErrorResponse | LocationListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -146,7 +146,7 @@ def sync_detailed(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
-) -> Response[ErrorResponse | GetAllLocationsResponse200]:
+) -> Response[ErrorResponse | LocationListResponse]:
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
@@ -176,7 +176,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[ErrorResponse | GetAllLocationsResponse200]
+        Response[ErrorResponse | LocationListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -222,7 +222,7 @@ def sync(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
-) -> ErrorResponse | GetAllLocationsResponse200 | None:
+) -> ErrorResponse | LocationListResponse | None:
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
@@ -252,7 +252,7 @@ def sync(
 
 
     Returns:
-        ErrorResponse | GetAllLocationsResponse200
+        ErrorResponse | LocationListResponse
     """
 
     return sync_detailed(
@@ -293,7 +293,7 @@ async def asyncio_detailed(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
-) -> Response[ErrorResponse | GetAllLocationsResponse200]:
+) -> Response[ErrorResponse | LocationListResponse]:
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
@@ -323,7 +323,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[ErrorResponse | GetAllLocationsResponse200]
+        Response[ErrorResponse | LocationListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -367,7 +367,7 @@ async def asyncio(
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
-) -> ErrorResponse | GetAllLocationsResponse200 | None:
+) -> ErrorResponse | LocationListResponse | None:
     """List all locations
 
      Returns a list of locations you've previously created. The locations are returned in sorted order,
@@ -397,7 +397,7 @@ async def asyncio(
 
 
     Returns:
-        ErrorResponse | GetAllLocationsResponse200
+        ErrorResponse | LocationListResponse
     """
 
     return (

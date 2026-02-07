@@ -48,6 +48,10 @@ class SalesReturn:
     order_created_date: datetime.datetime | Unset = UNSET
     additional_info: None | str | Unset = UNSET
     refund_status: None | str | Unset = UNSET
+    tracking_number: None | str | Unset = UNSET
+    tracking_number_url: None | str | Unset = UNSET
+    tracking_carrier: None | str | Unset = UNSET
+    tracking_method: None | str | Unset = UNSET
     sales_return_rows: list[SalesReturnRow] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -110,6 +114,30 @@ class SalesReturn:
         else:
             refund_status = self.refund_status
 
+        tracking_number: None | str | Unset
+        if isinstance(self.tracking_number, Unset):
+            tracking_number = UNSET
+        else:
+            tracking_number = self.tracking_number
+
+        tracking_number_url: None | str | Unset
+        if isinstance(self.tracking_number_url, Unset):
+            tracking_number_url = UNSET
+        else:
+            tracking_number_url = self.tracking_number_url
+
+        tracking_carrier: None | str | Unset
+        if isinstance(self.tracking_carrier, Unset):
+            tracking_carrier = UNSET
+        else:
+            tracking_carrier = self.tracking_carrier
+
+        tracking_method: None | str | Unset
+        if isinstance(self.tracking_method, Unset):
+            tracking_method = UNSET
+        else:
+            tracking_method = self.tracking_method
+
         sales_return_rows: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.sales_return_rows, Unset):
             sales_return_rows = []
@@ -146,6 +174,14 @@ class SalesReturn:
             field_dict["additional_info"] = additional_info
         if refund_status is not UNSET:
             field_dict["refund_status"] = refund_status
+        if tracking_number is not UNSET:
+            field_dict["tracking_number"] = tracking_number
+        if tracking_number_url is not UNSET:
+            field_dict["tracking_number_url"] = tracking_number_url
+        if tracking_carrier is not UNSET:
+            field_dict["tracking_carrier"] = tracking_carrier
+        if tracking_method is not UNSET:
+            field_dict["tracking_method"] = tracking_method
         if sales_return_rows is not UNSET:
             field_dict["sales_return_rows"] = sales_return_rows
 
@@ -250,6 +286,44 @@ class SalesReturn:
 
         refund_status = _parse_refund_status(d.pop("refund_status", UNSET))
 
+        def _parse_tracking_number(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
+
+        def _parse_tracking_number_url(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        tracking_number_url = _parse_tracking_number_url(
+            d.pop("tracking_number_url", UNSET)
+        )
+
+        def _parse_tracking_carrier(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        tracking_carrier = _parse_tracking_carrier(d.pop("tracking_carrier", UNSET))
+
+        def _parse_tracking_method(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        tracking_method = _parse_tracking_method(d.pop("tracking_method", UNSET))
+
         _sales_return_rows = d.pop("sales_return_rows", UNSET)
         sales_return_rows: list[SalesReturnRow] | Unset = UNSET
         if _sales_return_rows is not UNSET:
@@ -276,6 +350,10 @@ class SalesReturn:
             order_created_date=order_created_date,
             additional_info=additional_info,
             refund_status=refund_status,
+            tracking_number=tracking_number,
+            tracking_number_url=tracking_number_url,
+            tracking_carrier=tracking_carrier,
+            tracking_method=tracking_method,
             sales_return_rows=sales_return_rows,
         )
 

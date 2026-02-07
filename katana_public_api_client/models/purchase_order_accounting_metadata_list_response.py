@@ -25,10 +25,10 @@ class PurchaseOrderAccountingMetadataListResponse:
     processing
 
         Example:
-            {'data': [{'id': 156, 'purchase_order_id': 8001, 'purchaseOrderId': 8001, 'porReceivedGroupId': 2001,
-                'integrationType': 'quickbooks', 'billId': 'BILL-2024-001', 'createdAt': '2024-01-15T11:30:00Z'}, {'id': 157,
-                'purchase_order_id': 8002, 'purchaseOrderId': 8002, 'porReceivedGroupId': 2002, 'integrationType': 'xero',
-                'billId': 'BILL-2024-002', 'createdAt': '2024-01-15T12:00:00Z'}]}
+            {'data': [{'id': 156, 'purchase_order_id': 8001, 'received_items_group_id': 2001, 'integration_type':
+                'quickBooks', 'bill_id': 'BILL-2024-001', 'created_at': '2024-01-15T11:30:00Z'}, {'id': 157,
+                'purchase_order_id': 8002, 'received_items_group_id': 2002, 'integration_type': 'xero', 'bill_id':
+                'BILL-2024-002', 'created_at': '2024-01-15T12:00:00Z'}]}
     """
 
     data: list[PurchaseOrderAccountingMetadata] | Unset = UNSET

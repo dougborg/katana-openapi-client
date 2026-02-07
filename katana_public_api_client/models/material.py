@@ -58,6 +58,9 @@ class Material:
     variants: list[Variant] | Unset = UNSET
     configs: list[ItemConfig] | Unset = UNSET
     supplier: None | Supplier | Unset = UNSET
+    deleted_at: datetime.datetime | None | Unset = UNSET
+    serial_tracked: bool | Unset = UNSET
+    operations_in_sequence: bool | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -141,6 +144,18 @@ class Material:
         else:
             supplier = self.supplier
 
+        deleted_at: None | str | Unset
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
+        else:
+            deleted_at = self.deleted_at
+
+        serial_tracked = self.serial_tracked
+
+        operations_in_sequence = self.operations_in_sequence
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -180,6 +195,12 @@ class Material:
             field_dict["configs"] = configs
         if supplier is not UNSET:
             field_dict["supplier"] = supplier
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
+        if serial_tracked is not UNSET:
+            field_dict["serial_tracked"] = serial_tracked
+        if operations_in_sequence is not UNSET:
+            field_dict["operations_in_sequence"] = operations_in_sequence
 
         return field_dict
 
@@ -314,6 +335,27 @@ class Material:
 
         supplier = _parse_supplier(d.pop("supplier", UNSET))
 
+        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
+
+        serial_tracked = d.pop("serial_tracked", UNSET)
+
+        operations_in_sequence = d.pop("operations_in_sequence", UNSET)
+
         material = cls(
             id=id,
             name=name,
@@ -333,6 +375,9 @@ class Material:
             variants=variants,
             configs=configs,
             supplier=supplier,
+            deleted_at=deleted_at,
+            serial_tracked=serial_tracked,
+            operations_in_sequence=operations_in_sequence,
         )
 
         material.additional_properties = d

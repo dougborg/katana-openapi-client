@@ -18,19 +18,30 @@ from .base import DeletableEntity, UpdatableEntity
 from .common import (
     Attribute,
     Attribute1,
+    Attribute3,
     EntityType4,
     IngredientAvailability,
     IntegrationType,
+    InvoiceStatus,
     ProductAvailability,
     ProductionStatus,
-    Status5,
-    Status6,
-    Status12,
+    Status7,
+    Status8,
+    Status9,
+    Status11,
+    Status14,
 )
-from .stock import BatchTransaction6
+from .stock import (
+    BatchTransaction,
+    BatchTransaction6,
+    BatchTransaction8,
+    BatchTransaction9,
+    BatchTransactionRequest,
+    SerialNumberTransaction,
+)
 
 
-class SalesOrderRow(UpdatableEntity):
+class SalesOrderRow(DeletableEntity):
     id: Annotated[int, Field(description="Unique identifier for the sales order row")]
     sales_order_id: Annotated[
         int | None, Field(description="ID of the sales order this row belongs to")
@@ -43,6 +54,9 @@ class SalesOrderRow(UpdatableEntity):
     ]
     tax_rate_id: Annotated[
         int | None, Field(description="ID of the tax rate applied to this line item")
+    ] = None
+    tax_rate: Annotated[
+        float | None, Field(description="Tax rate percentage applied to this line item")
     ] = None
     location_id: Annotated[
         int | None,
@@ -116,8 +130,7 @@ class SalesOrderRow(UpdatableEntity):
     ] = None
 
 
-class SalesOrderAddress(UpdatableEntity):
-    id: Annotated[int, Field(description="Unique identifier for the address record")]
+class SalesOrderAddress(DeletableEntity):
     sales_order_id: Annotated[
         int, Field(description="ID of the sales order this address belongs to")
     ]
@@ -176,6 +189,14 @@ class CreateSalesOrderRowRequest(KatanaPydanticBase):
         int | None,
         Field(description="Location where the product should be picked from"),
     ] = None
+    attributes: Annotated[
+        list[Attribute1] | None,
+        Field(description="Custom attributes for this line item"),
+    ] = None
+    total_discount: Annotated[
+        float | None,
+        Field(description="Total discount amount applied to this line item"),
+    ] = None
 
 
 class UpdateSalesOrderRowRequest(KatanaPydanticBase):
@@ -198,6 +219,22 @@ class UpdateSalesOrderRowRequest(KatanaPydanticBase):
         int | None,
         Field(description="Location where the product should be picked from"),
     ] = None
+    total_discount: Annotated[
+        float | None,
+        Field(description="Total discount amount applied to this line item"),
+    ] = None
+    batch_transactions: Annotated[
+        list[BatchTransaction] | None,
+        Field(description="Batch transactions for inventory tracking"),
+    ] = None
+    serial_number_transactions: Annotated[
+        list[SerialNumberTransaction] | None,
+        Field(description="Serial number transactions for tracking"),
+    ] = None
+    attributes: Annotated[
+        list[Attribute1] | None,
+        Field(description="Custom attributes for this line item"),
+    ] = None
 
 
 class CreateSalesOrderAddressRequest(KatanaPydanticBase):
@@ -219,10 +256,8 @@ class CreateSalesOrderAddressRequest(KatanaPydanticBase):
     company: Annotated[
         str | None, Field(description="Company name for the address")
     ] = None
-    address_line_1: Annotated[str, Field(description="Primary address line")]
-    address_line_2: Annotated[
-        str | None, Field(description="Secondary address line")
-    ] = None
+    line_1: Annotated[str, Field(description="Primary address line")]
+    line_2: Annotated[str | None, Field(description="Secondary address line")] = None
     city: Annotated[str, Field(description="City name")]
     state: Annotated[str | None, Field(description="State or province")] = None
     zip: Annotated[str | None, Field(description="Postal code")] = None
@@ -234,9 +269,6 @@ class UpdateSalesOrderAddressRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    entity_type: Annotated[
-        EntityType4 | None, Field(description="Type of address (billing or shipping)")
-    ] = None
     first_name: Annotated[
         str | None, Field(description="First name for the address contact")
     ] = None
@@ -246,12 +278,8 @@ class UpdateSalesOrderAddressRequest(KatanaPydanticBase):
     company: Annotated[
         str | None, Field(description="Company name for the address")
     ] = None
-    address_line_1: Annotated[str | None, Field(description="Primary address line")] = (
-        None
-    )
-    address_line_2: Annotated[
-        str | None, Field(description="Secondary address line")
-    ] = None
+    line_1: Annotated[str | None, Field(description="Primary address line")] = None
+    line_2: Annotated[str | None, Field(description="Secondary address line")] = None
     city: Annotated[str | None, Field(description="City name")] = None
     state: Annotated[str | None, Field(description="State or province")] = None
     zip: Annotated[str | None, Field(description="Postal code")] = None
@@ -280,9 +308,13 @@ class SalesOrderRow1(KatanaPydanticBase):
         float | None, Field(description="Discount amount to apply to this line")
     ] = None
     attributes: Annotated[
-        list[Attribute1] | None,
+        list[Attribute3] | None,
         Field(description="Custom attributes for the order line"),
     ] = None
+
+
+class Address1(SalesOrderAddress):
+    pass
 
 
 class CreateSalesOrderRequest(KatanaPydanticBase):
@@ -305,7 +337,7 @@ class CreateSalesOrderRequest(KatanaPydanticBase):
         AnyUrl | None, Field(description="URL for tracking shipment status")
     ] = None
     addresses: Annotated[
-        list[Address] | None,
+        list[Address1] | None,
         Field(description="Billing and shipping addresses for the order"),
     ] = None
     order_created_date: Annotated[
@@ -327,7 +359,7 @@ class CreateSalesOrderRequest(KatanaPydanticBase):
         int | None, Field(description="Primary fulfillment location for the order")
     ] = None
     status: Annotated[
-        Status6 | None, Field(description="Initial status of the order")
+        Status8 | None, Field(description="Initial status of the order")
     ] = None
     additional_info: Annotated[
         str | None, Field(description="Additional notes or instructions for the order")
@@ -349,6 +381,23 @@ class CreateSalesOrderRequest(KatanaPydanticBase):
     ] = None
 
 
+class SalesOrderFulfillmentRow(KatanaPydanticBase):
+    sales_order_row_id: Annotated[
+        int | None, Field(description="ID of the sales order row being fulfilled")
+    ] = None
+    quantity: Annotated[
+        float | None, Field(description="Quantity fulfilled for this row")
+    ] = None
+    batch_transactions: Annotated[
+        list[BatchTransaction8] | None,
+        Field(description="Batch allocations for this fulfillment row"),
+    ] = None
+    serial_numbers: Annotated[
+        list[int] | None,
+        Field(description="Serial numbers allocated to this fulfillment row"),
+    ] = None
+
+
 class SalesOrderFulfillment(UpdatableEntity):
     id: Annotated[
         int, Field(description="Unique identifier for the fulfillment record")
@@ -356,36 +405,69 @@ class SalesOrderFulfillment(UpdatableEntity):
     sales_order_id: Annotated[
         int, Field(description="ID of the sales order being fulfilled")
     ]
+    picked_date: Annotated[
+        AwareDatetime | None,
+        Field(description="Date and time when items were picked from inventory"),
+    ] = None
+    status: Annotated[
+        Status9 | None, Field(description="Current fulfillment status")
+    ] = None
+    invoice_status: Annotated[
+        InvoiceStatus | None,
+        Field(description="Current invoice status of the fulfillment"),
+    ] = None
+    conversion_rate: Annotated[
+        float | None,
+        Field(description="Currency conversion rate applied to this fulfillment"),
+    ] = None
+    conversion_date: Annotated[
+        AwareDatetime | None,
+        Field(description="Date when the currency conversion rate was applied"),
+    ] = None
     tracking_number: Annotated[
         str | None, Field(description="Carrier tracking number for shipment monitoring")
     ] = None
-    tracking_number_url: Annotated[
+    tracking_url: Annotated[
         str | None, Field(description="URL for online tracking of the shipment")
     ] = None
-    shipped_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Date and time when the order was shipped"),
-    ] = None
-    estimated_delivery_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Carrier's estimated delivery date and time"),
-    ] = None
-    actual_delivery_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Actual date and time of delivery confirmation"),
-    ] = None
-    shipping_cost: Annotated[
-        float | None, Field(description="Total shipping cost charged to the customer")
-    ] = None
-    shipping_method: Annotated[
-        str | None,
-        Field(description="Shipping service used (e.g., Ground, Express, Overnight)"),
-    ] = None
-    carrier: Annotated[
+    tracking_carrier: Annotated[
         str | None, Field(description="Shipping carrier name (e.g., UPS, FedEx, DHL)")
     ] = None
-    notes: Annotated[
-        str | None, Field(description="Additional notes about the shipment or delivery")
+    tracking_method: Annotated[
+        str | None, Field(description="Shipping method used (e.g., ground, express)")
+    ] = None
+    packer_id: Annotated[
+        int | None, Field(description="ID of the user who packed the fulfillment")
+    ] = None
+    sales_order_fulfillment_rows: Annotated[
+        list[SalesOrderFulfillmentRow] | None,
+        Field(
+            description="Line items in this fulfillment with quantities and batch details"
+        ),
+    ] = None
+
+
+class CreateSalesReturnRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    sales_order_id: Annotated[
+        int, Field(description="ID of the original sales order being returned")
+    ]
+    order_created_date: Annotated[
+        AwareDatetime | None,
+        Field(
+            description="Creation date of the return. If missing then current timestamp will be used."
+        ),
+    ] = None
+    return_location_id: Annotated[
+        int, Field(description="ID of the location where items are being returned to")
+    ]
+    order_no: Annotated[
+        str | None, Field(description="Return order reference number")
+    ] = None
+    additional_info: Annotated[
+        str | None, Field(description="Optional notes or comments about the return")
     ] = None
 
 
@@ -393,31 +475,38 @@ class UpdateSalesReturnRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    customer_id: Annotated[
-        int | None, Field(description="ID of the customer initiating the return")
+    status: Annotated[
+        Status11 | None, Field(description="Status of the sales return")
     ] = None
-    sales_order_id: Annotated[
-        int | None, Field(description="ID of the original sales order being returned")
-    ] = None
-    order_no: Annotated[
-        str | None, Field(description="Return order reference number")
-    ] = None
-    return_location_id: Annotated[
-        int | None,
-        Field(description="ID of the location where items are being returned to"),
-    ] = None
-    currency: Annotated[
-        str | None, Field(description="Currency code (e.g., USD, EUR)")
+    return_date: Annotated[
+        AwareDatetime | None,
+        Field(
+            description="Date of the return. Updatable only when current return status is not restockedAll."
+        ),
     ] = None
     order_created_date: Annotated[
         AwareDatetime | None,
-        Field(description="Date when the original order was created"),
+        Field(
+            description="Creation date of the return. Updatable only when current return status is not restockedAll."
+        ),
+    ] = None
+    return_location_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the location where items are being returned to. Updatable only when current return status is not restockedAll."
+        ),
+    ] = None
+    order_no: Annotated[
+        str | None,
+        Field(
+            description="Return order reference number. Updatable only when current return status is not restockedAll."
+        ),
     ] = None
     additional_info: Annotated[
-        str | None, Field(description="Optional notes or comments about the return")
-    ] = None
-    status: Annotated[
-        Status12 | None, Field(description="Status of the sales return")
+        str | None,
+        Field(
+            description="Additional information about the return. Updatable only when current return status is not restockedAll."
+        ),
     ] = None
 
 
@@ -427,23 +516,36 @@ class SalesReturnRow(UpdatableEntity):
         int, Field(description="The sales return this line item belongs to")
     ]
     variant_id: Annotated[int, Field(description="The product variant being returned")]
+    fulfillment_row_id: Annotated[
+        int | None,
+        Field(description="ID of the fulfillment row this return is associated with"),
+    ] = None
+    sales_order_row_id: Annotated[
+        int | None,
+        Field(description="ID of the sales order row this return is associated with"),
+    ] = None
     quantity: Annotated[
         str,
         Field(
             description="The quantity of the variant being returned (formatted as decimal string for precision)"
         ),
     ]
-    return_reason_id: Annotated[
-        int | None, Field(description="The reason code for this return")
+    net_price_per_unit: Annotated[
+        str | None,
+        Field(
+            description="Net price per unit for the returned item (formatted as decimal string for precision)"
+        ),
     ] = None
-    notes: Annotated[
-        str | None, Field(description="Additional notes about this return item")
+    reason_id: Annotated[int | None, Field(description="ID of the return reason")] = (
+        None
+    )
+    restock_location_id: Annotated[
+        int | None,
+        Field(description="ID of the location where stock will be restocked"),
     ] = None
-    unit_price: Annotated[
-        float | None, Field(description="The price per unit for the returned item")
-    ] = None
-    total_price: Annotated[
-        float | None, Field(description="The total refund amount for this line item")
+    batch_transactions: Annotated[
+        list[BatchTransaction9] | None,
+        Field(description="Batch allocations for this return row"),
     ] = None
 
 
@@ -451,14 +553,24 @@ class CreateSalesReturnRowRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
+    sales_return_id: Annotated[
+        int, Field(description="ID of the sales return this row belongs to")
+    ]
     variant_id: Annotated[int, Field(description="ID of the variant being returned")]
-    quantity: Annotated[float, Field(description="Quantity being returned")]
-    return_reason_id: Annotated[
-        int | None, Field(description="ID of the return reason")
+    fulfillment_row_id: Annotated[
+        int,
+        Field(description="ID of the fulfillment row this return is associated with"),
+    ]
+    quantity: Annotated[str, Field(description="Quantity being returned")]
+    restock_location_id: Annotated[
+        int | None,
+        Field(
+            description="Restock location ID. If missing then default from sales order fulfillment row will be used."
+        ),
     ] = None
-    notes: Annotated[
-        str | None, Field(description="Optional notes about this returned item")
-    ] = None
+    reason_id: Annotated[int | None, Field(description="ID of the return reason")] = (
+        None
+    )
 
 
 class SalesOrderRowListResponse(KatanaPydanticBase):
@@ -555,7 +667,241 @@ class CreateSalesOrderShippingFeeRequest(KatanaPydanticBase):
     ] = None
 
 
-class SalesOrder(UpdatableEntity):
+class SalesOrderFulfillmentRowRequest(KatanaPydanticBase):
+    sales_order_row_id: Annotated[
+        int | None, Field(description="Sales order row ID")
+    ] = None
+    quantity: Annotated[float | None, Field(description="Quantity to fulfill")] = None
+
+
+class CreateSalesOrderFulfillmentRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    sales_order_id: Annotated[int, Field(description="Sales order ID")]
+    picked_date: Annotated[
+        AwareDatetime | None, Field(description="Date when items were picked")
+    ] = None
+    status: Annotated[str | None, Field(description="Fulfillment status")] = None
+    conversion_rate: Annotated[
+        float | None, Field(description="Currency conversion rate")
+    ] = None
+    conversion_date: Annotated[
+        AwareDatetime | None, Field(description="Date of currency conversion")
+    ] = None
+    tracking_number: Annotated[
+        str | None, Field(description="Shipment tracking number")
+    ] = None
+    tracking_url: Annotated[
+        str | None, Field(description="URL for tracking the shipment")
+    ] = None
+    tracking_carrier: Annotated[
+        str | None, Field(description="Shipping carrier name")
+    ] = None
+    tracking_method: Annotated[
+        str | None, Field(description="Shipping method used")
+    ] = None
+    sales_order_fulfillment_rows: Annotated[
+        list[SalesOrderFulfillmentRowRequest] | None,
+        Field(description="Fulfillment row items"),
+    ] = None
+
+
+class UpdateSalesOrderFulfillmentRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    picked_date: Annotated[
+        AwareDatetime | None, Field(description="Date when items were picked")
+    ] = None
+    status: Annotated[str | None, Field(description="Fulfillment status")] = None
+    conversion_rate: Annotated[
+        float | None, Field(description="Currency conversion rate")
+    ] = None
+    packer_id: Annotated[
+        float | None, Field(description="ID of the packer who packed the order")
+    ] = None
+    conversion_date: Annotated[
+        AwareDatetime | None, Field(description="Date of currency conversion")
+    ] = None
+    tracking_number: Annotated[
+        str | None, Field(description="Shipment tracking number")
+    ] = None
+    tracking_url: Annotated[
+        str | None, Field(description="URL for tracking the shipment")
+    ] = None
+    tracking_carrier: Annotated[
+        str | None, Field(description="Shipping carrier name")
+    ] = None
+    tracking_method: Annotated[
+        str | None, Field(description="Shipping method used")
+    ] = None
+
+
+class UpdateSalesOrderShippingFeeRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    description: Annotated[
+        str | None, Field(description="Shipping fee description")
+    ] = None
+    amount: Annotated[int | None, Field(description="Shipping fee amount")] = None
+    tax_rate_id: Annotated[
+        int | None, Field(description="ID of the tax rate to apply to the shipping fee")
+    ] = None
+
+
+class UpdateSalesOrderRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    order_no: Annotated[
+        str | None,
+        Field(
+            description="Updatable only when sales order status is NOT_SHIPPED or PENDING.",
+            min_length=1,
+        ),
+    ] = None
+    customer_id: Annotated[
+        int | None,
+        Field(
+            description="Updatable only when sales order status is NOT_SHIPPED or PENDING.",
+            le=2147483647,
+        ),
+    ] = None
+    order_created_date: Annotated[
+        AwareDatetime | None,
+        Field(description="Date when the order was originally created"),
+    ] = None
+    delivery_date: Annotated[
+        AwareDatetime | None,
+        Field(
+            description="Updatable only when sales order status is NOT_SHIPPED or PENDING."
+        ),
+    ] = None
+    picked_date: Annotated[
+        AwareDatetime | None,
+        Field(
+            description="Updatable only when sales order status is NOT_SHIPPED or PENDING."
+        ),
+    ] = None
+    location_id: Annotated[
+        int | None,
+        Field(
+            description="Updatable only when sales order status is NOT_SHIPPED or PENDING.",
+            le=2147483647,
+        ),
+    ] = None
+    status: Annotated[
+        Status14 | None,
+        Field(
+            description="When the status is omitted, NOT_SHIPPED is used as default. Use PENDING when you want to create sales order quotes."
+        ),
+    ] = None
+    currency: Annotated[
+        str | None,
+        Field(
+            description="E.g. USD, EUR. All currently active currency codes in ISO 4217 format. Updatable only when sales\norder status is NOT_SHIPPED or PENDING."
+        ),
+    ] = None
+    conversion_rate: Annotated[
+        float | None,
+        Field(
+            description="Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with 422."
+        ),
+    ] = None
+    conversion_date: Annotated[
+        str | None,
+        Field(
+            description="Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with 422."
+        ),
+    ] = None
+    additional_info: Annotated[
+        str | None,
+        Field(description="Additional notes or instructions for the sales order"),
+    ] = None
+    customer_ref: Annotated[
+        str | None,
+        Field(
+            description="Customer's reference number or purchase order number",
+            max_length=255,
+        ),
+    ] = None
+    tracking_number: Annotated[
+        str | None,
+        Field(
+            description="Shipping carrier tracking number for package tracking",
+            max_length=256,
+        ),
+    ] = None
+    tracking_number_url: Annotated[
+        str | None,
+        Field(
+            description="URL link to track the shipment on carrier website",
+            max_length=2048,
+        ),
+    ] = None
+
+
+class UpdateSalesReturnRowRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    quantity: Annotated[
+        str | None,
+        Field(
+            description="Quantity being returned. Updatable only when current return status is NOT_RETURNED."
+        ),
+    ] = None
+    restock_location_id: Annotated[
+        int | None,
+        Field(
+            description="Restock location ID. Updatable only when current return status is NOT_RETURNED or RETURNED."
+        ),
+    ] = None
+    reason_id: Annotated[
+        int | None,
+        Field(
+            description="Reason ID. Updatable only when current return status is NOT_RETURNED."
+        ),
+    ] = None
+    batch_transactions: Annotated[
+        list[BatchTransactionRequest] | None,
+        Field(
+            description="Batch transactions. Updatable only when current return status is NOT_RETURNED or RETURNED.",
+            min_length=1,
+        ),
+    ] = None
+
+
+class ReturnableItem(KatanaPydanticBase):
+    variant_id: Annotated[int, Field(description="Product variant ID")]
+    fulfillment_row_id: Annotated[int, Field(description="Fulfillment row ID")]
+    available_for_return_quantity: Annotated[
+        str, Field(description="Quantity available for return")
+    ]
+    net_price_per_unit: Annotated[str, Field(description="Net price per unit")]
+    location_id: Annotated[int, Field(description="Location ID")]
+    quantity_sold: Annotated[str, Field(description="Total quantity sold")]
+
+
+class UnassignedBatchTransaction(KatanaPydanticBase):
+    id: Annotated[int | None, Field(description="Batch transaction ID")] = None
+    batch_id: Annotated[int | None, Field(description="Batch ID")] = None
+    quantity: Annotated[float | None, Field(description="Transaction quantity")] = None
+    status: Annotated[str | None, Field(description="Transaction status")] = None
+
+
+class UnassignedBatchTransactionListResponse(KatanaPydanticBase):
+    data: list[UnassignedBatchTransaction] | None = None
+
+
+class SalesReturnReason(KatanaPydanticBase):
+    id: Annotated[int, Field(description="Return reason ID")]
+    name: Annotated[str, Field(description="Return reason name")]
+
+
+class SalesOrder(DeletableEntity):
     customer_id: Annotated[
         int, Field(description="Unique identifier of the customer placing the order")
     ]
@@ -590,7 +936,7 @@ class SalesOrder(UpdatableEntity):
         ),
     ]
     status: Annotated[
-        Status5, Field(description="Current fulfillment status of the sales order")
+        Status7, Field(description="Current fulfillment status of the sales order")
     ]
     currency: Annotated[
         str | None,
@@ -738,7 +1084,7 @@ class SalesReturn(DeletableEntity):
         ),
     ]
     status: Annotated[
-        Status12, Field(description="Current processing status of the sales return")
+        Status11, Field(description="Current processing status of the sales return")
     ]
     currency: Annotated[
         str | None,
@@ -761,40 +1107,22 @@ class SalesReturn(DeletableEntity):
     refund_status: Annotated[
         str | None, Field(description="Current status of the refund processing")
     ] = None
+    tracking_number: Annotated[
+        str | None, Field(description="Tracking number for the return shipment")
+    ] = None
+    tracking_number_url: Annotated[
+        str | None, Field(description="URL to track the return shipment")
+    ] = None
+    tracking_carrier: Annotated[
+        str | None, Field(description="Carrier used for the return shipment")
+    ] = None
+    tracking_method: Annotated[
+        str | None, Field(description="Shipping method used for the return")
+    ] = None
     sales_return_rows: Annotated[
         list[SalesReturnRow] | None,
         Field(description="Line items being returned with quantities and reasons"),
     ] = None
-
-
-class CreateSalesReturnRequest(KatanaPydanticBase):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    customer_id: Annotated[
-        int, Field(description="ID of the customer initiating the return")
-    ]
-    sales_order_id: Annotated[
-        int | None, Field(description="ID of the original sales order being returned")
-    ] = None
-    order_no: Annotated[str, Field(description="Return order reference number")]
-    return_location_id: Annotated[
-        int, Field(description="ID of the location where items are being returned to")
-    ]
-    currency: Annotated[
-        str | None, Field(description="Currency code (e.g., USD, EUR)")
-    ] = None
-    order_created_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Date when the original order was created"),
-    ] = None
-    additional_info: Annotated[
-        str | None, Field(description="Optional notes or comments about the return")
-    ] = None
-    sales_return_rows: Annotated[
-        list[CreateSalesReturnRowRequest],
-        Field(description="Array of items being returned", min_length=1),
-    ]
 
 
 class SalesReturnListResponse(KatanaPydanticBase):
@@ -819,7 +1147,3 @@ class SalesOrderShippingFeeListResponse(KatanaPydanticBase):
             description="Array of shipping fee records with costs and tax information"
         ),
     ] = None
-
-
-# Type aliases
-Address = SalesOrderAddress

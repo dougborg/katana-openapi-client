@@ -9,16 +9,16 @@ from ...client import AuthenticatedClient, Client
 from ...client_types import Response
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
-from ...models.update_product_operation_row_body import UpdateProductOperationRowBody
-from ...models.update_product_operation_row_response_200 import (
-    UpdateProductOperationRowResponse200,
+from ...models.product_operation_row import ProductOperationRow
+from ...models.update_product_operation_row_request import (
+    UpdateProductOperationRowRequest,
 )
 
 
 def _get_kwargs(
     id: int,
     *,
-    body: UpdateProductOperationRowBody,
+    body: UpdateProductOperationRowRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -39,11 +39,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> (
-    DetailedErrorResponse | ErrorResponse | UpdateProductOperationRowResponse200 | None
-):
+) -> DetailedErrorResponse | ErrorResponse | ProductOperationRow | None:
     if response.status_code == 200:
-        response_200 = UpdateProductOperationRowResponse200.from_dict(response.json())
+        response_200 = ProductOperationRow.from_dict(response.json())
 
         return response_200
 
@@ -85,9 +83,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[
-    DetailedErrorResponse | ErrorResponse | UpdateProductOperationRowResponse200
-]:
+) -> Response[DetailedErrorResponse | ErrorResponse | ProductOperationRow]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -100,17 +96,16 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateProductOperationRowBody,
-) -> Response[
-    DetailedErrorResponse | ErrorResponse | UpdateProductOperationRowResponse200
-]:
+    body: UpdateProductOperationRowRequest,
+) -> Response[DetailedErrorResponse | ErrorResponse | ProductOperationRow]:
     """Update a product operation row
 
      Updates a product operation row.
 
     Args:
         id (int):
-        body (UpdateProductOperationRowBody):
+        body (UpdateProductOperationRowRequest): Request payload for updating a product operation
+            row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -118,7 +113,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[DetailedErrorResponse | ErrorResponse | UpdateProductOperationRowResponse200]
+        Response[DetailedErrorResponse | ErrorResponse | ProductOperationRow]
     """
 
     kwargs = _get_kwargs(
@@ -137,17 +132,16 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateProductOperationRowBody,
-) -> (
-    DetailedErrorResponse | ErrorResponse | UpdateProductOperationRowResponse200 | None
-):
+    body: UpdateProductOperationRowRequest,
+) -> DetailedErrorResponse | ErrorResponse | ProductOperationRow | None:
     """Update a product operation row
 
      Updates a product operation row.
 
     Args:
         id (int):
-        body (UpdateProductOperationRowBody):
+        body (UpdateProductOperationRowRequest): Request payload for updating a product operation
+            row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -155,7 +149,7 @@ def sync(
 
 
     Returns:
-        DetailedErrorResponse | ErrorResponse | UpdateProductOperationRowResponse200
+        DetailedErrorResponse | ErrorResponse | ProductOperationRow
     """
 
     return sync_detailed(
@@ -169,17 +163,16 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateProductOperationRowBody,
-) -> Response[
-    DetailedErrorResponse | ErrorResponse | UpdateProductOperationRowResponse200
-]:
+    body: UpdateProductOperationRowRequest,
+) -> Response[DetailedErrorResponse | ErrorResponse | ProductOperationRow]:
     """Update a product operation row
 
      Updates a product operation row.
 
     Args:
         id (int):
-        body (UpdateProductOperationRowBody):
+        body (UpdateProductOperationRowRequest): Request payload for updating a product operation
+            row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -187,7 +180,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[DetailedErrorResponse | ErrorResponse | UpdateProductOperationRowResponse200]
+        Response[DetailedErrorResponse | ErrorResponse | ProductOperationRow]
     """
 
     kwargs = _get_kwargs(
@@ -204,17 +197,16 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateProductOperationRowBody,
-) -> (
-    DetailedErrorResponse | ErrorResponse | UpdateProductOperationRowResponse200 | None
-):
+    body: UpdateProductOperationRowRequest,
+) -> DetailedErrorResponse | ErrorResponse | ProductOperationRow | None:
     """Update a product operation row
 
      Updates a product operation row.
 
     Args:
         id (int):
-        body (UpdateProductOperationRowBody):
+        body (UpdateProductOperationRowRequest): Request payload for updating a product operation
+            row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -222,7 +214,7 @@ async def asyncio(
 
 
     Returns:
-        DetailedErrorResponse | ErrorResponse | UpdateProductOperationRowResponse200
+        DetailedErrorResponse | ErrorResponse | ProductOperationRow
     """
 
     return (

@@ -1110,7 +1110,7 @@ components:
       description: Base error message schema
       properties:
         statusCode:
-          type: number
+          type: integer
           description: HTTP status code
         name:
           type: string
@@ -1710,15 +1710,18 @@ components:
         - bin_name
         - location_id
       properties:
+        name:
+          type: string
+          description: Name of the storage bin (returned by list endpoint)
         bin_name:
           type: string
-          description: Name of the storage bin
+          description: Name of the storage bin (used in create/update requests and individual responses)
         location_id:
           type: integer
           description: Unique identifier of the location where storage bin is located
       example:
-        bin_name: A-01-SHELF-1
-        location_id: 1
+        bin_name: Bin-2
+        location_id: 12346
     StorageBinResponse:
       description: Complete storage bin record with location details and system metadata for warehouse organization
       allOf:
@@ -1726,8 +1729,9 @@ components:
         - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 12345
-        bin_name: A-01-SHELF-1
-        location_id: 1
+        name: Bin-2
+        bin_name: Bin-2
+        location_id: 12346
         created_at: "2020-10-23T10:37:05.085Z"
         updated_at: "2020-10-23T10:37:05.085Z"
         deleted_at: null
@@ -1757,14 +1761,8 @@ components:
       example:
         data:
           - id: 12345
-            bin_name: A-01-SHELF-1
-            location_id: 1
-            created_at: "2020-10-23T10:37:05.085Z"
-            updated_at: "2020-10-23T10:37:05.085Z"
-            deleted_at: null
-          - id: 12346
-            bin_name: A-02-SHELF-1
-            location_id: 1
+            name: Bin-2
+            location_id: 12346
             created_at: "2020-10-23T10:37:05.085Z"
             updated_at: "2020-10-23T10:37:05.085Z"
             deleted_at: null
@@ -1774,9 +1772,6 @@ components:
       allOf:
         - type: object
           properties:
-            id:
-              type: integer
-              description: Unique identifier for the inventory movement.
             variant_id:
               type: integer
               description: Identifier of the product variant associated with the movement.
@@ -1830,7 +1825,6 @@ components:
               description: A rank or order index for the movement.
         - $ref: "#/components/schemas/UpdatableEntity"
       required:
-        - id
         - variant_id
         - location_id
         - resource_type
@@ -2196,6 +2190,14 @@ components:
         location:
           $ref: "#/components/schemas/Location"
           description: Location details where this inventory is stored
+        archived_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: Timestamp when this inventory record was archived
+        default_storage_bin:
+          description: Default storage bin for this inventory at this location
       required:
         - variant_id
         - location_id
@@ -2416,6 +2418,19 @@ components:
                 - number
                 - "null"
               description: Actual quantity produced, null if production not completed
+            completed_quantity:
+              type:
+                - number
+                - "null"
+              description: Total quantity completed so far (including partial completions)
+            remaining_quantity:
+              type:
+                - number
+                - "null"
+              description: Remaining quantity to produce (planned - completed)
+            includes_partial_completions:
+              type: boolean
+              description: Whether this order has been partially completed
             batch_transactions:
               type: array
               description: Batch transactions for produced items, typically one transaction per manufacturing order
@@ -2671,6 +2686,9 @@ components:
             manufacturing_order_id:
               type: integer
               description: ID of the manufacturing order this production run belongs to
+            factory_id:
+              type: integer
+              description: ID of the factory where this production run was performed
             quantity:
               type: number
               description: Actual quantity produced in this production run
@@ -2852,6 +2870,7 @@ components:
               type: string
               description: Current status of the operation
               enum:
+                - NOT_STARTED
                 - IN_PROGRESS
                 - COMPLETED
                 - PAUSED
@@ -2904,6 +2923,12 @@ components:
             total_actual_cost:
               type: number
               description: Total actual cost incurred for this operation
+            total_consumed_time:
+              type: number
+              description: Total time consumed so far for this operation
+            total_remaining_time:
+              type: number
+              description: Remaining time estimated for this operation
             cost_per_hour:
               type: number
               description: Hourly cost rate for this operation
@@ -3240,6 +3265,12 @@ components:
             cost:
               type: number
               description: Total cost of this ingredient for the manufacturing order
+            total_consumed_quantity:
+              type: number
+              description: Total quantity consumed so far from this ingredient
+            total_remaining_quantity:
+              type: number
+              description: Remaining quantity needed from this ingredient
         - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 4001
@@ -3311,7 +3342,9 @@ components:
           type: integer
           description: Unique identifier of the specific resource instance
         transaction_date:
-          type: string
+          type:
+            - string
+            - "null"
           format: date-time
           description: Date and time when the transaction occurred
         quantity_change:
@@ -3672,6 +3705,18 @@ components:
               enum:
                 - material
               description: Item type discriminator. Material objects are of type "material"
+            deleted_at:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Timestamp when this material was soft-deleted
+            serial_tracked:
+              type: boolean
+              description: Whether inventory movements are tracked by individual serial numbers
+            operations_in_sequence:
+              type: boolean
+              description: Whether manufacturing operations must be completed in a specific sequence
           required:
             - type
       example:
@@ -4258,6 +4303,12 @@ components:
               description: Configuration attributes that define variant combinations (size, color, etc.)
               items:
                 $ref: "#/components/schemas/ItemConfig"
+            deleted_at:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Timestamp when this product was soft-deleted
           required:
             - type
       example:
@@ -4839,7 +4890,7 @@ components:
             group_id:
               type: integer
               description: Grouping identifier for organizational purposes
-        - $ref: "#/components/schemas/UpdatableEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 501
         quantity: 250
@@ -5018,22 +5069,30 @@ components:
               type: integer
               description: Tax rate identifier applied to this additional cost
             tax_rate:
-              type: number
+              type:
+                - number
+                - "null"
               description: Tax rate percentage applied to this additional cost
             price:
               type: number
               description: Amount of the additional cost in the purchase order currency
             price_in_base:
-              type: number
+              type:
+                - number
+                - "null"
               description: Amount of the additional cost converted to base currency
             currency:
               type: string
               description: Currency used for this additional cost
             currency_conversion_rate:
-              type: number
+              type:
+                - number
+                - "null"
               description: Exchange rate used for currency conversion
             currency_conversion_rate_fix_date:
-              type: string
+              type:
+                - string
+                - "null"
               format: date-time
               description: Date when the currency conversion rate was fixed
         - $ref: "#/components/schemas/DeletableEntity"
@@ -5290,33 +5349,29 @@ components:
         purchase_order_id:
           type: integer
           description: ID of the purchase order linked to the accounting system
-        purchaseOrderId:
-          type: integer
-          description: Alternative purchase order ID field for accounting system compatibility
-        porReceivedGroupId:
+        received_items_group_id:
           type: integer
           description: ID of the received items group for accounting cost allocation
-        integrationType:
+        integration_type:
           type: string
-          description: Type of accounting system integration (e.g., quickbooks, xero, sage)
-        billId:
+          description: Type of accounting system integration (e.g., quickBooks, xero, sage)
+        bill_id:
           type: string
           description: Bill identifier in the external accounting system
-        createdAt:
+        created_at:
           type: string
           format: date-time
           description: Date and time when the accounting metadata was created
       required:
         - id
-        - purchaseOrderId
+        - purchase_order_id
       example:
         id: 156
         purchase_order_id: 8001
-        purchaseOrderId: 8001
-        porReceivedGroupId: 2001
-        integrationType: quickbooks
-        billId: BILL-2024-001
-        createdAt: "2024-01-15T11:30:00Z"
+        received_items_group_id: 2001
+        integration_type: quickBooks
+        bill_id: BILL-2024-001
+        created_at: "2024-01-15T11:30:00Z"
     PurchaseOrderAccountingMetadataListResponse:
       description:
         Response containing a paginated list of purchase order accounting metadata for financial system integration
@@ -5332,18 +5387,16 @@ components:
         data:
           - id: 156
             purchase_order_id: 8001
-            purchaseOrderId: 8001
-            porReceivedGroupId: 2001
-            integrationType: quickbooks
-            billId: BILL-2024-001
-            createdAt: "2024-01-15T11:30:00Z"
+            received_items_group_id: 2001
+            integration_type: quickBooks
+            bill_id: BILL-2024-001
+            created_at: "2024-01-15T11:30:00Z"
           - id: 157
             purchase_order_id: 8002
-            purchaseOrderId: 8002
-            porReceivedGroupId: 2002
-            integrationType: xero
-            billId: BILL-2024-002
-            createdAt: "2024-01-15T12:00:00Z"
+            received_items_group_id: 2002
+            integration_type: xero
+            bill_id: BILL-2024-002
+            created_at: "2024-01-15T12:00:00Z"
     CreateSupplierRequest:
       description: Request payload for creating a new supplier with contact information and addresses
       type: object
@@ -5425,9 +5478,6 @@ components:
       allOf:
         - type: object
           properties:
-            id:
-              type: integer
-              description: Unique identifier for the supplier
             name:
               type: string
               description: Business name of the supplier company or individual
@@ -5540,9 +5590,6 @@ components:
       allOf:
         - type: object
           properties:
-            id:
-              type: integer
-              description: Unique identifier for this supplier address
             supplier_id:
               type: integer
               description: Unique identifier of the supplier this address belongs to
@@ -6921,6 +6968,158 @@ components:
         sku: ASSM-001-UPD
         additional_info: Updated professional product assembly service
         custom_field_collection_id: 1
+    DemandForecastPeriod:
+      description: A single demand forecast period with stock and demand quantities
+      type: object
+      properties:
+        period_start:
+          type: string
+          format: date-time
+          description: Period start date in ISO 8601 format (inclusive)
+        period_end:
+          type: string
+          format: date-time
+          description: Period end date in ISO 8601 format (inclusive)
+        in_stock:
+          type: string
+          description: In-stock quantity at the start of the period
+        expected:
+          type: string
+          description: Expected incoming quantity during the period
+        committed:
+          type: string
+          description: Total forecasted demand quantity for the period
+      required:
+        - period_start
+        - period_end
+      example:
+        period_start: "2024-01-01T00:00:00.000Z"
+        period_end: "2024-01-06T23:59:59.999Z"
+        in_stock: "125"
+        expected: "50"
+        committed: "25"
+    DemandForecastResponse:
+      description: Demand forecast for a variant in a specific location with period breakdowns
+      type: object
+      properties:
+        variant_id:
+          type: integer
+          description: ID of the variant this forecast is for
+        location_id:
+          type: integer
+          description: ID of the location this forecast is for
+        in_stock:
+          type: string
+          description: Current in-stock quantity for this variant at this location
+        periods:
+          type: array
+          description: Array of forecast periods with stock and demand data
+          items:
+            $ref: "#/components/schemas/DemandForecastPeriod"
+      required:
+        - variant_id
+        - location_id
+      example:
+        variant_id: 1
+        location_id: 1
+        in_stock: "100"
+        periods:
+          - period_start: "2024-01-01T00:00:00.000Z"
+            period_end: "2024-01-06T23:59:59.999Z"
+            in_stock: "125"
+            expected: "50"
+            committed: "25"
+    CreateDemandForecastRequest:
+      description: Request payload for adding planned demand forecast periods for a variant in a location
+      type: object
+      additionalProperties: false
+      required:
+        - variant_id
+        - location_id
+        - periods
+      properties:
+        variant_id:
+          type: integer
+          maximum: 2147483647
+          description: ID of the variant to add forecast for
+        location_id:
+          type: integer
+          maximum: 2147483647
+          description: ID of the location to add forecast for
+        periods:
+          type: array
+          minItems: 1
+          maxItems: 100
+          description: Array of forecast periods to add
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - period_start
+              - period_end
+              - committed
+            properties:
+              period_start:
+                type: string
+                format: date-time
+                description: Period start date in ISO 8601 format (inclusive)
+              period_end:
+                type: string
+                format: date-time
+                description: Period end date in ISO 8601 format (inclusive)
+              committed:
+                type: string
+                description: Total forecasted demand quantity for the period
+      example:
+        variant_id: 1
+        location_id: 1
+        periods:
+          - period_start: "2024-01-01T00:00:00.000Z"
+            period_end: "2024-01-06T23:59:59.999Z"
+            committed: "25"
+    ClearDemandForecastRequest:
+      description: Request payload for clearing planned demand forecast periods for a variant in a location
+      type: object
+      additionalProperties: false
+      required:
+        - variant_id
+        - location_id
+        - periods
+      properties:
+        variant_id:
+          type: integer
+          maximum: 2147483647
+          description: ID of the variant to clear forecast for
+        location_id:
+          type: integer
+          maximum: 2147483647
+          description: ID of the location to clear forecast for
+        periods:
+          type: array
+          minItems: 1
+          maxItems: 100
+          description: Array of forecast periods to clear
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - period_start
+              - period_end
+            properties:
+              period_start:
+                type: string
+                format: date-time
+                description: Period start date in ISO 8601 format (inclusive)
+              period_end:
+                type: string
+                format: date-time
+                description: Period end date in ISO 8601 format (inclusive)
+      example:
+        variant_id: 1
+        location_id: 1
+        periods:
+          - period_start: "2024-01-01T00:00:00.000Z"
+            period_end: "2024-01-06T23:59:59.999Z"
     Customer:
       description: Customer entity representing individuals or companies that purchase products or services
       allOf:
@@ -7019,9 +7218,6 @@ components:
       allOf:
         - type: object
           properties:
-            id:
-              type: integer
-              description: Unique identifier for the customer address
             customer_id:
               type: integer
               description: ID of the customer this address belongs to
@@ -7086,10 +7282,9 @@ components:
                 - "null"
               description: Country name or country code
           required:
-            - id
             - customer_id
             - entity_type
-        - $ref: "#/components/schemas/UpdatableEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 3001
         customer_id: 2001
@@ -7518,7 +7713,7 @@ components:
             - order_no
             - location_id
             - status
-        - $ref: "#/components/schemas/UpdatableEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 2001
         customer_id: 1501
@@ -7602,6 +7797,11 @@ components:
                 - integer
                 - "null"
               description: ID of the tax rate applied to this line item
+            tax_rate:
+              type:
+                - number
+                - "null"
+              description: Tax rate percentage applied to this line item
             location_id:
               type:
                 - integer
@@ -7695,7 +7895,7 @@ components:
             - id
             - quantity
             - variant_id
-        - $ref: "#/components/schemas/UpdatableEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 2501
         quantity: 2
@@ -7731,9 +7931,6 @@ components:
       allOf:
         - type: object
           properties:
-            id:
-              type: integer
-              description: Unique identifier for the address record
             sales_order_id:
               type: integer
               description: ID of the sales order this address belongs to
@@ -7795,10 +7992,9 @@ components:
                 - "null"
               description: Country code (e.g., US, CA, GB)
           required:
-            - id
             - sales_order_id
             - entity_type
-        - $ref: "#/components/schemas/UpdatableEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 1201
         sales_order_id: 2001
@@ -8299,24 +8495,13 @@ components:
             stock_adjustment_number:
               type: string
               description: Human-readable reference number for tracking and audit purposes
-            reference_no:
-              type:
-                - string
-                - "null"
-              description: Alternative reference number (optional)
-            location_id:
-              type: integer
-              description: ID of the location where the stock adjustment is performed
-            status:
-              type: string
-              description: Current status of the stock adjustment workflow
-              enum:
-                - DRAFT
-                - COMPLETED
-            adjustment_date:
+            stock_adjustment_date:
               type: string
               format: date-time
               description: Date and time when the adjustment was performed
+            location_id:
+              type: integer
+              description: ID of the location where the stock adjustment is performed
             reason:
               type:
                 - string
@@ -8338,29 +8523,31 @@ components:
             - location_id
         - $ref: "#/components/schemas/DeletableEntity"
       example:
-        id: 2001
-        stock_adjustment_number: SA-2024-001
+        id: 1
+        stock_adjustment_number: SA-1
+        stock_adjustment_date: "2021-10-06T11:47:13.846Z"
         location_id: 1
-        status: COMPLETED
-        adjustment_date: "2024-01-15T14:30:00.000Z"
-        reason: Cycle count discrepancy
-        additional_info: Physical count discrepancy correction
+        reason: adjustment reason
+        additional_info: adjustment additional info
         stock_adjustment_rows:
-          - id: 3001
-            variant_id: 501
+          - id: 1
+            variant_id: 1
             quantity: 100
             cost_per_unit: 123.45
             batch_transactions:
-              - batch_id: 1001
+              - batch_id: 1
                 quantity: 50
-              - batch_id: 1002
+              - batch_id: 2
                 quantity: 50
-          - id: 3002
-            variant_id: 502
+          - id: 2
+            variant_id: 2
             quantity: 150
             cost_per_unit: 234.56
-        created_at: "2024-01-15T14:30:00.000Z"
-        updated_at: "2024-01-15T14:30:00.000Z"
+            batch_transactions:
+              - batch_id: 3
+                quantity: 150
+        created_at: "2021-10-06T11:47:13.846Z"
+        updated_at: "2021-10-06T11:47:13.846Z"
         deleted_at: null
     StockAdjustmentListResponse:
       type: object
@@ -8373,41 +8560,31 @@ components:
             $ref: "#/components/schemas/StockAdjustment"
       example:
         data:
-          - id: 2001
-            stock_adjustment_number: SA-2024-001
-            reference_no: SA-2024-001
+          - id: 1
+            stock_adjustment_number: SA-1
+            stock_adjustment_date: "2021-10-06T11:47:13.846Z"
             location_id: 1
-            status: COMPLETED
-            adjustment_date: "2024-01-15T14:30:00.000Z"
-            reason: Cycle count discrepancy
-            additional_info: Physical count discrepancy correction
+            reason: adjustment reason
+            additional_info: adjustment additional info
             stock_adjustment_rows:
-              - id: 3001
-                variant_id: 501
+              - id: 1
+                variant_id: 1
                 quantity: 100
                 cost_per_unit: 123.45
-              - id: 3002
-                variant_id: 502
-                quantity: -10
+                batch_transactions:
+                  - batch_id: 1
+                    quantity: 50
+                  - batch_id: 2
+                    quantity: 50
+              - id: 2
+                variant_id: 2
+                quantity: 150
                 cost_per_unit: 234.56
-            created_at: "2024-01-15T14:30:00.000Z"
-            updated_at: "2024-01-15T14:30:00.000Z"
-            deleted_at: null
-          - id: 2002
-            stock_adjustment_number: SA-2024-002
-            reference_no: SA-2024-002
-            location_id: 2
-            status: DRAFT
-            adjustment_date: "2024-01-16T10:00:00.000Z"
-            reason: Damaged goods
-            additional_info: Damaged goods write-off
-            stock_adjustment_rows:
-              - id: 3003
-                variant_id: 503
-                quantity: -5
-                cost_per_unit: 89.99
-            created_at: "2024-01-16T10:00:00.000Z"
-            updated_at: "2024-01-16T10:00:00.000Z"
+                batch_transactions:
+                  - batch_id: 3
+                    quantity: 150
+            created_at: "2021-10-06T11:47:13.846Z"
+            updated_at: "2021-10-06T11:47:13.846Z"
             deleted_at: null
     CreateStockAdjustmentRequest:
       description: Request payload for creating a new stock adjustment to correct inventory levels
@@ -8519,14 +8696,22 @@ components:
             status:
               type: string
               description: Current status of the stock transfer workflow
-              enum:
-                - DRAFT
-                - COMPLETED
-                - received
             transfer_date:
               type: string
               format: date-time
               description: Date and time when the transfer was executed
+            order_created_date:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Date and time when the transfer order was created
+            expected_arrival_date:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Expected arrival date for the transferred stock
             additional_info:
               type:
                 - string
@@ -8544,24 +8729,35 @@ components:
             - target_location_id
         - $ref: "#/components/schemas/DeletableEntity"
       example:
-        id: 3001
-        stock_transfer_number: ST-2024-001
+        id: 1
+        stock_transfer_number: ST-1
         source_location_id: 1
         target_location_id: 2
-        status: COMPLETED
-        transfer_date: "2024-01-15T16:00:00.000Z"
-        additional_info: Rebalancing inventory between warehouses
+        transfer_date: "2021-10-06T11:47:13.846Z"
+        order_created_date: "2021-10-01T11:47:13.846Z"
+        expected_arrival_date: "2021-10-20T11:47:13.846Z"
+        additional_info: transfer additional info
         stock_transfer_rows:
-          - id: 4001
-            variant_id: 2001
-            quantity: 50
+          - id: 1
+            variant_id: 1
+            quantity: 100
+            cost_per_unit: 123.45
             batch_transactions:
-              - batch_id: 5001
-                quantity: 30
-              - batch_id: 5002
-                quantity: 20
-        created_at: "2024-01-15T16:00:00.000Z"
-        updated_at: "2024-01-15T16:00:00.000Z"
+              - batch_id: 1
+                quantity: 50
+              - batch_id: 2
+                quantity: 50
+            deleted_at: null
+          - id: 2
+            variant_id: 2
+            quantity: 150
+            cost_per_unit: 234.56
+            batch_transactions:
+              - batch_id: 3
+                quantity: 150
+            deleted_at: null
+        created_at: "2021-10-06T11:47:13.846Z"
+        updated_at: "2021-10-06T11:47:13.846Z"
         deleted_at: null
     StockTransferRow:
       description: Line item in a stock transfer showing the product variant and quantity being moved
@@ -8577,6 +8773,9 @@ components:
             quantity:
               type: number
               description: Quantity of the variant being transferred
+            cost_per_unit:
+              type: number
+              description: Cost per unit for the transferred variant
             batch_transactions:
               type: array
               description: Batch transaction details for batch-tracked items
@@ -8592,6 +8791,12 @@ components:
                 required:
                   - batch_id
                   - quantity
+            deleted_at:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Nullable deletion timestamp for the row
           required:
             - variant_id
             - quantity
@@ -8607,30 +8812,21 @@ components:
             $ref: "#/components/schemas/StockTransfer"
       example:
         data:
-          - id: 3001
-            stock_transfer_number: ST-2024-001
+          - id: 1
+            stock_transfer_number: ST-1
             source_location_id: 1
             target_location_id: 2
-            status: COMPLETED
-            transfer_date: "2024-01-15T16:00:00.000Z"
-            additional_info: Rebalancing inventory between warehouses
-            created_at: "2024-01-15T16:00:00.000Z"
-            updated_at: "2024-01-15T16:00:00.000Z"
-            deleted_at: null
-          - id: 3002
-            stock_transfer_number: ST-2024-002
-            source_location_id: 2
-            target_location_id: 3
-            status: DRAFT
-            transfer_date: "2024-01-16T11:30:00.000Z"
-            additional_info: Seasonal stock redistribution
-            created_at: "2024-01-16T11:30:00.000Z"
-            updated_at: "2024-01-16T11:30:00.000Z"
+            transfer_date: "2021-10-06T11:47:13.846Z"
+            order_created_date: "2021-10-01T11:47:13.846Z"
+            expected_arrival_date: "2021-10-20T11:47:13.846Z"
+            additional_info: transfer additional info
+            created_at: "2021-10-06T11:47:13.846Z"
+            updated_at: "2021-10-06T11:47:13.846Z"
             deleted_at: null
     SalesOrderFulfillment:
       description:
-        Shipping and delivery record for a sales order, tracking the physical fulfillment process from shipment
-        to delivery
+        Shipping and delivery record for a sales order, tracking the physical fulfillment process including
+        picking, packing, and shipment tracking
       allOf:
         - type: object
           properties:
@@ -8640,76 +8836,122 @@ components:
             sales_order_id:
               type: integer
               description: ID of the sales order being fulfilled
+            picked_date:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Date and time when items were picked from inventory
+            status:
+              type: string
+              description: Current fulfillment status
+              enum:
+                - PACKED
+                - DELIVERED
+            invoice_status:
+              type:
+                - string
+                - "null"
+              description: Current invoice status of the fulfillment
+              enum:
+                - NOT_INVOICED
+                - INVOICED
+                - PARTIALLY_INVOICED
+            conversion_rate:
+              type:
+                - number
+                - "null"
+              description: Currency conversion rate applied to this fulfillment
+            conversion_date:
+              type:
+                - string
+                - "null"
+              format: date-time
+              description: Date when the currency conversion rate was applied
             tracking_number:
               type:
                 - string
                 - "null"
               description: Carrier tracking number for shipment monitoring
-            tracking_number_url:
+            tracking_url:
               type:
                 - string
                 - "null"
               description: URL for online tracking of the shipment
-            shipped_date:
-              type:
-                - string
-                - "null"
-              format: date-time
-              description: Date and time when the order was shipped
-            estimated_delivery_date:
-              type:
-                - string
-                - "null"
-              format: date-time
-              description: Carrier's estimated delivery date and time
-            actual_delivery_date:
-              type:
-                - string
-                - "null"
-              format: date-time
-              description: Actual date and time of delivery confirmation
-            shipping_cost:
-              type:
-                - number
-                - "null"
-              description: Total shipping cost charged to the customer
-            shipping_method:
-              type:
-                - string
-                - "null"
-              description: Shipping service used (e.g., Ground, Express, Overnight)
-            carrier:
+            tracking_carrier:
               type:
                 - string
                 - "null"
               description: Shipping carrier name (e.g., UPS, FedEx, DHL)
-            notes:
+            tracking_method:
               type:
                 - string
                 - "null"
-              description: Additional notes about the shipment or delivery
+              description: Shipping method used (e.g., ground, express)
+            packer_id:
+              type:
+                - integer
+                - "null"
+              description: ID of the user who packed the fulfillment
+            sales_order_fulfillment_rows:
+              type: array
+              description: Line items in this fulfillment with quantities and batch details
+              items:
+                type: object
+                properties:
+                  sales_order_row_id:
+                    type: integer
+                    description: ID of the sales order row being fulfilled
+                  quantity:
+                    type: number
+                    description: Quantity fulfilled for this row
+                  batch_transactions:
+                    type: array
+                    description: Batch allocations for this fulfillment row
+                    items:
+                      type: object
+                      properties:
+                        batch_id:
+                          type: integer
+                          description: ID of the batch
+                        quantity:
+                          type: number
+                          description: Quantity from this batch
+                  serial_numbers:
+                    type: array
+                    description: Serial numbers allocated to this fulfillment row
+                    items:
+                      type: integer
           required:
             - id
             - sales_order_id
         - $ref: "#/components/schemas/UpdatableEntity"
       example:
-        id: 2701
-        sales_order_id: 2001
-        tracking_number: UPS1234567890
-        tracking_number_url: https://www.ups.com/track?track=UPS1234567890
-        shipped_date: "2024-01-20T16:30:00Z"
-        estimated_delivery_date: "2024-01-22T14:00:00Z"
-        actual_delivery_date: null
-        shipping_cost: 25.99
-        shipping_method: UPS Ground
-        carrier: UPS
-        notes: Signature required for delivery
-        created_at: "2024-01-20T16:30:00Z"
-        updated_at: "2024-01-20T16:30:00Z"
+        id: 1
+        sales_order_id: 1
+        picked_date: "2020-10-23T10:37:05.085Z"
+        status: DELIVERED
+        invoice_status: NOT_INVOICED
+        conversion_rate: 2
+        conversion_date: "2020-10-23T10:37:05.085Z"
+        tracking_number: "12345678"
+        tracking_url: https://tracking-number-url
+        tracking_carrier: UPS
+        tracking_method: ground
+        packer_id: 1
+        sales_order_fulfillment_rows:
+          - sales_order_row_id: 1
+            quantity: 2
+            batch_transactions:
+              - batch_id: 1
+                quantity: 2
+            serial_numbers:
+              - 1
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2020-10-23T10:37:05.085Z"
     PriceList:
       description:
-        Customer-specific pricing configuration with markup rules and time-based validity for flexible pricing
-        management across different market segments
+        Customer-specific pricing configuration for flexible pricing management across different market segments
       allOf:
         - type: object
           properties:
@@ -8719,45 +8961,19 @@ components:
             name:
               type: string
               description: Descriptive name for the price list (e.g., "Premium Customer Pricing", "Wholesale Rates")
-            currency:
-              type: string
-              pattern: ^[A-Z]{3}$
-              description: ISO 4217 currency code for all prices in this list (e.g., USD, EUR, GBP)
-            is_default:
+            is_active:
               type: boolean
-              description: Whether this price list is the default fallback for customers without specific price lists
-            markup_percentage:
-              type:
-                - number
-                - "null"
-              description: Percentage markup applied to base costs to calculate pricing in this list
-            start_date:
-              type:
-                - string
-                - "null"
-              format: date-time
-              description: Date and time when this price list becomes active
-            end_date:
-              type:
-                - string
-                - "null"
-              format: date-time
-              description: Date and time when this price list expires
+              description: Whether this price list is currently active
           required:
             - id
             - name
-        - $ref: "#/components/schemas/DeletableEntity"
+        - $ref: "#/components/schemas/UpdatableEntity"
       example:
-        id: 1001
-        name: Premium Customer Pricing
-        currency: USD
-        is_default: false
-        markup_percentage: 25.0
-        start_date: "2024-01-01T00:00:00Z"
-        end_date: "2024-12-31T23:59:59Z"
-        created_at: "2024-01-01T10:00:00Z"
-        updated_at: "2024-01-15T14:30:00Z"
-        deleted_at: null
+        id: 1
+        name: Wholesale price list
+        is_active: false
+        created_at: "2020-10-23T10:37:05.085Z"
+        updated_at: "2020-10-23T10:37:05.085Z"
     CreatePriceListRequest:
       description:
         Request payload for creating a new price list with market-specific pricing configurations
@@ -8932,6 +9148,81 @@ components:
         customer_id: 2001
         created_at: "2024-01-15T10:00:00Z"
         updated_at: "2024-01-15T10:00:00Z"
+    ProductOperationRow:
+      description: Operation step assigned to a product's manufacturing process
+      type: object
+      properties:
+        product_id:
+          type: integer
+          description: Product ID
+        product_operation_row_id:
+          type: integer
+          description: Unique identifier for the product operation row
+        product_variant_id:
+          type: integer
+          description: Product variant ID
+        operation_id:
+          type: integer
+          description: Operation ID
+        operation_name:
+          type: string
+          description: Name of the operation
+        type:
+          type: string
+          description: Operation type (e.g., process)
+        resource_id:
+          type:
+            - integer
+            - "null"
+          description: Resource ID assigned to operation
+        resource_name:
+          type:
+            - string
+            - "null"
+          description: Name of the assigned resource
+        cost_per_hour:
+          type:
+            - number
+            - "null"
+          description: Cost per hour for this operation
+        cost_parameter:
+          type:
+            - string
+            - "null"
+          description: Cost calculation parameter
+        planned_cost_per_unit:
+          type:
+            - number
+            - "null"
+          description: Planned cost per unit
+        planned_time_per_unit:
+          type:
+            - number
+            - "null"
+          description: Planned time per unit
+        planned_time_parameter:
+          type:
+            - string
+            - "null"
+          description: Time parameter for planning
+        rank:
+          type: integer
+          description: Operation sequence rank
+        group_boundary:
+          type:
+            - string
+            - "null"
+          description: Group boundary marker
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the row was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the row was last updated
+      required:
+        - product_operation_row_id
     BomRow:
       description: Bill of Materials row defining ingredient requirements for product manufacturing
       type: object
@@ -8967,6 +9258,9 @@ components:
             - string
             - "null"
           description: Additional notes for this BOM row
+        rank:
+          type: integer
+          description: Sort rank for ordering BOM rows
         created_at:
           type: string
           format: date-time
@@ -8982,13 +9276,14 @@ components:
         - ingredient_variant_id
       example:
         id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-        product_variant_id: 2001
-        product_item_id: 3001
-        ingredient_variant_id: 2002
-        quantity: 2.5
-        notes: Handle with care - fragile component
-        created_at: "2023-10-15T14:30:00Z"
-        updated_at: "2023-10-16T09:15:00Z"
+        product_item_id: 1
+        product_variant_id: 1
+        ingredient_variant_id: 1
+        quantity: 2
+        notes: some notes
+        rank: 10000
+        created_at: "2021-04-05T12:00:00.000Z"
+        updated_at: "2021-04-05T12:00:00.000Z"
     CreateBomRowRequest:
       type: object
       description: Request payload for creating a new BOM row
@@ -9309,6 +9604,15 @@ components:
         default_purchases_location_id: 1
         default_sales_location_id: 1
         inventory_closing_date: "2022-01-28T23:59:59.000Z"
+    OperatorListResponse:
+      description: Response containing a list of operators
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Operator"
+          description: Array of operator objects
     Operator:
       description: Manufacturing operator or worker assigned to specific production operations and work areas
       allOf:
@@ -9374,7 +9678,7 @@ components:
           required:
             - id
             - name
-        - $ref: "#/components/schemas/UpdatableEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
       description:
         Collection of custom field definitions that can be applied to specific business objects for extended data
         capture
@@ -9426,8 +9730,6 @@ components:
       required:
         - id
         - name
-        - field_type
-        - label
       example:
         id: 10
         name: quality_grade
@@ -9552,7 +9854,7 @@ components:
             - stocktake_number
             - location_id
             - status
-        - $ref: "#/components/schemas/UpdatableEntity"
+        - $ref: "#/components/schemas/DeletableEntity"
     StocktakeRow:
       description: Individual item record within a stocktake showing system vs actual quantities and variance
       allOf:
@@ -9596,12 +9898,21 @@ components:
             - stocktake_id
             - variant_id
         - $ref: "#/components/schemas/DeletableEntity"
+    SerialNumberStockListResponse:
+      description: Response containing a list of serial number stock items
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SerialNumberStock"
+          description: Array of serial number stock items
     SerialNumberStock:
       description: Current stock status and transaction history of individual serialized inventory items
       type: object
       properties:
         id:
-          type: string
+          type: integer
           description: Serial number stock ID
         serial_number:
           type: string
@@ -9625,7 +9936,9 @@ components:
                 type: string
                 description: Type of resource (ManufacturingOrder, etc.)
               transaction_date:
-                type: string
+                type:
+                  - string
+                  - "null"
                 format: date-time
                 description: Date and time of transaction
               quantity_change:
@@ -9635,7 +9948,6 @@ components:
               - id
               - resource_id
               - resource_type
-              - transaction_date
               - quantity_change
       required:
         - id
@@ -9696,6 +10008,26 @@ components:
                 - string
                 - "null"
               description: Current status of the refund processing
+            tracking_number:
+              type:
+                - string
+                - "null"
+              description: Tracking number for the return shipment
+            tracking_number_url:
+              type:
+                - string
+                - "null"
+              description: URL to track the return shipment
+            tracking_carrier:
+              type:
+                - string
+                - "null"
+              description: Carrier used for the return shipment
+            tracking_method:
+              type:
+                - string
+                - "null"
+              description: Shipping method used for the return
             sales_return_rows:
               type: array
               description: Line items being returned with quantities and reasons
@@ -9814,29 +10146,42 @@ components:
             variant_id:
               type: integer
               description: The product variant being returned
+            fulfillment_row_id:
+              type: integer
+              description: ID of the fulfillment row this return is associated with
+            sales_order_row_id:
+              type: integer
+              description: ID of the sales order row this return is associated with
             quantity:
               type: string
               description: The quantity of the variant being returned (formatted as decimal string for precision)
-            return_reason_id:
-              type:
-                - integer
-                - "null"
-              description: The reason code for this return
-            notes:
+            net_price_per_unit:
               type:
                 - string
                 - "null"
-              description: Additional notes about this return item
-            unit_price:
+              description: Net price per unit for the returned item (formatted as decimal string for precision)
+            reason_id:
               type:
-                - number
+                - integer
                 - "null"
-              description: The price per unit for the returned item
-            total_price:
+              description: ID of the return reason
+            restock_location_id:
               type:
-                - number
+                - integer
                 - "null"
-              description: The total refund amount for this line item
+              description: ID of the location where stock will be restocked
+            batch_transactions:
+              type: array
+              description: Batch allocations for this return row
+              items:
+                type: object
+                properties:
+                  batch_id:
+                    type: integer
+                    description: ID of the batch
+                  quantity:
+                    type: number
+                    description: Quantity returned to this batch
           required:
             - id
             - sales_return_id
@@ -9992,19 +10337,28 @@ components:
             $ref: "#/components/schemas/SalesOrderFulfillment"
       example:
         data:
-          - id: 2701
-            sales_order_id: 2001
-            tracking_number: UPS1234567890
-            tracking_number_url: https://www.ups.com/track?track=UPS1234567890
-            shipped_date: "2024-01-20T16:30:00Z"
-            estimated_delivery_date: "2024-01-22T14:00:00Z"
-            actual_delivery_date: null
-            shipping_cost: 25.99
-            shipping_method: UPS Ground
-            carrier: UPS
-            notes: Signature required for delivery
-            created_at: "2024-01-20T16:30:00Z"
-            updated_at: "2024-01-20T16:30:00Z"
+          - id: 1
+            sales_order_id: 1
+            picked_date: "2020-10-23T10:37:05.085Z"
+            status: DELIVERED
+            invoice_status: NOT_INVOICED
+            conversion_rate: 2
+            conversion_date: "2020-10-23T10:37:05.085Z"
+            tracking_number: "12345678"
+            tracking_url: https://tracking-number-url
+            tracking_carrier: UPS
+            tracking_method: ground
+            packer_id: 1
+            sales_order_fulfillment_rows:
+              - sales_order_row_id: 1
+                quantity: 2
+                batch_transactions:
+                  - batch_id: 1
+                    quantity: 2
+                serial_numbers:
+                  - 1
+            created_at: "2020-10-23T10:37:05.085Z"
+            updated_at: "2020-10-23T10:37:05.085Z"
     CustomerAddressListResponse:
       description: Response containing a list of customer addresses with complete contact information
       type: object
@@ -10755,6 +11109,681 @@ components:
         description: |-
           Express Shipping - Next Day Delivery
         tax_rate_id: 301
+    BatchTransactionRequest:
+      description: Batch allocation transaction for tracking inventory lots
+      type: object
+      additionalProperties: false
+      required:
+        - batch_id
+        - quantity
+      properties:
+        batch_id:
+          type: integer
+          description: Batch ID
+        quantity:
+          type: number
+          description: Quantity
+    UpdateCustomerAddressRequest:
+      description: Request payload for updating an existing customer address
+      type: object
+      properties:
+        first_name:
+          type:
+            - string
+            - "null"
+        last_name:
+          type:
+            - string
+            - "null"
+        company:
+          type:
+            - string
+            - "null"
+        phone:
+          type:
+            - string
+            - "null"
+        line_1:
+          type:
+            - string
+            - "null"
+        line_2:
+          type:
+            - string
+            - "null"
+        city:
+          type:
+            - string
+            - "null"
+        state:
+          type:
+            - string
+            - "null"
+        zip:
+          type:
+            - string
+            - "null"
+        country:
+          type:
+            - string
+            - "null"
+    CreateInventoryReorderPointRequest:
+      description: Request payload for creating a new inventory reorder point
+      type: object
+      additionalProperties: false
+      required:
+        - variant_id
+        - location_id
+        - value
+      properties:
+        variant_id:
+          type: integer
+          description: Product variant ID
+        location_id:
+          type: integer
+          description: Location ID
+        value:
+          type: number
+          description: Minimum stock level that triggers reorder
+          minimum: 0
+    CreateOutsourcedPurchaseOrderRecipeRowRequest:
+      description: Request payload for creating a new outsourced purchase order recipe row
+      type: object
+      additionalProperties: false
+      required:
+        - purchase_order_row_id
+        - ingredient_variant_id
+        - planned_quantity_per_unit
+      properties:
+        purchase_order_row_id:
+          type: integer
+          description: Purchase order row ID
+        ingredient_variant_id:
+          type: integer
+          description: Ingredient variant ID
+        planned_quantity_per_unit:
+          type: number
+          description: Planned quantity per unit of production
+          minimum: 0
+        notes:
+          type: string
+          description: Additional notes about this ingredient requirement
+        batch_transactions:
+          type: array
+          description: Batch allocation transactions for this ingredient
+          items:
+            $ref: "#/components/schemas/BatchTransactionRequest"
+    UpdateOutsourcedPurchaseOrderRecipeRowRequest:
+      description: Request payload for updating an outsourced purchase order recipe row
+      type: object
+      additionalProperties: false
+      properties:
+        ingredient_variant_id:
+          type: integer
+          description: Ingredient variant ID. Updatable only when received_date is null.
+        planned_quantity_per_unit:
+          type: number
+          description: Planned quantity per unit. Updatable only when received_date is null.
+          minimum: 0
+        notes:
+          type: string
+          description: Additional notes about this ingredient requirement
+        batch_transactions:
+          type: array
+          description: Batch allocation transactions for this ingredient
+          items:
+            $ref: "#/components/schemas/BatchTransactionRequest"
+    CreateProductOperationRowItem:
+      description: A single product operation row item in a bulk create request
+      type: object
+      additionalProperties: false
+      required:
+        - product_variant_id
+      properties:
+        product_variant_id:
+          type: number
+          minimum: 1
+          maximum: 2147483647
+        operation_id:
+          description: If operation ID is used to map the operation, then operation_name is ignored.
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        operation_name:
+          description: |-
+            If operation name is used to map the operation then,
+            we match to the existing operations by name. If a match is not found, a new one is created.
+          type: string
+        resource_id:
+          description: If resource ID is used to map the resource, then resource_name is ignored.
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        resource_name:
+          description: |-
+            If resource name is used to map the resource then we match to the existing resources by name.
+            If a match is not found, a new one is created.
+          type: string
+        type:
+          type: string
+          description: |-
+            Different operation types allows you to use different cost
+            calculations depending on the type of product operation
+            Process: The process operation type is best for when products
+            are individually built and time is the main driver of cost.
+            Setup: The setup operation type is best for setting up a
+            machine for production where the production quantity doesn't
+            affect cost.
+            Per unit: The per unit operation type is best when cost of
+            time isn't a factor, but only the quantity of product made.
+            Fixed cost: The fixed cost operation type is useful for adding
+            the expected extra costs that go into producing a product.
+          enum:
+            - process
+            - setup
+            - perUnit
+            - fixed
+          default: process
+        cost_parameter:
+          type: number
+          description: |-
+            The expected cost of an operation, either total or per hour/unit of product (based on type).
+            Total cost of the operation on a manufacturing order is calculated as follows:
+            process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
+            setup: cost = cost_parameter x planned_time_parameter (in
+            hours)
+            perUnit: cost = cost_parameter x product quantity
+            fixed: cost = cost_parameter
+          maximum: 1000000000000000000
+          minimum: 0
+        cost_per_hour:
+          type: number
+          deprecated: true
+          description: |-
+            (This field is deprecated in favor of cost_parameter) The expected cost of an
+            operation, either total or per hour/unit of product (based on type). Total cost
+            of the operation on a manufacturing order is calculated as follows:
+            process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
+            setup: cost = cost_parameter x planned_time_parameter (in
+            hours)
+            perUnit: cost = cost_parameter x product quantity
+            fixed: cost = cost_parameter
+          maximum: 1000000000000000000
+          minimum: 0
+        planned_time_parameter:
+          type: integer
+          description:
+            The planned duration of an operation, in seconds, to either manufacture one unit of a
+            product or complete a manufacturing order (based on type).
+          maximum: 2147483647
+          minimum: 0
+        planned_time_per_unit:
+          type: integer
+          deprecated: true
+          description:
+            (This field is deprecated in favor of planned_time_parameter)
+            The planned duration of an operation, in seconds, to either
+            manufacture one unit of a product or complete a manufacturing
+            order (based on type).
+          maximum: 2147483647
+          minimum: 0
+    CreateProductOperationRowsRequest:
+      description: Request payload for creating product operation rows in bulk
+      type: object
+      additionalProperties: false
+      required:
+        - rows
+      properties:
+        keep_current_rows:
+          type: boolean
+          description: |-
+            Existing production operation lines are kept by default,
+            and new lines will be added after the existing product operations.
+            Set to false to delete all existing product operation lines for related products.
+        rows:
+          type: array
+          minItems: 1
+          maxItems: 150
+          items:
+            $ref: "#/components/schemas/CreateProductOperationRowItem"
+    UpdateProductOperationRowRequest:
+      description: Request payload for updating a product operation row
+      type: object
+      additionalProperties: false
+      properties:
+        operation_id:
+          type: integer
+          description: ID of the operation
+        operation_name:
+          type: string
+          description: Name of the operation
+        type:
+          type: string
+          description: Type of operation
+        resource_id:
+          type: integer
+          description: ID of the resource performing the operation
+        resource_name:
+          type: string
+          description: Name of the resource
+        planned_time_parameter:
+          type: number
+          description: Parameter for calculating planned time
+        planned_time_per_unit:
+          type: number
+          description: Planned time per unit
+        cost_parameter:
+          type: number
+          description: Parameter for calculating cost
+        cost_per_hour:
+          type: number
+          description: Hourly cost rate
+    UpdateRecipeRowRequest:
+      description: Request payload for updating a recipe row
+      type: object
+      additionalProperties: false
+      properties:
+        ingredient_variant_id:
+          type: integer
+          description: ID of the ingredient variant
+        quantity:
+          type: number
+          description: Ingredient quantity required
+          minimum: 0
+        notes:
+          type: string
+          description: Additional notes about the recipe row
+    SalesOrderFulfillmentRowRequest:
+      description: A fulfillment row item specifying which order row and quantity to fulfill
+      type: object
+      properties:
+        sales_order_row_id:
+          type: integer
+          description: Sales order row ID
+        quantity:
+          type: number
+          description: Quantity to fulfill
+    CreateSalesOrderFulfillmentRequest:
+      description: Request payload for creating a new sales order fulfillment
+      type: object
+      additionalProperties: false
+      required:
+        - sales_order_id
+      properties:
+        sales_order_id:
+          type: integer
+          description: Sales order ID
+        picked_date:
+          type: string
+          format: date-time
+          description: Date when items were picked
+        status:
+          type: string
+          description: Fulfillment status
+        conversion_rate:
+          type: number
+          description: Currency conversion rate
+        conversion_date:
+          type: string
+          format: date-time
+          description: Date of currency conversion
+        tracking_number:
+          type: string
+          description: Shipment tracking number
+        tracking_url:
+          type: string
+          description: URL for tracking the shipment
+        tracking_carrier:
+          type: string
+          description: Shipping carrier name
+        tracking_method:
+          type: string
+          description: Shipping method used
+        sales_order_fulfillment_rows:
+          type: array
+          description: Fulfillment row items
+          items:
+            $ref: "#/components/schemas/SalesOrderFulfillmentRowRequest"
+    UpdateSalesOrderFulfillmentRequest:
+      description: Request payload for updating a sales order fulfillment
+      type: object
+      additionalProperties: false
+      properties:
+        picked_date:
+          type: string
+          format: date-time
+          description: Date when items were picked
+        status:
+          type: string
+          description: Fulfillment status
+        conversion_rate:
+          type: number
+          description: Currency conversion rate
+        packer_id:
+          type: number
+          description: ID of the packer who packed the order
+        conversion_date:
+          type: string
+          format: date-time
+          description: Date of currency conversion
+        tracking_number:
+          type: string
+          description: Shipment tracking number
+        tracking_url:
+          type: string
+          description: URL for tracking the shipment
+        tracking_carrier:
+          type: string
+          description: Shipping carrier name
+        tracking_method:
+          type: string
+          description: Shipping method used
+    UpdateSalesOrderShippingFeeRequest:
+      description: Request payload for updating a sales order shipping fee
+      type: object
+      additionalProperties: false
+      properties:
+        description:
+          type: string
+          description: Shipping fee description
+        amount:
+          type: integer
+          description: Shipping fee amount
+        tax_rate_id:
+          type: integer
+          description: ID of the tax rate to apply to the shipping fee
+    UpdateSalesOrderRequest:
+      description: Request payload for updating a sales order
+      type: object
+      additionalProperties: false
+      properties:
+        order_no:
+          type: string
+          description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
+          minLength: 1
+        customer_id:
+          type: integer
+          description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
+          maximum: 2147483647
+        order_created_date:
+          type: string
+          format: date-time
+          description: Date when the order was originally created
+        delivery_date:
+          type: string
+          format: date-time
+          description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
+        picked_date:
+          type: string
+          format: date-time
+          description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
+        location_id:
+          type: integer
+          description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
+          maximum: 2147483647
+        status:
+          type: string
+          description:
+            When the status is omitted, NOT_SHIPPED is used as default. Use PENDING when you want to create
+            sales order quotes.
+          enum:
+            - NOT_SHIPPED
+            - PENDING
+            - PACKED
+            - DELIVERED
+        currency:
+          type: string
+          description: |-
+            E.g. USD, EUR. All currently active currency codes in ISO 4217 format. Updatable only when sales
+            order status is NOT_SHIPPED or PENDING.
+        conversion_rate:
+          type: number
+          description:
+            Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with
+            422.
+        conversion_date:
+          type: string
+          description:
+            Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with
+            422.
+        additional_info:
+          type:
+            - string
+            - "null"
+          description: Additional notes or instructions for the sales order
+        customer_ref:
+          type:
+            - string
+            - "null"
+          description: Customer's reference number or purchase order number
+          maxLength: 255
+        tracking_number:
+          type:
+            - string
+            - "null"
+          description: Shipping carrier tracking number for package tracking
+          maxLength: 256
+        tracking_number_url:
+          type:
+            - string
+            - "null"
+          description: URL link to track the shipment on carrier website
+          maxLength: 2048
+    UpdateSalesReturnRowRequest:
+      description: Request payload for updating a sales return row
+      type: object
+      additionalProperties: false
+      properties:
+        quantity:
+          type: string
+          description: Quantity being returned. Updatable only when current return status is NOT_RETURNED.
+        restock_location_id:
+          type: integer
+          description: Restock location ID. Updatable only when current return status is NOT_RETURNED or RETURNED.
+        reason_id:
+          type: integer
+          description: Reason ID. Updatable only when current return status is NOT_RETURNED.
+        batch_transactions:
+          type: array
+          description: Batch transactions. Updatable only when current return status is NOT_RETURNED or RETURNED.
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/BatchTransactionRequest"
+    CreateSerialNumbersRequest:
+      description: Request payload for creating serial numbers for a resource
+      type: object
+      additionalProperties: false
+      required:
+        - resource_type
+        - resource_id
+        - serial_numbers
+      properties:
+        resource_type:
+          type: string
+          description: Resource type
+          enum:
+            - ManufacturingOrder
+            - Production
+            - StockAdjustmentRow
+            - StockTransferRow
+            - PurchaseOrderRow
+            - SalesOrderRow
+        resource_id:
+          type: integer
+          description: Resource ID
+        serial_numbers:
+          type: array
+          description: List of serial numbers to create
+          items:
+            type: string
+    StockTransferRowRequest:
+      description: A stock transfer row item specifying which variant and quantity to transfer
+      type: object
+      properties:
+        variant_id:
+          type: integer
+          description: Product variant ID
+        quantity:
+          type: number
+          description: Quantity to transfer
+    CreateStockTransferRequest:
+      description: Request payload for creating a new stock transfer
+      type: object
+      additionalProperties: false
+      required:
+        - source_location_id
+        - target_location_id
+      properties:
+        stock_transfer_number:
+          type: string
+          description: Unique stock transfer number for tracking
+        source_location_id:
+          type: integer
+          description: Source location ID where items are transferred from
+        target_location_id:
+          type: integer
+          description: Destination location ID where items are transferred to
+        transfer_date:
+          type: string
+          format: date-time
+          description: Date when the transfer was initiated
+        order_created_date:
+          type: string
+          format: date-time
+          description: Date when the transfer order was created
+        expected_arrival_date:
+          type: string
+          format: date-time
+          description: Expected arrival date at destination
+        additional_info:
+          type: string
+          description: Additional notes or information about the transfer
+        stock_transfer_rows:
+          type: array
+          description: Line items being transferred
+          items:
+            $ref: "#/components/schemas/StockTransferRowRequest"
+    UpdateStockTransferRequest:
+      description: Request payload for updating a stock transfer
+      type: object
+      additionalProperties: false
+      properties:
+        stock_transfer_number:
+          type: string
+          description: Updated stock transfer number
+        transfer_date:
+          type: string
+          format: date-time
+          description: Updated transfer date
+        order_created_date:
+          type: string
+          format: date-time
+          description: Updated order creation date
+        expected_arrival_date:
+          type: string
+          format: date-time
+          description: Updated expected arrival date
+        additional_info:
+          type: string
+          description: Updated additional notes or information
+    UpdateStockTransferStatusRequest:
+      description: Request payload for updating a stock transfer status
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: New status for the stock transfer
+          enum:
+            - pending
+            - in_transit
+            - completed
+            - cancelled
+    LocationListResponse:
+      description: Response containing a list of locations
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Location"
+    ProductOperationRowListResponse:
+      description: Response containing a list of product operation rows
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductOperationRow"
+    ReturnableItem:
+      description: An item from a sales order that is eligible for return
+      type: object
+      required:
+        - variant_id
+        - fulfillment_row_id
+        - available_for_return_quantity
+        - net_price_per_unit
+        - location_id
+        - quantity_sold
+      properties:
+        variant_id:
+          type: integer
+          description: Product variant ID
+        fulfillment_row_id:
+          type: integer
+          description: Fulfillment row ID
+        available_for_return_quantity:
+          type: string
+          description: Quantity available for return
+        net_price_per_unit:
+          type: string
+          description: Net price per unit
+        location_id:
+          type: integer
+          description: Location ID
+        quantity_sold:
+          type: string
+          description: Total quantity sold
+    UnassignedBatchTransaction:
+      description: A batch transaction not yet assigned to a sales return row
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Batch transaction ID
+        batch_id:
+          type: integer
+          description: Batch ID
+        quantity:
+          type: number
+          description: Transaction quantity
+        status:
+          type: string
+          description: Transaction status
+    UnassignedBatchTransactionListResponse:
+      description: Response containing a list of unassigned batch transactions
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UnassignedBatchTransaction"
+    SalesReturnReason:
+      description: A reason for returning items from a sales order
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          description: Return reason ID
+        name:
+          type: string
+          description: Return reason name
+
 paths:
   /additional_costs:
     get:
@@ -11177,12 +12206,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Location"
+                $ref: "#/components/schemas/LocationListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -15752,34 +16776,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              properties:
-                quantity:
-                  type: string
-                  description: Quantity being returned. Updatable only when current return status is NOT_RETURNED.
-                restock_location_id:
-                  type: integer
-                  description: Restock location ID. Updatable only when current return status is NOT_RETURNED or RETURNED.
-                reason_id:
-                  type: integer
-                  description: Reason ID. Updatable only when current return status is NOT_RETURNED.
-                batch_transactions:
-                  type: array
-                  description: Batch transactions. Updatable only when current return status is NOT_RETURNED or RETURNED.
-                  minItems: 1
-                  items:
-                    type: object
-                    required:
-                      - batch_id
-                      - quantity
-                    properties:
-                      batch_id:
-                        type: integer
-                        description: Batch ID
-                      quantity:
-                        type: number
-                        description: Quantity
+              $ref: "#/components/schemas/UpdateSalesReturnRowRequest"
       responses:
         "200":
           description: Sales return row updated successfully
@@ -15854,25 +16851,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                          description: Batch transaction ID
-                        batch_id:
-                          type: integer
-                          description: Batch ID
-                        quantity:
-                          type: number
-                          description: Transaction quantity
-                        status:
-                          type: string
-                          description: Transaction status
+                $ref: "#/components/schemas/UnassignedBatchTransactionListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "404":
@@ -15903,17 +16882,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    id:
-                      type: integer
-                      description: Return reason ID
-                    name:
-                      type: string
-                      description: Return reason name
-                  required:
-                    - id
-                    - name
+                  $ref: "#/components/schemas/SalesReturnReason"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -16041,19 +17010,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              properties:
-                ingredient_variant_id:
-                  type: integer
-                  description: ID of the ingredient variant
-                quantity:
-                  type: number
-                  description: Ingredient quantity required
-                  minimum: 0
-                notes:
-                  type: string
-                  description: Additional notes about the recipe row
+              $ref: "#/components/schemas/UpdateRecipeRowRequest"
       responses:
         "200":
           description: Recipe row updated successfully
@@ -16455,81 +17412,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              properties:
-                order_no:
-                  type: string
-                  description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
-                  minLength: 1
-                customer_id:
-                  type: integer
-                  description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
-                  maximum: 2147483647
-                order_created_date:
-                  type: string
-                  format: date-time
-                  description: Date when the order was originally created
-                delivery_date:
-                  type: string
-                  format: date-time
-                  description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
-                picked_date:
-                  type: string
-                  format: date-time
-                  description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
-                location_id:
-                  type: integer
-                  description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
-                  maximum: 2147483647
-                status:
-                  type: string
-                  description:
-                    When the status is omitted, NOT_SHIPPED is used as default. Use PENDING when you want to create
-                    sales order quotes.
-                  enum:
-                    - NOT_SHIPPED
-                    - PENDING
-                    - PACKED
-                    - DELIVERED
-                currency:
-                  type: string
-                  description: |-
-                    E.g. USD, EUR. All currently active currency codes in ISO 4217 format. Updatable only when sales
-                    order status is NOT_SHIPPED or PENDING.
-                conversion_rate:
-                  type: number
-                  description:
-                    Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with
-                    422.
-                conversion_date:
-                  type: string
-                  description:
-                    Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with
-                    422.
-                additional_info:
-                  type:
-                    - string
-                    - "null"
-                  description: Additional notes or instructions for the sales order
-                customer_ref:
-                  type:
-                    - string
-                    - "null"
-                  description: Customer's reference number or purchase order number
-                  maxLength: 255
-                tracking_number:
-                  type:
-                    - string
-                    - "null"
-                  description: Shipping carrier tracking number for package tracking
-                  maxLength: 256
-                tracking_number_url:
-                  type:
-                    - string
-                    - "null"
-                  description: URL link to track the shipment on carrier website
-                  maxLength: 2048
+              $ref: "#/components/schemas/UpdateSalesOrderRequest"
       responses:
         "200":
           description: Sales order updated
@@ -16591,33 +17474,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    variant_id:
-                      type: integer
-                      description: Product variant ID
-                    fulfillment_row_id:
-                      type: integer
-                      description: Fulfillment row ID
-                    available_for_return_quantity:
-                      type: string
-                      description: Quantity available for return
-                    net_price_per_unit:
-                      type: string
-                      description: Net price per unit
-                    location_id:
-                      type: integer
-                      description: Location ID
-                    quantity_sold:
-                      type: string
-                      description: Total quantity sold
-                  required:
-                    - variant_id
-                    - fulfillment_row_id
-                    - available_for_return_quantity
-                    - net_price_per_unit
-                    - location_id
-                    - quantity_sold
+                  $ref: "#/components/schemas/ReturnableItem"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "404":
@@ -16772,6 +17629,112 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /demand_forecasts:
+    get:
+      summary: List planned demand forecast for variant in location
+      tags:
+        - Demand forecast
+      description: Returns planned forecasted demand for a variant in given location.
+      operationId: getDemandForecasts
+      parameters:
+        - name: variant_id
+          in: query
+          required: true
+          description: ID of variant for which to retrieve demand forecast for.
+          schema:
+            type: integer
+        - name: location_id
+          in: query
+          required: true
+          description: ID of location for which to retrieve variant demand forecast for.
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Planned demand forecast for variant in location.
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemandForecastResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Add planned demand forecast to variant
+      tags:
+        - Demand forecast
+      description: Add planned demand forecast for a variant in location for the specified periods.
+      operationId: createDemandForecast
+      requestBody:
+        description: Planned demand forecast for variant in location for specified periods.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDemandForecastRequest"
+      responses:
+        "204":
+          description: Planned demand forecast added for variant in location for specified periods.
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Clear planned demand forecast to variant
+      tags:
+        - Demand forecast
+      description: Clears planned demand forecast for a variant in location for the specified periods.
+      operationId: clearDemandForecast
+      requestBody:
+        description: Clear planned demand forecast for variant in location for specified periods.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClearDemandForecastRequest"
+      responses:
+        "204":
+          description: Planned demand forecast cleared for variant in location for specified periods.
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -16985,48 +17948,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required:
-                - source_location_id
-                - target_location_id
-              properties:
-                stock_transfer_number:
-                  type: string
-                  description: Unique stock transfer number for tracking
-                source_location_id:
-                  type: integer
-                  description: Source location ID where items are transferred from
-                target_location_id:
-                  type: integer
-                  description: Destination location ID where items are transferred to
-                transfer_date:
-                  type: string
-                  format: date-time
-                  description: Date when the transfer was initiated
-                order_created_date:
-                  type: string
-                  format: date-time
-                  description: Date when the transfer order was created
-                expected_arrival_date:
-                  type: string
-                  format: date-time
-                  description: Expected arrival date at destination
-                additional_info:
-                  type: string
-                  description: Additional notes or information about the transfer
-                stock_transfer_rows:
-                  type: array
-                  description: Line items being transferred
-                  items:
-                    type: object
-                    properties:
-                      variant_id:
-                        type: integer
-                        description: Product variant ID
-                      quantity:
-                        type: number
-                        description: Quantity to transfer
+              $ref: "#/components/schemas/CreateStockTransferRequest"
       responses:
         "201":
           description: Stock transfer created successfully
@@ -17066,27 +17988,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              properties:
-                stock_transfer_number:
-                  type: string
-                  description: Updated stock transfer number
-                transfer_date:
-                  type: string
-                  format: date-time
-                  description: Updated transfer date
-                order_created_date:
-                  type: string
-                  format: date-time
-                  description: Updated order creation date
-                expected_arrival_date:
-                  type: string
-                  format: date-time
-                  description: Updated expected arrival date
-                additional_info:
-                  type: string
-                  description: Updated additional notes or information
+              $ref: "#/components/schemas/UpdateStockTransferRequest"
       responses:
         "200":
           description: Stock transfer updated successfully
@@ -17154,19 +18056,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required:
-                - status
-              properties:
-                status:
-                  type: string
-                  description: New status for the stock transfer
-                  enum:
-                    - pending
-                    - in_transit
-                    - completed
-                    - cancelled
+              $ref: "#/components/schemas/UpdateStockTransferStatusRequest"
       responses:
         "200":
           description: Stock transfer status updated successfully
@@ -17630,52 +18520,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required:
-                - sales_order_id
-              properties:
-                sales_order_id:
-                  type: integer
-                  description: Sales order ID
-                picked_date:
-                  type: string
-                  format: date-time
-                  description: Date when items were picked
-                status:
-                  type: string
-                  description: Fulfillment status
-                conversion_rate:
-                  type: number
-                  description: Currency conversion rate
-                conversion_date:
-                  type: string
-                  format: date-time
-                  description: Date of currency conversion
-                tracking_number:
-                  type: string
-                  description: Shipment tracking number
-                tracking_url:
-                  type: string
-                  description: URL for tracking the shipment
-                tracking_carrier:
-                  type: string
-                  description: Shipping carrier name
-                tracking_method:
-                  type: string
-                  description: Shipping method used
-                sales_order_fulfillment_rows:
-                  type: array
-                  description: Fulfillment row items
-                  items:
-                    type: object
-                    properties:
-                      sales_order_row_id:
-                        type: integer
-                        description: Sales order row ID
-                      quantity:
-                        type: number
-                        description: Quantity to fulfill
+              $ref: "#/components/schemas/CreateSalesOrderFulfillmentRequest"
       responses:
         "201":
           description: Sales order fulfillment created successfully
@@ -17745,38 +18590,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              properties:
-                picked_date:
-                  type: string
-                  format: date-time
-                  description: Date when items were picked
-                status:
-                  type: string
-                  description: Fulfillment status
-                conversion_rate:
-                  type: number
-                  description: Currency conversion rate
-                packer_id:
-                  type: number
-                  description: ID of the packer who packed the order
-                conversion_date:
-                  type: string
-                  format: date-time
-                  description: Date of currency conversion
-                tracking_number:
-                  type: string
-                  description: Shipment tracking number
-                tracking_url:
-                  type: string
-                  description: URL for tracking the shipment
-                tracking_carrier:
-                  type: string
-                  description: Shipping carrier name
-                tracking_method:
-                  type: string
-                  description: Shipping method used
+              $ref: "#/components/schemas/UpdateSalesOrderFulfillmentRequest"
       responses:
         "200":
           description: Sales order fulfillment updated successfully
@@ -17927,48 +18741,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                first_name:
-                  type:
-                    - string
-                    - "null"
-                last_name:
-                  type:
-                    - string
-                    - "null"
-                company:
-                  type:
-                    - string
-                    - "null"
-                phone:
-                  type:
-                    - string
-                    - "null"
-                line_1:
-                  type:
-                    - string
-                    - "null"
-                line_2:
-                  type:
-                    - string
-                    - "null"
-                city:
-                  type:
-                    - string
-                    - "null"
-                state:
-                  type:
-                    - string
-                    - "null"
-                zip:
-                  type:
-                    - string
-                    - "null"
-                country:
-                  type:
-                    - string
-                    - "null"
+              $ref: "#/components/schemas/UpdateCustomerAddressRequest"
       responses:
         "200":
           description: Customer address updated
@@ -19094,31 +19867,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required:
-                - resource_type
-                - resource_id
-                - serial_numbers
-              properties:
-                resource_type:
-                  type: string
-                  description: Resource type
-                  enum:
-                    - ManufacturingOrder
-                    - Production
-                    - StockAdjustmentRow
-                    - StockTransferRow
-                    - PurchaseOrderRow
-                    - SalesOrderRow
-                resource_id:
-                  type: integer
-                  description: Resource ID
-                serial_numbers:
-                  type: array
-                  description: List of serial numbers to create
-                  items:
-                    type: string
+              $ref: "#/components/schemas/CreateSerialNumbersRequest"
       responses:
         "200":
           description: Serial numbers created successfully
@@ -19189,9 +19938,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/SerialNumberStock"
+                $ref: "#/components/schemas/SerialNumberStockListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -19254,9 +20001,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Operator"
+                $ref: "#/components/schemas/OperatorListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -19303,23 +20048,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required:
-                - variant_id
-                - location_id
-                - value
-              properties:
-                variant_id:
-                  type: integer
-                  description: Product variant ID
-                location_id:
-                  type: integer
-                  description: Location ID
-                value:
-                  type: number
-                  description: Minimum stock level that triggers reorder
-                  minimum: 0
+              $ref: "#/components/schemas/CreateInventoryReorderPointRequest"
       responses:
         "201":
           description: Inventory reorder point created successfully
@@ -19400,39 +20129,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required:
-                - purchase_order_row_id
-                - ingredient_variant_id
-                - planned_quantity_per_unit
-              properties:
-                purchase_order_row_id:
-                  type: integer
-                  description: Purchase order row ID
-                ingredient_variant_id:
-                  type: integer
-                  description: Ingredient variant ID
-                planned_quantity_per_unit:
-                  type: number
-                  description: Planned quantity per unit of production
-                  minimum: 0
-                notes:
-                  type: string
-                  description: Additional notes about this ingredient requirement
-                batch_transactions:
-                  type: array
-                  description: Batch allocation transactions for this ingredient
-                  items:
-                    type: object
-                    additionalProperties: false
-                    properties:
-                      batch_id:
-                        type: integer
-                        description: Batch ID
-                      quantity:
-                        type: number
-                        description: Quantity
+              $ref: "#/components/schemas/CreateOutsourcedPurchaseOrderRecipeRowRequest"
       responses:
         "201":
           description: Outsourced purchase order recipe row created successfully
@@ -19502,32 +20199,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              properties:
-                ingredient_variant_id:
-                  type: integer
-                  description: Ingredient variant ID. Updatable only when received_date is null.
-                planned_quantity_per_unit:
-                  type: number
-                  description: Planned quantity per unit. Updatable only when received_date is null.
-                  minimum: 0
-                notes:
-                  type: string
-                  description: Additional notes about this ingredient requirement
-                batch_transactions:
-                  type: array
-                  description: Batch allocation transactions for this ingredient
-                  items:
-                    type: object
-                    additionalProperties: false
-                    properties:
-                      batch_id:
-                        type: integer
-                        description: Batch ID
-                      quantity:
-                        type: number
-                        description: Quantity
+              $ref: "#/components/schemas/UpdateOutsourcedPurchaseOrderRecipeRowRequest"
       responses:
         "200":
           description: Outsourced purchase order recipe row updated successfully
@@ -19649,28 +20321,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                          description: Product operation row ID
-                        product_id:
-                          type: integer
-                          description: Product ID
-                        operation_id:
-                          type: integer
-                          description: Operation ID
-                        sequence:
-                          type: integer
-                          description: Operation sequence
-                        notes:
-                          type: string
-                          description: Operation notes
+                $ref: "#/components/schemas/ProductOperationRowListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -19692,114 +20343,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required:
-                - rows
-              properties:
-                keep_current_rows:
-                  type: boolean
-                  description: |-
-                    Existing production operation lines are kept by default,
-                    and new lines will be added after the existing product operations.
-                    Set to false to delete all existing product operation lines for related products.
-                rows:
-                  type: array
-                  minItems: 1
-                  maxItems: 150
-                  items:
-                    type: object
-                    additionalProperties: false
-                    required:
-                      - product_variant_id
-                    properties:
-                      product_variant_id:
-                        type: number
-                        minimum: 1
-                        maximum: 2147483647
-                      operation_id:
-                        description: If operation ID is used to map the operation, then operation_name is ignored.
-                        type: integer
-                        minimum: 1
-                        maximum: 2147483647
-                      operation_name:
-                        description: |-
-                          If operation name is used to map the operation then,
-                          we match to the existing operations by name. If a match is not found, a new one is created.
-                        type: string
-                      resource_id:
-                        description: If resource ID is used to map the resource, then resource_name is ignored.
-                        type: integer
-                        minimum: 1
-                        maximum: 2147483647
-                      resource_name:
-                        description: |-
-                          If resource name is used to map the resource then we match to the existing resources by name.
-                          If a match is not found, a new one is created.
-                        type: string
-                      type:
-                        type: string
-                        description: |-
-                          Different operation types allows you to use different cost
-                          calculations depending on the type of product operation
-                          Process: The process operation type is best for when products
-                          are individually built and time is the main driver of cost.
-                          Setup: The setup operation type is best for setting up a
-                          machine for production where the production quantity doesn't
-                          affect cost.
-                          Per unit: The per unit operation type is best when cost of
-                          time isn't a factor, but only the quantity of product made.
-                          Fixed cost: The fixed cost operation type is useful for adding
-                          the expected extra costs that go into producing a product.
-                        enum:
-                          - process
-                          - setup
-                          - perUnit
-                          - fixed
-                        default: process
-                      cost_parameter:
-                        type: number
-                        description: |-
-                          The expected cost of an operation, either total or per hour/unit of product (based on type).
-                          Total cost of the operation on a manufacturing order is calculated as follows:
-                          process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
-                          setup: cost = cost_parameter x planned_time_parameter (in
-                          hours)
-                          perUnit: cost = cost_parameter x product quantity
-                          fixed: cost = cost_parameter
-                        maximum: 1000000000000000000
-                        minimum: 0
-                      cost_per_hour:
-                        type: number
-                        deprecated: true
-                        description: |-
-                          (This field is deprecated in favor of cost_parameter) The expected cost of an
-                          operation, either total or per hour/unit of product (based on type). Total cost
-                          of the operation on a manufacturing order is calculated as follows:
-                          process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
-                          setup: cost = cost_parameter x planned_time_parameter (in
-                          hours)
-                          perUnit: cost = cost_parameter x product quantity
-                          fixed: cost = cost_parameter
-                        maximum: 1000000000000000000
-                        minimum: 0
-                      planned_time_parameter:
-                        type: integer
-                        description:
-                          The planned duration of an operation, in seconds, to either manufacture one unit of a
-                          product or complete a manufacturing order (based on type).
-                        maximum: 2147483647
-                        minimum: 0
-                      planned_time_per_unit:
-                        type: integer
-                        deprecated: true
-                        description:
-                          (This field is deprecated in favor of planned_time_parameter)
-                          The planned duration of an operation, in seconds, to either
-                          manufacture one unit of a product or complete a manufacturing
-                          order (based on type).
-                        maximum: 2147483647
-                        minimum: 0
+              $ref: "#/components/schemas/CreateProductOperationRowsRequest"
       responses:
         "204":
           description: New product operation rows were successfully added
@@ -19833,36 +20377,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              properties:
-                operation_id:
-                  type: integer
-                  description: ID of the operation
-                operation_name:
-                  type: string
-                  description: Name of the operation
-                type:
-                  type: string
-                  description: Type of operation
-                resource_id:
-                  type: integer
-                  description: ID of the resource performing the operation
-                resource_name:
-                  type: string
-                  description: Name of the resource
-                planned_time_parameter:
-                  type: number
-                  description: Parameter for calculating planned time
-                planned_time_per_unit:
-                  type: number
-                  description: Planned time per unit
-                cost_parameter:
-                  type: number
-                  description: Parameter for calculating cost
-                cost_per_hour:
-                  type: number
-                  description: Hourly cost rate
+              $ref: "#/components/schemas/UpdateProductOperationRowRequest"
       responses:
         "200":
           description: Product operation row updated successfully
@@ -19876,23 +20391,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                    description: Product operation row ID
-                  product_id:
-                    type: integer
-                    description: Product ID
-                  operation_id:
-                    type: integer
-                    description: Operation ID
-                  sequence:
-                    type: integer
-                    description: Operation sequence
-                  notes:
-                    type: string
-                    description: Operation notes
+                $ref: "#/components/schemas/ProductOperationRow"
         "400":
           $ref: "#/components/responses/BadRequestError"
         "401":
@@ -20095,18 +20594,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              properties:
-                description:
-                  type: string
-                  description: Shipping fee description
-                amount:
-                  type: integer
-                  description: Shipping fee amount
-                tax_rate_id:
-                  type: integer
-                  description: ID of the tax rate to apply to the shipping fee
+              $ref: "#/components/schemas/UpdateSalesOrderShippingFeeRequest"
       responses:
         "200":
           description: Sales order shipping fee updated successfully

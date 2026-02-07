@@ -10,13 +10,13 @@ from ...client_types import Response
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.stock_transfer import StockTransfer
-from ...models.update_stock_transfer_body import UpdateStockTransferBody
+from ...models.update_stock_transfer_request import UpdateStockTransferRequest
 
 
 def _get_kwargs(
     id: int,
     *,
-    body: UpdateStockTransferBody,
+    body: UpdateStockTransferRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -94,7 +94,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateStockTransferBody,
+    body: UpdateStockTransferRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | StockTransfer]:
     """Update a stock transfer
 
@@ -102,7 +102,7 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (UpdateStockTransferBody):
+        body (UpdateStockTransferRequest): Request payload for updating a stock transfer
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -129,7 +129,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateStockTransferBody,
+    body: UpdateStockTransferRequest,
 ) -> DetailedErrorResponse | ErrorResponse | StockTransfer | None:
     """Update a stock transfer
 
@@ -137,7 +137,7 @@ def sync(
 
     Args:
         id (int):
-        body (UpdateStockTransferBody):
+        body (UpdateStockTransferRequest): Request payload for updating a stock transfer
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -159,7 +159,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateStockTransferBody,
+    body: UpdateStockTransferRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | StockTransfer]:
     """Update a stock transfer
 
@@ -167,7 +167,7 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (UpdateStockTransferBody):
+        body (UpdateStockTransferRequest): Request payload for updating a stock transfer
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -192,7 +192,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-    body: UpdateStockTransferBody,
+    body: UpdateStockTransferRequest,
 ) -> DetailedErrorResponse | ErrorResponse | StockTransfer | None:
     """Update a stock transfer
 
@@ -200,7 +200,7 @@ async def asyncio(
 
     Args:
         id (int):
-        body (UpdateStockTransferBody):
+        body (UpdateStockTransferRequest): Request payload for updating a stock transfer
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

@@ -21,9 +21,9 @@ class BomRow:
     """Bill of Materials row defining ingredient requirements for product manufacturing
 
     Example:
-        {'id': 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 'product_variant_id': 2001, 'product_item_id': 3001,
-            'ingredient_variant_id': 2002, 'quantity': 2.5, 'notes': 'Handle with care - fragile component', 'created_at':
-            '2023-10-15T14:30:00Z', 'updated_at': '2023-10-16T09:15:00Z'}
+        {'id': 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 'product_item_id': 1, 'product_variant_id': 1,
+            'ingredient_variant_id': 1, 'quantity': 2, 'notes': 'some notes', 'rank': 10000, 'created_at':
+            '2021-04-05T12:00:00.000Z', 'updated_at': '2021-04-05T12:00:00.000Z'}
     """
 
     id: UUID
@@ -32,6 +32,7 @@ class BomRow:
     ingredient_variant_id: int
     quantity: float | None | Unset = UNSET
     notes: None | str | Unset = UNSET
+    rank: int | Unset = UNSET
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -57,6 +58,8 @@ class BomRow:
         else:
             notes = self.notes
 
+        rank = self.rank
+
         created_at: str | Unset = UNSET
         if not isinstance(self.created_at, Unset):
             created_at = self.created_at.isoformat()
@@ -79,6 +82,8 @@ class BomRow:
             field_dict["quantity"] = quantity
         if notes is not UNSET:
             field_dict["notes"] = notes
+        if rank is not UNSET:
+            field_dict["rank"] = rank
         if created_at is not UNSET:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
@@ -115,6 +120,8 @@ class BomRow:
 
         notes = _parse_notes(d.pop("notes", UNSET))
 
+        rank = d.pop("rank", UNSET)
+
         _created_at = d.pop("created_at", UNSET)
         created_at: datetime.datetime | Unset
         if isinstance(_created_at, Unset):
@@ -136,6 +143,7 @@ class BomRow:
             ingredient_variant_id=ingredient_variant_id,
             quantity=quantity,
             notes=notes,
+            rank=rank,
             created_at=created_at,
             updated_at=updated_at,
         )

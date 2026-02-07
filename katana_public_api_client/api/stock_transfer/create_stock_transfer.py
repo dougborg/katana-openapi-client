@@ -6,7 +6,7 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
-from ...models.create_stock_transfer_body import CreateStockTransferBody
+from ...models.create_stock_transfer_request import CreateStockTransferRequest
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.stock_transfer import StockTransfer
@@ -14,7 +14,7 @@ from ...models.stock_transfer import StockTransfer
 
 def _get_kwargs(
     *,
-    body: CreateStockTransferBody,
+    body: CreateStockTransferRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -84,14 +84,14 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateStockTransferBody,
+    body: CreateStockTransferRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | StockTransfer]:
     """Create a stock transfer
 
      Creates a new stock transfer.
 
     Args:
-        body (CreateStockTransferBody):
+        body (CreateStockTransferRequest): Request payload for creating a new stock transfer
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -116,14 +116,14 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateStockTransferBody,
+    body: CreateStockTransferRequest,
 ) -> DetailedErrorResponse | ErrorResponse | StockTransfer | None:
     """Create a stock transfer
 
      Creates a new stock transfer.
 
     Args:
-        body (CreateStockTransferBody):
+        body (CreateStockTransferRequest): Request payload for creating a new stock transfer
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -143,14 +143,14 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateStockTransferBody,
+    body: CreateStockTransferRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | StockTransfer]:
     """Create a stock transfer
 
      Creates a new stock transfer.
 
     Args:
-        body (CreateStockTransferBody):
+        body (CreateStockTransferRequest): Request payload for creating a new stock transfer
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -173,14 +173,14 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateStockTransferBody,
+    body: CreateStockTransferRequest,
 ) -> DetailedErrorResponse | ErrorResponse | StockTransfer | None:
     """Create a stock transfer
 
      Creates a new stock transfer.
 
     Args:
-        body (CreateStockTransferBody):
+        body (CreateStockTransferRequest): Request payload for creating a new stock transfer
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

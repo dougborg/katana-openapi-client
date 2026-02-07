@@ -10,12 +10,12 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import AwareDatetime, ConfigDict, EmailStr, Field, RootModel
+from pydantic import ConfigDict, EmailStr, Field, RootModel
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
 from .base import DeletableEntity, UpdatableEntity
-from .common import AdjustmentMethod, EntityType4
+from .common import Address, AdjustmentMethod, EntityType4
 
 
 class SupplierAddressRequest(KatanaPydanticBase):
@@ -72,9 +72,6 @@ class UpdateSupplierRequest(KatanaPydanticBase):
 
 
 class SupplierAddress(DeletableEntity):
-    id: Annotated[
-        int | None, Field(description="Unique identifier for this supplier address")
-    ] = None
     supplier_id: Annotated[
         int | None,
         Field(description="Unique identifier of the supplier this address belongs to"),
@@ -149,8 +146,7 @@ class SupplierItemCode(RootModel[str]):
     root: Annotated[str, Field(max_length=40, min_length=1)]
 
 
-class CustomerAddress(UpdatableEntity):
-    id: Annotated[int, Field(description="Unique identifier for the customer address")]
+class CustomerAddress(DeletableEntity):
     customer_id: Annotated[
         int, Field(description="ID of the customer this address belongs to")
     ]
@@ -242,6 +238,10 @@ class CreateCustomerRequest(KatanaPydanticBase):
         float | None,
         Field(description="Default discount percentage applied to all orders (0-100)"),
     ] = None
+    addresses: Annotated[
+        list[Address] | None,
+        Field(description="Customer addresses to create with the customer"),
+    ] = None
 
 
 class UpdateCustomerRequest(KatanaPydanticBase):
@@ -298,7 +298,7 @@ class UpdateCustomerRequest(KatanaPydanticBase):
     ] = None
 
 
-class PriceList(DeletableEntity):
+class PriceList(UpdatableEntity):
     id: Annotated[int, Field(description="Unique identifier for the price list")]
     name: Annotated[
         str,
@@ -306,32 +306,8 @@ class PriceList(DeletableEntity):
             description='Descriptive name for the price list (e.g., "Premium Customer Pricing", "Wholesale Rates")'
         ),
     ]
-    currency: Annotated[
-        str | None,
-        Field(
-            description="ISO 4217 currency code for all prices in this list (e.g., USD, EUR, GBP)",
-            pattern="^[A-Z]{3}$",
-        ),
-    ] = None
-    is_default: Annotated[
-        bool | None,
-        Field(
-            description="Whether this price list is the default fallback for customers without specific price lists"
-        ),
-    ] = None
-    markup_percentage: Annotated[
-        float | None,
-        Field(
-            description="Percentage markup applied to base costs to calculate pricing in this list"
-        ),
-    ] = None
-    start_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Date and time when this price list becomes active"),
-    ] = None
-    end_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Date and time when this price list expires"),
+    is_active: Annotated[
+        bool | None, Field(description="Whether this price list is currently active")
     ] = None
 
 
@@ -345,33 +321,16 @@ class CreatePriceListRequest(KatanaPydanticBase):
             description='Descriptive name for the price list (e.g., "Premium Customer Pricing", "Wholesale Rates")'
         ),
     ]
-    currency: Annotated[
-        str,
-        Field(
-            description="ISO 4217 currency code for all prices in this list (e.g., USD, EUR, GBP)",
-            pattern="^[A-Z]{3}$",
-        ),
-    ]
-    is_default: Annotated[
-        bool | None,
-        Field(
-            description="Whether this price list should be the default fallback for customers without specific price lists"
-        ),
+
+
+class PriceListRow(KatanaPydanticBase):
+    variant_id: Annotated[
+        int | None, Field(description="ID of the product variant")
     ] = None
-    markup_percentage: Annotated[
-        float | None,
-        Field(
-            description="Percentage markup applied to base costs to calculate pricing in this list"
-        ),
+    adjustment_method: Annotated[
+        str | None, Field(description="Method for price adjustment")
     ] = None
-    start_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Date and time when this price list becomes active"),
-    ] = None
-    end_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Date and time when this price list expires"),
-    ] = None
+    amount: Annotated[float | None, Field(description="Adjustment amount")] = None
 
 
 class CreatePriceListRowRequest(KatanaPydanticBase):
@@ -381,19 +340,14 @@ class CreatePriceListRowRequest(KatanaPydanticBase):
     price_list_id: Annotated[
         int, Field(description="ID of the price list to add the variant pricing to")
     ]
-    variant_id: Annotated[
-        int, Field(description="ID of the product variant to set custom pricing for")
+    price_list_rows: Annotated[
+        list[PriceListRow], Field(description="Array of price list row items to create")
     ]
-    price: Annotated[
-        float,
-        Field(description="Custom price for this variant in the price list's currency"),
-    ]
-    currency: Annotated[
-        str | None,
-        Field(
-            description="ISO 4217 currency code (must match the price list's currency)",
-            pattern="^[A-Z]{3}$",
-        ),
+
+
+class PriceListCustomer(KatanaPydanticBase):
+    customer_id: Annotated[
+        int | None, Field(description="ID of the customer to assign")
     ] = None
 
 
@@ -402,8 +356,9 @@ class CreatePriceListCustomerRequest(KatanaPydanticBase):
         extra="forbid",
     )
     price_list_id: Annotated[int, Field(description="ID of the price list")]
-    customer_id: Annotated[
-        int, Field(description="ID of the customer to assign to price list")
+    price_list_customers: Annotated[
+        list[PriceListCustomer],
+        Field(description="Array of customers to assign to the price list"),
     ]
 
 
@@ -414,27 +369,8 @@ class UpdatePriceListRequest(KatanaPydanticBase):
     name: Annotated[
         str | None, Field(description="Descriptive name for the price list")
     ] = None
-    currency: Annotated[
-        str | None,
-        Field(
-            description="ISO 4217 currency code for all prices in this list",
-            pattern="^[A-Z]{3}$",
-        ),
-    ] = None
-    is_default: Annotated[
-        bool | None,
-        Field(description="Whether this price list should be the default fallback"),
-    ] = None
-    markup_percentage: Annotated[
-        float | None, Field(description="Percentage markup applied to base costs")
-    ] = None
-    start_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Date and time when this price list becomes active"),
-    ] = None
-    end_date: Annotated[
-        AwareDatetime | None,
-        Field(description="Date and time when this price list expires"),
+    is_active: Annotated[
+        bool | None, Field(description="Whether the price list is active")
     ] = None
 
 
@@ -442,40 +378,22 @@ class UpdatePriceListRowRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    price_list_id: Annotated[
-        int | None,
-        Field(description="ID of the price list to add the variant pricing to"),
+    adjustment_method: Annotated[
+        str | None, Field(description="Method for price adjustment")
     ] = None
-    variant_id: Annotated[
-        int | None,
-        Field(description="ID of the product variant to set custom pricing for"),
-    ] = None
-    price: Annotated[
-        float | None,
-        Field(description="Custom price for this variant in the price list's currency"),
-    ] = None
-    currency: Annotated[
-        str | None,
-        Field(
-            description="ISO 4217 currency code (must match the price list's currency)",
-            pattern="^[A-Z]{3}$",
-        ),
-    ] = None
+    amount: Annotated[float | None, Field(description="Adjustment amount")] = None
 
 
 class UpdatePriceListCustomerRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    price_list_id: Annotated[int | None, Field(description="ID of the price list")] = (
-        None
-    )
     customer_id: Annotated[
         int | None, Field(description="ID of the customer to assign to price list")
     ] = None
 
 
-class PriceListRow(UpdatableEntity):
+class PriceListRow1(UpdatableEntity):
     id: Annotated[
         int, Field(description="Unique identifier for the price list row entry")
     ]
@@ -499,7 +417,7 @@ class PriceListRow(UpdatableEntity):
     ]
 
 
-class PriceListCustomer(UpdatableEntity):
+class PriceListCustomer1(UpdatableEntity):
     id: Annotated[
         int,
         Field(description="Unique identifier for the price list customer assignment"),
@@ -557,12 +475,6 @@ class CreateCustomerAddressRequest(KatanaPydanticBase):
     country: Annotated[
         str | None, Field(description="Country name or country code")
     ] = None
-    is_default: Annotated[
-        bool | None,
-        Field(
-            description="Whether this should be set as the default address for the specified entity type"
-        ),
-    ] = None
 
 
 class PriceListListResponse(KatanaPydanticBase):
@@ -573,16 +485,29 @@ class PriceListListResponse(KatanaPydanticBase):
 
 class PriceListRowListResponse(KatanaPydanticBase):
     data: Annotated[
-        list[PriceListRow] | None,
+        list[PriceListRow1] | None,
         Field(description="Array of price list row objects containing variant pricing"),
     ] = None
 
 
 class PriceListCustomerListResponse(KatanaPydanticBase):
     data: Annotated[
-        list[PriceListCustomer] | None,
+        list[PriceListCustomer1] | None,
         Field(description="Array of price list customer assignment entities"),
     ] = None
+
+
+class UpdateCustomerAddressRequest(KatanaPydanticBase):
+    first_name: str | None = None
+    last_name: str | None = None
+    company: str | None = None
+    phone: str | None = None
+    line_1: str | None = None
+    line_2: str | None = None
+    city: str | None = None
+    state: str | None = None
+    zip: str | None = None
+    country: str | None = None
 
 
 class CreateSupplierRequest(KatanaPydanticBase):
@@ -621,9 +546,6 @@ class CreateSupplierRequest(KatanaPydanticBase):
 
 
 class Supplier(DeletableEntity):
-    id: Annotated[
-        int | None, Field(description="Unique identifier for the supplier")
-    ] = None
     name: Annotated[
         str | None,
         Field(description="Business name of the supplier company or individual"),

@@ -22,11 +22,12 @@ class SalesOrderFulfillmentListResponse:
     """Response containing a list of fulfillment records showing shipping and delivery status for sales orders
 
     Example:
-        {'data': [{'id': 2701, 'sales_order_id': 2001, 'tracking_number': 'UPS1234567890', 'tracking_number_url':
-            'https://www.ups.com/track?track=UPS1234567890', 'shipped_date': '2024-01-20T16:30:00Z',
-            'estimated_delivery_date': '2024-01-22T14:00:00Z', 'actual_delivery_date': None, 'shipping_cost': 25.99,
-            'shipping_method': 'UPS Ground', 'carrier': 'UPS', 'notes': 'Signature required for delivery', 'created_at':
-            '2024-01-20T16:30:00Z', 'updated_at': '2024-01-20T16:30:00Z'}]}
+        {'data': [{'id': 1, 'sales_order_id': 1, 'picked_date': '2020-10-23T10:37:05.085Z', 'status': 'DELIVERED',
+            'invoice_status': 'NOT_INVOICED', 'conversion_rate': 2, 'conversion_date': '2020-10-23T10:37:05.085Z',
+            'tracking_number': '12345678', 'tracking_url': 'https://tracking-number-url', 'tracking_carrier': 'UPS',
+            'tracking_method': 'ground', 'packer_id': 1, 'sales_order_fulfillment_rows': [{'sales_order_row_id': 1,
+            'quantity': 2, 'batch_transactions': [{'batch_id': 1, 'quantity': 2}], 'serial_numbers': [1]}], 'created_at':
+            '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z'}]}
     """
 
     data: list[SalesOrderFulfillment] | Unset = UNSET

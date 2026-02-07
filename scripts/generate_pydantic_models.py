@@ -95,6 +95,7 @@ DOMAIN_GROUPS: dict[str, list[str]] = {
         "CreateMaterial*",
         "CreateVariant*",
         "CreateService*",
+        "CreateInventoryReorderPointRequest",
         "UpdateProduct*",
         "UpdateMaterial*",
         "UpdateVariant*",
@@ -107,6 +108,8 @@ DOMAIN_GROUPS: dict[str, list[str]] = {
         "StorageBin*",
         "NegativeStock*",
         "SerialNumber*",
+        "ResourceType1",  # Enum for CreateSerialNumbersRequest - must be co-located
+        "CreateSerial*",
         "CreateStock*",
         "CreateStocktake*",
         "UpdateStock*",
@@ -117,15 +120,21 @@ DOMAIN_GROUPS: dict[str, list[str]] = {
         "OutsourcedPurchaseOrder*",
         "RegularPurchaseOrder*",
         "CreatePurchaseOrder*",
+        "CreateOutsourcedPurchaseOrder*",
         "UpdatePurchaseOrder*",
+        "UpdateOutsourcedPurchaseOrder*",
     ],
     "sales_orders": [
         "SalesOrder*",
         "SalesReturn*",
+        "ReturnableItem",
+        "UnassignedBatchTransaction",
+        "UnassignedBatchTransactionListResponse",
         "CreateSalesOrder*",
         "CreateSalesReturn*",
         "UpdateSalesOrder*",
         "UpdateSalesReturn*",
+        "Address1",  # Extends SalesOrderAddress - must be co-located to avoid circular imports
     ],
     "manufacturing": [
         "ManufacturingOrder*",
@@ -139,6 +148,7 @@ DOMAIN_GROUPS: dict[str, list[str]] = {
         "BatchCreateBomRowsRequest",  # Uses CreateBomRowRequest from manufacturing
         "UpdateManufacturing*",
         "UpdateBom*",
+        "UpdateRecipeRowRequest",
         "UnlinkManufacturing*",
     ],
     "contacts": [
@@ -386,11 +396,16 @@ def fix_mro_issues(classes: list[ClassInfo]) -> list[ClassInfo]:
 
         if has_base_entity and has_entity_subtype:
             # Remove BaseEntity from the inheritance list in the source
-            # The source looks like: class Customer(BaseEntity, DeletableEntity):
+            # Handles both orderings: (BaseEntity, DeletableEntity) and (DeletableEntity, BaseEntity)
             fixed_source = re.sub(
                 r"class\s+(\w+)\s*\(\s*BaseEntity\s*,\s*",
                 r"class \1(",
                 cls.source,
+            )
+            fixed_source = re.sub(
+                r",\s*BaseEntity\s*\)",
+                ")",
+                fixed_source,
             )
             new_bases = [b for b in cls.bases if b != "BaseEntity"]
             fixed_classes.append(

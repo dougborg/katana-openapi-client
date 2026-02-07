@@ -67,6 +67,7 @@ class Product:
     operations_in_sequence: bool | Unset = UNSET
     lead_time: int | None | Unset = UNSET
     minimum_order_quantity: float | None | Unset = UNSET
+    deleted_at: datetime.datetime | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -172,6 +173,14 @@ class Product:
         else:
             minimum_order_quantity = self.minimum_order_quantity
 
+        deleted_at: None | str | Unset
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
+        else:
+            deleted_at = self.deleted_at
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -225,6 +234,8 @@ class Product:
             field_dict["lead_time"] = lead_time
         if minimum_order_quantity is not UNSET:
             field_dict["minimum_order_quantity"] = minimum_order_quantity
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
 
         return field_dict
 
@@ -389,6 +400,23 @@ class Product:
             d.pop("minimum_order_quantity", UNSET)
         )
 
+        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
+
         product = cls(
             id=id,
             name=name,
@@ -415,6 +443,7 @@ class Product:
             operations_in_sequence=operations_in_sequence,
             lead_time=lead_time,
             minimum_order_quantity=minimum_order_quantity,
+            deleted_at=deleted_at,
         )
 
         product.additional_properties = d

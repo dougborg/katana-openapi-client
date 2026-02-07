@@ -87,7 +87,7 @@ export type ValidationErrorDetail =
       code: "unrecognized_keys";
     } & UnrecognizedKeysValidationError)
   | ({
-      code: "GenericValidationError";
+      code: "generic";
     } & GenericValidationError);
 
 /**
@@ -193,7 +193,10 @@ export type UnrecognizedKeysValidationError = BaseValidationError & {
 };
 
 export type GenericValidationError = BaseValidationError & {
-  [key: string]: unknown;
+  /**
+   * Validation error code for generic errors
+   */
+  code?: string;
 };
 
 /**
@@ -445,7 +448,11 @@ export type BatchTransaction = {
  */
 export type StorageBin = {
   /**
-   * Name of the storage bin
+   * Name of the storage bin (returned by list endpoint)
+   */
+  name?: string;
+  /**
+   * Name of the storage bin (used in create/update requests and individual responses)
    */
   bin_name: string;
   /**
@@ -489,10 +496,6 @@ export type StorageBinListResponse = {
  */
 export type InventoryMovement = {
   /**
-   * Unique identifier for the inventory movement.
-   */
-  id: number;
-  /**
    * Identifier of the product variant associated with the movement.
    */
   variant_id: number;
@@ -512,7 +515,8 @@ export type InventoryMovement = {
     | "StockAdjustmentRow"
     | "StockTransferRow"
     | "ManufacturingOrder"
-    | "SystemGenerated";
+    | "SystemGenerated"
+    | "ProductionIngredient";
   /**
    * Identifier of the resource that initiated the movement.
    */
@@ -793,6 +797,14 @@ export type Inventory = {
    * Location details where this inventory is stored
    */
   location?: Location;
+  /**
+   * Timestamp when this inventory record was archived
+   */
+  archived_at?: string | null;
+  /**
+   * Default storage bin for this inventory at this location
+   */
+  default_storage_bin?: unknown;
 };
 
 /**
@@ -861,17 +873,29 @@ export type InventorySafetyStockLevelResponse = InventorySafetyStockLevel &
  */
 export type CreateManufacturingOrderRequest = {
   /**
+   * Initial production status of the manufacturing order
+   */
+  status?: "NOT_STARTED" | "BLOCKED" | "IN_PROGRESS" | "DONE";
+  /**
+   * Custom manufacturing order number for tracking and reference
+   */
+  order_no?: string;
+  /**
    * ID of the product variant to manufacture
    */
   variant_id: number;
+  /**
+   * ID of the factory location where production will take place
+   */
+  location_id: number;
   /**
    * Quantity of the variant to produce
    */
   planned_quantity: number;
   /**
-   * ID of the factory location where production will take place
+   * Actual quantity produced
    */
-  location_id: number;
+  actual_quantity?: number;
   /**
    * Date and time when the manufacturing order should be created (defaults to current time)
    */
@@ -884,6 +908,10 @@ export type CreateManufacturingOrderRequest = {
    * Optional notes or additional information about the order
    */
   additional_info?: string;
+  /**
+   * Batch transactions for produced items
+   */
+  batch_transactions?: Array<BatchTransaction>;
 };
 
 /**
@@ -911,6 +939,18 @@ export type ManufacturingOrder = {
    * Actual quantity produced, null if production not completed
    */
   actual_quantity?: number | null;
+  /**
+   * Total quantity completed so far (including partial completions)
+   */
+  completed_quantity?: number | null;
+  /**
+   * Remaining quantity to produce (planned - completed)
+   */
+  remaining_quantity?: number | null;
+  /**
+   * Whether this order has been partially completed
+   */
+  includes_partial_completions?: boolean;
   /**
    * Batch transactions for produced items, typically one transaction per manufacturing order
    */
@@ -973,7 +1013,7 @@ export type ManufacturingOrder = {
   /**
    * Delivery deadline from the linked sales order
    */
-  sales_order_delivery_deadline?: string;
+  sales_order_delivery_deadline?: string | null;
   /**
    * Total cost of materials used in production
    */
@@ -997,17 +1037,49 @@ export type ManufacturingOrder = {
  */
 export type UpdateManufacturingOrderRequest = {
   /**
+   * Updated production status of the manufacturing order
+   */
+  status?: "NOT_STARTED" | "BLOCKED" | "IN_PROGRESS" | "DONE";
+  /**
+   * Updated manufacturing order number for tracking and reference
+   */
+  order_no?: string;
+  /**
+   * Updated ID of the product variant being manufactured
+   */
+  variant_id?: number;
+  /**
+   * Updated ID of the factory location where production takes place
+   */
+  location_id?: number;
+  /**
    * Updated quantity of the variant to produce
    */
   planned_quantity?: number;
+  /**
+   * Updated actual quantity produced
+   */
+  actual_quantity?: number;
+  /**
+   * Updated date and time when the manufacturing order was created
+   */
+  order_created_date?: string;
+  /**
+   * Updated target deadline for completing production
+   */
+  production_deadline_date?: string;
+  /**
+   * Timestamp when the manufacturing order was completed
+   */
+  done_date?: string;
   /**
    * Updated notes or additional information about the order
    */
   additional_info?: string;
   /**
-   * Updated target deadline for completing production
+   * Batch transactions for produced items
    */
-  production_deadline_date?: string;
+  batch_transactions?: Array<BatchTransaction>;
 };
 
 /**
@@ -1021,11 +1093,15 @@ export type CreateManufacturingOrderProductionRequest = {
   /**
    * Quantity produced in this production run
    */
-  quantity: number;
+  completed_quantity: number;
   /**
    * Date and time when the production was completed
    */
-  production_date: string;
+  completed_date: string;
+  /**
+   * Whether this is the final production run that completes the manufacturing order
+   */
+  is_final?: boolean;
   /**
    * Ingredients consumed during this production run
    */
@@ -1034,28 +1110,20 @@ export type CreateManufacturingOrderProductionRequest = {
    * Operations performed during this production run
    */
   operations?: Array<ManufacturingOrderOperationRow>;
+  /**
+   * Serial numbers to assign to produced items
+   */
+  serial_numbers?: Array<string>;
 };
 
 /**
- * Request payload for updating an existing production run within a manufacturing order, modifying production quantities and material usage.
+ * Request payload for updating an existing production run within a manufacturing order.
  */
 export type UpdateManufacturingOrderProductionRequest = {
-  /**
-   * Updated quantity produced in this production run
-   */
-  quantity?: number;
   /**
    * Updated date and time when the production was completed
    */
   production_date?: string;
-  /**
-   * Updated ingredients consumed during this production run
-   */
-  ingredients?: Array<UpdateManufacturingOrderProductionIngredientRequest>;
-  /**
-   * Updated operations performed during this production run
-   */
-  operations?: Array<UpdateManufacturingOrderOperationRowRequest>;
 };
 
 /**
@@ -1067,6 +1135,10 @@ export type ManufacturingOrderProduction = {
    * ID of the manufacturing order this production run belongs to
    */
   manufacturing_order_id?: number;
+  /**
+   * ID of the factory where this production run was performed
+   */
+  factory_id?: number;
   /**
    * Actual quantity produced in this production run
    */
@@ -1120,17 +1192,9 @@ export type ManufacturingOrderProductionIngredient = {
  */
 export type UpdateManufacturingOrderProductionIngredientRequest = {
   /**
-   * Updated actual quantity of ingredient consumed
+   * Batch transactions for tracking ingredient consumption from specific batches
    */
-  quantity?: number;
-  /**
-   * Updated date when the ingredient was consumed in production
-   */
-  production_date?: string;
-  /**
-   * Updated cost of the ingredient consumed
-   */
-  cost?: number;
+  batch_transactions?: Array<BatchTransaction>;
 };
 
 /**
@@ -1141,7 +1205,7 @@ export type ManufacturingOrderOperationRow = {
   /**
    * Current status of the operation
    */
-  status?: "IN_PROGRESS" | "COMPLETED" | "PAUSED";
+  status?: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "PAUSED";
   /**
    * Type classification of the operation
    */
@@ -1203,6 +1267,14 @@ export type ManufacturingOrderOperationRow = {
    */
   total_actual_cost?: number;
   /**
+   * Total time consumed so far for this operation
+   */
+  total_consumed_time?: number;
+  /**
+   * Remaining time estimated for this operation
+   */
+  total_remaining_time?: number;
+  /**
    * Hourly cost rate for this operation
    */
   cost_per_hour?: number;
@@ -1237,9 +1309,45 @@ export type CreateManufacturingOrderOperationRowRequest = {
    */
   operation_id: number;
   /**
-   * Estimated time in minutes for this operation
+   * Type of operation (e.g., manual, automatic)
    */
-  time: number;
+  type?: string;
+  /**
+   * Name of the operation
+   */
+  operation_name?: string;
+  /**
+   * ID of the resource (machine/workstation) performing the operation
+   */
+  resource_id?: number;
+  /**
+   * Name of the resource performing the operation
+   */
+  resource_name?: string;
+  /**
+   * Parameter for calculating planned time
+   */
+  planned_time_parameter?: number;
+  /**
+   * Planned time per unit of output
+   */
+  planned_time_per_unit?: number;
+  /**
+   * Parameter for calculating operation cost
+   */
+  cost_parameter?: number;
+  /**
+   * Hourly cost rate for this operation
+   */
+  cost_per_hour?: number;
+  /**
+   * Current status of the operation
+   */
+  status?: string;
+  /**
+   * Operators assigned to perform this operation
+   */
+  assigned_operators?: Array<Operator>;
 };
 
 /**
@@ -1247,13 +1355,61 @@ export type CreateManufacturingOrderOperationRowRequest = {
  */
 export type UpdateManufacturingOrderOperationRowRequest = {
   /**
-   * List of operators who completed this operation
+   * ID of the manufacturing order this operation belongs to
    */
-  completed_by_operators?: Array<Operator>;
+  manufacturing_order_id?: number;
+  /**
+   * ID of the operation being performed
+   */
+  operation_id?: number;
+  /**
+   * Type of operation (e.g., manual, automatic)
+   */
+  type?: string;
+  /**
+   * Name of the operation
+   */
+  operation_name?: string;
+  /**
+   * ID of the resource (machine/workstation) performing the operation
+   */
+  resource_id?: number;
+  /**
+   * Name of the resource performing the operation
+   */
+  resource_name?: string;
+  /**
+   * Parameter for calculating planned time
+   */
+  planned_time_parameter?: number;
+  /**
+   * Planned time per unit of output
+   */
+  planned_time_per_unit?: number;
   /**
    * Actual time taken in minutes for this operation
    */
   total_actual_time?: number;
+  /**
+   * Parameter for calculating operation cost
+   */
+  cost_parameter?: number;
+  /**
+   * Hourly cost rate for this operation
+   */
+  cost_per_hour?: number;
+  /**
+   * Current status of the operation
+   */
+  status?: string;
+  /**
+   * Operators assigned to perform this operation
+   */
+  assigned_operators?: Array<Operator>;
+  /**
+   * List of operators who completed this operation
+   */
+  completed_by_operators?: Array<Operator>;
 };
 
 /**
@@ -1301,14 +1457,6 @@ export type CreateManufacturingOrderRecipeRowRequest = {
    */
   total_actual_quantity?: number;
   /**
-   * Availability status of the ingredient
-   */
-  ingredient_availability?: string;
-  /**
-   * Expected date when ingredient will be available
-   */
-  ingredient_expected_date?: string;
-  /**
    * Batch tracking transactions for this ingredient
    */
   batch_transactions?: Array<{
@@ -1321,16 +1469,16 @@ export type CreateManufacturingOrderRecipeRowRequest = {
      */
     quantity: number;
   }>;
-  /**
-   * Cost of this ingredient in the manufacturing order
-   */
-  cost?: number;
 };
 
 /**
  * Request payload for updating a manufacturing order recipe row with actual consumption data and revised requirements
  */
 export type UpdateManufacturingOrderRecipeRowRequest = {
+  /**
+   * Updated ID of the ingredient variant being consumed
+   */
+  variant_id?: number;
   /**
    * Additional notes about this ingredient usage
    */
@@ -1344,14 +1492,6 @@ export type UpdateManufacturingOrderRecipeRowRequest = {
    */
   total_actual_quantity?: number;
   /**
-   * Current availability status of the ingredient
-   */
-  ingredient_availability?: string;
-  /**
-   * Updated expected date when ingredient will be available
-   */
-  ingredient_expected_date?: string;
-  /**
    * Updated batch tracking transactions for this ingredient
    */
   batch_transactions?: Array<{
@@ -1364,10 +1504,6 @@ export type UpdateManufacturingOrderRecipeRowRequest = {
      */
     quantity?: number;
   }>;
-  /**
-   * Updated cost of this ingredient in the manufacturing order
-   */
-  cost?: number;
 };
 
 /**
@@ -1402,7 +1538,7 @@ export type ManufacturingOrderRecipeRow = {
   /**
    * Expected date when ingredient will be available if currently unavailable
    */
-  ingredient_expected_date?: string;
+  ingredient_expected_date?: string | null;
   /**
    * Batch tracking transactions for this ingredient consumption
    */
@@ -1420,6 +1556,14 @@ export type ManufacturingOrderRecipeRow = {
    * Total cost of this ingredient for the manufacturing order
    */
   cost?: number;
+  /**
+   * Total quantity consumed so far from this ingredient
+   */
+  total_consumed_quantity?: number;
+  /**
+   * Remaining quantity needed from this ingredient
+   */
+  total_remaining_quantity?: number;
 } & DeletableEntity;
 
 /**
@@ -1468,7 +1612,7 @@ export type SerialNumber = {
   /**
    * Date and time when the transaction occurred
    */
-  transaction_date?: string;
+  transaction_date?: string | null;
   /**
    * Quantity change for this serial number transaction
    */
@@ -1608,6 +1752,10 @@ export type CreateMaterialRequest = {
    */
   configs?: Array<MaterialConfig>;
   /**
+   * ID of the custom field collection to associate with this material
+   */
+  custom_field_collection_id?: number | null;
+  /**
    * Material variants with specific configurations and properties
    */
   variants: Array<CreateVariantRequest>;
@@ -1689,6 +1837,18 @@ export type Material = InventoryItem & {
    * Item type discriminator. Material objects are of type "material"
    */
   type: "material";
+  /**
+   * Timestamp when this material was soft-deleted
+   */
+  deleted_at?: string | null;
+  /**
+   * Whether inventory movements are tracked by individual serial numbers
+   */
+  serial_tracked?: boolean;
+  /**
+   * Whether manufacturing operations must be completed in a specific sequence
+   */
+  operations_in_sequence?: boolean;
 };
 
 /**
@@ -1947,6 +2107,10 @@ export type UpdateProductRequest = {
    */
   is_auto_assembly?: boolean;
   /**
+   * Whether this product is archived and hidden from active use
+   */
+  is_archived?: boolean;
+  /**
    * Primary supplier ID for purchasing this product
    */
   default_supplier_id?: number;
@@ -2040,6 +2204,10 @@ export type Product = InventoryItem & {
    * Configuration attributes that define variant combinations (size, color, etc.)
    */
   configs?: Array<ItemConfig>;
+  /**
+   * Timestamp when this product was soft-deleted
+   */
+  deleted_at?: string | null;
 };
 
 /**
@@ -2088,6 +2256,14 @@ export type CreatePurchaseOrderRequest = {
    * Optional notes or special instructions for the supplier
    */
   additional_info?: string;
+  /**
+   * Expected date when the purchase order items will arrive
+   */
+  expected_arrival_date?: string;
+  /**
+   * Location ID for tracking outsourced orders
+   */
+  tracking_location_id?: number;
   /**
    * List of line items being ordered, including quantities and pricing
    */
@@ -2353,7 +2529,7 @@ export type PurchaseOrderRow = {
    * Grouping identifier for organizational purposes
    */
   group_id?: number;
-} & UpdatableEntity;
+} & DeletableEntity;
 
 /**
  * Response containing a list of purchase order line items with pagination support for detailed order management
@@ -2465,7 +2641,7 @@ export type PurchaseOrderAdditionalCostRow = {
   /**
    * Tax rate percentage applied to this additional cost
    */
-  tax_rate?: number;
+  tax_rate?: number | null;
   /**
    * Amount of the additional cost in the purchase order currency
    */
@@ -2473,7 +2649,7 @@ export type PurchaseOrderAdditionalCostRow = {
   /**
    * Amount of the additional cost converted to base currency
    */
-  price_in_base?: number;
+  price_in_base?: number | null;
   /**
    * Currency used for this additional cost
    */
@@ -2481,11 +2657,11 @@ export type PurchaseOrderAdditionalCostRow = {
   /**
    * Exchange rate used for currency conversion
    */
-  currency_conversion_rate?: number;
+  currency_conversion_rate?: number | null;
   /**
    * Date when the currency conversion rate was fixed
    */
-  currency_conversion_rate_fix_date?: string;
+  currency_conversion_rate_fix_date?: string | null;
 } & DeletableEntity;
 
 /**
@@ -2647,27 +2823,23 @@ export type PurchaseOrderAccountingMetadata = {
   /**
    * ID of the purchase order linked to the accounting system
    */
-  purchase_order_id?: number;
-  /**
-   * Alternative purchase order ID field for accounting system compatibility
-   */
-  purchaseOrderId: number;
+  purchase_order_id: number;
   /**
    * ID of the received items group for accounting cost allocation
    */
-  porReceivedGroupId?: number;
+  received_items_group_id?: number;
   /**
-   * Type of accounting system integration (e.g., quickbooks, xero, sage)
+   * Type of accounting system integration (e.g., quickBooks, xero, sage)
    */
-  integrationType?: string;
+  integration_type?: string;
   /**
    * Bill identifier in the external accounting system
    */
-  billId?: string;
+  bill_id?: string;
   /**
    * Date and time when the accounting metadata was created
    */
-  createdAt?: string;
+  created_at?: string;
 };
 
 /**
@@ -2749,10 +2921,6 @@ export type SupplierAddressRequest = {
  */
 export type Supplier = {
   /**
-   * Unique identifier for the supplier
-   */
-  id?: number;
-  /**
    * Business name of the supplier company or individual
    */
   name?: string;
@@ -2822,10 +2990,6 @@ export type UpdateSupplierRequest = {
  * Physical address information for a supplier, used for shipping, billing, and correspondence
  */
 export type SupplierAddress = {
-  /**
-   * Unique identifier for this supplier address
-   */
-  id?: number;
   /**
    * Unique identifier of the supplier this address belongs to
    */
@@ -3489,21 +3653,84 @@ export type WebhookLogsExportRequest = {
    */
   webhook_id?: number;
   /**
-   * Start date for log export range (ISO 8601 format)
+   * Filter logs by event type
    */
-  start_date?: string;
+  event?:
+    | "sales_order.created"
+    | "sales_order.packed"
+    | "sales_order.delivered"
+    | "sales_order.updated"
+    | "sales_order.deleted"
+    | "sales_order.availability_updated"
+    | "purchase_order.created"
+    | "purchase_order.updated"
+    | "purchase_order.deleted"
+    | "purchase_order.partially_received"
+    | "purchase_order.received"
+    | "purchase_order_row.created"
+    | "purchase_order_row.received"
+    | "purchase_order_row.updated"
+    | "purchase_order_row.deleted"
+    | "outsourced_purchase_order.created"
+    | "outsourced_purchase_order.updated"
+    | "outsourced_purchase_order.deleted"
+    | "outsourced_purchase_order.received"
+    | "outsourced_purchase_order_row.created"
+    | "outsourced_purchase_order_row.updated"
+    | "outsourced_purchase_order_row.deleted"
+    | "outsourced_purchase_order_row.received"
+    | "outsourced_purchase_order_recipe_row.created"
+    | "outsourced_purchase_order_recipe_row.updated"
+    | "outsourced_purchase_order_recipe_row.deleted"
+    | "manufacturing_order.created"
+    | "manufacturing_order.updated"
+    | "manufacturing_order.deleted"
+    | "manufacturing_order.in_progress"
+    | "manufacturing_order.blocked"
+    | "manufacturing_order.done"
+    | "manufacturing_order_recipe_row.created"
+    | "manufacturing_order_recipe_row.updated"
+    | "manufacturing_order_recipe_row.deleted"
+    | "manufacturing_order_recipe_row.ingredients_in_stock"
+    | "manufacturing_order_operation_row.created"
+    | "manufacturing_order_operation_row.updated"
+    | "manufacturing_order_operation_row.deleted"
+    | "manufacturing_order_operation_row.in_progress"
+    | "manufacturing_order_operation_row.paused"
+    | "manufacturing_order_operation_row.blocked"
+    | "manufacturing_order_operation_row.completed"
+    | "current_inventory.product_updated"
+    | "current_inventory.material_updated"
+    | "current_inventory.product_out_of_stock"
+    | "current_inventory.material_out_of_stock"
+    | "product.created"
+    | "product.updated"
+    | "product.deleted"
+    | "material.created"
+    | "material.updated"
+    | "material.deleted"
+    | "variant.created"
+    | "variant.updated"
+    | "variant.deleted"
+    | "product_recipe_row.created"
+    | "product_recipe_row.deleted"
+    | "product_recipe_row.updated";
   /**
-   * End date for log export range (ISO 8601 format)
+   * Filter logs by HTTP status code
    */
-  end_date?: string;
+  status_code?: number;
   /**
-   * Filter logs by delivery status (success, failure, retry)
+   * Filter logs by delivery status (true for successful deliveries)
    */
-  status_filter?: Array<"success" | "failure" | "retry">;
+  delivered?: boolean;
   /**
-   * Export file format preference
+   * Minimum creation date for log export range (ISO 8601 format)
    */
-  format?: "csv" | "json";
+  created_at_min?: string;
+  /**
+   * Maximum creation date for log export range (ISO 8601 format)
+   */
+  created_at_max?: string;
 };
 
 /**
@@ -3696,6 +3923,112 @@ export type UpdateServiceRequest = {
 };
 
 /**
+ * A single demand forecast period with stock and demand quantities
+ */
+export type DemandForecastPeriod = {
+  /**
+   * Period start date in ISO 8601 format (inclusive)
+   */
+  period_start: string;
+  /**
+   * Period end date in ISO 8601 format (inclusive)
+   */
+  period_end: string;
+  /**
+   * In-stock quantity at the start of the period
+   */
+  in_stock?: string;
+  /**
+   * Expected incoming quantity during the period
+   */
+  expected?: string;
+  /**
+   * Total forecasted demand quantity for the period
+   */
+  committed?: string;
+};
+
+/**
+ * Demand forecast for a variant in a specific location with period breakdowns
+ */
+export type DemandForecastResponse = {
+  /**
+   * ID of the variant this forecast is for
+   */
+  variant_id: number;
+  /**
+   * ID of the location this forecast is for
+   */
+  location_id: number;
+  /**
+   * Current in-stock quantity for this variant at this location
+   */
+  in_stock?: string;
+  /**
+   * Array of forecast periods with stock and demand data
+   */
+  periods?: Array<DemandForecastPeriod>;
+};
+
+/**
+ * Request payload for adding planned demand forecast periods for a variant in a location
+ */
+export type CreateDemandForecastRequest = {
+  /**
+   * ID of the variant to add forecast for
+   */
+  variant_id: number;
+  /**
+   * ID of the location to add forecast for
+   */
+  location_id: number;
+  /**
+   * Array of forecast periods to add
+   */
+  periods: Array<{
+    /**
+     * Period start date in ISO 8601 format (inclusive)
+     */
+    period_start: string;
+    /**
+     * Period end date in ISO 8601 format (inclusive)
+     */
+    period_end: string;
+    /**
+     * Total forecasted demand quantity for the period
+     */
+    committed: string;
+  }>;
+};
+
+/**
+ * Request payload for clearing planned demand forecast periods for a variant in a location
+ */
+export type ClearDemandForecastRequest = {
+  /**
+   * ID of the variant to clear forecast for
+   */
+  variant_id: number;
+  /**
+   * ID of the location to clear forecast for
+   */
+  location_id: number;
+  /**
+   * Array of forecast periods to clear
+   */
+  periods: Array<{
+    /**
+     * Period start date in ISO 8601 format (inclusive)
+     */
+    period_start: string;
+    /**
+     * Period end date in ISO 8601 format (inclusive)
+     */
+    period_end: string;
+  }>;
+};
+
+/**
  * Customer entity representing individuals or companies that purchase products or services
  */
 export type Customer = BaseEntity & {
@@ -3762,10 +4095,6 @@ export type Customer = BaseEntity & {
  */
 export type CustomerAddress = {
   /**
-   * Unique identifier for the customer address
-   */
-  id: number;
-  /**
    * ID of the customer this address belongs to
    */
   customer_id: number;
@@ -3817,7 +4146,7 @@ export type CustomerAddress = {
    * Country name or country code
    */
   country?: string | null;
-} & UpdatableEntity;
+} & DeletableEntity;
 
 /**
  * Response containing a list of customers with pagination metadata
@@ -3877,6 +4206,22 @@ export type CreateCustomerRequest = {
    * Default discount percentage applied to all orders (0-100)
    */
   discount_rate?: number | null;
+  /**
+   * Customer addresses to create with the customer
+   */
+  addresses?: Array<{
+    entity_type?: "billing" | "shipping";
+    first_name?: string;
+    last_name?: string;
+    company?: string;
+    phone?: string;
+    line_1?: string;
+    line_2?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    country?: string;
+  }>;
 };
 
 /**
@@ -4084,7 +4429,7 @@ export type SalesOrder = BaseEntity & {
    * Complete address information for billing and shipping
    */
   addresses?: Array<SalesOrderAddress>;
-} & UpdatableEntity;
+} & DeletableEntity;
 
 /**
  * Individual line item within a sales order representing a specific product variant, quantity, pricing, and delivery details
@@ -4110,6 +4455,10 @@ export type SalesOrderRow = {
    * ID of the tax rate applied to this line item
    */
   tax_rate_id?: number | null;
+  /**
+   * Tax rate percentage applied to this line item
+   */
+  tax_rate?: number | null;
   /**
    * Location where the product should be picked from
    */
@@ -4194,17 +4543,13 @@ export type SalesOrderRow = {
    * Date when the currency conversion rate was applied
    */
   conversion_date?: string | null;
-} & UpdatableEntity;
+} & DeletableEntity;
 
 /**
  * Billing or shipping address associated with a sales order, containing complete contact and location information
  *
  */
 export type SalesOrderAddress = {
-  /**
-   * Unique identifier for the address record
-   */
-  id: number;
   /**
    * ID of the sales order this address belongs to
    */
@@ -4253,7 +4598,7 @@ export type SalesOrderAddress = {
    * Country code (e.g., US, CA, GB)
    */
   country?: string | null;
-} & UpdatableEntity;
+} & DeletableEntity;
 
 /**
  * Request payload for creating a new sales order row (line item)
@@ -4283,6 +4628,17 @@ export type CreateSalesOrderRowRequest = {
    * Location where the product should be picked from
    */
   location_id?: number;
+  /**
+   * Custom attributes for this line item
+   */
+  attributes?: Array<{
+    name?: string;
+    value?: string;
+  }>;
+  /**
+   * Total discount amount applied to this line item
+   */
+  total_discount?: number;
 };
 
 /**
@@ -4309,6 +4665,28 @@ export type UpdateSalesOrderRowRequest = {
    * Location where the product should be picked from
    */
   location_id?: number;
+  /**
+   * Total discount amount applied to this line item
+   */
+  total_discount?: number;
+  /**
+   * Batch transactions for inventory tracking
+   */
+  batch_transactions?: Array<BatchTransaction>;
+  /**
+   * Serial number transactions for tracking
+   */
+  serial_number_transactions?: Array<{
+    serial_number_id?: number;
+    quantity?: number;
+  }>;
+  /**
+   * Custom attributes for this line item
+   */
+  attributes?: Array<{
+    name?: string;
+    value?: string;
+  }>;
 };
 
 /**
@@ -4338,11 +4716,11 @@ export type CreateSalesOrderAddressRequest = {
   /**
    * Primary address line
    */
-  address_line_1: string;
+  line_1: string;
   /**
    * Secondary address line
    */
-  address_line_2?: string;
+  line_2?: string;
   /**
    * City name
    */
@@ -4370,10 +4748,6 @@ export type CreateSalesOrderAddressRequest = {
  */
 export type UpdateSalesOrderAddressRequest = {
   /**
-   * Type of address (billing or shipping)
-   */
-  entity_type?: "billing" | "shipping";
-  /**
    * First name for the address contact
    */
   first_name?: string;
@@ -4388,11 +4762,11 @@ export type UpdateSalesOrderAddressRequest = {
   /**
    * Primary address line
    */
-  address_line_1?: string;
+  line_1?: string;
   /**
    * Secondary address line
    */
-  address_line_2?: string;
+  line_2?: string;
   /**
    * City name
    */
@@ -4587,21 +4961,13 @@ export type StockAdjustment = {
    */
   stock_adjustment_number: string;
   /**
-   * Alternative reference number (optional)
+   * Date and time when the adjustment was performed
    */
-  reference_no?: string | null;
+  stock_adjustment_date?: string;
   /**
    * ID of the location where the stock adjustment is performed
    */
   location_id: number;
-  /**
-   * Current status of the stock adjustment workflow
-   */
-  status?: "DRAFT" | "COMPLETED";
-  /**
-   * Date and time when the adjustment was performed
-   */
-  adjustment_date?: string;
   /**
    * Reason for the stock adjustment
    */
@@ -4633,15 +4999,15 @@ export type CreateStockAdjustmentRequest = {
   /**
    * Human-readable reference number for tracking and audit purposes
    */
-  reference_no: string;
+  stock_adjustment_number?: string;
+  /**
+   * Date and time when the adjustment was performed
+   */
+  stock_adjustment_date?: string;
   /**
    * ID of the location where the stock adjustment is performed
    */
   location_id: number;
-  /**
-   * Date and time when the adjustment was performed
-   */
-  adjustment_date: string;
   /**
    * Reason for the stock adjustment
    */
@@ -4650,10 +5016,6 @@ export type CreateStockAdjustmentRequest = {
    * Optional notes or comments about the adjustment reason
    */
   additional_info?: string;
-  /**
-   * Status of the stock adjustment
-   */
-  status?: "DRAFT" | "COMPLETED";
   /**
    * Line items specifying variants and quantities to adjust
    */
@@ -4684,15 +5046,15 @@ export type UpdateStockAdjustmentRequest = {
   /**
    * Human-readable reference number for tracking and audit purposes
    */
-  reference_no?: string;
+  stock_adjustment_number?: string;
+  /**
+   * Date and time when the adjustment was performed
+   */
+  stock_adjustment_date?: string;
   /**
    * ID of the location where the stock adjustment is performed
    */
   location_id?: number;
-  /**
-   * Date and time when the adjustment was performed
-   */
-  adjustment_date?: string;
   /**
    * Reason for the stock adjustment
    */
@@ -4701,31 +5063,6 @@ export type UpdateStockAdjustmentRequest = {
    * Optional notes or comments about the adjustment reason
    */
   additional_info?: string;
-  /**
-   * Status of the stock adjustment
-   */
-  status?: "DRAFT" | "COMPLETED";
-  /**
-   * Line items specifying variants and quantities to adjust
-   */
-  stock_adjustment_rows?: Array<{
-    /**
-     * ID of the product or material variant being adjusted
-     */
-    variant_id: number;
-    /**
-     * Quantity to adjust (positive or negative)
-     */
-    quantity: number;
-    /**
-     * Cost per unit for this adjustment (defaults to current average cost if not specified)
-     */
-    cost_per_unit?: number;
-    /**
-     * Optional batch-specific adjustments for tracked inventory
-     */
-    batch_transactions?: Array<StockAdjustmentBatchTransaction>;
-  }>;
 };
 
 /**
@@ -4751,11 +5088,19 @@ export type StockTransfer = {
   /**
    * Current status of the stock transfer workflow
    */
-  status?: "DRAFT" | "COMPLETED" | "received";
+  status?: string;
   /**
    * Date and time when the transfer was executed
    */
   transfer_date?: string;
+  /**
+   * Date and time when the transfer order was created
+   */
+  order_created_date?: string | null;
+  /**
+   * Expected arrival date for the transferred stock
+   */
+  expected_arrival_date?: string | null;
   /**
    * Optional notes or comments about the transfer purpose
    */
@@ -4783,6 +5128,10 @@ export type StockTransferRow = {
    */
   quantity: number;
   /**
+   * Cost per unit for the transferred variant
+   */
+  cost_per_unit?: number;
+  /**
    * Batch transaction details for batch-tracked items
    */
   batch_transactions?: Array<{
@@ -4795,6 +5144,10 @@ export type StockTransferRow = {
      */
     quantity: number;
   }>;
+  /**
+   * Nullable deletion timestamp for the row
+   */
+  deleted_at?: string | null;
 };
 
 /**
@@ -4809,7 +5162,7 @@ export type StockTransferListResponse = {
 };
 
 /**
- * Shipping and delivery record for a sales order, tracking the physical fulfillment process from shipment to delivery
+ * Shipping and delivery record for a sales order, tracking the physical fulfillment process including picking, packing, and shipment tracking
  */
 export type SalesOrderFulfillment = {
   /**
@@ -4821,45 +5174,79 @@ export type SalesOrderFulfillment = {
    */
   sales_order_id: number;
   /**
+   * Date and time when items were picked from inventory
+   */
+  picked_date?: string | null;
+  /**
+   * Current fulfillment status
+   */
+  status?: "PACKED" | "DELIVERED";
+  /**
+   * Current invoice status of the fulfillment
+   */
+  invoice_status?: "NOT_INVOICED" | "INVOICED" | "PARTIALLY_INVOICED";
+  /**
+   * Currency conversion rate applied to this fulfillment
+   */
+  conversion_rate?: number | null;
+  /**
+   * Date when the currency conversion rate was applied
+   */
+  conversion_date?: string | null;
+  /**
    * Carrier tracking number for shipment monitoring
    */
   tracking_number?: string | null;
   /**
    * URL for online tracking of the shipment
    */
-  tracking_number_url?: string | null;
-  /**
-   * Date and time when the order was shipped
-   */
-  shipped_date?: string | null;
-  /**
-   * Carrier's estimated delivery date and time
-   */
-  estimated_delivery_date?: string | null;
-  /**
-   * Actual date and time of delivery confirmation
-   */
-  actual_delivery_date?: string | null;
-  /**
-   * Total shipping cost charged to the customer
-   */
-  shipping_cost?: number | null;
-  /**
-   * Shipping service used (e.g., Ground, Express, Overnight)
-   */
-  shipping_method?: string | null;
+  tracking_url?: string | null;
   /**
    * Shipping carrier name (e.g., UPS, FedEx, DHL)
    */
-  carrier?: string | null;
+  tracking_carrier?: string | null;
   /**
-   * Additional notes about the shipment or delivery
+   * Shipping method used (e.g., ground, express)
    */
-  notes?: string | null;
+  tracking_method?: string | null;
+  /**
+   * ID of the user who packed the fulfillment
+   */
+  packer_id?: number | null;
+  /**
+   * Line items in this fulfillment with quantities and batch details
+   */
+  sales_order_fulfillment_rows?: Array<{
+    /**
+     * ID of the sales order row being fulfilled
+     */
+    sales_order_row_id?: number;
+    /**
+     * Quantity fulfilled for this row
+     */
+    quantity?: number;
+    /**
+     * Batch allocations for this fulfillment row
+     */
+    batch_transactions?: Array<{
+      /**
+       * ID of the batch
+       */
+      batch_id?: number;
+      /**
+       * Quantity from this batch
+       */
+      quantity?: number;
+    }>;
+    /**
+     * Serial numbers allocated to this fulfillment row
+     */
+    serial_numbers?: Array<number>;
+  }>;
 } & UpdatableEntity;
 
 /**
- * Customer-specific pricing configuration with markup rules and time-based validity for flexible pricing management across different market segments
+ * Customer-specific pricing configuration for flexible pricing management across different market segments
  */
 export type PriceList = {
   /**
@@ -4871,59 +5258,23 @@ export type PriceList = {
    */
   name: string;
   /**
-   * ISO 4217 currency code for all prices in this list (e.g., USD, EUR, GBP)
+   * Whether this price list is currently active
    */
-  currency?: string;
-  /**
-   * Whether this price list is the default fallback for customers without specific price lists
-   */
-  is_default?: boolean;
-  /**
-   * Percentage markup applied to base costs to calculate pricing in this list
-   */
-  markup_percentage?: number | null;
-  /**
-   * Date and time when this price list becomes active
-   */
-  start_date?: string | null;
-  /**
-   * Date and time when this price list expires
-   */
-  end_date?: string | null;
-} & DeletableEntity;
+  is_active?: boolean;
+} & UpdatableEntity;
 
 /**
- * Request payload for creating a new price list with market-specific pricing configurations and time-based validity
+ * Request payload for creating a new price list with market-specific pricing configurations
  */
 export type CreatePriceListRequest = {
   /**
    * Descriptive name for the price list (e.g., "Premium Customer Pricing", "Wholesale Rates")
    */
   name: string;
-  /**
-   * ISO 4217 currency code for all prices in this list (e.g., USD, EUR, GBP)
-   */
-  currency: string;
-  /**
-   * Whether this price list should be the default fallback for customers without specific price lists
-   */
-  is_default?: boolean;
-  /**
-   * Percentage markup applied to base costs to calculate pricing in this list
-   */
-  markup_percentage?: number;
-  /**
-   * Date and time when this price list becomes active
-   */
-  start_date?: string;
-  /**
-   * Date and time when this price list expires
-   */
-  end_date?: string;
 };
 
 /**
- * Request payload for adding a product variant with specific pricing to a price list for customer-specific pricing management
+ * Request payload for adding product variants with specific pricing to a price list
  */
 export type CreatePriceListRowRequest = {
   /**
@@ -4931,21 +5282,26 @@ export type CreatePriceListRowRequest = {
    */
   price_list_id: number;
   /**
-   * ID of the product variant to set custom pricing for
+   * Array of price list row items to create
    */
-  variant_id: number;
-  /**
-   * Custom price for this variant in the price list's currency
-   */
-  price: number;
-  /**
-   * ISO 4217 currency code (must match the price list's currency)
-   */
-  currency?: string;
+  price_list_rows: Array<{
+    /**
+     * ID of the product variant
+     */
+    variant_id?: number;
+    /**
+     * Method for price adjustment
+     */
+    adjustment_method?: string;
+    /**
+     * Adjustment amount
+     */
+    amount?: number;
+  }>;
 };
 
 /**
- * Request payload for assigning a customer to a price list for custom pricing
+ * Request payload for assigning customers to a price list for custom pricing
  */
 export type CreatePriceListCustomerRequest = {
   /**
@@ -4953,9 +5309,14 @@ export type CreatePriceListCustomerRequest = {
    */
   price_list_id: number;
   /**
-   * ID of the customer to assign to price list
+   * Array of customers to assign to the price list
    */
-  customer_id: number;
+  price_list_customers: Array<{
+    /**
+     * ID of the customer to assign
+     */
+    customer_id?: number;
+  }>;
 };
 
 /**
@@ -4967,25 +5328,9 @@ export type UpdatePriceListRequest = {
    */
   name?: string;
   /**
-   * ISO 4217 currency code for all prices in this list
+   * Whether the price list is active
    */
-  currency?: string;
-  /**
-   * Whether this price list should be the default fallback
-   */
-  is_default?: boolean;
-  /**
-   * Percentage markup applied to base costs
-   */
-  markup_percentage?: number;
-  /**
-   * Date and time when this price list becomes active
-   */
-  start_date?: string;
-  /**
-   * Date and time when this price list expires
-   */
-  end_date?: string;
+  is_active?: boolean;
 };
 
 /**
@@ -4993,31 +5338,19 @@ export type UpdatePriceListRequest = {
  */
 export type UpdatePriceListRowRequest = {
   /**
-   * ID of the price list to add the variant pricing to
+   * Method for price adjustment
    */
-  price_list_id?: number;
+  adjustment_method?: string;
   /**
-   * ID of the product variant to set custom pricing for
+   * Adjustment amount
    */
-  variant_id?: number;
-  /**
-   * Custom price for this variant in the price list's currency
-   */
-  price?: number;
-  /**
-   * ISO 4217 currency code (must match the price list's currency)
-   */
-  currency?: string;
+  amount?: number;
 };
 
 /**
  * Request payload for updating an existing price list customer assignment
  */
 export type UpdatePriceListCustomerRequest = {
-  /**
-   * ID of the price list
-   */
-  price_list_id?: number;
   /**
    * ID of the customer to assign to price list
    */
@@ -5069,6 +5402,80 @@ export type PriceListCustomer = {
 } & UpdatableEntity;
 
 /**
+ * Operation step assigned to a product's manufacturing process
+ */
+export type ProductOperationRow = {
+  /**
+   * Product ID
+   */
+  product_id?: number;
+  /**
+   * Unique identifier for the product operation row
+   */
+  product_operation_row_id: number;
+  /**
+   * Product variant ID
+   */
+  product_variant_id?: number;
+  /**
+   * Operation ID
+   */
+  operation_id?: number;
+  /**
+   * Name of the operation
+   */
+  operation_name?: string;
+  /**
+   * Operation type (e.g., process)
+   */
+  type?: string;
+  /**
+   * Resource ID assigned to operation
+   */
+  resource_id?: number | null;
+  /**
+   * Name of the assigned resource
+   */
+  resource_name?: string | null;
+  /**
+   * Cost per hour for this operation
+   */
+  cost_per_hour?: number | null;
+  /**
+   * Cost calculation parameter
+   */
+  cost_parameter?: string | null;
+  /**
+   * Planned cost per unit
+   */
+  planned_cost_per_unit?: number | null;
+  /**
+   * Planned time per unit
+   */
+  planned_time_per_unit?: number | null;
+  /**
+   * Time parameter for planning
+   */
+  planned_time_parameter?: string | null;
+  /**
+   * Operation sequence rank
+   */
+  rank?: number;
+  /**
+   * Group boundary marker
+   */
+  group_boundary?: string | null;
+  /**
+   * Timestamp when the row was created
+   */
+  created_at?: string;
+  /**
+   * Timestamp when the row was last updated
+   */
+  updated_at?: string;
+};
+
+/**
  * Bill of Materials row defining ingredient requirements for product manufacturing
  */
 export type BomRow = {
@@ -5096,6 +5503,10 @@ export type BomRow = {
    * Additional notes for this BOM row
    */
   notes?: string | null;
+  /**
+   * Sort rank for ordering BOM rows
+   */
+  rank?: number;
   /**
    * Timestamp when the BOM row was created
    */
@@ -5335,6 +5746,16 @@ export type Factory = {
 };
 
 /**
+ * Response containing a list of operators
+ */
+export type OperatorListResponse = {
+  /**
+   * Array of operator objects
+   */
+  data?: Array<Operator>;
+};
+
+/**
  * Manufacturing operator or worker assigned to specific production operations and work areas
  */
 export type Operator = {
@@ -5387,7 +5808,7 @@ export type CustomFieldsCollection = {
    * Array of custom field definitions with their types, validation rules, and configuration
    */
   custom_fields?: Array<CustomField>;
-} & UpdatableEntity;
+} & DeletableEntity;
 
 /**
  * Individual custom field definition with validation rules and configuration options
@@ -5404,11 +5825,11 @@ export type CustomField = {
   /**
    * Type of the custom field (text, number, date, select, etc.)
    */
-  field_type: string;
+  field_type?: string;
   /**
    * Display label for the custom field in user interfaces
    */
-  label: string;
+  label?: string;
   /**
    * Whether this field is required when filling out the form
    */
@@ -5435,13 +5856,9 @@ export type CustomFieldsCollectionListResponse = {
 export type Stocktake = {
   id: number;
   /**
-   * Unique identifier for the stocktake process
+   * A string used to identify the stocktake
    */
   stocktake_number: string;
-  /**
-   * Alternative reference number for the stocktake process
-   */
-  reference_no?: string | null;
   /**
    * The location where the stocktake is being performed
    */
@@ -5449,11 +5866,7 @@ export type Stocktake = {
   /**
    * Current status of the stocktake process
    */
-  status: "NOT_STARTED" | "DRAFT" | "IN_PROGRESS" | "COMPLETED";
-  /**
-   * Date and time when the stocktake was conducted
-   */
-  stocktake_date?: string;
+  status: "NOT_STARTED" | "IN_PROGRESS" | "COUNTED" | "COMPLETED";
   /**
    * Date and time when the stocktake was created
    */
@@ -5479,18 +5892,14 @@ export type Stocktake = {
    */
   stock_adjustment_id?: number | null;
   /**
-   * Reason for the stocktake
+   * A descriptive field for your own information to enable better identification
    */
   reason?: string | null;
   /**
-   * Additional information about the stocktake
+   * A string attached to the object to add any internal comments or links to external files
    */
   additional_info?: string | null;
-  /**
-   * Additional notes or comments about the stocktake
-   */
-  notes?: string | null;
-} & UpdatableEntity;
+} & DeletableEntity;
 
 /**
  * Individual item record within a stocktake showing system vs actual quantities and variance
@@ -5525,7 +5934,17 @@ export type StocktakeRow = {
    * Notes about this stocktake row
    */
   notes?: string | null;
-} & UpdatableEntity;
+} & DeletableEntity;
+
+/**
+ * Response containing a list of serial number stock items
+ */
+export type SerialNumberStockListResponse = {
+  /**
+   * Array of serial number stock items
+   */
+  data?: Array<SerialNumberStock>;
+};
 
 /**
  * Current stock status and transaction history of individual serialized inventory items
@@ -5534,7 +5953,7 @@ export type SerialNumberStock = {
   /**
    * Serial number stock ID
    */
-  id: string;
+  id: number;
   /**
    * The actual serial number
    */
@@ -5562,7 +5981,7 @@ export type SerialNumberStock = {
     /**
      * Date and time of transaction
      */
-    transaction_date: string;
+    transaction_date?: string | null;
     /**
      * Quantity change in transaction
      */
@@ -5620,6 +6039,22 @@ export type SalesReturn = {
    */
   refund_status?: string | null;
   /**
+   * Tracking number for the return shipment
+   */
+  tracking_number?: string | null;
+  /**
+   * URL to track the return shipment
+   */
+  tracking_number_url?: string | null;
+  /**
+   * Carrier used for the return shipment
+   */
+  tracking_carrier?: string | null;
+  /**
+   * Shipping method used for the return
+   */
+  tracking_method?: string | null;
+  /**
    * Line items being returned with quantities and reasons
    */
   sales_return_rows?: Array<SalesReturnRow>;
@@ -5630,37 +6065,25 @@ export type SalesReturn = {
  */
 export type CreateSalesReturnRequest = {
   /**
-   * ID of the customer initiating the return
-   */
-  customer_id: number;
-  /**
    * ID of the original sales order being returned
    */
-  sales_order_id?: number;
+  sales_order_id: number;
   /**
-   * Return order reference number
+   * Creation date of the return. If missing then current timestamp will be used.
    */
-  order_no: string;
+  order_created_date?: string;
   /**
    * ID of the location where items are being returned to
    */
   return_location_id: number;
   /**
-   * Currency code (e.g., USD, EUR)
+   * Return order reference number
    */
-  currency?: string;
-  /**
-   * Date when the original order was created
-   */
-  order_created_date?: string;
+  order_no?: string;
   /**
    * Optional notes or comments about the return
    */
   additional_info?: string;
-  /**
-   * Array of items being returned
-   */
-  sales_return_rows: Array<CreateSalesReturnRowRequest>;
 };
 
 /**
@@ -5668,37 +6091,29 @@ export type CreateSalesReturnRequest = {
  */
 export type UpdateSalesReturnRequest = {
   /**
-   * ID of the customer initiating the return
-   */
-  customer_id?: number;
-  /**
-   * ID of the original sales order being returned
-   */
-  sales_order_id?: number;
-  /**
-   * Return order reference number
-   */
-  order_no?: string;
-  /**
-   * ID of the location where items are being returned to
-   */
-  return_location_id?: number;
-  /**
-   * Currency code (e.g., USD, EUR)
-   */
-  currency?: string;
-  /**
-   * Date when the original order was created
-   */
-  order_created_date?: string;
-  /**
-   * Optional notes or comments about the return
-   */
-  additional_info?: string;
-  /**
    * Status of the sales return
    */
   status?: "NOT_RETURNED" | "RETURNED_ALL" | "RESTOCKED_ALL";
+  /**
+   * Date of the return. Updatable only when current return status is not restockedAll.
+   */
+  return_date?: string;
+  /**
+   * Creation date of the return. Updatable only when current return status is not restockedAll.
+   */
+  order_created_date?: string;
+  /**
+   * ID of the location where items are being returned to. Updatable only when current return status is not restockedAll.
+   */
+  return_location_id?: number;
+  /**
+   * Return order reference number. Updatable only when current return status is not restockedAll.
+   */
+  order_no?: string;
+  /**
+   * Additional information about the return. Updatable only when current return status is not restockedAll.
+   */
+  additional_info?: string | null;
 };
 
 /**
@@ -5715,25 +6130,42 @@ export type SalesReturnRow = {
    */
   variant_id: number;
   /**
+   * ID of the fulfillment row this return is associated with
+   */
+  fulfillment_row_id?: number;
+  /**
+   * ID of the sales order row this return is associated with
+   */
+  sales_order_row_id?: number;
+  /**
    * The quantity of the variant being returned (formatted as decimal string for precision)
    */
   quantity: string;
   /**
-   * The reason code for this return
+   * Net price per unit for the returned item (formatted as decimal string for precision)
    */
-  return_reason_id?: number | null;
+  net_price_per_unit?: string | null;
   /**
-   * Additional notes about this return item
+   * ID of the return reason
    */
-  notes?: string | null;
+  reason_id?: number | null;
   /**
-   * The price per unit for the returned item
+   * ID of the location where stock will be restocked
    */
-  unit_price?: number | null;
+  restock_location_id?: number | null;
   /**
-   * The total refund amount for this line item
+   * Batch allocations for this return row
    */
-  total_price?: number | null;
+  batch_transactions?: Array<{
+    /**
+     * ID of the batch
+     */
+    batch_id?: number;
+    /**
+     * Quantity returned to this batch
+     */
+    quantity?: number;
+  }>;
 } & UpdatableEntity;
 
 /**
@@ -5741,21 +6173,29 @@ export type SalesReturnRow = {
  */
 export type CreateSalesReturnRowRequest = {
   /**
+   * ID of the sales return this row belongs to
+   */
+  sales_return_id: number;
+  /**
    * ID of the variant being returned
    */
   variant_id: number;
   /**
+   * ID of the fulfillment row this return is associated with
+   */
+  fulfillment_row_id: number;
+  /**
    * Quantity being returned
    */
-  quantity: number;
+  quantity: string;
+  /**
+   * Restock location ID. If missing then default from sales order fulfillment row will be used.
+   */
+  restock_location_id?: number;
   /**
    * ID of the return reason
    */
-  return_reason_id?: number;
-  /**
-   * Optional notes about this returned item
-   */
-  notes?: string;
+  reason_id?: number;
 };
 
 /**
@@ -5886,10 +6326,6 @@ export type CreateCustomerAddressRequest = {
    * Country name or country code
    */
   country?: string | null;
-  /**
-   * Whether this should be set as the default address for the specified entity type
-   */
-  is_default?: boolean;
 };
 
 /**
@@ -5949,25 +6385,46 @@ export type StocktakeRowListResponse = {
  */
 export type CreateStocktakeRequest = {
   /**
-   * Human-readable reference number for the stocktake
+   * A string used to identify the stocktake
    */
-  reference_no: string;
+  stocktake_number: string;
   /**
-   * ID of the location where the stocktake will be performed
+   * The ID of the stocktake location
    */
   location_id: number;
   /**
-   * Date and time when the stocktake was performed
+   * A descriptive field for your own information to enable better identification
    */
-  stocktake_date: string;
+  reason?: string;
   /**
-   * Optional notes about the stocktake
+   * Additional notes or information about the stocktake
    */
-  notes?: string;
+  additional_info?: string;
   /**
-   * Status of the stocktake
+   * Date when the stocktake was created
    */
-  status?: "DRAFT" | "IN_PROGRESS" | "COMPLETED";
+  created_date?: string;
+  /**
+   * Whether to set remaining uncounted items as counted
+   */
+  set_remaining_items_as_counted?: boolean;
+  /**
+   * Array of stocktake row items
+   */
+  stocktake_rows?: Array<{
+    /**
+     * ID of the variant to count
+     */
+    variant_id?: number;
+    /**
+     * ID of the batch
+     */
+    batch_id?: number;
+    /**
+     * Counted quantity
+     */
+    counted_quantity?: number;
+  }>;
 };
 
 /**
@@ -5975,29 +6432,41 @@ export type CreateStocktakeRequest = {
  */
 export type UpdateStocktakeRequest = {
   /**
-   * Human-readable reference number for the stocktake
+   * A string used to identify the stocktake
    */
-  reference_no?: string;
+  stocktake_number?: string;
   /**
-   * ID of the location where the stocktake is performed
+   * The ID of the stocktake location
    */
   location_id?: number;
   /**
-   * Date and time when the stocktake was performed
+   * A descriptive field for your own information to enable better identification
    */
-  stocktake_date?: string;
-  /**
-   * Optional notes about the stocktake
-   */
-  notes?: string;
+  reason?: string;
   /**
    * Status of the stocktake
    */
-  status?: "DRAFT" | "IN_PROGRESS" | "COMPLETED";
+  status?: "NOT_STARTED" | "IN_PROGRESS" | "COUNTED" | "COMPLETED";
+  /**
+   * Additional notes or information about the stocktake
+   */
+  additional_info?: string;
+  /**
+   * Date when the stocktake was created
+   */
+  created_date?: string;
+  /**
+   * Date when the stocktake was completed
+   */
+  completed_date?: string;
+  /**
+   * Whether to set remaining uncounted items as counted
+   */
+  set_remaining_items_as_counted?: boolean;
 };
 
 /**
- * Request payload for creating a new stocktake row for counting specific variants
+ * Request payload for creating stocktake rows for counting specific variants
  */
 export type CreateStocktakeRowRequest = {
   /**
@@ -6005,25 +6474,26 @@ export type CreateStocktakeRowRequest = {
    */
   stocktake_id: number;
   /**
-   * ID of the variant being counted
+   * Array of stocktake rows to create
    */
-  variant_id: number;
-  /**
-   * ID of the specific batch being counted (if applicable)
-   */
-  batch_id?: number;
-  /**
-   * System recorded quantity before counting
-   */
-  system_quantity: number;
-  /**
-   * Actual counted quantity
-   */
-  actual_quantity?: number;
-  /**
-   * Optional notes about the count
-   */
-  notes?: string;
+  stocktake_rows: Array<{
+    /**
+     * ID of the variant being counted
+     */
+    variant_id: number;
+    /**
+     * ID of the specific batch being counted (required for batch-trackable items)
+     */
+    batch_id?: number | null;
+    /**
+     * Optional notes about the count
+     */
+    notes?: string | null;
+    /**
+     * The actual quantity counted during the stocktake
+     */
+    counted_quantity?: number | null;
+  }>;
 };
 
 /**
@@ -6031,33 +6501,21 @@ export type CreateStocktakeRowRequest = {
  */
 export type UpdateStocktakeRowRequest = {
   /**
-   * ID of the stocktake this row belongs to
-   */
-  stocktake_id?: number;
-  /**
    * ID of the variant being counted
    */
   variant_id?: number;
   /**
-   * ID of the specific batch being counted (if applicable)
+   * ID of the specific batch being counted (required for batch-trackable items)
    */
-  batch_id?: number;
-  /**
-   * System recorded quantity before counting
-   */
-  system_quantity?: number;
-  /**
-   * Actual counted quantity
-   */
-  actual_quantity?: number;
-  /**
-   * Calculated variance between system and actual quantity
-   */
-  variance_quantity?: number;
+  batch_id?: number | null;
   /**
    * Optional notes about the count
    */
-  notes?: string;
+  notes?: string | null;
+  /**
+   * The actual quantity counted during the stocktake
+   */
+  counted_quantity?: number | null;
 };
 
 /**
@@ -6163,7 +6621,7 @@ export type ProductOperationRerankRequest = {
   /**
    * ID of the operation that should precede the operation being moved
    */
-  preceeding_product_operation_id?: number;
+  preceding_product_operation_id?: number;
   /**
    * Whether operations should be grouped together in the sequence
    */
@@ -6285,6 +6743,651 @@ export type CreateSalesOrderShippingFeeRequest = {
 };
 
 /**
+ * Batch allocation transaction for tracking inventory lots
+ */
+export type BatchTransactionRequest = {
+  /**
+   * Batch ID
+   */
+  batch_id: number;
+  /**
+   * Quantity
+   */
+  quantity: number;
+};
+
+/**
+ * Request payload for updating an existing customer address
+ */
+export type UpdateCustomerAddressRequest = {
+  first_name?: string | null;
+  last_name?: string | null;
+  company?: string | null;
+  phone?: string | null;
+  line_1?: string | null;
+  line_2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  country?: string | null;
+};
+
+/**
+ * Request payload for creating a new inventory reorder point
+ */
+export type CreateInventoryReorderPointRequest = {
+  /**
+   * Product variant ID
+   */
+  variant_id: number;
+  /**
+   * Location ID
+   */
+  location_id: number;
+  /**
+   * Minimum stock level that triggers reorder
+   */
+  value: number;
+};
+
+/**
+ * Request payload for creating a new outsourced purchase order recipe row
+ */
+export type CreateOutsourcedPurchaseOrderRecipeRowRequest = {
+  /**
+   * Purchase order row ID
+   */
+  purchase_order_row_id: number;
+  /**
+   * Ingredient variant ID
+   */
+  ingredient_variant_id: number;
+  /**
+   * Planned quantity per unit of production
+   */
+  planned_quantity_per_unit: number;
+  /**
+   * Additional notes about this ingredient requirement
+   */
+  notes?: string;
+  /**
+   * Batch allocation transactions for this ingredient
+   */
+  batch_transactions?: Array<BatchTransactionRequest>;
+};
+
+/**
+ * Request payload for updating an outsourced purchase order recipe row
+ */
+export type UpdateOutsourcedPurchaseOrderRecipeRowRequest = {
+  /**
+   * Ingredient variant ID. Updatable only when received_date is null.
+   */
+  ingredient_variant_id?: number;
+  /**
+   * Planned quantity per unit. Updatable only when received_date is null.
+   */
+  planned_quantity_per_unit?: number;
+  /**
+   * Additional notes about this ingredient requirement
+   */
+  notes?: string;
+  /**
+   * Batch allocation transactions for this ingredient
+   */
+  batch_transactions?: Array<BatchTransactionRequest>;
+};
+
+/**
+ * A single product operation row item in a bulk create request
+ */
+export type CreateProductOperationRowItem = {
+  product_variant_id: number;
+  /**
+   * If operation ID is used to map the operation, then operation_name is ignored.
+   */
+  operation_id?: number;
+  /**
+   * If operation name is used to map the operation then,
+   * we match to the existing operations by name. If a match is not found, a new one is created.
+   */
+  operation_name?: string;
+  /**
+   * If resource ID is used to map the resource, then resource_name is ignored.
+   */
+  resource_id?: number;
+  /**
+   * If resource name is used to map the resource then we match to the existing resources by name.
+   * If a match is not found, a new one is created.
+   */
+  resource_name?: string;
+  /**
+   * Different operation types allows you to use different cost
+   * calculations depending on the type of product operation
+   * Process: The process operation type is best for when products
+   * are individually built and time is the main driver of cost.
+   * Setup: The setup operation type is best for setting up a
+   * machine for production where the production quantity doesn't
+   * affect cost.
+   * Per unit: The per unit operation type is best when cost of
+   * time isn't a factor, but only the quantity of product made.
+   * Fixed cost: The fixed cost operation type is useful for adding
+   * the expected extra costs that go into producing a product.
+   */
+  type?: "process" | "setup" | "perUnit" | "fixed";
+  /**
+   * The expected cost of an operation, either total or per hour/unit of product (based on type).
+   * Total cost of the operation on a manufacturing order is calculated as follows:
+   * process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
+   * setup: cost = cost_parameter x planned_time_parameter (in
+   * hours)
+   * perUnit: cost = cost_parameter x product quantity
+   * fixed: cost = cost_parameter
+   */
+  cost_parameter?: number;
+  /**
+   * (This field is deprecated in favor of cost_parameter) The expected cost of an
+   * operation, either total or per hour/unit of product (based on type). Total cost
+   * of the operation on a manufacturing order is calculated as follows:
+   * process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
+   * setup: cost = cost_parameter x planned_time_parameter (in
+   * hours)
+   * perUnit: cost = cost_parameter x product quantity
+   * fixed: cost = cost_parameter
+   *
+   * @deprecated
+   */
+  cost_per_hour?: number;
+  /**
+   * The planned duration of an operation, in seconds, to either manufacture one unit of a product or complete a manufacturing order (based on type).
+   */
+  planned_time_parameter?: number;
+  /**
+   * (This field is deprecated in favor of planned_time_parameter) The planned duration of an operation, in seconds, to either manufacture one unit of a product or complete a manufacturing order (based on type).
+   *
+   * @deprecated
+   */
+  planned_time_per_unit?: number;
+};
+
+/**
+ * Request payload for creating product operation rows in bulk
+ */
+export type CreateProductOperationRowsRequest = {
+  /**
+   * Existing production operation lines are kept by default,
+   * and new lines will be added after the existing product operations.
+   * Set to false to delete all existing product operation lines for related products.
+   */
+  keep_current_rows?: boolean;
+  rows: Array<CreateProductOperationRowItem>;
+};
+
+/**
+ * Request payload for updating a product operation row
+ */
+export type UpdateProductOperationRowRequest = {
+  /**
+   * ID of the operation
+   */
+  operation_id?: number;
+  /**
+   * Name of the operation
+   */
+  operation_name?: string;
+  /**
+   * Type of operation
+   */
+  type?: string;
+  /**
+   * ID of the resource performing the operation
+   */
+  resource_id?: number;
+  /**
+   * Name of the resource
+   */
+  resource_name?: string;
+  /**
+   * Parameter for calculating planned time
+   */
+  planned_time_parameter?: number;
+  /**
+   * Planned time per unit
+   */
+  planned_time_per_unit?: number;
+  /**
+   * Parameter for calculating cost
+   */
+  cost_parameter?: number;
+  /**
+   * Hourly cost rate
+   */
+  cost_per_hour?: number;
+};
+
+/**
+ * Request payload for updating a recipe row
+ */
+export type UpdateRecipeRowRequest = {
+  /**
+   * ID of the ingredient variant
+   */
+  ingredient_variant_id?: number;
+  /**
+   * Ingredient quantity required
+   */
+  quantity?: number;
+  /**
+   * Additional notes about the recipe row
+   */
+  notes?: string;
+};
+
+/**
+ * A fulfillment row item specifying which order row and quantity to fulfill
+ */
+export type SalesOrderFulfillmentRowRequest = {
+  /**
+   * Sales order row ID
+   */
+  sales_order_row_id?: number;
+  /**
+   * Quantity to fulfill
+   */
+  quantity?: number;
+};
+
+/**
+ * Request payload for creating a new sales order fulfillment
+ */
+export type CreateSalesOrderFulfillmentRequest = {
+  /**
+   * Sales order ID
+   */
+  sales_order_id: number;
+  /**
+   * Date when items were picked
+   */
+  picked_date?: string;
+  /**
+   * Fulfillment status
+   */
+  status?: string;
+  /**
+   * Currency conversion rate
+   */
+  conversion_rate?: number;
+  /**
+   * Date of currency conversion
+   */
+  conversion_date?: string;
+  /**
+   * Shipment tracking number
+   */
+  tracking_number?: string;
+  /**
+   * URL for tracking the shipment
+   */
+  tracking_url?: string;
+  /**
+   * Shipping carrier name
+   */
+  tracking_carrier?: string;
+  /**
+   * Shipping method used
+   */
+  tracking_method?: string;
+  /**
+   * Fulfillment row items
+   */
+  sales_order_fulfillment_rows?: Array<SalesOrderFulfillmentRowRequest>;
+};
+
+/**
+ * Request payload for updating a sales order fulfillment
+ */
+export type UpdateSalesOrderFulfillmentRequest = {
+  /**
+   * Date when items were picked
+   */
+  picked_date?: string;
+  /**
+   * Fulfillment status
+   */
+  status?: string;
+  /**
+   * Currency conversion rate
+   */
+  conversion_rate?: number;
+  /**
+   * ID of the packer who packed the order
+   */
+  packer_id?: number;
+  /**
+   * Date of currency conversion
+   */
+  conversion_date?: string;
+  /**
+   * Shipment tracking number
+   */
+  tracking_number?: string;
+  /**
+   * URL for tracking the shipment
+   */
+  tracking_url?: string;
+  /**
+   * Shipping carrier name
+   */
+  tracking_carrier?: string;
+  /**
+   * Shipping method used
+   */
+  tracking_method?: string;
+};
+
+/**
+ * Request payload for updating a sales order shipping fee
+ */
+export type UpdateSalesOrderShippingFeeRequest = {
+  /**
+   * Shipping fee description
+   */
+  description?: string;
+  /**
+   * Shipping fee amount
+   */
+  amount?: number;
+  /**
+   * ID of the tax rate to apply to the shipping fee
+   */
+  tax_rate_id?: number;
+};
+
+/**
+ * Request payload for updating a sales order
+ */
+export type UpdateSalesOrderRequest = {
+  /**
+   * Updatable only when sales order status is NOT_SHIPPED or PENDING.
+   */
+  order_no?: string;
+  /**
+   * Updatable only when sales order status is NOT_SHIPPED or PENDING.
+   */
+  customer_id?: number;
+  /**
+   * Date when the order was originally created
+   */
+  order_created_date?: string;
+  /**
+   * Updatable only when sales order status is NOT_SHIPPED or PENDING.
+   */
+  delivery_date?: string;
+  /**
+   * Updatable only when sales order status is NOT_SHIPPED or PENDING.
+   */
+  picked_date?: string;
+  /**
+   * Updatable only when sales order status is NOT_SHIPPED or PENDING.
+   */
+  location_id?: number;
+  /**
+   * When the status is omitted, NOT_SHIPPED is used as default. Use PENDING when you want to create sales order quotes.
+   */
+  status?: "NOT_SHIPPED" | "PENDING" | "PACKED" | "DELIVERED";
+  /**
+   * E.g. USD, EUR. All currently active currency codes in ISO 4217 format. Updatable only when sales
+   * order status is NOT_SHIPPED or PENDING.
+   */
+  currency?: string;
+  /**
+   * Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with 422.
+   */
+  conversion_rate?: number;
+  /**
+   * Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with 422.
+   */
+  conversion_date?: string;
+  /**
+   * Additional notes or instructions for the sales order
+   */
+  additional_info?: string | null;
+  /**
+   * Customer's reference number or purchase order number
+   */
+  customer_ref?: string | null;
+  /**
+   * Shipping carrier tracking number for package tracking
+   */
+  tracking_number?: string | null;
+  /**
+   * URL link to track the shipment on carrier website
+   */
+  tracking_number_url?: string | null;
+};
+
+/**
+ * Request payload for updating a sales return row
+ */
+export type UpdateSalesReturnRowRequest = {
+  /**
+   * Quantity being returned. Updatable only when current return status is NOT_RETURNED.
+   */
+  quantity?: string;
+  /**
+   * Restock location ID. Updatable only when current return status is NOT_RETURNED or RETURNED.
+   */
+  restock_location_id?: number;
+  /**
+   * Reason ID. Updatable only when current return status is NOT_RETURNED.
+   */
+  reason_id?: number;
+  /**
+   * Batch transactions. Updatable only when current return status is NOT_RETURNED or RETURNED.
+   */
+  batch_transactions?: Array<BatchTransactionRequest>;
+};
+
+/**
+ * Request payload for creating serial numbers for a resource
+ */
+export type CreateSerialNumbersRequest = {
+  /**
+   * Resource type
+   */
+  resource_type:
+    | "ManufacturingOrder"
+    | "Production"
+    | "StockAdjustmentRow"
+    | "StockTransferRow"
+    | "PurchaseOrderRow"
+    | "SalesOrderRow";
+  /**
+   * Resource ID
+   */
+  resource_id: number;
+  /**
+   * List of serial numbers to create
+   */
+  serial_numbers: Array<string>;
+};
+
+/**
+ * A stock transfer row item specifying which variant and quantity to transfer
+ */
+export type StockTransferRowRequest = {
+  /**
+   * Product variant ID
+   */
+  variant_id?: number;
+  /**
+   * Quantity to transfer
+   */
+  quantity?: number;
+};
+
+/**
+ * Request payload for creating a new stock transfer
+ */
+export type CreateStockTransferRequest = {
+  /**
+   * Unique stock transfer number for tracking
+   */
+  stock_transfer_number?: string;
+  /**
+   * Source location ID where items are transferred from
+   */
+  source_location_id: number;
+  /**
+   * Destination location ID where items are transferred to
+   */
+  target_location_id: number;
+  /**
+   * Date when the transfer was initiated
+   */
+  transfer_date?: string;
+  /**
+   * Date when the transfer order was created
+   */
+  order_created_date?: string;
+  /**
+   * Expected arrival date at destination
+   */
+  expected_arrival_date?: string;
+  /**
+   * Additional notes or information about the transfer
+   */
+  additional_info?: string;
+  /**
+   * Line items being transferred
+   */
+  stock_transfer_rows?: Array<StockTransferRowRequest>;
+};
+
+/**
+ * Request payload for updating a stock transfer
+ */
+export type UpdateStockTransferRequest = {
+  /**
+   * Updated stock transfer number
+   */
+  stock_transfer_number?: string;
+  /**
+   * Updated transfer date
+   */
+  transfer_date?: string;
+  /**
+   * Updated order creation date
+   */
+  order_created_date?: string;
+  /**
+   * Updated expected arrival date
+   */
+  expected_arrival_date?: string;
+  /**
+   * Updated additional notes or information
+   */
+  additional_info?: string;
+};
+
+/**
+ * Request payload for updating a stock transfer status
+ */
+export type UpdateStockTransferStatusRequest = {
+  /**
+   * New status for the stock transfer
+   */
+  status: "pending" | "in_transit" | "completed" | "cancelled";
+};
+
+/**
+ * Response containing a list of locations
+ */
+export type LocationListResponse = {
+  data?: Array<Location>;
+};
+
+/**
+ * Response containing a list of product operation rows
+ */
+export type ProductOperationRowListResponse = {
+  data?: Array<ProductOperationRow>;
+};
+
+/**
+ * An item from a sales order that is eligible for return
+ */
+export type ReturnableItem = {
+  /**
+   * Product variant ID
+   */
+  variant_id: number;
+  /**
+   * Fulfillment row ID
+   */
+  fulfillment_row_id: number;
+  /**
+   * Quantity available for return
+   */
+  available_for_return_quantity: string;
+  /**
+   * Net price per unit
+   */
+  net_price_per_unit: string;
+  /**
+   * Location ID
+   */
+  location_id: number;
+  /**
+   * Total quantity sold
+   */
+  quantity_sold: string;
+};
+
+/**
+ * A batch transaction not yet assigned to a sales return row
+ */
+export type UnassignedBatchTransaction = {
+  /**
+   * Batch transaction ID
+   */
+  id?: number;
+  /**
+   * Batch ID
+   */
+  batch_id?: number;
+  /**
+   * Transaction quantity
+   */
+  quantity?: number;
+  /**
+   * Transaction status
+   */
+  status?: string;
+};
+
+/**
+ * Response containing a list of unassigned batch transactions
+ */
+export type UnassignedBatchTransactionListResponse = {
+  data?: Array<UnassignedBatchTransaction>;
+};
+
+/**
+ * A reason for returning items from a sales order
+ */
+export type SalesReturnReason = {
+  /**
+   * Return reason ID
+   */
+  id: number;
+  /**
+   * Return reason name
+   */
+  name: string;
+};
+
+/**
  * Filters results by an array of IDs.
  */
 export type Ids = Array<number>;
@@ -6340,7 +7443,8 @@ export type ResourceType =
   | "StockAdjustmentRow"
   | "StockTransferRow"
   | "ManufacturingOrder"
-  | "SystemGenerated";
+  | "SystemGenerated"
+  | "ProductionIngredient";
 
 /**
  * Filters results by a resource ID.
@@ -7349,7 +8453,8 @@ export type GetAllInventoryMovementsData = {
       | "StockAdjustmentRow"
       | "StockTransferRow"
       | "ManufacturingOrder"
-      | "SystemGenerated";
+      | "SystemGenerated"
+      | "ProductionIngredient";
     /**
      * Filters results by a resource ID.
      */
@@ -7550,9 +8655,7 @@ export type GetAllLocationsResponses = {
   /**
    * List all locations
    */
-  200: {
-    data?: Array<Location>;
-  };
+  200: LocationListResponse;
 };
 
 export type GetAllLocationsResponse =
@@ -11841,28 +12944,7 @@ export type CreateSalesReturnRowData = {
   /**
    * Sales return row details
    */
-  body: {
-    /**
-     * Sales return ID
-     */
-    sales_return_id: number;
-    /**
-     * Product variant ID
-     */
-    variant_id: number;
-    /**
-     * Quantity being returned
-     */
-    quantity: number;
-    /**
-     * Reason for return
-     */
-    reason?: string;
-    /**
-     * Additional notes
-     */
-    notes?: string;
-  };
+  body: CreateSalesReturnRowRequest;
   path?: never;
   query?: never;
   url: "/sales_return_rows";
@@ -11996,20 +13078,7 @@ export type UpdateSalesReturnRowData = {
   /**
    * Sales return row update details
    */
-  body: {
-    /**
-     * Quantity being returned
-     */
-    quantity?: number;
-    /**
-     * Reason for return
-     */
-    reason?: string;
-    /**
-     * Additional notes
-     */
-    notes?: string;
-  };
+  body: UpdateSalesReturnRowRequest;
   path: {
     /**
      * Resource identifier
@@ -12098,26 +13167,7 @@ export type GetSalesReturnRowUnassignedBatchTransactionsResponses = {
   /**
    * List of unassigned batch transactions
    */
-  200: {
-    data?: Array<{
-      /**
-       * Batch transaction ID
-       */
-      id?: number;
-      /**
-       * Batch ID
-       */
-      batch_id?: number;
-      /**
-       * Transaction quantity
-       */
-      quantity?: number;
-      /**
-       * Transaction status
-       */
-      status?: string;
-    }>;
-  };
+  200: UnassignedBatchTransactionListResponse;
 };
 
 export type GetSalesReturnRowUnassignedBatchTransactionsResponse =
@@ -12152,16 +13202,7 @@ export type GetSalesReturnReasonsResponses = {
   /**
    * List of return reasons
    */
-  200: Array<{
-    /**
-     * Return reason ID
-     */
-    id: number;
-    /**
-     * Return reason name
-     */
-    name: string;
-  }>;
+  200: Array<SalesReturnReason>;
 };
 
 export type GetSalesReturnReasonsResponse =
@@ -12331,16 +13372,7 @@ export type UpdateRecipeRowData = {
   /**
    * Recipe row update details
    */
-  body: {
-    /**
-     * Ingredient quantity required
-     */
-    quantity?: number;
-    /**
-     * Additional notes about the recipe row
-     */
-    notes?: string;
-  };
+  body: UpdateRecipeRowRequest;
   path: {
     /**
      * Resource identifier
@@ -12970,65 +14002,7 @@ export type UpdateSalesOrderData = {
   /**
    * Sales order update details
    */
-  body: {
-    /**
-     * Updatable only when sales order status is NOT_SHIPPED or PENDING.
-     */
-    order_no?: string;
-    /**
-     * Updatable only when sales order status is NOT_SHIPPED or PENDING.
-     */
-    customer_id?: number;
-    /**
-     * Date when the order was originally created
-     */
-    order_created_date?: string;
-    /**
-     * Updatable only when sales order status is NOT_SHIPPED or PENDING.
-     */
-    delivery_date?: string;
-    /**
-     * Updatable only when sales order status is NOT_SHIPPED or PENDING.
-     */
-    picked_date?: string;
-    /**
-     * Updatable only when sales order status is NOT_SHIPPED or PENDING.
-     */
-    location_id?: number;
-    /**
-     * When the status is omitted, NOT_SHIPPED is used as default. Use PENDING when you want to create sales order quotes.
-     */
-    status?: "NOT_SHIPPED" | "PENDING" | "PACKED" | "DELIVERED";
-    /**
-     * E.g. USD, EUR. All currently active currency codes in ISO 4217 format. Updatable only when sales
-     * order status is NOT_SHIPPED or PENDING.
-     */
-    currency?: string;
-    /**
-     * Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with 422.
-     */
-    conversion_rate?: number;
-    /**
-     * Updatable only when sales order status is PACKED or DELIVERED, otherwise it will fail with 422.
-     */
-    conversion_date?: string;
-    /**
-     * Additional notes or instructions for the sales order
-     */
-    additional_info?: string | null;
-    /**
-     * Customer's reference number or purchase order number
-     */
-    customer_ref?: string | null;
-    /**
-     * Shipping carrier tracking number for package tracking
-     */
-    tracking_number?: string | null;
-    /**
-     * URL link to track the shipment on carrier website
-     */
-    tracking_number_url?: string | null;
-  };
+  body: UpdateSalesOrderRequest;
   path: {
     /**
      * Resource identifier
@@ -13106,32 +14080,7 @@ export type GetSalesOrderReturnableItemsResponses = {
   /**
    * List of returnable items
    */
-  200: Array<{
-    /**
-     * Product variant ID
-     */
-    variant_id: number;
-    /**
-     * Fulfillment row ID
-     */
-    fulfillment_row_id: number;
-    /**
-     * Quantity available for return
-     */
-    available_for_return_quantity: string;
-    /**
-     * Net price per unit
-     */
-    net_price_per_unit: string;
-    /**
-     * Location ID
-     */
-    location_id: number;
-    /**
-     * Total quantity sold
-     */
-    quantity_sold: string;
-  }>;
+  200: Array<ReturnableItem>;
 };
 
 export type GetSalesOrderReturnableItemsResponse =
@@ -13373,6 +14322,142 @@ export type UpdateCustomerResponses = {
 
 export type UpdateCustomerResponse =
   UpdateCustomerResponses[keyof UpdateCustomerResponses];
+
+export type ClearDemandForecastData = {
+  /**
+   * Clear planned demand forecast for variant in location for specified periods.
+   */
+  body: ClearDemandForecastRequest;
+  path?: never;
+  query?: never;
+  url: "/demand_forecasts";
+};
+
+export type ClearDemandForecastErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type ClearDemandForecastError =
+  ClearDemandForecastErrors[keyof ClearDemandForecastErrors];
+
+export type ClearDemandForecastResponses = {
+  /**
+   * Planned demand forecast cleared for variant in location for specified periods.
+   */
+  204: void;
+};
+
+export type ClearDemandForecastResponse =
+  ClearDemandForecastResponses[keyof ClearDemandForecastResponses];
+
+export type GetDemandForecastsData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * ID of variant for which to retrieve demand forecast for.
+     */
+    variant_id: number;
+    /**
+     * ID of location for which to retrieve variant demand forecast for.
+     */
+    location_id: number;
+  };
+  url: "/demand_forecasts";
+};
+
+export type GetDemandForecastsErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetDemandForecastsError =
+  GetDemandForecastsErrors[keyof GetDemandForecastsErrors];
+
+export type GetDemandForecastsResponses = {
+  /**
+   * Planned demand forecast for variant in location.
+   */
+  200: DemandForecastResponse;
+};
+
+export type GetDemandForecastsResponse =
+  GetDemandForecastsResponses[keyof GetDemandForecastsResponses];
+
+export type CreateDemandForecastData = {
+  /**
+   * Planned demand forecast for variant in location for specified periods.
+   */
+  body: CreateDemandForecastRequest;
+  path?: never;
+  query?: never;
+  url: "/demand_forecasts";
+};
+
+export type CreateDemandForecastErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type CreateDemandForecastError =
+  CreateDemandForecastErrors[keyof CreateDemandForecastErrors];
+
+export type CreateDemandForecastResponses = {
+  /**
+   * Planned demand forecast added for variant in location for specified periods.
+   */
+  204: void;
+};
+
+export type CreateDemandForecastResponse =
+  CreateDemandForecastResponses[keyof CreateDemandForecastResponses];
 
 export type GetAllStockAdjustmentsData = {
   body?: never;
@@ -13671,28 +14756,7 @@ export type CreateStockTransferData = {
   /**
    * Stock transfer details
    */
-  body: {
-    /**
-     * Source location ID
-     */
-    from_location_id: number;
-    /**
-     * Destination location ID
-     */
-    to_location_id: number;
-    /**
-     * Product variant ID
-     */
-    variant_id: number;
-    /**
-     * Quantity to transfer
-     */
-    quantity: number;
-    /**
-     * Transfer notes
-     */
-    notes?: string;
-  };
+  body: CreateStockTransferRequest;
   path?: never;
   query?: never;
   url: "/stock_transfers";
@@ -13782,16 +14846,7 @@ export type UpdateStockTransferData = {
   /**
    * Stock transfer update details
    */
-  body: {
-    /**
-     * Quantity to transfer
-     */
-    quantity?: number;
-    /**
-     * Transfer notes
-     */
-    notes?: string;
-  };
+  body: UpdateStockTransferRequest;
   path: {
     /**
      * Resource identifier
@@ -13846,12 +14901,7 @@ export type UpdateStockTransferStatusData = {
   /**
    * Status update details
    */
-  body: {
-    /**
-     * New status for the stock transfer
-     */
-    status: "pending" | "in_transit" | "completed" | "cancelled";
-  };
+  body: UpdateStockTransferStatusRequest;
   path: {
     /**
      * Resource identifier
@@ -14538,20 +15588,7 @@ export type CreateSalesOrderFulfillmentData = {
   /**
    * Sales order fulfillment details
    */
-  body: {
-    /**
-     * Sales order ID
-     */
-    sales_order_id: number;
-    /**
-     * Shipment tracking number
-     */
-    tracking_number?: string;
-    /**
-     * Additional notes for the fulfillment
-     */
-    notes?: string;
-  };
+  body: CreateSalesOrderFulfillmentRequest;
   path?: never;
   query?: never;
   url: "/sales_order_fulfillments";
@@ -14685,16 +15722,7 @@ export type UpdateSalesOrderFulfillmentData = {
   /**
    * Sales order fulfillment update details
    */
-  body: {
-    /**
-     * Shipment tracking number
-     */
-    tracking_number?: string;
-    /**
-     * Additional notes for the fulfillment
-     */
-    notes?: string;
-  };
+  body: UpdateSalesOrderFulfillmentRequest;
   path: {
     /**
      * Resource identifier
@@ -14951,20 +15979,7 @@ export type UpdateCustomerAddressData = {
   /**
    * Customer address update details
    */
-  body: {
-    entity_type?: "billing" | "shipping";
-    first_name?: string | null;
-    last_name?: string | null;
-    company?: string | null;
-    phone?: string | null;
-    line_1?: string | null;
-    line_2?: string | null;
-    city?: string | null;
-    state?: string | null;
-    zip?: string | null;
-    country?: string | null;
-    is_default?: boolean;
-  };
+  body: UpdateCustomerAddressRequest;
   path: {
     /**
      * Resource identifier
@@ -16477,7 +17492,8 @@ export type GetAllSerialNumbersData = {
       | "StockAdjustmentRow"
       | "StockTransferRow"
       | "ManufacturingOrder"
-      | "SystemGenerated";
+      | "SystemGenerated"
+      | "ProductionIngredient";
     /**
      * Filters results by a resource ID.
      */
@@ -16526,26 +17542,7 @@ export type CreateSerialNumbersData = {
   /**
    * Serial number creation details
    */
-  body: {
-    /**
-     * Resource type
-     */
-    resource_type:
-      | "ManufacturingOrder"
-      | "Production"
-      | "StockAdjustmentRow"
-      | "StockTransferRow"
-      | "PurchaseOrderRow"
-      | "SalesOrderRow";
-    /**
-     * Resource ID
-     */
-    resource_id: number;
-    /**
-     * List of serial numbers to create
-     */
-    serial_numbers: Array<string>;
-  };
+  body: CreateSerialNumbersRequest;
   path?: never;
   query?: never;
   url: "/serial_numbers";
@@ -16616,7 +17613,7 @@ export type GetAllSerialNumbersStockResponses = {
   /**
    * List of serial number stock
    */
-  200: Array<SerialNumberStock>;
+  200: SerialNumberStockListResponse;
 };
 
 export type GetAllSerialNumbersStockResponse =
@@ -16701,7 +17698,7 @@ export type GetAllOperatorsResponses = {
   /**
    * A list of operators
    */
-  200: Array<Operator>;
+  200: OperatorListResponse;
 };
 
 export type GetAllOperatorsResponse =
@@ -16746,24 +17743,7 @@ export type CreateInventoryReorderPointData = {
   /**
    * Inventory reorder point details
    */
-  body: {
-    /**
-     * Product variant ID
-     */
-    variant_id: number;
-    /**
-     * Location ID
-     */
-    location_id: number;
-    /**
-     * Minimum stock level that triggers reorder
-     */
-    reorder_point: number;
-    /**
-     * Quantity to reorder when reorder point is reached
-     */
-    reorder_quantity?: number;
-  };
+  body: CreateInventoryReorderPointRequest;
   path?: never;
   query?: never;
   url: "/inventory_reorder_points";
@@ -16889,20 +17869,7 @@ export type CreateOutsourcedPurchaseOrderRecipeRowData = {
   /**
    * Outsourced purchase order recipe row details
    */
-  body: {
-    /**
-     * Outsourced purchase order ID
-     */
-    outsourced_purchase_order_id: number;
-    /**
-     * Recipe row ID
-     */
-    recipe_row_id: number;
-    /**
-     * Quantity required
-     */
-    quantity: number;
-  };
+  body: CreateOutsourcedPurchaseOrderRecipeRowRequest;
   path?: never;
   query?: never;
   url: "/outsourced_purchase_order_recipe_rows";
@@ -17036,12 +18003,7 @@ export type UpdateOutsourcedPurchaseOrderRecipeRowData = {
   /**
    * Outsourced purchase order recipe row update details
    */
-  body: {
-    /**
-     * Quantity required
-     */
-    quantity?: number;
-  };
+  body: UpdateOutsourcedPurchaseOrderRecipeRowRequest;
   path: {
     /**
      * Resource identifier
@@ -17213,30 +18175,7 @@ export type GetAllProductOperationRowsResponses = {
   /**
    * List of product operation rows
    */
-  200: {
-    data?: Array<{
-      /**
-       * Product operation row ID
-       */
-      id?: number;
-      /**
-       * Product ID
-       */
-      product_id?: number;
-      /**
-       * Operation ID
-       */
-      operation_id?: number;
-      /**
-       * Operation sequence
-       */
-      sequence?: number;
-      /**
-       * Operation notes
-       */
-      notes?: string;
-    }>;
-  };
+  200: ProductOperationRowListResponse;
 };
 
 export type GetAllProductOperationRowsResponse =
@@ -17246,82 +18185,7 @@ export type CreateProductOperationRowsData = {
   /**
    * New product operation row details
    */
-  body: {
-    /**
-     * Existing production operation lines are kept by default,
-     * and new lines will be added after the existing product operations.
-     * Set to false to delete all existing product operation lines for related products.
-     */
-    keep_current_rows?: boolean;
-    rows: Array<{
-      product_variant_id: number;
-      /**
-       * If operation ID is used to map the operation, then operation_name is ignored.
-       */
-      operation_id?: number;
-      /**
-       * If operation name is used to map the operation then,
-       * we match to the existing operations by name. If a match is not found, a new one is created.
-       */
-      operation_name?: string;
-      /**
-       * If resource ID is used to map the resource, then resource_name is ignored.
-       */
-      resource_id?: number;
-      /**
-       * If resource name is used to map the resource then we match to the existing resources by name.
-       * If a match is not found, a new one is created.
-       */
-      resource_name?: string;
-      /**
-       * Different operation types allows you to use different cost
-       * calculations depending on the type of product operation
-       * Process: The process operation type is best for when products
-       * are individually built and time is the main driver of cost.
-       * Setup: The setup operation type is best for setting up a
-       * machine for production where the production quantity doesn't
-       * affect cost.
-       * Per unit: The per unit operation type is best when cost of
-       * time isn't a factor, but only the quantity of product made.
-       * Fixed cost: The fixed cost operation type is useful for adding
-       * the expected extra costs that go into producing a product.
-       */
-      type?: "process" | "setup" | "perUnit" | "fixed";
-      /**
-       * The expected cost of an operation, either total or per hour/unit of product (based on type).
-       * Total cost of the operation on a manufacturing order is calculated as follows:
-       * process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
-       * setup: cost = cost_parameter x planned_time_parameter (in
-       * hours)
-       * perUnit: cost = cost_parameter x product quantity
-       * fixed: cost = cost_parameter
-       */
-      cost_parameter?: number;
-      /**
-       * (This field is deprecated in favor of cost_parameter) The expected cost of an
-       * operation, either total or per hour/unit of product (based on type). Total cost
-       * of the operation on a manufacturing order is calculated as follows:
-       * process: cost = cost_parameter x planned_time_parameter (in hours) x product quantity
-       * setup: cost = cost_parameter x planned_time_parameter (in
-       * hours)
-       * perUnit: cost = cost_parameter x product quantity
-       * fixed: cost = cost_parameter
-       *
-       * @deprecated
-       */
-      cost_per_hour?: number;
-      /**
-       * The planned duration of an operation, in seconds, to either manufacture one unit of a product or complete a manufacturing order (based on type).
-       */
-      planned_time_parameter?: number;
-      /**
-       * (This field is deprecated in favor of planned_time_parameter) The planned duration of an operation, in seconds, to either manufacture one unit of a product or complete a manufacturing order (based on type).
-       *
-       * @deprecated
-       */
-      planned_time_per_unit?: number;
-    }>;
-  };
+  body: CreateProductOperationRowsRequest;
   path?: never;
   query?: never;
   url: "/product_operation_rows";
@@ -17407,16 +18271,7 @@ export type UpdateProductOperationRowData = {
   /**
    * Product operation row update details
    */
-  body: {
-    /**
-     * Operation sequence
-     */
-    sequence?: number;
-    /**
-     * Operation notes
-     */
-    notes?: string;
-  };
+  body: UpdateProductOperationRowRequest;
   path: {
     /**
      * Resource identifier
@@ -17461,28 +18316,7 @@ export type UpdateProductOperationRowResponses = {
   /**
    * Product operation row updated successfully
    */
-  200: {
-    /**
-     * Product operation row ID
-     */
-    id?: number;
-    /**
-     * Product ID
-     */
-    product_id?: number;
-    /**
-     * Operation ID
-     */
-    operation_id?: number;
-    /**
-     * Operation sequence
-     */
-    sequence?: number;
-    /**
-     * Operation notes
-     */
-    notes?: string;
-  };
+  200: ProductOperationRow;
 };
 
 export type UpdateProductOperationRowResponse =
@@ -17746,16 +18580,7 @@ export type UpdateSalesOrderShippingFeeData = {
   /**
    * Shipping fee update details
    */
-  body: {
-    /**
-     * Shipping fee amount
-     */
-    amount?: number;
-    /**
-     * Shipping fee description
-     */
-    description?: string;
-  };
+  body: UpdateSalesOrderShippingFeeRequest;
   path: {
     /**
      * Resource identifier

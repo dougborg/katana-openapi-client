@@ -58,6 +58,8 @@ class ManufacturingOrderOperationRow:
     total_actual_time: float | Unset = UNSET
     planned_cost_per_unit: float | Unset = UNSET
     total_actual_cost: float | Unset = UNSET
+    total_consumed_time: float | Unset = UNSET
+    total_remaining_time: float | Unset = UNSET
     cost_per_hour: float | Unset = UNSET
     cost_parameter: float | Unset = UNSET
     group_boundary: float | Unset = UNSET
@@ -128,6 +130,10 @@ class ManufacturingOrderOperationRow:
 
         total_actual_cost = self.total_actual_cost
 
+        total_consumed_time = self.total_consumed_time
+
+        total_remaining_time = self.total_remaining_time
+
         cost_per_hour = self.cost_per_hour
 
         cost_parameter = self.cost_parameter
@@ -189,6 +195,10 @@ class ManufacturingOrderOperationRow:
             field_dict["planned_cost_per_unit"] = planned_cost_per_unit
         if total_actual_cost is not UNSET:
             field_dict["total_actual_cost"] = total_actual_cost
+        if total_consumed_time is not UNSET:
+            field_dict["total_consumed_time"] = total_consumed_time
+        if total_remaining_time is not UNSET:
+            field_dict["total_remaining_time"] = total_remaining_time
         if cost_per_hour is not UNSET:
             field_dict["cost_per_hour"] = cost_per_hour
         if cost_parameter is not UNSET:
@@ -295,6 +305,10 @@ class ManufacturingOrderOperationRow:
 
         total_actual_cost = d.pop("total_actual_cost", UNSET)
 
+        total_consumed_time = d.pop("total_consumed_time", UNSET)
+
+        total_remaining_time = d.pop("total_remaining_time", UNSET)
+
         cost_per_hour = d.pop("cost_per_hour", UNSET)
 
         cost_parameter = d.pop("cost_parameter", UNSET)
@@ -341,6 +355,8 @@ class ManufacturingOrderOperationRow:
             total_actual_time=total_actual_time,
             planned_cost_per_unit=planned_cost_per_unit,
             total_actual_cost=total_actual_cost,
+            total_consumed_time=total_consumed_time,
+            total_remaining_time=total_remaining_time,
             cost_per_hour=cost_per_hour,
             cost_parameter=cost_parameter,
             group_boundary=group_boundary,

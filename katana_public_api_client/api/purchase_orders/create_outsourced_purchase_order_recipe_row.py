@@ -6,8 +6,8 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
-from ...models.create_outsourced_purchase_order_recipe_row_body import (
-    CreateOutsourcedPurchaseOrderRecipeRowBody,
+from ...models.create_outsourced_purchase_order_recipe_row_request import (
+    CreateOutsourcedPurchaseOrderRecipeRowRequest,
 )
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
@@ -18,7 +18,7 @@ from ...models.outsourced_purchase_order_recipe_row import (
 
 def _get_kwargs(
     *,
-    body: CreateOutsourcedPurchaseOrderRecipeRowBody,
+    body: CreateOutsourcedPurchaseOrderRecipeRowRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -88,14 +88,15 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateOutsourcedPurchaseOrderRecipeRowBody,
+    body: CreateOutsourcedPurchaseOrderRecipeRowRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | OutsourcedPurchaseOrderRecipeRow]:
     """Create an outsourced purchase order recipe row
 
      Creates a new outsourced purchase order recipe row.
 
     Args:
-        body (CreateOutsourcedPurchaseOrderRecipeRowBody):
+        body (CreateOutsourcedPurchaseOrderRecipeRowRequest): Request payload for creating a new
+            outsourced purchase order recipe row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -120,14 +121,15 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateOutsourcedPurchaseOrderRecipeRowBody,
+    body: CreateOutsourcedPurchaseOrderRecipeRowRequest,
 ) -> DetailedErrorResponse | ErrorResponse | OutsourcedPurchaseOrderRecipeRow | None:
     """Create an outsourced purchase order recipe row
 
      Creates a new outsourced purchase order recipe row.
 
     Args:
-        body (CreateOutsourcedPurchaseOrderRecipeRowBody):
+        body (CreateOutsourcedPurchaseOrderRecipeRowRequest): Request payload for creating a new
+            outsourced purchase order recipe row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -147,14 +149,15 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateOutsourcedPurchaseOrderRecipeRowBody,
+    body: CreateOutsourcedPurchaseOrderRecipeRowRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | OutsourcedPurchaseOrderRecipeRow]:
     """Create an outsourced purchase order recipe row
 
      Creates a new outsourced purchase order recipe row.
 
     Args:
-        body (CreateOutsourcedPurchaseOrderRecipeRowBody):
+        body (CreateOutsourcedPurchaseOrderRecipeRowRequest): Request payload for creating a new
+            outsourced purchase order recipe row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -177,14 +180,15 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    body: CreateOutsourcedPurchaseOrderRecipeRowBody,
+    body: CreateOutsourcedPurchaseOrderRecipeRowRequest,
 ) -> DetailedErrorResponse | ErrorResponse | OutsourcedPurchaseOrderRecipeRow | None:
     """Create an outsourced purchase order recipe row
 
      Creates a new outsourced purchase order recipe row.
 
     Args:
-        body (CreateOutsourcedPurchaseOrderRecipeRowBody):
+        body (CreateOutsourcedPurchaseOrderRecipeRowRequest): Request payload for creating a new
+            outsourced purchase order recipe row
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

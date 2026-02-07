@@ -176,24 +176,28 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
 
         # Prefer DetailedErrorResponse for 422, else ErrorResponse
         if status_code == 422:
-            try:
-                detailed_error = DetailedErrorResponse.from_dict(error_data)
-                # Debug log the parsed error structure
-                self.logger.debug(
-                    f"Parsed DetailedErrorResponse - "
-                    f"details type: {type(detailed_error.details)}, "
-                    f"details value: {detailed_error.details}, "
-                    f"is Unset: {isinstance(detailed_error.details, Unset)}, "
-                    f"raw error_data: {error_data}"
-                )
-                self._log_detailed_error(
-                    detailed_error, method, url, status_code, request_body
-                )
-                return
-            except (TypeError, ValueError, AttributeError) as e:
-                self.logger.debug(
-                    f"Failed to parse as DetailedErrorResponse: {type(e).__name__}: {e}"
-                )
+            # Try parsing directly, then try unwrapping nested 'error' key
+            parse_attempts = [error_data]
+            if isinstance(error_data, dict) and "error" in error_data:
+                parse_attempts.append(error_data["error"])
+            for attempt_data in parse_attempts:
+                try:
+                    detailed_error = DetailedErrorResponse.from_dict(attempt_data)
+                    self.logger.debug(
+                        f"Parsed DetailedErrorResponse - "
+                        f"details type: {type(detailed_error.details)}, "
+                        f"details value: {detailed_error.details}, "
+                        f"is Unset: {isinstance(detailed_error.details, Unset)}, "
+                        f"raw error_data: {error_data}"
+                    )
+                    self._log_detailed_error(
+                        detailed_error, method, url, status_code, request_body
+                    )
+                    return
+                except (TypeError, ValueError, AttributeError, KeyError) as e:
+                    self.logger.debug(
+                        f"Failed to parse as DetailedErrorResponse: {type(e).__name__}: {e}"
+                    )
 
         try:
             error_response = ErrorResponse.from_dict(error_data)
@@ -493,6 +497,7 @@ class PaginationTransport(AsyncHTTPTransport):
         total_pages: int | None = None
         page_num = 1
         response: httpx.Response | None = None
+        original_is_raw_list = False
 
         # Get max_items limit from extensions (None = unlimited)
         max_items: int | None = request.extensions.get("max_items")
@@ -561,6 +566,10 @@ class PaginationTransport(AsyncHTTPTransport):
 
                 data = response.json()
 
+                # Track original response format on first page
+                if page_num == 1:
+                    original_is_raw_list = isinstance(data, list)
+
                 # Extract pagination info from headers or response body
                 pagination_info = self._extract_pagination_info(response, data)
 
@@ -569,7 +578,10 @@ class PaginationTransport(AsyncHTTPTransport):
                     total_pages = pagination_info.get("total_pages")
 
                     # Extract the actual data items
-                    items = data.get("data", data if isinstance(data, list) else [])
+                    if isinstance(data, list):
+                        items = data
+                    else:
+                        items = data.get("data", [])
                     all_data.extend(items)
 
                     # Check max_items limit
@@ -594,12 +606,38 @@ class PaginationTransport(AsyncHTTPTransport):
                         len(all_data),
                     )
                 else:
-                    # No pagination info found, treat as single page
-                    all_data = data.get("data", data if isinstance(data, list) else [])
-                    # Apply max_items limit even for single page
-                    if max_items is not None and len(all_data) > max_items:
-                        all_data = all_data[:max_items]
-                    break
+                    # No pagination info - return response preserving its shape
+                    self.logger.info(
+                        "No pagination info found, returning single-page response"
+                    )
+                    # Apply max_items truncation if set
+                    if max_items is not None:
+                        if isinstance(data, list) and len(data) > max_items:
+                            truncated = json.dumps(data[:max_items]).encode()
+                            headers = dict(response.headers)
+                            headers.pop("content-encoding", None)
+                            headers.pop("content-length", None)
+                            return httpx.Response(
+                                status_code=200,
+                                headers=headers,
+                                content=truncated,
+                                request=request,
+                            )
+                        if isinstance(data, dict) and "data" in data:
+                            items = data["data"]
+                            if isinstance(items, list) and len(items) > max_items:
+                                data["data"] = items[:max_items]
+                                truncated = json.dumps(data).encode()
+                                headers = dict(response.headers)
+                                headers.pop("content-encoding", None)
+                                headers.pop("content-length", None)
+                                return httpx.Response(
+                                    status_code=200,
+                                    headers=headers,
+                                    content=truncated,
+                                    request=request,
+                                )
+                    return response
 
             except (json.JSONDecodeError, KeyError) as e:
                 self.logger.warning("Failed to parse paginated response: %s", e)
@@ -610,19 +648,22 @@ class PaginationTransport(AsyncHTTPTransport):
             msg = "No response available after pagination"
             raise RuntimeError(msg)
 
-        # Create a combined response
-        combined_data: dict[str, Any] = {"data": all_data}
+        # Create a combined response, preserving the original response shape
+        if original_is_raw_list:
+            # Original endpoint returned a raw JSON list - preserve that format
+            combined_content = json.dumps(all_data).encode()
+        else:
+            combined_data: dict[str, Any] = {"data": all_data}
+            # Add pagination metadata
+            if total_pages:
+                combined_data["pagination"] = {
+                    "total_pages": total_pages,
+                    "collected_pages": page_num,
+                    "total_items": len(all_data),
+                    "auto_paginated": True,
+                }
+            combined_content = json.dumps(combined_data).encode()
 
-        # Add pagination metadata
-        if total_pages:
-            combined_data["pagination"] = {
-                "total_pages": total_pages,
-                "collected_pages": page_num,
-                "total_items": len(all_data),
-                "auto_paginated": True,
-            }
-
-        # Create a new response with the combined data
         # Remove content-encoding headers to avoid compression issues
         headers = dict(response.headers)
         headers.pop("content-encoding", None)
@@ -631,7 +672,7 @@ class PaginationTransport(AsyncHTTPTransport):
         combined_response = httpx.Response(
             status_code=200,
             headers=headers,
-            content=json.dumps(combined_data).encode(),
+            content=combined_content,
             request=request,
         )
 
