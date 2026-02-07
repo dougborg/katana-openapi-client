@@ -54,7 +54,7 @@ The complete OpenAPI specification is available at:
 
 This specification includes:
 
-- **103 API endpoints** across all Katana modules
+- **100+ API endpoints** across all Katana modules
 - **Complete request/response schemas** with validation rules
 - **Authentication requirements** for each endpoint
 - **Real-world examples** for all operations
