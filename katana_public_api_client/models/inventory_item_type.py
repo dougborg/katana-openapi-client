@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class InventoryItemType(str, Enum):
+class InventoryItemType(StrEnum):
     MATERIAL = "material"
     PRODUCT = "product"
 

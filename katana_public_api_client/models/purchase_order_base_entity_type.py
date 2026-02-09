@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class PurchaseOrderBaseEntityType(str, Enum):
+class PurchaseOrderBaseEntityType(StrEnum):
     OUTSOURCED = "outsourced"
     REGULAR = "regular"
 

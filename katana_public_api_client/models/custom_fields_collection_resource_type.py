@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class CustomFieldsCollectionResourceType(str, Enum):
+class CustomFieldsCollectionResourceType(StrEnum):
     CUSTOMER = "customer"
     MATERIAL = "material"
     PRODUCT = "product"

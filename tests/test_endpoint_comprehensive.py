@@ -49,7 +49,9 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize(
             "endpoint_info",
             endpoints,
-            ids=lambda x: f"{x[1].upper()}-{x[0].replace('/', '_').replace('{', '').replace('}', '')}",
+            ids=lambda x: (
+                f"{x[1].upper()}-{x[0].replace('/', '_').replace('{', '').replace('}', '')}"
+            ),
         )
 
     elif "list_endpoint_info" in metafunc.fixturenames:

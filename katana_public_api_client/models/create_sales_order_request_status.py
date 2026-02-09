@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class CreateSalesOrderRequestStatus(str, Enum):
+class CreateSalesOrderRequestStatus(StrEnum):
     NOT_SHIPPED = "NOT_SHIPPED"
     PENDING = "PENDING"
 

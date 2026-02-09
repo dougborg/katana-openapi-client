@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class GetAllSalesOrderRowsExtendItem(str, Enum):
+class GetAllSalesOrderRowsExtendItem(StrEnum):
     VARIANT = "variant"
 
     def __str__(self) -> str:

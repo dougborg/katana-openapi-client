@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class InvalidTypeValidationErrorCode(str, Enum):
+class InvalidTypeValidationErrorCode(StrEnum):
     INVALID_TYPE = "invalid_type"
 
     def __str__(self) -> str:

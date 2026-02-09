@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class OutsourcedPurchaseOrderIngredientAvailability(str, Enum):
+class OutsourcedPurchaseOrderIngredientAvailability(StrEnum):
     EXPECTED = "EXPECTED"
     IN_STOCK = "IN_STOCK"
     NOT_AVAILABLE = "NOT_AVAILABLE"

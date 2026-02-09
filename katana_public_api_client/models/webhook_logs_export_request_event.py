@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class WebhookLogsExportRequestEvent(str, Enum):
+class WebhookLogsExportRequestEvent(StrEnum):
     CURRENT_INVENTORY_MATERIAL_OUT_OF_STOCK = "current_inventory.material_out_of_stock"
     CURRENT_INVENTORY_MATERIAL_UPDATED = "current_inventory.material_updated"
     CURRENT_INVENTORY_PRODUCT_OUT_OF_STOCK = "current_inventory.product_out_of_stock"

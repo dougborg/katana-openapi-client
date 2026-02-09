@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class EnumValidationErrorCode(str, Enum):
+class EnumValidationErrorCode(StrEnum):
     ENUM = "enum"
 
     def __str__(self) -> str:

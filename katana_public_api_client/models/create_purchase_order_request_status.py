@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class CreatePurchaseOrderRequestStatus(str, Enum):
+class CreatePurchaseOrderRequestStatus(StrEnum):
     NOT_RECEIVED = "NOT_RECEIVED"
 
     def __str__(self) -> str:

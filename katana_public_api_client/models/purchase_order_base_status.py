@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class PurchaseOrderBaseStatus(str, Enum):
+class PurchaseOrderBaseStatus(StrEnum):
     NOT_RECEIVED = "NOT_RECEIVED"
     PARTIALLY_RECEIVED = "PARTIALLY_RECEIVED"
     RECEIVED = "RECEIVED"

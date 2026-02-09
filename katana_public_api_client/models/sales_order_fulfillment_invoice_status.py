@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SalesOrderFulfillmentInvoiceStatus(str, Enum):
+class SalesOrderFulfillmentInvoiceStatus(StrEnum):
     INVOICED = "INVOICED"
     NOT_INVOICED = "NOT_INVOICED"
     PARTIALLY_INVOICED = "PARTIALLY_INVOICED"

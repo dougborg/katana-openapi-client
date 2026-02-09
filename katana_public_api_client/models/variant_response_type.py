@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class VariantResponseType(str, Enum):
+class VariantResponseType(StrEnum):
     MATERIAL = "material"
     PRODUCT = "product"
     SERVICE = "service"

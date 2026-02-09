@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class CreateCustomerRequestAddressesItemEntityType(str, Enum):
+class CreateCustomerRequestAddressesItemEntityType(StrEnum):
     BILLING = "billing"
     SHIPPING = "shipping"
 

@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class PatternValidationErrorCode(str, Enum):
+class PatternValidationErrorCode(StrEnum):
     PATTERN = "pattern"
 
     def __str__(self) -> str:

@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class MaxValidationErrorCode(str, Enum):
+class MaxValidationErrorCode(StrEnum):
     MAX = "max"
 
     def __str__(self) -> str:

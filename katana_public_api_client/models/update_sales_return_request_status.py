@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class UpdateSalesReturnRequestStatus(str, Enum):
+class UpdateSalesReturnRequestStatus(StrEnum):
     NOT_RETURNED = "NOT_RETURNED"
     RESTOCKED_ALL = "RESTOCKED_ALL"
     RETURNED_ALL = "RETURNED_ALL"

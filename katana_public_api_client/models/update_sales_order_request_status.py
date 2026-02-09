@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class UpdateSalesOrderRequestStatus(str, Enum):
+class UpdateSalesOrderRequestStatus(StrEnum):
     DELIVERED = "DELIVERED"
     NOT_SHIPPED = "NOT_SHIPPED"
     PACKED = "PACKED"

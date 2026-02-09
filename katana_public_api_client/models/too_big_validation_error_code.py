@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class TooBigValidationErrorCode(str, Enum):
+class TooBigValidationErrorCode(StrEnum):
     TOO_BIG = "too_big"
 
     def __str__(self) -> str:

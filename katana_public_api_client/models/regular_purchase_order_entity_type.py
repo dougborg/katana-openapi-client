@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class RegularPurchaseOrderEntityType(str, Enum):
+class RegularPurchaseOrderEntityType(StrEnum):
     REGULAR = "regular"
 
     def __str__(self) -> str:

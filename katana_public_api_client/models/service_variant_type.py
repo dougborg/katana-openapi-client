@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ServiceVariantType(str, Enum):
+class ServiceVariantType(StrEnum):
     SERVICE = "service"
 
     def __str__(self) -> str:

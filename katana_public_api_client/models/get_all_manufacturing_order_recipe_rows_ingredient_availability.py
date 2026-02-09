@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class GetAllManufacturingOrderRecipeRowsIngredientAvailability(str, Enum):
+class GetAllManufacturingOrderRecipeRowsIngredientAvailability(StrEnum):
     EXPECTED = "EXPECTED"
     IN_STOCK = "IN_STOCK"
     NOT_APPLICABLE = "NOT_APPLICABLE"

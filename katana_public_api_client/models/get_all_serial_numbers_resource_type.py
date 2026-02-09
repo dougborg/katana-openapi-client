@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class GetAllSerialNumbersResourceType(str, Enum):
+class GetAllSerialNumbersResourceType(StrEnum):
     MANUFACTURINGORDER = "ManufacturingOrder"
     MANUFACTURINGORDERRECIPEROW = "ManufacturingOrderRecipeRow"
     PRODUCTIONINGREDIENT = "ProductionIngredient"

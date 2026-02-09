@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class GetAllManufacturingOrdersStatus(str, Enum):
+class GetAllManufacturingOrdersStatus(StrEnum):
     BLOCKED = "BLOCKED"
     COMPLETED = "COMPLETED"
     IN_PROGRESS = "IN_PROGRESS"

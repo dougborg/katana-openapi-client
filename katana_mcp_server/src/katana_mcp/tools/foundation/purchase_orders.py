@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
@@ -560,7 +560,7 @@ class MatchResult(BaseModel):
     )
 
 
-class DiscrepancyType(str, Enum):
+class DiscrepancyType(StrEnum):
     """Types of discrepancies.
 
     Note: EXTRA_IN_DOCUMENT is reserved for future use to detect items

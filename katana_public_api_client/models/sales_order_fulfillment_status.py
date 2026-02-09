@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SalesOrderFulfillmentStatus(str, Enum):
+class SalesOrderFulfillmentStatus(StrEnum):
     DELIVERED = "DELIVERED"
     PACKED = "PACKED"
 
