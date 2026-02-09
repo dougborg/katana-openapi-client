@@ -2,6 +2,21 @@
 
 <!-- version list -->
 
+## v0.44.6 (2026-02-09)
+
+### Bug Fixes
+
+- Apply ruff 0.15.0 formatting and lint fixes
+  ([`aefc8f7`](https://github.com/dougborg/katana-openapi-client/commit/aefc8f74d32ed6276643e44c13ba0606a2ef07c1))
+
+### Chores
+
+- **deps)(deps**: Bump the python-minor-patch group with 4 updates
+  ([`58602a0`](https://github.com/dougborg/katana-openapi-client/commit/58602a0ac5590bb35277c4c604993585600d5e7f))
+
+- **deps)(deps-dev**: Bump types-jsonschema
+  ([`4960c8c`](https://github.com/dougborg/katana-openapi-client/commit/4960c8c384b636b4d5c7f7cb331251c6ca9587cc))
+
 ## v0.44.5 (2026-02-07)
 
 ### Bug Fixes
