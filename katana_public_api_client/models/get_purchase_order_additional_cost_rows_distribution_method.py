@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class GetPurchaseOrderAdditionalCostRowsDistributionMethod(str, Enum):
+class GetPurchaseOrderAdditionalCostRowsDistributionMethod(StrEnum):
     BY_VALUE = "BY_VALUE"
     NON_DISTRIBUTED = "NON_DISTRIBUTED"
 

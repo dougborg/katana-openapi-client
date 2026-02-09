@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class MinValidationErrorCode(str, Enum):
+class MinValidationErrorCode(StrEnum):
     MIN = "min"
 
     def __str__(self) -> str:

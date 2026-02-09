@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class UpdateStocktakeRequestStatus(str, Enum):
+class UpdateStocktakeRequestStatus(StrEnum):
     COMPLETED = "COMPLETED"
     COUNTED = "COUNTED"
     IN_PROGRESS = "IN_PROGRESS"

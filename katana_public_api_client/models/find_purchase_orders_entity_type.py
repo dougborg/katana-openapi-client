@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class FindPurchaseOrdersEntityType(str, Enum):
+class FindPurchaseOrdersEntityType(StrEnum):
     OUTSOURCED = "outsourced"
     REGULAR = "regular"
 

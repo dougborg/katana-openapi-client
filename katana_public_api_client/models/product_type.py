@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ProductType(str, Enum):
+class ProductType(StrEnum):
     PRODUCT = "product"
 
     def __str__(self) -> str:

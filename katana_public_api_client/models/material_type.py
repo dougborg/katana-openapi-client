@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class MaterialType(str, Enum):
+class MaterialType(StrEnum):
     MATERIAL = "material"
 
     def __str__(self) -> str:

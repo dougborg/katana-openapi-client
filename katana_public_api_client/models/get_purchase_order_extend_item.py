@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class GetPurchaseOrderExtendItem(str, Enum):
+class GetPurchaseOrderExtendItem(StrEnum):
     SUPPLIER = "supplier"
 
     def __str__(self) -> str:

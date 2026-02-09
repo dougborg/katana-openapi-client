@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class RequiredValidationErrorCode(str, Enum):
+class RequiredValidationErrorCode(StrEnum):
     REQUIRED = "required"
 
     def __str__(self) -> str:

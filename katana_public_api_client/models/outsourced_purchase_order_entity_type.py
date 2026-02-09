@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class OutsourcedPurchaseOrderEntityType(str, Enum):
+class OutsourcedPurchaseOrderEntityType(StrEnum):
     OUTSOURCED = "outsourced"
 
     def __str__(self) -> str:

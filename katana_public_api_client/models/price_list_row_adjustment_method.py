@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class PriceListRowAdjustmentMethod(str, Enum):
+class PriceListRowAdjustmentMethod(StrEnum):
     FIXED = "fixed"
     MARKUP = "markup"
     PERCENTAGE = "percentage"

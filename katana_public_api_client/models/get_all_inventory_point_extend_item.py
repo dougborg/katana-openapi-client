@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class GetAllInventoryPointExtendItem(str, Enum):
+class GetAllInventoryPointExtendItem(StrEnum):
     LOCATION = "location"
     VARIANT = "variant"
 

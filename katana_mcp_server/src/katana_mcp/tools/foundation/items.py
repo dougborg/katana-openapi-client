@@ -7,7 +7,7 @@ Items are things with SKUs - they appear in the "Items" tab of the Katana UI.
 from __future__ import annotations
 
 import time
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated
 
 from fastmcp import Context, FastMCP
@@ -35,7 +35,7 @@ logger = get_logger(__name__)
 # ============================================================================
 
 
-class ItemType(str, Enum):
+class ItemType(StrEnum):
     """Type of item - matches Katana API discriminator."""
 
     PRODUCT = "product"

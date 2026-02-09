@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class GetAllVariantsExtendItem(str, Enum):
+class GetAllVariantsExtendItem(StrEnum):
     PRODUCT_OR_MATERIAL = "product_or_material"
 
     def __str__(self) -> str:

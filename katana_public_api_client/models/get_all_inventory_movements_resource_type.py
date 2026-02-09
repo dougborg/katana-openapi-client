@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class GetAllInventoryMovementsResourceType(str, Enum):
+class GetAllInventoryMovementsResourceType(StrEnum):
     MANUFACTURINGORDER = "ManufacturingOrder"
     MANUFACTURINGORDERRECIPEROW = "ManufacturingOrderRecipeRow"
     PRODUCTIONINGREDIENT = "ProductionIngredient"
