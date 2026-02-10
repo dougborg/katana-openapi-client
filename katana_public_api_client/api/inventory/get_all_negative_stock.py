@@ -22,6 +22,7 @@ def _get_kwargs(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
 ) -> dict[str, Any]:
+
     params: dict[str, Any] = {}
 
     params["location_id"] = location_id

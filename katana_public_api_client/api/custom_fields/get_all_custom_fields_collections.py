@@ -13,6 +13,7 @@ from ...models.error_response import ErrorResponse
 
 
 def _get_kwargs() -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/custom_fields_collections",

@@ -16,6 +16,7 @@ from ...models.unassigned_batch_transaction_list_response import (
 def _get_kwargs(
     id: int,
 ) -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/sales_return_rows/{id}/unassigned_batch_transactions".format(

@@ -25,6 +25,7 @@ def _get_kwargs(
     target_location_id: int | Unset = UNSET,
     stock_transfer_number: str | Unset = UNSET,
 ) -> dict[str, Any]:
+
     params: dict[str, Any] = {}
 
     params["limit"] = limit

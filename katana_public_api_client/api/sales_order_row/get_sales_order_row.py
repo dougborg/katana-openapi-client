@@ -17,6 +17,7 @@ def _get_kwargs(
     *,
     extend: list[GetSalesOrderRowExtendItem] | Unset = UNSET,
 ) -> dict[str, Any]:
+
     params: dict[str, Any] = {}
 
     json_extend: list[str] | Unset = UNSET

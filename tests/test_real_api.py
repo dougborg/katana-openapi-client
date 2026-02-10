@@ -183,6 +183,54 @@ class TestRealAPIIntegration:
                 else:
                     raise
 
+    @pytest.mark.asyncio
+    @pytest.mark.integration
+    @pytest.mark.skipif(
+        not os.getenv("KATANA_API_KEY"),
+        reason="Real API credentials not available (set KATANA_API_KEY in .env file)",
+    )
+    async def test_multi_id_filter(self, api_key, base_url):
+        """Test that filtering by multiple IDs returns all matching items.
+
+        This validates that array query params (ids=X&ids=Y) are correctly
+        sent to the Katana API and not silently dropped during pagination.
+        """
+        async with KatanaClient(api_key=api_key, base_url=base_url) as client:
+            # First, fetch a few products to get real IDs
+            # (page=1 disables auto-pagination so we get just one page)
+            response = await get_all_products.asyncio_detailed(
+                client=client,
+                limit=3,
+                page=1,
+            )
+            assert response.status_code == 200, (
+                f"Expected 200, got {response.status_code}"
+            )
+            products = unwrap_data(response, default=[])
+            if len(products) < 2:
+                pytest.skip("Need at least 2 products to test multi-ID filtering")
+
+            # Pick 2 product IDs
+            target_ids = [products[0].id, products[1].id]
+
+            # Now fetch with ids=[id1, id2] — the fix ensures both are sent
+            filtered_response = await get_all_products.asyncio_detailed(
+                client=client,
+                ids=target_ids,
+                page=1,
+            )
+            assert filtered_response.status_code == 200, (
+                f"Expected 200, got {filtered_response.status_code}"
+            )
+            filtered = unwrap_data(filtered_response, default=[])
+            filtered_ids = {item.id for item in filtered}
+
+            # Both target IDs should be in the response
+            assert set(target_ids) <= filtered_ids, (
+                f"Expected IDs {target_ids} in response but got {sorted(filtered_ids)}. "
+                "Array query params may have been dropped."
+            )
+
     def test_environment_variable_loading(self):
         """Test that environment variables are loaded correctly."""
         # Test loading from .env file if it exists

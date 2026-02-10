@@ -18,6 +18,7 @@ def _get_kwargs(
     price_list_ids: list[int] | Unset = UNSET,
     variant_ids: list[int] | Unset = UNSET,
 ) -> dict[str, Any]:
+
     params: dict[str, Any] = {}
 
     params["limit"] = limit

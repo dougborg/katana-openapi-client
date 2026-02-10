@@ -13,6 +13,7 @@ from ...models.error_response import ErrorResponse
 def _get_kwargs(
     id: int,
 ) -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "delete",
         "url": "/outsourced_purchase_order_recipe_rows/{id}".format(

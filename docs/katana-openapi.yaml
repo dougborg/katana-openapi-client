@@ -16907,9 +16907,11 @@ paths:
         - $ref: "#/components/parameters/ingredient_variant_id"
         - name: product_variant_ids
           in: query
-          description: Filter by product variant IDs (comma-separated)
+          description: Filters recipes by an array of product variant IDs.
           schema:
-            type: string
+            type: array
+            items:
+              type: integer
         - $ref: "#/components/parameters/product_id"
         - name: recipe_row_id
           in: query

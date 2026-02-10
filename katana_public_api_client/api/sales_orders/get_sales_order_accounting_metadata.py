@@ -19,6 +19,7 @@ def _get_kwargs(
     sales_order_id: int | Unset = UNSET,
     fulfillment_id: float | Unset = UNSET,
 ) -> dict[str, Any]:
+
     params: dict[str, Any] = {}
 
     params["limit"] = limit

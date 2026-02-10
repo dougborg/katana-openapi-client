@@ -14,6 +14,7 @@ from ...models.returnable_item import ReturnableItem
 def _get_kwargs(
     id: int,
 ) -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/sales_orders/{id}/returnable_items".format(

@@ -687,6 +687,249 @@ class TestTransportAutoPagination:
         assert len(captured_requests) >= 1
         assert captured_requests[0].url.params.get("limit") == "50"
 
+    @pytest.mark.asyncio
+    async def test_array_query_params_preserved_across_pages(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that array query params like ids=1&ids=2&ids=3 are preserved on all pages."""
+        captured_requests = []
+
+        def create_response(data):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = data
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        async def capture_request(req):
+            captured_requests.append(req)
+            page = int(req.url.params.get("page", 1))
+            return create_response(
+                {
+                    "data": [{"id": page}],
+                    "pagination": {"page": page, "total_pages": 3},
+                }
+            )
+
+        mock_wrapped_transport.handle_async_request.side_effect = capture_request
+
+        # Request with repeated ids parameter: ids=1&ids=2&ids=3
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products?ids=1&ids=2&ids=3",
+        )
+
+        await transport.handle_async_request(request)
+
+        assert len(captured_requests) == 3
+        for i, req in enumerate(captured_requests):
+            # All 3 ids must be present on every page
+            ids_values = req.url.params.multi_items()
+            ids_only = [v for k, v in ids_values if k == "ids"]
+            assert ids_only == ["1", "2", "3"], (
+                f"Page {i + 1}: expected ids=[1,2,3] but got {ids_only}"
+            )
+
+    @pytest.mark.asyncio
+    async def test_multiple_array_params_preserved(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that multiple different array params are all preserved across pages."""
+        captured_requests = []
+
+        def create_response(data):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = data
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        async def capture_request(req):
+            captured_requests.append(req)
+            page = int(req.url.params.get("page", 1))
+            return create_response(
+                {
+                    "data": [{"id": page}],
+                    "pagination": {"page": page, "total_pages": 2},
+                }
+            )
+
+        mock_wrapped_transport.handle_async_request.side_effect = capture_request
+
+        # Request with two different array params
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products?ids=10&ids=20&extend=suppliers&extend=variants",
+        )
+
+        await transport.handle_async_request(request)
+
+        assert len(captured_requests) == 2
+        for i, req in enumerate(captured_requests):
+            items = req.url.params.multi_items()
+            ids_values = [v for k, v in items if k == "ids"]
+            extend_values = [v for k, v in items if k == "extend"]
+            assert ids_values == ["10", "20"], (
+                f"Page {i + 1}: expected ids=[10,20] but got {ids_values}"
+            )
+            assert extend_values == ["suppliers", "variants"], (
+                f"Page {i + 1}: expected extend=[suppliers,variants] but got {extend_values}"
+            )
+
+    @pytest.mark.asyncio
+    async def test_array_params_preserved_with_max_items(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that array params survive when max_items limits pagination."""
+        captured_requests = []
+
+        def create_response(data):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = data
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        async def capture_request(req):
+            captured_requests.append(req)
+            page = int(req.url.params.get("page", 1))
+            return create_response(
+                {
+                    "data": [{"id": i} for i in range(1, 11)],
+                    "pagination": {"page": page, "total_pages": 5},
+                }
+            )
+
+        mock_wrapped_transport.handle_async_request.side_effect = capture_request
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products?ids=100&ids=200&limit=10",
+            extensions={"max_items": 15},
+        )
+
+        await transport.handle_async_request(request)
+
+        assert len(captured_requests) == 2
+        for i, req in enumerate(captured_requests):
+            ids_values = [v for k, v in req.url.params.multi_items() if k == "ids"]
+            assert ids_values == ["100", "200"], (
+                f"Page {i + 1}: expected ids=[100,200] but got {ids_values}"
+            )
+
+    @pytest.mark.asyncio
+    async def test_scalar_params_preserved_across_pages(
+        self, transport, mock_wrapped_transport
+    ):
+        """Regression test: scalar query params still work correctly."""
+        captured_requests = []
+
+        def create_response(data):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = data
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        async def capture_request(req):
+            captured_requests.append(req)
+            page = int(req.url.params.get("page", 1))
+            return create_response(
+                {
+                    "data": [{"id": page}],
+                    "pagination": {"page": page, "total_pages": 2},
+                }
+            )
+
+        mock_wrapped_transport.handle_async_request.side_effect = capture_request
+
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products?status=active&customer_id=42",
+        )
+
+        await transport.handle_async_request(request)
+
+        assert len(captured_requests) == 2
+        for i, req in enumerate(captured_requests):
+            assert req.url.params.get("status") == "active", (
+                f"Page {i + 1}: status param missing"
+            )
+            assert req.url.params.get("customer_id") == "42", (
+                f"Page {i + 1}: customer_id param missing"
+            )
+
+    @pytest.mark.asyncio
+    async def test_mixed_scalar_and_array_params_preserved(
+        self, transport, mock_wrapped_transport
+    ):
+        """Test that a mix of scalar and array params are all preserved."""
+        captured_requests = []
+
+        def create_response(data):
+            mock_resp = MagicMock(spec=httpx.Response)
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = data
+            mock_resp.headers = {}
+
+            async def mock_aread():
+                pass
+
+            mock_resp.aread = mock_aread
+            return mock_resp
+
+        async def capture_request(req):
+            captured_requests.append(req)
+            page = int(req.url.params.get("page", 1))
+            return create_response(
+                {
+                    "data": [{"id": page}],
+                    "pagination": {"page": page, "total_pages": 2},
+                }
+            )
+
+        mock_wrapped_transport.handle_async_request.side_effect = capture_request
+
+        # Mix of scalar (status, customer_id) and array (ids, extend) params
+        request = httpx.Request(
+            method="GET",
+            url="https://api.example.com/products?status=active&ids=1&ids=2&customer_id=42&extend=variants&extend=suppliers",
+        )
+
+        await transport.handle_async_request(request)
+
+        assert len(captured_requests) == 2
+        for i, req in enumerate(captured_requests):
+            items = req.url.params.multi_items()
+            assert req.url.params.get("status") == "active"
+            assert req.url.params.get("customer_id") == "42"
+            ids_values = [v for k, v in items if k == "ids"]
+            extend_values = [v for k, v in items if k == "extend"]
+            assert ids_values == ["1", "2"], f"Page {i + 1}: ids lost: {ids_values}"
+            assert extend_values == ["variants", "suppliers"], (
+                f"Page {i + 1}: extend lost: {extend_values}"
+            )
+
 
 class TestPaginationHeaderValidation:
     """Test validation of pagination headers."""

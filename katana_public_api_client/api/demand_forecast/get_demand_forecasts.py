@@ -15,6 +15,7 @@ def _get_kwargs(
     variant_id: int,
     location_id: int,
 ) -> dict[str, Any]:
+
     params: dict[str, Any] = {}
 
     params["variant_id"] = variant_id

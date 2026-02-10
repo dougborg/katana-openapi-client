@@ -16,6 +16,7 @@ from ...models.location_type_0 import LocationType0
 def _get_kwargs(
     id: int,
 ) -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/locations/{id}".format(

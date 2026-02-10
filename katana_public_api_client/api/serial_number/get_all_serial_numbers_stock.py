@@ -11,6 +11,7 @@ from ...models.serial_number_stock_list_response import SerialNumberStockListRes
 
 
 def _get_kwargs() -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/serial_numbers_stock",

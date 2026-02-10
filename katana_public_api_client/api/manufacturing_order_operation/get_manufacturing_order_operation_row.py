@@ -14,6 +14,7 @@ from ...models.manufacturing_order_operation_row import ManufacturingOrderOperat
 def _get_kwargs(
     id: int,
 ) -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/manufacturing_order_operation_rows/{id}".format(

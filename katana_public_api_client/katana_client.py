@@ -502,8 +502,14 @@ class PaginationTransport(AsyncHTTPTransport):
         # Get max_items limit from extensions (None = unlimited)
         max_items: int | None = request.extensions.get("max_items")
 
-        # Parse initial parameters
-        url_params = dict(request.url.params)
+        # Parse initial parameters, preserving multi-value query params
+        # (e.g., ids=1&ids=2&ids=3). Using multi_items() instead of dict()
+        # to avoid losing duplicate keys.
+        base_params = [
+            (k, v)
+            for k, v in request.url.params.multi_items()
+            if k not in ("page", "limit")
+        ]
 
         # Get caller's limit or default to 250 (Katana's max) for efficiency
         original_limit = request.url.params.get("limit")
@@ -524,19 +530,21 @@ class PaginationTransport(AsyncHTTPTransport):
         self.logger.info("Auto-paginating request: %s", request.url)
 
         for page_num in range(1, self.max_pages + 1):
-            # Update the page parameter
-            url_params["page"] = str(page_num)
-
             # Determine limit for this request
             if max_items is not None:
                 remaining = max_items - len(all_data)
                 if remaining <= 0:
                     break
-                # Use min of page size and remaining items
-                url_params["limit"] = str(min(page_size, remaining))
+                current_limit = str(min(page_size, remaining))
             else:
-                # Use caller's page size (or default 250)
-                url_params["limit"] = str(page_size)
+                current_limit = str(page_size)
+
+            # Build params with updated page/limit, preserving all multi-value params
+            url_params = [
+                *base_params,
+                ("page", str(page_num)),
+                ("limit", current_limit),
+            ]
 
             # Create a new request with updated parameters
             paginated_request = httpx.Request(

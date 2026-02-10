@@ -20,10 +20,11 @@ def _get_kwargs(
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
     ingredient_variant_id: int | Unset = UNSET,
-    product_variant_ids: str | Unset = UNSET,
+    product_variant_ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
     recipe_row_id: int | Unset = UNSET,
 ) -> dict[str, Any]:
+
     params: dict[str, Any] = {}
 
     params["limit"] = limit
@@ -52,7 +53,11 @@ def _get_kwargs(
 
     params["ingredient_variant_id"] = ingredient_variant_id
 
-    params["product_variant_ids"] = product_variant_ids
+    json_product_variant_ids: list[int] | Unset = UNSET
+    if not isinstance(product_variant_ids, Unset):
+        json_product_variant_ids = product_variant_ids
+
+    params["product_variant_ids"] = json_product_variant_ids
 
     params["product_id"] = product_id
 
@@ -119,7 +124,7 @@ def sync_detailed(
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
     ingredient_variant_id: int | Unset = UNSET,
-    product_variant_ids: str | Unset = UNSET,
+    product_variant_ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
     recipe_row_id: int | Unset = UNSET,
 ) -> Response[ErrorResponse | RecipeListResponse]:
@@ -135,7 +140,7 @@ def sync_detailed(
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
         ingredient_variant_id (int | Unset):
-        product_variant_ids (str | Unset):
+        product_variant_ids (list[int] | Unset):
         product_id (int | Unset):
         recipe_row_id (int | Unset):
 
@@ -178,7 +183,7 @@ def sync(
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
     ingredient_variant_id: int | Unset = UNSET,
-    product_variant_ids: str | Unset = UNSET,
+    product_variant_ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
     recipe_row_id: int | Unset = UNSET,
 ) -> ErrorResponse | RecipeListResponse | None:
@@ -194,7 +199,7 @@ def sync(
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
         ingredient_variant_id (int | Unset):
-        product_variant_ids (str | Unset):
+        product_variant_ids (list[int] | Unset):
         product_id (int | Unset):
         recipe_row_id (int | Unset):
 
@@ -232,7 +237,7 @@ async def asyncio_detailed(
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
     ingredient_variant_id: int | Unset = UNSET,
-    product_variant_ids: str | Unset = UNSET,
+    product_variant_ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
     recipe_row_id: int | Unset = UNSET,
 ) -> Response[ErrorResponse | RecipeListResponse]:
@@ -248,7 +253,7 @@ async def asyncio_detailed(
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
         ingredient_variant_id (int | Unset):
-        product_variant_ids (str | Unset):
+        product_variant_ids (list[int] | Unset):
         product_id (int | Unset):
         recipe_row_id (int | Unset):
 
@@ -289,7 +294,7 @@ async def asyncio(
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
     ingredient_variant_id: int | Unset = UNSET,
-    product_variant_ids: str | Unset = UNSET,
+    product_variant_ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
     recipe_row_id: int | Unset = UNSET,
 ) -> ErrorResponse | RecipeListResponse | None:
@@ -305,7 +310,7 @@ async def asyncio(
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
         ingredient_variant_id (int | Unset):
-        product_variant_ids (str | Unset):
+        product_variant_ids (list[int] | Unset):
         product_id (int | Unset):
         recipe_row_id (int | Unset):
 

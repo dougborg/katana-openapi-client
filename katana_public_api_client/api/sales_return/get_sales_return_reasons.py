@@ -11,6 +11,7 @@ from ...models.sales_return_reason import SalesReturnReason
 
 
 def _get_kwargs() -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/sales_returns/return_reasons",
