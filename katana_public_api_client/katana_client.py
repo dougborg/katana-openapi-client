@@ -23,6 +23,7 @@ from httpx import AsyncHTTPTransport
 from httpx_retries import Retry, RetryTransport
 
 from ._logging import Logger
+from .api_wrapper import ApiNamespace
 from .client import AuthenticatedClient
 from .client_types import Unset
 from .helpers.inventory import Inventory
@@ -1147,6 +1148,7 @@ class KatanaClient(AuthenticatedClient):
         self._variants: Variants | None = None
         self._services: Services | None = None
         self._inventory: Inventory | None = None
+        self._api_namespace: ApiNamespace | None = None
 
         # Extract client-level parameters that shouldn't go to the transport
         # Event hooks for observability - start with our defaults
@@ -1298,6 +1300,20 @@ class KatanaClient(AuthenticatedClient):
         if self._inventory is None:
             self._inventory = Inventory(self)
         return self._inventory
+
+    @property
+    def api(self) -> ApiNamespace:
+        """Thin CRUD wrappers for all API resources.  Returns raw attrs models.
+
+        Example:
+            >>> async with KatanaClient() as client:
+            ...     products = await client.api.products.list(is_sellable=True)
+            ...     product = await client.api.products.get(123)
+            ...     await client.api.products.delete(123)
+        """
+        if self._api_namespace is None:
+            self._api_namespace = ApiNamespace(self)
+        return self._api_namespace
 
     # Event hooks for observability
     async def _capture_pagination_metadata(self, response: httpx.Response) -> None:
