@@ -117,6 +117,33 @@ class TestKatanaClientInitialization:
         )
         assert client.logger is custom_logger
 
+    def test_initialization_with_duck_type_logger(self):
+        """Test initialization with a non-stdlib logger that satisfies the Logger protocol."""
+
+        class CustomLogger:
+            def __init__(self):
+                self.messages: list[tuple[str, str]] = []
+
+            def debug(self, msg, *args, **kwargs):
+                self.messages.append(("debug", msg))
+
+            def info(self, msg, *args, **kwargs):
+                self.messages.append(("info", msg))
+
+            def warning(self, msg, *args, **kwargs):
+                self.messages.append(("warning", msg))
+
+            def error(self, msg, *args, **kwargs):
+                self.messages.append(("error", msg))
+
+        custom_logger = CustomLogger()
+        client = KatanaClient(
+            api_key="test-key",
+            base_url="https://api.example.com",
+            logger=custom_logger,
+        )
+        assert client.logger is custom_logger
+
     def test_initialization_from_netrc(self, tmp_path):
         """Test initialization using ~/.netrc file without login field."""
         # Create netrc file without login field to demonstrate it's optional

@@ -22,6 +22,7 @@ from dotenv import load_dotenv
 from httpx import AsyncHTTPTransport
 from httpx_retries import Retry, RetryTransport
 
+from ._logging import Logger
 from .client import AuthenticatedClient
 from .client_types import Unset
 from .helpers.inventory import Inventory
@@ -114,7 +115,7 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
     def __init__(
         self,
         wrapped_transport: AsyncHTTPTransport | None = None,
-        logger: logging.Logger | None = None,
+        logger: Logger | None = None,
         **kwargs: Any,
     ):
         """
@@ -129,7 +130,7 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         if wrapped_transport is None:
             wrapped_transport = AsyncHTTPTransport(**kwargs)
         self._wrapped_transport = wrapped_transport
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger: Logger = logger or logging.getLogger(__name__)
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         """Handle request and log detailed error information for 4xx responses."""
@@ -419,7 +420,7 @@ class PaginationTransport(AsyncHTTPTransport):
         self,
         wrapped_transport: AsyncHTTPTransport | None = None,
         max_pages: int = 100,
-        logger: logging.Logger | None = None,
+        logger: Logger | None = None,
         **kwargs: Any,
     ):
         """
@@ -440,7 +441,7 @@ class PaginationTransport(AsyncHTTPTransport):
 
         self._wrapped_transport = wrapped_transport
         self.max_pages = max_pages
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger: Logger = logger or logging.getLogger(__name__)
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         """Handle request with automatic pagination for GET requests.
@@ -859,7 +860,7 @@ class PaginationTransport(AsyncHTTPTransport):
 def ResilientAsyncTransport(
     max_retries: int = 5,
     max_pages: int = 100,
-    logger: logging.Logger | None = None,
+    logger: Logger | None = None,
     **kwargs: Any,
 ) -> RetryTransport:
     """
@@ -899,8 +900,9 @@ def ResilientAsyncTransport(
             response = await client.get("https://api.example.com/items")
         ```
     """
-    if logger is None:
-        logger = logging.getLogger(__name__)
+    resolved_logger: Logger = (
+        logger if logger is not None else logging.getLogger(__name__)
+    )
 
     # Build the transport chain from inside out:
     # 1. Base AsyncHTTPTransport
@@ -909,14 +911,14 @@ def ResilientAsyncTransport(
     # 2. Wrap with error logging
     error_logging_transport = ErrorLoggingTransport(
         wrapped_transport=base_transport,
-        logger=logger,
+        logger=resolved_logger,
     )
 
     # 3. Wrap with pagination
     pagination_transport = PaginationTransport(
         wrapped_transport=error_logging_transport,
         max_pages=max_pages,
-        logger=logger,
+        logger=resolved_logger,
     )
 
     # Finally wrap with retry logic (outermost layer)
@@ -1072,7 +1074,7 @@ class KatanaClient(AuthenticatedClient):
         timeout: float = 30.0,
         max_retries: int = 5,
         max_pages: int = 100,
-        logger: logging.Logger | None = None,
+        logger: Logger | None = None,
         **httpx_kwargs: Any,
     ):
         """
@@ -1085,7 +1087,8 @@ class KatanaClient(AuthenticatedClient):
             timeout: Request timeout in seconds. Defaults to 30.0.
             max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
             max_pages: Maximum number of pages to collect during auto-pagination. Defaults to 100.
-            logger: Logger instance for capturing client operations. If None, creates a default logger.
+            logger: Any object with debug/info/warning/error methods (e.g. logging.Logger,
+                structlog.BoundLogger). If None, creates a default stdlib logger.
             **httpx_kwargs: Additional arguments passed to the base AsyncHTTPTransport.
                 Common parameters include:
                 - http2 (bool): Enable HTTP/2 support
@@ -1133,7 +1136,7 @@ class KatanaClient(AuthenticatedClient):
                 ".env file, or ~/.netrc"
             )
 
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger: Logger = logger or logging.getLogger(__name__)
         self.max_pages = max_pages
 
         # Domain class instances (lazy-loaded)

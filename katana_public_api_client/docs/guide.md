@@ -243,15 +243,27 @@ async with KatanaClient(api_key="your-api-key-here") as client:
 ```python
 import logging
 
-# Custom configuration
+# Custom configuration with stdlib logger
 async with KatanaClient(
     api_key="custom-key",
     base_url="https://custom.katana.com/v1",
     timeout=60.0,           # Request timeout
     max_retries=5,          # Maximum retry attempts
-    logger=logging.getLogger("custom")  # Custom logger
+    logger=logging.getLogger("custom")  # stdlib logger
 ) as client:
     # Your API calls here
+    pass
+```
+
+The `logger` parameter accepts any object with `debug`, `info`, `warning`, and `error`
+methods — both `logging.Logger` and structlog's `BoundLogger` work without adapters:
+
+```python
+import structlog
+
+# Use structlog directly — no adapter needed
+logger = structlog.get_logger("katana")
+async with KatanaClient(logger=logger) as client:
     pass
 ```
 
@@ -643,7 +655,7 @@ class KatanaClient(AuthenticatedClient):
         timeout: float = 30.0,
         max_retries: int = 5,
         max_pages: int = 100,
-        logger: Optional[logging.Logger] = None,
+        logger: Optional[Logger] = None,
         **httpx_kwargs: Any,
     ): ...
 
@@ -659,7 +671,7 @@ Factory function that creates a layered transport with automatic resilience:
 def ResilientAsyncTransport(
     max_retries: int = 5,
     max_pages: int = 100,
-    logger: Optional[logging.Logger] = None,
+    logger: Optional[Logger] = None,
     **kwargs: Any
 ) -> RetryTransport:
     """

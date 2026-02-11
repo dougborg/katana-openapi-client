@@ -1,5 +1,6 @@
 """Katana Public API Client - Python client for Katana Manufacturing ERP."""
 
+from ._logging import Logger
 from .client import AuthenticatedClient, Client
 from .katana_client import KatanaClient
 from .utils import (
@@ -23,6 +24,7 @@ __all__ = [
     "AuthenticationError",
     "Client",
     "KatanaClient",
+    "Logger",
     "RateLimitError",
     "ServerError",
     "ValidationError",
