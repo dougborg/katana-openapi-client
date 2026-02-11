@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v0.45.0 (2026-02-11)
+
+### Bug Fixes
+
+- **client**: Preserve array query params across paginated requests
+  ([#272](https://github.com/dougborg/katana-openapi-client/pull/272),
+  [`599880f`](https://github.com/dougborg/katana-openapi-client/commit/599880f981579ec5891e18783ba37930f5bdb48d))
+
+### Chores
+
+- **release**: Mcp v0.30.0
+  ([`d17976b`](https://github.com/dougborg/katana-openapi-client/commit/d17976bccd35e4470f40521851b2db05cd8776f1))
+
+### Features
+
+- **mcp**: Update client dependency to v0.44.6
+  ([`e4559a3`](https://github.com/dougborg/katana-openapi-client/commit/e4559a3c23de1105c170e0c788a82ba3347225d8))
+
 ## v0.44.6 (2026-02-09)
 
 ### Bug Fixes
