@@ -2,6 +2,30 @@
 
 <!-- version list -->
 
+## v0.46.0 (2026-02-11)
+
+### Bug Fixes
+
+- **client**: Address review — clarify logger call convention, add end-to-end test
+  ([#274](https://github.com/dougborg/katana-openapi-client/pull/274),
+  [`a9e3453`](https://github.com/dougborg/katana-openapi-client/commit/a9e3453de9c33c5fd6f8868176702203144e81f8))
+
+### Documentation
+
+- **spec**: Document cost_per_unit constraint on stock adjustment rows
+  ([#273](https://github.com/dougborg/katana-openapi-client/pull/273),
+  [`35a5a30`](https://github.com/dougborg/katana-openapi-client/commit/35a5a3009b7ed030cd5c9bede2ce1a247f2bbb11))
+
+- **spec**: Document cost_per_unit constraint on stock adjustment rows
+  ([#274](https://github.com/dougborg/katana-openapi-client/pull/274),
+  [`a9e3453`](https://github.com/dougborg/katana-openapi-client/commit/a9e3453de9c33c5fd6f8868176702203144e81f8))
+
+### Features
+
+- **client**: Accept duck-typed loggers via Logger protocol
+  ([#274](https://github.com/dougborg/katana-openapi-client/pull/274),
+  [`a9e3453`](https://github.com/dougborg/katana-openapi-client/commit/a9e3453de9c33c5fd6f8868176702203144e81f8))
+
 ## v0.45.0 (2026-02-11)
 
 ### Bug Fixes
