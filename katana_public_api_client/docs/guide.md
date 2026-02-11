@@ -255,8 +255,9 @@ async with KatanaClient(
     pass
 ```
 
-The `logger` parameter accepts any object with `debug`, `info`, `warning`, and `error`
-methods — both `logging.Logger` and structlog's `BoundLogger` work without adapters:
+The `logger` parameter accepts any object whose `debug`, `info`, `warning`, and `error`
+methods accept `(msg, *args, **kwargs)` — the standard `logging.Logger` call convention.
+Both `logging.Logger` and structlog's `BoundLogger` satisfy this without adapters:
 
 ```python
 import structlog

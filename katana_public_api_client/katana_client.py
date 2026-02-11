@@ -1087,8 +1087,10 @@ class KatanaClient(AuthenticatedClient):
             timeout: Request timeout in seconds. Defaults to 30.0.
             max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
             max_pages: Maximum number of pages to collect during auto-pagination. Defaults to 100.
-            logger: Any object with debug/info/warning/error methods (e.g. logging.Logger,
-                structlog.BoundLogger). If None, creates a default stdlib logger.
+            logger: Any object whose debug/info/warning/error methods accept
+                (msg, *args, **kwargs) — the standard logging.Logger call convention
+                (e.g. logging.Logger, structlog.BoundLogger). If None, creates a
+                default stdlib logger.
             **httpx_kwargs: Additional arguments passed to the base AsyncHTTPTransport.
                 Common parameters include:
                 - http2 (bool): Enable HTTP/2 support

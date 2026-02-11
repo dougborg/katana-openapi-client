@@ -122,7 +122,7 @@ class TestKatanaClientInitialization:
 
         class CustomLogger:
             def __init__(self):
-                self.messages: list[tuple[str, str]] = []
+                self.messages: list[tuple[str, object]] = []
 
             def debug(self, msg, *args, **kwargs):
                 self.messages.append(("debug", msg))
@@ -143,6 +143,46 @@ class TestKatanaClientInitialization:
             logger=custom_logger,
         )
         assert client.logger is custom_logger
+
+    @pytest.mark.asyncio
+    async def test_duck_type_logger_receives_log_calls(self):
+        """Test that a duck-typed logger actually receives log calls from transports."""
+        from katana_public_api_client.katana_client import ErrorLoggingTransport
+
+        class CustomLogger:
+            def __init__(self):
+                self.messages: list[tuple[str, object]] = []
+
+            def debug(self, msg, *args, **kwargs):
+                self.messages.append(("debug", msg))
+
+            def info(self, msg, *args, **kwargs):
+                self.messages.append(("info", msg))
+
+            def warning(self, msg, *args, **kwargs):
+                self.messages.append(("warning", msg))
+
+            def error(self, msg, *args, **kwargs):
+                self.messages.append(("error", msg))
+
+        custom_logger = CustomLogger()
+        transport = ErrorLoggingTransport(logger=custom_logger)
+
+        # Trigger error logging with a mock 400 response
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 400
+        mock_response.json.side_effect = ValueError("Invalid JSON")
+        mock_response.text = "Bad Request"
+
+        mock_request = MagicMock(spec=httpx.Request)
+        mock_request.method = "POST"
+        mock_request.url = "https://api.example.com/test"
+
+        await transport._log_client_error(mock_response, mock_request)
+
+        # Verify the duck-typed logger received calls without errors
+        assert len(custom_logger.messages) > 0
+        assert any(level == "error" for level, _ in custom_logger.messages)
 
     def test_initialization_from_netrc(self, tmp_path):
         """Test initialization using ~/.netrc file without login field."""
