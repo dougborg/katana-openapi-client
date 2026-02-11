@@ -14,6 +14,7 @@ from ...models.sales_return_row import SalesReturnRow
 def _get_kwargs(
     id: int,
 ) -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/sales_return_rows/{id}".format(

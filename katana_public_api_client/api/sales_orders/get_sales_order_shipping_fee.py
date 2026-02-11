@@ -14,6 +14,7 @@ from ...models.sales_order_shipping_fee import SalesOrderShippingFee
 def _get_kwargs(
     id: int,
 ) -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/sales_order_shipping_fee/{id}".format(

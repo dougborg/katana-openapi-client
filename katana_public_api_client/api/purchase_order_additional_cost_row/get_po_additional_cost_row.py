@@ -14,6 +14,7 @@ from ...models.purchase_order_additional_cost_row import PurchaseOrderAdditional
 def _get_kwargs(
     id: int,
 ) -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/po_additional_cost_rows/{id}".format(

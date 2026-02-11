@@ -11,6 +11,7 @@ from ...models.factory import Factory
 
 
 def _get_kwargs() -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/factory",

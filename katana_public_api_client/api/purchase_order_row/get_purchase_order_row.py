@@ -14,6 +14,7 @@ from ...models.purchase_order_row import PurchaseOrderRow
 def _get_kwargs(
     id: int,
 ) -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/purchase_order_rows/{id}".format(

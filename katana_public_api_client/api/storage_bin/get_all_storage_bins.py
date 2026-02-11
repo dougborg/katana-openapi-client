@@ -18,6 +18,7 @@ def _get_kwargs(
     page: int | Unset = UNSET,
     bin_name: str | Unset = UNSET,
 ) -> dict[str, Any]:
+
     params: dict[str, Any] = {}
 
     params["location_id"] = location_id

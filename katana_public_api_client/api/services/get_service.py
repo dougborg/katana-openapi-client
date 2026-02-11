@@ -14,6 +14,7 @@ from ...models.service import Service
 def _get_kwargs(
     id: int,
 ) -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/services/{id}".format(

@@ -41,6 +41,7 @@ def _get_kwargs(
     ingredient_availability: GetAllSalesOrdersIngredientAvailability | Unset = UNSET,
     product_availability: GetAllSalesOrdersProductAvailability | Unset = UNSET,
 ) -> dict[str, Any]:
+
     params: dict[str, Any] = {}
 
     params["limit"] = limit

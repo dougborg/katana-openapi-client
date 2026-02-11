@@ -14,6 +14,7 @@ from ...models.price_list_row import PriceListRow
 def _get_kwargs(
     id: int,
 ) -> dict[str, Any]:
+
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/price_list_rows/{id}".format(

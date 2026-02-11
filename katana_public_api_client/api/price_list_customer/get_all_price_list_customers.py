@@ -18,6 +18,7 @@ def _get_kwargs(
     customer_ids: list[int] | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
 ) -> dict[str, Any]:
+
     params: dict[str, Any] = {}
 
     params["limit"] = limit
