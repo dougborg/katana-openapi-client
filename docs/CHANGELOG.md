@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.47.0 (2026-02-11)
+
+### Features
+
+- **client**: Add thin API wrapper layer for all resources via client.api
+  ([#275](https://github.com/dougborg/katana-openapi-client/pull/275),
+  [`915b3d2`](https://github.com/dougborg/katana-openapi-client/commit/915b3d27841e7a65fe7e97aae45c3b1e7915c726))
+
 ## v0.46.0 (2026-02-11)
 
 ### Bug Fixes
