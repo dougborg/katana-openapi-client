@@ -381,7 +381,7 @@ class StockAdjustmentRow1(KatanaPydanticBase):
     cost_per_unit: Annotated[
         float | None,
         Field(
-            description="Cost per unit for this adjustment (defaults to current average cost if not specified)"
+            description="Cost per unit for this adjustment. Only allowed when quantity is positive; for negative adjustments, the item's average cost is used automatically and sending this field will result in a 422 validation error."
         ),
     ] = None
     batch_transactions: Annotated[

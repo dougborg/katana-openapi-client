@@ -8629,7 +8629,11 @@ components:
                 description: Quantity to adjust (positive or negative)
               cost_per_unit:
                 type: number
-                description: Cost per unit for this adjustment (defaults to current average cost if not specified)
+                description: >-
+                  Cost per unit for this adjustment. Only allowed when quantity
+                  is positive; for negative adjustments, the item's average cost
+                  is used automatically and sending this field will result in a
+                  422 validation error.
               batch_transactions:
                 type: array
                 description: Optional batch-specific adjustments for tracked inventory
@@ -8648,7 +8652,6 @@ components:
             cost_per_unit: 123.45
           - variant_id: 502
             quantity: -25
-            cost_per_unit: 234.56
     UpdateStockAdjustmentRequest:
       description: Request payload for updating an existing stock adjustment
       type: object

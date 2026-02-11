@@ -91,7 +91,7 @@ def sync_detailed(
             'stock_adjustment_date': '2024-01-17T14:30:00.000Z', 'location_id': 1, 'reason': 'Cycle
             count correction', 'additional_info': 'Q1 2024 physical inventory',
             'stock_adjustment_rows': [{'variant_id': 501, 'quantity': 100, 'cost_per_unit': 123.45},
-            {'variant_id': 502, 'quantity': -25, 'cost_per_unit': 234.56}]}.
+            {'variant_id': 502, 'quantity': -25}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -128,7 +128,7 @@ def sync(
             'stock_adjustment_date': '2024-01-17T14:30:00.000Z', 'location_id': 1, 'reason': 'Cycle
             count correction', 'additional_info': 'Q1 2024 physical inventory',
             'stock_adjustment_rows': [{'variant_id': 501, 'quantity': 100, 'cost_per_unit': 123.45},
-            {'variant_id': 502, 'quantity': -25, 'cost_per_unit': 234.56}]}.
+            {'variant_id': 502, 'quantity': -25}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -160,7 +160,7 @@ async def asyncio_detailed(
             'stock_adjustment_date': '2024-01-17T14:30:00.000Z', 'location_id': 1, 'reason': 'Cycle
             count correction', 'additional_info': 'Q1 2024 physical inventory',
             'stock_adjustment_rows': [{'variant_id': 501, 'quantity': 100, 'cost_per_unit': 123.45},
-            {'variant_id': 502, 'quantity': -25, 'cost_per_unit': 234.56}]}.
+            {'variant_id': 502, 'quantity': -25}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -195,7 +195,7 @@ async def asyncio(
             'stock_adjustment_date': '2024-01-17T14:30:00.000Z', 'location_id': 1, 'reason': 'Cycle
             count correction', 'additional_info': 'Q1 2024 physical inventory',
             'stock_adjustment_rows': [{'variant_id': 501, 'quantity': 100, 'cost_per_unit': 123.45},
-            {'variant_id': 502, 'quantity': -25, 'cost_per_unit': 234.56}]}.
+            {'variant_id': 502, 'quantity': -25}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
