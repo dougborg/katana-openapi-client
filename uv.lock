@@ -1210,7 +1210,7 @@ requires-dist = [
 
 [[package]]
 name = "katana-openapi-client"
-version = "0.44.6"
+version = "0.45.0"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },
