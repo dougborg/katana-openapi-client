@@ -8,9 +8,7 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
-from ...models.get_all_sales_order_addresses_entity_type import (
-    GetAllSalesOrderAddressesEntityType,
-)
+from ...models.purchase_order_entity_type import PurchaseOrderEntityType
 from ...models.sales_order_address_list_response import SalesOrderAddressListResponse
 
 
@@ -18,7 +16,7 @@ def _get_kwargs(
     *,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
-    entity_type: GetAllSalesOrderAddressesEntityType | Unset = UNSET,
+    entity_type: PurchaseOrderEntityType | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     sales_order_ids: list[int] | Unset = UNSET,
     company: str | Unset = UNSET,
@@ -160,7 +158,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
-    entity_type: GetAllSalesOrderAddressesEntityType | Unset = UNSET,
+    entity_type: PurchaseOrderEntityType | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     sales_order_ids: list[int] | Unset = UNSET,
     company: str | Unset = UNSET,
@@ -186,7 +184,8 @@ def sync_detailed(
     Args:
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
-        entity_type (GetAllSalesOrderAddressesEntityType | Unset):
+        entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for
+            materials or outsourced for subcontracted work
         ids (list[int] | Unset):
         sales_order_ids (list[int] | Unset):
         company (str | Unset):
@@ -249,7 +248,7 @@ def sync(
     client: AuthenticatedClient | Client,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
-    entity_type: GetAllSalesOrderAddressesEntityType | Unset = UNSET,
+    entity_type: PurchaseOrderEntityType | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     sales_order_ids: list[int] | Unset = UNSET,
     company: str | Unset = UNSET,
@@ -275,7 +274,8 @@ def sync(
     Args:
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
-        entity_type (GetAllSalesOrderAddressesEntityType | Unset):
+        entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for
+            materials or outsourced for subcontracted work
         ids (list[int] | Unset):
         sales_order_ids (list[int] | Unset):
         company (str | Unset):
@@ -333,7 +333,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
-    entity_type: GetAllSalesOrderAddressesEntityType | Unset = UNSET,
+    entity_type: PurchaseOrderEntityType | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     sales_order_ids: list[int] | Unset = UNSET,
     company: str | Unset = UNSET,
@@ -359,7 +359,8 @@ async def asyncio_detailed(
     Args:
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
-        entity_type (GetAllSalesOrderAddressesEntityType | Unset):
+        entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for
+            materials or outsourced for subcontracted work
         ids (list[int] | Unset):
         sales_order_ids (list[int] | Unset):
         company (str | Unset):
@@ -420,7 +421,7 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
-    entity_type: GetAllSalesOrderAddressesEntityType | Unset = UNSET,
+    entity_type: PurchaseOrderEntityType | Unset = UNSET,
     ids: list[int] | Unset = UNSET,
     sales_order_ids: list[int] | Unset = UNSET,
     company: str | Unset = UNSET,
@@ -446,7 +447,8 @@ async def asyncio(
     Args:
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
-        entity_type (GetAllSalesOrderAddressesEntityType | Unset):
+        entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for
+            materials or outsourced for subcontracted work
         ids (list[int] | Unset):
         sales_order_ids (list[int] | Unset):
         company (str | Unset):

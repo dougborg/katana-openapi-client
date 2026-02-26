@@ -8,12 +8,10 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
-from ...models.get_all_sales_orders_ingredient_availability import (
-    GetAllSalesOrdersIngredientAvailability,
-)
 from ...models.get_all_sales_orders_product_availability import (
     GetAllSalesOrdersProductAvailability,
 )
+from ...models.ingredient_availability import IngredientAvailability
 from ...models.sales_order_list_response import SalesOrderListResponse
 
 
@@ -38,7 +36,7 @@ def _get_kwargs(
     ecommerce_store_name: str | Unset = UNSET,
     ecommerce_order_id: str | Unset = UNSET,
     ecommerce_order_type: str | Unset = UNSET,
-    ingredient_availability: GetAllSalesOrdersIngredientAvailability | Unset = UNSET,
+    ingredient_availability: IngredientAvailability | Unset = UNSET,
     product_availability: GetAllSalesOrdersProductAvailability | Unset = UNSET,
 ) -> dict[str, Any]:
 
@@ -183,7 +181,7 @@ def sync_detailed(
     ecommerce_store_name: str | Unset = UNSET,
     ecommerce_order_id: str | Unset = UNSET,
     ecommerce_order_type: str | Unset = UNSET,
-    ingredient_availability: GetAllSalesOrdersIngredientAvailability | Unset = UNSET,
+    ingredient_availability: IngredientAvailability | Unset = UNSET,
     product_availability: GetAllSalesOrdersProductAvailability | Unset = UNSET,
 ) -> Response[ErrorResponse | SalesOrderListResponse]:
     """List all sales orders
@@ -210,7 +208,8 @@ def sync_detailed(
         ecommerce_store_name (str | Unset):
         ecommerce_order_id (str | Unset):
         ecommerce_order_type (str | Unset):
-        ingredient_availability (GetAllSalesOrdersIngredientAvailability | Unset):
+        ingredient_availability (IngredientAvailability | Unset): Availability status of
+            ingredients for production
         product_availability (GetAllSalesOrdersProductAvailability | Unset):
 
     Raises:
@@ -275,7 +274,7 @@ def sync(
     ecommerce_store_name: str | Unset = UNSET,
     ecommerce_order_id: str | Unset = UNSET,
     ecommerce_order_type: str | Unset = UNSET,
-    ingredient_availability: GetAllSalesOrdersIngredientAvailability | Unset = UNSET,
+    ingredient_availability: IngredientAvailability | Unset = UNSET,
     product_availability: GetAllSalesOrdersProductAvailability | Unset = UNSET,
 ) -> ErrorResponse | SalesOrderListResponse | None:
     """List all sales orders
@@ -302,7 +301,8 @@ def sync(
         ecommerce_store_name (str | Unset):
         ecommerce_order_id (str | Unset):
         ecommerce_order_type (str | Unset):
-        ingredient_availability (GetAllSalesOrdersIngredientAvailability | Unset):
+        ingredient_availability (IngredientAvailability | Unset): Availability status of
+            ingredients for production
         product_availability (GetAllSalesOrdersProductAvailability | Unset):
 
     Raises:
@@ -362,7 +362,7 @@ async def asyncio_detailed(
     ecommerce_store_name: str | Unset = UNSET,
     ecommerce_order_id: str | Unset = UNSET,
     ecommerce_order_type: str | Unset = UNSET,
-    ingredient_availability: GetAllSalesOrdersIngredientAvailability | Unset = UNSET,
+    ingredient_availability: IngredientAvailability | Unset = UNSET,
     product_availability: GetAllSalesOrdersProductAvailability | Unset = UNSET,
 ) -> Response[ErrorResponse | SalesOrderListResponse]:
     """List all sales orders
@@ -389,7 +389,8 @@ async def asyncio_detailed(
         ecommerce_store_name (str | Unset):
         ecommerce_order_id (str | Unset):
         ecommerce_order_type (str | Unset):
-        ingredient_availability (GetAllSalesOrdersIngredientAvailability | Unset):
+        ingredient_availability (IngredientAvailability | Unset): Availability status of
+            ingredients for production
         product_availability (GetAllSalesOrdersProductAvailability | Unset):
 
     Raises:
@@ -452,7 +453,7 @@ async def asyncio(
     ecommerce_store_name: str | Unset = UNSET,
     ecommerce_order_id: str | Unset = UNSET,
     ecommerce_order_type: str | Unset = UNSET,
-    ingredient_availability: GetAllSalesOrdersIngredientAvailability | Unset = UNSET,
+    ingredient_availability: IngredientAvailability | Unset = UNSET,
     product_availability: GetAllSalesOrdersProductAvailability | Unset = UNSET,
 ) -> ErrorResponse | SalesOrderListResponse | None:
     """List all sales orders
@@ -479,7 +480,8 @@ async def asyncio(
         ecommerce_store_name (str | Unset):
         ecommerce_order_id (str | Unset):
         ecommerce_order_type (str | Unset):
-        ingredient_availability (GetAllSalesOrdersIngredientAvailability | Unset):
+        ingredient_availability (IngredientAvailability | Unset): Availability status of
+            ingredients for production
         product_availability (GetAllSalesOrdersProductAvailability | Unset):
 
     Raises:

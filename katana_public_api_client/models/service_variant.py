@@ -11,7 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.service_variant_type import ServiceVariantType
+from ..models.variant_type import VariantType
 
 if TYPE_CHECKING:
     from ..models.service_variant_custom_fields_item import (
@@ -41,7 +41,7 @@ class ServiceVariant:
     deleted_at: datetime.datetime | None | Unset = UNSET
     sales_price: float | None | Unset = UNSET
     default_cost: float | None | Unset = UNSET
-    type_: ServiceVariantType | Unset = UNSET
+    type_: VariantType | Unset = UNSET
     custom_fields: list[ServiceVariantCustomFieldsItem] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -180,11 +180,11 @@ class ServiceVariant:
         default_cost = _parse_default_cost(d.pop("default_cost", UNSET))
 
         _type_ = d.pop("type", UNSET)
-        type_: ServiceVariantType | Unset
+        type_: VariantType | Unset
         if isinstance(_type_, Unset):
             type_ = UNSET
         else:
-            type_ = ServiceVariantType(_type_)
+            type_ = VariantType(_type_)
 
         _custom_fields = d.pop("custom_fields", UNSET)
         custom_fields: list[ServiceVariantCustomFieldsItem] | Unset = UNSET

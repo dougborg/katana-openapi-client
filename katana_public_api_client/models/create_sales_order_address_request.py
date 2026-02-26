@@ -6,9 +6,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
-from ..models.create_sales_order_address_request_entity_type import (
-    CreateSalesOrderAddressRequestEntityType,
-)
+from ..models.address_entity_type import AddressEntityType
 
 T = TypeVar("T", bound="CreateSalesOrderAddressRequest")
 
@@ -24,7 +22,7 @@ class CreateSalesOrderAddressRequest:
 
     Attributes:
         sales_order_id (int): ID of the sales order this address belongs to
-        entity_type (CreateSalesOrderAddressRequestEntityType): Type of address (billing or shipping)
+        entity_type (AddressEntityType): Address type - billing for invoicing, shipping for delivery
         line_1 (str): Primary address line
         city (str): City name
         country (str): Country code
@@ -38,7 +36,7 @@ class CreateSalesOrderAddressRequest:
     """
 
     sales_order_id: int
-    entity_type: CreateSalesOrderAddressRequestEntityType
+    entity_type: AddressEntityType
     line_1: str
     city: str
     country: str
@@ -108,7 +106,7 @@ class CreateSalesOrderAddressRequest:
         d = dict(src_dict)
         sales_order_id = d.pop("sales_order_id")
 
-        entity_type = CreateSalesOrderAddressRequestEntityType(d.pop("entity_type"))
+        entity_type = AddressEntityType(d.pop("entity_type"))
 
         line_1 = d.pop("line_1")
 

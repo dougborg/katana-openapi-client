@@ -38,9 +38,9 @@ from .common import (
     Location1,
     ResourceType,
     Type,
-    Type1,
-    Type5,
-    Type7,
+    Type3,
+    Type4,
+    VariantType,
 )
 from .contacts import Supplier, SupplierItemCode
 
@@ -175,10 +175,7 @@ class Variant(UpdatableEntity, DeletableEntity):
     purchase_price: Annotated[
         float | None, Field(description="Cost to purchase this variant from suppliers")
     ] = None
-    type: Annotated[
-        Type | None,
-        Field(description="Type classification - either 'product' or 'material'"),
-    ] = None
+    type: VariantType | None = None
     internal_barcode: Annotated[
         str | None,
         Field(description="Internal barcode for warehouse scanning and tracking"),
@@ -228,12 +225,7 @@ class ServiceVariant(UpdatableEntity, DeletableEntity):
     service_id: Annotated[
         int, Field(description="ID of the service this variant belongs to")
     ]
-    type: Annotated[
-        Type1 | None,
-        Field(
-            description="Type classification - always 'service' for service variants"
-        ),
-    ] = None
+    type: VariantType | None = None
     custom_fields: Annotated[
         list[CustomField1] | None,
         Field(description="Custom field values specific to this service variant"),
@@ -768,7 +760,7 @@ class Service(ArchivableDeletableEntity):
         Field(description="Sellable services can be added to Quotes and Sales orders"),
     ] = None
     type: Annotated[
-        Type1 | None,
+        Type3 | None,
         Field(
             description='Indicating the item type. Service objects are of type "service"'
         ),
@@ -924,11 +916,11 @@ class CreateProductOperationRowItem(KatanaPydanticBase):
         ),
     ] = None
     type: Annotated[
-        Type7 | None,
+        Type4 | None,
         Field(
             description="Different operation types allows you to use different cost\ncalculations depending on the type of product operation\nProcess: The process operation type is best for when products\nare individually built and time is the main driver of cost.\nSetup: The setup operation type is best for setting up a\nmachine for production where the production quantity doesn't\naffect cost.\nPer unit: The per unit operation type is best when cost of\ntime isn't a factor, but only the quantity of product made.\nFixed cost: The fixed cost operation type is useful for adding\nthe expected extra costs that go into producing a product."
         ),
-    ] = Type7.process
+    ] = Type4.process
     cost_parameter: Annotated[
         float | None,
         Field(
@@ -1444,9 +1436,7 @@ class VariantResponse(DeletableEntity):
             description="ID of the parent material if this variant belongs to a raw material"
         ),
     ] = None
-    type: Annotated[
-        Type5 | None, Field(description="Type classification of this variant")
-    ] = None
+    type: VariantType | None = None
     internal_barcode: Annotated[
         str | None,
         Field(description="Internal barcode for warehouse scanning and tracking"),

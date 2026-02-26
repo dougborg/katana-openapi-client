@@ -11,9 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.sales_order_row_product_availability_type_0 import (
-    SalesOrderRowProductAvailabilityType0,
-)
+from ..models.product_availability import ProductAvailability
 
 if TYPE_CHECKING:
     from ..models.sales_order_row_attributes_item import SalesOrderRowAttributesItem
@@ -50,8 +48,8 @@ class SalesOrderRow:
             tax_rate_id (int | None | Unset): ID of the tax rate applied to this line item
             tax_rate (float | None | Unset): Tax rate percentage applied to this line item
             location_id (int | None | Unset): Location where the product should be picked from
-            product_availability (None | SalesOrderRowProductAvailabilityType0 | Unset): Current availability status of the
-                product for this order row
+            product_availability (None | ProductAvailability | Unset): Current availability status of the product for this
+                order row
             product_expected_date (datetime.datetime | None | Unset): Expected date when the product will be available if
                 not currently in stock
             price_per_unit (float | Unset): Selling price per unit in the order currency
@@ -80,7 +78,7 @@ class SalesOrderRow:
     tax_rate_id: int | None | Unset = UNSET
     tax_rate: float | None | Unset = UNSET
     location_id: int | None | Unset = UNSET
-    product_availability: None | SalesOrderRowProductAvailabilityType0 | Unset = UNSET
+    product_availability: None | ProductAvailability | Unset = UNSET
     product_expected_date: datetime.datetime | None | Unset = UNSET
     price_per_unit: float | Unset = UNSET
     price_per_unit_in_base_currency: float | Unset = UNSET
@@ -142,9 +140,7 @@ class SalesOrderRow:
         product_availability: None | str | Unset
         if isinstance(self.product_availability, Unset):
             product_availability = UNSET
-        elif isinstance(
-            self.product_availability, SalesOrderRowProductAvailabilityType0
-        ):
+        elif isinstance(self.product_availability, ProductAvailability):
             product_availability = self.product_availability.value
         else:
             product_availability = self.product_availability
@@ -347,7 +343,7 @@ class SalesOrderRow:
 
         def _parse_product_availability(
             data: object,
-        ) -> None | SalesOrderRowProductAvailabilityType0 | Unset:
+        ) -> None | ProductAvailability | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -355,14 +351,12 @@ class SalesOrderRow:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                product_availability_type_0 = SalesOrderRowProductAvailabilityType0(
-                    data
-                )
+                product_availability_type_0 = ProductAvailability(data)
 
                 return product_availability_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | SalesOrderRowProductAvailabilityType0 | Unset, data)
+            return cast(None | ProductAvailability | Unset, data)
 
         product_availability = _parse_product_availability(
             d.pop("product_availability", UNSET)

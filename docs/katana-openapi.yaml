@@ -441,10 +441,7 @@ components:
       required: false
       description: Filters purchase orders by an entity type
       schema:
-        type: string
-        enum:
-          - regular
-          - outsourced
+        $ref: "#/components/schemas/PurchaseOrderEntityType"
       in: query
     po_status:
       name: status
@@ -513,10 +510,7 @@ components:
       required: false
       description: Filters purchase order additional cost rows by an distribution method
       schema:
-        type: string
-        enum:
-          - BY_VALUE
-          - NON_DISTRIBUTED
+        $ref: "#/components/schemas/CostDistributionMethod"
       in: query
     purchase_order_id:
       name: purchase_order_id
@@ -642,13 +636,7 @@ components:
       required: false
       description: Filters manufacturing orders by an ingredient availability.
       schema:
-        enum:
-          - PROCESSED
-          - IN_STOCK
-          - NOT_AVAILABLE
-          - EXPECTED
-          - NO_RECIPE
-          - NOT_APPLICABLE
+        $ref: "#/components/schemas/IngredientAvailability"
       in: query
     rate:
       name: rate
@@ -1345,6 +1333,82 @@ components:
         - "NO_RECIPE"
       description: Status of ingredients required for outsourced purchase order production
 
+    VariantType:
+      type: string
+      enum:
+        - product
+        - material
+        - service
+      description: Type classification of a variant
+
+    AddressEntityType:
+      type: string
+      enum:
+        - billing
+        - shipping
+      description: Address type - billing for invoicing, shipping for delivery
+
+    ManufacturingOrderStatus:
+      type: string
+      enum:
+        - NOT_STARTED
+        - BLOCKED
+        - IN_PROGRESS
+        - DONE
+      description: Production status of a manufacturing order
+
+    CostDistributionMethod:
+      type: string
+      enum:
+        - BY_VALUE
+        - NON_DISTRIBUTED
+      description: Method for distributing additional costs across purchase order items
+
+    PurchaseOrderEntityType:
+      type: string
+      enum:
+        - regular
+        - outsourced
+      description: Type of purchase order - regular for materials or outsourced for subcontracted work
+
+    StocktakeStatus:
+      type: string
+      enum:
+        - NOT_STARTED
+        - IN_PROGRESS
+        - COUNTED
+        - COMPLETED
+      description: Current status of a stocktake process
+
+    SalesReturnStatus:
+      type: string
+      enum:
+        - NOT_RETURNED
+        - RETURNED_ALL
+        - RESTOCKED_ALL
+      description: Processing status of a sales return
+
+    ProductAvailability:
+      type: string
+      enum:
+        - IN_STOCK
+        - EXPECTED
+        - PICKED
+        - NOT_AVAILABLE
+        - NOT_APPLICABLE
+      description: Availability status of a product for order fulfillment
+
+    IngredientAvailability:
+      type: string
+      enum:
+        - PROCESSED
+        - IN_STOCK
+        - NOT_AVAILABLE
+        - EXPECTED
+        - NO_RECIPE
+        - NOT_APPLICABLE
+      description: Availability status of ingredients for production
+
     BaseEntity:
       type: object
       description: Base entity with unique identifier
@@ -1917,12 +1981,7 @@ components:
               type: number
               description: Cost to purchase this variant from suppliers
             type:
-              type: string
-              enum:
-                - product
-                - material
-              description: |-
-                Type classification - either 'product' or 'material'
+              $ref: "#/components/schemas/VariantType"
             internal_barcode:
               type: string
               description: Internal barcode for warehouse scanning and tracking
@@ -2021,10 +2080,7 @@ components:
               type: integer
               description: ID of the service this variant belongs to
             type:
-              type: string
-              enum:
-                - service
-              description: Type classification - always 'service' for service variants
+              $ref: "#/components/schemas/VariantType"
             custom_fields:
               type: array
               description: Custom field values specific to this service variant
@@ -2342,13 +2398,8 @@ components:
         - location_id
       properties:
         status:
-          type: string
           description: Initial production status of the manufacturing order
-          enum:
-            - NOT_STARTED
-            - BLOCKED
-            - IN_PROGRESS
-            - DONE
+          $ref: "#/components/schemas/ManufacturingOrderStatus"
         order_no:
           type: string
           description: Custom manufacturing order number for tracking and reference
@@ -2397,13 +2448,8 @@ components:
             id:
               type: integer
             status:
-              type: string
               description: Current production status of the manufacturing order
-              enum:
-                - NOT_STARTED
-                - BLOCKED
-                - IN_PROGRESS
-                - DONE
+              $ref: "#/components/schemas/ManufacturingOrderStatus"
             order_no:
               type: string
               description: Unique manufacturing order number for tracking and reference
@@ -2460,17 +2506,10 @@ components:
               type: boolean
               description: Whether this manufacturing order is linked to a sales order
             ingredient_availability:
-              anyOf:
-                - type: string
-                  enum:
-                    - PROCESSED
-                    - IN_STOCK
-                    - NOT_AVAILABLE
-                    - EXPECTED
-                    - NO_RECIPE
-                    - NOT_APPLICABLE
-                - type: "null"
               description: Status of material ingredient availability for production
+              anyOf:
+                - $ref: "#/components/schemas/IngredientAvailability"
+                - type: "null"
             total_cost:
               type: number
               description: Total cost of the manufacturing order including all materials and operations
@@ -2559,13 +2598,8 @@ components:
       type: object
       properties:
         status:
-          type: string
           description: Updated production status of the manufacturing order
-          enum:
-            - NOT_STARTED
-            - BLOCKED
-            - IN_PROGRESS
-            - DONE
+          $ref: "#/components/schemas/ManufacturingOrderStatus"
         order_no:
           type: string
           description: Updated manufacturing order number for tracking and reference
@@ -4413,12 +4447,7 @@ components:
           type: string
           description: Unique purchase order number for tracking and reference
         entity_type:
-          type: string
-          enum:
-            - regular
-            - outsourced
-          description: |-
-            Type of purchase order - regular for materials or outsourced for subcontracted work
+          $ref: "#/components/schemas/PurchaseOrderEntityType"
         supplier_id:
           type: integer
           maximum: 2147483647
@@ -4555,11 +4584,8 @@ components:
               type: string
               description: A unique, identifying string used in the UI and controlled by the user.
             entity_type:
-              type: string
-              enum:
-                - "regular"
-                - "outsourced"
               description: Either "regular" or "outsourced", depending on the purchase order type.
+              $ref: "#/components/schemas/PurchaseOrderEntityType"
             default_group_id:
               type: integer
               description: Default grouping identifier for organizational purposes
@@ -5032,11 +5058,7 @@ components:
           minimum: 0
           description: Amount of the additional cost in the purchase order currency
         distribution_method:
-          type: string
-          enum:
-            - BY_VALUE
-            - NON_DISTRIBUTED
-          description: Method for distributing this cost across purchase order items
+          $ref: "#/components/schemas/CostDistributionMethod"
       example:
         additional_cost_id: 1
         group_id: 1
@@ -5168,11 +5190,7 @@ components:
           maximum: 100000000000000000
           description: Updated amount of the additional cost in the purchase order currency
         distribution_method:
-          type: string
-          enum:
-            - BY_VALUE
-            - NON_DISTRIBUTED
-          description: Method for distributing this cost across purchase order items
+          $ref: "#/components/schemas/CostDistributionMethod"
       example:
         additional_cost_id: 1
         tax_rate_id: 1
@@ -5986,12 +6004,7 @@ components:
                 - "null"
               description: ID of the parent material if this variant belongs to a raw material
             type:
-              type: string
-              description: Type classification of this variant
-              enum:
-                - product
-                - material
-                - service
+              $ref: "#/components/schemas/VariantType"
             internal_barcode:
               type: string
               description: Internal barcode for warehouse scanning and tracking
@@ -7222,12 +7235,7 @@ components:
               type: integer
               description: ID of the customer this address belongs to
             entity_type:
-              type: string
-              enum:
-                - billing
-                - shipping
-              description: |-
-                Address type - billing for invoicing, shipping for delivery
+              $ref: "#/components/schemas/AddressEntityType"
             default:
               type: boolean
               description: Whether this is the default address for the specified entity type
@@ -7412,10 +7420,7 @@ components:
             type: object
             properties:
               entity_type:
-                type: string
-                enum:
-                  - billing
-                  - shipping
+                $ref: "#/components/schemas/AddressEntityType"
               first_name:
                 type: string
               last_name:
@@ -7630,13 +7635,7 @@ components:
               description: Original order ID from the external ecommerce platform
             product_availability:
               anyOf:
-                - type: string
-                  enum:
-                    - IN_STOCK
-                    - EXPECTED
-                    - PICKED
-                    - NOT_AVAILABLE
-                    - NOT_APPLICABLE
+                - $ref: "#/components/schemas/ProductAvailability"
                 - type: "null"
             product_expected_date:
               type:
@@ -7646,14 +7645,7 @@ components:
               description: Expected date when products will be available for fulfillment
             ingredient_availability:
               anyOf:
-                - type: string
-                  enum:
-                    - PROCESSED
-                    - IN_STOCK
-                    - NOT_AVAILABLE
-                    - EXPECTED
-                    - NO_RECIPE
-                    - NOT_APPLICABLE
+                - $ref: "#/components/schemas/IngredientAvailability"
                 - type: "null"
             ingredient_expected_date:
               type:
@@ -7808,16 +7800,10 @@ components:
                 - "null"
               description: Location where the product should be picked from
             product_availability:
-              anyOf:
-                - type: string
-                  enum:
-                    - IN_STOCK
-                    - EXPECTED
-                    - PICKED
-                    - NOT_AVAILABLE
-                    - NOT_APPLICABLE
-                - type: "null"
               description: Current availability status of the product for this order row
+              anyOf:
+                - $ref: "#/components/schemas/ProductAvailability"
+                - type: "null"
             product_expected_date:
               type:
                 - string
@@ -7935,12 +7921,7 @@ components:
               type: integer
               description: ID of the sales order this address belongs to
             entity_type:
-              type: string
-              enum:
-                - billing
-                - shipping
-              description: |-
-                Type of address - billing for invoicing or shipping for delivery
+              $ref: "#/components/schemas/AddressEntityType"
             first_name:
               type:
                 - string
@@ -8124,11 +8105,7 @@ components:
           type: integer
           description: ID of the sales order this address belongs to
         entity_type:
-          type: string
-          enum:
-            - billing
-            - shipping
-          description: Type of address (billing or shipping)
+          $ref: "#/components/schemas/AddressEntityType"
         first_name:
           type: string
           description: First name for the address contact
@@ -9808,13 +9785,8 @@ components:
               type: integer
               description: The location where the stocktake is being performed
             status:
-              type: string
-              enum:
-                - NOT_STARTED
-                - IN_PROGRESS
-                - COUNTED
-                - COMPLETED
               description: Current status of the stocktake process
+              $ref: "#/components/schemas/StocktakeStatus"
             stocktake_created_date:
               type: string
               format: date-time
@@ -9981,12 +9953,8 @@ components:
               type: integer
               description: Location where returned items will be received and processed
             status:
-              type: string
               description: Current processing status of the sales return
-              enum:
-                - NOT_RETURNED
-                - RETURNED_ALL
-                - RESTOCKED_ALL
+              $ref: "#/components/schemas/SalesReturnStatus"
             currency:
               type: string
               pattern: ^[A-Z]{3}$
@@ -10105,12 +10073,8 @@ components:
       additionalProperties: false
       properties:
         status:
-          type: string
-          enum:
-            - NOT_RETURNED
-            - RETURNED_ALL
-            - RESTOCKED_ALL
           description: Status of the sales return
+          $ref: "#/components/schemas/SalesReturnStatus"
         return_date:
           type: string
           format: date-time
@@ -10413,12 +10377,7 @@ components:
           type: integer
           description: ID of the customer this address belongs to
         entity_type:
-          type: string
-          enum:
-            - billing
-            - shipping
-          description: |-
-            Address type - billing for invoicing, shipping for delivery
+          $ref: "#/components/schemas/AddressEntityType"
         first_name:
           type:
             - string
@@ -10690,13 +10649,8 @@ components:
           type: string
           description: A descriptive field for your own information to enable better identification
         status:
-          type: string
           description: Status of the stocktake
-          enum:
-            - NOT_STARTED
-            - IN_PROGRESS
-            - COUNTED
-            - COMPLETED
+          $ref: "#/components/schemas/StocktakeStatus"
         additional_info:
           type: string
           description: Additional notes or information about the stocktake

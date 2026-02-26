@@ -18,10 +18,16 @@ from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 from .base import DeletableEntity, UpdatableEntity
 from .common import (
     ResourceType3,
-    Status10,
-    Status15,
+    Status8,
     Transaction,
 )
+
+
+class StocktakeStatus(StrEnum):
+    not_started = "NOT_STARTED"
+    in_progress = "IN_PROGRESS"
+    counted = "COUNTED"
+    completed = "COMPLETED"
 
 
 class Batch(KatanaPydanticBase):
@@ -499,7 +505,7 @@ class Stocktake(DeletableEntity):
         int, Field(description="The location where the stocktake is being performed")
     ]
     status: Annotated[
-        Status10, Field(description="Current status of the stocktake process")
+        StocktakeStatus, Field(description="Current status of the stocktake process")
     ]
     stocktake_created_date: Annotated[
         AwareDatetime | None,
@@ -658,9 +664,9 @@ class UpdateStocktakeRequest(KatanaPydanticBase):
             description="A descriptive field for your own information to enable better identification"
         ),
     ] = None
-    status: Annotated[Status10 | None, Field(description="Status of the stocktake")] = (
-        None
-    )
+    status: Annotated[
+        StocktakeStatus | None, Field(description="Status of the stocktake")
+    ] = None
     additional_info: Annotated[
         str | None,
         Field(description="Additional notes or information about the stocktake"),
@@ -819,7 +825,7 @@ class UpdateStockTransferStatusRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    status: Annotated[Status15, Field(description="New status for the stock transfer")]
+    status: Annotated[Status8, Field(description="New status for the stock transfer")]
 
 
 class StockTransfer(DeletableEntity):

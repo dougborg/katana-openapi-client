@@ -1,7 +1,7 @@
 from enum import StrEnum
 
 
-class UpdatePurchaseOrderAdditionalCostRowRequestDistributionMethod(StrEnum):
+class CostDistributionMethod(StrEnum):
     BY_VALUE = "BY_VALUE"
     NON_DISTRIBUTED = "NON_DISTRIBUTED"
 

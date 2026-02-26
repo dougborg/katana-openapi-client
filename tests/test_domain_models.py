@@ -19,7 +19,9 @@ class TestKatanaVariantFactoryMethods:
     def test_from_generated_with_all_fields(self) -> None:
         """Test converting a fully-populated generated Variant."""
         from katana_public_api_client.domain.variant import KatanaVariant
-        from katana_public_api_client.models_pydantic._generated.common import Type
+        from katana_public_api_client.models_pydantic._generated.common import (
+            VariantType,
+        )
         from katana_public_api_client.models_pydantic._generated.inventory import (
             Variant as GeneratedVariant,
         )
@@ -32,7 +34,7 @@ class TestKatanaVariantFactoryMethods:
             purchase_price=49.99,
             product_id=456,
             material_id=None,
-            type=Type.product,
+            type=VariantType.product,
             internal_barcode="INT-123",
             registered_barcode="UPC-456",
             supplier_item_codes=["SUP-001", "SUP-002"],
@@ -141,25 +143,32 @@ class TestKatanaVariantFactoryMethods:
         }
 
     def test_from_generated_type_filtering(self) -> None:
-        """Test that only 'product' and 'material' types are accepted."""
+        """Test that product, material, and service types are accepted."""
         from katana_public_api_client.domain.variant import KatanaVariant
-        from katana_public_api_client.models_pydantic._generated.common import Type
+        from katana_public_api_client.models_pydantic._generated.common import (
+            VariantType,
+        )
         from katana_public_api_client.models_pydantic._generated.inventory import (
             Variant as GeneratedVariant,
         )
 
         # Test product type
-        gen_product = GeneratedVariant(id=1, sku="P-001", type=Type.product)
+        gen_product = GeneratedVariant(id=1, sku="P-001", type=VariantType.product)
         domain_product = KatanaVariant.from_generated(gen_product)
         assert domain_product.type_ == "product"
 
         # Test material type
-        gen_material = GeneratedVariant(id=2, sku="M-001", type=Type.material)
+        gen_material = GeneratedVariant(id=2, sku="M-001", type=VariantType.material)
         domain_material = KatanaVariant.from_generated(gen_material)
         assert domain_material.type_ == "material"
 
+        # Test service type
+        gen_service = GeneratedVariant(id=3, sku="S-001", type=VariantType.service)
+        domain_service = KatanaVariant.from_generated(gen_service)
+        assert domain_service.type_ == "service"
+
         # Test None type
-        gen_none = GeneratedVariant(id=3, sku="N-001", type=None)
+        gen_none = GeneratedVariant(id=4, sku="N-001", type=None)
         domain_none = KatanaVariant.from_generated(gen_none)
         assert domain_none.type_ is None
 
@@ -356,7 +365,7 @@ class TestKatanaServiceFactoryMethods:
     def test_from_generated_with_all_fields(self) -> None:
         """Test converting a fully-populated generated Service."""
         from katana_public_api_client.domain.service import KatanaService
-        from katana_public_api_client.models_pydantic._generated.common import Type1
+        from katana_public_api_client.models_pydantic._generated.common import Type3
         from katana_public_api_client.models_pydantic._generated.inventory import (
             Service as GeneratedService,
         )
@@ -364,7 +373,7 @@ class TestKatanaServiceFactoryMethods:
         generated = GeneratedService(
             id=1,
             name="Assembly Service",
-            type=Type1.service,
+            type=Type3.service,
             uom="hours",
             category_name="Manufacturing",
             is_sellable=True,

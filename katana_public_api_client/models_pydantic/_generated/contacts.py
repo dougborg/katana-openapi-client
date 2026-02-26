@@ -15,7 +15,7 @@ from pydantic import ConfigDict, EmailStr, Field, RootModel
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
 from .base import DeletableEntity, UpdatableEntity
-from .common import Address, AdjustmentMethod, EntityType4
+from .common import Address, AddressEntityType, AdjustmentMethod
 
 
 class SupplierAddressRequest(KatanaPydanticBase):
@@ -150,12 +150,7 @@ class CustomerAddress(DeletableEntity):
     customer_id: Annotated[
         int, Field(description="ID of the customer this address belongs to")
     ]
-    entity_type: Annotated[
-        EntityType4,
-        Field(
-            description="Address type - billing for invoicing, shipping for delivery"
-        ),
-    ]
+    entity_type: AddressEntityType
     default: Annotated[
         bool | None,
         Field(
@@ -441,12 +436,7 @@ class CreateCustomerAddressRequest(KatanaPydanticBase):
     customer_id: Annotated[
         int, Field(description="ID of the customer this address belongs to")
     ]
-    entity_type: Annotated[
-        EntityType4,
-        Field(
-            description="Address type - billing for invoicing, shipping for delivery"
-        ),
-    ]
+    entity_type: AddressEntityType
     first_name: Annotated[
         str | None,
         Field(description="First name for the contact person at this address"),

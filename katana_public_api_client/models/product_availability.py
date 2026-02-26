@@ -1,13 +1,12 @@
 from enum import StrEnum
 
 
-class ManufacturingOrderIngredientAvailabilityType0(StrEnum):
+class ProductAvailability(StrEnum):
     EXPECTED = "EXPECTED"
     IN_STOCK = "IN_STOCK"
     NOT_APPLICABLE = "NOT_APPLICABLE"
     NOT_AVAILABLE = "NOT_AVAILABLE"
-    NO_RECIPE = "NO_RECIPE"
-    PROCESSED = "PROCESSED"
+    PICKED = "PICKED"
 
     def __str__(self) -> str:
         return str(self.value)

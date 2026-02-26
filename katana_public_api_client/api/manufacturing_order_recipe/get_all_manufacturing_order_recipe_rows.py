@@ -8,9 +8,7 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
-from ...models.get_all_manufacturing_order_recipe_rows_ingredient_availability import (
-    GetAllManufacturingOrderRecipeRowsIngredientAvailability,
-)
+from ...models.ingredient_availability import IngredientAvailability
 from ...models.manufacturing_order_recipe_row_list_response import (
     ManufacturingOrderRecipeRowListResponse,
 )
@@ -21,8 +19,7 @@ def _get_kwargs(
     ids: list[int] | Unset = UNSET,
     manufacturing_order_id: float | Unset = UNSET,
     variant_id: int | Unset = UNSET,
-    ingredient_availability: GetAllManufacturingOrderRecipeRowsIngredientAvailability
-    | Unset = UNSET,
+    ingredient_availability: IngredientAvailability | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -135,8 +132,7 @@ def sync_detailed(
     ids: list[int] | Unset = UNSET,
     manufacturing_order_id: float | Unset = UNSET,
     variant_id: int | Unset = UNSET,
-    ingredient_availability: GetAllManufacturingOrderRecipeRowsIngredientAvailability
-    | Unset = UNSET,
+    ingredient_availability: IngredientAvailability | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -156,8 +152,8 @@ def sync_detailed(
         ids (list[int] | Unset):
         manufacturing_order_id (float | Unset):
         variant_id (int | Unset):
-        ingredient_availability (GetAllManufacturingOrderRecipeRowsIngredientAvailability |
-            Unset):
+        ingredient_availability (IngredientAvailability | Unset): Availability status of
+            ingredients for production
         include_deleted (bool | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -202,8 +198,7 @@ def sync(
     ids: list[int] | Unset = UNSET,
     manufacturing_order_id: float | Unset = UNSET,
     variant_id: int | Unset = UNSET,
-    ingredient_availability: GetAllManufacturingOrderRecipeRowsIngredientAvailability
-    | Unset = UNSET,
+    ingredient_availability: IngredientAvailability | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -223,8 +218,8 @@ def sync(
         ids (list[int] | Unset):
         manufacturing_order_id (float | Unset):
         variant_id (int | Unset):
-        ingredient_availability (GetAllManufacturingOrderRecipeRowsIngredientAvailability |
-            Unset):
+        ingredient_availability (IngredientAvailability | Unset): Availability status of
+            ingredients for production
         include_deleted (bool | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -264,8 +259,7 @@ async def asyncio_detailed(
     ids: list[int] | Unset = UNSET,
     manufacturing_order_id: float | Unset = UNSET,
     variant_id: int | Unset = UNSET,
-    ingredient_availability: GetAllManufacturingOrderRecipeRowsIngredientAvailability
-    | Unset = UNSET,
+    ingredient_availability: IngredientAvailability | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -285,8 +279,8 @@ async def asyncio_detailed(
         ids (list[int] | Unset):
         manufacturing_order_id (float | Unset):
         variant_id (int | Unset):
-        ingredient_availability (GetAllManufacturingOrderRecipeRowsIngredientAvailability |
-            Unset):
+        ingredient_availability (IngredientAvailability | Unset): Availability status of
+            ingredients for production
         include_deleted (bool | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -329,8 +323,7 @@ async def asyncio(
     ids: list[int] | Unset = UNSET,
     manufacturing_order_id: float | Unset = UNSET,
     variant_id: int | Unset = UNSET,
-    ingredient_availability: GetAllManufacturingOrderRecipeRowsIngredientAvailability
-    | Unset = UNSET,
+    ingredient_availability: IngredientAvailability | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -350,8 +343,8 @@ async def asyncio(
         ids (list[int] | Unset):
         manufacturing_order_id (float | Unset):
         variant_id (int | Unset):
-        ingredient_availability (GetAllManufacturingOrderRecipeRowsIngredientAvailability |
-            Unset):
+        ingredient_availability (IngredientAvailability | Unset): Availability status of
+            ingredients for production
         include_deleted (bool | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.

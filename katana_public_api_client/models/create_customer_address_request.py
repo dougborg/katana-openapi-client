@@ -9,9 +9,7 @@ from attrs import (
 )
 
 from ..client_types import UNSET, Unset
-from ..models.create_customer_address_request_entity_type import (
-    CreateCustomerAddressRequestEntityType,
-)
+from ..models.address_entity_type import AddressEntityType
 
 T = TypeVar("T", bound="CreateCustomerAddressRequest")
 
@@ -27,7 +25,7 @@ class CreateCustomerAddressRequest:
     """
 
     customer_id: int
-    entity_type: CreateCustomerAddressRequestEntityType
+    entity_type: AddressEntityType
     first_name: None | str | Unset = UNSET
     last_name: None | str | Unset = UNSET
     company: None | str | Unset = UNSET
@@ -141,7 +139,7 @@ class CreateCustomerAddressRequest:
         d = dict(src_dict)
         customer_id = d.pop("customer_id")
 
-        entity_type = CreateCustomerAddressRequestEntityType(d.pop("entity_type"))
+        entity_type = AddressEntityType(d.pop("entity_type"))
 
         def _parse_first_name(data: object) -> None | str | Unset:
             if data is None:

@@ -18,13 +18,12 @@ from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 from .base import DeletableEntity
 from .common import (
     BillingStatus,
-    DistributionMethod,
-    EntityType,
-    IngredientAvailability2,
+    CostDistributionMethod,
+    IngredientAvailability1,
     LastDocumentStatus,
-    Status4,
-    Status5,
-    Status6,
+    Status1,
+    Status2,
+    Status3,
 )
 from .contacts import Supplier
 from .stock import (
@@ -41,6 +40,11 @@ class OutsourcedPurchaseOrderIngredientAvailability(StrEnum):
     not_available = "NOT_AVAILABLE"
     expected = "EXPECTED"
     no_recipe = "NO_RECIPE"
+
+
+class PurchaseOrderEntityType(StrEnum):
+    regular = "regular"
+    outsourced = "outsourced"
 
 
 class PurchaseOrderRowRequest(KatanaPydanticBase):
@@ -205,7 +209,7 @@ class UpdatePurchaseOrderRequest(KatanaPydanticBase):
         ),
     ] = None
     status: Annotated[
-        Status6 | None,
+        Status3 | None,
         Field(description="Current status indicating progress of order fulfillment"),
     ] = None
     expected_arrival_date: Annotated[
@@ -255,12 +259,7 @@ class CreatePurchaseOrderAdditionalCostRowRequest(KatanaPydanticBase):
             le=1e17,
         ),
     ]
-    distribution_method: Annotated[
-        DistributionMethod | None,
-        Field(
-            description="Method for distributing this cost across purchase order items"
-        ),
-    ] = None
+    distribution_method: CostDistributionMethod | None = None
 
 
 class PurchaseOrderAdditionalCostRow(DeletableEntity):
@@ -350,12 +349,7 @@ class UpdatePurchaseOrderAdditionalCostRowRequest(KatanaPydanticBase):
             le=1e17,
         ),
     ] = None
-    distribution_method: Annotated[
-        DistributionMethod | None,
-        Field(
-            description="Method for distributing this cost across purchase order items"
-        ),
-    ] = None
+    distribution_method: CostDistributionMethod | None = None
 
 
 class PurchaseOrderReceiveRow(KatanaPydanticBase):
@@ -590,7 +584,7 @@ class OutsourcedPurchaseOrderRecipeRow(DeletableEntity):
         ),
     ]
     ingredient_availability: Annotated[
-        IngredientAvailability2 | None,
+        IngredientAvailability1 | None,
         Field(description="Current availability status of this ingredient"),
     ] = None
     ingredient_expected_date: Annotated[
@@ -664,12 +658,7 @@ class CreatePurchaseOrderRequest(KatanaPydanticBase):
         str,
         Field(description="Unique purchase order number for tracking and reference"),
     ]
-    entity_type: Annotated[
-        EntityType | None,
-        Field(
-            description="Type of purchase order - regular for materials or outsourced for subcontracted work"
-        ),
-    ] = None
+    entity_type: PurchaseOrderEntityType | None = None
     supplier_id: Annotated[
         int,
         Field(
@@ -685,7 +674,7 @@ class CreatePurchaseOrderRequest(KatanaPydanticBase):
         ),
     ] = None
     status: Annotated[
-        Status4 | None,
+        Status1 | None,
         Field(description="Initial status of the purchase order when created"),
     ] = None
     order_created_date: Annotated[
@@ -728,7 +717,7 @@ class OutsourcedPurchaseOrderRecipeRowListResponse(KatanaPydanticBase):
 
 
 class PurchaseOrderBase(DeletableEntity):
-    status: Annotated[Status5 | None, Field(description="Status of the order.")] = None
+    status: Annotated[Status2 | None, Field(description="Status of the order.")] = None
     order_no: Annotated[
         str | None,
         Field(
@@ -736,7 +725,7 @@ class PurchaseOrderBase(DeletableEntity):
         ),
     ] = None
     entity_type: Annotated[
-        EntityType | None,
+        PurchaseOrderEntityType | None,
         Field(
             description='Either "regular" or "outsourced", depending on the purchase order type.'
         ),

@@ -8,7 +8,7 @@ from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.update_sales_return_request_status import UpdateSalesReturnRequestStatus
+from ..models.sales_return_status import SalesReturnStatus
 
 T = TypeVar("T", bound="UpdateSalesReturnRequest")
 
@@ -22,7 +22,7 @@ class UpdateSalesReturnRequest:
             'return_location_id': 1, 'additional_info': 'Customer reported damaged items during shipping'}
     """
 
-    status: UpdateSalesReturnRequestStatus | Unset = UNSET
+    status: SalesReturnStatus | Unset = UNSET
     return_date: datetime.datetime | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
     return_location_id: int | Unset = UNSET
@@ -74,11 +74,11 @@ class UpdateSalesReturnRequest:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         _status = d.pop("status", UNSET)
-        status: UpdateSalesReturnRequestStatus | Unset
+        status: SalesReturnStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
-            status = UpdateSalesReturnRequestStatus(_status)
+            status = SalesReturnStatus(_status)
 
         _return_date = d.pop("return_date", UNSET)
         return_date: datetime.datetime | Unset

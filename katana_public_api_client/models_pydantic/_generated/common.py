@@ -18,6 +18,39 @@ from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 from .base import DeletableEntity, UpdatableEntity
 
 
+class VariantType(StrEnum):
+    product = "product"
+    material = "material"
+    service = "service"
+
+
+class AddressEntityType(StrEnum):
+    billing = "billing"
+    shipping = "shipping"
+
+
+class CostDistributionMethod(StrEnum):
+    by_value = "BY_VALUE"
+    non_distributed = "NON_DISTRIBUTED"
+
+
+class ProductAvailability(StrEnum):
+    in_stock = "IN_STOCK"
+    expected = "EXPECTED"
+    picked = "PICKED"
+    not_available = "NOT_AVAILABLE"
+    not_applicable = "NOT_APPLICABLE"
+
+
+class IngredientAvailability(StrEnum):
+    processed = "PROCESSED"
+    in_stock = "IN_STOCK"
+    not_available = "NOT_AVAILABLE"
+    expected = "EXPECTED"
+    no_recipe = "NO_RECIPE"
+    not_applicable = "NOT_APPLICABLE"
+
+
 class AdditionalCost(DeletableEntity):
     name: str
 
@@ -44,11 +77,6 @@ class ResourceType(StrEnum):
     production_ingredient = "ProductionIngredient"
 
 
-class Type(StrEnum):
-    product = "product"
-    material = "material"
-
-
 class CustomField(KatanaPydanticBase):
     field_name: Annotated[str | None, Field(description="Name of the custom field")] = (
         None
@@ -67,10 +95,6 @@ class ConfigAttribute(KatanaPydanticBase):
         str | None,
         Field(description="Value for this configuration attribute (e.g., Blue, Large)"),
     ] = None
-
-
-class Type1(StrEnum):
-    service = "service"
 
 
 class CustomField1(KatanaPydanticBase):
@@ -115,28 +139,17 @@ class Location1(KatanaPydanticBase):
 
 class Status(StrEnum):
     not_started = "NOT_STARTED"
-    blocked = "BLOCKED"
-    in_progress = "IN_PROGRESS"
-    done = "DONE"
-
-
-class IngredientAvailability(StrEnum):
-    processed = "PROCESSED"
-    in_stock = "IN_STOCK"
-    not_available = "NOT_AVAILABLE"
-    expected = "EXPECTED"
-    no_recipe = "NO_RECIPE"
-    not_applicable = "NOT_APPLICABLE"
-
-
-class Status3(StrEnum):
-    not_started = "NOT_STARTED"
     in_progress = "IN_PROGRESS"
     completed = "COMPLETED"
     paused = "PAUSED"
 
 
-class Type3(StrEnum):
+class Type(StrEnum):
+    product = "product"
+    material = "material"
+
+
+class Type1(StrEnum):
     material = "material"
 
 
@@ -181,20 +194,15 @@ class Config2(KatanaPydanticBase):
     ] = None
 
 
-class Type4(StrEnum):
+class Type2(StrEnum):
     product = "product"
 
 
-class EntityType(StrEnum):
-    regular = "regular"
-    outsourced = "outsourced"
-
-
-class Status4(StrEnum):
+class Status1(StrEnum):
     not_received = "NOT_RECEIVED"
 
 
-class Status5(StrEnum):
+class Status2(StrEnum):
     not_received = "NOT_RECEIVED"
     partially_received = "PARTIALLY_RECEIVED"
     received = "RECEIVED"
@@ -213,23 +221,18 @@ class LastDocumentStatus(StrEnum):
     sent = "SENT"
 
 
-class EntityType2(StrEnum):
+class EntityType(StrEnum):
     regular = "regular"
 
 
-class EntityType3(StrEnum):
+class EntityType1(StrEnum):
     outsourced = "outsourced"
 
 
-class Status6(StrEnum):
+class Status3(StrEnum):
     not_received = "NOT_RECEIVED"
     received = "RECEIVED"
     partially_received = "PARTIALLY_RECEIVED"
-
-
-class DistributionMethod(StrEnum):
-    by_value = "BY_VALUE"
-    non_distributed = "NON_DISTRIBUTED"
 
 
 class CreateTaxRateRequest(KatanaPydanticBase):
@@ -311,12 +314,6 @@ class CustomField2(KatanaPydanticBase):
     )
     field_name: Annotated[str, Field(description="Name of the custom field")]
     field_value: Annotated[str, Field(description="Value stored in the custom field")]
-
-
-class Type5(StrEnum):
-    product = "product"
-    material = "material"
-    service = "service"
 
 
 class ConfigAttribute2(ConfigAttribute):
@@ -536,6 +533,10 @@ class Event(StrEnum):
     product_recipe_row_updated = "product_recipe_row.updated"
 
 
+class Type3(StrEnum):
+    service = "service"
+
+
 class CustomField5(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
@@ -653,13 +654,8 @@ class ClearDemandForecastRequest(KatanaPydanticBase):
     ]
 
 
-class EntityType4(StrEnum):
-    billing = "billing"
-    shipping = "shipping"
-
-
 class Address(KatanaPydanticBase):
-    entity_type: EntityType4 | None = None
+    entity_type: AddressEntityType | None = None
     first_name: str | None = None
     last_name: str | None = None
     company: str | None = None
@@ -672,20 +668,12 @@ class Address(KatanaPydanticBase):
     country: str | None = None
 
 
-class Status7(StrEnum):
+class Status4(StrEnum):
     not_shipped = "NOT_SHIPPED"
     partially_packed = "PARTIALLY_PACKED"
     partially_delivered = "PARTIALLY_DELIVERED"
     packed = "PACKED"
     delivered = "DELIVERED"
-
-
-class ProductAvailability(StrEnum):
-    in_stock = "IN_STOCK"
-    expected = "EXPECTED"
-    picked = "PICKED"
-    not_available = "NOT_AVAILABLE"
-    not_applicable = "NOT_APPLICABLE"
 
 
 class ProductionStatus(StrEnum):
@@ -712,12 +700,12 @@ class Attribute3(KatanaPydanticBase):
     value: Annotated[str | None, Field(description="Attribute value")] = None
 
 
-class Status8(StrEnum):
+class Status5(StrEnum):
     not_shipped = "NOT_SHIPPED"
     pending = "PENDING"
 
 
-class Status9(StrEnum):
+class Status6(StrEnum):
     packed = "PACKED"
     delivered = "DELIVERED"
 
@@ -903,13 +891,6 @@ class CustomFieldModel(KatanaPydanticBase):
     ] = None
 
 
-class Status10(StrEnum):
-    not_started = "NOT_STARTED"
-    in_progress = "IN_PROGRESS"
-    counted = "COUNTED"
-    completed = "COMPLETED"
-
-
 class Transaction(KatanaPydanticBase):
     id: Annotated[str, Field(description="Transaction ID")]
     resource_id: Annotated[
@@ -922,12 +903,6 @@ class Transaction(KatanaPydanticBase):
         AwareDatetime | None, Field(description="Date and time of transaction")
     ] = None
     quantity_change: Annotated[int, Field(description="Quantity change in transaction")]
-
-
-class Status11(StrEnum):
-    not_returned = "NOT_RETURNED"
-    returned_all = "RETURNED_ALL"
-    restocked_all = "RESTOCKED_ALL"
 
 
 class User(UpdatableEntity):
@@ -974,7 +949,7 @@ class UserListResponse(KatanaPydanticBase):
     ] = None
 
 
-class IngredientAvailability2(StrEnum):
+class IngredientAvailability1(StrEnum):
     processed = "PROCESSED"
     in_stock = "IN_STOCK"
     not_available = "NOT_AVAILABLE"
@@ -1017,14 +992,14 @@ class IntegrationType(StrEnum):
     custom = "custom"
 
 
-class Type7(StrEnum):
+class Type4(StrEnum):
     process = "process"
     setup = "setup"
     per_unit = "perUnit"
     fixed = "fixed"
 
 
-class Status14(StrEnum):
+class Status7(StrEnum):
     not_shipped = "NOT_SHIPPED"
     pending = "PENDING"
     packed = "PACKED"
@@ -1040,7 +1015,7 @@ class ResourceType3(StrEnum):
     sales_order_row = "SalesOrderRow"
 
 
-class Status15(StrEnum):
+class Status8(StrEnum):
     pending = "pending"
     in_transit = "in_transit"
     completed = "completed"

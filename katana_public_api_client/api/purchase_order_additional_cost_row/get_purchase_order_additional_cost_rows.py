@@ -7,10 +7,8 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
+from ...models.cost_distribution_method import CostDistributionMethod
 from ...models.error_response import ErrorResponse
-from ...models.get_purchase_order_additional_cost_rows_distribution_method import (
-    GetPurchaseOrderAdditionalCostRowsDistributionMethod,
-)
 from ...models.purchase_order_additional_cost_row_list_response import (
     PurchaseOrderAdditionalCostRowListResponse,
 )
@@ -23,8 +21,7 @@ def _get_kwargs(
     additional_cost_id: float | Unset = UNSET,
     tax_rate_id: float | Unset = UNSET,
     currency: str | Unset = UNSET,
-    distribution_method: GetPurchaseOrderAdditionalCostRowsDistributionMethod
-    | Unset = UNSET,
+    distribution_method: CostDistributionMethod | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -143,8 +140,7 @@ def sync_detailed(
     additional_cost_id: float | Unset = UNSET,
     tax_rate_id: float | Unset = UNSET,
     currency: str | Unset = UNSET,
-    distribution_method: GetPurchaseOrderAdditionalCostRowsDistributionMethod
-    | Unset = UNSET,
+    distribution_method: CostDistributionMethod | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -163,7 +159,8 @@ def sync_detailed(
         additional_cost_id (float | Unset):
         tax_rate_id (float | Unset):
         currency (str | Unset):
-        distribution_method (GetPurchaseOrderAdditionalCostRowsDistributionMethod | Unset):
+        distribution_method (CostDistributionMethod | Unset): Method for distributing additional
+            costs across purchase order items
         include_deleted (bool | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -212,8 +209,7 @@ def sync(
     additional_cost_id: float | Unset = UNSET,
     tax_rate_id: float | Unset = UNSET,
     currency: str | Unset = UNSET,
-    distribution_method: GetPurchaseOrderAdditionalCostRowsDistributionMethod
-    | Unset = UNSET,
+    distribution_method: CostDistributionMethod | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -232,7 +228,8 @@ def sync(
         additional_cost_id (float | Unset):
         tax_rate_id (float | Unset):
         currency (str | Unset):
-        distribution_method (GetPurchaseOrderAdditionalCostRowsDistributionMethod | Unset):
+        distribution_method (CostDistributionMethod | Unset): Method for distributing additional
+            costs across purchase order items
         include_deleted (bool | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -276,8 +273,7 @@ async def asyncio_detailed(
     additional_cost_id: float | Unset = UNSET,
     tax_rate_id: float | Unset = UNSET,
     currency: str | Unset = UNSET,
-    distribution_method: GetPurchaseOrderAdditionalCostRowsDistributionMethod
-    | Unset = UNSET,
+    distribution_method: CostDistributionMethod | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -296,7 +292,8 @@ async def asyncio_detailed(
         additional_cost_id (float | Unset):
         tax_rate_id (float | Unset):
         currency (str | Unset):
-        distribution_method (GetPurchaseOrderAdditionalCostRowsDistributionMethod | Unset):
+        distribution_method (CostDistributionMethod | Unset): Method for distributing additional
+            costs across purchase order items
         include_deleted (bool | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -343,8 +340,7 @@ async def asyncio(
     additional_cost_id: float | Unset = UNSET,
     tax_rate_id: float | Unset = UNSET,
     currency: str | Unset = UNSET,
-    distribution_method: GetPurchaseOrderAdditionalCostRowsDistributionMethod
-    | Unset = UNSET,
+    distribution_method: CostDistributionMethod | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -363,7 +359,8 @@ async def asyncio(
         additional_cost_id (float | Unset):
         tax_rate_id (float | Unset):
         currency (str | Unset):
-        distribution_method (GetPurchaseOrderAdditionalCostRowsDistributionMethod | Unset):
+        distribution_method (CostDistributionMethod | Unset): Method for distributing additional
+            costs across purchase order items
         include_deleted (bool | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.

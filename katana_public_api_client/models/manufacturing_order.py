@@ -11,9 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.manufacturing_order_ingredient_availability_type_0 import (
-    ManufacturingOrderIngredientAvailabilityType0,
-)
+from ..models.ingredient_availability import IngredientAvailability
 from ..models.manufacturing_order_status import ManufacturingOrderStatus
 
 if TYPE_CHECKING:
@@ -65,9 +63,7 @@ class ManufacturingOrder:
     done_date: datetime.datetime | None | Unset = UNSET
     additional_info: str | Unset = UNSET
     is_linked_to_sales_order: bool | Unset = UNSET
-    ingredient_availability: (
-        ManufacturingOrderIngredientAvailabilityType0 | None | Unset
-    ) = UNSET
+    ingredient_availability: IngredientAvailability | None | Unset = UNSET
     total_cost: float | Unset = UNSET
     total_actual_time: float | Unset = UNSET
     total_planned_time: float | Unset = UNSET
@@ -161,9 +157,7 @@ class ManufacturingOrder:
         ingredient_availability: None | str | Unset
         if isinstance(self.ingredient_availability, Unset):
             ingredient_availability = UNSET
-        elif isinstance(
-            self.ingredient_availability, ManufacturingOrderIngredientAvailabilityType0
-        ):
+        elif isinstance(self.ingredient_availability, IngredientAvailability):
             ingredient_availability = self.ingredient_availability.value
         else:
             ingredient_availability = self.ingredient_availability
@@ -404,7 +398,7 @@ class ManufacturingOrder:
 
         def _parse_ingredient_availability(
             data: object,
-        ) -> ManufacturingOrderIngredientAvailabilityType0 | None | Unset:
+        ) -> IngredientAvailability | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -412,16 +406,12 @@ class ManufacturingOrder:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                ingredient_availability_type_0 = (
-                    ManufacturingOrderIngredientAvailabilityType0(data)
-                )
+                ingredient_availability_type_0 = IngredientAvailability(data)
 
                 return ingredient_availability_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(
-                ManufacturingOrderIngredientAvailabilityType0 | None | Unset, data
-            )
+            return cast(IngredientAvailability | None | Unset, data)
 
         ingredient_availability = _parse_ingredient_availability(
             d.pop("ingredient_availability", UNSET)

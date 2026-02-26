@@ -11,7 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.variant_response_type import VariantResponseType
+from ..models.variant_type import VariantType
 
 if TYPE_CHECKING:
     from ..models.material import Material
@@ -52,7 +52,7 @@ class VariantResponse:
     purchase_price: float | Unset = UNSET
     product_id: int | None | Unset = UNSET
     material_id: int | None | Unset = UNSET
-    type_: VariantResponseType | Unset = UNSET
+    type_: VariantType | Unset = UNSET
     internal_barcode: str | Unset = UNSET
     registered_barcode: str | Unset = UNSET
     supplier_item_codes: list[str] | Unset = UNSET
@@ -262,11 +262,11 @@ class VariantResponse:
         material_id = _parse_material_id(d.pop("material_id", UNSET))
 
         _type_ = d.pop("type", UNSET)
-        type_: VariantResponseType | Unset
+        type_: VariantType | Unset
         if isinstance(_type_, Unset):
             type_ = UNSET
         else:
-            type_ = VariantResponseType(_type_)
+            type_ = VariantType(_type_)
 
         internal_barcode = d.pop("internal_barcode", UNSET)
 

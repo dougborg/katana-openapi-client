@@ -11,9 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.create_manufacturing_order_request_status import (
-    CreateManufacturingOrderRequestStatus,
-)
+from ..models.manufacturing_order_status import ManufacturingOrderStatus
 
 if TYPE_CHECKING:
     from ..models.batch_transaction import BatchTransaction
@@ -34,7 +32,7 @@ class CreateManufacturingOrderRequest:
     variant_id: int
     location_id: int
     planned_quantity: float
-    status: CreateManufacturingOrderRequestStatus | Unset = UNSET
+    status: ManufacturingOrderStatus | Unset = UNSET
     order_no: str | Unset = UNSET
     actual_quantity: float | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
@@ -113,11 +111,11 @@ class CreateManufacturingOrderRequest:
         planned_quantity = d.pop("planned_quantity")
 
         _status = d.pop("status", UNSET)
-        status: CreateManufacturingOrderRequestStatus | Unset
+        status: ManufacturingOrderStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
-            status = CreateManufacturingOrderRequestStatus(_status)
+            status = ManufacturingOrderStatus(_status)
 
         order_no = d.pop("order_no", UNSET)
 

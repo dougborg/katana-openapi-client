@@ -11,7 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.customer_address_entity_type import CustomerAddressEntityType
+from ..models.address_entity_type import AddressEntityType
 
 T = TypeVar("T", bound="CustomerAddress")
 
@@ -29,7 +29,7 @@ class CustomerAddress:
 
     id: int
     customer_id: int
-    entity_type: CustomerAddressEntityType
+    entity_type: AddressEntityType
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
     deleted_at: datetime.datetime | None | Unset = UNSET
@@ -178,7 +178,7 @@ class CustomerAddress:
 
         customer_id = d.pop("customer_id")
 
-        entity_type = CustomerAddressEntityType(d.pop("entity_type"))
+        entity_type = AddressEntityType(d.pop("entity_type"))
 
         _created_at = d.pop("created_at", UNSET)
         created_at: datetime.datetime | Unset

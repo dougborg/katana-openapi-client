@@ -9,16 +9,14 @@ from attrs import (
 )
 
 from ..client_types import UNSET, Unset
-from ..models.create_customer_request_addresses_item_entity_type import (
-    CreateCustomerRequestAddressesItemEntityType,
-)
+from ..models.address_entity_type import AddressEntityType
 
 T = TypeVar("T", bound="CreateCustomerRequestAddressesItem")
 
 
 @_attrs_define
 class CreateCustomerRequestAddressesItem:
-    entity_type: CreateCustomerRequestAddressesItemEntityType | Unset = UNSET
+    entity_type: AddressEntityType | Unset = UNSET
     first_name: str | Unset = UNSET
     last_name: str | Unset = UNSET
     company: str | Unset = UNSET
@@ -88,11 +86,11 @@ class CreateCustomerRequestAddressesItem:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         _entity_type = d.pop("entity_type", UNSET)
-        entity_type: CreateCustomerRequestAddressesItemEntityType | Unset
+        entity_type: AddressEntityType | Unset
         if isinstance(_entity_type, Unset):
             entity_type = UNSET
         else:
-            entity_type = CreateCustomerRequestAddressesItemEntityType(_entity_type)
+            entity_type = AddressEntityType(_entity_type)
 
         first_name = d.pop("first_name", UNSET)
 

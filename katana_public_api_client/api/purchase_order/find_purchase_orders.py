@@ -11,9 +11,9 @@ from ...models.error_response import ErrorResponse
 from ...models.find_purchase_orders_billing_status import (
     FindPurchaseOrdersBillingStatus,
 )
-from ...models.find_purchase_orders_entity_type import FindPurchaseOrdersEntityType
 from ...models.find_purchase_orders_extend_item import FindPurchaseOrdersExtendItem
 from ...models.find_purchase_orders_status import FindPurchaseOrdersStatus
+from ...models.purchase_order_entity_type import PurchaseOrderEntityType
 from ...models.purchase_order_list_response import PurchaseOrderListResponse
 
 
@@ -21,7 +21,7 @@ def _get_kwargs(
     *,
     ids: list[int] | Unset = UNSET,
     order_no: str | Unset = UNSET,
-    entity_type: FindPurchaseOrdersEntityType | Unset = UNSET,
+    entity_type: PurchaseOrderEntityType | Unset = UNSET,
     status: FindPurchaseOrdersStatus | Unset = UNSET,
     billing_status: FindPurchaseOrdersBillingStatus | Unset = UNSET,
     currency: str | Unset = UNSET,
@@ -165,7 +165,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     ids: list[int] | Unset = UNSET,
     order_no: str | Unset = UNSET,
-    entity_type: FindPurchaseOrdersEntityType | Unset = UNSET,
+    entity_type: PurchaseOrderEntityType | Unset = UNSET,
     status: FindPurchaseOrdersStatus | Unset = UNSET,
     billing_status: FindPurchaseOrdersBillingStatus | Unset = UNSET,
     currency: str | Unset = UNSET,
@@ -190,7 +190,8 @@ def sync_detailed(
     Args:
         ids (list[int] | Unset):
         order_no (str | Unset):
-        entity_type (FindPurchaseOrdersEntityType | Unset):
+        entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for
+            materials or outsourced for subcontracted work
         status (FindPurchaseOrdersStatus | Unset):
         billing_status (FindPurchaseOrdersBillingStatus | Unset):
         currency (str | Unset):
@@ -247,7 +248,7 @@ def sync(
     client: AuthenticatedClient | Client,
     ids: list[int] | Unset = UNSET,
     order_no: str | Unset = UNSET,
-    entity_type: FindPurchaseOrdersEntityType | Unset = UNSET,
+    entity_type: PurchaseOrderEntityType | Unset = UNSET,
     status: FindPurchaseOrdersStatus | Unset = UNSET,
     billing_status: FindPurchaseOrdersBillingStatus | Unset = UNSET,
     currency: str | Unset = UNSET,
@@ -272,7 +273,8 @@ def sync(
     Args:
         ids (list[int] | Unset):
         order_no (str | Unset):
-        entity_type (FindPurchaseOrdersEntityType | Unset):
+        entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for
+            materials or outsourced for subcontracted work
         status (FindPurchaseOrdersStatus | Unset):
         billing_status (FindPurchaseOrdersBillingStatus | Unset):
         currency (str | Unset):
@@ -324,7 +326,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     ids: list[int] | Unset = UNSET,
     order_no: str | Unset = UNSET,
-    entity_type: FindPurchaseOrdersEntityType | Unset = UNSET,
+    entity_type: PurchaseOrderEntityType | Unset = UNSET,
     status: FindPurchaseOrdersStatus | Unset = UNSET,
     billing_status: FindPurchaseOrdersBillingStatus | Unset = UNSET,
     currency: str | Unset = UNSET,
@@ -349,7 +351,8 @@ async def asyncio_detailed(
     Args:
         ids (list[int] | Unset):
         order_no (str | Unset):
-        entity_type (FindPurchaseOrdersEntityType | Unset):
+        entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for
+            materials or outsourced for subcontracted work
         status (FindPurchaseOrdersStatus | Unset):
         billing_status (FindPurchaseOrdersBillingStatus | Unset):
         currency (str | Unset):
@@ -404,7 +407,7 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     ids: list[int] | Unset = UNSET,
     order_no: str | Unset = UNSET,
-    entity_type: FindPurchaseOrdersEntityType | Unset = UNSET,
+    entity_type: PurchaseOrderEntityType | Unset = UNSET,
     status: FindPurchaseOrdersStatus | Unset = UNSET,
     billing_status: FindPurchaseOrdersBillingStatus | Unset = UNSET,
     currency: str | Unset = UNSET,
@@ -429,7 +432,8 @@ async def asyncio(
     Args:
         ids (list[int] | Unset):
         order_no (str | Unset):
-        entity_type (FindPurchaseOrdersEntityType | Unset):
+        entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for
+            materials or outsourced for subcontracted work
         status (FindPurchaseOrdersStatus | Unset):
         billing_status (FindPurchaseOrdersBillingStatus | Unset):
         currency (str | Unset):

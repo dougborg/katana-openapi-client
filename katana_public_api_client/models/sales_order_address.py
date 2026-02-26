@@ -11,7 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.sales_order_address_entity_type import SalesOrderAddressEntityType
+from ..models.address_entity_type import AddressEntityType
 
 T = TypeVar("T", bound="SalesOrderAddress")
 
@@ -29,7 +29,7 @@ class SalesOrderAddress:
     Attributes:
         id (int): Unique identifier
         sales_order_id (int): ID of the sales order this address belongs to
-        entity_type (SalesOrderAddressEntityType): Type of address - billing for invoicing or shipping for delivery
+        entity_type (AddressEntityType): Address type - billing for invoicing, shipping for delivery
         created_at (datetime.datetime | Unset): Timestamp when the entity was first created
         updated_at (datetime.datetime | Unset): Timestamp when the entity was last updated
         deleted_at (datetime.datetime | None | Unset): Nullable deletion timestamp
@@ -47,7 +47,7 @@ class SalesOrderAddress:
 
     id: int
     sales_order_id: int
-    entity_type: SalesOrderAddressEntityType
+    entity_type: AddressEntityType
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
     deleted_at: datetime.datetime | None | Unset = UNSET
@@ -191,7 +191,7 @@ class SalesOrderAddress:
 
         sales_order_id = d.pop("sales_order_id")
 
-        entity_type = SalesOrderAddressEntityType(d.pop("entity_type"))
+        entity_type = AddressEntityType(d.pop("entity_type"))
 
         _created_at = d.pop("created_at", UNSET)
         created_at: datetime.datetime | Unset

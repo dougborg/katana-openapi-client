@@ -8,7 +8,7 @@ from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.update_stocktake_request_status import UpdateStocktakeRequestStatus
+from ..models.stocktake_status import StocktakeStatus
 
 T = TypeVar("T", bound="UpdateStocktakeRequest")
 
@@ -25,7 +25,7 @@ class UpdateStocktakeRequest:
     stocktake_number: str | Unset = UNSET
     location_id: int | Unset = UNSET
     reason: str | Unset = UNSET
-    status: UpdateStocktakeRequestStatus | Unset = UNSET
+    status: StocktakeStatus | Unset = UNSET
     additional_info: str | Unset = UNSET
     created_date: datetime.datetime | Unset = UNSET
     completed_date: datetime.datetime | Unset = UNSET
@@ -88,11 +88,11 @@ class UpdateStocktakeRequest:
         reason = d.pop("reason", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: UpdateStocktakeRequestStatus | Unset
+        status: StocktakeStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
-            status = UpdateStocktakeRequestStatus(_status)
+            status = StocktakeStatus(_status)
 
         additional_info = d.pop("additional_info", UNSET)
 

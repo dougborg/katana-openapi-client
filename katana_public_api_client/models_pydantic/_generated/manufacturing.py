@@ -8,6 +8,7 @@ To regenerate, run:
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
@@ -22,7 +23,6 @@ from .common import (
     Operator,
     Row,
     Status,
-    Status3,
 )
 from .stock import (
     BatchTransaction,
@@ -33,9 +33,16 @@ from .stock import (
 )
 
 
+class ManufacturingOrderStatus(StrEnum):
+    not_started = "NOT_STARTED"
+    blocked = "BLOCKED"
+    in_progress = "IN_PROGRESS"
+    done = "DONE"
+
+
 class CreateManufacturingOrderRequest(KatanaPydanticBase):
     status: Annotated[
-        Status | None,
+        ManufacturingOrderStatus | None,
         Field(description="Initial production status of the manufacturing order"),
     ] = None
     order_no: Annotated[
@@ -81,7 +88,7 @@ class CreateManufacturingOrderRequest(KatanaPydanticBase):
 
 class UpdateManufacturingOrderRequest(KatanaPydanticBase):
     status: Annotated[
-        Status | None,
+        ManufacturingOrderStatus | None,
         Field(description="Updated production status of the manufacturing order"),
     ] = None
     order_no: Annotated[
@@ -542,7 +549,7 @@ class UpdateRecipeRowRequest(KatanaPydanticBase):
 class ManufacturingOrder(DeletableEntity):
     id: int | None = None
     status: Annotated[
-        Status | None,
+        ManufacturingOrderStatus | None,
         Field(description="Current production status of the manufacturing order"),
     ] = None
     order_no: Annotated[
@@ -698,7 +705,7 @@ class ManufacturingOrderProductionListResponse(KatanaPydanticBase):
 class ManufacturingOrderOperationRow(DeletableEntity):
     id: int
     status: Annotated[
-        Status3 | None, Field(description="Current status of the operation")
+        Status | None, Field(description="Current status of the operation")
     ] = None
     type: Annotated[
         str | None, Field(description="Type classification of the operation")

@@ -1,6 +1,6 @@
 """Domain model for Variant entities.
 
-This module provides a Pydantic model representing a Variant (product or material SKU)
+This module provides a Pydantic model representing a Variant (product, material, or service SKU)
 optimized for ETL, data processing, and business logic.
 
 The domain model uses composition with the auto-generated Pydantic model from OpenAPI,
@@ -79,9 +79,8 @@ class KatanaVariant(KatanaBaseModel):
 
     # ============ Classification ============
 
-    # Note: OpenAPI spec only allows "product" or "material" for variants
-    type_: Literal["product", "material"] | None = Field(
-        None, alias="type", description="Variant type (product or material)"
+    type_: Literal["product", "material", "service"] | None = Field(
+        None, alias="type", description="Variant type (product, material, or service)"
     )
 
     # ============ Inventory & Barcode Fields ============
@@ -164,15 +163,14 @@ class KatanaVariant(KatanaBaseModel):
                 )
 
         # Extract type value from enum if present
-        # Only "product" or "material" are valid per OpenAPI spec
-        type_value: Literal["product", "material"] | None = None
+        type_value: Literal["product", "material", "service"] | None = None
         if generated.type is not None:
             raw_type = (
                 generated.type.value
                 if hasattr(generated.type, "value")
                 else generated.type
             )
-            if raw_type in ("product", "material"):
+            if raw_type in ("product", "material", "service"):
                 type_value = raw_type
 
         return cls(

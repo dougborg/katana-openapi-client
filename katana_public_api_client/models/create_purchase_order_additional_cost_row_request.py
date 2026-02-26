@@ -6,9 +6,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
-from ..models.create_purchase_order_additional_cost_row_request_distribution_method import (
-    CreatePurchaseOrderAdditionalCostRowRequestDistributionMethod,
-)
+from ..models.cost_distribution_method import CostDistributionMethod
 
 T = TypeVar("T", bound="CreatePurchaseOrderAdditionalCostRowRequest")
 
@@ -25,9 +23,7 @@ class CreatePurchaseOrderAdditionalCostRowRequest:
     group_id: int
     tax_rate_id: int
     price: float
-    distribution_method: (
-        CreatePurchaseOrderAdditionalCostRowRequestDistributionMethod | Unset
-    ) = UNSET
+    distribution_method: CostDistributionMethod | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         additional_cost_id = self.additional_cost_id
@@ -69,17 +65,11 @@ class CreatePurchaseOrderAdditionalCostRowRequest:
         price = d.pop("price")
 
         _distribution_method = d.pop("distribution_method", UNSET)
-        distribution_method: (
-            CreatePurchaseOrderAdditionalCostRowRequestDistributionMethod | Unset
-        )
+        distribution_method: CostDistributionMethod | Unset
         if isinstance(_distribution_method, Unset):
             distribution_method = UNSET
         else:
-            distribution_method = (
-                CreatePurchaseOrderAdditionalCostRowRequestDistributionMethod(
-                    _distribution_method
-                )
-            )
+            distribution_method = CostDistributionMethod(_distribution_method)
 
         create_purchase_order_additional_cost_row_request = cls(
             additional_cost_id=additional_cost_id,

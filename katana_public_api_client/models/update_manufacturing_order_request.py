@@ -11,9 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.update_manufacturing_order_request_status import (
-    UpdateManufacturingOrderRequestStatus,
-)
+from ..models.manufacturing_order_status import ManufacturingOrderStatus
 
 if TYPE_CHECKING:
     from ..models.batch_transaction import BatchTransaction
@@ -31,7 +29,7 @@ class UpdateManufacturingOrderRequest:
             'production_deadline_date': '2024-01-30T17:00:00Z'}
     """
 
-    status: UpdateManufacturingOrderRequestStatus | Unset = UNSET
+    status: ManufacturingOrderStatus | Unset = UNSET
     order_no: str | Unset = UNSET
     variant_id: int | Unset = UNSET
     location_id: int | Unset = UNSET
@@ -114,11 +112,11 @@ class UpdateManufacturingOrderRequest:
 
         d = dict(src_dict)
         _status = d.pop("status", UNSET)
-        status: UpdateManufacturingOrderRequestStatus | Unset
+        status: ManufacturingOrderStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
-            status = UpdateManufacturingOrderRequestStatus(_status)
+            status = ManufacturingOrderStatus(_status)
 
         order_no = d.pop("order_no", UNSET)
 

@@ -12,11 +12,11 @@ from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.purchase_order_base_billing_status import PurchaseOrderBaseBillingStatus
-from ..models.purchase_order_base_entity_type import PurchaseOrderBaseEntityType
 from ..models.purchase_order_base_last_document_status import (
     PurchaseOrderBaseLastDocumentStatus,
 )
 from ..models.purchase_order_base_status import PurchaseOrderBaseStatus
+from ..models.purchase_order_entity_type import PurchaseOrderEntityType
 
 if TYPE_CHECKING:
     from ..models.purchase_order_row import PurchaseOrderRow
@@ -36,7 +36,7 @@ class PurchaseOrderBase:
     deleted_at: datetime.datetime | None | Unset = UNSET
     status: PurchaseOrderBaseStatus | Unset = UNSET
     order_no: str | Unset = UNSET
-    entity_type: PurchaseOrderBaseEntityType | Unset = UNSET
+    entity_type: PurchaseOrderEntityType | Unset = UNSET
     default_group_id: int | Unset = UNSET
     supplier_id: int | Unset = UNSET
     currency: str | Unset = UNSET
@@ -219,11 +219,11 @@ class PurchaseOrderBase:
         order_no = d.pop("order_no", UNSET)
 
         _entity_type = d.pop("entity_type", UNSET)
-        entity_type: PurchaseOrderBaseEntityType | Unset
+        entity_type: PurchaseOrderEntityType | Unset
         if isinstance(_entity_type, Unset):
             entity_type = UNSET
         else:
-            entity_type = PurchaseOrderBaseEntityType(_entity_type)
+            entity_type = PurchaseOrderEntityType(_entity_type)
 
         default_group_id = d.pop("default_group_id", UNSET)
 

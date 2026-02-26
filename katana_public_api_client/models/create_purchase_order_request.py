@@ -8,12 +8,10 @@ from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.create_purchase_order_request_entity_type import (
-    CreatePurchaseOrderRequestEntityType,
-)
 from ..models.create_purchase_order_request_status import (
     CreatePurchaseOrderRequestStatus,
 )
+from ..models.purchase_order_entity_type import PurchaseOrderEntityType
 
 if TYPE_CHECKING:
     from ..models.purchase_order_row_request import PurchaseOrderRowRequest
@@ -40,8 +38,8 @@ class CreatePurchaseOrderRequest:
         location_id (int): Primary location where the purchased items will be received and stored
         purchase_order_rows (list[PurchaseOrderRowRequest]): List of line items being ordered, including quantities and
             pricing
-        entity_type (CreatePurchaseOrderRequestEntityType | Unset): Type of purchase order - regular for materials or
-            outsourced for subcontracted work
+        entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for materials or outsourced for
+            subcontracted work
         currency (str | Unset): Active ISO 4217 currency code (e.g. USD, EUR).
         status (CreatePurchaseOrderRequestStatus | Unset): Initial status of the purchase order when created
         order_created_date (datetime.datetime | Unset): Date when the purchase order was created
@@ -54,7 +52,7 @@ class CreatePurchaseOrderRequest:
     supplier_id: int
     location_id: int
     purchase_order_rows: list[PurchaseOrderRowRequest]
-    entity_type: CreatePurchaseOrderRequestEntityType | Unset = UNSET
+    entity_type: PurchaseOrderEntityType | Unset = UNSET
     currency: str | Unset = UNSET
     status: CreatePurchaseOrderRequestStatus | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
@@ -144,11 +142,11 @@ class CreatePurchaseOrderRequest:
             purchase_order_rows.append(purchase_order_rows_item)
 
         _entity_type = d.pop("entity_type", UNSET)
-        entity_type: CreatePurchaseOrderRequestEntityType | Unset
+        entity_type: PurchaseOrderEntityType | Unset
         if isinstance(_entity_type, Unset):
             entity_type = UNSET
         else:
-            entity_type = CreatePurchaseOrderRequestEntityType(_entity_type)
+            entity_type = PurchaseOrderEntityType(_entity_type)
 
         currency = d.pop("currency", UNSET)
 

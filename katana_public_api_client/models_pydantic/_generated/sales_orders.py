@@ -8,6 +8,7 @@ To regenerate, run:
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Annotated
 
 from pydantic import AnyUrl, AwareDatetime, ConfigDict, Field
@@ -16,20 +17,19 @@ from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
 from .base import DeletableEntity, UpdatableEntity
 from .common import (
+    AddressEntityType,
     Attribute,
     Attribute1,
     Attribute3,
-    EntityType4,
     IngredientAvailability,
     IntegrationType,
     InvoiceStatus,
     ProductAvailability,
     ProductionStatus,
+    Status4,
+    Status5,
+    Status6,
     Status7,
-    Status8,
-    Status9,
-    Status11,
-    Status14,
 )
 from .stock import (
     BatchTransaction,
@@ -39,6 +39,12 @@ from .stock import (
     BatchTransactionRequest,
     SerialNumberTransaction,
 )
+
+
+class SalesReturnStatus(StrEnum):
+    not_returned = "NOT_RETURNED"
+    returned_all = "RETURNED_ALL"
+    restocked_all = "RESTOCKED_ALL"
 
 
 class SalesOrderRow(DeletableEntity):
@@ -134,12 +140,7 @@ class SalesOrderAddress(DeletableEntity):
     sales_order_id: Annotated[
         int, Field(description="ID of the sales order this address belongs to")
     ]
-    entity_type: Annotated[
-        EntityType4,
-        Field(
-            description="Type of address - billing for invoicing or shipping for delivery"
-        ),
-    ]
+    entity_type: AddressEntityType
     first_name: Annotated[
         str | None, Field(description="First name of the contact person")
     ] = None
@@ -244,9 +245,7 @@ class CreateSalesOrderAddressRequest(KatanaPydanticBase):
     sales_order_id: Annotated[
         int, Field(description="ID of the sales order this address belongs to")
     ]
-    entity_type: Annotated[
-        EntityType4, Field(description="Type of address (billing or shipping)")
-    ]
+    entity_type: AddressEntityType
     first_name: Annotated[
         str | None, Field(description="First name for the address contact")
     ] = None
@@ -359,7 +358,7 @@ class CreateSalesOrderRequest(KatanaPydanticBase):
         int | None, Field(description="Primary fulfillment location for the order")
     ] = None
     status: Annotated[
-        Status8 | None, Field(description="Initial status of the order")
+        Status5 | None, Field(description="Initial status of the order")
     ] = None
     additional_info: Annotated[
         str | None, Field(description="Additional notes or instructions for the order")
@@ -410,7 +409,7 @@ class SalesOrderFulfillment(UpdatableEntity):
         Field(description="Date and time when items were picked from inventory"),
     ] = None
     status: Annotated[
-        Status9 | None, Field(description="Current fulfillment status")
+        Status6 | None, Field(description="Current fulfillment status")
     ] = None
     invoice_status: Annotated[
         InvoiceStatus | None,
@@ -476,7 +475,7 @@ class UpdateSalesReturnRequest(KatanaPydanticBase):
         extra="forbid",
     )
     status: Annotated[
-        Status11 | None, Field(description="Status of the sales return")
+        SalesReturnStatus | None, Field(description="Status of the sales return")
     ] = None
     return_date: Annotated[
         AwareDatetime | None,
@@ -793,7 +792,7 @@ class UpdateSalesOrderRequest(KatanaPydanticBase):
         ),
     ] = None
     status: Annotated[
-        Status14 | None,
+        Status7 | None,
         Field(
             description="When the status is omitted, NOT_SHIPPED is used as default. Use PENDING when you want to create sales order quotes."
         ),
@@ -936,7 +935,7 @@ class SalesOrder(DeletableEntity):
         ),
     ]
     status: Annotated[
-        Status7, Field(description="Current fulfillment status of the sales order")
+        Status4, Field(description="Current fulfillment status of the sales order")
     ]
     currency: Annotated[
         str | None,
@@ -1084,7 +1083,8 @@ class SalesReturn(DeletableEntity):
         ),
     ]
     status: Annotated[
-        Status11, Field(description="Current processing status of the sales return")
+        SalesReturnStatus,
+        Field(description="Current processing status of the sales return"),
     ]
     currency: Annotated[
         str | None,
