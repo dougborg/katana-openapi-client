@@ -2,6 +2,13 @@
 
 <!-- version list -->
 
+## v0.47.1 (2026-02-26)
+
+### Bug Fixes
+
+- **client**: Consolidate duplicated inline enums into shared schemas
+  ([`ed0e510`](https://github.com/dougborg/katana-openapi-client/commit/ed0e5107ab3d780128bf0b23b1b3caeeef965689))
+
 ## v0.47.0 (2026-02-11)
 
 ### Features
