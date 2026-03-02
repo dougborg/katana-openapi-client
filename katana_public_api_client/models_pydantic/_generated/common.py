@@ -8,7 +8,7 @@ To regenerate, run:
 
 from __future__ import annotations
 
-from enum import Enum, StrEnum
+from enum import StrEnum
 from typing import Annotated, Any
 
 from pydantic import AwareDatetime, ConfigDict, Field, RootModel
@@ -51,6 +51,82 @@ class IngredientAvailability(StrEnum):
     not_applicable = "NOT_APPLICABLE"
 
 
+class InventoryItemType(StrEnum):
+    product = "product"
+    material = "material"
+
+
+class MaterialType(StrEnum):
+    material = "material"
+
+
+class ProductType(StrEnum):
+    product = "product"
+
+
+class ServiceType(StrEnum):
+    service = "service"
+
+
+class ProductOperationType(StrEnum):
+    process = "process"
+    setup = "setup"
+    per_unit = "perUnit"
+    fixed = "fixed"
+
+
+class ManufacturingOperationStatus(StrEnum):
+    not_started = "NOT_STARTED"
+    in_progress = "IN_PROGRESS"
+    completed = "COMPLETED"
+    paused = "PAUSED"
+
+
+class DocumentSendStatus(StrEnum):
+    not_sent = "NOT_SENT"
+    sending = "SENDING"
+    failed = "FAILED"
+    sent = "SENT"
+
+
+class InventoryMovementResourceType(StrEnum):
+    production = "Production"
+    purchase_order_row = "PurchaseOrderRow"
+    purchase_order_recipe_row = "PurchaseOrderRecipeRow"
+    sales_order_row = "SalesOrderRow"
+    manufacturing_order_recipe_row = "ManufacturingOrderRecipeRow"
+    stock_adjustment_row = "StockAdjustmentRow"
+    stock_transfer_row = "StockTransferRow"
+    manufacturing_order = "ManufacturingOrder"
+    system_generated = "SystemGenerated"
+    production_ingredient = "ProductionIngredient"
+
+
+class CustomFieldCollectionResourceType(StrEnum):
+    product = "product"
+    material = "material"
+    variant = "variant"
+    customer = "customer"
+    sales_order = "sales_order"
+    purchase_order = "purchase_order"
+    stocktake = "stocktake"
+
+
+class AccountingIntegrationType(StrEnum):
+    xero = "xero"
+    quick_books = "quickBooks"
+    sage = "sage"
+    custom = "custom"
+
+
+class OutsourcedRecipeIngredientAvailability(StrEnum):
+    processed = "PROCESSED"
+    in_stock = "IN_STOCK"
+    not_available = "NOT_AVAILABLE"
+    expected = "EXPECTED"
+    not_applicable = "NOT_APPLICABLE"
+
+
 class AdditionalCost(DeletableEntity):
     name: str
 
@@ -62,19 +138,6 @@ class AdditionalCostListResponse(KatanaPydanticBase):
             description="Array of additional cost types that can be applied to orders"
         ),
     ] = None
-
-
-class ResourceType(StrEnum):
-    production = "Production"
-    purchase_order_row = "PurchaseOrderRow"
-    purchase_order_recipe_row = "PurchaseOrderRecipeRow"
-    sales_order_row = "SalesOrderRow"
-    manufacturing_order_recipe_row = "ManufacturingOrderRecipeRow"
-    stock_adjustment_row = "StockAdjustmentRow"
-    stock_transfer_row = "StockTransferRow"
-    manufacturing_order = "ManufacturingOrder"
-    system_generated = "SystemGenerated"
-    production_ingredient = "ProductionIngredient"
 
 
 class CustomField(KatanaPydanticBase):
@@ -137,22 +200,6 @@ class Location1(KatanaPydanticBase):
     manufacturing_allowed: bool | None = None
 
 
-class Status(StrEnum):
-    not_started = "NOT_STARTED"
-    in_progress = "IN_PROGRESS"
-    completed = "COMPLETED"
-    paused = "PAUSED"
-
-
-class Type(StrEnum):
-    product = "product"
-    material = "material"
-
-
-class Type1(StrEnum):
-    material = "material"
-
-
 class Config(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
@@ -194,45 +241,12 @@ class Config2(KatanaPydanticBase):
     ] = None
 
 
-class Type2(StrEnum):
-    product = "product"
-
-
-class Status1(StrEnum):
-    not_received = "NOT_RECEIVED"
-
-
-class Status2(StrEnum):
-    not_received = "NOT_RECEIVED"
-    partially_received = "PARTIALLY_RECEIVED"
-    received = "RECEIVED"
-
-
-class BillingStatus(StrEnum):
-    billed = "BILLED"
-    not_billed = "NOT_BILLED"
-    partially_billed = "PARTIALLY_BILLED"
-
-
-class LastDocumentStatus(StrEnum):
-    not_sent = "NOT_SENT"
-    sending = "SENDING"
-    failed = "FAILED"
-    sent = "SENT"
-
-
 class EntityType(StrEnum):
     regular = "regular"
 
 
 class EntityType1(StrEnum):
     outsourced = "outsourced"
-
-
-class Status3(StrEnum):
-    not_received = "NOT_RECEIVED"
-    received = "RECEIVED"
-    partially_received = "PARTIALLY_RECEIVED"
 
 
 class CreateTaxRateRequest(KatanaPydanticBase):
@@ -533,10 +547,6 @@ class Event(StrEnum):
     product_recipe_row_updated = "product_recipe_row.updated"
 
 
-class Type3(StrEnum):
-    service = "service"
-
-
 class CustomField5(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
@@ -668,23 +678,6 @@ class Address(KatanaPydanticBase):
     country: str | None = None
 
 
-class Status4(StrEnum):
-    not_shipped = "NOT_SHIPPED"
-    partially_packed = "PARTIALLY_PACKED"
-    partially_delivered = "PARTIALLY_DELIVERED"
-    packed = "PACKED"
-    delivered = "DELIVERED"
-
-
-class ProductionStatus(StrEnum):
-    not_started = "NOT_STARTED"
-    none = "NONE"
-    not_applicable = "NOT_APPLICABLE"
-    in_progress = "IN_PROGRESS"
-    blocked = "BLOCKED"
-    done = "DONE"
-
-
 class Attribute(KatanaPydanticBase):
     key: Annotated[str | None, Field(description="Attribute name/key")] = None
     value: Annotated[str | None, Field(description="Attribute value")] = None
@@ -698,28 +691,6 @@ class Attribute1(KatanaPydanticBase):
 class Attribute3(KatanaPydanticBase):
     key: Annotated[str | None, Field(description="Attribute name")] = None
     value: Annotated[str | None, Field(description="Attribute value")] = None
-
-
-class Status5(StrEnum):
-    not_shipped = "NOT_SHIPPED"
-    pending = "PENDING"
-
-
-class Status6(StrEnum):
-    packed = "PACKED"
-    delivered = "DELIVERED"
-
-
-class InvoiceStatus(Enum):
-    not_invoiced = "NOT_INVOICED"
-    invoiced = "INVOICED"
-    partially_invoiced = "PARTIALLY_INVOICED"
-
-
-class AdjustmentMethod(StrEnum):
-    fixed = "fixed"
-    percentage = "percentage"
-    markup = "markup"
 
 
 class ProductOperationRow(KatanaPydanticBase):
@@ -858,16 +829,6 @@ class AssignedOperator(KatanaPydanticBase):
     ] = None
 
 
-class ResourceType2(StrEnum):
-    product = "product"
-    material = "material"
-    variant = "variant"
-    customer = "customer"
-    sales_order = "sales_order"
-    purchase_order = "purchase_order"
-    stocktake = "stocktake"
-
-
 class CustomFieldModel(KatanaPydanticBase):
     id: Annotated[int, Field(description="Unique identifier for the custom field")]
     name: Annotated[str, Field(description="Internal name/key for the custom field")]
@@ -949,14 +910,6 @@ class UserListResponse(KatanaPydanticBase):
     ] = None
 
 
-class IngredientAvailability1(StrEnum):
-    processed = "PROCESSED"
-    in_stock = "IN_STOCK"
-    not_available = "NOT_AVAILABLE"
-    expected = "EXPECTED"
-    not_applicable = "NOT_APPLICABLE"
-
-
 class ProductOperationRerankRequest(KatanaPydanticBase):
     rank_product_operation_id: Annotated[
         int, Field(description="ID of the product operation to be reordered")
@@ -985,43 +938,6 @@ class ProductOperationRerank(KatanaPydanticBase):
     ] = None
 
 
-class IntegrationType(StrEnum):
-    xero = "xero"
-    quick_books = "quickBooks"
-    sage = "sage"
-    custom = "custom"
-
-
-class Type4(StrEnum):
-    process = "process"
-    setup = "setup"
-    per_unit = "perUnit"
-    fixed = "fixed"
-
-
-class Status7(StrEnum):
-    not_shipped = "NOT_SHIPPED"
-    pending = "PENDING"
-    packed = "PACKED"
-    delivered = "DELIVERED"
-
-
-class ResourceType3(StrEnum):
-    manufacturing_order = "ManufacturingOrder"
-    production = "Production"
-    stock_adjustment_row = "StockAdjustmentRow"
-    stock_transfer_row = "StockTransferRow"
-    purchase_order_row = "PurchaseOrderRow"
-    sales_order_row = "SalesOrderRow"
-
-
-class Status8(StrEnum):
-    pending = "pending"
-    in_transit = "in_transit"
-    completed = "completed"
-    cancelled = "cancelled"
-
-
 class LocationListResponse(KatanaPydanticBase):
     data: list[Location1 | DeletableEntity] | None = None
 
@@ -1047,7 +963,7 @@ class CustomFieldsCollection(DeletableEntity):
         ),
     ]
     resource_type: Annotated[
-        ResourceType2 | None,
+        CustomFieldCollectionResourceType | None,
         Field(
             description="The type of business object this custom fields collection applies to"
         ),

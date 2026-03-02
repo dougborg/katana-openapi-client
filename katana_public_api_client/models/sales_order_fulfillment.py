@@ -45,7 +45,7 @@ class SalesOrderFulfillment:
     updated_at: datetime.datetime | Unset = UNSET
     picked_date: datetime.datetime | None | Unset = UNSET
     status: SalesOrderFulfillmentStatus | Unset = UNSET
-    invoice_status: SalesOrderFulfillmentInvoiceStatus | Unset = UNSET
+    invoice_status: None | SalesOrderFulfillmentInvoiceStatus | Unset = UNSET
     conversion_rate: float | None | Unset = UNSET
     conversion_date: datetime.datetime | None | Unset = UNSET
     tracking_number: None | str | Unset = UNSET
@@ -83,9 +83,13 @@ class SalesOrderFulfillment:
         if not isinstance(self.status, Unset):
             status = self.status.value
 
-        invoice_status: str | Unset = UNSET
-        if not isinstance(self.invoice_status, Unset):
+        invoice_status: None | str | Unset
+        if isinstance(self.invoice_status, Unset):
+            invoice_status = UNSET
+        elif isinstance(self.invoice_status, SalesOrderFulfillmentInvoiceStatus):
             invoice_status = self.invoice_status.value
+        else:
+            invoice_status = self.invoice_status
 
         conversion_rate: float | None | Unset
         if isinstance(self.conversion_rate, Unset):
@@ -228,12 +232,24 @@ class SalesOrderFulfillment:
         else:
             status = SalesOrderFulfillmentStatus(_status)
 
-        _invoice_status = d.pop("invoice_status", UNSET)
-        invoice_status: SalesOrderFulfillmentInvoiceStatus | Unset
-        if isinstance(_invoice_status, Unset):
-            invoice_status = UNSET
-        else:
-            invoice_status = SalesOrderFulfillmentInvoiceStatus(_invoice_status)
+        def _parse_invoice_status(
+            data: object,
+        ) -> None | SalesOrderFulfillmentInvoiceStatus | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                invoice_status_type_0 = SalesOrderFulfillmentInvoiceStatus(data)
+
+                return invoice_status_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | SalesOrderFulfillmentInvoiceStatus | Unset, data)
+
+        invoice_status = _parse_invoice_status(d.pop("invoice_status", UNSET))
 
         def _parse_conversion_rate(data: object) -> float | None | Unset:
             if data is None:

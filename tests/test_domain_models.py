@@ -365,7 +365,9 @@ class TestKatanaServiceFactoryMethods:
     def test_from_generated_with_all_fields(self) -> None:
         """Test converting a fully-populated generated Service."""
         from katana_public_api_client.domain.service import KatanaService
-        from katana_public_api_client.models_pydantic._generated.common import Type3
+        from katana_public_api_client.models_pydantic._generated.common import (
+            ServiceType,
+        )
         from katana_public_api_client.models_pydantic._generated.inventory import (
             Service as GeneratedService,
         )
@@ -373,7 +375,7 @@ class TestKatanaServiceFactoryMethods:
         generated = GeneratedService(
             id=1,
             name="Assembly Service",
-            type=Type3.service,
+            type=ServiceType.service,
             uom="hours",
             category_name="Manufacturing",
             is_sellable=True,

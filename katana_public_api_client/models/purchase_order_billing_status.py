@@ -1,7 +1,7 @@
 from enum import StrEnum
 
 
-class PurchaseOrderBaseBillingStatus(StrEnum):
+class PurchaseOrderBillingStatus(StrEnum):
     BILLED = "BILLED"
     NOT_BILLED = "NOT_BILLED"
     PARTIALLY_BILLED = "PARTIALLY_BILLED"

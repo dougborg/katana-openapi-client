@@ -1,7 +1,7 @@
 from enum import StrEnum
 
 
-class UpdateStockTransferStatusRequestStatus(StrEnum):
+class StockTransferStatus(StrEnum):
     CANCELLED = "cancelled"
     COMPLETED = "completed"
     IN_TRANSIT = "in_transit"

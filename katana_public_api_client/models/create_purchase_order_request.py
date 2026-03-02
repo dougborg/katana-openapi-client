@@ -8,8 +8,8 @@ from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.create_purchase_order_request_status import (
-    CreatePurchaseOrderRequestStatus,
+from ..models.create_purchase_order_initial_status import (
+    CreatePurchaseOrderInitialStatus,
 )
 from ..models.purchase_order_entity_type import PurchaseOrderEntityType
 
@@ -41,7 +41,7 @@ class CreatePurchaseOrderRequest:
         entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for materials or outsourced for
             subcontracted work
         currency (str | Unset): Active ISO 4217 currency code (e.g. USD, EUR).
-        status (CreatePurchaseOrderRequestStatus | Unset): Initial status of the purchase order when created
+        status (CreatePurchaseOrderInitialStatus | Unset): Initial status when creating a purchase order
         order_created_date (datetime.datetime | Unset): Date when the purchase order was created
         additional_info (str | Unset): Optional notes or special instructions for the supplier
         expected_arrival_date (datetime.datetime | Unset): Expected date when the purchase order items will arrive
@@ -54,7 +54,7 @@ class CreatePurchaseOrderRequest:
     purchase_order_rows: list[PurchaseOrderRowRequest]
     entity_type: PurchaseOrderEntityType | Unset = UNSET
     currency: str | Unset = UNSET
-    status: CreatePurchaseOrderRequestStatus | Unset = UNSET
+    status: CreatePurchaseOrderInitialStatus | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
     additional_info: str | Unset = UNSET
     expected_arrival_date: datetime.datetime | Unset = UNSET
@@ -151,11 +151,11 @@ class CreatePurchaseOrderRequest:
         currency = d.pop("currency", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: CreatePurchaseOrderRequestStatus | Unset
+        status: CreatePurchaseOrderInitialStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
-            status = CreatePurchaseOrderRequestStatus(_status)
+            status = CreatePurchaseOrderInitialStatus(_status)
 
         _order_created_date = d.pop("order_created_date", UNSET)
         order_created_date: datetime.datetime | Unset

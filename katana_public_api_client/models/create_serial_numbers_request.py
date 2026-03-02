@@ -5,9 +5,7 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
-from ..models.create_serial_numbers_request_resource_type import (
-    CreateSerialNumbersRequestResourceType,
-)
+from ..models.create_serial_number_resource_type import CreateSerialNumberResourceType
 
 T = TypeVar("T", bound="CreateSerialNumbersRequest")
 
@@ -16,7 +14,7 @@ T = TypeVar("T", bound="CreateSerialNumbersRequest")
 class CreateSerialNumbersRequest:
     """Request payload for creating serial numbers for a resource"""
 
-    resource_type: CreateSerialNumbersRequestResourceType
+    resource_type: CreateSerialNumberResourceType
     resource_id: int
     serial_numbers: list[str]
 
@@ -42,7 +40,7 @@ class CreateSerialNumbersRequest:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        resource_type = CreateSerialNumbersRequestResourceType(d.pop("resource_type"))
+        resource_type = CreateSerialNumberResourceType(d.pop("resource_type"))
 
         resource_id = d.pop("resource_id")
 

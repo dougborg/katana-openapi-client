@@ -8,6 +8,7 @@ To regenerate, run:
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Annotated
 
 from pydantic import ConfigDict, EmailStr, Field, RootModel
@@ -15,7 +16,13 @@ from pydantic import ConfigDict, EmailStr, Field, RootModel
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
 from .base import DeletableEntity, UpdatableEntity
-from .common import Address, AddressEntityType, AdjustmentMethod
+from .common import Address, AddressEntityType
+
+
+class PriceListAdjustmentMethod(StrEnum):
+    fixed = "fixed"
+    percentage = "percentage"
+    markup = "markup"
 
 
 class SupplierAddressRequest(KatanaPydanticBase):
@@ -399,7 +406,7 @@ class PriceListRow1(UpdatableEntity):
         int, Field(description="ID of the product variant this pricing applies to")
     ]
     adjustment_method: Annotated[
-        AdjustmentMethod,
+        PriceListAdjustmentMethod,
         Field(
             description="Method used for price adjustment (fixed, percentage, markup)"
         ),

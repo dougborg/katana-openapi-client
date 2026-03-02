@@ -16,11 +16,7 @@ from pydantic import AwareDatetime, ConfigDict, Field
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
 from .base import DeletableEntity, UpdatableEntity
-from .common import (
-    ResourceType3,
-    Status8,
-    Transaction,
-)
+from .common import Transaction
 
 
 class StocktakeStatus(StrEnum):
@@ -28,6 +24,32 @@ class StocktakeStatus(StrEnum):
     in_progress = "IN_PROGRESS"
     counted = "COUNTED"
     completed = "COMPLETED"
+
+
+class StockTransferStatus(StrEnum):
+    pending = "pending"
+    in_transit = "in_transit"
+    completed = "completed"
+    cancelled = "cancelled"
+
+
+class SerialNumberResourceType(StrEnum):
+    manufacturing_order = "ManufacturingOrder"
+    production = "Production"
+    stock_adjustment_row = "StockAdjustmentRow"
+    stock_transfer_row = "StockTransferRow"
+    purchase_order_row = "PurchaseOrderRow"
+    sales_order_row = "SalesOrderRow"
+    sales_order_fulfillment_row = "SalesOrderFulfillmentRow"
+
+
+class CreateSerialNumberResourceType(StrEnum):
+    manufacturing_order = "ManufacturingOrder"
+    production = "Production"
+    stock_adjustment_row = "StockAdjustmentRow"
+    stock_transfer_row = "StockTransferRow"
+    purchase_order_row = "PurchaseOrderRow"
+    sales_order_row = "SalesOrderRow"
 
 
 class Batch(KatanaPydanticBase):
@@ -170,16 +192,6 @@ class BatchTransaction3(KatanaPydanticBase):
     ] = None
 
 
-class ResourceType1(StrEnum):
-    manufacturing_order = "ManufacturingOrder"
-    production = "Production"
-    stock_adjustment_row = "StockAdjustmentRow"
-    stock_transfer_row = "StockTransferRow"
-    purchase_order_row = "PurchaseOrderRow"
-    sales_order_row = "SalesOrderRow"
-    sales_order_fulfillment_row = "SalesOrderFulfillmentRow"
-
-
 class SerialNumber(KatanaPydanticBase):
     id: Annotated[
         int | None, Field(description="Unique identifier for the serial number record")
@@ -195,7 +207,7 @@ class SerialNumber(KatanaPydanticBase):
         Field(description="The actual serial number string for the tracked item"),
     ] = None
     resource_type: Annotated[
-        ResourceType1 | None,
+        SerialNumberResourceType | None,
         Field(
             description="Type of resource/transaction that generated or moved this serial number"
         ),
@@ -755,7 +767,9 @@ class CreateSerialNumbersRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    resource_type: Annotated[ResourceType3, Field(description="Resource type")]
+    resource_type: Annotated[
+        CreateSerialNumberResourceType, Field(description="Resource type")
+    ]
     resource_id: Annotated[int, Field(description="Resource ID")]
     serial_numbers: Annotated[
         list[str], Field(description="List of serial numbers to create")
@@ -825,7 +839,9 @@ class UpdateStockTransferStatusRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    status: Annotated[Status8, Field(description="New status for the stock transfer")]
+    status: Annotated[
+        StockTransferStatus, Field(description="New status for the stock transfer")
+    ]
 
 
 class StockTransfer(DeletableEntity):

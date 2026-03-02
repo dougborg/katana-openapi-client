@@ -11,7 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.price_list_row_adjustment_method import PriceListRowAdjustmentMethod
+from ..models.price_list_adjustment_method import PriceListAdjustmentMethod
 
 T = TypeVar("T", bound="PriceListRow")
 
@@ -29,7 +29,7 @@ class PriceListRow:
     id: int
     price_list_id: int
     variant_id: int
-    adjustment_method: PriceListRowAdjustmentMethod
+    adjustment_method: PriceListAdjustmentMethod
     amount: float
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
@@ -81,7 +81,7 @@ class PriceListRow:
 
         variant_id = d.pop("variant_id")
 
-        adjustment_method = PriceListRowAdjustmentMethod(d.pop("adjustment_method"))
+        adjustment_method = PriceListAdjustmentMethod(d.pop("adjustment_method"))
 
         amount = d.pop("amount")
 

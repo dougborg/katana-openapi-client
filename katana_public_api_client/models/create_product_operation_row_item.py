@@ -6,9 +6,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
-from ..models.create_product_operation_row_item_type import (
-    CreateProductOperationRowItemType,
-)
+from ..models.product_operation_type import ProductOperationType
 
 T = TypeVar("T", bound="CreateProductOperationRowItem")
 
@@ -22,9 +20,7 @@ class CreateProductOperationRowItem:
     operation_name: str | Unset = UNSET
     resource_id: int | Unset = UNSET
     resource_name: str | Unset = UNSET
-    type_: CreateProductOperationRowItemType | Unset = (
-        CreateProductOperationRowItemType.PROCESS
-    )
+    type_: ProductOperationType | Unset = ProductOperationType.PROCESS
     cost_parameter: float | Unset = UNSET
     cost_per_hour: float | Unset = UNSET
     planned_time_parameter: int | Unset = UNSET
@@ -95,11 +91,11 @@ class CreateProductOperationRowItem:
         resource_name = d.pop("resource_name", UNSET)
 
         _type_ = d.pop("type", UNSET)
-        type_: CreateProductOperationRowItemType | Unset
+        type_: ProductOperationType | Unset
         if isinstance(_type_, Unset):
             type_ = UNSET
         else:
-            type_ = CreateProductOperationRowItemType(_type_)
+            type_ = ProductOperationType(_type_)
 
         cost_parameter = d.pop("cost_parameter", UNSET)
 

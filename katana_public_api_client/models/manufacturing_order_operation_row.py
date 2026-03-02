@@ -11,9 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.manufacturing_order_operation_row_status import (
-    ManufacturingOrderOperationRowStatus,
-)
+from ..models.manufacturing_operation_status import ManufacturingOperationStatus
 
 if TYPE_CHECKING:
     from ..models.assigned_operator import AssignedOperator
@@ -42,7 +40,7 @@ class ManufacturingOrderOperationRow:
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
     deleted_at: datetime.datetime | None | Unset = UNSET
-    status: ManufacturingOrderOperationRowStatus | Unset = UNSET
+    status: ManufacturingOperationStatus | Unset = UNSET
     type_: str | Unset = UNSET
     rank: float | Unset = UNSET
     manufacturing_order_id: int | Unset = UNSET
@@ -251,11 +249,11 @@ class ManufacturingOrderOperationRow:
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         _status = d.pop("status", UNSET)
-        status: ManufacturingOrderOperationRowStatus | Unset
+        status: ManufacturingOperationStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
-            status = ManufacturingOrderOperationRowStatus(_status)
+            status = ManufacturingOperationStatus(_status)
 
         type_ = d.pop("type", UNSET)
 

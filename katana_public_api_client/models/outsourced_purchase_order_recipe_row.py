@@ -11,8 +11,8 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.outsourced_purchase_order_recipe_row_ingredient_availability import (
-    OutsourcedPurchaseOrderRecipeRowIngredientAvailability,
+from ..models.outsourced_recipe_ingredient_availability import (
+    OutsourcedRecipeIngredientAvailability,
 )
 
 if TYPE_CHECKING:
@@ -36,9 +36,7 @@ class OutsourcedPurchaseOrderRecipeRow:
     updated_at: datetime.datetime | Unset = UNSET
     deleted_at: datetime.datetime | None | Unset = UNSET
     purchase_order_id: int | Unset = UNSET
-    ingredient_availability: (
-        OutsourcedPurchaseOrderRecipeRowIngredientAvailability | Unset
-    ) = UNSET
+    ingredient_availability: OutsourcedRecipeIngredientAvailability | Unset = UNSET
     ingredient_expected_date: datetime.datetime | None | Unset = UNSET
     notes: None | str | Unset = UNSET
     batch_transactions: (
@@ -185,16 +183,12 @@ class OutsourcedPurchaseOrderRecipeRow:
         purchase_order_id = d.pop("purchase_order_id", UNSET)
 
         _ingredient_availability = d.pop("ingredient_availability", UNSET)
-        ingredient_availability: (
-            OutsourcedPurchaseOrderRecipeRowIngredientAvailability | Unset
-        )
+        ingredient_availability: OutsourcedRecipeIngredientAvailability | Unset
         if isinstance(_ingredient_availability, Unset):
             ingredient_availability = UNSET
         else:
-            ingredient_availability = (
-                OutsourcedPurchaseOrderRecipeRowIngredientAvailability(
-                    _ingredient_availability
-                )
+            ingredient_availability = OutsourcedRecipeIngredientAvailability(
+                _ingredient_availability
             )
 
         def _parse_ingredient_expected_date(

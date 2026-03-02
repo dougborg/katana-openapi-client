@@ -1,7 +1,7 @@
 from enum import StrEnum
 
 
-class SalesOrderAccountingMetadataIntegrationType(StrEnum):
+class AccountingIntegrationType(StrEnum):
     CUSTOM = "custom"
     QUICKBOOKS = "quickBooks"
     SAGE = "sage"

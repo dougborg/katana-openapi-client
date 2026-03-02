@@ -1,7 +1,7 @@
 from enum import StrEnum
 
 
-class CreateProductOperationRowItemType(StrEnum):
+class ProductOperationType(StrEnum):
     FIXED = "fixed"
     PERUNIT = "perUnit"
     PROCESS = "process"
