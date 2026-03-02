@@ -2,6 +2,32 @@
 
 <!-- version list -->
 
+## v0.47.2 (2026-03-02)
+
+### Bug Fixes
+
+- **client**: Name all inline enums and fix UP047 lint
+  ([#283](https://github.com/dougborg/katana-openapi-client/pull/283),
+  [`a4ce370`](https://github.com/dougborg/katana-openapi-client/commit/a4ce3709373800fd1ea702764ed13940e2c4db4b))
+
+- **client**: Name all inline enums to eliminate fragile positional references
+  ([#283](https://github.com/dougborg/katana-openapi-client/pull/283),
+  [`a4ce370`](https://github.com/dougborg/katana-openapi-client/commit/a4ce3709373800fd1ea702764ed13940e2c4db4b))
+
+- **spec**: Use anyOf for nullable invoice_status enum ref
+  ([#283](https://github.com/dougborg/katana-openapi-client/pull/283),
+  [`a4ce370`](https://github.com/dougborg/katana-openapi-client/commit/a4ce3709373800fd1ea702764ed13940e2c4db4b))
+
+### Chores
+
+- **actions)(deps**: Bump aquasecurity/trivy-action
+  ([#277](https://github.com/dougborg/katana-openapi-client/pull/277),
+  [`df9baba`](https://github.com/dougborg/katana-openapi-client/commit/df9babad0c8ab13365ac187c3f8fc6f9c9ad91e9))
+
+- **actions)(deps**: Bump the github-actions group with 3 updates
+  ([#281](https://github.com/dougborg/katana-openapi-client/pull/281),
+  [`c9d56d3`](https://github.com/dougborg/katana-openapi-client/commit/c9d56d3b25e17025567aa59e06653fa7eaf59a44))
+
 ## v0.47.1 (2026-02-26)
 
 ### Bug Fixes
