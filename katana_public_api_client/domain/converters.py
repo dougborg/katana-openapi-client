@@ -7,7 +7,7 @@ and data processing.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING
 
 from ..client_types import UNSET, Unset
 
@@ -21,10 +21,8 @@ if TYPE_CHECKING:
     from .service import KatanaService
     from .variant import KatanaVariant
 
-T = TypeVar("T")
 
-
-def unwrap_unset(value: T | Unset, default: T | None = None) -> T | None:
+def unwrap_unset[T](value: T | Unset, default: T | None = None) -> T | None:
     """Unwrap an Unset sentinel value.
 
     Args:

@@ -11,8 +11,8 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.custom_fields_collection_resource_type import (
-    CustomFieldsCollectionResourceType,
+from ..models.custom_field_collection_resource_type import (
+    CustomFieldCollectionResourceType,
 )
 
 if TYPE_CHECKING:
@@ -38,7 +38,7 @@ class CustomFieldsCollection:
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
     deleted_at: datetime.datetime | None | Unset = UNSET
-    resource_type: CustomFieldsCollectionResourceType | Unset = UNSET
+    resource_type: CustomFieldCollectionResourceType | Unset = UNSET
     custom_fields: list[CustomField] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -136,11 +136,11 @@ class CustomFieldsCollection:
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         _resource_type = d.pop("resource_type", UNSET)
-        resource_type: CustomFieldsCollectionResourceType | Unset
+        resource_type: CustomFieldCollectionResourceType | Unset
         if isinstance(_resource_type, Unset):
             resource_type = UNSET
         else:
-            resource_type = CustomFieldsCollectionResourceType(_resource_type)
+            resource_type = CustomFieldCollectionResourceType(_resource_type)
 
         _custom_fields = d.pop("custom_fields", UNSET)
         custom_fields: list[CustomField] | Unset = UNSET

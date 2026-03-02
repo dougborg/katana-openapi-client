@@ -17,19 +17,14 @@ from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
 from .base import DeletableEntity, UpdatableEntity
 from .common import (
+    AccountingIntegrationType,
     AddressEntityType,
     Attribute,
     Attribute1,
     Attribute3,
     IngredientAvailability,
-    IntegrationType,
     InvoiceStatus,
     ProductAvailability,
-    ProductionStatus,
-    Status4,
-    Status5,
-    Status6,
-    Status7,
 )
 from .stock import (
     BatchTransaction,
@@ -45,6 +40,46 @@ class SalesReturnStatus(StrEnum):
     not_returned = "NOT_RETURNED"
     returned_all = "RETURNED_ALL"
     restocked_all = "RESTOCKED_ALL"
+
+
+class SalesOrderStatus(StrEnum):
+    not_shipped = "NOT_SHIPPED"
+    partially_packed = "PARTIALLY_PACKED"
+    partially_delivered = "PARTIALLY_DELIVERED"
+    packed = "PACKED"
+    delivered = "DELIVERED"
+
+
+class SalesOrderProductionStatus(StrEnum):
+    not_started = "NOT_STARTED"
+    none = "NONE"
+    not_applicable = "NOT_APPLICABLE"
+    in_progress = "IN_PROGRESS"
+    blocked = "BLOCKED"
+    done = "DONE"
+
+
+class CreateSalesOrderStatus(StrEnum):
+    not_shipped = "NOT_SHIPPED"
+    pending = "PENDING"
+
+
+class SalesOrderFulfillmentStatus(StrEnum):
+    packed = "PACKED"
+    delivered = "DELIVERED"
+
+
+class SalesOrderFulfillmentInvoiceStatus(StrEnum):
+    not_invoiced = "NOT_INVOICED"
+    invoiced = "INVOICED"
+    partially_invoiced = "PARTIALLY_INVOICED"
+
+
+class UpdateSalesOrderStatus(StrEnum):
+    not_shipped = "NOT_SHIPPED"
+    pending = "PENDING"
+    packed = "PACKED"
+    delivered = "DELIVERED"
 
 
 class SalesOrderRow(DeletableEntity):
@@ -358,7 +393,7 @@ class CreateSalesOrderRequest(KatanaPydanticBase):
         int | None, Field(description="Primary fulfillment location for the order")
     ] = None
     status: Annotated[
-        Status5 | None, Field(description="Initial status of the order")
+        CreateSalesOrderStatus | None, Field(description="Initial status of the order")
     ] = None
     additional_info: Annotated[
         str | None, Field(description="Additional notes or instructions for the order")
@@ -409,7 +444,8 @@ class SalesOrderFulfillment(UpdatableEntity):
         Field(description="Date and time when items were picked from inventory"),
     ] = None
     status: Annotated[
-        Status6 | None, Field(description="Current fulfillment status")
+        SalesOrderFulfillmentStatus | None,
+        Field(description="Current fulfillment status"),
     ] = None
     invoice_status: Annotated[
         InvoiceStatus | None,
@@ -622,7 +658,8 @@ class SalesOrderAccountingMetadata(KatanaPydanticBase):
         str, Field(description="Invoice identifier in the external accounting system")
     ]
     integration_type: Annotated[
-        IntegrationType, Field(description="Type of accounting system integration used")
+        AccountingIntegrationType,
+        Field(description="Type of accounting system integration used"),
     ]
     created_at: Annotated[
         AwareDatetime,
@@ -792,7 +829,7 @@ class UpdateSalesOrderRequest(KatanaPydanticBase):
         ),
     ] = None
     status: Annotated[
-        Status7 | None,
+        UpdateSalesOrderStatus | None,
         Field(
             description="When the status is omitted, NOT_SHIPPED is used as default. Use PENDING when you want to create sales order quotes."
         ),
@@ -935,7 +972,8 @@ class SalesOrder(DeletableEntity):
         ),
     ]
     status: Annotated[
-        Status4, Field(description="Current fulfillment status of the sales order")
+        SalesOrderStatus,
+        Field(description="Current fulfillment status of the sales order"),
     ]
     currency: Annotated[
         str | None,
@@ -1012,7 +1050,7 @@ class SalesOrder(DeletableEntity):
         ),
     ] = None
     production_status: Annotated[
-        ProductionStatus | None,
+        SalesOrderProductionStatus | None,
         Field(
             description="Current status of production for items in this order",
         ),

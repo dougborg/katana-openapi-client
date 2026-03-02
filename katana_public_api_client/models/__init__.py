@@ -1,5 +1,6 @@
 """Contains all the data models used in inputs/outputs"""
 
+from .accounting_integration_type import AccountingIntegrationType
 from .additional_cost import AdditionalCost
 from .additional_cost_list_response import AdditionalCostListResponse
 from .address_entity_type import AddressEntityType
@@ -60,15 +61,14 @@ from .create_price_list_row_request_price_list_rows_item import (
     CreatePriceListRowRequestPriceListRowsItem,
 )
 from .create_product_operation_row_item import CreateProductOperationRowItem
-from .create_product_operation_row_item_type import CreateProductOperationRowItemType
 from .create_product_operation_rows_request import CreateProductOperationRowsRequest
 from .create_product_request import CreateProductRequest
 from .create_product_request_configs_item import CreateProductRequestConfigsItem
 from .create_purchase_order_additional_cost_row_request import (
     CreatePurchaseOrderAdditionalCostRowRequest,
 )
+from .create_purchase_order_initial_status import CreatePurchaseOrderInitialStatus
 from .create_purchase_order_request import CreatePurchaseOrderRequest
-from .create_purchase_order_request_status import CreatePurchaseOrderRequestStatus
 from .create_purchase_order_row_request import CreatePurchaseOrderRowRequest
 from .create_recipes_request import CreateRecipesRequest
 from .create_recipes_request_rows_item import CreateRecipesRequestRowsItem
@@ -81,18 +81,16 @@ from .create_sales_order_request_sales_order_rows_item import (
 from .create_sales_order_request_sales_order_rows_item_attributes_item import (
     CreateSalesOrderRequestSalesOrderRowsItemAttributesItem,
 )
-from .create_sales_order_request_status import CreateSalesOrderRequestStatus
 from .create_sales_order_row_request import CreateSalesOrderRowRequest
 from .create_sales_order_row_request_attributes_item import (
     CreateSalesOrderRowRequestAttributesItem,
 )
 from .create_sales_order_shipping_fee_request import CreateSalesOrderShippingFeeRequest
+from .create_sales_order_status import CreateSalesOrderStatus
 from .create_sales_return_request import CreateSalesReturnRequest
 from .create_sales_return_row_request import CreateSalesReturnRowRequest
+from .create_serial_number_resource_type import CreateSerialNumberResourceType
 from .create_serial_numbers_request import CreateSerialNumbersRequest
-from .create_serial_numbers_request_resource_type import (
-    CreateSerialNumbersRequestResourceType,
-)
 from .create_service_request import CreateServiceRequest
 from .create_service_variant_request import CreateServiceVariantRequest
 from .create_service_variant_request_custom_fields_item import (
@@ -123,9 +121,9 @@ from .create_variant_request_custom_fields_item import (
 )
 from .create_webhook_request import CreateWebhookRequest
 from .custom_field import CustomField
+from .custom_field_collection_resource_type import CustomFieldCollectionResourceType
 from .custom_fields_collection import CustomFieldsCollection
 from .custom_fields_collection_list_response import CustomFieldsCollectionListResponse
-from .custom_fields_collection_resource_type import CustomFieldsCollectionResourceType
 from .customer import Customer
 from .customer_address import CustomerAddress
 from .customer_address_list_response import CustomerAddressListResponse
@@ -134,6 +132,7 @@ from .deletable_entity import DeletableEntity
 from .demand_forecast_period import DemandForecastPeriod
 from .demand_forecast_response import DemandForecastResponse
 from .detailed_error_response import DetailedErrorResponse
+from .document_send_status import DocumentSendStatus
 from .enum_validation_error import EnumValidationError
 from .enum_validation_error_code import EnumValidationErrorCode
 from .error_response import ErrorResponse
@@ -189,6 +188,7 @@ from .location_type_0 import LocationType0
 from .make_to_order_manufacturing_order_request import (
     MakeToOrderManufacturingOrderRequest,
 )
+from .manufacturing_operation_status import ManufacturingOperationStatus
 from .manufacturing_order import ManufacturingOrder
 from .manufacturing_order_list_response import ManufacturingOrderListResponse
 from .manufacturing_order_operation_production import (
@@ -197,9 +197,6 @@ from .manufacturing_order_operation_production import (
 from .manufacturing_order_operation_row import ManufacturingOrderOperationRow
 from .manufacturing_order_operation_row_list_response import (
     ManufacturingOrderOperationRowListResponse,
-)
-from .manufacturing_order_operation_row_status import (
-    ManufacturingOrderOperationRowStatus,
 )
 from .manufacturing_order_production import ManufacturingOrderProduction
 from .manufacturing_order_production_ingredient import (
@@ -240,20 +237,20 @@ from .outsourced_purchase_order_recipe_row import OutsourcedPurchaseOrderRecipeR
 from .outsourced_purchase_order_recipe_row_batch_transactions_item import (
     OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem,
 )
-from .outsourced_purchase_order_recipe_row_ingredient_availability import (
-    OutsourcedPurchaseOrderRecipeRowIngredientAvailability,
-)
 from .outsourced_purchase_order_recipe_row_list_response import (
     OutsourcedPurchaseOrderRecipeRowListResponse,
+)
+from .outsourced_recipe_ingredient_availability import (
+    OutsourcedRecipeIngredientAvailability,
 )
 from .pattern_validation_error import PatternValidationError
 from .pattern_validation_error_code import PatternValidationErrorCode
 from .price_list import PriceList
+from .price_list_adjustment_method import PriceListAdjustmentMethod
 from .price_list_customer import PriceListCustomer
 from .price_list_customer_list_response import PriceListCustomerListResponse
 from .price_list_list_response import PriceListListResponse
 from .price_list_row import PriceListRow
-from .price_list_row_adjustment_method import PriceListRowAdjustmentMethod
 from .price_list_row_list_response import PriceListRowListResponse
 from .product import Product
 from .product_availability import ProductAvailability
@@ -262,6 +259,7 @@ from .product_operation_rerank import ProductOperationRerank
 from .product_operation_rerank_request import ProductOperationRerankRequest
 from .product_operation_row import ProductOperationRow
 from .product_operation_row_list_response import ProductOperationRowListResponse
+from .product_operation_type import ProductOperationType
 from .product_type import ProductType
 from .purchase_order_accounting_metadata import PurchaseOrderAccountingMetadata
 from .purchase_order_accounting_metadata_list_response import (
@@ -272,11 +270,7 @@ from .purchase_order_additional_cost_row_list_response import (
     PurchaseOrderAdditionalCostRowListResponse,
 )
 from .purchase_order_base import PurchaseOrderBase
-from .purchase_order_base_billing_status import PurchaseOrderBaseBillingStatus
-from .purchase_order_base_last_document_status import (
-    PurchaseOrderBaseLastDocumentStatus,
-)
-from .purchase_order_base_status import PurchaseOrderBaseStatus
+from .purchase_order_billing_status import PurchaseOrderBillingStatus
 from .purchase_order_entity_type import PurchaseOrderEntityType
 from .purchase_order_list_response import PurchaseOrderListResponse
 from .purchase_order_receive_row import PurchaseOrderReceiveRow
@@ -289,6 +283,7 @@ from .purchase_order_row_batch_transactions_item import (
 )
 from .purchase_order_row_list_response import PurchaseOrderRowListResponse
 from .purchase_order_row_request import PurchaseOrderRowRequest
+from .purchase_order_status import PurchaseOrderStatus
 from .recipe import Recipe
 from .recipe_list_response import RecipeListResponse
 from .regular_purchase_order import RegularPurchaseOrder
@@ -298,9 +293,6 @@ from .required_validation_error_code import RequiredValidationErrorCode
 from .returnable_item import ReturnableItem
 from .sales_order import SalesOrder
 from .sales_order_accounting_metadata import SalesOrderAccountingMetadata
-from .sales_order_accounting_metadata_integration_type import (
-    SalesOrderAccountingMetadataIntegrationType,
-)
 from .sales_order_accounting_metadata_list_response import (
     SalesOrderAccountingMetadataListResponse,
 )
@@ -318,7 +310,7 @@ from .sales_order_fulfillment_sales_order_fulfillment_rows_item_batch_transactio
 )
 from .sales_order_fulfillment_status import SalesOrderFulfillmentStatus
 from .sales_order_list_response import SalesOrderListResponse
-from .sales_order_production_status_type_0 import SalesOrderProductionStatusType0
+from .sales_order_production_status import SalesOrderProductionStatus
 from .sales_order_row import SalesOrderRow
 from .sales_order_row_attributes_item import SalesOrderRowAttributesItem
 from .sales_order_row_batch_transactions_item import SalesOrderRowBatchTransactionsItem
@@ -357,6 +349,7 @@ from .stock_transfer_row_batch_transactions_item import (
     StockTransferRowBatchTransactionsItem,
 )
 from .stock_transfer_row_request import StockTransferRowRequest
+from .stock_transfer_status import StockTransferStatus
 from .stocktake import Stocktake
 from .stocktake_list_response import StocktakeListResponse
 from .stocktake_row import StocktakeRow
@@ -420,13 +413,11 @@ from .update_purchase_order_additional_cost_row_request import (
     UpdatePurchaseOrderAdditionalCostRowRequest,
 )
 from .update_purchase_order_request import UpdatePurchaseOrderRequest
-from .update_purchase_order_request_status import UpdatePurchaseOrderRequestStatus
 from .update_purchase_order_row_request import UpdatePurchaseOrderRowRequest
 from .update_recipe_row_request import UpdateRecipeRowRequest
 from .update_sales_order_address_request import UpdateSalesOrderAddressRequest
 from .update_sales_order_fulfillment_request import UpdateSalesOrderFulfillmentRequest
 from .update_sales_order_request import UpdateSalesOrderRequest
-from .update_sales_order_request_status import UpdateSalesOrderRequestStatus
 from .update_sales_order_row_request import UpdateSalesOrderRowRequest
 from .update_sales_order_row_request_attributes_item import (
     UpdateSalesOrderRowRequestAttributesItem,
@@ -435,15 +426,13 @@ from .update_sales_order_row_request_serial_number_transactions_item import (
     UpdateSalesOrderRowRequestSerialNumberTransactionsItem,
 )
 from .update_sales_order_shipping_fee_request import UpdateSalesOrderShippingFeeRequest
+from .update_sales_order_status import UpdateSalesOrderStatus
 from .update_sales_return_request import UpdateSalesReturnRequest
 from .update_sales_return_row_request import UpdateSalesReturnRowRequest
 from .update_service_request import UpdateServiceRequest
 from .update_stock_adjustment_request import UpdateStockAdjustmentRequest
 from .update_stock_transfer_request import UpdateStockTransferRequest
 from .update_stock_transfer_status_request import UpdateStockTransferStatusRequest
-from .update_stock_transfer_status_request_status import (
-    UpdateStockTransferStatusRequestStatus,
-)
 from .update_stocktake_request import UpdateStocktakeRequest
 from .update_stocktake_row_request import UpdateStocktakeRowRequest
 from .update_supplier_address_request import UpdateSupplierAddressRequest
@@ -480,6 +469,7 @@ from .webhook_logs_export_request import WebhookLogsExportRequest
 from .webhook_logs_export_request_event import WebhookLogsExportRequestEvent
 
 __all__ = (
+    "AccountingIntegrationType",
     "AdditionalCost",
     "AdditionalCostListResponse",
     "AddressEntityType",
@@ -522,13 +512,12 @@ __all__ = (
     "CreatePriceListRowRequest",
     "CreatePriceListRowRequestPriceListRowsItem",
     "CreateProductOperationRowItem",
-    "CreateProductOperationRowItemType",
     "CreateProductOperationRowsRequest",
     "CreateProductRequest",
     "CreateProductRequestConfigsItem",
     "CreatePurchaseOrderAdditionalCostRowRequest",
+    "CreatePurchaseOrderInitialStatus",
     "CreatePurchaseOrderRequest",
-    "CreatePurchaseOrderRequestStatus",
     "CreatePurchaseOrderRowRequest",
     "CreateRecipesRequest",
     "CreateRecipesRequestRowsItem",
@@ -537,14 +526,14 @@ __all__ = (
     "CreateSalesOrderRequest",
     "CreateSalesOrderRequestSalesOrderRowsItem",
     "CreateSalesOrderRequestSalesOrderRowsItemAttributesItem",
-    "CreateSalesOrderRequestStatus",
     "CreateSalesOrderRowRequest",
     "CreateSalesOrderRowRequestAttributesItem",
     "CreateSalesOrderShippingFeeRequest",
+    "CreateSalesOrderStatus",
     "CreateSalesReturnRequest",
     "CreateSalesReturnRowRequest",
+    "CreateSerialNumberResourceType",
     "CreateSerialNumbersRequest",
-    "CreateSerialNumbersRequestResourceType",
     "CreateServiceRequest",
     "CreateServiceVariantRequest",
     "CreateServiceVariantRequestCustomFieldsItem",
@@ -563,9 +552,9 @@ __all__ = (
     "CreateVariantRequestCustomFieldsItem",
     "CreateWebhookRequest",
     "CustomField",
+    "CustomFieldCollectionResourceType",
     "CustomFieldsCollection",
     "CustomFieldsCollectionListResponse",
-    "CustomFieldsCollectionResourceType",
     "Customer",
     "CustomerAddress",
     "CustomerAddressListResponse",
@@ -574,6 +563,7 @@ __all__ = (
     "DemandForecastPeriod",
     "DemandForecastResponse",
     "DetailedErrorResponse",
+    "DocumentSendStatus",
     "EnumValidationError",
     "EnumValidationErrorCode",
     "ErrorResponse",
@@ -619,12 +609,12 @@ __all__ = (
     "LocationListResponse",
     "LocationType0",
     "MakeToOrderManufacturingOrderRequest",
+    "ManufacturingOperationStatus",
     "ManufacturingOrder",
     "ManufacturingOrderListResponse",
     "ManufacturingOrderOperationProduction",
     "ManufacturingOrderOperationRow",
     "ManufacturingOrderOperationRowListResponse",
-    "ManufacturingOrderOperationRowStatus",
     "ManufacturingOrderProduction",
     "ManufacturingOrderProductionIngredient",
     "ManufacturingOrderProductionIngredientResponse",
@@ -650,16 +640,16 @@ __all__ = (
     "OutsourcedPurchaseOrderIngredientAvailability",
     "OutsourcedPurchaseOrderRecipeRow",
     "OutsourcedPurchaseOrderRecipeRowBatchTransactionsItem",
-    "OutsourcedPurchaseOrderRecipeRowIngredientAvailability",
     "OutsourcedPurchaseOrderRecipeRowListResponse",
+    "OutsourcedRecipeIngredientAvailability",
     "PatternValidationError",
     "PatternValidationErrorCode",
     "PriceList",
+    "PriceListAdjustmentMethod",
     "PriceListCustomer",
     "PriceListCustomerListResponse",
     "PriceListListResponse",
     "PriceListRow",
-    "PriceListRowAdjustmentMethod",
     "PriceListRowListResponse",
     "Product",
     "ProductAvailability",
@@ -668,15 +658,14 @@ __all__ = (
     "ProductOperationRerankRequest",
     "ProductOperationRow",
     "ProductOperationRowListResponse",
+    "ProductOperationType",
     "ProductType",
     "PurchaseOrderAccountingMetadata",
     "PurchaseOrderAccountingMetadataListResponse",
     "PurchaseOrderAdditionalCostRow",
     "PurchaseOrderAdditionalCostRowListResponse",
     "PurchaseOrderBase",
-    "PurchaseOrderBaseBillingStatus",
-    "PurchaseOrderBaseLastDocumentStatus",
-    "PurchaseOrderBaseStatus",
+    "PurchaseOrderBillingStatus",
     "PurchaseOrderEntityType",
     "PurchaseOrderListResponse",
     "PurchaseOrderReceiveRow",
@@ -685,6 +674,7 @@ __all__ = (
     "PurchaseOrderRowBatchTransactionsItem",
     "PurchaseOrderRowListResponse",
     "PurchaseOrderRowRequest",
+    "PurchaseOrderStatus",
     "Recipe",
     "RecipeListResponse",
     "RegularPurchaseOrder",
@@ -694,7 +684,6 @@ __all__ = (
     "ReturnableItem",
     "SalesOrder",
     "SalesOrderAccountingMetadata",
-    "SalesOrderAccountingMetadataIntegrationType",
     "SalesOrderAccountingMetadataListResponse",
     "SalesOrderAddress",
     "SalesOrderAddressListResponse",
@@ -706,7 +695,7 @@ __all__ = (
     "SalesOrderFulfillmentSalesOrderFulfillmentRowsItemBatchTransactionsItem",
     "SalesOrderFulfillmentStatus",
     "SalesOrderListResponse",
-    "SalesOrderProductionStatusType0",
+    "SalesOrderProductionStatus",
     "SalesOrderRow",
     "SalesOrderRowAttributesItem",
     "SalesOrderRowBatchTransactionsItem",
@@ -741,6 +730,7 @@ __all__ = (
     "StockTransferRow",
     "StockTransferRowBatchTransactionsItem",
     "StockTransferRowRequest",
+    "StockTransferStatus",
     "Stocktake",
     "StocktakeListResponse",
     "StocktakeRow",
@@ -788,24 +778,22 @@ __all__ = (
     "UpdateProductRequestConfigsItem",
     "UpdatePurchaseOrderAdditionalCostRowRequest",
     "UpdatePurchaseOrderRequest",
-    "UpdatePurchaseOrderRequestStatus",
     "UpdatePurchaseOrderRowRequest",
     "UpdateRecipeRowRequest",
     "UpdateSalesOrderAddressRequest",
     "UpdateSalesOrderFulfillmentRequest",
     "UpdateSalesOrderRequest",
-    "UpdateSalesOrderRequestStatus",
     "UpdateSalesOrderRowRequest",
     "UpdateSalesOrderRowRequestAttributesItem",
     "UpdateSalesOrderRowRequestSerialNumberTransactionsItem",
     "UpdateSalesOrderShippingFeeRequest",
+    "UpdateSalesOrderStatus",
     "UpdateSalesReturnRequest",
     "UpdateSalesReturnRowRequest",
     "UpdateServiceRequest",
     "UpdateStockAdjustmentRequest",
     "UpdateStockTransferRequest",
     "UpdateStockTransferStatusRequest",
-    "UpdateStockTransferStatusRequestStatus",
     "UpdateStocktakeRequest",
     "UpdateStocktakeRowRequest",
     "UpdateSupplierAddressRequest",

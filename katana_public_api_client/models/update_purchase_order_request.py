@@ -8,9 +8,7 @@ from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.update_purchase_order_request_status import (
-    UpdatePurchaseOrderRequestStatus,
-)
+from ..models.purchase_order_status import PurchaseOrderStatus
 
 T = TypeVar("T", bound="UpdatePurchaseOrderRequest")
 
@@ -28,7 +26,7 @@ class UpdatePurchaseOrderRequest:
     supplier_id: int | Unset = UNSET
     currency: str | Unset = UNSET
     tracking_location_id: int | Unset = UNSET
-    status: UpdatePurchaseOrderRequestStatus | Unset = UNSET
+    status: PurchaseOrderStatus | Unset = UNSET
     expected_arrival_date: datetime.datetime | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
     location_id: int | Unset = UNSET
@@ -95,11 +93,11 @@ class UpdatePurchaseOrderRequest:
         tracking_location_id = d.pop("tracking_location_id", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: UpdatePurchaseOrderRequestStatus | Unset
+        status: PurchaseOrderStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
-            status = UpdatePurchaseOrderRequestStatus(_status)
+            status = PurchaseOrderStatus(_status)
 
         _expected_arrival_date = d.pop("expected_arrival_date", UNSET)
         expected_arrival_date: datetime.datetime | Unset

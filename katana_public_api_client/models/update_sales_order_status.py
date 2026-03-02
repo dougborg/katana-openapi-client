@@ -1,7 +1,7 @@
 from enum import StrEnum
 
 
-class UpdateSalesOrderRequestStatus(StrEnum):
+class UpdateSalesOrderStatus(StrEnum):
     DELIVERED = "DELIVERED"
     NOT_SHIPPED = "NOT_SHIPPED"
     PACKED = "PACKED"

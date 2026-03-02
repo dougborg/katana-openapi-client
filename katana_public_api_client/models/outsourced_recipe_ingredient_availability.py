@@ -1,7 +1,7 @@
 from enum import StrEnum
 
 
-class OutsourcedPurchaseOrderRecipeRowIngredientAvailability(StrEnum):
+class OutsourcedRecipeIngredientAvailability(StrEnum):
     EXPECTED = "EXPECTED"
     IN_STOCK = "IN_STOCK"
     NOT_APPLICABLE = "NOT_APPLICABLE"

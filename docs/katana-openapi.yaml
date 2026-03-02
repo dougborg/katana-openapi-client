@@ -1409,6 +1409,218 @@ components:
         - NOT_APPLICABLE
       description: Availability status of ingredients for production
 
+    InventoryItemType:
+      type: string
+      enum:
+        - product
+        - material
+      description: Item type discriminator for products and materials
+
+    MaterialType:
+      type: string
+      enum:
+        - material
+      description: Item type discriminator for materials
+
+    ProductType:
+      type: string
+      enum:
+        - product
+      description: Item type discriminator for products
+
+    ServiceType:
+      type: string
+      enum:
+        - service
+      description: Item type discriminator for services
+
+    ProductOperationType:
+      type: string
+      enum:
+        - process
+        - setup
+        - perUnit
+        - fixed
+      description: Cost calculation method for product operations
+
+    ManufacturingOperationStatus:
+      type: string
+      enum:
+        - NOT_STARTED
+        - IN_PROGRESS
+        - COMPLETED
+        - PAUSED
+      description: Status of a manufacturing order operation
+
+    PurchaseOrderStatus:
+      type: string
+      enum:
+        - NOT_RECEIVED
+        - PARTIALLY_RECEIVED
+        - RECEIVED
+      description: Fulfillment status of a purchase order
+
+    CreatePurchaseOrderInitialStatus:
+      type: string
+      enum:
+        - NOT_RECEIVED
+      description: Initial status when creating a purchase order
+
+    PurchaseOrderBillingStatus:
+      type: string
+      enum:
+        - BILLED
+        - NOT_BILLED
+        - PARTIALLY_BILLED
+      description: Billing status through accounting integration
+
+    DocumentSendStatus:
+      type: string
+      enum:
+        - NOT_SENT
+        - SENDING
+        - FAILED
+        - SENT
+      description: Status of the last document e-mail sent
+
+    SalesOrderStatus:
+      type: string
+      enum:
+        - NOT_SHIPPED
+        - PARTIALLY_PACKED
+        - PARTIALLY_DELIVERED
+        - PACKED
+        - DELIVERED
+      description: Fulfillment status of a sales order
+
+    SalesOrderProductionStatus:
+      type: string
+      enum:
+        - NOT_STARTED
+        - NONE
+        - NOT_APPLICABLE
+        - IN_PROGRESS
+        - BLOCKED
+        - DONE
+      description: Production status of a sales order
+
+    CreateSalesOrderStatus:
+      type: string
+      enum:
+        - NOT_SHIPPED
+        - PENDING
+      description: Initial status when creating a sales order
+
+    SalesOrderFulfillmentStatus:
+      type: string
+      enum:
+        - PACKED
+        - DELIVERED
+      description: Status of a sales order fulfillment
+
+    SalesOrderFulfillmentInvoiceStatus:
+      type: string
+      enum:
+        - NOT_INVOICED
+        - INVOICED
+        - PARTIALLY_INVOICED
+      description: Invoice status of a sales order fulfillment
+
+    UpdateSalesOrderStatus:
+      type: string
+      enum:
+        - NOT_SHIPPED
+        - PENDING
+        - PACKED
+        - DELIVERED
+      description: Allowed status values when updating a sales order
+
+    StockTransferStatus:
+      type: string
+      enum:
+        - pending
+        - in_transit
+        - completed
+        - cancelled
+      description: Status of a stock transfer
+
+    InventoryMovementResourceType:
+      type: string
+      enum:
+        - Production
+        - PurchaseOrderRow
+        - PurchaseOrderRecipeRow
+        - SalesOrderRow
+        - ManufacturingOrderRecipeRow
+        - StockAdjustmentRow
+        - StockTransferRow
+        - ManufacturingOrder
+        - SystemGenerated
+        - ProductionIngredient
+      description: Type of resource that caused an inventory movement
+
+    SerialNumberResourceType:
+      type: string
+      enum:
+        - ManufacturingOrder
+        - Production
+        - StockAdjustmentRow
+        - StockTransferRow
+        - PurchaseOrderRow
+        - SalesOrderRow
+        - SalesOrderFulfillmentRow
+      description: Type of resource associated with a serial number
+
+    CreateSerialNumberResourceType:
+      type: string
+      enum:
+        - ManufacturingOrder
+        - Production
+        - StockAdjustmentRow
+        - StockTransferRow
+        - PurchaseOrderRow
+        - SalesOrderRow
+      description: Allowed resource types when creating serial numbers
+
+    CustomFieldCollectionResourceType:
+      type: string
+      enum:
+        - product
+        - material
+        - variant
+        - customer
+        - sales_order
+        - purchase_order
+        - stocktake
+      description: Type of business object a custom fields collection applies to
+
+    PriceListAdjustmentMethod:
+      type: string
+      enum:
+        - fixed
+        - percentage
+        - markup
+      description: Method used for price list adjustments
+
+    AccountingIntegrationType:
+      type: string
+      enum:
+        - xero
+        - quickBooks
+        - sage
+        - custom
+      description: Type of accounting system integration
+
+    OutsourcedRecipeIngredientAvailability:
+      type: string
+      enum:
+        - PROCESSED
+        - IN_STOCK
+        - NOT_AVAILABLE
+        - EXPECTED
+        - NOT_APPLICABLE
+      description: Ingredient availability for outsourced purchase order recipe rows
+
     BaseEntity:
       type: object
       description: Base entity with unique identifier
@@ -1843,19 +2055,8 @@ components:
               type: integer
               description: Identifier of the location where the movement occurred.
             resource_type:
-              type: string
               description: The type of resource that caused the movement.
-              enum:
-                - Production
-                - PurchaseOrderRow
-                - PurchaseOrderRecipeRow
-                - SalesOrderRow
-                - ManufacturingOrderRecipeRow
-                - StockAdjustmentRow
-                - StockTransferRow
-                - ManufacturingOrder
-                - SystemGenerated
-                - ProductionIngredient
+              $ref: "#/components/schemas/InventoryMovementResourceType"
             resource_id:
               type: integer
               description: Identifier of the resource that initiated the movement.
@@ -2901,13 +3102,8 @@ components:
             id:
               type: integer
             status:
-              type: string
               description: Current status of the operation
-              enum:
-                - NOT_STARTED
-                - IN_PROGRESS
-                - COMPLETED
-                - PAUSED
+              $ref: "#/components/schemas/ManufacturingOperationStatus"
             type:
               type: string
               description: Type classification of the operation
@@ -3362,16 +3558,8 @@ components:
           type: string
           description: The actual serial number string for the tracked item
         resource_type:
-          type: string
           description: Type of resource/transaction that generated or moved this serial number
-          enum:
-            - ManufacturingOrder
-            - Production
-            - StockAdjustmentRow
-            - StockTransferRow
-            - PurchaseOrderRow
-            - SalesOrderRow
-            - SalesOrderFulfillmentRow
+          $ref: "#/components/schemas/SerialNumberResourceType"
         resource_id:
           type: integer
           description: Unique identifier of the specific resource instance
@@ -3718,11 +3906,8 @@ components:
                 - type: "null"
               description: Primary supplier information for this item
             type:
-              type: string
-              enum:
-                - product
-                - material
               description: Item type discriminator - either 'product' or 'material'
+              $ref: "#/components/schemas/InventoryItemType"
           required:
             - name
             - type
@@ -3735,10 +3920,8 @@ components:
         - type: object
           properties:
             type:
-              type: string
-              enum:
-                - material
               description: Item type discriminator. Material objects are of type "material"
+              $ref: "#/components/schemas/MaterialType"
             deleted_at:
               type:
                 - string
@@ -4300,10 +4483,8 @@ components:
         - type: object
           properties:
             type:
-              type: string
-              enum:
-                - product
               description: Item type discriminator. Product objects are of type "product"
+              $ref: "#/components/schemas/ProductType"
             is_producible:
               type: boolean
               description: Whether this product can be manufactured in-house
@@ -4457,10 +4638,8 @@ components:
           pattern: ^[A-Z]{3}$
           description: Active ISO 4217 currency code (e.g. USD, EUR).
         status:
-          type: string
-          enum:
-            - NOT_RECEIVED
           description: Initial status of the purchase order when created
+          $ref: "#/components/schemas/CreatePurchaseOrderInitialStatus"
         order_created_date:
           type: string
           format: date-time
@@ -4574,12 +4753,8 @@ components:
         - type: object
           properties:
             status:
-              type: string
-              enum:
-                - "NOT_RECEIVED"
-                - "PARTIALLY_RECEIVED"
-                - "RECEIVED"
               description: Status of the order.
+              $ref: "#/components/schemas/PurchaseOrderStatus"
             order_no:
               type: string
               description: A unique, identifying string used in the UI and controlled by the user.
@@ -4618,22 +4793,13 @@ components:
               type: number
               description: The total value of the order (including taxes) in base currency.
             billing_status:
-              type: string
-              enum:
-                - "BILLED"
-                - "NOT_BILLED"
-                - "PARTIALLY_BILLED"
               description: |
                 Indicating the status of generating the bill through accounting integration to either Xero or QuickBooks
                 Online. "PARTIALLY_BILLED" does not apply to Xero integration.
+              $ref: "#/components/schemas/PurchaseOrderBillingStatus"
             last_document_status:
-              type: string
-              enum:
-                - "NOT_SENT"
-                - "SENDING"
-                - "FAILED"
-                - "SENT"
               description: Status of the last e-mail sent from (O)PO card.
+              $ref: "#/components/schemas/DocumentSendStatus"
             purchase_order_rows:
               type: array
               items:
@@ -5005,12 +5171,8 @@ components:
           maximum: 2147483647
           description: Updatable only when status is in NOT_RECEIVED and entity_type is outsourced
         status:
-          type: string
           description: Current status indicating progress of order fulfillment
-          enum:
-            - NOT_RECEIVED
-            - RECEIVED
-            - PARTIALLY_RECEIVED
+          $ref: "#/components/schemas/PurchaseOrderStatus"
         expected_arrival_date:
           type: string
           format: date-time
@@ -6736,10 +6898,8 @@ components:
               type: boolean
               description: Sellable services can be added to Quotes and Sales orders
             type:
-              type: string
-              enum:
-                - service
               description: Indicating the item type. Service objects are of type "service"
+              $ref: "#/components/schemas/ServiceType"
             additional_info:
               type: string
               description: |
@@ -7569,14 +7729,8 @@ components:
               type: integer
               description: Unique identifier of the fulfillment location for this order
             status:
-              type: string
               description: Current fulfillment status of the sales order
-              enum:
-                - NOT_SHIPPED
-                - PARTIALLY_PACKED
-                - PARTIALLY_DELIVERED
-                - PACKED
-                - DELIVERED
+              $ref: "#/components/schemas/SalesOrderStatus"
             currency:
               type: string
               pattern: ^[A-Z]{3}$
@@ -7655,14 +7809,7 @@ components:
               description: Expected date when ingredients will be available for production
             production_status:
               anyOf:
-                - type: string
-                  enum:
-                    - NOT_STARTED
-                    - NONE
-                    - NOT_APPLICABLE
-                    - IN_PROGRESS
-                    - BLOCKED
-                    - DONE
+                - $ref: "#/components/schemas/SalesOrderProductionStatus"
                 - type: "null"
               description: Current status of production for items in this order
             tracking_number:
@@ -8323,11 +8470,8 @@ components:
           type: integer
           description: Primary fulfillment location for the order
         status:
-          type: string
-          enum:
-            - NOT_SHIPPED
-            - PENDING
           description: Initial status of the order
+          $ref: "#/components/schemas/CreateSalesOrderStatus"
         additional_info:
           type:
             - string
@@ -8823,20 +8967,14 @@ components:
               format: date-time
               description: Date and time when items were picked from inventory
             status:
-              type: string
               description: Current fulfillment status
-              enum:
-                - PACKED
-                - DELIVERED
+              $ref: "#/components/schemas/SalesOrderFulfillmentStatus"
             invoice_status:
               type:
                 - string
                 - "null"
               description: Current invoice status of the fulfillment
-              enum:
-                - NOT_INVOICED
-                - INVOICED
-                - PARTIALLY_INVOICED
+              $ref: "#/components/schemas/SalesOrderFulfillmentInvoiceStatus"
             conversion_rate:
               type:
                 - number
@@ -9079,12 +9217,8 @@ components:
               type: integer
               description: ID of the product variant this pricing applies to
             adjustment_method:
-              type: string
               description: Method used for price adjustment (fixed, percentage, markup)
-              enum:
-                - fixed
-                - percentage
-                - markup
+              $ref: "#/components/schemas/PriceListAdjustmentMethod"
             amount:
               type: number
               description: Amount value for the price adjustment based on the adjustment method
@@ -9640,16 +9774,8 @@ components:
               type: string
               description: Display name of the custom fields collection for management and organization
             resource_type:
-              type: string
               description: The type of business object this custom fields collection applies to
-              enum:
-                - product
-                - material
-                - variant
-                - customer
-                - sales_order
-                - purchase_order
-                - stocktake
+              $ref: "#/components/schemas/CustomFieldCollectionResourceType"
             custom_fields:
               type: array
               description: Array of custom field definitions with their types, validation rules, and configuration
@@ -10859,14 +10985,8 @@ components:
               type: number
               description: The planned quantity of this ingredient per unit of production
             ingredient_availability:
-              type: string
-              enum:
-                - PROCESSED
-                - IN_STOCK
-                - NOT_AVAILABLE
-                - EXPECTED
-                - NOT_APPLICABLE
               description: Current availability status of this ingredient
+              $ref: "#/components/schemas/OutsourcedRecipeIngredientAvailability"
             ingredient_expected_date:
               type:
                 - string
@@ -10968,13 +11088,8 @@ components:
           type: string
           description: Invoice identifier in the external accounting system
         integration_type:
-          type: string
-          enum:
-            - xero
-            - quickBooks
-            - sage
-            - custom
           description: Type of accounting system integration used
+          $ref: "#/components/schemas/AccountingIntegrationType"
         created_at:
           type: string
           format: date-time
@@ -11222,7 +11337,6 @@ components:
             If a match is not found, a new one is created.
           type: string
         type:
-          type: string
           description: |-
             Different operation types allows you to use different cost
             calculations depending on the type of product operation
@@ -11235,11 +11349,8 @@ components:
             time isn't a factor, but only the quantity of product made.
             Fixed cost: The fixed cost operation type is useful for adding
             the expected extra costs that go into producing a product.
-          enum:
-            - process
-            - setup
-            - perUnit
-            - fixed
+          allOf:
+            - $ref: "#/components/schemas/ProductOperationType"
           default: process
         cost_parameter:
           type: number
@@ -11479,15 +11590,10 @@ components:
           description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
           maximum: 2147483647
         status:
-          type: string
           description:
             When the status is omitted, NOT_SHIPPED is used as default. Use PENDING when you want to create
             sales order quotes.
-          enum:
-            - NOT_SHIPPED
-            - PENDING
-            - PACKED
-            - DELIVERED
+          $ref: "#/components/schemas/UpdateSalesOrderStatus"
         currency:
           type: string
           description: |-
@@ -11556,15 +11662,8 @@ components:
         - serial_numbers
       properties:
         resource_type:
-          type: string
           description: Resource type
-          enum:
-            - ManufacturingOrder
-            - Production
-            - StockAdjustmentRow
-            - StockTransferRow
-            - PurchaseOrderRow
-            - SalesOrderRow
+          $ref: "#/components/schemas/CreateSerialNumberResourceType"
         resource_id:
           type: integer
           description: Resource ID
@@ -11651,13 +11750,8 @@ components:
         - status
       properties:
         status:
-          type: string
           description: New status for the stock transfer
-          enum:
-            - pending
-            - in_transit
-            - completed
-            - cancelled
+          $ref: "#/components/schemas/StockTransferStatus"
     LocationListResponse:
       description: Response containing a list of locations
       type: object

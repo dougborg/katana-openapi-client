@@ -5,9 +5,7 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
-from ..models.update_stock_transfer_status_request_status import (
-    UpdateStockTransferStatusRequestStatus,
-)
+from ..models.stock_transfer_status import StockTransferStatus
 
 T = TypeVar("T", bound="UpdateStockTransferStatusRequest")
 
@@ -16,7 +14,7 @@ T = TypeVar("T", bound="UpdateStockTransferStatusRequest")
 class UpdateStockTransferStatusRequest:
     """Request payload for updating a stock transfer status"""
 
-    status: UpdateStockTransferStatusRequestStatus
+    status: StockTransferStatus
 
     def to_dict(self) -> dict[str, Any]:
         status = self.status.value
@@ -34,7 +32,7 @@ class UpdateStockTransferStatusRequest:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        status = UpdateStockTransferStatusRequestStatus(d.pop("status"))
+        status = StockTransferStatus(d.pop("status"))
 
         update_stock_transfer_status_request = cls(
             status=status,

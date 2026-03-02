@@ -35,11 +35,11 @@ from .common import (
     CustomField3,
     CustomField4,
     CustomField5,
+    InventoryItemType,
+    InventoryMovementResourceType,
     Location1,
-    ResourceType,
-    Type,
-    Type3,
-    Type4,
+    ProductOperationType,
+    ServiceType,
     VariantType,
 )
 from .contacts import Supplier, SupplierItemCode
@@ -98,7 +98,7 @@ class InventoryMovement(UpdatableEntity):
         Field(description="Identifier of the location where the movement occurred."),
     ]
     resource_type: Annotated[
-        ResourceType,
+        InventoryMovementResourceType,
         Field(description="The type of resource that caused the movement."),
     ]
     resource_id: Annotated[
@@ -760,7 +760,7 @@ class Service(ArchivableDeletableEntity):
         Field(description="Sellable services can be added to Quotes and Sales orders"),
     ] = None
     type: Annotated[
-        Type3 | None,
+        ServiceType | None,
         Field(
             description='Indicating the item type. Service objects are of type "service"'
         ),
@@ -916,11 +916,11 @@ class CreateProductOperationRowItem(KatanaPydanticBase):
         ),
     ] = None
     type: Annotated[
-        Type4 | None,
+        ProductOperationType | None,
         Field(
             description="Different operation types allows you to use different cost\ncalculations depending on the type of product operation\nProcess: The process operation type is best for when products\nare individually built and time is the main driver of cost.\nSetup: The setup operation type is best for setting up a\nmachine for production where the production quantity doesn't\naffect cost.\nPer unit: The per unit operation type is best when cost of\ntime isn't a factor, but only the quantity of product made.\nFixed cost: The fixed cost operation type is useful for adding\nthe expected extra costs that go into producing a product."
         ),
-    ] = Type4.process
+    ] = ProductOperationType.process
     cost_parameter: Annotated[
         float | None,
         Field(
@@ -1310,7 +1310,7 @@ class InventoryItem(ArchivableEntity):
         ),
     ] = None
     type: Annotated[
-        Type,
+        InventoryItemType,
         Field(description="Item type discriminator - either 'product' or 'material'"),
     ]
 

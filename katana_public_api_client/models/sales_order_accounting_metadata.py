@@ -10,9 +10,7 @@ from attrs import (
 )
 from dateutil.parser import isoparse
 
-from ..models.sales_order_accounting_metadata_integration_type import (
-    SalesOrderAccountingMetadataIntegrationType,
-)
+from ..models.accounting_integration_type import AccountingIntegrationType
 
 T = TypeVar("T", bound="SalesOrderAccountingMetadata")
 
@@ -30,7 +28,7 @@ class SalesOrderAccountingMetadata:
     sales_order_id: int
     fulfillment_id: int
     invoice_id: str
-    integration_type: SalesOrderAccountingMetadataIntegrationType
+    integration_type: AccountingIntegrationType
     created_at: datetime.datetime
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -73,9 +71,7 @@ class SalesOrderAccountingMetadata:
 
         invoice_id = d.pop("invoice_id")
 
-        integration_type = SalesOrderAccountingMetadataIntegrationType(
-            d.pop("integration_type")
-        )
+        integration_type = AccountingIntegrationType(d.pop("integration_type"))
 
         created_at = isoparse(d.pop("created_at"))
 

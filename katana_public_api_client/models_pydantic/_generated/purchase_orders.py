@@ -17,13 +17,9 @@ from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
 from .base import DeletableEntity
 from .common import (
-    BillingStatus,
     CostDistributionMethod,
-    IngredientAvailability1,
-    LastDocumentStatus,
-    Status1,
-    Status2,
-    Status3,
+    DocumentSendStatus,
+    OutsourcedRecipeIngredientAvailability,
 )
 from .contacts import Supplier
 from .stock import (
@@ -45,6 +41,22 @@ class OutsourcedPurchaseOrderIngredientAvailability(StrEnum):
 class PurchaseOrderEntityType(StrEnum):
     regular = "regular"
     outsourced = "outsourced"
+
+
+class PurchaseOrderStatus(StrEnum):
+    not_received = "NOT_RECEIVED"
+    partially_received = "PARTIALLY_RECEIVED"
+    received = "RECEIVED"
+
+
+class CreatePurchaseOrderInitialStatus(StrEnum):
+    not_received = "NOT_RECEIVED"
+
+
+class PurchaseOrderBillingStatus(StrEnum):
+    billed = "BILLED"
+    not_billed = "NOT_BILLED"
+    partially_billed = "PARTIALLY_BILLED"
 
 
 class PurchaseOrderRowRequest(KatanaPydanticBase):
@@ -209,7 +221,7 @@ class UpdatePurchaseOrderRequest(KatanaPydanticBase):
         ),
     ] = None
     status: Annotated[
-        Status3 | None,
+        PurchaseOrderStatus | None,
         Field(description="Current status indicating progress of order fulfillment"),
     ] = None
     expected_arrival_date: Annotated[
@@ -584,7 +596,7 @@ class OutsourcedPurchaseOrderRecipeRow(DeletableEntity):
         ),
     ]
     ingredient_availability: Annotated[
-        IngredientAvailability1 | None,
+        OutsourcedRecipeIngredientAvailability | None,
         Field(description="Current availability status of this ingredient"),
     ] = None
     ingredient_expected_date: Annotated[
@@ -674,7 +686,7 @@ class CreatePurchaseOrderRequest(KatanaPydanticBase):
         ),
     ] = None
     status: Annotated[
-        Status1 | None,
+        CreatePurchaseOrderInitialStatus | None,
         Field(description="Initial status of the purchase order when created"),
     ] = None
     order_created_date: Annotated[
@@ -717,7 +729,9 @@ class OutsourcedPurchaseOrderRecipeRowListResponse(KatanaPydanticBase):
 
 
 class PurchaseOrderBase(DeletableEntity):
-    status: Annotated[Status2 | None, Field(description="Status of the order.")] = None
+    status: Annotated[
+        PurchaseOrderStatus | None, Field(description="Status of the order.")
+    ] = None
     order_no: Annotated[
         str | None,
         Field(
@@ -776,13 +790,13 @@ class PurchaseOrderBase(DeletableEntity):
         ),
     ] = None
     billing_status: Annotated[
-        BillingStatus | None,
+        PurchaseOrderBillingStatus | None,
         Field(
             description='Indicating the status of generating the bill through accounting integration to either Xero or QuickBooks\nOnline. "PARTIALLY_BILLED" does not apply to Xero integration.\n'
         ),
     ] = None
     last_document_status: Annotated[
-        LastDocumentStatus | None,
+        DocumentSendStatus | None,
         Field(description="Status of the last e-mail sent from (O)PO card."),
     ] = None
     purchase_order_rows: Annotated[
