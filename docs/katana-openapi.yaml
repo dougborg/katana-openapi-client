@@ -8970,11 +8970,10 @@ components:
               description: Current fulfillment status
               $ref: "#/components/schemas/SalesOrderFulfillmentStatus"
             invoice_status:
-              type:
-                - string
-                - "null"
               description: Current invoice status of the fulfillment
-              $ref: "#/components/schemas/SalesOrderFulfillmentInvoiceStatus"
+              anyOf:
+                - $ref: "#/components/schemas/SalesOrderFulfillmentInvoiceStatus"
+                - type: "null"
             conversion_rate:
               type:
                 - number

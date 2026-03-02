@@ -8,7 +8,7 @@ To regenerate, run:
 
 from __future__ import annotations
 
-from enum import Enum, StrEnum
+from enum import StrEnum
 from typing import Annotated, Any
 
 from pydantic import AwareDatetime, ConfigDict, Field, RootModel
@@ -691,12 +691,6 @@ class Attribute1(KatanaPydanticBase):
 class Attribute3(KatanaPydanticBase):
     key: Annotated[str | None, Field(description="Attribute name")] = None
     value: Annotated[str | None, Field(description="Attribute value")] = None
-
-
-class InvoiceStatus(Enum):
-    not_invoiced = "NOT_INVOICED"
-    invoiced = "INVOICED"
-    partially_invoiced = "PARTIALLY_INVOICED"
 
 
 class ProductOperationRow(KatanaPydanticBase):

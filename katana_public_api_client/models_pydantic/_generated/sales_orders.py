@@ -23,7 +23,6 @@ from .common import (
     Attribute1,
     Attribute3,
     IngredientAvailability,
-    InvoiceStatus,
     ProductAvailability,
 )
 from .stock import (
@@ -448,8 +447,10 @@ class SalesOrderFulfillment(UpdatableEntity):
         Field(description="Current fulfillment status"),
     ] = None
     invoice_status: Annotated[
-        InvoiceStatus | None,
-        Field(description="Current invoice status of the fulfillment"),
+        SalesOrderFulfillmentInvoiceStatus | None,
+        Field(
+            description="Current invoice status of the fulfillment",
+        ),
     ] = None
     conversion_rate: Annotated[
         float | None,
