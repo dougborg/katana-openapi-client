@@ -6,7 +6,7 @@ handling errors, extracting data, and formatting display values.
 
 from collections.abc import Callable
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, cast, overload
 
 from .client_types import Response, Unset
 from .models.detailed_error_response import DetailedErrorResponse
@@ -23,9 +23,6 @@ from .models.unrecognized_keys_validation_error import UnrecognizedKeysValidatio
 
 if TYPE_CHECKING:
     from .models.variant import Variant
-
-T = TypeVar("T")
-DataT = TypeVar("DataT")
 
 
 class APIError(Exception):
@@ -510,7 +507,7 @@ def get_error_message[T](response: Response[T]) -> str | None:
     return error_message
 
 
-def handle_response(
+def handle_response[T](
     response: Response[T],
     *,
     on_success: Callable[[T], Any] | None = None,

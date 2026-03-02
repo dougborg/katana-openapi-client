@@ -11,17 +11,15 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+from ..models.document_send_status import DocumentSendStatus
 from ..models.outsourced_purchase_order_entity_type import (
     OutsourcedPurchaseOrderEntityType,
 )
 from ..models.outsourced_purchase_order_ingredient_availability import (
     OutsourcedPurchaseOrderIngredientAvailability,
 )
-from ..models.purchase_order_base_billing_status import PurchaseOrderBaseBillingStatus
-from ..models.purchase_order_base_last_document_status import (
-    PurchaseOrderBaseLastDocumentStatus,
-)
-from ..models.purchase_order_base_status import PurchaseOrderBaseStatus
+from ..models.purchase_order_billing_status import PurchaseOrderBillingStatus
+from ..models.purchase_order_status import PurchaseOrderStatus
 
 if TYPE_CHECKING:
     from ..models.purchase_order_row import PurchaseOrderRow
@@ -40,7 +38,7 @@ class OutsourcedPurchaseOrder:
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
     deleted_at: datetime.datetime | None | Unset = UNSET
-    status: PurchaseOrderBaseStatus | Unset = UNSET
+    status: PurchaseOrderStatus | Unset = UNSET
     order_no: str | Unset = UNSET
     entity_type: OutsourcedPurchaseOrderEntityType | Unset = UNSET
     default_group_id: int | Unset = UNSET
@@ -52,8 +50,8 @@ class OutsourcedPurchaseOrder:
     location_id: int | Unset = UNSET
     total: float | Unset = UNSET
     total_in_base_currency: float | Unset = UNSET
-    billing_status: PurchaseOrderBaseBillingStatus | Unset = UNSET
-    last_document_status: PurchaseOrderBaseLastDocumentStatus | Unset = UNSET
+    billing_status: PurchaseOrderBillingStatus | Unset = UNSET
+    last_document_status: DocumentSendStatus | Unset = UNSET
     purchase_order_rows: list[PurchaseOrderRow] | Unset = UNSET
     supplier: Supplier | Unset = UNSET
     ingredient_availability: OutsourcedPurchaseOrderIngredientAvailability | Unset = (
@@ -241,11 +239,11 @@ class OutsourcedPurchaseOrder:
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
         _status = d.pop("status", UNSET)
-        status: PurchaseOrderBaseStatus | Unset
+        status: PurchaseOrderStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
-            status = PurchaseOrderBaseStatus(_status)
+            status = PurchaseOrderStatus(_status)
 
         order_no = d.pop("order_no", UNSET)
 
@@ -285,20 +283,18 @@ class OutsourcedPurchaseOrder:
         total_in_base_currency = d.pop("total_in_base_currency", UNSET)
 
         _billing_status = d.pop("billing_status", UNSET)
-        billing_status: PurchaseOrderBaseBillingStatus | Unset
+        billing_status: PurchaseOrderBillingStatus | Unset
         if isinstance(_billing_status, Unset):
             billing_status = UNSET
         else:
-            billing_status = PurchaseOrderBaseBillingStatus(_billing_status)
+            billing_status = PurchaseOrderBillingStatus(_billing_status)
 
         _last_document_status = d.pop("last_document_status", UNSET)
-        last_document_status: PurchaseOrderBaseLastDocumentStatus | Unset
+        last_document_status: DocumentSendStatus | Unset
         if isinstance(_last_document_status, Unset):
             last_document_status = UNSET
         else:
-            last_document_status = PurchaseOrderBaseLastDocumentStatus(
-                _last_document_status
-            )
+            last_document_status = DocumentSendStatus(_last_document_status)
 
         _purchase_order_rows = d.pop("purchase_order_rows", UNSET)
         purchase_order_rows: list[PurchaseOrderRow] | Unset = UNSET

@@ -8,7 +8,7 @@ from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.update_sales_order_request_status import UpdateSalesOrderRequestStatus
+from ..models.update_sales_order_status import UpdateSalesOrderStatus
 
 T = TypeVar("T", bound="UpdateSalesOrderRequest")
 
@@ -23,7 +23,7 @@ class UpdateSalesOrderRequest:
     delivery_date: datetime.datetime | Unset = UNSET
     picked_date: datetime.datetime | Unset = UNSET
     location_id: int | Unset = UNSET
-    status: UpdateSalesOrderRequestStatus | Unset = UNSET
+    status: UpdateSalesOrderStatus | Unset = UNSET
     currency: str | Unset = UNSET
     conversion_rate: float | Unset = UNSET
     conversion_date: str | Unset = UNSET
@@ -150,11 +150,11 @@ class UpdateSalesOrderRequest:
         location_id = d.pop("location_id", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: UpdateSalesOrderRequestStatus | Unset
+        status: UpdateSalesOrderStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
-            status = UpdateSalesOrderRequestStatus(_status)
+            status = UpdateSalesOrderStatus(_status)
 
         currency = d.pop("currency", UNSET)
 

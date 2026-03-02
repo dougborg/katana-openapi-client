@@ -1,7 +1,7 @@
 from enum import StrEnum
 
 
-class PurchaseOrderBaseLastDocumentStatus(StrEnum):
+class DocumentSendStatus(StrEnum):
     FAILED = "FAILED"
     NOT_SENT = "NOT_SENT"
     SENDING = "SENDING"

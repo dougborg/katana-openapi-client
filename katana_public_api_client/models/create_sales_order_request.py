@@ -11,7 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.create_sales_order_request_status import CreateSalesOrderRequestStatus
+from ..models.create_sales_order_status import CreateSalesOrderStatus
 
 if TYPE_CHECKING:
     from ..models.create_sales_order_request_sales_order_rows_item import (
@@ -54,7 +54,7 @@ class CreateSalesOrderRequest:
         delivery_date (datetime.datetime | None | Unset): Requested delivery date
         currency (None | str | Unset): Currency code for the order (defaults to company base currency)
         location_id (int | Unset): Primary fulfillment location for the order
-        status (CreateSalesOrderRequestStatus | Unset): Initial status of the order
+        status (CreateSalesOrderStatus | Unset): Initial status when creating a sales order
         additional_info (None | str | Unset): Additional notes or instructions for the order
         customer_ref (None | str | Unset): Customer's internal reference number
         ecommerce_order_type (None | str | Unset): Type of ecommerce order if applicable
@@ -72,7 +72,7 @@ class CreateSalesOrderRequest:
     delivery_date: datetime.datetime | None | Unset = UNSET
     currency: None | str | Unset = UNSET
     location_id: int | Unset = UNSET
-    status: CreateSalesOrderRequestStatus | Unset = UNSET
+    status: CreateSalesOrderStatus | Unset = UNSET
     additional_info: None | str | Unset = UNSET
     customer_ref: None | str | Unset = UNSET
     ecommerce_order_type: None | str | Unset = UNSET
@@ -303,11 +303,11 @@ class CreateSalesOrderRequest:
         location_id = d.pop("location_id", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: CreateSalesOrderRequestStatus | Unset
+        status: CreateSalesOrderStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
-            status = CreateSalesOrderRequestStatus(_status)
+            status = CreateSalesOrderStatus(_status)
 
         def _parse_additional_info(data: object) -> None | str | Unset:
             if data is None:

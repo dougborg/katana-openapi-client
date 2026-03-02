@@ -1,13 +1,11 @@
 from enum import StrEnum
 
 
-class SalesOrderProductionStatusType0(StrEnum):
-    BLOCKED = "BLOCKED"
-    DONE = "DONE"
+class ManufacturingOperationStatus(StrEnum):
+    COMPLETED = "COMPLETED"
     IN_PROGRESS = "IN_PROGRESS"
-    NONE = "NONE"
-    NOT_APPLICABLE = "NOT_APPLICABLE"
     NOT_STARTED = "NOT_STARTED"
+    PAUSED = "PAUSED"
 
     def __str__(self) -> str:
         return str(self.value)

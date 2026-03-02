@@ -13,9 +13,7 @@ from dateutil.parser import isoparse
 from ..client_types import UNSET, Unset
 from ..models.ingredient_availability import IngredientAvailability
 from ..models.product_availability import ProductAvailability
-from ..models.sales_order_production_status_type_0 import (
-    SalesOrderProductionStatusType0,
-)
+from ..models.sales_order_production_status import SalesOrderProductionStatus
 from ..models.sales_order_status import SalesOrderStatus
 
 if TYPE_CHECKING:
@@ -55,7 +53,7 @@ class SalesOrder:
         customer_id (int): Unique identifier of the customer placing the order
         order_no (str): Unique order number for tracking and reference purposes
         location_id (int): Unique identifier of the fulfillment location for this order
-        status (SalesOrderStatus): Current fulfillment status of the sales order
+        status (SalesOrderStatus): Fulfillment status of a sales order
         created_at (datetime.datetime | Unset): Timestamp when the entity was first created
         updated_at (datetime.datetime | Unset): Timestamp when the entity was last updated
         deleted_at (datetime.datetime | None | Unset): Nullable deletion timestamp
@@ -83,8 +81,8 @@ class SalesOrder:
         ingredient_availability (IngredientAvailability | None | Unset):
         ingredient_expected_date (datetime.datetime | None | Unset): Expected date when ingredients will be available
             for production
-        production_status (None | SalesOrderProductionStatusType0 | Unset): Current status of production for items in
-            this order
+        production_status (None | SalesOrderProductionStatus | Unset): Current status of production for items in this
+            order
         tracking_number (None | str | Unset): Shipping carrier tracking number for package tracking
         tracking_number_url (None | str | Unset): URL link to track the shipment on carrier website
         billing_address_id (int | None | Unset): Reference to the customer address used for billing
@@ -123,7 +121,7 @@ class SalesOrder:
     product_expected_date: datetime.datetime | None | Unset = UNSET
     ingredient_availability: IngredientAvailability | None | Unset = UNSET
     ingredient_expected_date: datetime.datetime | None | Unset = UNSET
-    production_status: None | SalesOrderProductionStatusType0 | Unset = UNSET
+    production_status: None | SalesOrderProductionStatus | Unset = UNSET
     tracking_number: None | str | Unset = UNSET
     tracking_number_url: None | str | Unset = UNSET
     billing_address_id: int | None | Unset = UNSET
@@ -286,7 +284,7 @@ class SalesOrder:
         production_status: None | str | Unset
         if isinstance(self.production_status, Unset):
             production_status = UNSET
-        elif isinstance(self.production_status, SalesOrderProductionStatusType0):
+        elif isinstance(self.production_status, SalesOrderProductionStatus):
             production_status = self.production_status.value
         else:
             production_status = self.production_status
@@ -699,7 +697,7 @@ class SalesOrder:
 
         def _parse_production_status(
             data: object,
-        ) -> None | SalesOrderProductionStatusType0 | Unset:
+        ) -> None | SalesOrderProductionStatus | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -707,12 +705,12 @@ class SalesOrder:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                production_status_type_0 = SalesOrderProductionStatusType0(data)
+                production_status_type_0 = SalesOrderProductionStatus(data)
 
                 return production_status_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(None | SalesOrderProductionStatusType0 | Unset, data)
+            return cast(None | SalesOrderProductionStatus | Unset, data)
 
         production_status = _parse_production_status(d.pop("production_status", UNSET))
 

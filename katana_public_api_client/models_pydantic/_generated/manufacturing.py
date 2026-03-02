@@ -20,9 +20,9 @@ from .base import DeletableEntity
 from .common import (
     AssignedOperator,
     IngredientAvailability,
+    ManufacturingOperationStatus,
     Operator,
     Row,
-    Status,
 )
 from .stock import (
     BatchTransaction,
@@ -705,7 +705,8 @@ class ManufacturingOrderProductionListResponse(KatanaPydanticBase):
 class ManufacturingOrderOperationRow(DeletableEntity):
     id: int
     status: Annotated[
-        Status | None, Field(description="Current status of the operation")
+        ManufacturingOperationStatus | None,
+        Field(description="Current status of the operation"),
     ] = None
     type: Annotated[
         str | None, Field(description="Type classification of the operation")
