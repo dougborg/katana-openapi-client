@@ -22,7 +22,7 @@ high coverage (87%+ on core logic), and provide confidence in code correctness.
 - **pytest-asyncio**: Async test support for httpx and FastMCP
 - **pytest-xdist**: Parallel test execution for speed
 - **pytest-cov**: Coverage reporting and tracking
-- **responses**: HTTP mocking for API calls
+- **httpx.MockTransport**: HTTP mocking via transport layer
 - **unittest.mock**: Mocking for complex dependencies
 
 ## Testing Philosophy
@@ -38,10 +38,24 @@ high coverage (87%+ on core logic), and provide confidence in code correctness.
 ### Test Quality Standards
 
 - **AAA Pattern** - Arrange, Act, Assert structure
-- **Descriptive names** - `test_get_product_returns_404_when_not_found`
+- **Descriptive names** - `test_<what>_<condition>_<expected>`
+  (e.g., `test_unwrap_as_with_401_response_raises_authentication_error`)
 - **Single assertion focus** - Each test verifies one specific outcome
-- **Cover edge cases** - Empty inputs, None values, boundary conditions
+- **Cover edge cases** - See Edge Case Reference below
 - **Test error paths** - Not just happy path
+
+### Edge Case Reference
+
+For every function being tested, consider ALL of these categories:
+
+- **Empty inputs**: empty strings `""`, empty lists `[]`, empty dicts `{}`, zero `0`
+- **Boundary values**: off-by-one, max/min values, exactly-at-limit, first/last page
+- **Invalid inputs**: wrong types, malformed data, negative numbers where positive
+  expected
+- **None/UNSET handling**: `None` where a value is expected, UNSET sentinel on attrs
+  fields
+- **Error conditions**: network failures, API errors (401, 404, 422, 429, 500)
+- **Concurrent access**: race conditions in async code, shared mutable state
 
 ## Testing Framework and Tools
 
@@ -66,10 +80,10 @@ high coverage (87%+ on core logic), and provide confidence in code correctness.
 - Branch coverage analysis
 - HTML reports for detailed inspection
 
-**responses** - HTTP mocking
+**httpx.MockTransport** - HTTP mocking
 
-- Mock httpx HTTP calls
-- Simulate API responses
+- Mock HTTP calls at the transport layer
+- Use fixtures from `tests/conftest.py` (`mock_transport`, `katana_client_with_mock_transport`)
 - Test without hitting real APIs
 
 ### Test Commands
@@ -188,54 +202,66 @@ def test_sku_validation(input_sku, expected_valid):
 
 ### Mocking HTTP Requests
 
-```python
-import responses
-from katana_public_api_client.api.product import get_all_products
+Use `httpx.MockTransport` with fixtures from `tests/conftest.py`:
 
-@responses.activate
-def test_get_products_success():
-    """Test successful product retrieval."""
-    # Arrange - Setup mock response
-    responses.add(
-        responses.GET,
-        "https://api.katanamrp.com/v1/products",
-        json={
-            "data": [
-                {"id": "1", "name": "Product 1"},
-                {"id": "2", "name": "Product 2"}
-            ]
-        },
-        status=200,
-    )
+```python
+@pytest.mark.asyncio
+async def test_get_products_success(katana_client_with_mock_transport):
+    """Test successful product retrieval using the mock transport fixture."""
+    # Arrange - fixture provides KatanaClient with MockTransport pre-configured
+    client = katana_client_with_mock_transport
 
     # Act
-    async with KatanaClient() as client:
-        response = await get_all_products.asyncio_detailed(client=client)
+    response = await get_all_products.asyncio_detailed(client=client._client)
 
     # Assert
     assert response.status_code == 200
-    assert len(response.parsed.data) == 2
+    assert response.parsed is not None
+```
+
+For custom response handlers, create a handler and wire it into a KatanaClient:
+
+```python
+@pytest.mark.asyncio
+async def test_api_with_custom_handler(mock_api_credentials):
+    """Test with a custom mock transport handler."""
+    # Arrange - custom handler returning specific data
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"data": [{"id": 1, "name": "Test"}]})
+
+    transport = httpx.MockTransport(handler)
+    client = KatanaClient(**mock_api_credentials)
+    client._client._async_client = httpx.AsyncClient(
+        transport=transport, base_url=mock_api_credentials["base_url"]
+    )
+
+    # Act
+    response = await get_all_products.asyncio_detailed(client=client._client)
+
+    # Assert
+    assert response.status_code == 200
 ```
 
 ### Testing Error Paths
 
-Always test error scenarios:
+Always test error scenarios with complete examples:
 
 ```python
-@responses.activate
-def test_api_unauthorized_error():
+@pytest.mark.asyncio
+async def test_api_unauthorized_error(mock_api_credentials):
     """Test handling of 401 Unauthorized."""
-    # Arrange - Setup error response
-    responses.add(
-        responses.GET,
-        "https://api.katanamrp.com/v1/products",
-        json={"error": "Unauthorized"},
-        status=401,
+    # Arrange - handler returning 401
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(401, json={"error": "Unauthorized"})
+
+    transport = httpx.MockTransport(handler)
+    client = KatanaClient(**mock_api_credentials)
+    client._client._async_client = httpx.AsyncClient(
+        transport=transport, base_url=mock_api_credentials["base_url"]
     )
 
     # Act
-    async with KatanaClient() as client:
-        response = await get_all_products.asyncio_detailed(client=client)
+    response = await get_all_products.asyncio_detailed(client=client._client)
 
     # Assert
     assert response.status_code == 401
@@ -312,14 +338,11 @@ def assert_valid_product(product):
     assert "sku" in product
     assert isinstance(product.get("price"), (int, float))
 
-def create_mock_response(status_code: int, data: dict):
-    """Create a mock HTTP response."""
-    return responses.Response(
-        method=responses.GET,
-        url="https://api.katanamrp.com/v1/test",
-        json=data,
-        status=status_code,
-    )
+def create_mock_handler(status_code: int, data: dict):
+    """Create a mock transport handler returning the given response."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(status_code, json=data)
+    return httpx.MockTransport(handler)
 ```
 
 ## Coverage Goals and Tracking
@@ -569,6 +592,16 @@ When writing tests for a new feature:
 - [ ] Use descriptive test names
 - [ ] Follow AAA pattern consistently
 
+## Continuous Improvement
+
+Tests are often the first place you discover undocumented behavior:
+
+- If a test reveals surprising API behavior, add it to CLAUDE.md's "Known Pitfalls"
+- If you find yourself writing the same test setup repeatedly, extract it as a fixture
+  in `conftest.py`
+- If edge cases keep being missed for a specific pattern, add the pattern to the Edge
+  Case Reference above
+
 ## Critical Reminders
 
 1. **Test before implementing** (TDD approach when possible)
@@ -580,7 +613,7 @@ When writing tests for a new feature:
 1. **Mark integration tests** - Separate from unit tests
 1. **Provide helpful assertions** - Include failure messages
 1. **Keep tests fast** - Optimize slow tests or mark them
-1. **Maintain test quality** - Tests are code too
+1. **Improve the system** - Codify discoveries into project docs
 
 ## Agent Coordination
 

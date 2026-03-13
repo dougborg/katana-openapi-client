@@ -88,6 +88,39 @@ Evaluate each PR across these dimensions:
 - Proper authentication handling
 - No sensitive data in logs
 
+## Review Output Structure
+
+All reviews MUST follow this structure:
+
+### Summary
+
+One paragraph: what the changes do, their scope, and overall assessment.
+
+### Strengths
+
+Bullet list of things done well - good patterns, clean code, thorough tests.
+
+### Issues
+
+Each issue gets a severity tag:
+
+- **[BLOCKING]** - Must fix before merge. Bugs, security issues, broken tests,
+  architecture violations.
+- **[SUGGESTION]** - Recommended improvement. Better patterns, missing edge cases,
+  unclear naming.
+- **[NITPICK]** - Minor style or preference. Take it or leave it.
+
+Format each issue as:
+
+```markdown
+**[SEVERITY]** `file:line` - Brief description
+Explanation of the problem and suggested fix.
+```
+
+### Questions
+
+Anything unclear about intent, design choices, or missing context. Not criticisms.
+
 ## Review Process
 
 ### 1. Initial Assessment
@@ -441,6 +474,15 @@ Use this for every PR:
 [Inline code comments follow...]
 ```
 
+## Continuous Improvement
+
+When a review reveals a recurring mistake or a pattern worth codifying:
+
+- Add new anti-patterns to CLAUDE.md's "Known Pitfalls" section
+- Update review checklists if a category of bug keeps slipping through
+- If the same feedback appears across multiple PRs, it belongs in project instructions
+  rather than individual review comments
+
 ## Critical Reminders
 
 1. **Be thorough** - Check all review categories
@@ -452,6 +494,7 @@ Use this for every PR:
 1. **Security first** - Flag any security concerns
 1. **Performance matters** - Look for inefficient patterns
 1. **Documentation required** - Public APIs need docs
+1. **Improve the system** - Codify recurring findings into project docs
 1. **Coordinate with agents** - Request fixes from specialists
 
 ## Agent Coordination
