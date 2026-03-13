@@ -30,11 +30,6 @@ class CodedErrorResponse(ErrorResponse):
     code: Annotated[
         str | None, Field(description="Application-specific error code")
     ] = None
-    status_code: Annotated[
-        int, Field(alias="statusCode", description="HTTP status code")
-    ]
-    name: Annotated[str, Field(description="Error name/type")]
-    message: Annotated[str, Field(description="Human-readable error message")]
 
 
 class BaseValidationError(KatanaPydanticBase):

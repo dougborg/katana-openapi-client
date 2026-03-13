@@ -1117,10 +1117,6 @@ components:
                 - string
                 - "null"
               description: Application-specific error code
-      required:
-        - statusCode
-        - name
-        - message
     DetailedErrorResponse:
       description: Enhanced error response containing detailed validation error information for complex request failures
       allOf:

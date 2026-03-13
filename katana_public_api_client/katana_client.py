@@ -183,6 +183,11 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             if isinstance(error_data, dict) and "error" in error_data:
                 parse_attempts.append(error_data["error"])
             for attempt_data in parse_attempts:
+                # Skip dicts that lack all error fields (e.g. wrapper like {"error": {...}})
+                if isinstance(attempt_data, dict) and not any(
+                    k in attempt_data for k in ("statusCode", "name", "message")
+                ):
+                    continue
                 try:
                     detailed_error = DetailedErrorResponse.from_dict(attempt_data)
                     self.logger.debug(
