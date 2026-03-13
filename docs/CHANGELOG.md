@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v0.47.3 (2026-03-13)
+
+### Bug Fixes
+
+- **client**: Make CodedErrorResponse/DetailedErrorResponse fields optional to prevent
+  KeyError crashes
+  ([`4371b9f`](https://github.com/dougborg/katana-openapi-client/commit/4371b9fac8a0ecf69ed4475b6524d68beb30ddda))
+
+### Chores
+
+- **deps)(deps**: Bump the python-minor-patch group across 1 directory with 11 updates
+  ([#282](https://github.com/dougborg/katana-openapi-client/pull/282),
+  [`e68aa74`](https://github.com/dougborg/katana-openapi-client/commit/e68aa742817166c4714ddc216656c88376087c16))
+
 ## v0.47.2 (2026-03-02)
 
 ### Bug Fixes
