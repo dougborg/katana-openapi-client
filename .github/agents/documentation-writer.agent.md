@@ -61,6 +61,43 @@ succeed and developers to contribute confidently.
 - `mkdocs.yml` - MkDocs configuration
 - `docs/index.md` - Documentation home page
 
+## README Structure Template
+
+When creating a new README or major documentation page, follow this structure:
+
+```markdown
+# Project/Package Name
+
+Brief description of what this does and why it exists.
+
+## Installation
+
+How to install or set up.
+
+## Quick Start
+
+Minimal working example to get started fast.
+
+## Usage
+
+Detailed usage patterns with examples.
+
+## API Reference
+
+Key functions/classes with signatures and descriptions.
+
+## Configuration
+
+Environment variables, config files, options.
+
+## Contributing
+
+How to contribute (or link to CONTRIBUTING.md).
+```
+
+Not every section is required for every document - use judgment based on the audience and
+scope. But prefer this ordering when sections are present.
+
 ## Documentation Standards
 
 ### Markdown Formatting
@@ -457,6 +494,15 @@ Before considering documentation complete:
 - [ ] Builds successfully (`uv run poe docs-build`)
 - [ ] Serves correctly (`uv run poe docs-serve`)
 
+## Continuous Improvement
+
+Documentation should improve every time it's touched:
+
+- If you find wrong or misleading docs while working, fix them immediately
+- If a feature's docs are missing or incomplete, add them as part of your current work
+- If CLAUDE.md's instructions don't match reality, update CLAUDE.md
+- If a user or agent keeps asking the same question, the answer belongs in docs
+
 ## Critical Reminders
 
 1. **Test all examples** - Don't document code that doesn't work
@@ -468,6 +514,7 @@ Before considering documentation complete:
 1. **Screenshot currency** - Update images when UI changes
 1. **ADR numbering** - Sequential, 4-digit numbering
 1. **Migration guides** - Required for breaking changes
+1. **Fix what you find** - Improve existing docs alongside new ones
 1. **Coordinate with agents** - Get reviews from specialists
 
 ## Agent Coordination

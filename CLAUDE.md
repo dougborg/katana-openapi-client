@@ -38,6 +38,50 @@ cp .env.example .env         # Add KATANA_API_KEY
 - Name shadows built-in? → Rename it
 - Circular import? → Use `TYPE_CHECKING` block
 
+## Verify Your Work
+
+Always run the appropriate validation tier before considering work complete. See the
+Essential Commands table above - use `quick-check` during development, `agent-check`
+before committing, and `check` before opening a PR. Don't trust that code works just
+because it looks right.
+
+## Continuous Improvement
+
+This file is meant to evolve. Update it when you learn something that would help future
+sessions:
+
+- **Fix a tricky bug?** Add the root cause to Known Pitfalls.
+- **Discover a new anti-pattern?** Add it to Anti-Patterns to Avoid.
+- **Find a command or workflow that's missing?** Add it to Essential Commands or
+  Detailed Documentation.
+- **Hit a confusing API behavior?** Document it so the next session doesn't waste time
+  rediscovering it.
+
+The same applies to all project documentation - if instructions are wrong, incomplete,
+or misleading, fix them as part of your current work rather than leaving them for later.
+
+## Known Pitfalls
+
+**This is a living document.** When you discover a new recurring mistake, surprising API
+behavior, or gotcha during development, add it here so future sessions don't repeat it.
+
+Common mistakes to avoid:
+
+- **Editing generated files** - `api/**/*.py`, `models/**/*.py`, and `client.py` are
+  generated. Run `uv run poe regenerate-client` instead of editing them directly.
+- **Forgetting pydantic regeneration** - After `uv run poe regenerate-client`, always
+  run `uv run poe generate-pydantic` too. They must stay in sync.
+- **UNSET vs None confusion** - attrs model fields that are unset use a sentinel value,
+  not `None`. Use `unwrap_unset(field, default)` from
+  `katana_public_api_client.domain.converters`, not `isinstance` or `hasattr` checks.
+- **Manual status code checks** - Don't write `if response.status_code == 200`. Use
+  `unwrap_as()`, `unwrap_data()`, or `is_success()` from
+  `katana_public_api_client.utils`.
+- **Wrapping API methods for retries** - Resilience (retries, rate limiting) is at the
+  transport layer. All 100+ endpoints get it automatically via `KatanaClient`.
+- **Raw list responses in tests** - Katana wraps ALL list responses in
+  `{"data": [...]}`. Never define raw arrays in mocks.
+
 ## Architecture Overview
 
 **Monorepo with 3 packages:**
@@ -134,6 +178,18 @@ status = unwrap_unset(order.status, None)
 - `RateLimitError` - 429 Too Many Requests
 - `ServerError` - 5xx server errors
 - `APIError` - Other errors (400, 403, 404, etc.)
+
+## Claude Code Commands
+
+Project slash commands available in `.claude/commands/`:
+
+| Command          | Purpose                                     |
+| ---------------- | ------------------------------------------- |
+| `/techdebt`      | Scan for tech debt and anti-patterns        |
+| `/review`        | Structured code review of current branch    |
+| `/write-tests`   | Write comprehensive tests for target code   |
+| `/generate-docs` | Generate or update documentation            |
+| `/verify`        | Skeptically validate implementation quality |
 
 ## Detailed Documentation
 

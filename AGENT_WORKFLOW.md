@@ -6,18 +6,12 @@ parallel with other agents.
 
 ## Quick Reference
 
-**Fast Commands:**
-
-- `uv run poe quick-check` - Format + lint only (~5-10s) - **Use during development**
-- `uv run poe agent-check` - Format + lint + ty (~8-12s) - **Use before committing**
-- `uv run poe check` - Full validation (~40s) - **Required before opening PR**
-- `uv run poe full-check` - Everything including docs (~50s) - **Use before requesting
-  review**
+See CLAUDE.md "Essential Commands" for the full command table with timings.
 
 **Pre-commit Hooks:**
 
-- `.pre-commit-config-lite.yaml` - Fast iteration (~5-10s)
-- `.pre-commit-config.yaml` - Full validation (~12-15s with parallel tests)
+- `.pre-commit-config-lite.yaml` - Fast iteration
+- `.pre-commit-config.yaml` - Full validation
 
 ______________________________________________________________________
 
@@ -574,87 +568,32 @@ ______________________________________________________________________
 
 ## Validation Tiers Reference
 
-### Quick Check (~5-10 seconds)
+See CLAUDE.md "Essential Commands" for the authoritative command table with timings.
 
-**Command:** `uv run poe quick-check`
+### Quick Check
 
-**Runs:**
+**Command:** `uv run poe quick-check` | **Use during development**
 
-- Ruff format check
-- Ruff linting
+Runs ruff format check and linting. Skips type checking and tests.
 
-**Use When:**
+### Agent Check
 
-- During active development
-- Fast iteration needed
-- Experimenting with code
+**Command:** `uv run poe agent-check` | **Use before committing**
 
-**Skip:**
+Runs format check, linting, and ty type checking. Skips tests.
 
-- Mypy type checking
-- Tests
+### Check
 
-______________________________________________________________________
+**Command:** `uv run poe check` | **Required before opening PR**
 
-### Agent Check (~10-15 seconds)
+Runs format check (ruff, markdown), linting (ruff, ty, yamllint), and tests (pytest,
+excluding docs). **This is the standard for "PR ready."**
 
-**Command:** `uv run poe agent-check`
+### Full Check
 
-**Runs:**
+**Command:** `uv run poe full-check` | **Use before requesting review**
 
-- Ruff format check
-- Ruff linting
-- Mypy type checking
-
-**Use When:**
-
-- Before committing
-- Checking type safety
-- Pre-commit validation
-
-**Skip:**
-
-- Tests (run separately if needed)
-
-______________________________________________________________________
-
-### Check (~40 seconds or ~12-15s with parallel tests)
-
-**Command:** `uv run poe check`
-
-**Runs:**
-
-- Format check (ruff, markdown)
-- Linting (ruff, ty, yamllint)
-- Tests (pytest with coverage, excluding docs)
-
-**Use When:**
-
-- **Before opening PR** (required)
-- Before pushing to feature branch
-- Validating completeness
-
-**This is the standard for "PR ready"**
-
-______________________________________________________________________
-
-### Full Check (~50 seconds)
-
-**Command:** `uv run poe full-check`
-
-**Runs:**
-
-- Everything in `check`
-- Documentation tests (slow)
-- Complete coverage report
-
-**Use When:**
-
-- **Before requesting review** (recommended)
-- Before merging to main
-- Final validation
-
-**This is the gold standard**
+Runs everything in `check` plus documentation build. **This is the gold standard.**
 
 ______________________________________________________________________
 
@@ -1164,6 +1103,41 @@ ______________________________________________________________________
 - **[pyproject.toml](pyproject.toml)** - See all poe tasks and configurations
 - **[GitHub Project](https://github.com/users/dougborg/projects/4)** - Automation &
   Agent Infrastructure roadmap
+
+______________________________________________________________________
+
+## Using Git Worktrees for Parallel Sessions
+
+Git worktrees let you run multiple Claude Code sessions on the same repository without
+conflicts. Each worktree is an isolated copy of the repo with its own working directory
+and branch.
+
+### When to Use Worktrees
+
+- Running multiple Claude Code sessions in parallel on different tasks
+- Working on a feature while keeping main clean for reviews
+- Testing changes in isolation without stashing or committing
+
+### Quick Setup
+
+```bash
+# Create a worktree for a specific task
+git worktree add ../katana-feature-123 -b feature/123-my-task
+
+# Work in the worktree (each Claude Code session gets its own)
+cd ../katana-feature-123
+
+# When done, clean up
+git worktree remove ../katana-feature-123
+```
+
+### Tips
+
+- Each worktree has its own `.venv` - run `uv sync --all-extras` in new worktrees
+- Worktrees share the same `.git` history - commits in one are visible in all
+- Don't have two worktrees on the same branch (causes confusion)
+- Clean up worktrees when done: `git worktree list` to see all, `git worktree prune` to
+  remove stale entries
 
 ______________________________________________________________________
 
