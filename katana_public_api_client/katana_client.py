@@ -352,13 +352,14 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                     )
                     for i, detail in enumerate(nested_details, 1):
                         if isinstance(detail, dict):
+                            d = cast(dict[str, object], detail)
                             log_message += (
-                                f"\n    {i}. Path: {detail.get('path', 'unknown')}"
+                                f"\n    {i}. Path: {d.get('path', 'unknown')}"
                             )
-                            if "code" in detail:
-                                log_message += f"\n       Code: {detail['code']}"
-                            if "message" in detail:
-                                log_message += f"\n       Message: {detail['message']}"
+                            if "code" in d:
+                                log_message += f"\n       Code: {d['code']}"
+                            if "message" in d:
+                                log_message += f"\n       Message: {d['message']}"
 
         self.logger.error(log_message)
 
