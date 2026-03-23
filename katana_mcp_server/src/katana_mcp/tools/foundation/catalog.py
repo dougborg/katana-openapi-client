@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
-from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.domain.converters import to_unset
 from katana_public_api_client.models import (
     CreateMaterialRequest as ApiCreateMaterialRequest,
     CreateProductRequest as ApiCreateProductRequest,
@@ -87,30 +87,20 @@ async def _create_product_impl(
         # Create variant request
         variant = CreateVariantRequest(
             sku=request.sku,
-            sales_price=request.sales_price
-            if request.sales_price is not None
-            else UNSET,
-            purchase_price=request.purchase_price
-            if request.purchase_price is not None
-            else UNSET,
+            sales_price=to_unset(request.sales_price),
+            purchase_price=to_unset(request.purchase_price),
         )
 
         # Create product request
         product_request = ApiCreateProductRequest(
             name=request.name,
             uom=request.uom,
-            category_name=request.category_name
-            if request.category_name is not None
-            else UNSET,
+            category_name=to_unset(request.category_name),
             is_sellable=request.is_sellable,
             is_producible=request.is_producible,
             is_purchasable=request.is_purchasable,
-            default_supplier_id=request.default_supplier_id
-            if request.default_supplier_id is not None
-            else UNSET,
-            additional_info=request.additional_info
-            if request.additional_info is not None
-            else UNSET,
+            default_supplier_id=to_unset(request.default_supplier_id),
+            additional_info=to_unset(request.additional_info),
             variants=[variant],
         )
 
@@ -242,28 +232,18 @@ async def _create_material_impl(
         # Create variant request
         variant = CreateVariantRequest(
             sku=request.sku,
-            sales_price=request.sales_price
-            if request.sales_price is not None
-            else UNSET,
-            purchase_price=request.purchase_price
-            if request.purchase_price is not None
-            else UNSET,
+            sales_price=to_unset(request.sales_price),
+            purchase_price=to_unset(request.purchase_price),
         )
 
         # Create material request
         material_request = ApiCreateMaterialRequest(
             name=request.name,
             uom=request.uom,
-            category_name=request.category_name
-            if request.category_name is not None
-            else UNSET,
+            category_name=to_unset(request.category_name),
             is_sellable=request.is_sellable,
-            default_supplier_id=request.default_supplier_id
-            if request.default_supplier_id is not None
-            else UNSET,
-            additional_info=request.additional_info
-            if request.additional_info is not None
-            else UNSET,
+            default_supplier_id=to_unset(request.default_supplier_id),
+            additional_info=to_unset(request.additional_info),
             variants=[variant],
         )
 

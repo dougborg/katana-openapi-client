@@ -8,19 +8,17 @@ These tools provide:
 
 from __future__ import annotations
 
-import logging
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
-from katana_mcp.logging import observe_tool
+from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.schemas import ConfirmationSchema
+from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
-from katana_public_api_client.client_types import UNSET
-from katana_public_api_client.domain.converters import unwrap_unset
+from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreateSalesOrderRequest as APICreateSalesOrderRequest,
     CreateSalesOrderRequestSalesOrderRowsItem,
@@ -31,7 +29,7 @@ from katana_public_api_client.models import (
 )
 from katana_public_api_client.utils import unwrap_as
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ============================================================================
 # Tool 1: create_sales_order
@@ -181,14 +179,13 @@ async def _create_sales_order_impl(
         )
 
     # Confirm mode - use elicitation to get user confirmation before creating
-    elicit_result = await context.elicit(
+    confirmation = await require_confirmation(
+        context,
         f"Create sales order {request.order_number} for customer {request.customer_id} "
         f"with {len(request.items)} items?",
-        ConfirmationSchema,
     )
 
-    # Check if user accepted
-    if elicit_result.action != "accept":
+    if confirmation != ConfirmationResult.CONFIRMED:
         logger.info(f"User did not confirm creation of SO {request.order_number}")
         return SalesOrderResponse(
             order_number=request.order_number,
@@ -201,25 +198,7 @@ async def _create_sales_order_impl(
             if request.delivery_date
             else None,
             is_preview=True,
-            message="Sales order creation cancelled by user",
-            next_actions=["Review the order details and try again with confirm=true"],
-        )
-
-    # Type narrowing: at this point we know action == "accept", so data exists
-    if not elicit_result.data.confirm:
-        logger.info(f"User declined to confirm creation of SO {request.order_number}")
-        return SalesOrderResponse(
-            order_number=request.order_number,
-            customer_id=request.customer_id,
-            location_id=request.location_id,
-            status="PENDING",
-            total=total_estimate if total_estimate > 0 else None,
-            currency=request.currency,
-            delivery_date=request.delivery_date.isoformat()
-            if request.delivery_date
-            else None,
-            is_preview=True,
-            message="Sales order creation declined by user",
+            message=f"Sales order creation {confirmation} by user",
             next_actions=["Review the order details and try again with confirm=true"],
         )
 
@@ -233,19 +212,15 @@ async def _create_sales_order_impl(
             row = CreateSalesOrderRequestSalesOrderRowsItem(
                 variant_id=item.variant_id,
                 quantity=item.quantity,
-                price_per_unit=item.price_per_unit
-                if item.price_per_unit is not None
-                else UNSET,
-                tax_rate_id=item.tax_rate_id if item.tax_rate_id is not None else UNSET,
-                location_id=item.location_id if item.location_id is not None else UNSET,
-                total_discount=item.total_discount
-                if item.total_discount is not None
-                else UNSET,
+                price_per_unit=to_unset(item.price_per_unit),
+                tax_rate_id=to_unset(item.tax_rate_id),
+                location_id=to_unset(item.location_id),
+                total_discount=to_unset(item.total_discount),
             )
             so_rows.append(row)
 
         # Build addresses if provided
-        addresses_list: list[APISalesOrderAddress] | type[UNSET] = UNSET
+        addresses_list = to_unset(None)
         if request.addresses:
             addresses_list = []
             for addr in request.addresses:
@@ -253,18 +228,16 @@ async def _create_sales_order_impl(
                     id=0,  # Will be assigned by API
                     sales_order_id=0,  # Will be assigned by API
                     entity_type=SalesOrderAddressEntityType(addr.entity_type),
-                    first_name=addr.first_name
-                    if addr.first_name is not None
-                    else UNSET,
-                    last_name=addr.last_name if addr.last_name is not None else UNSET,
-                    company=addr.company if addr.company is not None else UNSET,
-                    phone=addr.phone if addr.phone is not None else UNSET,
-                    line_1=addr.line_1 if addr.line_1 is not None else UNSET,
-                    line_2=addr.line_2 if addr.line_2 is not None else UNSET,
-                    city=addr.city if addr.city is not None else UNSET,
-                    state=addr.state if addr.state is not None else UNSET,
-                    zip_=addr.zip_code if addr.zip_code is not None else UNSET,
-                    country=addr.country if addr.country is not None else UNSET,
+                    first_name=to_unset(addr.first_name),
+                    last_name=to_unset(addr.last_name),
+                    company=to_unset(addr.company),
+                    phone=to_unset(addr.phone),
+                    line_1=to_unset(addr.line_1),
+                    line_2=to_unset(addr.line_2),
+                    city=to_unset(addr.city),
+                    state=to_unset(addr.state),
+                    zip_=to_unset(addr.zip_code),
+                    country=to_unset(addr.country),
                 )
                 addresses_list.append(api_addr)
 
@@ -273,18 +246,12 @@ async def _create_sales_order_impl(
             order_no=request.order_number,
             customer_id=request.customer_id,
             sales_order_rows=so_rows,
-            location_id=request.location_id
-            if request.location_id is not None
-            else UNSET,
-            delivery_date=request.delivery_date
-            if request.delivery_date is not None
-            else UNSET,
-            currency=request.currency if request.currency is not None else UNSET,
+            location_id=to_unset(request.location_id),
+            delivery_date=to_unset(request.delivery_date),
+            currency=to_unset(request.currency),
             addresses=addresses_list,
-            additional_info=request.notes if request.notes is not None else UNSET,
-            customer_ref=request.customer_ref
-            if request.customer_ref is not None
-            else UNSET,
+            additional_info=to_unset(request.notes),
+            customer_ref=to_unset(request.customer_ref),
             order_created_date=datetime.now(UTC),
             status=CreateSalesOrderRequestStatus.PENDING,
         )

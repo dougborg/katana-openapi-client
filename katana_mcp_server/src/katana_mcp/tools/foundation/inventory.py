@@ -84,13 +84,13 @@ async def _check_inventory_impl(
             return stock_info
 
         # Extract stock information from Product model
-        stock = getattr(product, "stock_information", None)
+        stock = product.stock_information
         stock_info = StockInfo(
             sku=request.sku,
             product_name=product.name or "",
-            available_stock=getattr(stock, "available", 0) if stock else 0,
+            available_stock=stock.available if stock and stock.available else 0,
             in_production=0,  # Not available in current API
-            committed=getattr(stock, "allocated", 0) if stock else 0,
+            committed=stock.allocated if stock and stock.allocated else 0,
         )
 
         duration_ms = round((time.monotonic() - start_time) * 1000, 2)
@@ -210,12 +210,12 @@ async def _list_low_stock_items_impl(
         response = LowStockResponse(
             items=[
                 LowStockItem(
-                    sku=getattr(product, "sku", "") or "",
+                    sku=product.sku or "",
                     product_name=product.name or "",
                     current_stock=(
-                        getattr(product.stock_information, "in_stock", 0)
-                        if hasattr(product, "stock_information")
-                        and product.stock_information
+                        product.stock_information.in_stock
+                        if product.stock_information
+                        and product.stock_information.in_stock
                         else 0
                     ),
                     threshold=request.threshold,

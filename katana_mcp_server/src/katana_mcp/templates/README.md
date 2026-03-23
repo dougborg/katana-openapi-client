@@ -58,15 +58,10 @@ return ToolResult(
 
 - **`item_search_results.md`**: Search results listing
 - **`item_details.md`**: Variant detail view
-- **`stock_summary.md`**: Stock level summary
 
 ### Order Fulfillment
 
 - **`order_fulfilled.md`**: Manufacturing/sales order fulfillment
-
-### Utility
-
-- **`error.md`**: General error formatting
 
 ## Integration Pattern
 

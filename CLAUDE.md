@@ -81,6 +81,12 @@ Common mistakes to avoid:
   transport layer. All 100+ endpoints get it automatically via `KatanaClient`.
 - **Raw list responses in tests** - Katana wraps ALL list responses in
   `{"data": [...]}`. Never define raw arrays in mocks.
+- **Help resource drift** - `katana_mcp_server/.../resources/help.py` contains hardcoded
+  tool documentation. When adding or modifying tool parameters, also update the help
+  resource content to stay in sync.
+- **None-to-UNSET conversion** - When building attrs API request models from optional
+  fields, use `to_unset(value)` from `katana_public_api_client.domain.converters`
+  instead of `value if value is not None else UNSET`.
 
 ## Architecture Overview
 

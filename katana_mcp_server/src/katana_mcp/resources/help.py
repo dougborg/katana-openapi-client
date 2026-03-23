@@ -253,16 +253,15 @@ Detailed guide for all available MCP tools.
 Find products, materials, and services by name or SKU.
 
 **Parameters:**
-- `query` (required): Search term to match against name, SKU, or description
-- `limit` (optional): Maximum results (default: 20, max: 100)
-- `item_type` (optional): Filter by type - "product", "material", "service", or "all"
+- `query` (required): Search term to match against name or SKU
+- `limit` (optional): Maximum results (default: 20)
 
 **Example:**
 ```json
-{"query": "bolt", "limit": 10, "item_type": "material"}
+{"query": "bolt", "limit": 10}
 ```
 
-**Returns:** List of matching items with ID, SKU, name, type, and basic info.
+**Returns:** List of matching items with ID, SKU, name, and sellable status.
 
 ---
 
@@ -277,7 +276,8 @@ Get complete details for a specific item variant.
 {"sku": "BOLT-M8"}
 ```
 
-**Returns:** Full item details including inventory, BOM, suppliers, pricing.
+**Returns:** Full variant details including pricing, barcodes, supplier codes,
+configuration attributes, custom fields, and more.
 
 ---
 
@@ -292,16 +292,35 @@ Check current stock levels for an item.
 {"sku": "WIDGET-001"}
 ```
 
-**Returns:** Stock levels (in_stock, available, allocated, on_order).
+**Returns:** Stock levels (available_stock, in_production, committed).
 
 ---
 
 ### list_low_stock_items
 Find items that are below their reorder threshold.
 
-**Parameters:** None required.
+**Parameters:**
+- `threshold` (optional): Stock threshold level (default: 10)
+- `limit` (optional): Maximum items to return (default: 50)
 
 **Returns:** List of items needing reorder with current stock vs threshold.
+
+---
+
+### create_item
+Create a new item (product, material, or service).
+
+**Parameters:**
+- `type` (required): Item type - "product", "material", or "service"
+- `name` (required): Item name
+- `sku` (required): SKU for the item variant
+- `uom` (optional): Unit of measure (default: "pcs")
+- Plus optional fields: category_name, is_sellable, sales_price, purchase_price, etc.
+
+---
+
+### get_item / update_item / delete_item
+CRUD operations for items by ID and type.
 
 ---
 
@@ -350,8 +369,11 @@ Verify a supplier document (invoice, packing slip) against a PO.
 Create a manufacturing work order.
 
 **Parameters:**
-- `product_sku` (required): SKU of product to manufacture
-- `quantity` (required): Quantity to produce
+- `variant_id` (required): Variant ID of product to manufacture
+- `planned_quantity` (required): Quantity to produce
+- `location_id` (required): Production location ID
+- `production_deadline_date` (optional): Production deadline
+- `additional_info` (optional): Notes
 - `confirm` (required): false=preview, true=create
 
 ---
@@ -361,8 +383,14 @@ Create a sales order.
 
 **Parameters:**
 - `customer_id` (required): Customer ID
-- `items` (required): Array of items with variant_id and quantity
+- `order_number` (required): Unique sales order number
+- `items` (required): Array of items with variant_id, quantity, and optional price_per_unit
 - `confirm` (required): false=preview, true=create
+
+---
+
+### create_product / create_material
+Dedicated catalog tools for creating products or materials with a single variant.
 
 ---
 
