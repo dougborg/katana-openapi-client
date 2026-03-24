@@ -7,7 +7,7 @@ import time
 
 # Import list from builtins to avoid shadowing by our list() method
 from builtins import list as List
-from typing import Any, cast
+from typing import Any
 
 from katana_public_api_client.api.variant import (
     create_variant,
@@ -25,7 +25,7 @@ from katana_public_api_client.models.get_all_variants_extend_item import (
 )
 from katana_public_api_client.models.update_variant_request import UpdateVariantRequest
 from katana_public_api_client.models.variant import Variant
-from katana_public_api_client.utils import unwrap, unwrap_data
+from katana_public_api_client.utils import unwrap_as, unwrap_data
 
 logger = logging.getLogger(__name__)
 
@@ -156,8 +156,7 @@ class Variants(Base):
             client=self._client,
             id=variant_id,
         )
-        # unwrap() raises on errors, so cast is safe
-        attrs_variant = cast(Variant, unwrap(response))
+        attrs_variant = unwrap_as(response, Variant)
         return variant_to_katana(attrs_variant)
 
     async def create(self, variant_data: CreateVariantRequest) -> KatanaVariant:
@@ -183,8 +182,7 @@ class Variants(Base):
         )
         # Clear cache since data changed
         self._cache.clear()
-        # unwrap() raises on errors, so cast is safe
-        attrs_variant = cast(Variant, unwrap(response))
+        attrs_variant = unwrap_as(response, Variant)
         return variant_to_katana(attrs_variant)
 
     async def update(
@@ -214,8 +212,7 @@ class Variants(Base):
         )
         # Clear cache since data changed
         self._cache.clear()
-        # unwrap() raises on errors, so cast is safe
-        attrs_variant = cast(Variant, unwrap(response))
+        attrs_variant = unwrap_as(response, Variant)
         return variant_to_katana(attrs_variant)
 
     async def delete(self, variant_id: int) -> None:
