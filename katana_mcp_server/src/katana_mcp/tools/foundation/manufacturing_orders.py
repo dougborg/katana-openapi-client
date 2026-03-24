@@ -12,11 +12,13 @@ from datetime import datetime
 from typing import Annotated
 
 from fastmcp import Context, FastMCP
+from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
+from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
@@ -226,7 +228,7 @@ async def _create_manufacturing_order_impl(
 @unpack_pydantic_params
 async def create_manufacturing_order(
     request: Annotated[CreateManufacturingOrderRequest, Unpack()], context: Context
-) -> ManufacturingOrderResponse:
+) -> ToolResult:
     """Create a manufacturing order to produce items.
 
     Two-step flow: confirm=false to preview, confirm=true to create (prompts
@@ -234,7 +236,22 @@ async def create_manufacturing_order(
     planned_quantity, and location_id. Recipe and operation rows are created
     automatically from the product's recipe. Use search_items to find variant IDs.
     """
-    return await _create_manufacturing_order_impl(request, context)
+    response = await _create_manufacturing_order_impl(request, context)
+
+    next_actions_text = "\n".join(f"- {a}" for a in response.next_actions) or "None"
+
+    return make_tool_result(
+        response,
+        "manufacturing_order_created",
+        id=response.id or "N/A",
+        order_no=response.order_no or "N/A",
+        variant_id=response.variant_id,
+        planned_quantity=response.planned_quantity,
+        location_id=response.location_id,
+        status=response.status or ("PREVIEW" if response.is_preview else "N/A"),
+        message=response.message,
+        next_actions_text=next_actions_text,
+    )
 
 
 def register_tools(mcp: FastMCP) -> None:

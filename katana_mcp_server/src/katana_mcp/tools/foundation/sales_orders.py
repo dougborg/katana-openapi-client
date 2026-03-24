@@ -12,11 +12,13 @@ from datetime import UTC, datetime
 from typing import Annotated, Literal
 
 from fastmcp import Context, FastMCP
+from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
+from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
@@ -299,7 +301,7 @@ async def _create_sales_order_impl(
 @unpack_pydantic_params
 async def create_sales_order(
     request: Annotated[CreateSalesOrderRequest, Unpack()], context: Context
-) -> SalesOrderResponse:
+) -> ToolResult:
     """Create a sales order for a customer purchase.
 
     Two-step flow: confirm=false to preview totals, confirm=true to create
@@ -307,7 +309,22 @@ async def create_sales_order(
     least one line item with variant_id and quantity. Supports optional pricing
     overrides, discounts, delivery dates, and billing/shipping addresses.
     """
-    return await _create_sales_order_impl(request, context)
+    response = await _create_sales_order_impl(request, context)
+
+    next_actions_text = "\n".join(f"- {a}" for a in response.next_actions) or "None"
+
+    return make_tool_result(
+        response,
+        "sales_order_created",
+        id=response.id or "N/A",
+        order_number=response.order_number,
+        customer_id=response.customer_id,
+        status=response.status or ("PREVIEW" if response.is_preview else "N/A"),
+        total=f"${response.total:,.2f}" if response.total else "N/A",
+        currency=response.currency or "N/A",
+        message=response.message,
+        next_actions_text=next_actions_text,
+    )
 
 
 def register_tools(mcp: FastMCP) -> None:

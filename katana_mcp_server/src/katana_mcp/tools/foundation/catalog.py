@@ -10,10 +10,12 @@ import time
 from typing import Annotated
 
 from fastmcp import Context, FastMCP
+from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import to_unset
 from katana_public_api_client.models import (
@@ -140,14 +142,23 @@ async def _create_product_impl(
 @unpack_pydantic_params
 async def create_product(
     request: Annotated[CreateProductRequest, Unpack()], context: Context
-) -> CreateProductResponse:
+) -> ToolResult:
     """Create a finished good product in the Katana catalog.
 
     PREFER this over create_item when creating products — simpler, dedicated parameters.
     Products are sellable items (finished goods). For raw materials and components,
     use create_material. Creates the product with a single variant.
     """
-    return await _create_product_impl(request, context)
+    response = await _create_product_impl(request, context)
+    return make_tool_result(
+        response,
+        "item_created",
+        id=response.id,
+        name=response.name,
+        item_type="product",
+        sku=response.sku,
+        message=response.message,
+    )
 
 
 # ============================================================================
@@ -261,14 +272,23 @@ async def _create_material_impl(
 @unpack_pydantic_params
 async def create_material(
     request: Annotated[CreateMaterialRequest, Unpack()], context: Context
-) -> CreateMaterialResponse:
+) -> ToolResult:
     """Create a raw material or component in the Katana catalog.
 
     PREFER this over create_item when creating materials — simpler, dedicated parameters.
     Materials are items used in manufacturing (not typically sold directly).
     For finished goods, use create_product. Creates the material with a single variant.
     """
-    return await _create_material_impl(request, context)
+    response = await _create_material_impl(request, context)
+    return make_tool_result(
+        response,
+        "item_created",
+        id=response.id,
+        name=response.name,
+        item_type="material",
+        sku=response.sku,
+        message=response.message,
+    )
 
 
 def register_tools(mcp: FastMCP) -> None:

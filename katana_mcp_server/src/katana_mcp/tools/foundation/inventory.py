@@ -10,10 +10,12 @@ import time
 from typing import Annotated
 
 from fastmcp import Context, FastMCP
+from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 
 logger = get_logger(__name__)
@@ -123,13 +125,22 @@ async def _check_inventory_impl(
 @unpack_pydantic_params
 async def check_inventory(
     request: Annotated[CheckInventoryRequest, Unpack()], context: Context
-) -> StockInfo:
+) -> ToolResult:
     """Check current stock levels (available, committed, in production) for a SKU.
 
     Use before creating orders to verify stock availability. Returns zero stock
     if the SKU is not found (does not raise an error).
     """
-    return await _check_inventory_impl(request, context)
+    response = await _check_inventory_impl(request, context)
+    return make_tool_result(
+        response,
+        "inventory_check",
+        sku=response.sku,
+        product_name=response.product_name,
+        available_stock=response.available_stock,
+        committed=response.committed,
+        in_production=response.in_production,
+    )
 
 
 # ============================================================================
@@ -247,7 +258,7 @@ async def _list_low_stock_items_impl(
 @unpack_pydantic_params
 async def list_low_stock_items(
     request: Annotated[LowStockRequest, Unpack()], context: Context
-) -> LowStockResponse:
+) -> ToolResult:
     """List items with stock levels below a threshold — useful for reorder planning.
 
     Returns items that need replenishment. Follow up with get_variant_details to find
@@ -255,7 +266,23 @@ async def list_low_stock_items(
 
     Default threshold is 10 units, default limit is 50 items.
     """
-    return await _list_low_stock_items_impl(request, context)
+    response = await _list_low_stock_items_impl(request, context)
+
+    if response.items:
+        items_table = "\n".join(
+            f"- **{item.sku}**: {item.product_name} — {item.current_stock} units"
+            for item in response.items
+        )
+    else:
+        items_table = "No items below threshold."
+
+    return make_tool_result(
+        response,
+        "low_stock_report",
+        threshold=request.threshold,
+        total_count=response.total_count,
+        items_table=items_table,
+    )
 
 
 def register_tools(mcp: FastMCP) -> None:

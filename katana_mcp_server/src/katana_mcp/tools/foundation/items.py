@@ -395,7 +395,7 @@ async def _create_item_impl(
 @unpack_pydantic_params
 async def create_item(
     request: Annotated[CreateItemRequest, Unpack()], context: Context
-) -> CreateItemResponse:
+) -> ToolResult:
     """Create any item type (product, material, or service) in the Katana catalog.
 
     General-purpose item creation. PREFER create_product for finished goods or
@@ -404,7 +404,16 @@ async def create_item(
 
     Creates the item with a single variant. Returns the new item ID.
     """
-    return await _create_item_impl(request, context)
+    response = await _create_item_impl(request, context)
+    return make_tool_result(
+        response,
+        "item_created",
+        id=response.id,
+        name=response.name,
+        item_type=response.type,
+        sku=response.sku or "",
+        message=response.message,
+    )
 
 
 # ============================================================================
@@ -539,14 +548,34 @@ async def _get_item_impl(
 @unpack_pydantic_params
 async def get_item(
     request: Annotated[GetItemRequest, Unpack()], context: Context
-) -> ItemDetailsResponse:
+) -> ToolResult:
     """Get item details by ID and type (product, material, or service).
 
     Use when you already have an item ID and type from search_items or another tool.
     Returns item properties like name, UOM, category, and flags (sellable, producible).
     For variant-level details (pricing, barcodes, supplier codes), use get_variant_details instead.
     """
-    return await _get_item_impl(request, context)
+    response = await _get_item_impl(request, context)
+    return make_tool_result(
+        response,
+        "item_details",
+        sku="N/A",
+        name=response.name,
+        item_type=response.type,
+        id=response.id,
+        description=response.additional_info or "No description",
+        uom=response.uom or "N/A",
+        is_sellable="Yes" if response.is_sellable else "No",
+        is_producible="Yes" if response.is_producible else "N/A",
+        is_purchasable="Yes" if response.is_purchasable else "N/A",
+        sales_price="N/A",
+        cost="N/A",
+        in_stock="N/A",
+        available="N/A",
+        allocated="N/A",
+        on_order="N/A",
+        supplier_info="Use get_variant_details for supplier info",
+    )
 
 
 # ============================================================================
@@ -711,13 +740,21 @@ async def _update_item_impl(
 @unpack_pydantic_params
 async def update_item(
     request: Annotated[UpdateItemRequest, Unpack()], context: Context
-) -> UpdateItemResponse:
+) -> ToolResult:
     """Update an existing item's properties (product, material, or service).
 
     Only provided fields are updated; omitted fields remain unchanged.
     Requires the item ID and type. Use search_items first if you need to find the item.
     """
-    return await _update_item_impl(request, context)
+    response = await _update_item_impl(request, context)
+    return make_tool_result(
+        response,
+        "item_updated",
+        id=response.id,
+        name=response.name,
+        item_type=response.type,
+        message=response.message,
+    )
 
 
 # ============================================================================
@@ -872,14 +909,21 @@ async def _delete_item_impl(
 @unpack_pydantic_params
 async def delete_item(
     request: Annotated[DeleteItemRequest, Unpack()], context: Context
-) -> DeleteItemResponse:
+) -> ToolResult:
     """Permanently delete an item (product, material, or service) from Katana.
 
     This is a destructive operation. Set confirm=false to preview what would be
     deleted, or confirm=true to execute (will prompt for confirmation).
     Requires the item ID and type.
     """
-    return await _delete_item_impl(request, context)
+    response = await _delete_item_impl(request, context)
+    return make_tool_result(
+        response,
+        "item_deleted",
+        id=response.id,
+        item_type=response.type,
+        message=response.message,
+    )
 
 
 # ============================================================================

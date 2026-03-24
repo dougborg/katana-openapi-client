@@ -54,14 +54,27 @@ return ToolResult(
 - **`order_verification_partial.md`**: Partial match with discrepancies
 - **`order_verification_no_match.md`**: No matches found
 
-### Items
+### Items & Catalog
 
 - **`item_search_results.md`**: Search results listing
 - **`item_details.md`**: Variant detail view
+- **`item_created.md`**: Item/product/material creation success
+- **`item_updated.md`**: Item update confirmation
+- **`item_deleted.md`**: Item deletion confirmation
+
+### Inventory
+
+- **`inventory_check.md`**: Stock level check for a SKU
+- **`low_stock_report.md`**: Low stock items report
 
 ### Order Fulfillment
 
 - **`order_fulfilled.md`**: Manufacturing/sales order fulfillment
+
+### Order Creation
+
+- **`manufacturing_order_created.md`**: Manufacturing order preview/created
+- **`sales_order_created.md`**: Sales order preview/created
 
 ## Integration Pattern
 
