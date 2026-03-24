@@ -26,8 +26,8 @@ from typing import Annotated, Any, get_args, get_origin, get_type_hints
 
 from pydantic import Field, TypeAdapter
 
-# Track whether patches have been applied
-_patched = False
+# Track whether patches have been applied (mutable container avoids global statement)
+_state: dict[str, bool] = {"patched": False}
 
 
 def _update_signature_to_match_annotations(
@@ -132,16 +132,14 @@ def apply_fastmcp_patches() -> None:
     It patches get_cached_typeadapter to update __signature__ when creating
     new function objects with modified annotations.
     """
-    global _patched  # noqa: PLW0603
-
     import fastmcp.tools.tool
     import fastmcp.utilities.types
 
-    if _patched:
+    if _state["patched"]:
         return
 
     fastmcp.utilities.types.get_cached_typeadapter = _patched_get_cached_typeadapter
     # Also patch the local reference in fastmcp.tools.tool
     fastmcp.tools.tool.get_cached_typeadapter = _patched_get_cached_typeadapter
 
-    _patched = True
+    _state["patched"] = True

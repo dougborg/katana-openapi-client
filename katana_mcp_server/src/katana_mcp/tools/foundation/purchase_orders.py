@@ -23,6 +23,7 @@ from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreatePurchaseOrderRequest as APICreatePurchaseOrderRequest,
@@ -212,7 +213,7 @@ async def _create_purchase_order_impl(
             currency=to_unset(request.currency),
             status=CreatePurchaseOrderRequestStatus(request.status)
             if request.status is not None
-            else to_unset(None),
+            else UNSET,
             order_created_date=datetime.now(UTC),
             additional_info=to_unset(request.notes),
         )

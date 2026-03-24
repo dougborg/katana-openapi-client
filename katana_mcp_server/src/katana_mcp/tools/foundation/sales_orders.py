@@ -18,6 +18,7 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreateSalesOrderRequest as APICreateSalesOrderRequest,
@@ -220,7 +221,7 @@ async def _create_sales_order_impl(
             so_rows.append(row)
 
         # Build addresses if provided
-        addresses_list = to_unset(None)
+        addresses_list: list[APISalesOrderAddress] | type[UNSET] = UNSET
         if request.addresses:
             addresses_list = []
             for addr in request.addresses:
