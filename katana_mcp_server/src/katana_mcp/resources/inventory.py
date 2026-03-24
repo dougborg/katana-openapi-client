@@ -7,9 +7,9 @@ and stock adjustments.
 # NOTE: Do not use 'from __future__ import annotations' in this module
 # FastMCP requires Context to be the actual class, not a string annotation
 
+import asyncio
 import time
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
@@ -18,9 +18,6 @@ from katana_mcp.logging import get_logger
 from katana_mcp.services import get_services
 from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.utils import unwrap_data
-
-if TYPE_CHECKING:
-    pass
 
 logger = get_logger(__name__)
 
@@ -77,17 +74,12 @@ async def _get_inventory_items_impl(context: Context) -> InventoryItemsResource:
     try:
         services = get_services(context)
 
-        # Fetch all item types
-        # TODO: Consider parallelizing with asyncio.gather() for better performance
-        products_response = await services.client.products.list(limit=100)
-        materials_response = await services.client.materials.list(limit=100)
-        services_response = await services.client.services.list(limit=100)
-
-        # Domain models returned from client helper methods are list[KatanaProduct] etc.
-        # These are Pydantic models with all fields properly defined.
-        products = products_response
-        materials = materials_response
-        services_items = services_response
+        # Fetch all item types concurrently
+        products, materials, services_items = await asyncio.gather(
+            services.client.products.list(limit=100),
+            services.client.materials.list(limit=100),
+            services.client.services.list(limit=100),
+        )
 
         # Aggregate into unified item list
         items = []
@@ -306,13 +298,12 @@ async def _get_stock_movements_impl(context: Context) -> StockMovementsResource:
             get_all_stock_transfers,
         )
 
-        # Fetch recent stock transfers and adjustments
-        # TODO: Consider parallelizing with asyncio.gather() for better performance
-        transfers_response = await get_all_stock_transfers.asyncio_detailed(
-            client=services.client, limit=50
-        )
-        adjustments_response = await get_all_stock_adjustments.asyncio_detailed(
-            client=services.client, limit=50
+        # Fetch recent stock transfers and adjustments concurrently
+        transfers_response, adjustments_response = await asyncio.gather(
+            get_all_stock_transfers.asyncio_detailed(client=services.client, limit=50),
+            get_all_stock_adjustments.asyncio_detailed(
+                client=services.client, limit=50
+            ),
         )
 
         # Parse responses - extract data list from Response objects

@@ -15,41 +15,28 @@ Features:
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
 
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 from fastmcp.server.middleware.caching import ResponseCachingMiddleware
 from key_value.aio.stores.memory import MemoryStore
 
-# Apply FastMCP patches for Pydantic 2.12+ compatibility BEFORE registering tools
-# This must be imported early, before any tools are registered
-import katana_mcp._fastmcp_patches  # noqa: F401
 from katana_mcp import __version__
+from katana_mcp._fastmcp_patches import apply_fastmcp_patches as _apply_patches
 from katana_mcp.logging import get_logger, setup_logging
+from katana_mcp.services import Services
 from katana_public_api_client import KatanaClient
+
+# Apply FastMCP patches for Pydantic 2.12+ compatibility BEFORE registering tools
+_apply_patches()
 
 # Initialize structured logging
 setup_logging()
 logger = get_logger(__name__)
 
 
-@dataclass
-class ServerContext:
-    """Context object that holds the KatanaClient instance for the server lifespan.
-
-    This dataclass provides type-safe access to the KatanaClient throughout
-    the server lifecycle, following the StockTrim architecture pattern.
-
-    Attributes:
-        client: Initialized KatanaClient instance for API operations
-    """
-
-    client: KatanaClient
-
-
 @asynccontextmanager
-async def lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
+async def lifespan(server: FastMCP) -> AsyncIterator[Services]:
     """Manage server lifespan and KatanaClient lifecycle.
 
     This context manager:
@@ -63,7 +50,7 @@ async def lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
         server: FastMCP server instance
 
     Yields:
-        ServerContext: Context object containing initialized KatanaClient
+        Services: Context object containing initialized KatanaClient
 
     Raises:
         ValueError: If KATANA_API_KEY environment variable is not set
@@ -106,7 +93,7 @@ async def lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
             )
 
             # Create context with client for tools to access
-            context = ServerContext(client=client)  # type: ignore[arg-type]
+            context = Services(client=client)  # type: ignore[arg-type]
 
             # Yield context to server - tools can access via lifespan dependency
             logger.info("server_ready", version=__version__)

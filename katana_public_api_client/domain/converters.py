@@ -22,6 +22,31 @@ if TYPE_CHECKING:
     from .variant import KatanaVariant
 
 
+def to_unset[T](value: T | None) -> T | Unset:
+    """Convert None to UNSET sentinel value.
+
+    Useful when building attrs API request models from optional Pydantic fields,
+    where None means "not provided" and should be sent as UNSET to avoid
+    overwriting existing values.
+
+    Args:
+        value: Value that might be None
+
+    Returns:
+        The value unchanged if not None, or UNSET if None
+
+    Example:
+        ```python
+        from katana_public_api_client.domain.converters import to_unset
+
+        to_unset(42)  # 42
+        to_unset(None)  # UNSET
+        to_unset("USD")  # "USD"
+        ```
+    """
+    return UNSET if value is None else value
+
+
 def unwrap_unset[T](value: T | Unset, default: T | None = None) -> T | None:
     """Unwrap an Unset sentinel value.
 
@@ -274,6 +299,7 @@ __all__ = [
     "products_to_katana",
     "service_to_katana",
     "services_to_katana",
+    "to_unset",
     "unwrap_unset",
     "variant_to_katana",
     "variants_to_katana",

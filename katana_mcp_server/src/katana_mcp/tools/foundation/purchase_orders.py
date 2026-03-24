@@ -10,7 +10,6 @@ These tools provide:
 
 from __future__ import annotations
 
-import logging
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated, Any
@@ -19,13 +18,13 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
-from katana_mcp.logging import observe_tool
+from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.schemas import ConfirmationSchema
+from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
-from katana_public_api_client.domain.converters import unwrap_unset
+from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreatePurchaseOrderRequest as APICreatePurchaseOrderRequest,
     CreatePurchaseOrderRequestEntityType,
@@ -35,7 +34,7 @@ from katana_public_api_client.models import (
 )
 from katana_public_api_client.utils import is_success, unwrap, unwrap_as
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ============================================================================
 # Tool 1: create_purchase_order
@@ -164,13 +163,12 @@ async def _create_purchase_order_impl(
         )
 
     # Confirm mode - use elicitation to get user confirmation before creating
-    elicit_result = await context.elicit(
+    confirmation = await require_confirmation(
+        context,
         f"Create purchase order {request.order_number} with {len(request.items)} items totaling {total_cost:.2f}?",
-        ConfirmationSchema,
     )
 
-    # Check if user accepted
-    if elicit_result.action != "accept":
+    if confirmation != ConfirmationResult.CONFIRMED:
         logger.info(f"User did not confirm creation of PO {request.order_number}")
         return PurchaseOrderResponse(
             order_number=request.order_number,
@@ -181,23 +179,7 @@ async def _create_purchase_order_impl(
             total_cost=total_cost,
             currency=request.currency,
             is_preview=True,
-            message="Purchase order creation cancelled by user",
-            next_actions=["Review the order details and try again with confirm=true"],
-        )
-
-    # Type narrowing: at this point we know action == "accept", so data exists
-    if not elicit_result.data.confirm:
-        logger.info(f"User declined to confirm creation of PO {request.order_number}")
-        return PurchaseOrderResponse(
-            order_number=request.order_number,
-            supplier_id=request.supplier_id,
-            location_id=request.location_id,
-            status=request.status or "NOT_RECEIVED",
-            entity_type="regular",
-            total_cost=total_cost,
-            currency=request.currency,
-            is_preview=True,
-            message="Purchase order creation declined by user",
+            message=f"Purchase order creation {confirmation} by user",
             next_actions=["Review the order details and try again with confirm=true"],
         )
 
@@ -212,16 +194,12 @@ async def _create_purchase_order_impl(
                 variant_id=item.variant_id,
                 quantity=item.quantity,
                 price_per_unit=item.price_per_unit,
-                tax_rate_id=item.tax_rate_id if item.tax_rate_id is not None else UNSET,
-                purchase_uom=item.purchase_uom
-                if item.purchase_uom is not None
-                else UNSET,
-                purchase_uom_conversion_rate=item.purchase_uom_conversion_rate
-                if item.purchase_uom_conversion_rate is not None
-                else UNSET,
-                arrival_date=item.arrival_date
-                if item.arrival_date is not None
-                else UNSET,
+                tax_rate_id=to_unset(item.tax_rate_id),
+                purchase_uom=to_unset(item.purchase_uom),
+                purchase_uom_conversion_rate=to_unset(
+                    item.purchase_uom_conversion_rate
+                ),
+                arrival_date=to_unset(item.arrival_date),
             )
             po_rows.append(row)
 
@@ -232,12 +210,12 @@ async def _create_purchase_order_impl(
             location_id=request.location_id,
             purchase_order_rows=po_rows,
             entity_type=CreatePurchaseOrderRequestEntityType.REGULAR,
-            currency=request.currency if request.currency is not None else UNSET,
+            currency=to_unset(request.currency),
             status=CreatePurchaseOrderRequestStatus(request.status)
             if request.status is not None
             else UNSET,
             order_created_date=datetime.now(UTC),
-            additional_info=request.notes if request.notes is not None else UNSET,
+            additional_info=to_unset(request.notes),
         )
 
         # Call API
@@ -426,32 +404,19 @@ async def _receive_purchase_order_impl(
             )
 
         # Confirm mode - use elicitation to get user confirmation before receiving
-        elicit_result = await context.elicit(
+        confirmation = await require_confirmation(
+            context,
             f"Receive {len(request.items)} items for purchase order {order_no} and update inventory?",
-            ConfirmationSchema,
         )
 
-        # Check if user accepted
-        if elicit_result.action != "accept":
-            logger.info(f"User did not accept receiving items for PO {order_no}")
+        if confirmation != ConfirmationResult.CONFIRMED:
+            logger.info(f"User did not confirm receiving items for PO {order_no}")
             return ReceivePurchaseOrderResponse(
                 order_id=request.order_id,
                 order_number=order_no,
                 items_received=0,
                 is_preview=True,
-                message="Item receipt cancelled by user",
-                next_actions=["Review the items and try again with confirm=true"],
-            )
-
-        # Type narrowing: at this point we know action == "accept", so data exists
-        if not elicit_result.data.confirm:
-            logger.info(f"User declined to confirm receiving items for PO {order_no}")
-            return ReceivePurchaseOrderResponse(
-                order_id=request.order_id,
-                order_number=order_no,
-                items_received=0,
-                is_preview=True,
-                message="Item receipt declined by user",
+                message=f"Item receipt {confirmation} by user",
                 next_actions=["Review the items and try again with confirm=true"],
             )
 
@@ -561,17 +526,11 @@ class MatchResult(BaseModel):
 
 
 class DiscrepancyType(StrEnum):
-    """Types of discrepancies.
-
-    Note: EXTRA_IN_DOCUMENT is reserved for future use to detect items
-    in the document that exceed PO quantities or are unexpected.
-    Currently, we only verify items from the document against the PO.
-    """
+    """Types of discrepancies found during order document verification."""
 
     QUANTITY_MISMATCH = "quantity_mismatch"
     PRICE_MISMATCH = "price_mismatch"
     MISSING_IN_PO = "missing_in_po"
-    EXTRA_IN_DOCUMENT = "extra_in_document"  # Reserved for future enhancement
 
 
 class Discrepancy(BaseModel):

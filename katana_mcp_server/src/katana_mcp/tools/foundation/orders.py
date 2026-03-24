@@ -8,7 +8,6 @@ These tools provide:
 
 from __future__ import annotations
 
-import logging
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 
@@ -16,9 +15,9 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
-from katana_mcp.logging import observe_tool
+from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.schemas import ConfirmationSchema
+from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import unwrap_unset
@@ -30,7 +29,7 @@ from katana_public_api_client.models import (
 )
 from katana_public_api_client.utils import is_success, unwrap, unwrap_as
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ============================================================================
 # Tool: fulfill_order
@@ -213,15 +212,14 @@ async def _fulfill_order_impl(
                 )
 
             # Get user confirmation before marking as done
-            elicit_result = await context.elicit(
+            confirmation = await require_confirmation(
+                context,
                 f"Mark manufacturing order {order_number} as DONE and update inventory?",
-                ConfirmationSchema,
             )
 
-            # Check if user accepted
-            if elicit_result.action != "accept":
+            if confirmation != ConfirmationResult.CONFIRMED:
                 logger.info(
-                    f"User did not accept fulfillment of manufacturing order {order_number}"
+                    f"User did not confirm fulfillment of manufacturing order {order_number}"
                 )
                 return FulfillOrderResponse(
                     order_id=request.order_id,
@@ -231,26 +229,7 @@ async def _fulfill_order_impl(
                     is_preview=True,
                     inventory_updates=inventory_updates,
                     warnings=warnings,
-                    message="Manufacturing order fulfillment cancelled by user",
-                    next_actions=[
-                        "Review the order details and try again with confirm=true"
-                    ],
-                )
-
-            # Type narrowing: at this point we know action == "accept", so data exists
-            if not elicit_result.data.confirm:
-                logger.info(
-                    f"User declined to confirm fulfillment of manufacturing order {order_number}"
-                )
-                return FulfillOrderResponse(
-                    order_id=request.order_id,
-                    order_type="manufacturing",
-                    order_number=order_number,
-                    status=current_status,
-                    is_preview=True,
-                    inventory_updates=inventory_updates,
-                    warnings=warnings,
-                    message="Manufacturing order fulfillment declined by user",
+                    message=f"Manufacturing order fulfillment {confirmation} by user",
                     next_actions=[
                         "Review the order details and try again with confirm=true"
                     ],
@@ -356,15 +335,14 @@ async def _fulfill_order_impl(
             # prevent fulfillment based on status
 
             # Get user confirmation
-            elicit_result = await context.elicit(
+            confirmation = await require_confirmation(
+                context,
                 f"Create fulfillment for sales order {order_number} and update inventory?",
-                ConfirmationSchema,
             )
 
-            # Check if user accepted
-            if elicit_result.action != "accept":
+            if confirmation != ConfirmationResult.CONFIRMED:
                 logger.info(
-                    f"User did not accept fulfillment of sales order {order_number}"
+                    f"User did not confirm fulfillment of sales order {order_number}"
                 )
                 return FulfillOrderResponse(
                     order_id=request.order_id,
@@ -374,26 +352,7 @@ async def _fulfill_order_impl(
                     is_preview=True,
                     inventory_updates=inventory_updates,
                     warnings=warnings,
-                    message="Sales order fulfillment cancelled by user",
-                    next_actions=[
-                        "Review the order details and try again with confirm=true"
-                    ],
-                )
-
-            # Type narrowing: at this point we know action == "accept", so data exists
-            if not elicit_result.data.confirm:
-                logger.info(
-                    f"User declined to confirm fulfillment of sales order {order_number}"
-                )
-                return FulfillOrderResponse(
-                    order_id=request.order_id,
-                    order_type="sales",
-                    order_number=order_number,
-                    status=current_status,
-                    is_preview=True,
-                    inventory_updates=inventory_updates,
-                    warnings=warnings,
-                    message="Sales order fulfillment declined by user",
+                    message=f"Sales order fulfillment {confirmation} by user",
                     next_actions=[
                         "Review the order details and try again with confirm=true"
                     ],

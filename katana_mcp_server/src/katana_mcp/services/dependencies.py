@@ -19,6 +19,9 @@ class Services:
     Currently contains only the KatanaClient, but can be extended with
     additional services as needed.
 
+    This same dataclass is used as the server lifespan context (yielded by
+    the lifespan function in server.py) and returned by get_services().
+
     Attributes:
         client: The KatanaClient instance for API operations
     """
@@ -62,10 +65,9 @@ def get_services(context: Context) -> Services:
         or implement your own helper methods.
 
     Args:
-        context: FastMCP context containing lifespan_context with ServerContext
+        context: FastMCP context containing lifespan_context with Services
 
     Returns:
-        Services: Dataclass containing client and other services
+        Services: The lifespan context containing client and other services
     """
-    server_context = context.request_context.lifespan_context
-    return Services(client=server_context.client)
+    return context.request_context.lifespan_context

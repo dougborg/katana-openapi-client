@@ -8,26 +8,24 @@ These tools provide:
 
 from __future__ import annotations
 
-import logging
 from datetime import datetime
 from typing import Annotated
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
-from katana_mcp.logging import observe_tool
+from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.schemas import ConfirmationSchema
+from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
-from katana_public_api_client.client_types import UNSET
-from katana_public_api_client.domain.converters import unwrap_unset
+from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreateManufacturingOrderRequest as APICreateManufacturingOrderRequest,
     ManufacturingOrder,
 )
 from katana_public_api_client.utils import unwrap_as
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ============================================================================
 # Tool 1: create_manufacturing_order
@@ -142,15 +140,14 @@ async def _create_manufacturing_order_impl(
         )
 
     # Confirm mode - use elicitation to get user confirmation before creating
-    elicit_result = await context.elicit(
+    confirmation = await require_confirmation(
+        context,
         f"Create manufacturing order for variant {request.variant_id} with quantity {request.planned_quantity}?",
-        ConfirmationSchema,
     )
 
-    # Check if user accepted
-    if elicit_result.action != "accept":
+    if confirmation != ConfirmationResult.CONFIRMED:
         logger.info(
-            f"User did not accept creation of manufacturing order for variant {request.variant_id}"
+            f"User did not confirm creation of manufacturing order for variant {request.variant_id}"
         )
         return ManufacturingOrderResponse(
             variant_id=request.variant_id,
@@ -160,24 +157,7 @@ async def _create_manufacturing_order_impl(
             production_deadline_date=request.production_deadline_date,
             additional_info=request.additional_info,
             is_preview=True,
-            message="Manufacturing order creation cancelled by user",
-            next_actions=["Review the order details and try again with confirm=true"],
-        )
-
-    # Type narrowing: at this point we know action == "accept", so data exists
-    if not elicit_result.data.confirm:
-        logger.info(
-            f"User declined to confirm creation of manufacturing order for variant {request.variant_id}"
-        )
-        return ManufacturingOrderResponse(
-            variant_id=request.variant_id,
-            planned_quantity=request.planned_quantity,
-            location_id=request.location_id,
-            order_created_date=request.order_created_date,
-            production_deadline_date=request.production_deadline_date,
-            additional_info=request.additional_info,
-            is_preview=True,
-            message="Manufacturing order creation declined by user",
+            message=f"Manufacturing order creation {confirmation} by user",
             next_actions=["Review the order details and try again with confirm=true"],
         )
 
@@ -190,15 +170,9 @@ async def _create_manufacturing_order_impl(
             variant_id=request.variant_id,
             planned_quantity=request.planned_quantity,
             location_id=request.location_id,
-            order_created_date=request.order_created_date
-            if request.order_created_date is not None
-            else UNSET,
-            production_deadline_date=request.production_deadline_date
-            if request.production_deadline_date is not None
-            else UNSET,
-            additional_info=request.additional_info
-            if request.additional_info is not None
-            else UNSET,
+            order_created_date=to_unset(request.order_created_date),
+            production_deadline_date=to_unset(request.production_deadline_date),
+            additional_info=to_unset(request.additional_info),
         )
 
         # Call API

@@ -9,7 +9,6 @@ and manufacturing orders.
 
 import time
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
@@ -18,9 +17,6 @@ from katana_mcp.logging import get_logger
 from katana_mcp.services import get_services
 from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.utils import unwrap_data
-
-if TYPE_CHECKING:
-    pass
 
 logger = get_logger(__name__)
 

@@ -18,7 +18,7 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
-from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.domain.converters import to_unset
 from katana_public_api_client.models import (
     CreateMaterialRequest,
     CreateProductRequest,
@@ -286,12 +286,8 @@ async def _create_item_impl(
         # Create variant request (common to products/materials)
         variant = CreateVariantRequest(
             sku=request.sku,
-            sales_price=request.sales_price
-            if request.sales_price is not None
-            else UNSET,
-            purchase_price=request.purchase_price
-            if request.purchase_price is not None
-            else UNSET,
+            sales_price=to_unset(request.sales_price),
+            purchase_price=to_unset(request.purchase_price),
         )
 
         # Route based on item type
@@ -299,18 +295,12 @@ async def _create_item_impl(
             product_request = CreateProductRequest(
                 name=request.name,
                 uom=request.uom,
-                category_name=request.category_name
-                if request.category_name is not None
-                else UNSET,
+                category_name=to_unset(request.category_name),
                 is_sellable=request.is_sellable,
                 is_producible=request.is_producible,
                 is_purchasable=request.is_purchasable,
-                default_supplier_id=request.default_supplier_id
-                if request.default_supplier_id is not None
-                else UNSET,
-                additional_info=request.additional_info
-                if request.additional_info is not None
-                else UNSET,
+                default_supplier_id=to_unset(request.default_supplier_id),
+                additional_info=to_unset(request.additional_info),
                 variants=[variant],
             )
             product = await services.client.products.create(product_request)
@@ -335,16 +325,10 @@ async def _create_item_impl(
             material_request = CreateMaterialRequest(
                 name=request.name,
                 uom=request.uom,
-                category_name=request.category_name
-                if request.category_name is not None
-                else UNSET,
+                category_name=to_unset(request.category_name),
                 is_sellable=request.is_sellable,
-                default_supplier_id=request.default_supplier_id
-                if request.default_supplier_id is not None
-                else UNSET,
-                additional_info=request.additional_info
-                if request.additional_info is not None
-                else UNSET,
+                default_supplier_id=to_unset(request.default_supplier_id),
+                additional_info=to_unset(request.additional_info),
                 variants=[variant],
             )
             material = await services.client.materials.create(material_request)
@@ -369,19 +353,13 @@ async def _create_item_impl(
             # Services use a different variant model
             service_variant = CreateServiceVariantRequest(
                 sku=request.sku,
-                sales_price=request.sales_price
-                if request.sales_price is not None
-                else UNSET,
-                default_cost=request.purchase_price
-                if request.purchase_price is not None
-                else UNSET,
+                sales_price=to_unset(request.sales_price),
+                default_cost=to_unset(request.purchase_price),
             )
             service_request = CreateServiceRequest(
                 name=request.name,
                 uom=request.uom,
-                category_name=request.category_name
-                if request.category_name is not None
-                else UNSET,
+                category_name=to_unset(request.category_name),
                 is_sellable=request.is_sellable,
                 variants=[service_variant],
             )
@@ -676,26 +654,14 @@ async def _update_item_impl(
         # Route based on item type
         if request.type == ItemType.PRODUCT:
             update_data = UpdateProductRequest(
-                name=request.name if request.name is not None else UNSET,
-                uom=request.uom if request.uom is not None else UNSET,
-                category_name=request.category_name
-                if request.category_name is not None
-                else UNSET,
-                is_sellable=request.is_sellable
-                if request.is_sellable is not None
-                else UNSET,
-                is_producible=request.is_producible
-                if request.is_producible is not None
-                else UNSET,
-                is_purchasable=request.is_purchasable
-                if request.is_purchasable is not None
-                else UNSET,
-                default_supplier_id=request.default_supplier_id
-                if request.default_supplier_id is not None
-                else UNSET,
-                additional_info=request.additional_info
-                if request.additional_info is not None
-                else UNSET,
+                name=to_unset(request.name),
+                uom=to_unset(request.uom),
+                category_name=to_unset(request.category_name),
+                is_sellable=to_unset(request.is_sellable),
+                is_producible=to_unset(request.is_producible),
+                is_purchasable=to_unset(request.is_purchasable),
+                default_supplier_id=to_unset(request.default_supplier_id),
+                additional_info=to_unset(request.additional_info),
             )
             product = await services.client.products.update(request.id, update_data)
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
@@ -715,20 +681,12 @@ async def _update_item_impl(
 
         elif request.type == ItemType.MATERIAL:
             material_update_data = UpdateMaterialRequest(
-                name=request.name if request.name is not None else UNSET,
-                uom=request.uom if request.uom is not None else UNSET,
-                category_name=request.category_name
-                if request.category_name is not None
-                else UNSET,
-                is_sellable=request.is_sellable
-                if request.is_sellable is not None
-                else UNSET,
-                default_supplier_id=request.default_supplier_id
-                if request.default_supplier_id is not None
-                else UNSET,
-                additional_info=request.additional_info
-                if request.additional_info is not None
-                else UNSET,
+                name=to_unset(request.name),
+                uom=to_unset(request.uom),
+                category_name=to_unset(request.category_name),
+                is_sellable=to_unset(request.is_sellable),
+                default_supplier_id=to_unset(request.default_supplier_id),
+                additional_info=to_unset(request.additional_info),
             )
             material = await services.client.materials.update(
                 request.id, material_update_data
@@ -750,14 +708,10 @@ async def _update_item_impl(
 
         elif request.type == ItemType.SERVICE:
             service_update_data = UpdateServiceRequest(
-                name=request.name if request.name is not None else UNSET,
-                uom=request.uom if request.uom is not None else UNSET,
-                category_name=request.category_name
-                if request.category_name is not None
-                else UNSET,
-                is_sellable=request.is_sellable
-                if request.is_sellable is not None
-                else UNSET,
+                name=to_unset(request.name),
+                uom=to_unset(request.uom),
+                category_name=to_unset(request.category_name),
+                is_sellable=to_unset(request.is_sellable),
             )
             service = await services.client.services.update(
                 request.id, service_update_data

@@ -83,7 +83,9 @@ async def _check_inventory_impl(
             )
             return stock_info
 
-        # Extract stock information from Product model
+        # Extract stock information from Product attrs model
+        # Note: attrs Product model fields may not exist as attributes, so use
+        # getattr for stock_information which is conditionally included by the API
         stock = getattr(product, "stock_information", None)
         stock_info = StockInfo(
             sku=request.sku,
@@ -210,12 +212,16 @@ async def _list_low_stock_items_impl(
         response = LowStockResponse(
             items=[
                 LowStockItem(
+                    # attrs Product model has no top-level sku; SKU lives on variants
                     sku=getattr(product, "sku", "") or "",
                     product_name=product.name or "",
                     current_stock=(
-                        getattr(product.stock_information, "in_stock", 0)
-                        if hasattr(product, "stock_information")
-                        and product.stock_information
+                        getattr(
+                            getattr(product, "stock_information", None),
+                            "in_stock",
+                            0,
+                        )
+                        if getattr(product, "stock_information", None)
                         else 0
                     ),
                     threshold=request.threshold,
