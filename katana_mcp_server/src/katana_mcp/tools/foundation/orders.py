@@ -408,50 +408,13 @@ async def _fulfill_order_impl(
 async def fulfill_order(
     request: Annotated[FulfillOrderRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Fulfill a manufacturing order or sales order with two-step confirmation.
+    """Complete a manufacturing order (mark DONE) or fulfill a sales order (ship items).
 
-    This tool supports a two-step confirmation process:
-    1. Preview (confirm=false): Shows what would happen without making changes
-    2. Confirm (confirm=true): Actually fulfills the order
+    Destructive operation that updates inventory. Two-step flow: confirm=false to
+    preview what would happen, confirm=true to execute (prompts for confirmation).
 
-    Manufacturing Orders:
-    - Marks the order as DONE via PATCH /manufacturing_orders/{id}
-    - Updates inventory based on bill of materials (BOM)
-    - Adds finished goods to stock
-    - Consumes raw materials from inventory
-
-    Sales Orders:
-    - Creates a fulfillment via POST /sales_order_fulfillments
-    - Reduces available inventory
-    - Marks items as shipped/fulfilled
-    - Creates fulfillment record
-
-    The tool handles different order statuses appropriately and provides
-    warnings for edge cases (already completed, cancelled, blocked, etc.).
-
-    Args:
-        request: Request with order ID, type, and confirm flag
-        context: Server context with KatanaClient
-
-    Returns:
-        ToolResult with markdown content and structured data
-
-    Example:
-        Preview Manufacturing Order:
-            Request: {"order_id": 1234, "order_type": "manufacturing", "confirm": false}
-            Returns: Preview showing order would be marked as DONE
-
-        Confirm Manufacturing Order:
-            Request: {"order_id": 1234, "order_type": "manufacturing", "confirm": true}
-            Returns: Success message with updated status
-
-        Preview Sales Order:
-            Request: {"order_id": 5678, "order_type": "sales", "confirm": false}
-            Returns: Preview showing fulfillment would be created
-
-        Confirm Sales Order:
-            Request: {"order_id": 5678, "order_type": "sales", "confirm": true}
-            Returns: Success message with fulfillment details
+    Manufacturing: marks order DONE, adds finished goods, consumes raw materials.
+    Sales: creates a fulfillment record, reduces available inventory.
     """
     response = await _fulfill_order_impl(request, context)
     return _fulfill_response_to_tool_result(response)
@@ -460,10 +423,14 @@ async def fulfill_order(
 def register_tools(mcp: FastMCP) -> None:
     """Register all order fulfillment tools with the FastMCP instance.
 
-    Registers the fulfill_order tool for completing manufacturing orders
-    and fulfilling sales orders.
-
     Args:
         mcp: FastMCP server instance to register tools with
     """
-    mcp.tool()(fulfill_order)
+    from mcp.types import ToolAnnotations
+
+    mcp.tool(
+        tags={"orders", "write", "destructive"},
+        annotations=ToolAnnotations(
+            readOnlyHint=False, destructiveHint=True, openWorldHint=True
+        ),
+    )(fulfill_order)

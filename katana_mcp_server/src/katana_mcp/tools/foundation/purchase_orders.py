@@ -264,35 +264,12 @@ async def _create_purchase_order_impl(
 async def create_purchase_order(
     request: Annotated[CreatePurchaseOrderRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Create a purchase order with two-step confirmation.
+    """Create a purchase order to buy items from a supplier.
 
-    This tool supports a two-step confirmation process:
-    1. Preview (confirm=false): Shows order details and calculations without creating
-    2. Confirm (confirm=true): Creates the actual purchase order in Katana
-
-    The tool creates regular purchase orders (not outsourced) and supports:
-    - Multiple line items with different variants
-    - Optional tax rates, purchase UOMs, and arrival dates
-    - Currency specification
-    - Order notes
-
-    Args:
-        request: Request with purchase order details and confirm flag
-        context: Server context with KatanaClient
-
-    Returns:
-        ToolResult with markdown content and structured data
-
-    Example:
-        Preview:
-            Request: {"supplier_id": 4001, "location_id": 1, "order_number": "PO-2024-001",
-                     "items": [{"variant_id": 501, "quantity": 100, "price_per_unit": 25.50}],
-                     "confirm": false}
-            Returns: Preview with calculated total
-
-        Confirm:
-            Request: Same as above but with "confirm": true
-            Returns: Created PO with ID and status
+    Two-step flow: set confirm=false to preview totals without creating, then
+    confirm=true to create (prompts for confirmation). Requires supplier_id,
+    location_id, order_number, and at least one line item with variant_id,
+    quantity, and price_per_unit. Use get_variant_details to look up variant IDs.
     """
     response = await _create_purchase_order_impl(request, context)
     return _po_response_to_tool_result(response)
@@ -471,30 +448,11 @@ async def _receive_purchase_order_impl(
 async def receive_purchase_order(
     request: Annotated[ReceivePurchaseOrderRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Receive items from a purchase order with two-step confirmation.
+    """Receive delivered items from a purchase order and update inventory.
 
-    This tool supports a two-step confirmation process:
-    1. Preview (confirm=false): Shows items to be received
-    2. Confirm (confirm=true): Receives the items and updates inventory
-
-    The tool marks items as received in Katana and updates inventory levels.
-    The API returns 204 (no content) on success.
-
-    Args:
-        request: Request with purchase order ID, items, and confirm flag
-        context: Server context with KatanaClient
-
-    Returns:
-        ToolResult with markdown content and structured data
-
-    Example:
-        Preview:
-            Request: {"order_id": 1234, "items": [{"purchase_order_row_id": 501, "quantity": 100}], "confirm": false}
-            Returns: Preview with summary
-
-        Confirm:
-            Request: Same as above but with "confirm": true
-            Returns: Success message with updated inventory
+    Two-step flow: confirm=false to preview, confirm=true to receive (prompts
+    for confirmation). Use verify_order_document first to validate a supplier
+    document against the PO before receiving. Requires the PO ID and row IDs.
     """
     response = await _receive_purchase_order_impl(request, context)
     return _receive_response_to_tool_result(response)
@@ -802,33 +760,11 @@ async def _verify_order_document_impl(
 async def verify_order_document(
     request: Annotated[VerifyOrderDocumentRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Verify a document against a purchase order.
+    """Verify a supplier document (invoice, packing slip) against a purchase order.
 
-    Compares items from a supplier document (invoice, packing slip, etc.)
-    against the purchase order to identify matches and discrepancies.
-
-    The tool:
-    - Fetches the purchase order details
-    - Looks up variants to match SKUs
-    - Compares quantities and prices
-    - Reports discrepancies with actionable suggestions
-
-    Args:
-        request: Request with order ID and document items
-        context: Server context with KatanaClient
-
-    Returns:
-        ToolResult with markdown content and structured data
-
-    Example:
-        Request: {
-            "order_id": 1234,
-            "document_items": [
-                {"sku": "WIDGET-001", "quantity": 100, "unit_price": 25.50},
-                {"sku": "WIDGET-002", "quantity": 50, "unit_price": 30.00}
-            ]
-        }
-        Returns: Verification report with matches/discrepancies
+    Read-only check: compares SKUs, quantities, and prices from the document against
+    the PO and reports matches and discrepancies. Use this BEFORE receive_purchase_order
+    to validate a delivery. No changes are made to orders or inventory.
     """
     response = await _verify_order_document_impl(request, context)
     return _verify_response_to_tool_result(response)
@@ -837,16 +773,27 @@ async def verify_order_document(
 def register_tools(mcp: FastMCP) -> None:
     """Register all purchase order tools with the FastMCP instance.
 
-    Registers three fully-functional purchase order tools:
-    - create_purchase_order: Create regular purchase orders
-    - receive_purchase_order: Receive items and update inventory
-    - verify_order_document: Verify supplier documents against POs
-
-    All tools follow the preview/confirm pattern for safe operation.
-
     Args:
         mcp: FastMCP server instance to register tools with
     """
-    mcp.tool()(create_purchase_order)
-    mcp.tool()(receive_purchase_order)
-    mcp.tool()(verify_order_document)
+    from mcp.types import ToolAnnotations
+
+    _write = ToolAnnotations(
+        readOnlyHint=False, destructiveHint=False, openWorldHint=True
+    )
+    _read = ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
+
+    mcp.tool(tags={"orders", "purchasing", "write"}, annotations=_write)(
+        create_purchase_order
+    )
+    mcp.tool(tags={"orders", "purchasing", "write"}, annotations=_write)(
+        receive_purchase_order
+    )
+    mcp.tool(tags={"orders", "purchasing", "read"}, annotations=_read)(
+        verify_order_document
+    )

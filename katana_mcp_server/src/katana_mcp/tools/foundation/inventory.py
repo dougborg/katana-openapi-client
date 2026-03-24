@@ -124,21 +124,10 @@ async def _check_inventory_impl(
 async def check_inventory(
     request: Annotated[CheckInventoryRequest, Unpack()], context: Context
 ) -> StockInfo:
-    """Check stock levels for a specific product SKU.
+    """Check current stock levels (available, committed, in production) for a SKU.
 
-    This tool retrieves current inventory levels including available stock,
-    items in production, and committed quantities.
-
-    Args:
-        sku: Product SKU to check
-        context: Server context with KatanaClient
-
-    Returns:
-        StockInfo with current stock levels
-
-    Example:
-        sku: "WIDGET-001"
-        Returns: {"sku": "WIDGET-001", "product_name": "Widget", "available_stock": 100, ...}
+    Use before creating orders to verify stock availability. Returns zero stock
+    if the SKU is not found (does not raise an error).
     """
     return await _check_inventory_impl(request, context)
 
@@ -259,22 +248,12 @@ async def _list_low_stock_items_impl(
 async def list_low_stock_items(
     request: Annotated[LowStockRequest, Unpack()], context: Context
 ) -> LowStockResponse:
-    """List products below stock threshold.
+    """List items with stock levels below a threshold — useful for reorder planning.
 
-    Identifies products that have fallen below a specified stock threshold,
-    useful for proactive inventory management and reordering.
+    Returns items that need replenishment. Follow up with get_variant_details to find
+    supplier info, then create_purchase_order to reorder.
 
-    Args:
-        threshold: Stock threshold level (default: 10)
-        limit: Maximum items to return (default: 50)
-        context: Server context with KatanaClient
-
-    Returns:
-        List of products below threshold with current levels
-
-    Example:
-        threshold: 5, limit: 10
-        Returns: {"items": [...], "total_count": 15}
+    Default threshold is 10 units, default limit is 50 items.
     """
     return await _list_low_stock_items_impl(request, context)
 
@@ -285,5 +264,14 @@ def register_tools(mcp: FastMCP) -> None:
     Args:
         mcp: FastMCP server instance to register tools with
     """
-    mcp.tool()(check_inventory)
-    mcp.tool()(list_low_stock_items)
+    from mcp.types import ToolAnnotations
+
+    _read = ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
+
+    mcp.tool(tags={"inventory", "read"}, annotations=_read)(check_inventory)
+    mcp.tool(tags={"inventory", "read"}, annotations=_read)(list_low_stock_items)

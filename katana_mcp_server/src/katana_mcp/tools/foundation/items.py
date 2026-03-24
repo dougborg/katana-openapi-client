@@ -187,21 +187,13 @@ async def _search_items_impl(
 async def search_items(
     request: Annotated[SearchItemsRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Search for items by name or SKU.
+    """Search for items (products, materials, services) by name or SKU.
 
-    Searches across all SKU-bearing items (variants, products, materials, services)
-    to find matches. Items are things that appear in the "Items" tab of Katana UI.
+    Use this as the starting point when you need to find items. Returns item IDs
+    and SKUs needed by other tools like create_purchase_order or check_inventory.
+    For full details on a specific item, follow up with get_variant_details.
 
-    Args:
-        request: Request with search query and limit
-        context: Server context with KatanaClient
-
-    Returns:
-        ToolResult with markdown content and structured data
-
-    Example:
-        Request: {"query": "widget", "limit": 10}
-        Returns: {"items": [...], "total_count": 5}
+    Query must not be empty. Default limit is 20 results.
     """
     response = await _search_items_impl(request, context)
     return _search_response_to_tool_result(response, request.query)
@@ -400,44 +392,17 @@ async def _create_item_impl(
 
 
 @observe_tool
+@unpack_pydantic_params
 async def create_item(
-    request: CreateItemRequest, context: Context
+    request: Annotated[CreateItemRequest, Unpack()], context: Context
 ) -> CreateItemResponse:
-    """Create a new item (product, material, or service).
+    """Create any item type (product, material, or service) in the Katana catalog.
 
-    This tool provides a unified interface for creating items with a single variant.
-    The tool routes to the appropriate API based on the item type.
+    General-purpose item creation. PREFER create_product for finished goods or
+    create_material for raw materials — those tools have simpler, dedicated parameters.
+    Use this tool only for services or when the item type is determined dynamically.
 
-    Supported types:
-    - PRODUCT: Finished goods that can be sold and/or manufactured
-    - MATERIAL: Raw materials and components used in manufacturing
-    - SERVICE: External services used in operations
-
-    Args:
-        request: Request with item details and type
-        context: Server context with KatanaClient
-
-    Returns:
-        Created item details including ID and variant information
-
-    Example:
-        Request: {
-            "type": "product",
-            "name": "Widget Pro",
-            "sku": "WGT-PRO-001",
-            "uom": "pcs",
-            "is_sellable": true,
-            "is_producible": true,
-            "sales_price": 29.99
-        }
-        Returns: {
-            "id": 123,
-            "name": "Widget Pro",
-            "type": "product",
-            "variant_id": 456,
-            "sku": "WGT-PRO-001",
-            "message": "Product 'Widget Pro' created successfully"
-        }
+    Creates the item with a single variant. Returns the new item ID.
     """
     return await _create_item_impl(request, context)
 
@@ -571,21 +536,15 @@ async def _get_item_impl(
 
 
 @observe_tool
-async def get_item(request: GetItemRequest, context: Context) -> ItemDetailsResponse:
-    """Get item details by ID and type.
+@unpack_pydantic_params
+async def get_item(
+    request: Annotated[GetItemRequest, Unpack()], context: Context
+) -> ItemDetailsResponse:
+    """Get item details by ID and type (product, material, or service).
 
-    Retrieves detailed information about a specific item.
-
-    Args:
-        request: Request with item ID and type
-        context: Server context with KatanaClient
-
-    Returns:
-        Detailed item information
-
-    Example:
-        Request: {"id": 123, "type": "product"}
-        Returns: {"id": 123, "name": "Widget Pro", "type": "product", ...}
+    Use when you already have an item ID and type from search_items or another tool.
+    Returns item properties like name, UOM, category, and flags (sellable, producible).
+    For variant-level details (pricing, barcodes, supplier codes), use get_variant_details instead.
     """
     return await _get_item_impl(request, context)
 
@@ -749,24 +708,14 @@ async def _update_item_impl(
 
 
 @observe_tool
+@unpack_pydantic_params
 async def update_item(
-    request: UpdateItemRequest, context: Context
+    request: Annotated[UpdateItemRequest, Unpack()], context: Context
 ) -> UpdateItemResponse:
-    """Update an existing item.
+    """Update an existing item's properties (product, material, or service).
 
-    Updates fields for a product, material, or service. Only provided fields
-    are updated; omitted fields remain unchanged.
-
-    Args:
-        request: Request with item ID, type, and fields to update
-        context: Server context with KatanaClient
-
-    Returns:
-        Updated item confirmation
-
-    Example:
-        Request: {"id": 123, "type": "product", "name": "Widget Pro v2", "sales_price": 34.99}
-        Returns: {"id": 123, "name": "Widget Pro v2", "type": "product", "message": "..."}
+    Only provided fields are updated; omitted fields remain unchanged.
+    Requires the item ID and type. Use search_items first if you need to find the item.
     """
     return await _update_item_impl(request, context)
 
@@ -781,6 +730,9 @@ class DeleteItemRequest(BaseModel):
 
     id: int = Field(..., description="Item ID")
     type: ItemType = Field(..., description="Type of item")
+    confirm: bool = Field(
+        False, description="If false, returns preview. If true, deletes item."
+    )
 
 
 class DeleteItemResponse(BaseModel):
@@ -788,6 +740,8 @@ class DeleteItemResponse(BaseModel):
 
     id: int
     type: ItemType
+    name: str | None = None
+    is_preview: bool = False
     success: bool = True
     message: str = "Item deleted successfully"
 
@@ -795,26 +749,63 @@ class DeleteItemResponse(BaseModel):
 async def _delete_item_impl(
     request: DeleteItemRequest, context: Context
 ) -> DeleteItemResponse:
-    """Implementation of delete_item tool.
+    """Implementation of delete_item tool."""
+    from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 
-    Args:
-        request: Request with item ID and type
-        context: Server context with KatanaClient
-
-    Returns:
-        Deletion confirmation
-
-    Raises:
-        ValueError: If type is invalid
-        Exception: If API call fails
-    """
     start_time = time.monotonic()
     logger.info("item_delete_started", item_type=request.type, item_id=request.id)
 
     try:
         services = get_services(context)
 
-        # Route based on item type
+        # Fetch item details for preview or confirmation message
+        item_name = f"{request.type} ID {request.id}"
+        try:
+            if request.type == ItemType.PRODUCT:
+                item = await services.client.products.get(request.id)
+                item_name = f"product '{item.name}' (ID {request.id})"
+            elif request.type == ItemType.MATERIAL:
+                item = await services.client.materials.get(request.id)
+                item_name = f"material '{item.name}' (ID {request.id})"
+            elif request.type == ItemType.SERVICE:
+                item = await services.client.services.get(request.id)
+                item_name = f"service '{item.name}' (ID {request.id})"
+        except Exception:
+            pass  # Use default name if fetch fails
+
+        # Preview mode
+        if not request.confirm:
+            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            logger.info(
+                "item_delete_preview",
+                item_type=request.type,
+                item_id=request.id,
+                duration_ms=duration_ms,
+            )
+            return DeleteItemResponse(
+                id=request.id,
+                type=request.type,
+                is_preview=True,
+                message=f"Preview: Would permanently delete {item_name}. Set confirm=true to proceed.",
+            )
+
+        # Confirm mode - get user confirmation
+        confirmation = await require_confirmation(
+            context,
+            f"Permanently delete {item_name}? This cannot be undone.",
+        )
+
+        if confirmation != ConfirmationResult.CONFIRMED:
+            logger.info(f"User did not confirm deletion of {item_name}")
+            return DeleteItemResponse(
+                id=request.id,
+                type=request.type,
+                is_preview=True,
+                success=False,
+                message=f"Deletion of {item_name} {confirmation} by user",
+            )
+
+        # User confirmed - delete the item
         if request.type == ItemType.PRODUCT:
             await services.client.products.delete(request.id)
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
@@ -878,23 +869,15 @@ async def _delete_item_impl(
 
 
 @observe_tool
+@unpack_pydantic_params
 async def delete_item(
-    request: DeleteItemRequest, context: Context
+    request: Annotated[DeleteItemRequest, Unpack()], context: Context
 ) -> DeleteItemResponse:
-    """Delete an item by ID and type.
+    """Permanently delete an item (product, material, or service) from Katana.
 
-    Permanently removes a product, material, or service from the system.
-
-    Args:
-        request: Request with item ID and type
-        context: Server context with KatanaClient
-
-    Returns:
-        Deletion confirmation
-
-    Example:
-        Request: {"id": 123, "type": "product"}
-        Returns: {"id": 123, "type": "product", "message": "Product ID 123 deleted successfully"}
+    This is a destructive operation. Set confirm=false to preview what would be
+    deleted, or confirm=true to execute (will prompt for confirmation).
+    Requires the item ID and type.
     """
     return await _delete_item_impl(request, context)
 
@@ -1089,33 +1072,12 @@ async def _get_variant_details_impl(
 async def get_variant_details(
     request: GetVariantDetailsRequest, context: Context
 ) -> ToolResult:
-    """Get detailed variant information by SKU.
+    """Get comprehensive variant details by SKU — pricing, barcodes, supplier codes, and more.
 
-    Retrieves comprehensive details about a specific variant including pricing,
-    barcodes, configuration attributes, custom fields, and more.
+    Use after search_items to get full details on a specific item. Returns the variant ID
+    needed for create_purchase_order and create_sales_order line items.
 
-    Args:
-        request: Request with SKU to look up
-        context: Server context with KatanaClient
-
-    Returns:
-        ToolResult with markdown content and structured data
-
-    Example:
-        Request: {"sku": "WIDGET-001"}
-        Returns: {
-            "id": 123,
-            "sku": "WIDGET-001",
-            "name": "Widget Pro / Large / Blue",
-            "sales_price": 29.99,
-            "purchase_price": 15.00,
-            "type": "product",
-            "config_attributes": [
-                {"config_name": "Size", "config_value": "Large"},
-                {"config_name": "Color", "config_value": "Blue"}
-            ],
-            ...
-        }
+    Performs an exact case-insensitive SKU match. Raises ValueError if SKU not found.
     """
     response = await _get_variant_details_impl(request, context)
     return _variant_details_to_tool_result(response)
@@ -1127,9 +1089,35 @@ def register_tools(mcp: FastMCP) -> None:
     Args:
         mcp: FastMCP server instance to register tools with
     """
-    mcp.tool()(search_items)
-    mcp.tool()(create_item)
-    mcp.tool()(get_item)
-    mcp.tool()(update_item)
-    mcp.tool()(delete_item)
-    mcp.tool()(get_variant_details)
+    from mcp.types import ToolAnnotations
+
+    _read = ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
+    _write = ToolAnnotations(
+        readOnlyHint=False, destructiveHint=False, openWorldHint=True
+    )
+    _update = ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
+    _destructive = ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
+
+    mcp.tool(tags={"catalog", "read"}, annotations=_read)(search_items)
+    mcp.tool(tags={"catalog", "write"}, annotations=_write)(create_item)
+    mcp.tool(tags={"catalog", "read"}, annotations=_read)(get_item)
+    mcp.tool(tags={"catalog", "write"}, annotations=_update)(update_item)
+    mcp.tool(tags={"catalog", "write", "destructive"}, annotations=_destructive)(
+        delete_item
+    )
+    mcp.tool(tags={"catalog", "read"}, annotations=_read)(get_variant_details)

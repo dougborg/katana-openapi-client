@@ -227,33 +227,12 @@ async def _create_manufacturing_order_impl(
 async def create_manufacturing_order(
     request: Annotated[CreateManufacturingOrderRequest, Unpack()], context: Context
 ) -> ManufacturingOrderResponse:
-    """Create a manufacturing order with two-step confirmation.
+    """Create a manufacturing order to produce items.
 
-    This tool supports a two-step confirmation process:
-    1. Preview (confirm=false): Shows order details without creating
-    2. Confirm (confirm=true): Creates the actual manufacturing order in Katana
-
-    The tool creates manufacturing orders to initiate production of products
-    or components. Manufacturing order recipe and operation rows are created
-    automatically based on the product recipe and operations.
-
-    Args:
-        request: Request with manufacturing order details and confirm flag
-        context: Server context with KatanaClient
-
-    Returns:
-        Manufacturing order response with ID (if created) and details
-
-    Example:
-        Preview:
-            Request: {"variant_id": 2101, "planned_quantity": 50, "location_id": 1,
-                     "production_deadline_date": "2024-01-25T17:00:00Z",
-                     "additional_info": "Priority order", "confirm": false}
-            Returns: Preview with order details
-
-        Confirm:
-            Request: Same as above but with "confirm": true
-            Returns: Created MO with ID and status
+    Two-step flow: confirm=false to preview, confirm=true to create (prompts
+    for confirmation). Requires variant_id of the product to manufacture,
+    planned_quantity, and location_id. Recipe and operation rows are created
+    automatically from the product's recipe. Use search_items to find variant IDs.
     """
     return await _create_manufacturing_order_impl(request, context)
 
@@ -261,10 +240,14 @@ async def create_manufacturing_order(
 def register_tools(mcp: FastMCP) -> None:
     """Register all manufacturing order tools with the FastMCP instance.
 
-    Registers manufacturing order creation tool:
-    - create_manufacturing_order: Create manufacturing orders with preview/confirm
-
     Args:
         mcp: FastMCP server instance to register tools with
     """
-    mcp.tool()(create_manufacturing_order)
+    from mcp.types import ToolAnnotations
+
+    mcp.tool(
+        tags={"orders", "manufacturing", "write"},
+        annotations=ToolAnnotations(
+            readOnlyHint=False, destructiveHint=False, openWorldHint=True
+        ),
+    )(create_manufacturing_order)
