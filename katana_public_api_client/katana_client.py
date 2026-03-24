@@ -105,6 +105,56 @@ class RateLimitAwareRetry(Retry):
         return new_retry
 
 
+def _extract_nested_error(
+    additional_properties: dict[str, Any],
+) -> tuple[str | None, str | None, int | None, list[dict[str, str]]]:
+    """Extract typed error fields from an untyped additional_properties dict.
+
+    The Katana API sometimes returns error details in a nested structure within
+    additional_properties rather than in the typed model fields. This function
+    safely extracts those fields with proper typing.
+
+    Returns:
+        Tuple of (name, message, status_code, detail_dicts) where detail_dicts
+        is a list of dicts with 'path', 'code', and 'message' string keys.
+    """
+    name: str | None = None
+    message: str | None = None
+    status_code: int | None = None
+    details: list[dict[str, str]] = []
+
+    nested_error = additional_properties.get("error")
+    if not isinstance(nested_error, dict):
+        return name, message, status_code, details
+
+    raw_name = nested_error.get("name")
+    if isinstance(raw_name, str):
+        name = raw_name
+    raw_message = nested_error.get("message")
+    if isinstance(raw_message, str):
+        message = raw_message
+    raw_code = nested_error.get("statusCode")
+    if isinstance(raw_code, int):
+        status_code = raw_code
+
+    raw_details = nested_error.get("details")
+    if isinstance(raw_details, list):
+        for item in raw_details:
+            if isinstance(item, dict):
+                detail: dict[str, str] = {
+                    "path": str(item.get("path", "unknown")),
+                }
+                raw_code_val = item.get("code")
+                if raw_code_val is not None:
+                    detail["code"] = str(raw_code_val)
+                raw_msg_val = item.get("message")
+                if raw_msg_val is not None:
+                    detail["message"] = str(raw_msg_val)
+                details.append(detail)
+
+    return name, message, status_code, details
+
+
 class ErrorLoggingTransport(AsyncHTTPTransport):
     """
     Transport layer that adds detailed error logging for 4xx client errors.
@@ -246,15 +296,17 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             error_name is None
             and error_message is None
             and hasattr(error, "additional_properties")
+            and error.additional_properties
         ):
-            nested = error.additional_properties
-            if isinstance(nested, dict) and "error" in nested:
-                nested_error = nested["error"]
-                if isinstance(nested_error, dict):
-                    error_name = nested_error.get("name", "(not provided)")
-                    error_message = nested_error.get("message", "(not provided)")
-                    if "statusCode" in nested_error and error_code is None:
-                        error_code = nested_error.get("statusCode")
+            nested_name, nested_msg, nested_code, _ = _extract_nested_error(
+                error.additional_properties
+            )
+            if nested_name is not None:
+                error_name = nested_name
+            if nested_msg is not None:
+                error_message = nested_msg
+            if nested_code is not None and error_code is None:
+                error_code = nested_code
 
         # Use fallback if still not found
         if error_name is None:
@@ -341,27 +393,18 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                         log_message += f"\n       Valid fields: {detail.valid_keys}"
 
         # Also check additional_properties for nested error details
-        # The API might return details in a nested structure
         if hasattr(error, "additional_properties") and error.additional_properties:
-            nested_error = error.additional_properties.get("error")
-            if isinstance(nested_error, dict):
-                nested_details = nested_error.get("details")
-                if nested_details and isinstance(nested_details, list):
-                    log_message += (
-                        f"\n  Nested validation details ({len(nested_details)} errors):"
-                    )
-                    for i, detail in enumerate(nested_details, 1):
-                        if isinstance(detail, dict):
-                            detail_dict = cast(dict[str, object], detail)
-                            log_message += (
-                                f"\n    {i}. Path: {detail_dict.get('path', 'unknown')}"
-                            )
-                            code = detail_dict.get("code")
-                            if code is not None:
-                                log_message += f"\n       Code: {code}"
-                            message = detail_dict.get("message")
-                            if message is not None:
-                                log_message += f"\n       Message: {message}"
+            _, _, _, nested_details = _extract_nested_error(error.additional_properties)
+            if nested_details:
+                log_message += (
+                    f"\n  Nested validation details ({len(nested_details)} errors):"
+                )
+                for i, d in enumerate(nested_details, 1):
+                    log_message += f"\n    {i}. Path: {d.get('path', 'unknown')}"
+                    if "code" in d:
+                        log_message += f"\n       Code: {d['code']}"
+                    if "message" in d:
+                        log_message += f"\n       Message: {d['message']}"
 
         self.logger.error(log_message)
 
@@ -380,13 +423,15 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             error_name is None
             and error_message is None
             and hasattr(error, "additional_properties")
+            and error.additional_properties
         ):
-            nested = error.additional_properties
-            if isinstance(nested, dict) and "error" in nested:
-                nested_error = nested["error"]
-                if isinstance(nested_error, dict):
-                    error_name = nested_error.get("name", "(not provided)")
-                    error_message = nested_error.get("message", "(not provided)")
+            nested_name, nested_msg, _, _ = _extract_nested_error(
+                error.additional_properties
+            )
+            if nested_name is not None:
+                error_name = nested_name
+            if nested_msg is not None:
+                error_message = nested_msg
 
         # Use fallback values if still None
         if error_name is None:
