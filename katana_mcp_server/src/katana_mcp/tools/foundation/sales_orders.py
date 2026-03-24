@@ -12,11 +12,13 @@ from datetime import UTC, datetime
 from typing import Annotated, Literal
 
 from fastmcp import Context, FastMCP
+from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
+from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
@@ -299,49 +301,43 @@ async def _create_sales_order_impl(
 @unpack_pydantic_params
 async def create_sales_order(
     request: Annotated[CreateSalesOrderRequest, Unpack()], context: Context
-) -> SalesOrderResponse:
-    """Create a sales order with two-step confirmation.
+) -> ToolResult:
+    """Create a sales order for a customer purchase.
 
-    This tool supports a two-step confirmation process:
-    1. Preview (confirm=false): Shows order details and calculations without creating
-    2. Confirm (confirm=true): Creates the actual sales order in Katana
-
-    The tool creates sales orders for customer purchases and supports:
-    - Multiple line items with different variants
-    - Optional pricing overrides per line item
-    - Optional tax rates and discounts
-    - Billing and shipping addresses
-    - Currency specification
-    - Order notes and customer references
-
-    Args:
-        request: Request with sales order details and confirm flag
-        context: Server context with KatanaClient
-
-    Returns:
-        Sales order response with ID (if created) and details
-
-    Example:
-        Preview:
-            Request: {"customer_id": 1501, "order_number": "SO-2024-001",
-                     "items": [{"variant_id": 2101, "quantity": 3, "price_per_unit": 599.99}],
-                     "confirm": false}
-            Returns: Preview with calculated total
-
-        Confirm:
-            Request: Same as above but with "confirm": true
-            Returns: Created SO with ID and status
+    Two-step flow: confirm=false to preview totals, confirm=true to create
+    (prompts for confirmation). Requires customer_id, order_number, and at
+    least one line item with variant_id and quantity. Supports optional pricing
+    overrides, discounts, delivery dates, and billing/shipping addresses.
     """
-    return await _create_sales_order_impl(request, context)
+    response = await _create_sales_order_impl(request, context)
+
+    next_actions_text = "\n".join(f"- {a}" for a in response.next_actions) or "None"
+
+    return make_tool_result(
+        response,
+        "sales_order_created",
+        id=response.id or "N/A",
+        order_number=response.order_number,
+        customer_id=response.customer_id,
+        status=response.status or ("PREVIEW" if response.is_preview else "N/A"),
+        total=f"${response.total:,.2f}" if response.total else "N/A",
+        currency=response.currency or "N/A",
+        message=response.message,
+        next_actions_text=next_actions_text,
+    )
 
 
 def register_tools(mcp: FastMCP) -> None:
     """Register all sales order tools with the FastMCP instance.
 
-    Registers sales order creation tool:
-    - create_sales_order: Create sales orders with preview/confirm
-
     Args:
         mcp: FastMCP server instance to register tools with
     """
-    mcp.tool()(create_sales_order)
+    from mcp.types import ToolAnnotations
+
+    mcp.tool(
+        tags={"orders", "sales", "write"},
+        annotations=ToolAnnotations(
+            readOnlyHint=False, destructiveHint=False, openWorldHint=True
+        ),
+    )(create_sales_order)
