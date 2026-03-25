@@ -68,7 +68,7 @@ class CreatePurchaseOrderRequest(BaseModel):
     currency: str | None = Field(None, description="Currency code (e.g., USD, EUR)")
     status: str | None = Field(
         None,
-        description="Initial status (NOT_RECEIVED, PARTIALLY_RECEIVED, RECEIVED, CANCELLED)",
+        description="Initial status — only 'NOT_RECEIVED' is allowed by the API",
     )
     confirm: bool = Field(
         False, description="If false, returns preview. If true, creates order."
@@ -202,6 +202,15 @@ async def _create_purchase_order_impl(
                 arrival_date=to_unset(item.arrival_date),
             )
             po_rows.append(row)
+
+        # Validate status if provided
+        valid_statuses = {e.value for e in CreatePurchaseOrderInitialStatus}
+        if request.status is not None and request.status not in valid_statuses:
+            return make_tool_result(
+                f"Invalid initial status '{request.status}'. "
+                f"Allowed values: {', '.join(sorted(valid_statuses))}",
+                is_error=True,
+            )
 
         # Build API request
         api_request = APICreatePurchaseOrderRequest(
