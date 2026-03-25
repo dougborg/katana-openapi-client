@@ -6,7 +6,7 @@ handling errors, extracting data, and formatting display values.
 
 from collections.abc import Callable
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any, cast, overload
+from typing import TYPE_CHECKING, Any, overload
 
 from .client_types import Response, Unset
 from .models.detailed_error_response import DetailedErrorResponse
@@ -221,13 +221,13 @@ def unwrap[T](
             )
         return None
 
-    # Check if it's an error response
-    if isinstance(response.parsed, ErrorResponse | DetailedErrorResponse):
+    # Check if it's an error response — assign to local for type narrowing
+    parsed = response.parsed
+    if isinstance(parsed, ErrorResponse | DetailedErrorResponse):
         if not raise_on_error:
             return None
 
-        # Type narrowing: use cast for ty type checker
-        parsed_error = cast(ErrorResponse | DetailedErrorResponse, response.parsed)
+        parsed_error = parsed
 
         error_name = (
             parsed_error.name if not isinstance(parsed_error.name, Unset) else "Unknown"
@@ -487,18 +487,15 @@ def get_error_message[T](response: Response[T]) -> str | None:
     if response.parsed is None:
         return None
 
-    if not isinstance(response.parsed, ErrorResponse | DetailedErrorResponse):
+    # Assign to local for type narrowing
+    parsed = response.parsed
+    if not isinstance(parsed, ErrorResponse | DetailedErrorResponse):
         return None
 
-    # Type narrowing: use cast for ty type checker
-    parsed_error = cast(ErrorResponse | DetailedErrorResponse, response.parsed)
-
-    error_message = (
-        parsed_error.message if not isinstance(parsed_error.message, Unset) else None
-    )
+    error_message = parsed.message if not isinstance(parsed.message, Unset) else None
 
     # Check nested error format
-    nested = parsed_error.additional_properties
+    nested = parsed.additional_properties
     if isinstance(nested, dict) and "error" in nested:
         nested_error = nested["error"]
         if isinstance(nested_error, dict):

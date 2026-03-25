@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import builtins
-from typing import Any, cast
+from typing import Any
 
 from katana_public_api_client.api.services import (
     create_service,
@@ -21,7 +21,7 @@ from katana_public_api_client.helpers.base import Base
 from katana_public_api_client.models.create_service_request import CreateServiceRequest
 from katana_public_api_client.models.service import Service
 from katana_public_api_client.models.update_service_request import UpdateServiceRequest
-from katana_public_api_client.utils import unwrap, unwrap_data
+from katana_public_api_client.utils import unwrap_as, unwrap_data
 
 
 class Services(Base):
@@ -72,8 +72,7 @@ class Services(Base):
             client=self._client,
             id=service_id,
         )
-        # unwrap() raises on errors, so cast is safe
-        attrs_service = cast(Service, unwrap(response))
+        attrs_service = unwrap_as(response, Service)
         return service_to_katana(attrs_service)
 
     async def create(self, service_data: CreateServiceRequest) -> KatanaService:
@@ -95,8 +94,7 @@ class Services(Base):
             client=self._client,
             body=service_data,
         )
-        # unwrap() raises on errors, so cast is safe
-        attrs_service = cast(Service, unwrap(response))
+        attrs_service = unwrap_as(response, Service)
         return service_to_katana(attrs_service)
 
     async def update(
@@ -122,8 +120,7 @@ class Services(Base):
             id=service_id,
             body=service_data,
         )
-        # unwrap() raises on errors, so cast is safe
-        attrs_service = cast(Service, unwrap(response))
+        attrs_service = unwrap_as(response, Service)
         return service_to_katana(attrs_service)
 
     async def delete(self, service_id: int) -> None:

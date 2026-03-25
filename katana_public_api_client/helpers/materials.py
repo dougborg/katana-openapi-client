@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import builtins
-from typing import Any, cast
+from typing import Any
 
 from katana_public_api_client.api.material import (
     create_material,
@@ -25,7 +25,7 @@ from katana_public_api_client.models.material import Material
 from katana_public_api_client.models.update_material_request import (
     UpdateMaterialRequest,
 )
-from katana_public_api_client.utils import unwrap, unwrap_data
+from katana_public_api_client.utils import unwrap_as, unwrap_data
 
 
 class Materials(Base):
@@ -76,8 +76,7 @@ class Materials(Base):
             client=self._client,
             id=material_id,
         )
-        # unwrap() raises on errors, so cast is safe
-        attrs_material = cast(Material, unwrap(response))
+        attrs_material = unwrap_as(response, Material)
         return material_to_katana(attrs_material)
 
     async def create(self, material_data: CreateMaterialRequest) -> KatanaMaterial:
@@ -99,8 +98,7 @@ class Materials(Base):
             client=self._client,
             body=material_data,
         )
-        # unwrap() raises on errors, so cast is safe
-        attrs_material = cast(Material, unwrap(response))
+        attrs_material = unwrap_as(response, Material)
         return material_to_katana(attrs_material)
 
     async def update(
@@ -126,8 +124,7 @@ class Materials(Base):
             id=material_id,
             body=material_data,
         )
-        # unwrap() raises on errors, so cast is safe
-        attrs_material = cast(Material, unwrap(response))
+        attrs_material = unwrap_as(response, Material)
         return material_to_katana(attrs_material)
 
     async def delete(self, material_id: int) -> None:

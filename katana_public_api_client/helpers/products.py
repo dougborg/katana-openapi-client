@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import builtins
-from typing import Any, cast
+from typing import Any
 
 from katana_public_api_client.api.product import (
     create_product,
@@ -21,7 +21,7 @@ from katana_public_api_client.helpers.base import Base
 from katana_public_api_client.models.create_product_request import CreateProductRequest
 from katana_public_api_client.models.product import Product
 from katana_public_api_client.models.update_product_request import UpdateProductRequest
-from katana_public_api_client.utils import unwrap, unwrap_data
+from katana_public_api_client.utils import unwrap_as, unwrap_data
 
 
 class Products(Base):
@@ -75,8 +75,7 @@ class Products(Base):
             client=self._client,
             id=product_id,
         )
-        # unwrap() raises on errors, so cast is safe
-        attrs_product = cast(Product, unwrap(response))
+        attrs_product = unwrap_as(response, Product)
         return product_to_katana(attrs_product)
 
     async def create(self, product_data: CreateProductRequest) -> KatanaProduct:
@@ -103,8 +102,7 @@ class Products(Base):
             client=self._client,
             body=product_data,
         )
-        # unwrap() raises on errors, so cast is safe
-        attrs_product = cast(Product, unwrap(response))
+        attrs_product = unwrap_as(response, Product)
         return product_to_katana(attrs_product)
 
     async def update(
@@ -130,8 +128,7 @@ class Products(Base):
             id=product_id,
             body=product_data,
         )
-        # unwrap() raises on errors, so cast is safe
-        attrs_product = cast(Product, unwrap(response))
+        attrs_product = unwrap_as(response, Product)
         return product_to_katana(attrs_product)
 
     async def delete(self, product_id: int) -> None:
