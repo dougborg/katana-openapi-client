@@ -28,6 +28,36 @@ def test_package_metadata():
     assert len(katana_mcp.__version__) > 0
 
 
+def test_tool_module_imports():
+    """Verify all tool modules import without errors.
+
+    This catches stale model imports that break at module load time.
+    """
+    from katana_mcp.tools.foundation import (
+        catalog,
+        inventory,
+        items,
+        manufacturing_orders,
+        orders,
+        purchase_orders,
+        sales_orders,
+    )
+
+    # Verify modules loaded successfully
+    assert all(
+        mod is not None
+        for mod in [
+            catalog,
+            inventory,
+            items,
+            manufacturing_orders,
+            orders,
+            purchase_orders,
+            sales_orders,
+        ]
+    )
+
+
 def test_package_docstring():
     """Test that the package has documentation."""
     import katana_mcp

@@ -202,7 +202,7 @@ packages = ["katana_public_api_client"]
 [tool.pytest]
 minversion = "9.0"
 addopts = ["-ra", "--strict-markers", "--strict-config", "--timeout=30"]
-testpaths = ["tests"]
+testpaths = ["tests", "katana_mcp_server/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 # Markers must still be a list even in native TOML (linelist type)
