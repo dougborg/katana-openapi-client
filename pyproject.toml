@@ -98,6 +98,8 @@ dev = [
   "datamodel-code-generator>=0.27.0",
   # Semantic release
   "python-semantic-release>=10.5.0",
+  # MCP server (workspace member) — needed to run katana_mcp_server/tests/
+  "katana-mcp-server",
 ]
 
 docs = [
@@ -129,6 +131,9 @@ dev = [
 # =============================================================================
 # Monorepo structure for katana-openapi-client and katana-mcp-server packages.
 # See ADR-010 for architectural decisions and rationale.
+
+[tool.uv.sources]
+katana-mcp-server = { workspace = true }
 
 [tool.uv.workspace]
 members = [".", "katana_mcp_server"]

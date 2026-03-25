@@ -1222,6 +1222,7 @@ dependencies = [
 dev = [
     { name = "build" },
     { name = "datamodel-code-generator" },
+    { name = "katana-mcp-server" },
     { name = "mdformat" },
     { name = "mdformat-gfm" },
     { name = "mdformat-tables" },
@@ -1271,6 +1272,7 @@ requires-dist = [
     { name = "email-validator", specifier = ">=2.2.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "httpx-retries", specifier = ">=0.4.5" },
+    { name = "katana-mcp-server", marker = "extra == 'dev'", editable = "katana_mcp_server" },
     { name = "mdformat", marker = "extra == 'dev'", specifier = ">=0.7.21" },
     { name = "mdformat-gfm", marker = "extra == 'dev'", specifier = ">=0.4.1" },
     { name = "mdformat-tables", marker = "extra == 'dev'", specifier = ">=1.0.0" },
