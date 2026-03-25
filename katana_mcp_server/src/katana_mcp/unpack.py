@@ -242,6 +242,14 @@ def unpack_pydantic_params(func: Callable) -> Callable:
         new_annotations["return"] = type_hints.get("return", new_sig.return_annotation)
     wrapper.__annotations__ = new_annotations
 
+    # Python 3.14+ (PEP 749): functools.wraps copies __annotate__ from the original
+    # function, which returns the pre-unpack annotations (e.g., request, context).
+    # Pydantic prefers __annotate__ over __annotations__, causing KeyError when it
+    # finds signature params (query, limit) that don't exist in the original hints.
+    # Deleting __annotate__ forces Pydantic to fall back to __annotations__.
+    if hasattr(wrapper, "__annotate__"):
+        del wrapper.__annotate__
+
     return wrapper
 
 

@@ -18,6 +18,7 @@ so only the get_cached_typeadapter patch is needed now.
 
 from __future__ import annotations
 
+import contextlib
 import inspect
 import types
 from collections.abc import Callable
@@ -113,6 +114,11 @@ def _patched_get_cached_typeadapter[T](cls: T) -> TypeAdapter[T]:
             new_func.__qualname__ = getattr(cls, "__qualname__", cls.__name__)
             new_func.__annotations__ = processed_hints
 
+            # Python 3.14+ (PEP 749): __annotate__ may exist from __dict__.update()
+            # or the code object. Remove it so Pydantic uses __annotations__ instead.
+            if hasattr(new_func, "__annotate__"):
+                del new_func.__annotate__
+
             # PATCH: Also update __signature__ to match annotations
             _update_signature_to_match_annotations(new_func, processed_hints)
 
@@ -121,6 +127,18 @@ def _patched_get_cached_typeadapter[T](cls: T) -> TypeAdapter[T]:
                 return TypeAdapter(new_method)
             else:
                 return TypeAdapter(new_func)
+
+    # Python 3.14+ (PEP 749): functions may have __annotate__ that returns stale
+    # annotations (e.g., from functools.wraps copying the original's __annotate__).
+    # Pydantic prefers __annotate__ over __annotations__, causing KeyError when
+    # __signature__ params don't match. Clear it so Pydantic uses __annotations__.
+    if (
+        (inspect.isfunction(cls) or inspect.ismethod(cls))
+        and hasattr(cls, "__annotate__")
+        and hasattr(cls, "__annotations__")
+    ):
+        with contextlib.suppress(AttributeError):
+            del cls.__annotate__
 
     return TypeAdapter(cls)
 
