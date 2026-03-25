@@ -26,9 +26,9 @@ from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
+    CreatePurchaseOrderInitialStatus,
     CreatePurchaseOrderRequest as APICreatePurchaseOrderRequest,
-    CreatePurchaseOrderRequestEntityType,
-    CreatePurchaseOrderRequestStatus,
+    PurchaseOrderEntityType,
     PurchaseOrderRowRequest,
     RegularPurchaseOrder,
 )
@@ -209,9 +209,9 @@ async def _create_purchase_order_impl(
             supplier_id=request.supplier_id,
             location_id=request.location_id,
             purchase_order_rows=po_rows,
-            entity_type=CreatePurchaseOrderRequestEntityType.REGULAR,
+            entity_type=PurchaseOrderEntityType.REGULAR,
             currency=to_unset(request.currency),
-            status=CreatePurchaseOrderRequestStatus(request.status)
+            status=CreatePurchaseOrderInitialStatus(request.status)
             if request.status is not None
             else UNSET,
             order_created_date=datetime.now(UTC),

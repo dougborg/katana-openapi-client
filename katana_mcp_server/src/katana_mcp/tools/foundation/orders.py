@@ -22,7 +22,7 @@ from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.models import (
-    CreateSalesOrderFulfillmentBody,
+    CreateSalesOrderFulfillmentRequest,
     ManufacturingOrder,
     SalesOrder,
     UpdateManufacturingOrderRequest,
@@ -363,7 +363,7 @@ async def _fulfill_order_impl(
                 create_sales_order_fulfillment as api_create_sales_order_fulfillment,
             )
 
-            fulfillment_body = CreateSalesOrderFulfillmentBody(
+            fulfillment_body = CreateSalesOrderFulfillmentRequest(
                 sales_order_id=request.order_id
             )
 

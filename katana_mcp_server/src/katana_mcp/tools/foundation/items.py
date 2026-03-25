@@ -1113,8 +1113,9 @@ async def _get_variant_details_impl(
 
 
 @observe_tool
+@unpack_pydantic_params
 async def get_variant_details(
-    request: GetVariantDetailsRequest, context: Context
+    request: Annotated[GetVariantDetailsRequest, Unpack()], context: Context
 ) -> ToolResult:
     """Get comprehensive variant details by SKU — pricing, barcodes, supplier codes, and more.
 
