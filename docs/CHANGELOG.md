@@ -2,6 +2,81 @@
 
 <!-- version list -->
 
+## v0.48.0 (2026-03-25)
+
+### Bug Fixes
+
+- **client**: Correct docstring for \_extract_nested_error return type
+  ([#293](https://github.com/dougborg/katana-openapi-client/pull/293),
+  [`052e0d2`](https://github.com/dougborg/katana-openapi-client/commit/052e0d211046b4188b8e9acea5b6c240baf8665a))
+
+- **client**: Remove unnecessary casts with proper type narrowing
+  ([#293](https://github.com/dougborg/katana-openapi-client/pull/293),
+  [`052e0d2`](https://github.com/dougborg/katana-openapi-client/commit/052e0d211046b4188b8e9acea5b6c240baf8665a))
+
+- **client**: Use cast for nested dict access to satisfy ty type checker
+  ([#289](https://github.com/dougborg/katana-openapi-client/pull/289),
+  [`441632b`](https://github.com/dougborg/katana-openapi-client/commit/441632b94761e8e131080f5828c7a13a9c795688))
+
+- **mcp**: Remove noqa suppression and fix to_unset(None) misuse
+  ([#290](https://github.com/dougborg/katana-openapi-client/pull/290),
+  [`2686aad`](https://github.com/dougborg/katana-openapi-client/commit/2686aadb6df495af372e06c0a75231a72f867f7f))
+
+- **mcp**: Restore getattr for attrs Product model in inventory tools
+  ([#290](https://github.com/dougborg/katana-openapi-client/pull/290),
+  [`2686aad`](https://github.com/dougborg/katana-openapi-client/commit/2686aadb6df495af372e06c0a75231a72f867f7f))
+
+### Chores
+
+- **actions)(deps**: Bump dorny/paths-filter
+  ([#288](https://github.com/dougborg/katana-openapi-client/pull/288),
+  [`54798f2`](https://github.com/dougborg/katana-openapi-client/commit/54798f287ae52ed07bd5c359302fda189602d307))
+
+- **actions)(deps**: Bump the github-actions group with 5 updates
+  ([#284](https://github.com/dougborg/katana-openapi-client/pull/284),
+  [`ff3ad0d`](https://github.com/dougborg/katana-openapi-client/commit/ff3ad0ddb27f4df3614f8d57550b52c21c2a017a))
+
+- **deps)(deps**: Bump the python-minor-patch group across 1 directory with 9 updates
+  ([#289](https://github.com/dougborg/katana-openapi-client/pull/289),
+  [`441632b`](https://github.com/dougborg/katana-openapi-client/commit/441632b94761e8e131080f5828c7a13a9c795688))
+
+- **deps)(deps**: Bump types-python-dateutil
+  ([#286](https://github.com/dougborg/katana-openapi-client/pull/286),
+  [`6c140f1`](https://github.com/dougborg/katana-openapi-client/commit/6c140f1495d6b4ceee0578025dfa25b754f6c96d))
+
+- **release**: Mcp v0.31.0
+  ([`15ba095`](https://github.com/dougborg/katana-openapi-client/commit/15ba0956997cafbac01f47a82fa8bb72528df482))
+
+### Documentation
+
+- Add Claude Code slash commands and self-improvement patterns
+  ([#287](https://github.com/dougborg/katana-openapi-client/pull/287),
+  [`07c905f`](https://github.com/dougborg/katana-openapi-client/commit/07c905f97bc33e0d7e9db2f06ff335c2c0d78141))
+
+### Features
+
+- **mcp**: Add tool annotations, tags, LLM-optimized descriptions, prompts, and caching
+  config ([#291](https://github.com/dougborg/katana-openapi-client/pull/291),
+  [`efd82d1`](https://github.com/dougborg/katana-openapi-client/commit/efd82d1b5809b1a4ea78e4f6e63f5f4c603dd1f7))
+
+- **mcp**: MCP best practices — annotations, tags, LLM descriptions, prompts
+  ([#291](https://github.com/dougborg/katana-openapi-client/pull/291),
+  [`efd82d1`](https://github.com/dougborg/katana-openapi-client/commit/efd82d1b5809b1a4ea78e4f6e63f5f4c603dd1f7))
+
+- **mcp**: Standardize all tool returns to ToolResult with markdown + structured content
+  ([#291](https://github.com/dougborg/katana-openapi-client/pull/291),
+  [`efd82d1`](https://github.com/dougborg/katana-openapi-client/commit/efd82d1b5809b1a4ea78e4f6e63f5f4c603dd1f7))
+
+### Refactoring
+
+- **mcp**: Reduce tech debt with shared helpers, dead code removal, and consistency
+  fixes ([#290](https://github.com/dougborg/katana-openapi-client/pull/290),
+  [`2686aad`](https://github.com/dougborg/katana-openapi-client/commit/2686aadb6df495af372e06c0a75231a72f867f7f))
+
+- **mcp**: Tech debt cleanup with shared helpers and dead code removal
+  ([#290](https://github.com/dougborg/katana-openapi-client/pull/290),
+  [`2686aad`](https://github.com/dougborg/katana-openapi-client/commit/2686aadb6df495af372e06c0a75231a72f867f7f))
+
 ## v0.47.3 (2026-03-13)
 
 ### Bug Fixes
