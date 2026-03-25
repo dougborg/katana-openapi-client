@@ -161,34 +161,15 @@ class KatanaDocumentationExtractor:
                             self.openapi_spec = self.extract_openapi_from_html(content)
 
                         return (endpoint_url, content, title)
-
-                        # Look for additional links in this page
-                        more_links = self.extract_api_links_from_content(content, url)
-                        return (endpoint_url, content, title), more_links
                 return None
 
         # Crawl all discovered links
         tasks = [crawl_single_endpoint(url) for url in api_links]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Collect pages and additional links
-        additional_links = []
         for result in results:
             if isinstance(result, tuple) and len(result) == 3:
-                # Single page result
                 all_pages.append(result)
-            elif isinstance(result, tuple) and len(result) == 2:
-                # Page with additional links
-                page_data, more_links = result
-                all_pages.append(page_data)
-                additional_links.extend(more_links)
-
-        # Crawl second-level links if we found any new ones
-        new_links = [link for link in additional_links if link not in self.visited_urls]
-        if new_links:
-            logger.info(f"🔗 Found {len(new_links)} additional links, crawling...")
-            more_pages = await self.crawl_all_endpoints(session, new_links)
-            all_pages.extend(more_pages)
 
         return all_pages
 

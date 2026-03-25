@@ -607,6 +607,12 @@ def add_base_entity_extra_ignore(classes: list[ClassInfo]) -> list[ClassInfo]:
                 r'\1\n    model_config = ConfigDict(extra="ignore")\n\n',
                 cls.source,
             )
+            if source == cls.source:
+                msg = (
+                    "Failed to inject model_config into BaseEntity. "
+                    "The class header format may have changed."
+                )
+                raise GenerationError(msg)
             fixed_classes.append(
                 ClassInfo(
                     name=cls.name,
@@ -714,21 +720,11 @@ def generate_module_imports(
         "from katana_public_api_client.models_pydantic._base import KatanaPydanticBase",
     )
 
-    # Add ConfigDict import for base module (needed for BaseEntity extra="ignore")
-    if current_module == "base":
-        # Check if ConfigDict is already imported
-        has_config_dict = any("ConfigDict" in line for line in import_lines)
-        if not has_config_dict:
-            # Find the pydantic import line and add ConfigDict to it
-            for i, line in enumerate(import_lines):
-                if line.startswith("from pydantic import"):
-                    if "ConfigDict" not in line:
-                        import_lines[i] = line.rstrip().rstrip(")") + ", ConfigDict"
-                        if "(" in line:
-                            import_lines[i] += ")"
-                    break
-            else:
-                import_lines.append("from pydantic import ConfigDict")
+    # Add ConfigDict import for base module (needed for BaseEntity extra="ignore", #295)
+    if current_module == "base" and not any(
+        "ConfigDict" in line for line in import_lines
+    ):
+        import_lines.append("from pydantic import ConfigDict")
 
     # Find cross-module dependencies
     classes_in_module = {cls.name for cls in classes}

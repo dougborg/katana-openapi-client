@@ -113,6 +113,21 @@ class TestModelConfiguration:
 
         assert BaseEntity.model_config.get("extra") == "ignore"
 
+    def test_response_model_tolerates_extra_fields(self) -> None:
+        """Test that a concrete response model accepts unknown fields (#295)."""
+        from katana_public_api_client.models_pydantic._generated import Product
+
+        # Simulate Katana returning an unexpected field
+        product = Product.model_validate(
+            {
+                "id": 1,
+                "name": "Widget",
+                "type": "product",
+                "unexpected_new_field": "should not raise",
+            }
+        )
+        assert product.id == 1
+
     def test_models_validate_assignment(self) -> None:
         """Test that models validate on assignment."""
         from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
