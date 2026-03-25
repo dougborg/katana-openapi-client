@@ -221,6 +221,8 @@ class KatanaDocumentationExtractor:
                 continue
             try:
                 data = json.loads(script_text)
+                if not isinstance(data, dict):
+                    continue
                 # Navigate to document.api.schema
                 schema = data.get("document", {}).get("api", {}).get("schema")
                 if schema and isinstance(schema, dict) and "paths" in schema:

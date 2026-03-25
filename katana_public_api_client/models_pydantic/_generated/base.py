@@ -10,12 +10,14 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime, ConfigDict, Field
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
 
 class BaseEntity(KatanaPydanticBase):
+    model_config = ConfigDict(extra="ignore")
+
     id: Annotated[int, Field(description="Unique identifier")]
 
 

@@ -659,6 +659,7 @@ from katana_public_api_client.models.update_webhook_request import (
     UpdateWebhookRequest as AttrsUpdateWebhookRequest,
 )
 from katana_public_api_client.models.user import User as AttrsUser
+from katana_public_api_client.models.user_info import UserInfo as AttrsUserInfo
 from katana_public_api_client.models.user_list_response import (
     UserListResponse as AttrsUserListResponse,
 )
@@ -721,6 +722,7 @@ from ._generated.common import (
     TaxRateListResponse as PydanticTaxRateListResponse,
     UnlinkVariantBinLocationRequest as PydanticUnlinkVariantBinLocationRequest,
     User as PydanticUser,
+    UserInfo as PydanticUserInfo,
     UserListResponse as PydanticUserListResponse,
     VariantDefaultStorageBinLink as PydanticVariantDefaultStorageBinLink,
     VariantDefaultStorageBinLinkResponse as PydanticVariantDefaultStorageBinLinkResponse,
@@ -1326,6 +1328,7 @@ def register_all_models() -> None:
     register(AttrsUpdateVariantRequest, PydanticUpdateVariantRequest)
     register(AttrsUpdateWebhookRequest, PydanticUpdateWebhookRequest)
     register(AttrsUser, PydanticUser)
+    register(AttrsUserInfo, PydanticUserInfo)
     register(AttrsUserListResponse, PydanticUserListResponse)
     register(AttrsVariant, PydanticVariant)
     register(AttrsVariantDefaultStorageBinLink, PydanticVariantDefaultStorageBinLink)

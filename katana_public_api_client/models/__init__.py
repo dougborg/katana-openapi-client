@@ -446,6 +446,7 @@ from .update_variant_request_custom_fields_item import (
 )
 from .update_webhook_request import UpdateWebhookRequest
 from .user import User
+from .user_info import UserInfo
 from .user_list_response import UserListResponse
 from .variant import Variant
 from .variant_config_attributes_item import VariantConfigAttributesItem
@@ -803,6 +804,7 @@ __all__ = (
     "UpdateVariantRequestCustomFieldsItem",
     "UpdateWebhookRequest",
     "User",
+    "UserInfo",
     "UserListResponse",
     "Variant",
     "VariantConfigAttributesItem",

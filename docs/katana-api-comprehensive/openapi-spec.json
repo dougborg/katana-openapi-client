@@ -806,266 +806,6 @@
         }
       }
     },
-    "/batch_stocks/{batch_id}": {
-      "patch": {
-        "summary": "Update batch details",
-        "tags": [
-          "Batch"
-        ],
-        "description": "Updates the specified batch details by setting the values of the parameters passed.\n  Any parameters not provided will be left unchanged.",
-        "operationId": "updateBatchStock",
-        "parameters": [
-          {
-            "name": "batch_id",
-            "required": true,
-            "description": "Batch id",
-            "schema": {
-              "type": "integer"
-            },
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "description": "batch stock fields to be updated with new values",
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "batch_number": {
-                    "type": "string"
-                  },
-                  "expiration_date": {
-                    "type": "string"
-                  },
-                  "batch_created_date": {
-                    "type": "string"
-                  },
-                  "batch_barcode": {
-                    "type": "string",
-                    "minLength": 3,
-                    "maxLength": 40,
-                    "nullable": true
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Batch stock updated",
-            "headers": {
-              "X-Ratelimit-Limit": {
-                "description": "Number of requests available for this application.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Remaining": {
-                "description": "Number of requests remaining in quota.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Reset": {
-                "description": "The timestamp when the quota will reset.",
-                "schema": {
-                  "type": "number"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "example": {
-                  "id": 1,
-                  "batch_number": "BAT-1",
-                  "expiration_date": "2020-10-23T10:37:05.085Z",
-                  "batch_created_date": "2020-10-23T10:37:05.085Z",
-                  "created_at": "2020-10-23T10:37:05.085Z",
-                  "updated_at": "2020-10-23T10:37:05.085Z",
-                  "variant_id": 1,
-                  "batch_barcode": "0040"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Make sure you've entered your API token correctly.",
-            "headers": {
-              "X-Ratelimit-Limit": {
-                "description": "Number of requests available for this application.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Remaining": {
-                "description": "Number of requests remaining in quota.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Reset": {
-                "description": "The timestamp when the quota will reset.",
-                "schema": {
-                  "type": "number"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "example": {
-                  "statusCode": 401,
-                  "name": "UnauthorizedError",
-                  "message": "Unauthorized"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Make sure data is correct",
-            "headers": {
-              "X-Ratelimit-Limit": {
-                "description": "Number of requests available for this application.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Remaining": {
-                "description": "Number of requests remaining in quota.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Reset": {
-                "description": "The timestamp when the quota will reset.",
-                "schema": {
-                  "type": "number"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "example": {
-                  "statusCode": 404,
-                  "name": "NotFoundError",
-                  "message": "Not found"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Check the details property for a specific error message.",
-            "headers": {
-              "X-Ratelimit-Limit": {
-                "description": "Number of requests available for this application.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Remaining": {
-                "description": "Number of requests remaining in quota.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Reset": {
-                "description": "The timestamp when the quota will reset.",
-                "schema": {
-                  "type": "number"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "example": {
-                  "statusCode": 422,
-                  "name": "UnprocessableEntityError",
-                  "message": "The request body is invalid. See error object `details` property for more info.",
-                  "code": "VALIDATION_FAILED",
-                  "details": [
-                    {
-                      "path": ".name",
-                      "code": "maxLength",
-                      "message": "should NOT be longer than 10 characters",
-                      "info": {
-                        "limit": 10
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "The rate limit has been reached. Please try again later.",
-            "headers": {
-              "X-Ratelimit-Limit": {
-                "description": "Number of requests available for this application.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Remaining": {
-                "description": "Number of requests remaining in quota.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Reset": {
-                "description": "The timestamp when the quota will reset.",
-                "schema": {
-                  "type": "number"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "example": {
-                  "statusCode": 429,
-                  "name": "TooManyRequests",
-                  "message": "Too Many Requests"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "The server encountered an error. If this persists, please contact support",
-            "headers": {
-              "X-Ratelimit-Limit": {
-                "description": "Number of requests available for this application.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Remaining": {
-                "description": "Number of requests remaining in quota.",
-                "schema": {
-                  "type": "number"
-                }
-              },
-              "X-Ratelimit-Reset": {
-                "description": "The timestamp when the quota will reset.",
-                "schema": {
-                  "type": "number"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "example": {
-                  "statusCode": 500,
-                  "name": "InternalServerError",
-                  "message": "Internal Server Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/bom_rows": {
       "post": {
         "summary": "Create a BOM row",
@@ -21533,6 +21273,7 @@
             "description": "Filters purchase orders by a status",
             "schema": {
               "enum": [
+                "DRAFT",
                 "NOT_RECEIVED",
                 "PARTIALLY_RECEIVED",
                 "RECEIVED"
@@ -22139,25 +21880,26 @@
                   "order_no": {
                     "type": "string",
                     "minLength": 3,
-                    "description": "Updatable only when status is in NOT_RECEIVED and PARTIALLY_RECEIVED"
+                    "description": "Updatable only when status is in DRAFT, NOT_RECEIVED and PARTIALLY_RECEIVED"
                   },
                   "supplier_id": {
                     "type": "integer",
                     "maximum": 2147483647,
-                    "description": "Updatable only when status is in NOT_RECEIVED"
+                    "description": "Updatable only when status is in DRAFT and NOT_RECEIVED"
                   },
                   "currency": {
                     "type": "string",
-                    "description": "Updatable only when status is in NOT_RECEIVED"
+                    "description": "Updatable only when status is in DRAFT and NOT_RECEIVED"
                   },
                   "tracking_location_id": {
                     "type": "string",
                     "maximum": 2147483647,
-                    "description": "Updatable only when status is in NOT_RECEIVED and\n        entity_type is outsourced"
+                    "description": "Updatable only when status is in DRAFT and NOT_RECEIVED and\n        entity_type is outsourced"
                   },
                   "status": {
                     "type": "string",
                     "enum": [
+                      "DRAFT",
                       "NOT_RECEIVED",
                       "RECEIVED",
                       "PARTIALLY_RECEIVED"
@@ -22165,7 +21907,7 @@
                   },
                   "expected_arrival_date": {
                     "type": "string",
-                    "description": "Updatable only when status is in NOT_RECEIVED and PARTIALLY_RECEIVED. Update will override arrival_date on purchase order rows"
+                    "description": "Updatable only when status is in DRAFT, NOT_RECEIVED and PARTIALLY_RECEIVED. Update will override arrival_date on purchase order rows"
                   },
                   "order_created_date": {
                     "type": "string"
@@ -22173,7 +21915,7 @@
                   "location_id": {
                     "type": "integer",
                     "maximum": 2147483647,
-                    "description": "Updatable only when status is in NOT_RECEIVED"
+                    "description": "Updatable only when status is in DRAFT and NOT_RECEIVED"
                   },
                   "additional_info": {
                     "type": "string"
@@ -29327,6 +29069,7 @@
                   "tracking_method": "ground",
                   "sales_order_fulfillment_rows": [
                     {
+                      "id": 70550671,
                       "sales_order_row_id": 1,
                       "quantity": 2,
                       "batch_transactions": [
@@ -29688,6 +29431,7 @@
                       "packer_id": 1,
                       "sales_order_fulfillment_rows": [
                         {
+                          "id": 70550671,
                           "sales_order_row_id": 1,
                           "quantity": 2,
                           "batch_transactions": [
@@ -29865,6 +29609,7 @@
                   "packer_id": 1,
                   "sales_order_fulfillment_rows": [
                     {
+                      "id": 70550671,
                       "sales_order_row_id": 1,
                       "quantity": 2,
                       "batch_transactions": [
@@ -36571,6 +36316,7 @@
                         "batch_transactions": {
                           "type": "array",
                           "minItems": 1,
+                          "description": "Batch-level breakdown of the stock adjustment row quantity. The sum of batch transaction quantities must equal the row quantity.",
                           "items": {
                             "type": "object",
                             "additionalProperties": false,
@@ -36581,7 +36327,9 @@
                             "properties": {
                               "batch_id": {
                                 "type": "integer",
-                                "maximum": 2147483647
+                                "nullable": true,
+                                "maximum": 2147483647,
+                                "description": "ID of the batch to adjust stock for. Use `null` to record unbatched (untraced) stock."
                               },
                               "quantity": {
                                 "type": "number",
@@ -36642,7 +36390,7 @@
                           "quantity": 50
                         },
                         {
-                          "batch_id": 2,
+                          "batch_id": null,
                           "quantity": 50
                         }
                       ]
@@ -36982,7 +36730,7 @@
                               "quantity": 50
                             },
                             {
-                              "batch_id": 2,
+                              "batch_id": null,
                               "quantity": 50
                             }
                           ]
@@ -48715,6 +48463,266 @@
                   "statusCode": 404,
                   "name": "NotFoundError",
                   "message": "Not found"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The rate limit has been reached. Please try again later.",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 429,
+                  "name": "TooManyRequests",
+                  "message": "Too Many Requests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The server encountered an error. If this persists, please contact support",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 500,
+                  "name": "InternalServerError",
+                  "message": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batch_stocks/{id}": {
+      "patch": {
+        "summary": "Update batch details",
+        "tags": [
+          "Batch"
+        ],
+        "description": "Updates the specified batch details by setting the values of the parameters passed.\n  Any parameters not provided will be left unchanged.",
+        "operationId": "updateBatchStock",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "description": "Batch id",
+            "schema": {
+              "type": "integer"
+            },
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "description": "batch stock fields to be updated with new values",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "batch_number": {
+                    "type": "string"
+                  },
+                  "expiration_date": {
+                    "type": "string"
+                  },
+                  "batch_created_date": {
+                    "type": "string"
+                  },
+                  "batch_barcode": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 40,
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch stock updated",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "batch_number": "BAT-1",
+                  "expiration_date": "2020-10-23T10:37:05.085Z",
+                  "batch_created_date": "2020-10-23T10:37:05.085Z",
+                  "created_at": "2020-10-23T10:37:05.085Z",
+                  "updated_at": "2020-10-23T10:37:05.085Z",
+                  "variant_id": 1,
+                  "batch_barcode": "0040"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Make sure you've entered your API token correctly.",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 401,
+                  "name": "UnauthorizedError",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Make sure data is correct",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 404,
+                  "name": "NotFoundError",
+                  "message": "Not found"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Check the details property for a specific error message.",
+            "headers": {
+              "X-Ratelimit-Limit": {
+                "description": "Number of requests available for this application.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Remaining": {
+                "description": "Number of requests remaining in quota.",
+                "schema": {
+                  "type": "number"
+                }
+              },
+              "X-Ratelimit-Reset": {
+                "description": "The timestamp when the quota will reset.",
+                "schema": {
+                  "type": "number"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 422,
+                  "name": "UnprocessableEntityError",
+                  "message": "The request body is invalid. See error object `details` property for more info.",
+                  "code": "VALIDATION_FAILED",
+                  "details": [
+                    {
+                      "path": ".name",
+                      "code": "maxLength",
+                      "message": "should NOT be longer than 10 characters",
+                      "info": {
+                        "limit": 10
+                      }
+                    }
+                  ]
                 }
               }
             }
