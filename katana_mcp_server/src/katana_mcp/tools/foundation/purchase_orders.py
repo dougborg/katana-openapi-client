@@ -206,10 +206,9 @@ async def _create_purchase_order_impl(
         # Validate status if provided
         valid_statuses = {e.value for e in CreatePurchaseOrderInitialStatus}
         if request.status is not None and request.status not in valid_statuses:
-            return make_tool_result(
+            raise ValueError(
                 f"Invalid initial status '{request.status}'. "
-                f"Allowed values: {', '.join(sorted(valid_statuses))}",
-                is_error=True,
+                f"Allowed values: {', '.join(sorted(valid_statuses))}"
             )
 
         # Build API request

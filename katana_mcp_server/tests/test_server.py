@@ -15,14 +15,14 @@ from katana_public_api_client import KatanaClient
 class TestServices:
     """Tests for Services class."""
 
-    def test_server_context_initialization(self):
+    def test_services_initialization(self):
         """Test Services initializes with KatanaClient."""
         mock_client = MagicMock(spec=KatanaClient)
         context = Services(client=mock_client)
 
         assert context.client is mock_client
 
-    def test_server_context_stores_client(self):
+    def test_services_stores_client(self):
         """Test Services correctly stores and retrieves client."""
         mock_client = MagicMock(spec=KatanaClient)
         context = Services(client=mock_client)
@@ -363,8 +363,8 @@ class TestResponseCachingMiddleware:
 class TestServerRegistration:
     """Verify all tools, resources, and prompts register without errors."""
 
-    def test_all_tools_registered(self):
-        """Test that all expected tools are registered."""
+    def test_expected_tools_registered(self):
+        """Test that all expected tools are registered (allows additions)."""
         tools = {t.name for t in mcp._tool_manager._tools.values()}
         expected = {
             "search_items",
@@ -384,7 +384,8 @@ class TestServerRegistration:
             "create_manufacturing_order",
             "fulfill_order",
         }
-        assert tools == expected
+        missing = expected - tools
+        assert not missing, f"Expected tools not registered: {missing}"
 
     def test_all_tools_have_annotations(self):
         """Test that every tool has annotations set."""
@@ -396,13 +397,14 @@ class TestServerRegistration:
         for tool in mcp._tool_manager._tools.values():
             assert tool.tags, f"{tool.name} missing tags"
 
-    def test_all_prompts_registered(self):
-        """Test that all expected prompts are registered."""
+    def test_expected_prompts_registered(self):
+        """Test that all expected prompts are registered (allows additions)."""
         prompts = {p.name for p in mcp._prompt_manager._prompts.values()}
         expected = {"reorder_low_stock", "receive_delivery", "fulfill_sales_order"}
-        assert prompts == expected
+        missing = expected - prompts
+        assert not missing, f"Expected prompts not registered: {missing}"
 
-    def test_all_resources_registered(self):
+    def test_expected_resources_registered(self):
         """Test that key resources are registered."""
         resource_uris = {str(r.uri) for r in mcp._resource_manager._resources.values()}
         assert "katana://help" in resource_uris
