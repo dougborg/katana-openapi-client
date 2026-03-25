@@ -242,6 +242,12 @@ def unpack_pydantic_params(func: Callable) -> Callable:
         new_annotations["return"] = type_hints.get("return", new_sig.return_annotation)
     wrapper.__annotations__ = new_annotations
 
+    # Python 3.14+ (PEP 749): functools.wraps copies __annotate__ from the original
+    # function — override it to return the flattened annotations instead.
+    from katana_mcp._fastmcp_patches import _pin_annotate
+
+    _pin_annotate(wrapper, new_annotations)
+
     return wrapper
 
 

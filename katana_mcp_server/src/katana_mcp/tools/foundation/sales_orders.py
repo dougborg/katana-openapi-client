@@ -23,12 +23,12 @@ from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
+    AddressEntityType,
     CreateSalesOrderRequest as APICreateSalesOrderRequest,
     CreateSalesOrderRequestSalesOrderRowsItem,
-    CreateSalesOrderRequestStatus,
+    CreateSalesOrderStatus,
     SalesOrder,
     SalesOrderAddress as APISalesOrderAddress,
-    SalesOrderAddressEntityType,
 )
 from katana_public_api_client.utils import unwrap_as
 
@@ -230,7 +230,7 @@ async def _create_sales_order_impl(
                 api_addr = APISalesOrderAddress(
                     id=0,  # Will be assigned by API
                     sales_order_id=0,  # Will be assigned by API
-                    entity_type=SalesOrderAddressEntityType(addr.entity_type),
+                    entity_type=AddressEntityType(addr.entity_type),
                     first_name=to_unset(addr.first_name),
                     last_name=to_unset(addr.last_name),
                     company=to_unset(addr.company),
@@ -256,7 +256,7 @@ async def _create_sales_order_impl(
             additional_info=to_unset(request.notes),
             customer_ref=to_unset(request.customer_ref),
             order_created_date=datetime.now(UTC),
-            status=CreateSalesOrderRequestStatus.PENDING,
+            status=CreateSalesOrderStatus.PENDING,
         )
 
         # Call API

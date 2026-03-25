@@ -98,6 +98,8 @@ dev = [
   "datamodel-code-generator>=0.27.0",
   # Semantic release
   "python-semantic-release>=10.5.0",
+  # MCP server (workspace member) — needed to run katana_mcp_server/tests/
+  "katana-mcp-server",
 ]
 
 docs = [
@@ -129,6 +131,9 @@ dev = [
 # =============================================================================
 # Monorepo structure for katana-openapi-client and katana-mcp-server packages.
 # See ADR-010 for architectural decisions and rationale.
+
+[tool.uv.sources]
+katana-mcp-server = { workspace = true }
 
 [tool.uv.workspace]
 members = [".", "katana_mcp_server"]
@@ -202,7 +207,7 @@ packages = ["katana_public_api_client"]
 [tool.pytest]
 minversion = "9.0"
 addopts = ["-ra", "--strict-markers", "--strict-config", "--timeout=30"]
-testpaths = ["tests"]
+testpaths = ["tests", "katana_mcp_server/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 # Markers must still be a list even in native TOML (linelist type)

@@ -6,25 +6,26 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastmcp import FastMCP
 from fastmcp.server.middleware.caching import ResponseCachingMiddleware
-from katana_mcp.server import ServerContext, lifespan, main, mcp
+from katana_mcp.server import lifespan, main, mcp
+from katana_mcp.services import Services
 
 from katana_public_api_client import KatanaClient
 
 
-class TestServerContext:
-    """Tests for ServerContext class."""
+class TestServices:
+    """Tests for Services class."""
 
-    def test_server_context_initialization(self):
-        """Test ServerContext initializes with KatanaClient."""
+    def test_services_initialization(self):
+        """Test Services initializes with KatanaClient."""
         mock_client = MagicMock(spec=KatanaClient)
-        context = ServerContext(client=mock_client)
+        context = Services(client=mock_client)
 
         assert context.client is mock_client
 
-    def test_server_context_stores_client(self):
-        """Test ServerContext correctly stores and retrieves client."""
+    def test_services_stores_client(self):
+        """Test Services correctly stores and retrieves client."""
         mock_client = MagicMock(spec=KatanaClient)
-        context = ServerContext(client=mock_client)
+        context = Services(client=mock_client)
 
         # Verify we can access the client
         retrieved_client = context.client
@@ -62,7 +63,7 @@ class TestLifespan:
             # Test lifespan context manager
             async with lifespan(mock_server) as context:
                 # Verify context is created with client
-                assert isinstance(context, ServerContext)
+                assert isinstance(context, Services)
                 assert context.client is mock_client_instance
 
             # Verify KatanaClient was initialized with correct parameters
@@ -99,7 +100,7 @@ class TestLifespan:
 
             # Test lifespan context manager
             async with lifespan(mock_server) as context:
-                assert isinstance(context, ServerContext)
+                assert isinstance(context, Services)
                 assert context.client is mock_client_instance
 
             # Verify default base URL was used
@@ -357,3 +358,54 @@ class TestResponseCachingMiddleware:
         assert isinstance(caching_middleware._backend, MemoryStore), (
             "Backend should be MemoryStore"
         )
+
+
+class TestServerRegistration:
+    """Verify all tools, resources, and prompts register without errors."""
+
+    def test_expected_tools_registered(self):
+        """Test that all expected tools are registered (allows additions)."""
+        tools = {t.name for t in mcp._tool_manager._tools.values()}
+        expected = {
+            "search_items",
+            "create_item",
+            "get_item",
+            "update_item",
+            "delete_item",
+            "get_variant_details",
+            "check_inventory",
+            "list_low_stock_items",
+            "create_purchase_order",
+            "receive_purchase_order",
+            "verify_order_document",
+            "create_sales_order",
+            "create_product",
+            "create_material",
+            "create_manufacturing_order",
+            "fulfill_order",
+        }
+        missing = expected - tools
+        assert not missing, f"Expected tools not registered: {missing}"
+
+    def test_all_tools_have_annotations(self):
+        """Test that every tool has annotations set."""
+        for tool in mcp._tool_manager._tools.values():
+            assert tool.annotations is not None, f"{tool.name} missing annotations"
+
+    def test_all_tools_have_tags(self):
+        """Test that every tool has tags set."""
+        for tool in mcp._tool_manager._tools.values():
+            assert tool.tags, f"{tool.name} missing tags"
+
+    def test_expected_prompts_registered(self):
+        """Test that all expected prompts are registered (allows additions)."""
+        prompts = {p.name for p in mcp._prompt_manager._prompts.values()}
+        expected = {"reorder_low_stock", "receive_delivery", "fulfill_sales_order"}
+        missing = expected - prompts
+        assert not missing, f"Expected prompts not registered: {missing}"
+
+    def test_expected_resources_registered(self):
+        """Test that key resources are registered."""
+        resource_uris = {str(r.uri) for r in mcp._resource_manager._resources.values()}
+        assert "katana://help" in resource_uris
+        assert "katana://inventory/items" in resource_uris
