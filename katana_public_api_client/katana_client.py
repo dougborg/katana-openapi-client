@@ -116,7 +116,8 @@ def _extract_nested_error(
 
     Returns:
         Tuple of (name, message, status_code, detail_dicts) where detail_dicts
-        is a list of dicts with 'path', 'code', and 'message' string keys.
+        is a list of dicts that always include a 'path' string key and may
+        optionally include 'code' and 'message' string keys.
     """
     name: str | None = None
     message: str | None = None
