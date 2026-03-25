@@ -133,13 +133,12 @@ def _patched_get_cached_typeadapter[T](cls: T) -> TypeAdapter[T]:
     # annotations (e.g., from functools.wraps copying the original's __annotate__).
     # Pydantic prefers __annotate__ over __annotations__, causing KeyError when
     # __signature__ params don't match. Override to return __annotations__ instead.
-    if (
-        (inspect.isfunction(cls) or inspect.ismethod(cls))
-        and hasattr(cls, "__annotate__")
-        and hasattr(cls, "__annotations__")
-    ):
-        _frozen = dict(cls.__annotations__)
-        cls.__annotate__ = lambda format: _frozen
+    # Note: bound methods don't allow attribute assignment, so patch __func__.
+    if inspect.isfunction(cls) or inspect.ismethod(cls):
+        target = cls.__func__ if inspect.ismethod(cls) else cls
+        if hasattr(target, "__annotate__") and hasattr(target, "__annotations__"):
+            _frozen = dict(target.__annotations__)
+            target.__annotate__ = lambda format: _frozen
 
     return TypeAdapter(cls)
 
