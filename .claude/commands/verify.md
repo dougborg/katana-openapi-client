@@ -1,9 +1,21 @@
 # Verify Implementation
 
-Skeptically validate the current state of the codebase. Do not accept claims at face
-value - run commands, read files, and confirm everything works.
+**Be skeptical.** Do not accept claims at face value. Do not trust that code works
+because it looks right. Run every command. Read every file. Check every output. Trust
+evidence, not assumptions. If something "should work," prove it.
 
 ## Verification Checklist
+
+### 0. Exercise the Feature
+
+Before checking infrastructure, actually use the feature that was implemented:
+
+- If a new MCP tool was added: invoke it through the test harness or MCP inspector
+- If a new API method was added: make a test call (or verify via integration test)
+- If a bug was fixed: reproduce the original scenario and confirm it no longer fails
+- If behavior changed: demonstrate both old and new behavior
+
+This step catches "compiles but doesn't work" failures that test suites sometimes miss.
 
 ### 1. Code Exists
 
@@ -41,6 +53,13 @@ value - run commands, read files, and confirm everything works.
 - [ ] Run `uv run poe test-coverage` and check core logic is at 87%+
 - [ ] New code has test coverage for success and error paths
 
+### 7. Regression Check
+
+- [ ] Run the full test suite (`uv run poe test`), not just new tests
+- [ ] Compare test count before and after - no tests were accidentally deleted or
+  skipped
+- [ ] If coverage decreased, identify what lost coverage and why
+
 ## Process
 
 1. Read the task description or issue to understand what was supposed to be done
@@ -67,8 +86,9 @@ value - run commands, read files, and confirm everything works.
 
 ## Key Principle
 
-**Be skeptical.** If something "should work," verify it actually does. Run the command.
-Read the file. Check the output. Trust evidence, not assumptions.
+The skeptical framing at the top of this file IS the key principle. Every checklist item
+must be verified with real evidence (command output, file contents, test results). A
+claim without evidence is not verified.
 
 ## Self-Improvement
 

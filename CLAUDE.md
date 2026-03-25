@@ -187,7 +187,7 @@ status = unwrap_unset(order.status, None)
 
 ## Claude Code Commands
 
-Project slash commands available in `.claude/commands/`:
+Project slash commands in `.claude/commands/` and skills in `.claude/skills/`:
 
 | Command          | Purpose                                     |
 | ---------------- | ------------------------------------------- |
@@ -196,6 +196,18 @@ Project slash commands available in `.claude/commands/`:
 | `/write-tests`   | Write comprehensive tests for target code   |
 | `/generate-docs` | Generate or update documentation            |
 | `/verify`        | Skeptically validate implementation quality |
+| `/pre-commit`    | Quick pre-flight check before committing    |
+
+## Claude Code Agents
+
+Sub-agents in `.claude/agents/` that can be spawned for delegated work during complex
+tasks:
+
+| Agent             | Purpose                                              |
+| ----------------- | ---------------------------------------------------- |
+| `spec-auditor`    | Audit local OpenAPI spec against upstream for drift  |
+| `code-modernizer` | Simplify code using repo-specific patterns and rules |
+| `pr-preparer`     | Validate branch readiness for pull request           |
 
 ## Detailed Documentation
 
