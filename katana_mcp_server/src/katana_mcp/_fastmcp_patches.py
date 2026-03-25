@@ -30,6 +30,25 @@ from pydantic import Field, TypeAdapter
 _state: dict[str, bool] = {"patched": False}
 
 
+def _pin_annotate(target: Any, annotations: dict[str, Any]) -> None:
+    """Override __annotate__ to return a frozen copy of the given annotations.
+
+    Python 3.14+ (PEP 749) added __annotate__ which Pydantic prefers over
+    __annotations__. When functools.wraps or __dict__.update() copies the
+    original function's __annotate__, it returns stale annotations that don't
+    match the modified __annotations__/__signature__, causing KeyError.
+
+    This helper overrides __annotate__ with a lambda returning the correct
+    annotations. For bound methods, patches __func__ since methods don't
+    allow direct attribute assignment.
+    """
+    if inspect.ismethod(target):
+        target = target.__func__
+    if hasattr(target, "__annotate__"):
+        frozen = dict(annotations)
+        target.__annotate__ = lambda fmt: frozen
+
+
 def _update_signature_to_match_annotations(
     fn: Callable[..., Any], new_annotations: dict[str, Any]
 ) -> None:
@@ -113,12 +132,7 @@ def _patched_get_cached_typeadapter[T](cls: T) -> TypeAdapter[T]:
             new_func.__qualname__ = getattr(cls, "__qualname__", cls.__name__)
             new_func.__annotations__ = processed_hints
 
-            # Python 3.14+ (PEP 749): __annotate__ may carry stale annotations
-            # from __dict__.update() or the code object. Override it to return
-            # the processed hints so Pydantic resolves the correct annotations.
-            if hasattr(new_func, "__annotate__"):
-                _frozen = dict(processed_hints)
-                new_func.__annotate__ = lambda format: _frozen
+            _pin_annotate(new_func, processed_hints)
 
             # PATCH: Also update __signature__ to match annotations
             _update_signature_to_match_annotations(new_func, processed_hints)
@@ -129,16 +143,10 @@ def _patched_get_cached_typeadapter[T](cls: T) -> TypeAdapter[T]:
             else:
                 return TypeAdapter(new_func)
 
-    # Python 3.14+ (PEP 749): functions may have __annotate__ that returns stale
-    # annotations (e.g., from functools.wraps copying the original's __annotate__).
-    # Pydantic prefers __annotate__ over __annotations__, causing KeyError when
-    # __signature__ params don't match. Override to return __annotations__ instead.
-    # Note: bound methods don't allow attribute assignment, so patch __func__.
-    if inspect.isfunction(cls) or inspect.ismethod(cls):
-        target = cls.__func__ if inspect.ismethod(cls) else cls
-        if hasattr(target, "__annotate__") and hasattr(target, "__annotations__"):
-            _frozen = dict(target.__annotations__)
-            target.__annotate__ = lambda format: _frozen
+    if (inspect.isfunction(cls) or inspect.ismethod(cls)) and hasattr(
+        cls, "__annotations__"
+    ):
+        _pin_annotate(cls, cls.__annotations__)
 
     return TypeAdapter(cls)
 

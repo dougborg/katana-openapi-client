@@ -243,13 +243,10 @@ def unpack_pydantic_params(func: Callable) -> Callable:
     wrapper.__annotations__ = new_annotations
 
     # Python 3.14+ (PEP 749): functools.wraps copies __annotate__ from the original
-    # function, which returns the pre-unpack annotations (e.g., request, context).
-    # Pydantic prefers __annotate__ over __annotations__, causing KeyError when it
-    # finds signature params (query, limit) that don't exist in the original hints.
-    # Override __annotate__ to return the new annotations instead.
-    if hasattr(wrapper, "__annotate__"):
-        _frozen_annotations = dict(new_annotations)
-        wrapper.__annotate__ = lambda format: _frozen_annotations
+    # function — override it to return the flattened annotations instead.
+    from katana_mcp._fastmcp_patches import _pin_annotate
+
+    _pin_annotate(wrapper, new_annotations)
 
     return wrapper
 

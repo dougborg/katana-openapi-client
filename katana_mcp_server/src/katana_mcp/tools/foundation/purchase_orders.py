@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
@@ -66,7 +66,7 @@ class CreatePurchaseOrderRequest(BaseModel):
     items: list[PurchaseOrderItem] = Field(..., description="Line items", min_length=1)
     notes: str | None = Field(None, description="Order notes (additional_info)")
     currency: str | None = Field(None, description="Currency code (e.g., USD, EUR)")
-    status: str | None = Field(
+    status: Literal["NOT_RECEIVED"] | None = Field(
         None,
         description="Initial status — only 'NOT_RECEIVED' is allowed by the API",
     )
@@ -202,14 +202,6 @@ async def _create_purchase_order_impl(
                 arrival_date=to_unset(item.arrival_date),
             )
             po_rows.append(row)
-
-        # Validate status if provided
-        valid_statuses = {e.value for e in CreatePurchaseOrderInitialStatus}
-        if request.status is not None and request.status not in valid_statuses:
-            raise ValueError(
-                f"Invalid initial status '{request.status}'. "
-                f"Allowed values: {', '.join(sorted(valid_statuses))}"
-            )
 
         # Build API request
         api_request = APICreatePurchaseOrderRequest(
