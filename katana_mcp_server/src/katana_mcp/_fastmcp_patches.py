@@ -18,7 +18,6 @@ so only the get_cached_typeadapter patch is needed now.
 
 from __future__ import annotations
 
-import contextlib
 import inspect
 import types
 from collections.abc import Callable
@@ -114,10 +113,12 @@ def _patched_get_cached_typeadapter[T](cls: T) -> TypeAdapter[T]:
             new_func.__qualname__ = getattr(cls, "__qualname__", cls.__name__)
             new_func.__annotations__ = processed_hints
 
-            # Python 3.14+ (PEP 749): __annotate__ may exist from __dict__.update()
-            # or the code object. Remove it so Pydantic uses __annotations__ instead.
+            # Python 3.14+ (PEP 749): __annotate__ may carry stale annotations
+            # from __dict__.update() or the code object. Override it to return
+            # the processed hints so Pydantic resolves the correct annotations.
             if hasattr(new_func, "__annotate__"):
-                del new_func.__annotate__
+                _frozen = dict(processed_hints)
+                new_func.__annotate__ = lambda format: _frozen
 
             # PATCH: Also update __signature__ to match annotations
             _update_signature_to_match_annotations(new_func, processed_hints)
@@ -131,14 +132,14 @@ def _patched_get_cached_typeadapter[T](cls: T) -> TypeAdapter[T]:
     # Python 3.14+ (PEP 749): functions may have __annotate__ that returns stale
     # annotations (e.g., from functools.wraps copying the original's __annotate__).
     # Pydantic prefers __annotate__ over __annotations__, causing KeyError when
-    # __signature__ params don't match. Clear it so Pydantic uses __annotations__.
+    # __signature__ params don't match. Override to return __annotations__ instead.
     if (
         (inspect.isfunction(cls) or inspect.ismethod(cls))
         and hasattr(cls, "__annotate__")
         and hasattr(cls, "__annotations__")
     ):
-        with contextlib.suppress(AttributeError):
-            del cls.__annotate__
+        _frozen = dict(cls.__annotations__)
+        cls.__annotate__ = lambda format: _frozen
 
     return TypeAdapter(cls)
 
