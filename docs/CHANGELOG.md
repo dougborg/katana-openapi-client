@@ -2,6 +2,77 @@
 
 <!-- version list -->
 
+## v0.49.0 (2026-03-26)
+
+### Bug Fixes
+
+- **mcp**: Add katana-mcp-server as dev dependency for CI test discovery
+  ([#294](https://github.com/dougborg/katana-openapi-client/pull/294),
+  [`ed7ee8c`](https://github.com/dougborg/katana-openapi-client/commit/ed7ee8c042cb2076a27a27c42920e7207cbf9f64))
+
+- **mcp**: Address review feedback — method names, subset checks, ValueError
+  ([#294](https://github.com/dougborg/katana-openapi-client/pull/294),
+  [`ed7ee8c`](https://github.com/dougborg/katana-openapi-client/commit/ed7ee8c042cb2076a27a27c42920e7207cbf9f64))
+
+- **mcp**: Fix stale model imports preventing server startup
+  ([#294](https://github.com/dougborg/katana-openapi-client/pull/294),
+  [`ed7ee8c`](https://github.com/dougborg/katana-openapi-client/commit/ed7ee8c042cb2076a27a27c42920e7207cbf9f64))
+
+- **mcp**: Fix stale model imports that prevented server startup
+  ([#294](https://github.com/dougborg/katana-openapi-client/pull/294),
+  [`ed7ee8c`](https://github.com/dougborg/katana-openapi-client/commit/ed7ee8c042cb2076a27a27c42920e7207cbf9f64))
+
+- **mcp**: Override __annotate__ instead of deleting it (Python 3.14)
+  ([#294](https://github.com/dougborg/katana-openapi-client/pull/294),
+  [`ed7ee8c`](https://github.com/dougborg/katana-openapi-client/commit/ed7ee8c042cb2076a27a27c42920e7207cbf9f64))
+
+- **mcp**: Patch __func__.__annotate__ for bound methods (Python 3.14)
+  ([#294](https://github.com/dougborg/katana-openapi-client/pull/294),
+  [`ed7ee8c`](https://github.com/dougborg/katana-openapi-client/commit/ed7ee8c042cb2076a27a27c42920e7207cbf9f64))
+
+- **mcp**: Python 3.14 compatibility and PO status validation
+  ([#294](https://github.com/dougborg/katana-openapi-client/pull/294),
+  [`ed7ee8c`](https://github.com/dougborg/katana-openapi-client/commit/ed7ee8c042cb2076a27a27c42920e7207cbf9f64))
+
+- **mcp**: Validate purchase order initial status before enum conversion
+  ([#294](https://github.com/dougborg/katana-openapi-client/pull/294),
+  [`ed7ee8c`](https://github.com/dougborg/katana-openapi-client/commit/ed7ee8c042cb2076a27a27c42920e7207cbf9f64))
+
+### Chores
+
+- Default to Python 3.14 for local development
+  ([#294](https://github.com/dougborg/katana-openapi-client/pull/294),
+  [`ed7ee8c`](https://github.com/dougborg/katana-openapi-client/commit/ed7ee8c042cb2076a27a27c42920e7207cbf9f64))
+
+- **release**: Mcp v0.31.1
+  ([`a62b929`](https://github.com/dougborg/katana-openapi-client/commit/a62b929ab2ea41abcc717825982e732bb0f61915))
+
+### Features
+
+- Add /review-pr and /open-pr skills from katana-tools
+  ([#297](https://github.com/dougborg/katana-openapi-client/pull/297),
+  [`45e5ed3`](https://github.com/dougborg/katana-openapi-client/commit/45e5ed3ba30a41725767c11d95564b60ae64f8f7))
+
+- Add Claude Code agents and enhance commands with ChernyCode principles
+  ([#297](https://github.com/dougborg/katana-openapi-client/pull/297),
+  [`45e5ed3`](https://github.com/dougborg/katana-openapi-client/commit/45e5ed3ba30a41725767c11d95564b60ae64f8f7))
+
+### Refactoring
+
+- Simplify agent and command definitions
+  ([#297](https://github.com/dougborg/katana-openapi-client/pull/297),
+  [`45e5ed3`](https://github.com/dougborg/katana-openapi-client/commit/45e5ed3ba30a41725767c11d95564b60ae64f8f7))
+
+- **mcp**: Extract \_pin_annotate helper and use Literal for PO status
+  ([#294](https://github.com/dougborg/katana-openapi-client/pull/294),
+  [`ed7ee8c`](https://github.com/dougborg/katana-openapi-client/commit/ed7ee8c042cb2076a27a27c42920e7207cbf9f64))
+
+### Testing
+
+- **mcp**: Fix broken tests and include MCP tests in main suite
+  ([#294](https://github.com/dougborg/katana-openapi-client/pull/294),
+  [`ed7ee8c`](https://github.com/dougborg/katana-openapi-client/commit/ed7ee8c042cb2076a27a27c42920e7207cbf9f64))
+
 ## v0.48.0 (2026-03-25)
 
 ### Bug Fixes
