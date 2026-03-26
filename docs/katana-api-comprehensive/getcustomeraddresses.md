@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/customer_addresses`
 
-List all customer addressesAsk AI
+List all customer addresses
 
 ## API Specification Details
 

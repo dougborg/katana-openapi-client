@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/stocktake_rows/{id}`
 
-Update a stocktake rowAsk AI
+Update a stocktake row
 
 ## API Specification Details
 

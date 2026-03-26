@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/stocktake_rows`
 
-Create stocktake rowsAsk AI
+Create stocktake rows
 
 ## API Specification Details
 

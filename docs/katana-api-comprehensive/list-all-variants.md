@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/variants`
 
-List all variantsAsk AI
-
 ## API Specification Details
 
 **Summary:** List all variants **Description:** Returns a list of variants you've

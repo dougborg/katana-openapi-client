@@ -2,8 +2,6 @@
 
 **POST** `https://api.katanamrp.com/v1/customers`
 
-Create a customerAsk AI
-
 ## API Specification Details
 
 **Summary:** Create a customer **Description:** Creates a new customer object.

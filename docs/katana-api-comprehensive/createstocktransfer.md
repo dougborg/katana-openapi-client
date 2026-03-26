@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/stock_transfers`
 
-Create a stock transferAsk AI
+Create a stock transfer
 
 ## API Specification Details
 

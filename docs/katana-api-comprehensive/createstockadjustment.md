@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/stock_adjustments`
 
-Create a stock adjustmentAsk AI
+Create a stock adjustment
 
 ## API Specification Details
 

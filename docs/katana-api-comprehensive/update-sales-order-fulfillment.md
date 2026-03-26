@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/sales_order_fulfillments/{id}`
 
-Update a sales order fulfillmentAsk AI
+Update a sales order fulfillment
 
 ## API Specification Details
 

@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/manufacturing_order_operation_rows/{id}`
 
-Retrieve a manufacturing order operation rowAsk AI
+Retrieve a manufacturing order operation row
 
 ## API Specification Details
 
@@ -11,7 +11,7 @@ details of an existing manufacturing order operation row.
 
 ### Parameters
 
-- **id** (path) *required*: Manufacturing order operaton row id
+- **id** (path) *required*: Manufacturing order operation row id
 
 ### Response Examples
 

@@ -2,8 +2,6 @@
 
 **DELETE** `https://api.katanamrp.com/v1/customers/{id}`
 
-Delete a customerAsk AI
-
 ## API Specification Details
 
 **Summary:** Delete a customer **Description:** Deletes a customer by id.

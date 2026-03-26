@@ -2,8 +2,6 @@
 
 **PATCH** `https://api.katanamrp.com/v1/materials/{id}`
 
-Update a materialAsk AI
-
 ## API Specification Details
 
 **Summary:** Update a material **Description:** Updates the specified material by

@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/manufacturing_order_operation_rows`
 
-Create a manufacturing order operation rowAsk AI
+Create a manufacturing order operation row
 
 ## API Specification Details
 

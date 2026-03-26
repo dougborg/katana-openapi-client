@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/operators`
 
-Get all operatorsAsk AI
-
 ## API Specification Details
 
 **Summary:** Get all operators **Description:** Retrieves a list of operators based on

@@ -2,8 +2,6 @@
 
 **POST** `https://api.katanamrp.com/v1/variants`
 
-Create a variantAsk AI
-
 ## API Specification Details
 
 **Summary:** Create a variant **Description:** Creates a new variant object. Note that

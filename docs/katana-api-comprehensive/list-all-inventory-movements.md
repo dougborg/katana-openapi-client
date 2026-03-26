@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/inventory_movements`
 
-List all inventory movementsAsk AI
+List all inventory movements
 
 ## API Specification Details
 

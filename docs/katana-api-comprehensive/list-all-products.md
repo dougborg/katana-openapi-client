@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/products`
 
-List all productsAsk AI
-
 ## API Specification Details
 
 **Summary:** List all products **Description:** Returns a list of products you’ve

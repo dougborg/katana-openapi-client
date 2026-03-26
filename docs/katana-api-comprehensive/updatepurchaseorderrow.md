@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/purchase_order_rows/{id}`
 
-Update a purchase order rowAsk AI
+Update a purchase order row
 
 ## API Specification Details
 

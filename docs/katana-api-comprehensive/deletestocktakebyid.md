@@ -2,8 +2,6 @@
 
 **DELETE** `https://api.katanamrp.com/v1/stocktakes/{id}`
 
-Delete a stocktakeAsk AI
-
 ## API Specification Details
 
 **Summary:** Delete a stocktake **Description:** Deletes a single stocktake by id.

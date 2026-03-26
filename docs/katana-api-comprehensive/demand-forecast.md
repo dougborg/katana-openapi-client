@@ -1,3 +1,3 @@
 # Demand forecast
 
-Demand forecastAsk AI
+Endpoint to view and update demand plan forecast.

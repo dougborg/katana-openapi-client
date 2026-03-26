@@ -2,7 +2,7 @@
 
 **DELETE** `https://api.katanamrp.com/v1/price_list_customers/{id}`
 
-Delete a price list customerAsk AI
+Delete a price list customer
 
 ## API Specification Details
 

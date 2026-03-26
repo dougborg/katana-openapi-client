@@ -2,8 +2,6 @@
 
 **DELETE** `https://api.katanamrp.com/v1/bin_locations/{id}`
 
-Delete a storage binAsk AI
-
 ## API Specification Details
 
 **Summary:** Delete a storage bin **Description:** Deletes a storage bin by id.

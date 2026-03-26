@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/stocktake_rows`
 
-List all stocktake rowsAsk AI
+List all stocktake rows
 
 ## API Specification Details
 

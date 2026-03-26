@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/sales_orders/{id}/returnable_items`
 
-Get returnable itemsAsk AI
-
 ## API Specification Details
 
 **Summary:** Get returnable items **Description:** Get returnable items for a sales

@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/manufacturing_orders`
 
-Create a manufacturing orderAsk AI
+Create a manufacturing order
 
 ## API Specification Details
 

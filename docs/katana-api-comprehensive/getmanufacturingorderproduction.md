@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/manufacturing_order_productions/{id}`
 
-Retrieve a manufacturing order productionAsk AI
+Retrieve a manufacturing order production
 
 ## API Specification Details
 

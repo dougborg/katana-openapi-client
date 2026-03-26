@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/locations`
 
-List all locationsAsk AI
-
 ## API Specification Details
 
 **Summary:** List all locations **Description:** Returns a list of locations you’ve

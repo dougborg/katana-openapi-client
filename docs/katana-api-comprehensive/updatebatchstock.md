@@ -1,8 +1,6 @@
 # Update batch details
 
-**PATCH** `https://api.katanamrp.com/v1/batch_stocks/{batch_id}`
-
-Update batch detailsAsk AI
+**PATCH** `https://api.katanamrp.com/v1/batch_stocks/{id}`
 
 ## API Specification Details
 

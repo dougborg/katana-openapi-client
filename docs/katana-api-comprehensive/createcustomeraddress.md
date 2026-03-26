@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/customer_addresses`
 
-Create a customer addressAsk AI
+Create a customer address
 
 ## API Specification Details
 

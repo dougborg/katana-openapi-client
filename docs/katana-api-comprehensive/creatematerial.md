@@ -2,8 +2,6 @@
 
 **POST** `https://api.katanamrp.com/v1/materials`
 
-Create a materialAsk AI
-
 ## API Specification Details
 
 **Summary:** Create a material **Description:** Creates a material object.

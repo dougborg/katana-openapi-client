@@ -2,7 +2,7 @@
 
 **DELETE** `https://api.katanamrp.com/v1/stock_adjustments/{id}`
 
-Delete a stock adjustmentAsk AI
+Delete a stock adjustment
 
 ## API Specification Details
 

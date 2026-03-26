@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/sales_order_addresses/{id}`
 
-Update a sales order addressAsk AI
+Update a sales order address
 
 ## API Specification Details
 

@@ -2,8 +2,6 @@
 
 **POST** `https://api.katanamrp.com/v1/stocktakes`
 
-Create a stocktakeAsk AI
-
 ## API Specification Details
 
 **Summary:** Create a stocktake **Description:** Create a new stocktake object.

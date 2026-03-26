@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/materials/{id}`
 
-Retrieve a materialAsk AI
-
 ## API Specification Details
 
 **Summary:** Retrieve a material **Description:** Retrieves the details of an existing

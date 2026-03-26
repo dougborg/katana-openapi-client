@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/serial_numbers`
 
-Returns a list of serial numbersAsk AI
+Returns a list of serial numbers
 
 ## API Specification Details
 

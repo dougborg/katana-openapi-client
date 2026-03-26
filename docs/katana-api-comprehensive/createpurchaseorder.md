@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/purchase_orders`
 
-Create a purchase orderAsk AI
+Create a purchase order
 
 ## API Specification Details
 

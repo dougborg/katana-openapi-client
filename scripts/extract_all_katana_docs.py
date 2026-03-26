@@ -18,7 +18,7 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 from urllib.parse import urljoin, urlparse
 
 import aiofiles
@@ -498,6 +498,10 @@ class KatanaDocumentationExtractor:
             "getting started",
             "guides",
             "tutorials",
+            "ask ai",
+            "try it",
+            "suggest edits",
+            "log in",
         ]
 
         # Check if text is just navigation keywords
@@ -508,6 +512,119 @@ class KatanaDocumentationExtractor:
         return len(text) < 20 and any(
             word in text_lower for word in ["api", "docs", "home", "back"]
         )
+
+    # Known typos in the upstream Katana OpenAPI spec
+    UPSTREAM_TYPO_CORRECTIONS: ClassVar[dict[str, str]] = {
+        "manufacturin ": "manufacturing ",
+        "manufacturin\n": "manufacturing\n",
+        " operaton ": " operation ",
+    }
+
+    # Known schema field corrections: (path, method, field, wrong_key) -> (correct_key, value)
+    SCHEMA_CORRECTIONS: ClassVar[dict[tuple[str, str, str, str], tuple[str, Any]]] = {
+        ("/bom_rows/{id}", "patch", "notes", "minLength"): ("maxLength", 255),
+    }
+
+    # README.io UI text patterns that get concatenated with content
+    _UI_TEXT_PATTERNS = re.compile(
+        r"Ask AI\s*|Try It!\s*|Suggest Edits\s*|Log In\s*", re.IGNORECASE
+    )
+
+    def sanitize_ui_text(self, text: str) -> str:
+        """Strip README.io UI button text that leaks into extracted content."""
+        return self._UI_TEXT_PATTERNS.sub("", text).strip()
+
+    def fix_known_typos(self, text: str) -> str:
+        """Fix known typos from the upstream Katana API spec."""
+        for wrong, right in self.UPSTREAM_TYPO_CORRECTIONS.items():
+            text = text.replace(wrong, right)
+        return text
+
+    def validate_and_fix_schema(
+        self, schema: dict[str, Any], path: str, method: str
+    ) -> dict[str, Any]:
+        """Validate and fix known schema issues. Returns a corrected copy."""
+        import copy
+
+        schema = copy.deepcopy(schema)
+        properties = schema.get("properties", {})
+
+        for field_name, field_schema in properties.items():
+            # Apply known corrections
+            for key in list(field_schema.keys()):
+                correction_key = (path, method, field_name, key)
+                if correction_key in self.SCHEMA_CORRECTIONS:
+                    correct_key, correct_value = self.SCHEMA_CORRECTIONS[correction_key]
+                    del field_schema[key]
+                    field_schema[correct_key] = correct_value
+                    logger.info(
+                        f"  Fixed schema: {method.upper()} {path} "
+                        f"field '{field_name}': {key} -> {correct_key}: {correct_value}"
+                    )
+
+            # Warn about suspicious values
+            min_len = field_schema.get("minLength")
+            max_len = field_schema.get("maxLength")
+            if min_len is not None and max_len is not None and min_len > max_len:
+                logger.warning(
+                    f"  Schema issue: {method.upper()} {path} "
+                    f"field '{field_name}': minLength ({min_len}) > maxLength ({max_len})"
+                )
+            elif min_len is not None and min_len > 100 and max_len is None:
+                logger.warning(
+                    f"  Suspicious schema: {method.upper()} {path} "
+                    f"field '{field_name}': minLength={min_len} (no maxLength set)"
+                )
+
+        # Validate required vs properties
+        required = schema.get("required", [])
+        prop_names = set(properties.keys())
+        missing = [r for r in required if r not in prop_names]
+        if missing:
+            logger.warning(
+                f"  Schema mismatch: {method.upper()} {path} "
+                f"requires {missing} but properties has {sorted(prop_names)}"
+            )
+
+        return schema
+
+    def load_path_param_overrides(self) -> dict[str, str]:
+        """Load path parameter overrides from the local spec.
+
+        Compares paths in the crawled spec against the local spec to find
+        parameter naming differences (e.g., {batch_id} vs {id}).
+        """
+        import yaml
+
+        local_spec_path = Path("docs/katana-openapi.yaml")
+        if not local_spec_path.exists():
+            return {}
+
+        with open(local_spec_path, encoding="utf-8") as f:
+            local_spec = yaml.safe_load(f)
+
+        local_paths = set(local_spec.get("paths", {}).keys())
+        overrides: dict[str, str] = {}
+
+        if not self.openapi_spec:
+            return overrides
+
+        for crawled_path in self.openapi_spec.get("paths", {}):
+            if crawled_path in local_paths:
+                continue
+            # Check if there's a matching local path with different param names
+            crawled_stem = re.sub(r"\{[^}]+\}", "{}", crawled_path)
+            for local_path in local_paths:
+                local_stem = re.sub(r"\{[^}]+\}", "{}", local_path)
+                if crawled_stem == local_stem and crawled_path != local_path:
+                    overrides[crawled_path] = local_path
+                    break
+
+        return overrides
+
+    def normalize_path(self, path: str, overrides: dict[str, str]) -> str:
+        """Normalize a crawled path to match local spec conventions."""
+        return overrides.get(path, path)
 
     def filter_navigation_text(self, text: str) -> str:
         """Filter out navigation text from larger content blocks."""
@@ -984,19 +1101,28 @@ class KatanaDocumentationExtractor:
             self.find_endpoint_in_openapi(url) if self.openapi_spec else None
         )
 
+        # Sanitize title and content
+        title = self.sanitize_ui_text(title)
+        basic_content = self.sanitize_ui_text(basic_content)
+
         # Build enhanced documentation
         doc_parts = [f"# {title}\n\n"]
 
         # Add HTTP method and endpoint prominently if we have OpenAPI spec
         http_method_added = False
+        endpoint_path = ""
+        endpoint_method = ""
         if endpoint_spec:
             # Get HTTP method and path from the endpoint mapping
             endpoint_key = self.url_to_endpoint_key(url)
             endpoint_mapping = self.generate_endpoint_mapping()
             if endpoint_key and endpoint_key in endpoint_mapping:
-                path, method = endpoint_mapping[endpoint_key]
+                endpoint_path, endpoint_method = endpoint_mapping[endpoint_key]
+                # Normalize path params to match local spec
+                path_overrides = self.load_path_param_overrides()
+                display_path = self.normalize_path(endpoint_path, path_overrides)
                 doc_parts.append(
-                    f"**{method.upper()}** `https://api.katanamrp.com/v1{path}`\n\n"
+                    f"**{endpoint_method.upper()}** `https://api.katanamrp.com/v1{display_path}`\n\n"
                 )
                 http_method_added = True
 
@@ -1014,19 +1140,31 @@ class KatanaDocumentationExtractor:
                 doc_parts.append(basic_content)
                 doc_parts.append("\n\n")
             elif not http_method_added:
-                # If we couldn't add method from OpenAPI but basic content has it, use basic content
-                doc_parts.append(basic_content)
-                doc_parts.append("\n\n")
+                # Try to parse method+URL from the raw content and format properly
+                method_url_match = re.match(
+                    r"(get|post|put|delete|patch)\s*(?:deprecated\s*)?(https?://\S+)",
+                    basic_content,
+                    re.IGNORECASE,
+                )
+                if method_url_match:
+                    parsed_method = method_url_match.group(1).upper()
+                    parsed_url = method_url_match.group(2)
+                    doc_parts.append(f"**{parsed_method}** `{parsed_url}`\n\n")
+                else:
+                    doc_parts.append(basic_content)
+                    doc_parts.append("\n\n")
 
         if endpoint_spec:
             doc_parts.append("## API Specification Details\n\n")
 
-            # Add endpoint summary and description
+            # Add endpoint summary and description (with typo corrections)
             if "summary" in endpoint_spec:
-                doc_parts.append(f"**Summary:** {endpoint_spec['summary']}\n")
+                summary = self.fix_known_typos(endpoint_spec["summary"])
+                doc_parts.append(f"**Summary:** {summary}\n")
 
             if "description" in endpoint_spec:
-                doc_parts.append(f"**Description:** {endpoint_spec['description']}\n\n")
+                description = self.fix_known_typos(endpoint_spec["description"])
+                doc_parts.append(f"**Description:** {description}\n\n")
 
             # Add parameters first (query params, path params, headers)
             parameters = endpoint_spec.get("parameters", [])
@@ -1037,7 +1175,7 @@ class KatanaDocumentationExtractor:
                     if param.get("required"):
                         param_info += " *required*"
                     if "description" in param:
-                        param_info += f": {param['description']}"
+                        param_info += f": {self.fix_known_typos(param['description'])}"
                     doc_parts.append(param_info + "\n")
                 doc_parts.append("\n")
 
@@ -1049,9 +1187,12 @@ class KatanaDocumentationExtractor:
                 )
 
                 if "schema" in content_data:
+                    schema = self.validate_and_fix_schema(
+                        content_data["schema"], endpoint_path, endpoint_method
+                    )
                     doc_parts.append("### Request Schema\n\n")
                     doc_parts.append(
-                        f"```json\n{json.dumps(content_data['schema'], indent=2)}\n```\n\n"
+                        f"```json\n{json.dumps(schema, indent=2)}\n```\n\n"
                     )
 
                 if "example" in content_data:
@@ -1081,7 +1222,8 @@ class KatanaDocumentationExtractor:
                     if "example" in content_data:
                         doc_parts.append(f"#### {status_code} Response\n\n")
                         if "description" in response_data:
-                            doc_parts.append(f"{response_data['description']}\n\n")
+                            desc = self.fix_known_typos(response_data["description"])
+                            doc_parts.append(f"{desc}\n\n")
                         doc_parts.append(
                             f"```json\n{json.dumps(content_data['example'], indent=2)}\n```\n\n"
                         )
@@ -1138,8 +1280,18 @@ class KatanaDocumentationExtractor:
             except Exception as e:
                 logger.error(f"Error processing {url}: {e}")
 
-        # Save the OpenAPI specification
+        # Save the OpenAPI specification (with path normalization)
         if self.openapi_spec:
+            path_overrides = self.load_path_param_overrides()
+            if path_overrides:
+                normalized_paths: dict[str, Any] = {}
+                for path, spec in self.openapi_spec.get("paths", {}).items():
+                    normalized = self.normalize_path(path, path_overrides)
+                    normalized_paths[normalized] = spec
+                    if normalized != path:
+                        logger.info(f"  Normalized path: {path} -> {normalized}")
+                self.openapi_spec["paths"] = normalized_paths
+
             openapi_file = self.output_dir / "openapi-spec.json"
             async with aiofiles.open(openapi_file, "w", encoding="utf-8") as f:
                 await f.write(json.dumps(self.openapi_spec, indent=2))

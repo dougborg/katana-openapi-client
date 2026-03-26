@@ -1,3 +1,3 @@
 # Retrieve an outsourced purchase order recipe row
 
-Retrieve an outsourced purchase order recipe rowAsk AI
+Retrieve an outsourced purchase order recipe row

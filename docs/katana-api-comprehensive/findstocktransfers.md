@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/stock_transfers`
 
-List all stock transfersAsk AI
+List all stock transfers
 
 ## API Specification Details
 

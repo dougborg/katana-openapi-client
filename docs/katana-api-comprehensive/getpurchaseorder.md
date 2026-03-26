@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/purchase_orders/{id}`
 
-Retrieve a purchase orderAsk AI
+Retrieve a purchase order
 
 ## API Specification Details
 

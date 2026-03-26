@@ -2,8 +2,6 @@
 
 **POST** `https://api.katanamrp.com/v1/price_lists`
 
-Create a price listAsk AI
-
 ## API Specification Details
 
 **Summary:** Create a price list **Description:** Creates a new price list.

@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/custom_fields_collections`
 
-List all custom fields collectionsAsk AI
+List all custom fields collections
 
 ## API Specification Details
 

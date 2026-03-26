@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/materials`
 
-List all materialsAsk AI
-
 ## API Specification Details
 
 **Summary:** List all materials **Description:** Returns a list of materials you’ve

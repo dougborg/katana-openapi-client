@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/purchase_order_accounting_metadata`
 
-List all purchase order accounting metadataAsk AI
+List all purchase order accounting metadata
 
 ## API Specification Details
 

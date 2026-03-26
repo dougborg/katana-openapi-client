@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/inventory_safety_stock_levels`
 
-Update the safety stock levelAsk AI
+Update the safety stock level
 
 ## API Specification Details
 

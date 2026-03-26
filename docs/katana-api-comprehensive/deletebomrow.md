@@ -2,8 +2,6 @@
 
 **DELETE** `https://api.katanamrp.com/v1/bom_rows/{id}`
 
-Delete a BOM rowAsk AI
-
 ## API Specification Details
 
 **Summary:** Delete a BOM row **Description:** Deletes a BOM row by id.

@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/stock_transfers/{id}/status`
 
-Update stock transfers statusAsk AI
+Update stock transfers status
 
 ## API Specification Details
 

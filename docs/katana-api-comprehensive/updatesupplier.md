@@ -2,8 +2,6 @@
 
 **PATCH** `https://api.katanamrp.com/v1/suppliers/{id}`
 
-Update a supplierAsk AI
-
 ## API Specification Details
 
 **Summary:** Update a supplier **Description:** Updates the specified supplier by

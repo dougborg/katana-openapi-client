@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/webhooks/{id}`
 
-Retrieve a webhookAsk AI
-
 ## API Specification Details
 
 **Summary:** Retrieve a webhook **Description:** Retrieves the details of an existing

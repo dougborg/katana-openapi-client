@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/sales_order_fulfillments`
 
-Create a sales order fulfillmentAsk AI
+Create a sales order fulfillment
 
 ## API Specification Details
 

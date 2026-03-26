@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/price_list_customers`
 
-Create price list customersAsk AI
+Create price list customers
 
 ## API Specification Details
 

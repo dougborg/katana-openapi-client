@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/sales_order_rows`
 
-Create a sales order rowAsk AI
+Create a sales order row
 
 ## API Specification Details
 

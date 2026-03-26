@@ -1,3 +1,3 @@
 # List all shipping fees
 
-List all shipping feesAsk AI
+List all shipping fees

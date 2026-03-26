@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/stock_adjustments/{id}`
 
-Update a stock adjustmentAsk AI
+Update a stock adjustment
 
 ## API Specification Details
 

@@ -2,8 +2,6 @@
 
 **PATCH** `https://api.katanamrp.com/v1/recipe_rows/{id}`
 
-Update a recipe rowAsk AI
-
 ## API Specification Details
 
 **Summary:** Update a recipe row **Description:** (This endpoint is deprecated in favor

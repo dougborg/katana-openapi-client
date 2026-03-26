@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/bom_rows`
 
-List all BOM rowsAsk AI
-
 ## API Specification Details
 
 **Summary:** List all BOM rows **Description:** Returns a list of BOM (Bill of

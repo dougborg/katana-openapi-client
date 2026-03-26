@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/supplier_addresses/{id}`
 
-Update a supplier addressAsk AI
+Update a supplier address
 
 ## API Specification Details
 

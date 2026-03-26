@@ -2,8 +2,6 @@
 
 **DELETE** `https://api.katanamrp.com/v1/price_lists/{id}`
 
-Delete a price listAsk AI
-
 ## API Specification Details
 
 **Summary:** Delete a price list **Description:** Deletes a single price list by id.

@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/product_operation_rows/{id}`
 
-Update a product operation rowAsk AI
+Update a product operation row
 
 ## API Specification Details
 

@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/manufacturing_order_productions/{id}`
 
-Update a manufacturing order productionAsk AI
+Update a manufacturing order production
 
 ## API Specification Details
 

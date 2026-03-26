@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/sales_order_rows/{id}`
 
-Update a sales order rowAsk AI
+Update a sales order row
 
 ## API Specification Details
 

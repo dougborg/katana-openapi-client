@@ -2,8 +2,6 @@
 
 **POST** `https://api.katanamrp.com/v1/tax_rates`
 
-Create a tax rateAsk AI
-
 ## API Specification Details
 
 **Summary:** Create a tax rate **Description:** Creates a new tax rate object.

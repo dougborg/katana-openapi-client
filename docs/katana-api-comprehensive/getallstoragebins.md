@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/bin_locations`
 
-List all storage binsAsk AI
+List all storage bins
 
 ## API Specification Details
 

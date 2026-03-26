@@ -2,7 +2,7 @@
 
 **DELETE** `https://api.katanamrp.com/v1/stocktake_rows/{id}`
 
-Delete a stocktake rowAsk AI
+Delete a stocktake row
 
 ## API Specification Details
 

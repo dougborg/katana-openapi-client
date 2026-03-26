@@ -2,7 +2,7 @@
 
 **DELETE** `https://api.katanamrp.com/v1/purchase_order_rows/{id}`
 
-Delete purchase order rowAsk AI
+Delete purchase order row
 
 ## API Specification Details
 

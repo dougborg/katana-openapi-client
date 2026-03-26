@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/customer_addresses/{id}`
 
-Update a customer addressAsk AI
+Update a customer address
 
 ## API Specification Details
 

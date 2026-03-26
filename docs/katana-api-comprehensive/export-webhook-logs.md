@@ -1,3 +1,3 @@
 # Export webhook logs
 
-Export webhook logsAsk AI
+**POST** `https://api.katanamrp.com/v1/webhook_logs_export`

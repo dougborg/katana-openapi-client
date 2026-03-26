@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/additional_costs`
 
-List all additional costsAsk AI
+List all additional costs
 
 ## API Specification Details
 

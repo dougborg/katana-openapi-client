@@ -2,8 +2,6 @@
 
 **POST** `https://api.katanamrp.com/v1/services`
 
-Create a serviceAsk AI
-
 ## API Specification Details
 
 **Summary:** Create a service **Description:** Creates a service object.

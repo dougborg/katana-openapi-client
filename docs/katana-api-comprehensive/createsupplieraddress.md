@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/supplier_addresses`
 
-Create a supplier addressAsk AI
+Create a supplier address
 
 ## API Specification Details
 

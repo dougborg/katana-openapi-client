@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/stock_adjustments`
 
-List all stock adjustmentsAsk AI
+List all stock adjustments
 
 ## API Specification Details
 

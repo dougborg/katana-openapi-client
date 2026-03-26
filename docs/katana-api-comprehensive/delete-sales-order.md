@@ -2,8 +2,6 @@
 
 **DELETE** `https://api.katanamrp.com/v1/sales_orders/{id}`
 
-Delete sales orderAsk AI
-
 ## API Specification Details
 
 **Summary:** Delete sales order **Description:** Deletes a single sales order by id.

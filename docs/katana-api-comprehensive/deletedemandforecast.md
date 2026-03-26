@@ -2,7 +2,7 @@
 
 **DELETE** `https://api.katanamrp.com/v1/demand_forecasts`
 
-Clear planned demand forecast to variant.Ask AI
+Clear planned demand forecast to variant.
 
 ## API Specification Details
 

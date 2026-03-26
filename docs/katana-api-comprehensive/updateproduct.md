@@ -2,8 +2,6 @@
 
 **PATCH** `https://api.katanamrp.com/v1/products/{id}`
 
-Update a productAsk AI
-
 ## API Specification Details
 
 **Summary:** Update a product **Description:** Updates the specified product by setting

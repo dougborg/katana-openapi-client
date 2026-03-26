@@ -2,8 +2,6 @@
 
 **PATCH** `https://api.katanamrp.com/v1/sales_orders/{id}`
 
-Update a sales orderAsk AI
-
 ## API Specification Details
 
 **Summary:** Update a sales order **Description:** Updates the specified sales order by

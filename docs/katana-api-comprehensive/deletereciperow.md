@@ -2,8 +2,6 @@
 
 **DELETE** `https://api.katanamrp.com/v1/recipe_rows/{id}`
 
-Delete a recipe rowAsk AI
-
 ## API Specification Details
 
 **Summary:** Delete a recipe row **Description:** (This endpoint is deprecated in favor

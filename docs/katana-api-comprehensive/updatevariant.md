@@ -2,8 +2,6 @@
 
 **PATCH** `https://api.katanamrp.com/v1/variants/{id}`
 
-Update a variantAsk AI
-
 ## API Specification Details
 
 **Summary:** Update a variant **Description:** Updates the specified variant by setting

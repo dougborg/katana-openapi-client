@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/webhooks`
 
-List all webhooksAsk AI
-
 ## API Specification Details
 
 **Summary:** List all webhooks **Description:** Returns a list of webhooks you’ve

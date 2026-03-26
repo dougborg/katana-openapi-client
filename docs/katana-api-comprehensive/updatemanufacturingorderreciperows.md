@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/manufacturing_order_recipe_rows/{id}`
 
-Update a manufacturing order recipe rowAsk AI
+Update a manufacturing order recipe row
 
 ## API Specification Details
 
@@ -57,7 +57,7 @@ the manufacturing order status is DONE.
 
 #### 200 Response
 
-New manufacturin order operation row
+New manufacturing order operation row
 
 ```json
 {

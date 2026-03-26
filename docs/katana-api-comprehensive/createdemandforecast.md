@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/demand_forecasts`
 
-Add planned demand forecast to variant.Ask AI
+Add planned demand forecast to variant.
 
 ## API Specification Details
 

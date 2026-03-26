@@ -2,8 +2,6 @@
 
 **PATCH** `https://api.katanamrp.com/v1/customers/{id}`
 
-Update a customerAsk AI
-
 ## API Specification Details
 
 **Summary:** Update a customer **Description:** Updates the specified customer by

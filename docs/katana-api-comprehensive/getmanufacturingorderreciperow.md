@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/manufacturing_order_recipe_rows/{id}`
 
-Retrieve a manufacturing order recipe rowAsk AI
+Retrieve a manufacturing order recipe row
 
 ## API Specification Details
 

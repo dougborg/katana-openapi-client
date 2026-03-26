@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/price_list_rows/{id}`
 
-Retrieve a price list rowAsk AI
+Retrieve a price list row
 
 ## API Specification Details
 

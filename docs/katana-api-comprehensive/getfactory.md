@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/factory`
 
-Retrieve the current factoryAsk AI
+Retrieve the current factory
 
 ## API Specification Details
 

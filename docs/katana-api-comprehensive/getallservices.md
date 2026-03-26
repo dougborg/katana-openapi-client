@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/services`
 
-List all servicesAsk AI
-
 ## API Specification Details
 
 **Summary:** List all services **Description:** Returns a list of services you’ve

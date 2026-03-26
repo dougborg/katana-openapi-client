@@ -2,8 +2,6 @@
 
 **POST** `https://api.katanamrp.com/v1/suppliers`
 
-Create a supplierAsk AI
-
 ## API Specification Details
 
 **Summary:** Create a supplier **Description:** Creates a new supplier object.

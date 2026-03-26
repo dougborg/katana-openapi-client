@@ -2,7 +2,7 @@
 
 **DELETE** `https://api.katanamrp.com/v1/price_list_rows/{id}`
 
-Delete price list rowAsk AI
+Delete price list row
 
 ## API Specification Details
 

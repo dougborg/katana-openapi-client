@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/sales_order_fulfillments/{id}`
 
-Retrieve a sales order fulfillmentAsk AI
+Retrieve a sales order fulfillment
 
 ## API Specification Details
 

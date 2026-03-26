@@ -2,8 +2,6 @@
 
 **PATCH** `https://api.katanamrp.com/v1/bom_rows/{id}`
 
-Update a BOM rowAsk AI
-
 ## API Specification Details
 
 **Summary:** Update a BOM row **Description:** Updates the specified BOM row by setting
@@ -34,9 +32,9 @@ the values of the parameters passed. Any parameters not provided will be left un
     },
     "notes": {
       "type": "string",
-      "minLength": 255,
       "description": "Notes about BOM row",
-      "nullable": true
+      "nullable": true,
+      "maxLength": 255
     }
   }
 }

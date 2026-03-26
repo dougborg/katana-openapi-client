@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/products/{id}`
 
-Retrieve a productAsk AI
-
 ## API Specification Details
 
 **Summary:** Retrieve a product **Description:** Retrieves the details of an existing

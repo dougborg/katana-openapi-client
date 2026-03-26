@@ -2,8 +2,6 @@
 
 **PATCH** `https://api.katanamrp.com/v1/services/{id}`
 
-Update a serviceAsk AI
-
 ## API Specification Details
 
 **Summary:** Update a service **Description:** Updates the specified service by setting

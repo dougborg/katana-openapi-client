@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/sales_order_rows/{id}`
 
-Retrieve a sales order rowAsk AI
+Retrieve a sales order row
 
 ## API Specification Details
 

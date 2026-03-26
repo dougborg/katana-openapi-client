@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/supplier_addresses`
 
-List all supplier addressesAsk AI
+List all supplier addresses
 
 ## API Specification Details
 

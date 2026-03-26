@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/serial_numbers`
 
-Assign serial numbers to a resourceAsk AI
+Assign serial numbers to a resource
 
 ## API Specification Details
 

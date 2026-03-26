@@ -2,8 +2,6 @@
 
 **PATCH** `https://api.katanamrp.com/v1/bin_locations/{id}`
 
-Update a storage binAsk AI
-
 ## API Specification Details
 
 **Summary:** Update a storage bin **Description:** Updates the specified storage bin by

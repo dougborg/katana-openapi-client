@@ -2,7 +2,7 @@
 
 **DELETE** `https://api.katanamrp.com/v1/customer_addresses/{id}`
 
-Delete a customer addressAsk AI
+Delete a customer address
 
 ## API Specification Details
 

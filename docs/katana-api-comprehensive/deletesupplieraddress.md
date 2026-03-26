@@ -2,7 +2,7 @@
 
 **DELETE** `https://api.katanamrp.com/v1/supplier_addresses/{id}`
 
-Delete a supplier addressAsk AI
+Delete a supplier address
 
 ## API Specification Details
 

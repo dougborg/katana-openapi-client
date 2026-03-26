@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/sales_order_addresses`
 
-Create a sales order addressAsk AI
+Create a sales order address
 
 ## API Specification Details
 

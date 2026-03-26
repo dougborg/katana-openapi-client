@@ -2,8 +2,6 @@
 
 **PATCH** `https://api.katanamrp.com/v1/price_lists/{id}`
 
-Update a price listAsk AI
-
 ## API Specification Details
 
 **Summary:** Update a price list **Description:** Updates the specified price list by

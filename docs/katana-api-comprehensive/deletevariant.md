@@ -2,8 +2,6 @@
 
 **DELETE** `https://api.katanamrp.com/v1/variants/{id}`
 
-Delete a variantAsk AI
-
 ## API Specification Details
 
 **Summary:** Delete a variant **Description:** Deletes a variant by id.

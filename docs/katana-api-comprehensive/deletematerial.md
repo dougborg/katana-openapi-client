@@ -2,8 +2,6 @@
 
 **DELETE** `https://api.katanamrp.com/v1/materials/{id}`
 
-Delete a materialAsk AI
-
 ## API Specification Details
 
 **Summary:** Delete a material **Description:** Deletes a material by id.

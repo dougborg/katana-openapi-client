@@ -1,3 +1,3 @@
 # Unassign serial numbers from a resource
 
-Unassign serial numbers from a resourceAsk AI
+Unassign serial numbers from a resource

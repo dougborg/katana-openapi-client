@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/sales_returns/return_reasons`
 
-Get return reasonsAsk AI
-
 ## API Specification Details
 
 **Summary:** Get return reasons **Description:** Get return reasons

@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/variants/{id}`
 
-Retrieve a variantAsk AI
-
 ## API Specification Details
 
 **Summary:** Retrieve a variant **Description:** Retrieves the details of an existing

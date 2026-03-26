@@ -2,7 +2,7 @@
 
 **DELETE** `https://api.katanamrp.com/v1/stock_transfers/{id}`
 
-Delete a stock transferAsk AI
+Delete a stock transfer
 
 ## API Specification Details
 

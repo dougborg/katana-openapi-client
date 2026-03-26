@@ -2,8 +2,6 @@
 
 **PATCH** `https://api.katanamrp.com/v1/webhooks/{id}`
 
-Update a webhookAsk AI
-
 ## API Specification Details
 
 **Summary:** Update a webhook **Description:** Updates the specified webhook by setting

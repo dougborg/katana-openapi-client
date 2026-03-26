@@ -2,8 +2,6 @@
 
 **POST** `https://api.katanamrp.com/v1/products`
 
-Create a productAsk AI
-
 ## API Specification Details
 
 **Summary:** Create a product **Description:** Creates a product object.

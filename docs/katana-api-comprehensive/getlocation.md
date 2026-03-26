@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/locations/{id}`
 
-Retrieve a locationAsk AI
-
 ## API Specification Details
 
 **Summary:** Retrieve a location **Description:** Retrieves the details of an existing

@@ -2,8 +2,6 @@
 
 **DELETE** `https://api.katanamrp.com/v1/products/{id}`
 
-Delete a productAsk AI
-
 ## API Specification Details
 
 **Summary:** Delete a product **Description:** Deletes a product by id.

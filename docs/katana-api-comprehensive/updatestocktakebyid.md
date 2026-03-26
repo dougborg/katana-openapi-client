@@ -2,8 +2,6 @@
 
 **PATCH** `https://api.katanamrp.com/v1/stocktakes/{id}`
 
-Update a stocktakeAsk AI
-
 ## API Specification Details
 
 **Summary:** Update a stocktake **Description:** Updates the specified stocktake by

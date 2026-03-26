@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/sales_order_fulfillments`
 
-List all sales order fulfillmentsAsk AI
+List all sales order fulfillments
 
 ## API Specification Details
 

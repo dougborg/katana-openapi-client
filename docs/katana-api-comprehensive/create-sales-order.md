@@ -2,8 +2,6 @@
 
 **POST** `https://api.katanamrp.com/v1/sales_orders`
 
-Create a sales orderAsk AI
-
 ## API Specification Details
 
 **Summary:** Create a sales order **Description:** Creates a new sales order object.

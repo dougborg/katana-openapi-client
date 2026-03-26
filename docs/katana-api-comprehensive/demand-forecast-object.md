@@ -1,3 +1,3 @@
 # Demand forecast object
 
-Demand forecast objectAsk AI
+Demand forecast object

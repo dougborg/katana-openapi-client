@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/suppliers`
 
-List all suppliersAsk AI
-
 ## API Specification Details
 
 **Summary:** List all suppliers **Description:** Returns a list of suppliers you’ve

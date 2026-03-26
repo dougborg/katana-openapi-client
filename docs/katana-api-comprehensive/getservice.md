@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/services/{id}`
 
-Retrieve a serviceAsk AI
-
 ## API Specification Details
 
 **Summary:** Retrieve a service **Description:** Retrieves the details of an existing

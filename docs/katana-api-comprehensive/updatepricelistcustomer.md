@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/price_list_customers/{id}`
 
-Update a price list customerAsk AI
+Update a price list customer
 
 ## API Specification Details
 

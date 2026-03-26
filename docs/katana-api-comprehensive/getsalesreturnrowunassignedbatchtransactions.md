@@ -3,7 +3,7 @@
 **GET**
 `https://api.katanamrp.com/v1/sales_return_rows/{id}/unassigned_batch_transactions`
 
-Retrieve unassigned batch transactions for a sales return rowAsk AI
+Retrieve unassigned batch transactions for a sales return row
 
 ## API Specification Details
 

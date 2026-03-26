@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/sales_returns/{id}`
 
-Update a sales returnAsk AI
+Update a sales return
 
 ## API Specification Details
 

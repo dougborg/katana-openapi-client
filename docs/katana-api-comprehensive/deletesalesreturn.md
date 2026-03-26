@@ -2,8 +2,6 @@
 
 **DELETE** `https://api.katanamrp.com/v1/sales_returns/{id}`
 
-Delete sales returnAsk AI
-
 ## API Specification Details
 
 **Summary:** Delete sales return **Description:** Deletes a single sales return by id.

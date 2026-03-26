@@ -1,3 +1,3 @@
 # List all variants with negative stock
 
-List all variants with negative stockAsk AI
+List all variants with negative stock

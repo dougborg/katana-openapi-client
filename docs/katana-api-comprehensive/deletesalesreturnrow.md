@@ -2,7 +2,7 @@
 
 **DELETE** `https://api.katanamrp.com/v1/sales_return_rows/{id}`
 
-Delete sales return rowAsk AI
+Delete sales return row
 
 ## API Specification Details
 

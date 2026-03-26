@@ -2,8 +2,6 @@
 
 **POST** `https://api.katanamrp.com/v1/bom_rows`
 
-Create many BOM rowsAsk AI
-
 ## API Specification Details
 
 **Summary:** Create a BOM row **Description:** Create a new BOM row for a product.

@@ -2,7 +2,7 @@
 
 **DELETE** `https://api.katanamrp.com/v1/manufacturing_order_operation_rows/{id}`
 
-Delete a manufacturing order operation rowAsk AI
+Delete a manufacturing order operation row
 
 ## API Specification Details
 

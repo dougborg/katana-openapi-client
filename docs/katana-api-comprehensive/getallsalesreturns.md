@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/sales_returns`
 
-List all sales returnsAsk AI
+List all sales returns
 
 ## API Specification Details
 

@@ -2,7 +2,7 @@
 
 **DELETE** `https://api.katanamrp.com/v1/sales_order_addresses/{id}`
 
-Delete sales order addressAsk AI
+Delete sales order address
 
 ## API Specification Details
 

@@ -2,7 +2,7 @@
 
 **DELETE** `https://api.katanamrp.com/v1/product_operation_rows/{id}`
 
-Delete a product operation rowAsk AI
+Delete a product operation row
 
 ## API Specification Details
 

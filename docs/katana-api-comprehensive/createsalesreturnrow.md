@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/sales_return_rows`
 
-Create a sales return rowAsk AI
+Create a sales return row
 
 ## API Specification Details
 

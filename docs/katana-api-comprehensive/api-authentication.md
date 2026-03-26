@@ -1,3 +1,1 @@
 # Authentication
-
-Authentication Ask AI

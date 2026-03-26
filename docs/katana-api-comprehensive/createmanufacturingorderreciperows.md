@@ -2,7 +2,7 @@
 
 **POST** `https://api.katanamrp.com/v1/manufacturing_order_recipe_rows`
 
-Create a manufacturing order recipe rowAsk AI
+Create a manufacturing order recipe row
 
 ## API Specification Details
 
@@ -60,7 +60,7 @@ order status is DONE.
 
 #### 200 Response
 
-New manufacturin order operation row
+New manufacturing order operation row
 
 ```json
 {

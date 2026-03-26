@@ -2,7 +2,7 @@
 
 **PATCH** `https://api.katanamrp.com/v1/manufacturing_order_operation_rows/{id}`
 
-Update a manufacturing order operation rowAsk AI
+Update a manufacturing order operation row
 
 ## API Specification Details
 

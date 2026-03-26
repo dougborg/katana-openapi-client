@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/price_lists`
 
-List all price listsAsk AI
-
 ## API Specification Details
 
 **Summary:** List all price lists **Description:** Returns a list of price lists you’ve

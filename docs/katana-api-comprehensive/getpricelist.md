@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/price_lists/{id}`
 
-Retrieve a price listAsk AI
+Retrieve a price list
 
 ## API Specification Details
 

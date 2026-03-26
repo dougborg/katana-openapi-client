@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/demand_forecasts`
 
-List planned demand forecast for variant in locationAsk AI
+List planned demand forecast for variant in location
 
 ## API Specification Details
 

@@ -2,8 +2,6 @@
 
 **POST** `https://api.katanamrp.com/v1/webhooks`
 
-Create a webhookAsk AI
-
 ## API Specification Details
 
 **Summary:** Create a webhook **Description:** Creates a new webhook object.

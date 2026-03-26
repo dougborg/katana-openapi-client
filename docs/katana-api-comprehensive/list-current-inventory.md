@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/inventory`
 
-List current inventoryAsk AI
+List current inventory
 
 ## API Specification Details
 

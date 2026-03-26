@@ -1,3 +1,1 @@
 # Recipe
-
-Recipe Ask AI

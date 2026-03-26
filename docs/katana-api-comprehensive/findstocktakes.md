@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/stocktakes`
 
-List all stocktakesAsk AI
-
 ## API Specification Details
 
 **Summary:** List all stocktakes **Description:** Returns a list of stocktakes you’ve

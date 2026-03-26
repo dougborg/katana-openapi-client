@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/customers`
 
-List all customersAsk AI
-
 ## API Specification Details
 
 **Summary:** List all customers **Description:** Returns a list of customers you’ve

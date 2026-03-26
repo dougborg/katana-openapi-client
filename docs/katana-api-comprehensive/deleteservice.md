@@ -2,8 +2,6 @@
 
 **DELETE** `https://api.katanamrp.com/v1/services/{id}`
 
-Delete a serviceAsk AI
-
 ## API Specification Details
 
 **Summary:** Delete a service **Description:** Deletes a service by id.

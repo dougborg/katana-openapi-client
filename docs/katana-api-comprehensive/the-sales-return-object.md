@@ -1,3 +1,3 @@
 # The sales return object
 
-The sales return objectAsk AI
+The sales return object

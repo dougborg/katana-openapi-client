@@ -2,8 +2,6 @@
 
 **GET** `https://api.katanamrp.com/v1/tax_rates`
 
-List all tax ratesAsk AI
-
 ## API Specification Details
 
 **Summary:** List all tax rates **Description:** Returns a list of tax rate you’ve

@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/sales_order_accounting_metadata`
 
-List all sales order accounting metadataAsk AI
+List all sales order accounting metadata
 
 ## API Specification Details
 

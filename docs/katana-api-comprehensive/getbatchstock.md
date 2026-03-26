@@ -2,7 +2,7 @@
 
 **GET** `https://api.katanamrp.com/v1/batch_stocks`
 
-List current batch stockAsk AI
+List current batch stock
 
 ## API Specification Details
 
