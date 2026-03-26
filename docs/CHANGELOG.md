@@ -2,6 +2,30 @@
 
 <!-- version list -->
 
+## v0.49.1 (2026-03-26)
+
+### Bug Fixes
+
+- **client**: Allow extra fields in API response models
+  ([#296](https://github.com/dougborg/katana-openapi-client/pull/296),
+  [`ef918e8`](https://github.com/dougborg/katana-openapi-client/commit/ef918e8933137ac1012f66addb7a6668b71fa2a9))
+
+- **client**: Allow extra fields in API responses, add new endpoints (#295)
+  ([#296](https://github.com/dougborg/katana-openapi-client/pull/296),
+  [`ef918e8`](https://github.com/dougborg/katana-openapi-client/commit/ef918e8933137ac1012f66addb7a6668b71fa2a9))
+
+- **client**: Harden generation script and add e2e extra-fields test
+  ([#296](https://github.com/dougborg/katana-openapi-client/pull/296),
+  [`ef918e8`](https://github.com/dougborg/katana-openapi-client/commit/ef918e8933137ac1012f66addb7a6668b71fa2a9))
+
+- **client**: Improve extraction script output quality
+  ([#296](https://github.com/dougborg/katana-openapi-client/pull/296),
+  [`ef918e8`](https://github.com/dougborg/katana-openapi-client/commit/ef918e8933137ac1012f66addb7a6668b71fa2a9))
+
+- **client**: Update vulnerable dependencies, exclude worktrees from ty
+  ([#296](https://github.com/dougborg/katana-openapi-client/pull/296),
+  [`ef918e8`](https://github.com/dougborg/katana-openapi-client/commit/ef918e8933137ac1012f66addb7a6668b71fa2a9))
+
 ## v0.49.0 (2026-03-26)
 
 ### Bug Fixes
