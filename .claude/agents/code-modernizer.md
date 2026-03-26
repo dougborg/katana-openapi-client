@@ -80,3 +80,10 @@ if is_success(response): ...
 - Do not add docstrings or type annotations to code you didn't otherwise change
 - Preserve existing test behavior - modernize structure, not assertions
 - If a fix would require changing generated files, note it but skip it
+
+## Relationship to /techdebt
+
+`/techdebt` is a broad scanner that reports findings across 5 categories (dead code,
+duplication, smells, etc.) without applying fixes. This agent is narrower: it focuses on
+repo-specific anti-patterns and actively applies fixes. Use `/techdebt` to survey, use
+this agent to remediate.

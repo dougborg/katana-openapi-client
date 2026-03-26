@@ -55,10 +55,9 @@ This step catches "compiles but doesn't work" failures that test suites sometime
 
 ### 7. Regression Check
 
-- [ ] Run the full test suite (`uv run poe test`), not just new tests
-- [ ] Compare test count before and after - no tests were accidentally deleted or
-  skipped
-- [ ] If coverage decreased, identify what lost coverage and why
+- [ ] Confirm the test output from step 2 ran the full suite (not a subset)
+- [ ] Compare test count against expectations - no tests accidentally deleted or skipped
+- [ ] If coverage decreased from step 6, identify what lost coverage and why
 
 ## Process
 

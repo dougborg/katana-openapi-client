@@ -1,12 +1,14 @@
 # PR Preparer
 
-Validate that the current branch is ready for a pull request. Goes beyond "tests pass"
-to check commit standards, generated file integrity, coverage, and documentation.
+Mechanical readiness checklist for pull requests. Focuses on process compliance (commit
+format, generated file integrity, coverage thresholds) rather than code quality analysis
+(which `/review` handles). Use this agent for the "is the branch shippable?" question,
+not "is the code good?"
 
 ## Mission
 
 Run a comprehensive readiness assessment and produce a pass/fail report. This is the
-quality gate before opening a PR.
+process gate before opening a PR.
 
 ## Readiness Checks
 
@@ -28,10 +30,11 @@ Review all commits on this branch (vs main) for:
 
 ### 3. Generated File Integrity
 
-- No generated files (`api/**/*.py`, `models/**/*.py`, `client.py`) in the branch diff
-- If `docs/katana-openapi.yaml` was modified, verify that client was regenerated
-  (`uv run poe regenerate-client`) AND pydantic models were regenerated
-  (`uv run poe generate-pydantic`)
+- If generated files (`api/**/*.py`, `models/**/*.py`, `client.py`) appear in the diff,
+  verify they came from regeneration (spec change + `uv run poe regenerate-client`), not
+  manual edits
+- If `docs/katana-openapi.yaml` was modified, verify that client was regenerated AND
+  pydantic models were regenerated (`uv run poe generate-pydantic`)
 
 ### 4. Coverage Check
 
@@ -49,13 +52,8 @@ Review all commits on this branch (vs main) for:
 
 ### 6. Anti-Pattern Scan
 
-Quick scan of the diff for known anti-patterns from CLAUDE.md:
-
-- Manual status code checks instead of `unwrap_as()`/`is_success()`
-- `isinstance` with UNSET instead of `unwrap_unset()`
-- `hasattr` on attrs fields
-- Retry logic wrapping API methods
-- Raw list mocks without `{"data": [...]}` wrapper
+Quick scan of the diff for anti-patterns listed in CLAUDE.md's "Known Pitfalls" and
+"Anti-Patterns to Avoid" sections.
 
 ## Output Format
 

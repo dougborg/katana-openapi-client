@@ -19,15 +19,9 @@ If this fails, report the failures and stop. Fix before committing.
 Review the output of `git diff` and `git diff --cached` for:
 
 - **Generated file modifications**: any changes to `api/**/*.py`, `models/**/*.py`, or
-  `client.py` — these must come from regeneration, not manual edits
-- **UNSET misuse**: `isinstance(x, type(UNSET))` or `hasattr` on attrs fields instead of
-  `unwrap_unset()`
-- **Manual status checks**: `response.status_code == 200` instead of `unwrap_as()`,
-  `unwrap_data()`, or `is_success()`
-- **Missing type annotations**: new public functions without return type hints
-- **Broad exception handling**: bare `except:` or `except Exception:` without re-raise
-- **Test anti-patterns**: raw list mocks without `{"data": [...]}` wrapper, missing
-  error path tests
+  `client.py` that didn't come from regeneration
+- Anti-patterns listed in CLAUDE.md's "Known Pitfalls" and "Anti-Patterns to Avoid"
+  sections
 
 ### 3. Verify Test Coverage
 
@@ -67,5 +61,5 @@ If a commit message is provided or can be inferred, verify it follows:
 
 ## Key Principle
 
-This check should be fast (under 15 seconds). If it passes, you can commit with
-confidence. If it fails, fix the issues first - never use `--no-verify`.
+This check should be fast. If it passes, you can commit with confidence. If it fails,
+fix the issues first - never use `--no-verify`.
