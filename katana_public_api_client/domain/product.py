@@ -230,14 +230,13 @@ class KatanaProduct(KatanaBaseModel):
         return self.name or f"Unnamed Product {self.id}"
 
     def matches_search(self, query: str) -> bool:
-        """Check if product matches search query.
+        """Check if product matches search query with tokenization and fuzzy matching.
 
-        Searches across:
-        - Product name
-        - Category name
+        Searches across product name and category. Supports multi-word queries
+        (all tokens must match) and tolerates typos via fuzzy matching.
 
         Args:
-            query: Search query string (case-insensitive)
+            query: Search query string (case-insensitive, multi-word supported)
 
         Returns:
             True if product matches query
@@ -248,18 +247,23 @@ class KatanaProduct(KatanaBaseModel):
                 id=1, name="Kitchen Knife", category_name="Cutlery"
             )
             product.matches_search("knife")  # True
-            product.matches_search("cutlery")  # True
+            product.matches_search("kitchen knife")  # True (multi-word)
+            product.matches_search("knif")  # True (fuzzy)
             product.matches_search("fork")  # False
             ```
         """
-        query_lower = query.lower()
+        from katana_public_api_client.helpers.search import score_match
 
-        # Check name
-        if self.name and query_lower in self.name.lower():
-            return True
-
-        # Check category
-        return bool(self.category_name and query_lower in self.category_name.lower())
+        return (
+            score_match(
+                query=query,
+                fields={
+                    "name": (self.name or "", 100),
+                    "category": (self.category_name or "", 30),
+                },
+            )
+            > 0
+        )
 
     def to_csv_row(self) -> dict[str, Any]:
         """Export as CSV-friendly row.

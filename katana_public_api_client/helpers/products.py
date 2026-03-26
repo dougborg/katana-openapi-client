@@ -146,13 +146,17 @@ class Products(Base):
         )
 
     async def search(self, query: str, limit: int = 50) -> builtins.list[KatanaProduct]:
-        """Search products by name and category (case-insensitive substring search).
+        """Search products by name and category with fuzzy matching and ranking.
 
         Used by: MCP tool search_products
 
+        Features:
+        - Multi-token matching with AND logic
+        - Fuzzy matching for typo tolerance
+        - Relevance-based ranking (exact name > prefix > substring > fuzzy)
+
         Note: The Katana API 'name' parameter only does exact matches, so we
-        fetch all products and perform client-side substring searching against
-        product names and categories.
+        fetch all products and perform client-side searching.
 
         Args:
             query: Search query to match against product names (case-insensitive).
@@ -162,10 +166,12 @@ class Products(Base):
             List of matching KatanaProduct domain model objects, sorted by relevance.
 
         Example:
-            >>> products = await client.products.search("fox", limit=10)
+            >>> products = await client.products.search("fox fork", limit=10)
             >>> for product in products:
             ...     print(f"{product.id}: {product.name}")
         """
+        from katana_public_api_client.helpers.search import search_and_rank
+
         # Fetch all products (the API doesn't support partial/fuzzy search)
         response = await get_all_products.asyncio_detailed(
             client=self._client,
@@ -176,7 +182,12 @@ class Products(Base):
         # Convert to domain models
         domain_products = products_to_katana(attrs_products)
 
-        # Use domain model's matches_search method
-        matches = [p for p in domain_products if p.matches_search(query)]
-
-        return matches[:limit]
+        return search_and_rank(
+            query=query,
+            items=domain_products,
+            field_extractor=lambda p: {
+                "name": (p.name or "", 100),
+                "category": (p.category_name or "", 30),
+            },
+            limit=limit,
+        )
