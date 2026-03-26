@@ -175,14 +175,13 @@ class KatanaService(KatanaBaseModel):
         return self.name or f"Unnamed Service {self.id}"
 
     def matches_search(self, query: str) -> bool:
-        """Check if service matches search query.
+        """Check if service matches search query with tokenization and fuzzy matching.
 
-        Searches across:
-        - Service name
-        - Category name
+        Searches across service name and category. Supports multi-word queries
+        (all tokens must match) and tolerates typos via fuzzy matching.
 
         Args:
-            query: Search query string (case-insensitive)
+            query: Search query string (case-insensitive, multi-word supported)
 
         Returns:
             True if service matches query
@@ -192,19 +191,23 @@ class KatanaService(KatanaBaseModel):
             service = KatanaService(
                 id=1, name="Assembly Service", category_name="Manufacturing"
             )
-            service.matches_search("assembly")  # True
-            service.matches_search("manufacturing")  # True
+            service.matches_search("assembly service")  # True (multi-word)
+            service.matches_search("asembly")  # True (fuzzy)
             service.matches_search("packaging")  # False
             ```
         """
-        query_lower = query.lower()
+        from katana_public_api_client.helpers.search import score_match
 
-        # Check name
-        if self.name and query_lower in self.name.lower():
-            return True
-
-        # Check category
-        return bool(self.category_name and query_lower in self.category_name.lower())
+        return (
+            score_match(
+                query=query,
+                fields={
+                    "name": (self.name or "", 100),
+                    "category": (self.category_name or "", 30),
+                },
+            )
+            > 0
+        )
 
     def to_csv_row(self) -> dict[str, Any]:
         """Export as CSV-friendly row.

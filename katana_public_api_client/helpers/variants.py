@@ -259,52 +259,6 @@ class Variants(Base):
 
         return all_variants
 
-    def _calculate_relevance(
-        self, variant: KatanaVariant, query_tokens: List[str]
-    ) -> int:
-        """Calculate relevance score for a variant against query tokens.
-
-        Scoring:
-        - 100: Exact SKU match (all tokens)
-        - 80: SKU starts with query
-        - 60: SKU contains all tokens
-        - 40: Name starts with query
-        - 20: Name contains all tokens
-        - 0: No match
-
-        Args:
-            variant: Variant to score
-            query_tokens: List of lowercase query tokens
-
-        Returns:
-            Relevance score (0-100)
-        """
-        query = " ".join(query_tokens)
-        sku_lower = (variant.sku or "").lower()
-        name_lower = variant.get_display_name().lower()
-
-        # Check for exact SKU match
-        if sku_lower == query:
-            return 100
-
-        # Check if SKU starts with query
-        if sku_lower.startswith(query):
-            return 80
-
-        # Check if SKU contains all tokens
-        if all(token in sku_lower for token in query_tokens):
-            return 60
-
-        # Check if name starts with query
-        if name_lower.startswith(query):
-            return 40
-
-        # Check if name contains all tokens
-        if all(token in name_lower for token in query_tokens):
-            return 20
-
-        return 0
-
     async def search(self, query: str, limit: int = 50) -> List[KatanaVariant]:
         """Search variants by SKU or parent product/material name with relevance ranking.
 
@@ -312,9 +266,9 @@ class Variants(Base):
 
         Features:
         - Fetches all variants with parent product/material info (cached for 5 min)
-        - Multi-token matching (all tokens must match)
-        - Relevance-based ranking (exact matches first)
-        - Case-insensitive substring matching
+        - Multi-token matching with AND logic (all tokens must match)
+        - Fuzzy matching for typo tolerance
+        - Relevance-based ranking (exact SKU > prefix > substring > fuzzy)
 
         Args:
             query: Search query (e.g., "fox fork 160")
@@ -330,27 +284,24 @@ class Variants(Base):
             >>> # Subsequent searches: instant (<10ms, uses cache)
             >>> variants = await client.variants.search("fox 160", limit=10)
             >>>
+            >>> # Fuzzy matching handles typos
+            >>> variants = await client.variants.search("stainles", limit=10)
+            >>>
             >>> for variant in variants:
             ...     print(f"{variant.sku}: {variant.product_or_material_name}")
         """
-        # Tokenize query
-        query_tokens = query.lower().split()
-        if not query_tokens:
-            return []
+        from katana_public_api_client.helpers.search import search_and_rank
 
         # Fetch all variants (uses cache if valid)
         all_variants = await self._fetch_all_variants()
 
-        # Score and filter variants
-        scored_matches: list[tuple[KatanaVariant, int]] = []
-
-        for variant in all_variants:
-            score = self._calculate_relevance(variant, query_tokens)
-            if score > 0:
-                scored_matches.append((variant, score))
-
-        # Sort by relevance (highest first)
-        scored_matches.sort(key=lambda x: x[1], reverse=True)
-
-        # Return top N variants
-        return [variant for variant, _score in scored_matches[:limit]]
+        return search_and_rank(
+            query=query,
+            items=all_variants,
+            field_extractor=lambda v: {
+                "sku": (v.sku or "", 100),
+                "name": (v.get_display_name(), 30),
+                "parent_name": (v.product_or_material_name or "", 20),
+            },
+            limit=limit,
+        )

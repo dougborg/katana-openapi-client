@@ -207,14 +207,13 @@ class KatanaMaterial(KatanaBaseModel):
         return self.name or f"Unnamed Material {self.id}"
 
     def matches_search(self, query: str) -> bool:
-        """Check if material matches search query.
+        """Check if material matches search query with tokenization and fuzzy matching.
 
-        Searches across:
-        - Material name
-        - Category name
+        Searches across material name and category. Supports multi-word queries
+        (all tokens must match) and tolerates typos via fuzzy matching.
 
         Args:
-            query: Search query string (case-insensitive)
+            query: Search query string (case-insensitive, multi-word supported)
 
         Returns:
             True if material matches query
@@ -224,19 +223,23 @@ class KatanaMaterial(KatanaBaseModel):
             material = KatanaMaterial(
                 id=3201, name="Stainless Steel Sheet", category_name="Raw Materials"
             )
-            material.matches_search("steel")  # True
-            material.matches_search("raw")  # True
+            material.matches_search("steel sheet")  # True (multi-word)
+            material.matches_search("stainles")  # True (fuzzy)
             material.matches_search("aluminum")  # False
             ```
         """
-        query_lower = query.lower()
+        from katana_public_api_client.helpers.search import score_match
 
-        # Check name
-        if self.name and query_lower in self.name.lower():
-            return True
-
-        # Check category
-        return bool(self.category_name and query_lower in self.category_name.lower())
+        return (
+            score_match(
+                query=query,
+                fields={
+                    "name": (self.name or "", 100),
+                    "category": (self.category_name or "", 30),
+                },
+            )
+            > 0
+        )
 
     def to_csv_row(self) -> dict[str, Any]:
         """Export as CSV-friendly row.

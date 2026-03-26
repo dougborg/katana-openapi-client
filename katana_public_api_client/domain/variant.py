@@ -280,16 +280,14 @@ class KatanaVariant(KatanaBaseModel):
         return " / ".join(parts)
 
     def matches_search(self, query: str) -> bool:
-        """Check if variant matches search query.
+        """Check if variant matches search query with tokenization and fuzzy matching.
 
-        Searches across:
-        - SKU
-        - Product/material name
-        - Supplier item codes
-        - Config attribute values
+        Searches across SKU, product/material name, supplier codes, and config
+        attributes. Supports multi-word queries (all tokens must match) and
+        tolerates typos via fuzzy matching.
 
         Args:
-            query: Search query string (case-insensitive)
+            query: Search query string (case-insensitive, multi-word supported)
 
         Returns:
             True if variant matches query
@@ -297,35 +295,32 @@ class KatanaVariant(KatanaBaseModel):
         Example:
             ```python
             variant = KatanaVariant(id=1, sku="FOX-FORK-160", ...)
-            variant.matches_search("fox")      # True
-            variant.matches_search("fork")     # True
-            variant.matches_search("160")      # True
-            variant.matches_search("shimano")  # False
+            variant.matches_search("fox")        # True
+            variant.matches_search("fork 160")   # True (multi-word)
+            variant.matches_search("forks")      # True (fuzzy)
+            variant.matches_search("shimano")    # False
             ```
         """
-        query_lower = query.lower()
+        from katana_public_api_client.helpers.search import score_match
 
-        # Check SKU
-        if query_lower in self.sku.lower():
-            return True
-
-        # Check product/material name
-        if (
-            self.product_or_material_name
-            and query_lower in self.product_or_material_name.lower()
-        ):
-            return True
-
-        # Check supplier codes
-        if any(query_lower in code.lower() for code in self.supplier_item_codes):
-            return True
-
-        # Check config attribute values
+        # Build searchable fields with supplier codes and config values
+        extra_text_parts = list(self.supplier_item_codes)
         for attr in self.config_attributes:
-            if (value := attr.get("config_value")) and query_lower in value.lower():
-                return True
+            if value := attr.get("config_value"):
+                extra_text_parts.append(value)
+        extra_text = " ".join(extra_text_parts)
 
-        return False
+        return (
+            score_match(
+                query=query,
+                fields={
+                    "sku": (self.sku, 100),
+                    "name": (self.product_or_material_name or "", 30),
+                    "extra": (extra_text, 10),
+                },
+            )
+            > 0
+        )
 
     def to_csv_row(self) -> dict[str, Any]:
         """Export as CSV-friendly row.
