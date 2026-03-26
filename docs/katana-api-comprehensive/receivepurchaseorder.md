@@ -1,3 +1,3 @@
 # Receive a purchase order
 
-Receive a purchase orderAsk AI
+Receive a purchase order

@@ -1,3 +1,3 @@
 # Create recipes
 
-postdeprecatedhttps://api.katanamrp.com/v1/recipes
+**POST** `https://api.katanamrp.com/v1/recipes`

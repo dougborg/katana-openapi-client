@@ -901,6 +901,17 @@ class User(UpdatableEntity):
     ] = None
 
 
+class UserInfo(KatanaPydanticBase):
+    id: Annotated[int, Field(description="Unique identifier for the user account")]
+    first_name: Annotated[
+        str, Field(alias="firstName", description="User's first name")
+    ]
+    last_name: Annotated[str, Field(alias="lastName", description="User's last name")]
+    email: Annotated[
+        str, Field(description="Email address used for login and notifications")
+    ]
+
+
 class UserListResponse(KatanaPydanticBase):
     data: Annotated[
         list[User] | None,

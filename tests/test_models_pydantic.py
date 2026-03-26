@@ -102,10 +102,31 @@ class TestModelConfiguration:
         assert KatanaPydanticBase.model_config.get("frozen") is True
 
     def test_models_use_extra_forbid(self) -> None:
-        """Test that models use extra='forbid' to catch typos."""
+        """Test that base models use extra='forbid' to catch typos in request data."""
         from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
         assert KatanaPydanticBase.model_config.get("extra") == "forbid"
+
+    def test_base_entity_uses_extra_ignore(self) -> None:
+        """Test that response models tolerate extra fields from the API (#295)."""
+        from katana_public_api_client.models_pydantic._generated import BaseEntity
+
+        assert BaseEntity.model_config.get("extra") == "ignore"
+
+    def test_response_model_tolerates_extra_fields(self) -> None:
+        """Test that a concrete response model accepts unknown fields (#295)."""
+        from katana_public_api_client.models_pydantic._generated import Product
+
+        # Simulate Katana returning an unexpected field
+        product = Product.model_validate(
+            {
+                "id": 1,
+                "name": "Widget",
+                "type": "product",
+                "unexpected_new_field": "should not raise",
+            }
+        )
+        assert product.id == 1
 
     def test_models_validate_assignment(self) -> None:
         """Test that models validate on assignment."""

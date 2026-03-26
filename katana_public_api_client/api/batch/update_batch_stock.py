@@ -14,7 +14,7 @@ from ...models.error_response import ErrorResponse
 
 
 def _get_kwargs(
-    batch_id: int,
+    id: int,
     *,
     body: BatchStockUpdate,
 ) -> dict[str, Any]:
@@ -22,8 +22,8 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "patch",
-        "url": "/batch_stocks/{batch_id}".format(
-            batch_id=quote(str(batch_id), safe=""),
+        "url": "/batch_stocks/{id}".format(
+            id=quote(str(id), safe=""),
         ),
     }
 
@@ -86,7 +86,7 @@ def _build_response(
 
 
 def sync_detailed(
-    batch_id: int,
+    id: int,
     *,
     client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
@@ -98,7 +98,7 @@ def sync_detailed(
     will be left unchanged.
 
     Args:
-        batch_id (int):
+        id (int):
         body (BatchStockUpdate): Request payload for updating batch properties and tracking
             information Example: {'batch_number': 'BAT-2024-001-UPDATED', 'expiration_date':
             '2025-12-31T23:59:59.000Z', 'batch_barcode': '0317-V2'}.
@@ -113,7 +113,7 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
-        batch_id=batch_id,
+        id=id,
         body=body,
     )
 
@@ -125,7 +125,7 @@ def sync_detailed(
 
 
 def sync(
-    batch_id: int,
+    id: int,
     *,
     client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
@@ -137,7 +137,7 @@ def sync(
     will be left unchanged.
 
     Args:
-        batch_id (int):
+        id (int):
         body (BatchStockUpdate): Request payload for updating batch properties and tracking
             information Example: {'batch_number': 'BAT-2024-001-UPDATED', 'expiration_date':
             '2025-12-31T23:59:59.000Z', 'batch_barcode': '0317-V2'}.
@@ -152,14 +152,14 @@ def sync(
     """
 
     return sync_detailed(
-        batch_id=batch_id,
+        id=id,
         client=client,
         body=body,
     ).parsed
 
 
 async def asyncio_detailed(
-    batch_id: int,
+    id: int,
     *,
     client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
@@ -171,7 +171,7 @@ async def asyncio_detailed(
     will be left unchanged.
 
     Args:
-        batch_id (int):
+        id (int):
         body (BatchStockUpdate): Request payload for updating batch properties and tracking
             information Example: {'batch_number': 'BAT-2024-001-UPDATED', 'expiration_date':
             '2025-12-31T23:59:59.000Z', 'batch_barcode': '0317-V2'}.
@@ -186,7 +186,7 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
-        batch_id=batch_id,
+        id=id,
         body=body,
     )
 
@@ -196,7 +196,7 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    batch_id: int,
+    id: int,
     *,
     client: AuthenticatedClient | Client,
     body: BatchStockUpdate,
@@ -208,7 +208,7 @@ async def asyncio(
     will be left unchanged.
 
     Args:
-        batch_id (int):
+        id (int):
         body (BatchStockUpdate): Request payload for updating batch properties and tracking
             information Example: {'batch_number': 'BAT-2024-001-UPDATED', 'expiration_date':
             '2025-12-31T23:59:59.000Z', 'batch_barcode': '0317-V2'}.
@@ -224,7 +224,7 @@ async def asyncio(
 
     return (
         await asyncio_detailed(
-            batch_id=batch_id,
+            id=id,
             client=client,
             body=body,
         )

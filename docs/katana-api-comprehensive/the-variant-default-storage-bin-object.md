@@ -1,3 +1,3 @@
 # The variant default storage bin object
 
-The variant default storage bin objectAsk AI
+The variant default storage bin object

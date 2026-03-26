@@ -10909,6 +10909,32 @@ components:
             notes: Packaging was damaged
             unit_price: 25.0
             total_price: 50.0
+    UserInfo:
+      type: object
+      description: Information about the currently authenticated user
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the user account
+        firstName:
+          type: string
+          description: User's first name
+        lastName:
+          type: string
+          description: User's last name
+        email:
+          type: string
+          description: Email address used for login and notifications
+      required:
+        - id
+        - firstName
+        - lastName
+        - email
+      example:
+        id: 42
+        firstName: Jane
+        lastName: Doe
+        email: jane.doe@example.com
     UserListResponse:
       type: object
       description: List of system users with their account information and role assignments
@@ -11948,7 +11974,7 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
-  /batch_stocks/{batch_id}:
+  /batch_stocks/{id}:
     patch:
       summary: Update batch details
       tags:
@@ -11958,12 +11984,7 @@ paths:
         will be left unchanged.
       operationId: updateBatchStock
       parameters:
-        - name: batch_id
-          in: path
-          required: true
-          description: Batch id
-          schema:
-            type: integer
+        - $ref: "#/components/parameters/id"
       requestBody:
         description: Batch stock fields to be updated with new values
         required: true
@@ -17042,6 +17063,34 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+  /recipes/{id}:
+    delete:
+      summary: Delete a recipe
+      tags:
+        - Recipe
+      description: Deletes all recipe rows for a product by ID. This endpoint is deprecated in favor of BOM rows.
+      operationId: deleteRecipe
+      deprecated: true
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          description: Recipe deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /recipe_rows/{id}:
     patch:
       summary: Update a recipe row
@@ -17108,6 +17157,33 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /user_info:
+    get:
+      summary: Get current user info
+      tags:
+        - User
+      description: Returns information about the currently authenticated user.
+      operationId: getUserInfo
+      responses:
+        "200":
+          description: Current user information
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfo"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -19962,6 +20038,37 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /serial_numbers/serial_numbers_stock:
+    get:
+      summary: List serial number stock (alternate path)
+      tags:
+        - Serial number
+      description: |-
+        Returns a list of serial number stock. This is an alternate path for the /serial_numbers_stock endpoint.
+      operationId: getSerialNumbersStockAlt
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+      responses:
+        "200":
+          description: List of serial number stock
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SerialNumberStockListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":

@@ -365,6 +365,9 @@ def parse_generated_file(
     # Fix union_mode without discriminator
     classes = fix_union_mode_without_discriminator(classes)
 
+    # Add extra="ignore" to BaseEntity for API response tolerance (#295)
+    classes = add_base_entity_extra_ignore(classes)
+
     print(
         f"  Found {len(imports)} imports, {len(classes)} classes, "
         f"and {len(type_aliases)} type aliases"
@@ -588,6 +591,42 @@ def fix_union_mode_without_discriminator(classes: list[ClassInfo]) -> list[Class
     return fixed_classes
 
 
+def add_base_entity_extra_ignore(classes: list[ClassInfo]) -> list[ClassInfo]:
+    """Add model_config with extra='ignore' to BaseEntity.
+
+    Response models (which inherit from BaseEntity) should tolerate extra fields
+    from the Katana API, while request models keep extra='forbid' from the base.
+    See: https://github.com/dougborg/katana-openapi-client/issues/295
+    """
+    fixed_classes = []
+    for cls in classes:
+        if cls.name == "BaseEntity":
+            # Inject model_config after the class definition line
+            source = re.sub(
+                r"(class BaseEntity\([^)]+\):)\n",
+                r'\1\n    model_config = ConfigDict(extra="ignore")\n\n',
+                cls.source,
+            )
+            if source == cls.source:
+                msg = (
+                    "Failed to inject model_config into BaseEntity. "
+                    "The class header format may have changed."
+                )
+                raise GenerationError(msg)
+            fixed_classes.append(
+                ClassInfo(
+                    name=cls.name,
+                    source=source,
+                    bases=cls.bases,
+                    line_start=cls.line_start,
+                    line_end=cls.line_end,
+                )
+            )
+        else:
+            fixed_classes.append(cls)
+    return fixed_classes
+
+
 def classify_class(class_name: str) -> str:
     """Determine which domain group a class belongs to.
 
@@ -680,6 +719,12 @@ def generate_module_imports(
         0,
         "from katana_public_api_client.models_pydantic._base import KatanaPydanticBase",
     )
+
+    # Add ConfigDict import for base module (needed for BaseEntity extra="ignore", #295)
+    if current_module == "base" and not any(
+        "ConfigDict" in line for line in import_lines
+    ):
+        import_lines.append("from pydantic import ConfigDict")
 
     # Find cross-module dependencies
     classes_in_module = {cls.name for cls in classes}

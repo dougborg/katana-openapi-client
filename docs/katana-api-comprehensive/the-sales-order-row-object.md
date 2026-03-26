@@ -1,3 +1,3 @@
 # The sales order row object
 
-The sales order row objectAsk AI
+The sales order row object

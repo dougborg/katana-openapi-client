@@ -1,3 +1,3 @@
 # Unlink variant default storage bins
 
-Unlink variant default storage binsAsk AI
+Unlink variant default storage bins

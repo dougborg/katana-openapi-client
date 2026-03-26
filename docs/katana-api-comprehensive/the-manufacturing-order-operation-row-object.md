@@ -1,3 +1,3 @@
 # The manufacturing order operation row object
 
-The manufacturing order operation row objectAsk AI
+The manufacturing order operation row object

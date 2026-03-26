@@ -1,3 +1,3 @@
 # Create an outsourced purchase order recipe row
 
-Create an outsourced purchase order recipe rowAsk AI
+Create an outsourced purchase order recipe row

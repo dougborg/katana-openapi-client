@@ -1,3 +1,3 @@
 # The stocktake row object
 
-The stocktake row objectAsk AI
+The stocktake row object

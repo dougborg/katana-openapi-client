@@ -1,3 +1,1 @@
 # Introduction
-
-Introduction Ask AI

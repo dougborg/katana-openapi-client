@@ -41,7 +41,8 @@ class KatanaPydanticBase(BaseModel):
 
     This base class provides:
     - Immutable (frozen) models for data integrity
-    - Strict validation that forbids extra fields
+    - Strict validation that forbids extra fields (request models)
+    - BaseEntity overrides with extra="ignore" for API response tolerance
     - Bi-directional conversion with attrs models
 
     Example:

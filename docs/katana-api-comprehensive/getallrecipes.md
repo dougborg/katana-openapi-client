@@ -1,3 +1,3 @@
 # List all recipes
 
-List all recipesAsk AI
+**GET** `https://api.katanamrp.com/v1/recipes`
