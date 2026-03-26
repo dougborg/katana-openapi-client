@@ -189,14 +189,16 @@ status = unwrap_unset(order.status, None)
 
 Project slash commands in `.claude/commands/` and skills in `.claude/skills/`:
 
-| Command          | Purpose                                     |
-| ---------------- | ------------------------------------------- |
-| `/techdebt`      | Scan for tech debt and anti-patterns        |
-| `/review`        | Structured code review of current branch    |
-| `/write-tests`   | Write comprehensive tests for target code   |
-| `/generate-docs` | Generate or update documentation            |
-| `/verify`        | Skeptically validate implementation quality |
-| `/pre-commit`    | Quick pre-flight check before committing    |
+| Command          | Purpose                                      |
+| ---------------- | -------------------------------------------- |
+| `/techdebt`      | Scan for tech debt and anti-patterns         |
+| `/review`        | Structured code review of current branch     |
+| `/write-tests`   | Write comprehensive tests for target code    |
+| `/generate-docs` | Generate or update documentation             |
+| `/verify`        | Skeptically validate implementation quality  |
+| `/pre-commit`    | Quick pre-flight check before committing     |
+| `/review-pr`     | Address PR review comments, fix, push, reply |
+| `/open-pr`       | Open PR with self-review, CI wait, feedback  |
 
 ## Claude Code Agents
 
