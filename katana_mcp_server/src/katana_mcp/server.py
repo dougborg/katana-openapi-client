@@ -96,12 +96,23 @@ async def lifespan(server: FastMCP) -> AsyncIterator[Services]:
                 max_pages=100,
             )
 
-            # Create context with client for tools to access
-            context = Services(client=client)  # type: ignore[arg-type]
+            # Initialize persistent catalog cache
+            from katana_mcp.cache import CatalogCache
 
-            # Yield context to server - tools can access via lifespan dependency
-            logger.info("server_ready", version=__version__)
-            yield context
+            cache = CatalogCache()
+            await cache.open()
+            logger.info("cache_initialized", db_path=str(cache.db_path))
+
+            try:
+                # Create context with client and cache for tools to access
+                context = Services(client=client, cache=cache)  # type: ignore[arg-type]
+
+                # Yield context to server - tools can access via lifespan dependency
+                logger.info("server_ready", version=__version__)
+                yield context
+            finally:
+                await cache.close()
+                logger.info("cache_closed")
 
     except ValueError as e:
         # Authentication or configuration errors

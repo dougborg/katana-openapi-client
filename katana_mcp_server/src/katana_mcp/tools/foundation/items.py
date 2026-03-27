@@ -130,28 +130,27 @@ async def _search_items_impl(
         # Access services using helper
         services = get_services(context)
 
-        # Search variants (which have SKUs) with parent product/material info
-        variants = await services.client.variants.search(
-            request.query, limit=request.limit
+        # Ensure variant cache is fresh, then search via FTS5 + fuzzy fallback
+        from katana_mcp.cache_sync import ensure_variants_synced
+
+        await ensure_variants_synced(services)
+        variant_dicts = await services.cache.smart_search(
+            "variant", request.query, limit=request.limit
         )
 
-        # Build response - format names matching Katana UI
+        # Build response from cached variant dicts
         items_info = []
-        for variant in variants:
-            # Build variant name using domain model method
-            # Format: "Product Name / Config1 / Config2 / ..."
-            name = variant.get_display_name() or ""
-
-            # Determine if variant is sellable (products are sellable, materials are not)
-            is_sellable = variant.type_ == "product" if variant.type_ else False
+        for v in variant_dicts:
+            name = v.get("display_name") or v.get("sku") or ""
+            is_sellable = v.get("type") == "product"
 
             items_info.append(
                 ItemInfo(
-                    id=variant.id,
-                    sku=variant.sku or "",
+                    id=v["id"],
+                    sku=v.get("sku") or "",
                     name=name,
                     is_sellable=is_sellable,
-                    stock_level=None,  # Variants don't have stock_level directly
+                    stock_level=None,
                 )
             )
 
@@ -1040,18 +1039,13 @@ async def _get_variant_details_impl(
     try:
         services = get_services(context)
 
-        # Search for the variant by SKU
-        # The search method returns a list, we need to find exact match
-        variants = await services.client.variants.search(request.sku, limit=100)
+        # Look up variant by SKU from cache (indexed, O(1))
+        from katana_mcp.cache_sync import ensure_variants_synced
 
-        # Find exact SKU match (case-insensitive)
-        matching_variant = None
-        for variant in variants:
-            if variant.sku and variant.sku.lower() == request.sku.lower():
-                matching_variant = variant
-                break
+        await ensure_variants_synced(services)
+        cached_variant = await services.cache.get_by_sku(request.sku)
 
-        if not matching_variant:
+        if not cached_variant:
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
             logger.info(
                 "variant_details_not_found",
@@ -1060,38 +1054,36 @@ async def _get_variant_details_impl(
             )
             raise ValueError(f"Variant with SKU '{request.sku}' not found")
 
-        # Build detailed response from KatanaVariant domain model
+        v = cached_variant
+
+        # Build detailed response from cached variant dict
         response = VariantDetailsResponse(
-            id=matching_variant.id,
-            sku=matching_variant.sku,
-            name=matching_variant.get_display_name(),
-            sales_price=matching_variant.sales_price,
-            purchase_price=matching_variant.purchase_price,
-            type=matching_variant.type_,
-            product_id=matching_variant.product_id,
-            material_id=matching_variant.material_id,
-            product_or_material_name=matching_variant.product_or_material_name,
-            internal_barcode=matching_variant.internal_barcode,
-            registered_barcode=matching_variant.registered_barcode,
-            supplier_item_codes=matching_variant.supplier_item_codes,
-            lead_time=matching_variant.lead_time,
-            minimum_order_quantity=matching_variant.minimum_order_quantity,
-            config_attributes=matching_variant.config_attributes,
-            custom_fields=matching_variant.custom_fields,
-            created_at=matching_variant.created_at.isoformat()
-            if matching_variant.created_at
-            else None,
-            updated_at=matching_variant.updated_at.isoformat()
-            if matching_variant.updated_at
-            else None,
+            id=v["id"],
+            sku=v.get("sku"),
+            name=v.get("display_name") or v.get("sku") or "",
+            sales_price=v.get("sales_price"),
+            purchase_price=v.get("purchase_price"),
+            type=v.get("type") or v.get("type_"),
+            product_id=v.get("product_id"),
+            material_id=v.get("material_id"),
+            product_or_material_name=v.get("parent_name"),
+            internal_barcode=v.get("internal_barcode"),
+            registered_barcode=v.get("registered_barcode"),
+            supplier_item_codes=v.get("supplier_item_codes") or [],
+            lead_time=v.get("lead_time"),
+            minimum_order_quantity=v.get("minimum_order_quantity"),
+            config_attributes=v.get("config_attributes") or [],
+            custom_fields=v.get("custom_fields") or [],
+            created_at=v.get("created_at"),
+            updated_at=v.get("updated_at"),
         )
 
         duration_ms = round((time.monotonic() - start_time) * 1000, 2)
         logger.info(
             "variant_details_completed",
             sku=request.sku,
-            variant_id=matching_variant.id,
-            name=matching_variant.get_display_name(),
+            variant_id=v["id"],
+            name=v.get("display_name"),
             duration_ms=duration_ms,
         )
         return response

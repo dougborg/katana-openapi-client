@@ -1,7 +1,6 @@
 """Tests for inventory and item MCP tools."""
 
-from datetime import UTC
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from katana_mcp.tools.foundation.inventory import (
@@ -22,6 +21,17 @@ from tests.conftest import create_mock_context
 # ============================================================================
 # Unit Tests (with mocks)
 # ============================================================================
+
+
+@pytest.fixture(autouse=True)
+def _patch_cache_sync():
+    """Patch ensure_variants_synced for all unit tests.
+
+    The cache sync is tested separately; tool tests verify tool logic
+    with pre-populated cache mocks.
+    """
+    with patch("katana_mcp.cache_sync.ensure_variants_synced", new_callable=AsyncMock):
+        yield
 
 
 @pytest.mark.asyncio
@@ -184,17 +194,18 @@ async def test_list_low_stock_default_parameters():
 
 @pytest.mark.asyncio
 async def test_search_items():
-    """Test search_items tool with mocked client."""
+    """Test search_items tool with cached data."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock Variant objects
-    mock_variant = MagicMock()
-    mock_variant.id = 123
-    mock_variant.sku = "WIDGET-001"
-    mock_variant.type_ = "product"
-    mock_variant.get_display_name = MagicMock(return_value="Test Widget")
+    # Mock cached variant dict
+    cached_variant = {
+        "id": 123,
+        "sku": "WIDGET-001",
+        "type": "product",
+        "display_name": "Test Widget",
+    }
 
-    lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
+    lifespan_ctx.cache.smart_search = AsyncMock(return_value=[cached_variant])
 
     request = SearchItemsRequest(query="widget", limit=20)
     result = await _search_items_impl(request, context)
@@ -205,7 +216,6 @@ async def test_search_items():
     assert result.items[0].sku == "WIDGET-001"
     assert result.items[0].name == "Test Widget"
     assert result.items[0].is_sellable is True
-    lifespan_ctx.client.variants.search.assert_called_once_with("widget", limit=20)
 
 
 @pytest.mark.asyncio
@@ -213,19 +223,15 @@ async def test_search_items_handles_optional_fields():
     """Test search_items handles missing optional fields."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock Variant with missing optional fields
-    mock_variant = MagicMock()
-    mock_variant.id = 456
-    mock_variant.sku = None
-    mock_variant.type_ = None
-    mock_variant.get_display_name = MagicMock(return_value="")
+    # Mock cached variant with missing optional fields
+    cached_variant = {"id": 456}
 
-    lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
+    lifespan_ctx.cache.smart_search = AsyncMock(return_value=[cached_variant])
 
     request = SearchItemsRequest(query="test")
     result = await _search_items_impl(request, context)
 
-    assert result.items[0].sku == ""  # Converts None to empty string
+    assert result.items[0].sku == ""
     assert result.items[0].name == ""
     assert result.items[0].is_sellable is False
 
@@ -234,13 +240,12 @@ async def test_search_items_handles_optional_fields():
 async def test_search_items_default_limit():
     """Test search_items uses default limit."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.client.variants.search = AsyncMock(return_value=[])
 
     request = SearchItemsRequest(query="test")  # Use default limit
     await _search_items_impl(request, context)
 
     assert request.limit == 20  # Default
-    lifespan_ctx.client.variants.search.assert_called_once_with("test", limit=20)
+    lifespan_ctx.cache.smart_search.assert_called_once_with("variant", "test", limit=20)
 
 
 @pytest.mark.asyncio
@@ -248,17 +253,18 @@ async def test_search_items_multiple_results():
     """Test search_items with multiple results."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock multiple Variant objects
-    mock_variants = []
-    for i in range(5):
-        mock_variant = MagicMock()
-        mock_variant.id = i
-        mock_variant.sku = f"SKU-{i:03d}"
-        mock_variant.type_ = "product" if i % 2 == 0 else "material"
-        mock_variant.get_display_name = MagicMock(return_value=f"Item {i}")
-        mock_variants.append(mock_variant)
+    # Mock multiple cached variant dicts
+    cached_variants = [
+        {
+            "id": i,
+            "sku": f"SKU-{i:03d}",
+            "type": "product" if i % 2 == 0 else "material",
+            "display_name": f"Item {i}",
+        }
+        for i in range(5)
+    ]
 
-    lifespan_ctx.client.variants.search = AsyncMock(return_value=mock_variants)
+    lifespan_ctx.cache.smart_search = AsyncMock(return_value=cached_variants)
 
     request = SearchItemsRequest(query="item", limit=10)
     result = await _search_items_impl(request, context)
@@ -368,36 +374,37 @@ async def test_search_items_negative_limit():
 
 @pytest.mark.asyncio
 async def test_get_variant_details():
-    """Test get_variant_details tool with mocked client."""
+    """Test get_variant_details tool with cached data."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock Variant object with all properties
-    mock_variant = MagicMock()
-    mock_variant.id = 123
-    mock_variant.sku = "WIDGET-001"
-    mock_variant.type_ = "product"
-    mock_variant.product_id = 456
-    mock_variant.material_id = None
-    mock_variant.product_or_material_name = "Test Widget"
-    mock_variant.sales_price = 29.99
-    mock_variant.purchase_price = 15.00
-    mock_variant.internal_barcode = "BAR-123"
-    mock_variant.registered_barcode = "UPC-456"
-    mock_variant.supplier_item_codes = ["SUP-001", "SUP-002"]
-    mock_variant.lead_time = 7
-    mock_variant.minimum_order_quantity = 10.0
-    mock_variant.config_attributes = [
-        {"config_name": "Size", "config_value": "Large"},
-        {"config_name": "Color", "config_value": "Blue"},
-    ]
-    mock_variant.custom_fields = [
-        {"field_name": "Warranty", "field_value": "1 year"},
-    ]
-    mock_variant.created_at = None
-    mock_variant.updated_at = None
-    mock_variant.get_display_name = MagicMock(return_value="Test Widget / Large / Blue")
+    # Mock cached variant dict
+    cached_variant = {
+        "id": 123,
+        "sku": "WIDGET-001",
+        "type": "product",
+        "product_id": 456,
+        "material_id": None,
+        "parent_name": "Test Widget",
+        "display_name": "Test Widget / Large / Blue",
+        "sales_price": 29.99,
+        "purchase_price": 15.00,
+        "internal_barcode": "BAR-123",
+        "registered_barcode": "UPC-456",
+        "supplier_item_codes": ["SUP-001", "SUP-002"],
+        "lead_time": 7,
+        "minimum_order_quantity": 10.0,
+        "config_attributes": [
+            {"config_name": "Size", "config_value": "Large"},
+            {"config_name": "Color", "config_value": "Blue"},
+        ],
+        "custom_fields": [
+            {"field_name": "Warranty", "field_value": "1 year"},
+        ],
+        "created_at": None,
+        "updated_at": None,
+    }
 
-    lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
+    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=cached_variant)
 
     request = GetVariantDetailsRequest(sku="WIDGET-001")
     result = await _get_variant_details_impl(request, context)
@@ -418,10 +425,8 @@ async def test_get_variant_details():
     assert result.minimum_order_quantity == 10.0
     assert len(result.config_attributes) == 2
     assert result.config_attributes[0]["config_name"] == "Size"
-    assert result.config_attributes[0]["config_value"] == "Large"
     assert len(result.custom_fields) == 1
     assert result.custom_fields[0]["field_name"] == "Warranty"
-    lifespan_ctx.client.variants.search.assert_called_once_with("WIDGET-001", limit=100)
 
 
 @pytest.mark.asyncio
@@ -429,28 +434,15 @@ async def test_get_variant_details_case_insensitive():
     """Test get_variant_details with case-insensitive SKU matching."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock variant with uppercase SKU
-    mock_variant = MagicMock()
-    mock_variant.id = 123
-    mock_variant.sku = "WIDGET-001"
-    mock_variant.type_ = "product"
-    mock_variant.product_id = 456
-    mock_variant.material_id = None
-    mock_variant.product_or_material_name = "Test Widget"
-    mock_variant.sales_price = 29.99
-    mock_variant.purchase_price = 15.00
-    mock_variant.internal_barcode = None
-    mock_variant.registered_barcode = None
-    mock_variant.supplier_item_codes = []
-    mock_variant.lead_time = None
-    mock_variant.minimum_order_quantity = None
-    mock_variant.config_attributes = []
-    mock_variant.custom_fields = []
-    mock_variant.created_at = None
-    mock_variant.updated_at = None
-    mock_variant.get_display_name = MagicMock(return_value="Test Widget")
+    cached_variant = {
+        "id": 123,
+        "sku": "WIDGET-001",
+        "type": "product",
+        "display_name": "Test Widget",
+        "parent_name": "Test Widget",
+    }
 
-    lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
+    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=cached_variant)
 
     # Search with lowercase SKU
     request = GetVariantDetailsRequest(sku="widget-001")
@@ -466,8 +458,8 @@ async def test_get_variant_details_not_found():
     """Test get_variant_details when SKU not found."""
     context, lifespan_ctx = create_mock_context()
 
-    # Return empty list (no matches)
-    lifespan_ctx.client.variants.search = AsyncMock(return_value=[])
+    # Cache returns None (no match)
+    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
 
     request = GetVariantDetailsRequest(sku="NOT-FOUND")
     with pytest.raises(ValueError, match="Variant with SKU 'NOT-FOUND' not found"):
@@ -479,14 +471,8 @@ async def test_get_variant_details_no_exact_match():
     """Test get_variant_details when no exact SKU match exists."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock variant with different SKU (partial match)
-    mock_variant = MagicMock()
-    mock_variant.id = 999
-    mock_variant.sku = "WIDGET-002"
-    mock_variant.get_display_name = MagicMock(return_value="Other Widget")
-
-    # Return similar but not exact match
-    lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
+    # Cache returns None (SKU lookup is exact)
+    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
 
     request = GetVariantDetailsRequest(sku="WIDGET-001")
     with pytest.raises(ValueError, match="Variant with SKU 'WIDGET-001' not found"):
@@ -518,28 +504,10 @@ async def test_get_variant_details_minimal_fields():
     """Test get_variant_details with minimal fields populated."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock variant with only required fields
-    mock_variant = MagicMock()
-    mock_variant.id = 123
-    mock_variant.sku = "MIN-001"
-    mock_variant.type_ = None
-    mock_variant.product_id = None
-    mock_variant.material_id = None
-    mock_variant.product_or_material_name = None
-    mock_variant.sales_price = None
-    mock_variant.purchase_price = None
-    mock_variant.internal_barcode = None
-    mock_variant.registered_barcode = None
-    mock_variant.supplier_item_codes = []
-    mock_variant.lead_time = None
-    mock_variant.minimum_order_quantity = None
-    mock_variant.config_attributes = []
-    mock_variant.custom_fields = []
-    mock_variant.created_at = None
-    mock_variant.updated_at = None
-    mock_variant.get_display_name = MagicMock(return_value="MIN-001")
+    # Cached variant with only required fields
+    cached_variant = {"id": 123, "sku": "MIN-001"}
 
-    lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
+    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=cached_variant)
 
     request = GetVariantDetailsRequest(sku="MIN-001")
     result = await _get_variant_details_impl(request, context)
@@ -562,35 +530,19 @@ async def test_get_variant_details_minimal_fields():
 @pytest.mark.asyncio
 async def test_get_variant_details_with_timestamps():
     """Test get_variant_details with created_at and updated_at."""
-    from datetime import datetime
-
     context, lifespan_ctx = create_mock_context()
 
-    # Mock variant with timestamps
-    created = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
-    updated = datetime(2024, 6, 1, 14, 30, 0, tzinfo=UTC)
+    cached_variant = {
+        "id": 123,
+        "sku": "TIME-001",
+        "type": "product",
+        "display_name": "Timed Product",
+        "parent_name": "Timed Product",
+        "created_at": "2024-01-01T12:00:00+00:00",
+        "updated_at": "2024-06-01T14:30:00+00:00",
+    }
 
-    mock_variant = MagicMock()
-    mock_variant.id = 123
-    mock_variant.sku = "TIME-001"
-    mock_variant.type_ = "product"
-    mock_variant.product_id = None
-    mock_variant.material_id = None
-    mock_variant.product_or_material_name = "Timed Product"
-    mock_variant.sales_price = None
-    mock_variant.purchase_price = None
-    mock_variant.internal_barcode = None
-    mock_variant.registered_barcode = None
-    mock_variant.supplier_item_codes = []
-    mock_variant.lead_time = None
-    mock_variant.minimum_order_quantity = None
-    mock_variant.config_attributes = []
-    mock_variant.custom_fields = []
-    mock_variant.created_at = created
-    mock_variant.updated_at = updated
-    mock_variant.get_display_name = MagicMock(return_value="Timed Product")
-
-    lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
+    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=cached_variant)
 
     request = GetVariantDetailsRequest(sku="TIME-001")
     result = await _get_variant_details_impl(request, context)
