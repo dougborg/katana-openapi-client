@@ -521,6 +521,35 @@ class CatalogCache:
 
     # ── Internal ─────────────────────────────────────────────────────
 
+    async def smart_search(
+        self,
+        entity_type: str,
+        query: str,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        """Search with FTS5 primary and difflib fuzzy fallback.
+
+        Tries FTS5 first (fast, handles prefix matching). If no results,
+        falls back to difflib fuzzy matching (handles typos).
+
+        Args:
+            entity_type: Entity type to search within.
+            query: Search query string.
+            limit: Maximum results to return.
+
+        Returns:
+            List of entity dicts, ranked by relevance.
+        """
+        # Try FTS5 first
+        results = await self.search(entity_type, query, limit=limit)
+        if results:
+            return results
+
+        # Fuzzy fallback for typos
+        return await self.search_fuzzy(entity_type, query, limit=limit)
+
+    # ── Internal ─────────────────────────────────────────────────────
+
     async def _count(self, entity_type: str) -> int:
         """Count entities of a given type."""
         db = self._conn()

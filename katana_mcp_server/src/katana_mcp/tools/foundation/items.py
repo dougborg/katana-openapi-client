@@ -29,6 +29,22 @@ from katana_public_api_client.models import (
 
 logger = get_logger(__name__)
 
+# Entity type mapping for cache invalidation
+_ITEM_TYPE_TO_CACHE_TYPES: dict[str, list[str]] = {
+    "product": ["product", "variant"],
+    "material": ["material", "variant"],
+    "service": ["service", "variant"],
+}
+
+
+async def _invalidate_item_cache(services: object, item_type: str) -> None:
+    """Mark cache dirty for entity types affected by an item write."""
+    cache = getattr(services, "cache", None)
+    if cache is None:
+        return
+    for cache_type in _ITEM_TYPE_TO_CACHE_TYPES.get(item_type, ["variant"]):
+        await cache.mark_dirty(cache_type)
+
 
 # ============================================================================
 # Shared Models
@@ -295,6 +311,7 @@ async def _create_item_impl(
                 variants=[variant],
             )
             product = await services.client.products.create(product_request)
+            await _invalidate_item_cache(services, "product")
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
             logger.info(
                 "item_create_completed",
@@ -323,6 +340,7 @@ async def _create_item_impl(
                 variants=[variant],
             )
             material = await services.client.materials.create(material_request)
+            await _invalidate_item_cache(services, "material")
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
             logger.info(
                 "item_create_completed",
@@ -355,6 +373,7 @@ async def _create_item_impl(
                 variants=[service_variant],
             )
             service = await services.client.services.create(service_request)
+            await _invalidate_item_cache(services, "service")
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
             logger.info(
                 "item_create_completed",
@@ -651,6 +670,7 @@ async def _update_item_impl(
                 additional_info=to_unset(request.additional_info),
             )
             product = await services.client.products.update(request.id, update_data)
+            await _invalidate_item_cache(services, "product")
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
             logger.info(
                 "item_update_completed",
@@ -678,6 +698,7 @@ async def _update_item_impl(
             material = await services.client.materials.update(
                 request.id, material_update_data
             )
+            await _invalidate_item_cache(services, "material")
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
             logger.info(
                 "item_update_completed",
@@ -703,6 +724,7 @@ async def _update_item_impl(
             service = await services.client.services.update(
                 request.id, service_update_data
             )
+            await _invalidate_item_cache(services, "service")
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
             logger.info(
                 "item_update_completed",
@@ -844,6 +866,7 @@ async def _delete_item_impl(
         # User confirmed - delete the item
         if request.type == ItemType.PRODUCT:
             await services.client.products.delete(request.id)
+            await _invalidate_item_cache(services, "product")
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
             logger.info(
                 "item_delete_completed",
@@ -859,6 +882,7 @@ async def _delete_item_impl(
 
         elif request.type == ItemType.MATERIAL:
             await services.client.materials.delete(request.id)
+            await _invalidate_item_cache(services, "material")
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
             logger.info(
                 "item_delete_completed",
@@ -874,6 +898,7 @@ async def _delete_item_impl(
 
         elif request.type == ItemType.SERVICE:
             await services.client.services.delete(request.id)
+            await _invalidate_item_cache(services, "service")
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
             logger.info(
                 "item_delete_completed",
