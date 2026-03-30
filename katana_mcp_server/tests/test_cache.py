@@ -117,9 +117,10 @@ class TestSync:
         assert time.time() - last_synced < 5  # Within 5 seconds
 
     @pytest.mark.asyncio
-    async def test_sync_empty_list_is_noop(self, cache):
+    async def test_sync_empty_list_updates_last_synced(self, cache):
+        """Empty sync still advances last_synced so we don't re-check immediately."""
         await cache.sync("variant", [], VARIANT_INDEX)
-        assert await cache.get_last_synced("variant") is None
+        assert await cache.get_last_synced("variant") is not None
 
     @pytest.mark.asyncio
     async def test_sync_without_index_fields(self, cache):

@@ -174,6 +174,9 @@ class Variants(Base):
         """
         from katana_public_api_client.helpers.search import search_and_rank
 
+        if not query or not query.strip():
+            return []
+
         # Fetch all variants from API (no client-side caching)
         response = await get_all_variants.asyncio_detailed(
             client=self._client,

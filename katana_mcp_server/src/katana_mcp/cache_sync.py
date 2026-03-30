@@ -13,7 +13,6 @@ Usage in tools::
 
 from __future__ import annotations
 
-import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -30,6 +29,7 @@ from katana_mcp.cache import (
     IndexFields,
 )
 from katana_public_api_client.api.customer import get_all_customers
+from katana_public_api_client.api.factory import get_factory
 from katana_public_api_client.api.location import get_all_locations
 from katana_public_api_client.api.material import get_all_materials
 from katana_public_api_client.api.operator import get_all_operators
@@ -46,7 +46,9 @@ from katana_public_api_client.utils import unwrap_data
 if TYPE_CHECKING:
     from katana_mcp.services.dependencies import Services
 
-logger = logging.getLogger(__name__)
+from katana_mcp.logging import get_logger
+
+logger = get_logger(__name__)
 
 # Minimum interval (seconds) between sync attempts for entities without updated_at_min
 _NO_INCREMENTAL_DEBOUNCE = 300  # 5 minutes
@@ -59,15 +61,7 @@ def _timestamp_to_iso(ts: float) -> str:
 
 def _attrs_to_dicts(attrs_list: list[Any]) -> list[dict[str, Any]]:
     """Convert a list of attrs model instances to plain dicts."""
-    result = []
-    for obj in attrs_list:
-        if hasattr(obj, "to_dict"):
-            result.append(obj.to_dict())
-        elif hasattr(obj, "__dict__"):
-            result.append(vars(obj))
-        else:
-            result.append(obj)
-    return result
+    return [obj.to_dict() for obj in attrs_list]
 
 
 def _variant_to_cache_dict(attrs_obj: Any) -> dict[str, Any]:
@@ -200,6 +194,17 @@ async def ensure_operators_synced(services: Services) -> None:
     )
 
 
+async def ensure_factory_synced(services: Services) -> None:
+    """Ensure the factory cache is fresh."""
+    await _ensure_synced(
+        services=services,
+        entity_type="factory",
+        index_fields=IndexFields(name_key="name"),
+        fetch_fn=_fetch_factory,
+        supports_incremental=False,
+    )
+
+
 # ── Internal sync logic ──────────────────────────────────────────────
 
 
@@ -228,8 +233,10 @@ async def _ensure_synced(
     )
     entities = await fetch_fn(services.client, updated_at_min=updated_at_min)
 
-    if entities or last_synced is None:
-        await cache.sync(entity_type, entities, index_fields)
+    # Always sync — even with 0 entities, this updates last_synced timestamp
+    # so subsequent calls know the cache was checked recently
+    await cache.sync(entity_type, entities, index_fields)
+    if entities:
         logger.info(
             "cache_sync_complete",
             entity_type=entity_type,
@@ -254,79 +261,77 @@ async def _fetch_variants(client: Any, updated_at_min: str | None = None) -> lis
     return [_variant_to_cache_dict(v) for v in attrs_list]
 
 
-async def _fetch_products(client: Any, updated_at_min: str | None = None) -> list[dict]:
+async def _fetch_generic(
+    api_module: Any,
+    client: Any,
+    updated_at_min: str | None = None,
+    supports_incremental: bool = True,
+    extra_kwargs: dict[str, Any] | None = None,
+) -> list[dict]:
+    """Generic fetch: build kwargs, call asyncio_detailed, convert to dicts."""
     kwargs: dict[str, Any] = {"client": client}
-    if updated_at_min:
+    if extra_kwargs:
+        kwargs.update(extra_kwargs)
+    if updated_at_min and supports_incremental:
         kwargs["updated_at_min"] = updated_at_min
-
-    response = await get_all_products.asyncio_detailed(**kwargs)
+    response = await api_module.asyncio_detailed(**kwargs)
     return _attrs_to_dicts(unwrap_data(response))
+
+
+async def _fetch_products(client: Any, updated_at_min: str | None = None) -> list[dict]:
+    return await _fetch_generic(get_all_products, client, updated_at_min)
 
 
 async def _fetch_materials(
     client: Any, updated_at_min: str | None = None
 ) -> list[dict]:
-    kwargs: dict[str, Any] = {"client": client}
-    if updated_at_min:
-        kwargs["updated_at_min"] = updated_at_min
-
-    response = await get_all_materials.asyncio_detailed(**kwargs)
-    return _attrs_to_dicts(unwrap_data(response))
+    return await _fetch_generic(get_all_materials, client, updated_at_min)
 
 
 async def _fetch_services(client: Any, updated_at_min: str | None = None) -> list[dict]:
-    kwargs: dict[str, Any] = {"client": client}
-    if updated_at_min:
-        kwargs["updated_at_min"] = updated_at_min
-
-    response = await get_all_services.asyncio_detailed(**kwargs)
-    return _attrs_to_dicts(unwrap_data(response))
+    return await _fetch_generic(get_all_services, client, updated_at_min)
 
 
 async def _fetch_suppliers(
     client: Any, updated_at_min: str | None = None
 ) -> list[dict]:
-    kwargs: dict[str, Any] = {"client": client}
-    if updated_at_min:
-        kwargs["updated_at_min"] = updated_at_min
-
-    response = await get_all_suppliers.asyncio_detailed(**kwargs)
-    return _attrs_to_dicts(unwrap_data(response))
+    return await _fetch_generic(get_all_suppliers, client, updated_at_min)
 
 
 async def _fetch_customers(
     client: Any, updated_at_min: str | None = None
 ) -> list[dict]:
-    kwargs: dict[str, Any] = {"client": client}
-    if updated_at_min:
-        kwargs["updated_at_min"] = updated_at_min
-
-    response = await get_all_customers.asyncio_detailed(**kwargs)
-    return _attrs_to_dicts(unwrap_data(response))
+    return await _fetch_generic(get_all_customers, client, updated_at_min)
 
 
 async def _fetch_locations(
     client: Any, updated_at_min: str | None = None
 ) -> list[dict]:
-    # Locations don't support updated_at_min
-    response = await get_all_locations.asyncio_detailed(client=client)
-    return _attrs_to_dicts(unwrap_data(response))
+    return await _fetch_generic(
+        get_all_locations, client, updated_at_min, supports_incremental=False
+    )
 
 
 async def _fetch_tax_rates(
     client: Any, updated_at_min: str | None = None
 ) -> list[dict]:
-    kwargs: dict[str, Any] = {"client": client}
-    if updated_at_min:
-        kwargs["updated_at_min"] = updated_at_min
-
-    response = await get_all_tax_rates.asyncio_detailed(**kwargs)
-    return _attrs_to_dicts(unwrap_data(response))
+    return await _fetch_generic(get_all_tax_rates, client, updated_at_min)
 
 
 async def _fetch_operators(
     client: Any, updated_at_min: str | None = None
 ) -> list[dict]:
-    # Operators don't support updated_at_min
-    response = await get_all_operators.asyncio_detailed(client=client)
-    return _attrs_to_dicts(unwrap_data(response))
+    return await _fetch_generic(
+        get_all_operators, client, updated_at_min, supports_incremental=False
+    )
+
+
+async def _fetch_factory(client: Any, updated_at_min: str | None = None) -> list[dict]:
+    """Factory is a single record, not a list endpoint."""
+    from katana_public_api_client.utils import unwrap
+
+    response = await get_factory.asyncio_detailed(client=client)
+    result = unwrap(response)
+    if result and hasattr(result, "to_dict"):
+        return [result.to_dict()]
+    return []

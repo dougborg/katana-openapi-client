@@ -23,7 +23,43 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
+from katana_mcp.cache import EntityType
 from katana_mcp.services import get_services
+
+# Lazy-initialized cache of sync functions (avoids circular imports)
+_sync_fns: dict[str, Any] | None = None
+
+
+def _get_sync_fns() -> dict[str, Any]:
+    """Get the entity-type → sync function mapping (initialized once)."""
+    global _sync_fns  # noqa: PLW0603
+    if _sync_fns is None:
+        from katana_mcp.cache_sync import (
+            ensure_customers_synced,
+            ensure_factory_synced,
+            ensure_locations_synced,
+            ensure_materials_synced,
+            ensure_operators_synced,
+            ensure_products_synced,
+            ensure_services_synced,
+            ensure_suppliers_synced,
+            ensure_tax_rates_synced,
+            ensure_variants_synced,
+        )
+
+        _sync_fns = {
+            EntityType.VARIANT: ensure_variants_synced,
+            EntityType.PRODUCT: ensure_products_synced,
+            EntityType.MATERIAL: ensure_materials_synced,
+            EntityType.SERVICE: ensure_services_synced,
+            EntityType.SUPPLIER: ensure_suppliers_synced,
+            EntityType.CUSTOMER: ensure_customers_synced,
+            EntityType.LOCATION: ensure_locations_synced,
+            EntityType.TAX_RATE: ensure_tax_rates_synced,
+            EntityType.OPERATOR: ensure_operators_synced,
+            EntityType.FACTORY: ensure_factory_synced,
+        }
+    return _sync_fns
 
 
 def cache_read(*entity_types: str) -> Callable:
@@ -40,37 +76,14 @@ def cache_read(*entity_types: str) -> Callable:
     def decorator[F: Callable[..., Any]](fn: F) -> F:
         @wraps(fn)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            # Find context in args (it's always the last positional or 'context' kwarg)
             context = kwargs.get("context") or args[-1]
             services = get_services(context)
 
-            # Import sync functions lazily to avoid circular imports
-            from katana_mcp.cache_sync import (
-                ensure_customers_synced,
-                ensure_locations_synced,
-                ensure_materials_synced,
-                ensure_operators_synced,
-                ensure_products_synced,
-                ensure_services_synced,
-                ensure_suppliers_synced,
-                ensure_tax_rates_synced,
-                ensure_variants_synced,
-            )
-
-            sync_fns = {
-                "variant": ensure_variants_synced,
-                "product": ensure_products_synced,
-                "material": ensure_materials_synced,
-                "service": ensure_services_synced,
-                "supplier": ensure_suppliers_synced,
-                "customer": ensure_customers_synced,
-                "location": ensure_locations_synced,
-                "tax_rate": ensure_tax_rates_synced,
-                "operator": ensure_operators_synced,
-            }
-
-            for entity_type in entity_types:
-                sync_fn = sync_fns.get(entity_type)
+            sync_fns = _get_sync_fns()
+            for et in entity_types:
+                # EntityType is a StrEnum — normalize to ensure dict lookup works
+                key = EntityType(et) if not isinstance(et, EntityType) else et
+                sync_fn = sync_fns.get(key)
                 if sync_fn:
                     await sync_fn(services)
 

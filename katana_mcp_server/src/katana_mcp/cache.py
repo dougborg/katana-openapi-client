@@ -28,6 +28,7 @@ import json
 import logging
 import time
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -104,6 +105,21 @@ CREATE TABLE IF NOT EXISTS sync_metadata (
     count       INTEGER NOT NULL DEFAULT 0
 );
 """
+
+
+class EntityType(StrEnum):
+    """Cached entity types — single source of truth for cache keys."""
+
+    VARIANT = "variant"
+    PRODUCT = "product"
+    MATERIAL = "material"
+    SERVICE = "service"
+    SUPPLIER = "supplier"
+    CUSTOMER = "customer"
+    LOCATION = "location"
+    TAX_RATE = "tax_rate"
+    OPERATOR = "operator"
+    FACTORY = "factory"
 
 
 @dataclass(frozen=True)
@@ -230,47 +246,56 @@ class CatalogCache:
             entities: List of entity dicts. Each must have an "id" key.
             index_fields: Field mapping for FTS indexing. If None, no FTS index.
         """
-        if not entities:
-            return
-
         db = self._conn()
         now = time.time()
 
-        for entity in entities:
-            entity_id = entity["id"]
-            data_json = json.dumps(entity)
-            updated_at = entity.get("updated_at", now)
-
-            # Upsert into entities table
+        if not entities:
+            # No entities to upsert, but still update sync metadata
+            # so last_synced advances (prevents re-checking immediately)
+            count = await self._count(entity_type)
             await db.execute(
-                "INSERT OR REPLACE INTO entities (entity_type, id, data, updated_at) "
-                "VALUES (?, ?, ?, ?)",
-                (entity_type, entity_id, data_json, updated_at),
+                "INSERT OR REPLACE INTO sync_metadata (entity_type, last_synced, count) "
+                "VALUES (?, ?, ?)",
+                (entity_type, now, count),
             )
+            await db.commit()
+            return
 
-            # Upsert into index table (for FTS)
-            if index_fields:
-                sku = entity.get(index_fields.sku_key) if index_fields.sku_key else None
-                name = (
-                    entity.get(index_fields.name_key) if index_fields.name_key else None
-                )
-                name2 = (
-                    entity.get(index_fields.name2_key)
-                    if index_fields.name2_key
-                    else None
-                )
+        # Batch upsert into entities table
+        entity_rows = [
+            (entity_type, e["id"], json.dumps(e), e.get("updated_at", now))
+            for e in entities
+        ]
+        await db.executemany(
+            "INSERT OR REPLACE INTO entities (entity_type, id, data, updated_at) "
+            "VALUES (?, ?, ?, ?)",
+            entity_rows,
+        )
 
-                # Delete existing index entry first (triggers FTS delete)
-                await db.execute(
-                    "DELETE FROM entity_index WHERE entity_type = ? AND id = ?",
-                    (entity_type, entity_id),
+        # Batch upsert into index table (for FTS)
+        if index_fields:
+            index_ids = [(entity_type, e["id"]) for e in entities]
+            index_rows = [
+                (
+                    entity_type,
+                    e["id"],
+                    e.get(index_fields.sku_key) if index_fields.sku_key else None,
+                    e.get(index_fields.name_key) if index_fields.name_key else None,
+                    e.get(index_fields.name2_key) if index_fields.name2_key else None,
                 )
-                # Insert new (triggers FTS insert)
-                await db.execute(
-                    "INSERT INTO entity_index (entity_type, id, sku, name, name2) "
-                    "VALUES (?, ?, ?, ?, ?)",
-                    (entity_type, entity_id, sku, name, name2),
-                )
+                for e in entities
+            ]
+
+            # Delete then insert to fire FTS triggers correctly
+            await db.executemany(
+                "DELETE FROM entity_index WHERE entity_type = ? AND id = ?",
+                index_ids,
+            )
+            await db.executemany(
+                "INSERT INTO entity_index (entity_type, id, sku, name, name2) "
+                "VALUES (?, ?, ?, ?, ?)",
+                index_rows,
+            )
 
         # Update sync metadata
         count = await self._count(entity_type)
@@ -438,8 +463,8 @@ class CatalogCache:
         async with db.execute(
             "SELECT e.data FROM entity_index idx "
             "JOIN entities e ON e.entity_type = idx.entity_type AND e.id = idx.id "
-            "WHERE idx.sku = ? COLLATE NOCASE",
-            (sku,),
+            "WHERE idx.sku = ? COLLATE NOCASE AND idx.entity_type = ?",
+            (sku, EntityType.VARIANT),
         ) as cursor:
             row = await cursor.fetchone()
             return json.loads(row[0]) if row else None
@@ -519,7 +544,7 @@ class CatalogCache:
 
         return result
 
-    # ── Internal ─────────────────────────────────────────────────────
+    # ── Combined search ──────────────────────────────────────────────
 
     async def smart_search(
         self,

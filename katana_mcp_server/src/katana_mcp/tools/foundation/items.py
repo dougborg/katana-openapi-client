@@ -7,15 +7,16 @@ Items are things with SKUs - they appear in the "Items" tab of the Katana UI.
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
+from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.decorators import cache_read, cache_write
+from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import to_unset
@@ -30,7 +31,7 @@ from katana_public_api_client.models import (
 logger = get_logger(__name__)
 
 
-def _get_type_helper(client: object, item_type: ItemType) -> object:
+def _get_type_helper(client: Any, item_type: ItemType) -> Any:
     """Get the client helper for an item type (products, materials, or services)."""
     helpers = {
         ItemType.PRODUCT: "products",
@@ -115,7 +116,7 @@ def _search_response_to_tool_result(
     )
 
 
-@cache_read("variant")
+@cache_read(EntityType.VARIANT)
 async def _search_items_impl(
     request: SearchItemsRequest, context: Context
 ) -> SearchItemsResponse:
@@ -210,12 +211,12 @@ class CreateItemResponse(BaseModel):
     message: str = "Item created successfully"
 
 
-@cache_write("product", "material", "service", "variant")
 async def _create_item_impl(
     request: CreateItemRequest, context: Context
 ) -> CreateItemResponse:
     """Create a product, material, or service with a variant."""
     services = get_services(context)
+    cache = getattr(services, "cache", None)
 
     # Build variant (services use a different variant model)
     if request.type == ItemType.SERVICE:
@@ -264,6 +265,11 @@ async def _create_item_impl(
             result = await services.client.materials.create(api_request)
         else:
             raise ValueError(f"Invalid item type: {request.type}")
+
+    # Invalidate only the affected type + variants
+    if cache:
+        await cache.mark_dirty(request.type.value)
+        await cache.mark_dirty(EntityType.VARIANT)
 
     return CreateItemResponse(
         id=result.id,
@@ -413,7 +419,6 @@ class UpdateItemResponse(BaseModel):
     message: str = "Item updated successfully"
 
 
-@cache_write("product", "material", "service", "variant")
 async def _update_item_impl(
     request: UpdateItemRequest, context: Context
 ) -> UpdateItemResponse:
@@ -453,6 +458,12 @@ async def _update_item_impl(
         update_data = UpdateServiceRequest(**common)
 
     result = await helper.update(request.id, update_data)
+
+    # Invalidate only the affected type + variants
+    cache = getattr(services, "cache", None)
+    if cache:
+        await cache.mark_dirty(request.type.value)
+        await cache.mark_dirty(EntityType.VARIANT)
 
     return UpdateItemResponse(
         id=result.id,
@@ -509,7 +520,6 @@ class DeleteItemResponse(BaseModel):
     message: str = "Item deleted successfully"
 
 
-@cache_write("product", "material", "service", "variant")
 async def _delete_item_impl(
     request: DeleteItemRequest, context: Context
 ) -> DeleteItemResponse:
@@ -553,6 +563,12 @@ async def _delete_item_impl(
 
     # Execute deletion
     await helper.delete(request.id)
+
+    # Invalidate only the affected type + variants
+    cache = getattr(services, "cache", None)
+    if cache:
+        await cache.mark_dirty(request.type.value)
+        await cache.mark_dirty(EntityType.VARIANT)
 
     return DeleteItemResponse(
         id=request.id,
@@ -671,7 +687,7 @@ def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolRes
     )
 
 
-@cache_read("variant")
+@cache_read(EntityType.VARIANT)
 async def _get_variant_details_impl(
     request: GetVariantDetailsRequest, context: Context
 ) -> VariantDetailsResponse:
