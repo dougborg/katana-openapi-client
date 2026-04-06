@@ -365,9 +365,10 @@ class TestResponseCachingMiddleware:
 class TestServerRegistration:
     """Verify all tools, resources, and prompts register without errors."""
 
-    def test_expected_tools_registered(self):
+    @pytest.mark.asyncio
+    async def test_expected_tools_registered(self):
         """Test that all expected tools are registered (allows additions)."""
-        tools = {t.name for t in mcp._tool_manager._tools.values()}
+        tools = {t.name for t in await mcp.list_tools()}
         expected = {
             "search_items",
             "create_item",
@@ -389,25 +390,29 @@ class TestServerRegistration:
         missing = expected - tools
         assert not missing, f"Expected tools not registered: {missing}"
 
-    def test_all_tools_have_annotations(self):
+    @pytest.mark.asyncio
+    async def test_all_tools_have_annotations(self):
         """Test that every tool has annotations set."""
-        for tool in mcp._tool_manager._tools.values():
+        for tool in await mcp.list_tools():
             assert tool.annotations is not None, f"{tool.name} missing annotations"
 
-    def test_all_tools_have_tags(self):
+    @pytest.mark.asyncio
+    async def test_all_tools_have_tags(self):
         """Test that every tool has tags set."""
-        for tool in mcp._tool_manager._tools.values():
+        for tool in await mcp.list_tools():
             assert tool.tags, f"{tool.name} missing tags"
 
-    def test_expected_prompts_registered(self):
+    @pytest.mark.asyncio
+    async def test_expected_prompts_registered(self):
         """Test that all expected prompts are registered (allows additions)."""
-        prompts = {p.name for p in mcp._prompt_manager._prompts.values()}
+        prompts = {p.name for p in await mcp.list_prompts()}
         expected = {"reorder_low_stock", "receive_delivery", "fulfill_sales_order"}
         missing = expected - prompts
         assert not missing, f"Expected prompts not registered: {missing}"
 
-    def test_expected_resources_registered(self):
+    @pytest.mark.asyncio
+    async def test_expected_resources_registered(self):
         """Test that key resources are registered."""
-        resource_uris = {str(r.uri) for r in mcp._resource_manager._resources.values()}
+        resource_uris = {str(r.uri) for r in await mcp.list_resources()}
         assert "katana://help" in resource_uris
         assert "katana://inventory/items" in resource_uris
