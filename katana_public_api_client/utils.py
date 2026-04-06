@@ -598,14 +598,14 @@ def get_variant_display_name(variant: "Variant") -> str:
         return ""
 
     # Append config attribute values (just values, not "name: value")
-    parts = [base_name]
+    parts: list[str] = [str(base_name)]
     if hasattr(variant, "config_attributes") and variant.config_attributes:
         for attr in variant.config_attributes:
             if hasattr(attr, "config_value") and attr.config_value:
                 parts.append(str(attr.config_value))
 
     # Join with forward slashes (Katana UI format)
-    return " / ".join(parts)  # type: ignore[arg-type]
+    return " / ".join(parts)
 
 
 __all__ = [

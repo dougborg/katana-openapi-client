@@ -7,7 +7,7 @@ and data processing.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from ..client_types import UNSET, Unset
 
@@ -66,7 +66,9 @@ def unwrap_unset[T](value: T | Unset, default: T | None = None) -> T | None:
         unwrap_unset(UNSET, 0)  # 0
         ```
     """
-    return default if value is UNSET else value  # type: ignore[return-value]
+    if value is UNSET:
+        return default
+    return cast("T | None", value)
 
 
 def variant_to_katana(variant: Variant) -> KatanaVariant:
