@@ -461,6 +461,10 @@ format-check = ["format-python-check", "format-markdown-check"]
 # with its own dependencies (fastmcp, structlog) that ty needs to resolve.
 # Type check it separately from its own directory.
 # scripts/ is excluded as it contains utility/development scripts with varied typing.
+# tests/test_generate_tools_json.py is temporarily excluded because it imports the
+# generator script in a way that currently triggers a ty import-resolution error.
+# Revisit this once the generator is importable as a module/package or a narrower
+# ty-compatible ignore can replace the file-level exclusion.
 typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'tests/test_generate_tools_json.py' --exclude 'scripts/' --exclude 'katana_mcp_server/' --exclude '.claude/worktrees/'"
 lint-ruff = "ruff check ."
 lint-ruff-fix = "ruff check --fix ."
