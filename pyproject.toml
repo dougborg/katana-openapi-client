@@ -461,10 +461,10 @@ format-check = ["format-python-check", "format-markdown-check"]
 # with its own dependencies (fastmcp, structlog) that ty needs to resolve.
 # Type check it separately from its own directory.
 # scripts/ is excluded as it contains utility/development scripts with varied typing.
-# tests/conftest.py remains excluded because it is pytest-specific support code.
-# TODO: Make the tools JSON generator importable as a module/package if ty still
-# reports import-resolution issues, rather than reducing type-check coverage.
-typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'scripts/' --exclude 'katana_mcp_server/' --exclude '.claude/worktrees/'"
+# tests/conftest.py is excluded because it is pytest-specific support code.
+# tests/test_generate_tools_json.py is excluded because it imports a script via
+# sys.path manipulation that ty cannot resolve statically.
+typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'tests/test_generate_tools_json.py' --exclude 'scripts/' --exclude 'katana_mcp_server/' --exclude '.claude/worktrees/'"
 lint-ruff = "ruff check ."
 lint-ruff-fix = "ruff check --fix ."
 lint-yaml = "yamllint ."
