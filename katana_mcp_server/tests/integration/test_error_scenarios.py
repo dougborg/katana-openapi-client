@@ -11,7 +11,7 @@ as we cannot reliably trigger real API errors in integration tests.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from katana_mcp.tools.foundation.inventory import (
@@ -37,6 +37,13 @@ from katana_mcp.tools.foundation.purchase_orders import (
 )
 
 from tests.conftest import create_mock_context
+
+
+@pytest.fixture(autouse=True)
+def _patch_cache_sync():
+    """Patch cache sync for all error scenario tests."""
+    with patch("katana_mcp.cache_sync.ensure_variants_synced", new_callable=AsyncMock):
+        yield
 
 
 @pytest.mark.asyncio
@@ -115,8 +122,8 @@ class TestAPIErrorHandling:
         """Test handling when variant is not found."""
         context, lifespan_ctx = create_mock_context()
 
-        # Mock client returning empty list
-        lifespan_ctx.client.variants.search = AsyncMock(return_value=[])
+        # Cache returns None (not found)
+        lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
 
         request = GetVariantDetailsRequest(sku="NONEXISTENT-SKU")
         with pytest.raises(ValueError, match="not found"):
@@ -126,8 +133,8 @@ class TestAPIErrorHandling:
         """Test handling when search returns no results."""
         context, lifespan_ctx = create_mock_context()
 
-        # Mock client returning empty list
-        lifespan_ctx.client.variants.search = AsyncMock(return_value=[])
+        # Cache returns empty list
+        lifespan_ctx.cache.smart_search = AsyncMock(return_value=[])
 
         request = SearchItemsRequest(query="xyznonexistent123")
         result = await _search_items_impl(request, context)
@@ -170,8 +177,8 @@ class TestNetworkErrorHandling:
         """Test handling of timeout errors."""
         context, lifespan_ctx = create_mock_context()
 
-        # Mock client raising timeout error
-        lifespan_ctx.client.variants.search = AsyncMock(
+        # Mock cache search raising timeout error
+        lifespan_ctx.cache.smart_search = AsyncMock(
             side_effect=TimeoutError("Request timed out")
         )
 
@@ -272,33 +279,25 @@ class TestDataConsistencyErrors:
     """Test handling of data consistency issues."""
 
     async def test_variant_disappears_between_calls(self):
-        """Test handling when a variant is deleted between search and details."""
+        """Test handling when a variant found in search is not found by SKU."""
         context, lifespan_ctx = create_mock_context()
 
-        # First call returns a variant
-        mock_variant = MagicMock()
-        mock_variant.id = 123
-        mock_variant.sku = "TEMP-SKU"
-        mock_variant.type_ = "product"
-        mock_variant.get_display_name = MagicMock(return_value="Temp Item")
+        # Search returns a variant
+        cached_variant = {
+            "id": 123,
+            "sku": "TEMP-SKU",
+            "type": "product",
+            "display_name": "Temp Item",
+        }
+        lifespan_ctx.cache.smart_search = AsyncMock(return_value=[cached_variant])
 
-        # Search returns the variant
-        search_mock = AsyncMock(return_value=[mock_variant])
-
-        # But details call returns empty (item deleted)
-        details_mock = AsyncMock(return_value=[])
-
-        lifespan_ctx.client.variants.search = search_mock
-
-        # First, search finds the item
         search_request = SearchItemsRequest(query="TEMP")
         search_result = await _search_items_impl(search_request, context)
         assert len(search_result.items) == 1
 
-        # Now, the item disappears
-        lifespan_ctx.client.variants.search = details_mock
+        # But SKU lookup returns None (item deleted/cache stale)
+        lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
 
-        # Details call should fail gracefully
         details_request = GetVariantDetailsRequest(sku="TEMP-SKU")
         with pytest.raises(ValueError, match="not found"):
             await _get_variant_details_impl(details_request, context)
@@ -307,19 +306,15 @@ class TestDataConsistencyErrors:
         """Test handling of items with missing/null fields."""
         context, lifespan_ctx = create_mock_context()
 
-        # Mock variant with many null fields
-        mock_variant = MagicMock()
-        mock_variant.id = 1
-        mock_variant.sku = None  # Null SKU
-        mock_variant.type_ = None
-        mock_variant.get_display_name = MagicMock(return_value=None)
+        # Cached variant with minimal/null fields
+        cached_variant = {"id": 1}
 
-        lifespan_ctx.client.variants.search = AsyncMock(return_value=[mock_variant])
+        lifespan_ctx.cache.smart_search = AsyncMock(return_value=[cached_variant])
 
         request = SearchItemsRequest(query="test")
         result = await _search_items_impl(request, context)
 
-        # Should handle null values gracefully
+        # Should handle missing values gracefully
         assert len(result.items) == 1
-        assert result.items[0].sku == ""  # Converted to empty string
-        assert result.items[0].name == ""  # Converted to empty string
+        assert result.items[0].sku == ""
+        assert result.items[0].name == ""

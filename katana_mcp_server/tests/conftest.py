@@ -83,6 +83,16 @@ def create_mock_context(elicit_confirm: bool = True):
     context.request_context = mock_request_context
     mock_request_context.lifespan_context = mock_lifespan_context
 
+    # Set up cache mock with async methods
+    mock_cache = AsyncMock()
+    mock_cache.get_last_synced = AsyncMock(return_value=None)
+    mock_cache.sync = AsyncMock()
+    mock_cache.smart_search = AsyncMock(return_value=[])
+    mock_cache.get_by_sku = AsyncMock(return_value=None)
+    mock_cache.get_by_id = AsyncMock(return_value=None)
+    mock_cache.mark_dirty = AsyncMock()
+    mock_lifespan_context.cache = mock_cache
+
     # Mock elicit() to simulate user confirmation
     mock_elicit_result = MagicMock()
     if elicit_confirm:

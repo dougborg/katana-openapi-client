@@ -6,16 +6,17 @@ Items are things with SKUs - they appear in the "Items" tab of the Katana UI.
 
 from __future__ import annotations
 
-import time
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
+from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import to_unset
@@ -28,6 +29,19 @@ from katana_public_api_client.models import (
 )
 
 logger = get_logger(__name__)
+
+
+def _get_type_helper(client: Any, item_type: ItemType) -> Any:
+    """Get the client helper for an item type (products, materials, or services)."""
+    helpers = {
+        ItemType.PRODUCT: "products",
+        ItemType.MATERIAL: "materials",
+        ItemType.SERVICE: "services",
+    }
+    attr = helpers.get(item_type)
+    if not attr:
+        raise ValueError(f"Invalid item type: {item_type}")
+    return getattr(client, attr)
 
 
 # ============================================================================
@@ -102,84 +116,33 @@ def _search_response_to_tool_result(
     )
 
 
+@cache_read(EntityType.VARIANT)
 async def _search_items_impl(
     request: SearchItemsRequest, context: Context
 ) -> SearchItemsResponse:
-    """Implementation of search_items tool.
-
-    Args:
-        request: Request with search query and limit
-        context: Server context with KatanaClient
-
-    Returns:
-        List of matching item variants with extended names
-
-    Raises:
-        ValueError: If query is empty or limit is invalid
-        Exception: If API call fails
-    """
+    """Search variants via cached FTS5 + fuzzy fallback."""
     if not request.query or not request.query.strip():
         raise ValueError("Search query cannot be empty")
     if request.limit <= 0:
         raise ValueError("Limit must be positive")
 
-    start_time = time.monotonic()
-    logger.info("item_search_started", query=request.query, limit=request.limit)
+    services = get_services(context)
+    variant_dicts = await services.cache.smart_search(
+        "variant", request.query, limit=request.limit
+    )
 
-    try:
-        # Access services using helper
-        services = get_services(context)
-
-        # Search variants (which have SKUs) with parent product/material info
-        variants = await services.client.variants.search(
-            request.query, limit=request.limit
+    items_info = [
+        ItemInfo(
+            id=v["id"],
+            sku=v.get("sku") or "",
+            name=v.get("display_name") or v.get("sku") or "",
+            is_sellable=v.get("type") == "product",
+            stock_level=None,
         )
+        for v in variant_dicts
+    ]
 
-        # Build response - format names matching Katana UI
-        items_info = []
-        for variant in variants:
-            # Build variant name using domain model method
-            # Format: "Product Name / Config1 / Config2 / ..."
-            name = variant.get_display_name() or ""
-
-            # Determine if variant is sellable (products are sellable, materials are not)
-            is_sellable = variant.type_ == "product" if variant.type_ else False
-
-            items_info.append(
-                ItemInfo(
-                    id=variant.id,
-                    sku=variant.sku or "",
-                    name=name,
-                    is_sellable=is_sellable,
-                    stock_level=None,  # Variants don't have stock_level directly
-                )
-            )
-
-        response = SearchItemsResponse(
-            items=items_info,
-            total_count=len(items_info),
-        )
-
-        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-        logger.info(
-            "item_search_completed",
-            query=request.query,
-            result_count=response.total_count,
-            duration_ms=duration_ms,
-        )
-        return response
-
-    except Exception as e:
-        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-        logger.error(
-            "item_search_failed",
-            query=request.query,
-            error=str(e),
-            error_type=type(e).__name__,
-            duration_ms=duration_ms,
-            exc_info=True,
-        )
-        raise
+    return SearchItemsResponse(items=items_info, total_count=len(items_info))
 
 
 @observe_tool
@@ -251,40 +214,33 @@ class CreateItemResponse(BaseModel):
 async def _create_item_impl(
     request: CreateItemRequest, context: Context
 ) -> CreateItemResponse:
-    """Implementation of create_item tool.
+    """Create a product, material, or service with a variant."""
+    services = get_services(context)
+    cache = getattr(services, "cache", None)
 
-    Args:
-        request: Request with item details
-        context: Server context with KatanaClient
-
-    Returns:
-        Created item details
-
-    Raises:
-        ValueError: If type is invalid or required fields missing
-        Exception: If API call fails
-    """
-    start_time = time.monotonic()
-    logger.info(
-        "item_create_started",
-        item_type=request.type,
-        name=request.name,
-        sku=request.sku,
-    )
-
-    try:
-        services = get_services(context)
-
-        # Create variant request (common to products/materials)
+    # Build variant (services use a different variant model)
+    if request.type == ItemType.SERVICE:
+        service_variant = CreateServiceVariantRequest(
+            sku=request.sku,
+            sales_price=to_unset(request.sales_price),
+            default_cost=to_unset(request.purchase_price),
+        )
+        api_request = CreateServiceRequest(
+            name=request.name,
+            uom=request.uom,
+            category_name=to_unset(request.category_name),
+            is_sellable=request.is_sellable,
+            variants=[service_variant],
+        )
+        result = await services.client.services.create(api_request)
+    else:
         variant = CreateVariantRequest(
             sku=request.sku,
             sales_price=to_unset(request.sales_price),
             purchase_price=to_unset(request.purchase_price),
         )
-
-        # Route based on item type
         if request.type == ItemType.PRODUCT:
-            product_request = CreateProductRequest(
+            api_request = CreateProductRequest(
                 name=request.name,
                 uom=request.uom,
                 category_name=to_unset(request.category_name),
@@ -295,26 +251,9 @@ async def _create_item_impl(
                 additional_info=to_unset(request.additional_info),
                 variants=[variant],
             )
-            product = await services.client.products.create(product_request)
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.info(
-                "item_create_completed",
-                item_type=ItemType.PRODUCT,
-                item_id=product.id,
-                name=product.name,
-                sku=request.sku,
-                duration_ms=duration_ms,
-            )
-            return CreateItemResponse(
-                id=product.id,
-                name=product.name or "",
-                type=ItemType.PRODUCT,
-                sku=request.sku,
-                message=f"Product '{product.name}' created successfully with SKU {request.sku}",
-            )
-
+            result = await services.client.products.create(api_request)
         elif request.type == ItemType.MATERIAL:
-            material_request = CreateMaterialRequest(
+            api_request = CreateMaterialRequest(
                 name=request.name,
                 uom=request.uom,
                 category_name=to_unset(request.category_name),
@@ -323,72 +262,22 @@ async def _create_item_impl(
                 additional_info=to_unset(request.additional_info),
                 variants=[variant],
             )
-            material = await services.client.materials.create(material_request)
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.info(
-                "item_create_completed",
-                item_type=ItemType.MATERIAL,
-                item_id=material.id,
-                name=material.name,
-                sku=request.sku,
-                duration_ms=duration_ms,
-            )
-            return CreateItemResponse(
-                id=material.id,
-                name=material.name or "",
-                type=ItemType.MATERIAL,
-                sku=request.sku,
-                message=f"Material '{material.name}' created successfully with SKU {request.sku}",
-            )
-
-        elif request.type == ItemType.SERVICE:
-            # Services use a different variant model
-            service_variant = CreateServiceVariantRequest(
-                sku=request.sku,
-                sales_price=to_unset(request.sales_price),
-                default_cost=to_unset(request.purchase_price),
-            )
-            service_request = CreateServiceRequest(
-                name=request.name,
-                uom=request.uom,
-                category_name=to_unset(request.category_name),
-                is_sellable=request.is_sellable,
-                variants=[service_variant],
-            )
-            service = await services.client.services.create(service_request)
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.info(
-                "item_create_completed",
-                item_type=ItemType.SERVICE,
-                item_id=service.id,
-                name=service.name,
-                sku=request.sku,
-                duration_ms=duration_ms,
-            )
-            return CreateItemResponse(
-                id=service.id,
-                name=service.name or "",
-                type=ItemType.SERVICE,
-                sku=request.sku,
-                message=f"Service '{service.name}' created successfully with SKU {request.sku}",
-            )
-
+            result = await services.client.materials.create(api_request)
         else:
             raise ValueError(f"Invalid item type: {request.type}")
 
-    except Exception as e:
-        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-        logger.error(
-            "item_create_failed",
-            item_type=request.type,
-            name=request.name,
-            sku=request.sku,
-            error=str(e),
-            error_type=type(e).__name__,
-            duration_ms=duration_ms,
-            exc_info=True,
-        )
-        raise
+    # Invalidate only the affected type + variants
+    if cache:
+        await cache.mark_dirty(request.type.value)
+        await cache.mark_dirty(EntityType.VARIANT)
+
+    return CreateItemResponse(
+        id=result.id,
+        name=result.name or "",
+        type=request.type,
+        sku=request.sku,
+        message=f"{request.type.value.title()} '{result.name}' created successfully with SKU {request.sku}",
+    )
 
 
 @observe_tool
@@ -446,102 +335,22 @@ class ItemDetailsResponse(BaseModel):
 async def _get_item_impl(
     request: GetItemRequest, context: Context
 ) -> ItemDetailsResponse:
-    """Implementation of get_item tool.
+    """Get item details by ID and type."""
+    services = get_services(context)
+    helper = _get_type_helper(services.client, request.type)
+    item = await helper.get(request.id)
 
-    Args:
-        request: Request with item ID and type
-        context: Server context with KatanaClient
-
-    Returns:
-        Item details
-
-    Raises:
-        ValueError: If type is invalid
-        Exception: If API call fails or item not found
-    """
-    start_time = time.monotonic()
-    logger.info("item_get_started", item_type=request.type, item_id=request.id)
-
-    try:
-        services = get_services(context)
-
-        # Route based on item type
-        if request.type == ItemType.PRODUCT:
-            product = await services.client.products.get(request.id)
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.info(
-                "item_get_completed",
-                item_type=ItemType.PRODUCT,
-                item_id=product.id,
-                name=product.name,
-                duration_ms=duration_ms,
-            )
-            return ItemDetailsResponse(
-                id=product.id,
-                name=product.name,
-                type=ItemType.PRODUCT,
-                uom=product.uom,
-                category_name=product.category_name,
-                is_sellable=product.is_sellable,
-                is_producible=product.is_producible,
-                is_purchasable=product.is_purchasable,
-                additional_info=product.additional_info,
-            )
-
-        elif request.type == ItemType.MATERIAL:
-            material = await services.client.materials.get(request.id)
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.info(
-                "item_get_completed",
-                item_type=ItemType.MATERIAL,
-                item_id=material.id,
-                name=material.name,
-                duration_ms=duration_ms,
-            )
-            return ItemDetailsResponse(
-                id=material.id,
-                name=material.name,
-                type=ItemType.MATERIAL,
-                uom=material.uom,
-                category_name=material.category_name,
-                is_sellable=material.is_sellable,
-                additional_info=material.additional_info,
-            )
-
-        elif request.type == ItemType.SERVICE:
-            service = await services.client.services.get(request.id)
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.info(
-                "item_get_completed",
-                item_type=ItemType.SERVICE,
-                item_id=service.id,
-                name=service.name,
-                duration_ms=duration_ms,
-            )
-            return ItemDetailsResponse(
-                id=service.id,
-                name=service.name or "",
-                type=ItemType.SERVICE,
-                uom=service.uom,
-                category_name=service.category_name,
-                is_sellable=service.is_sellable,
-            )
-
-        else:
-            raise ValueError(f"Invalid item type: {request.type}")
-
-    except Exception as e:
-        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-        logger.error(
-            "item_get_failed",
-            item_type=request.type,
-            item_id=request.id,
-            error=str(e),
-            error_type=type(e).__name__,
-            duration_ms=duration_ms,
-            exc_info=True,
-        )
-        raise
+    return ItemDetailsResponse(
+        id=item.id,
+        name=item.name or "",
+        type=request.type,
+        uom=item.uom,
+        category_name=item.category_name,
+        is_sellable=item.is_sellable,
+        is_producible=getattr(item, "is_producible", None),
+        is_purchasable=getattr(item, "is_purchasable", None),
+        additional_info=getattr(item, "additional_info", None),
+    )
 
 
 @observe_tool
@@ -613,127 +422,55 @@ class UpdateItemResponse(BaseModel):
 async def _update_item_impl(
     request: UpdateItemRequest, context: Context
 ) -> UpdateItemResponse:
-    """Implementation of update_item tool.
+    """Update an item's properties."""
+    from katana_public_api_client.models import (
+        UpdateMaterialRequest,
+        UpdateProductRequest,
+        UpdateServiceRequest,
+    )
 
-    Args:
-        request: Request with item ID, type, and fields to update
-        context: Server context with KatanaClient
+    services = get_services(context)
+    helper = _get_type_helper(services.client, request.type)
 
-    Returns:
-        Updated item confirmation
+    # Build type-specific update request (each type has different fields)
+    common = {
+        "name": to_unset(request.name),
+        "uom": to_unset(request.uom),
+        "category_name": to_unset(request.category_name),
+        "is_sellable": to_unset(request.is_sellable),
+    }
 
-    Raises:
-        ValueError: If type is invalid
-        Exception: If API call fails
-    """
-    start_time = time.monotonic()
-    logger.info("item_update_started", item_type=request.type, item_id=request.id)
-
-    try:
-        services = get_services(context)
-
-        # Import update models
-        from katana_public_api_client.models import (
-            UpdateMaterialRequest,
-            UpdateProductRequest,
-            UpdateServiceRequest,
+    if request.type == ItemType.PRODUCT:
+        update_data = UpdateProductRequest(
+            **common,
+            is_producible=to_unset(request.is_producible),
+            is_purchasable=to_unset(request.is_purchasable),
+            default_supplier_id=to_unset(request.default_supplier_id),
+            additional_info=to_unset(request.additional_info),
         )
-
-        # Route based on item type
-        if request.type == ItemType.PRODUCT:
-            update_data = UpdateProductRequest(
-                name=to_unset(request.name),
-                uom=to_unset(request.uom),
-                category_name=to_unset(request.category_name),
-                is_sellable=to_unset(request.is_sellable),
-                is_producible=to_unset(request.is_producible),
-                is_purchasable=to_unset(request.is_purchasable),
-                default_supplier_id=to_unset(request.default_supplier_id),
-                additional_info=to_unset(request.additional_info),
-            )
-            product = await services.client.products.update(request.id, update_data)
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.info(
-                "item_update_completed",
-                item_type=ItemType.PRODUCT,
-                item_id=product.id,
-                name=product.name,
-                duration_ms=duration_ms,
-            )
-            return UpdateItemResponse(
-                id=product.id,
-                name=product.name,
-                type=ItemType.PRODUCT,
-                message=f"Product '{product.name}' (ID {product.id}) updated successfully",
-            )
-
-        elif request.type == ItemType.MATERIAL:
-            material_update_data = UpdateMaterialRequest(
-                name=to_unset(request.name),
-                uom=to_unset(request.uom),
-                category_name=to_unset(request.category_name),
-                is_sellable=to_unset(request.is_sellable),
-                default_supplier_id=to_unset(request.default_supplier_id),
-                additional_info=to_unset(request.additional_info),
-            )
-            material = await services.client.materials.update(
-                request.id, material_update_data
-            )
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.info(
-                "item_update_completed",
-                item_type=ItemType.MATERIAL,
-                item_id=material.id,
-                name=material.name,
-                duration_ms=duration_ms,
-            )
-            return UpdateItemResponse(
-                id=material.id,
-                name=material.name or "",
-                type=ItemType.MATERIAL,
-                message=f"Material '{material.name or 'Unknown'}' (ID {material.id}) updated successfully",
-            )
-
-        elif request.type == ItemType.SERVICE:
-            service_update_data = UpdateServiceRequest(
-                name=to_unset(request.name),
-                uom=to_unset(request.uom),
-                category_name=to_unset(request.category_name),
-                is_sellable=to_unset(request.is_sellable),
-            )
-            service = await services.client.services.update(
-                request.id, service_update_data
-            )
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.info(
-                "item_update_completed",
-                item_type=ItemType.SERVICE,
-                item_id=service.id,
-                name=service.name,
-                duration_ms=duration_ms,
-            )
-            return UpdateItemResponse(
-                id=service.id,
-                name=service.name or "",
-                type=ItemType.SERVICE,
-                message=f"Service '{service.name or 'Unknown'}' (ID {service.id}) updated successfully",
-            )
-
-        else:
-            raise ValueError(f"Invalid item type: {request.type}")
-
-    except Exception as e:
-        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-        logger.error(
-            "item_update_failed",
-            item_type=request.type,
-            item_id=request.id,
-            error=str(e),
-            error_type=type(e).__name__,
-            duration_ms=duration_ms,
-            exc_info=True,
+    elif request.type == ItemType.MATERIAL:
+        update_data = UpdateMaterialRequest(
+            **common,
+            default_supplier_id=to_unset(request.default_supplier_id),
+            additional_info=to_unset(request.additional_info),
         )
-        raise
+    else:
+        update_data = UpdateServiceRequest(**common)
+
+    result = await helper.update(request.id, update_data)
+
+    # Invalidate only the affected type + variants
+    cache = getattr(services, "cache", None)
+    if cache:
+        await cache.mark_dirty(request.type.value)
+        await cache.mark_dirty(EntityType.VARIANT)
+
+    return UpdateItemResponse(
+        id=result.id,
+        name=result.name or "",
+        type=request.type,
+        message=f"{request.type.value.title()} '{result.name or 'Unknown'}' (ID {result.id}) updated successfully",
+    )
 
 
 @observe_tool
@@ -786,123 +523,58 @@ class DeleteItemResponse(BaseModel):
 async def _delete_item_impl(
     request: DeleteItemRequest, context: Context
 ) -> DeleteItemResponse:
-    """Implementation of delete_item tool."""
+    """Delete an item with two-step confirmation."""
     from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 
-    start_time = time.monotonic()
-    logger.info("item_delete_started", item_type=request.type, item_id=request.id)
+    services = get_services(context)
+    helper = _get_type_helper(services.client, request.type)
 
+    # Fetch item name for preview/confirmation message
+    item_name = f"{request.type.value} ID {request.id}"
     try:
-        services = get_services(context)
+        item = await helper.get(request.id)
+        item_name = f"{request.type.value} '{item.name}' (ID {request.id})"
+    except Exception:
+        pass  # Use default name if fetch fails
 
-        # Fetch item details for preview or confirmation message
-        item_name = f"{request.type} ID {request.id}"
-        try:
-            if request.type == ItemType.PRODUCT:
-                item = await services.client.products.get(request.id)
-                item_name = f"product '{item.name}' (ID {request.id})"
-            elif request.type == ItemType.MATERIAL:
-                item = await services.client.materials.get(request.id)
-                item_name = f"material '{item.name}' (ID {request.id})"
-            elif request.type == ItemType.SERVICE:
-                item = await services.client.services.get(request.id)
-                item_name = f"service '{item.name}' (ID {request.id})"
-        except Exception:
-            pass  # Use default name if fetch fails
-
-        # Preview mode
-        if not request.confirm:
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.info(
-                "item_delete_preview",
-                item_type=request.type,
-                item_id=request.id,
-                duration_ms=duration_ms,
-            )
-            return DeleteItemResponse(
-                id=request.id,
-                type=request.type,
-                is_preview=True,
-                message=f"Preview: Would permanently delete {item_name}. Set confirm=true to proceed.",
-            )
-
-        # Confirm mode - get user confirmation
-        confirmation = await require_confirmation(
-            context,
-            f"Permanently delete {item_name}? This cannot be undone.",
+    # Preview mode
+    if not request.confirm:
+        return DeleteItemResponse(
+            id=request.id,
+            type=request.type,
+            is_preview=True,
+            message=f"Preview: Would permanently delete {item_name}. Set confirm=true to proceed.",
         )
 
-        if confirmation != ConfirmationResult.CONFIRMED:
-            logger.info(f"User did not confirm deletion of {item_name}")
-            return DeleteItemResponse(
-                id=request.id,
-                type=request.type,
-                is_preview=True,
-                success=False,
-                message=f"Deletion of {item_name} {confirmation} by user",
-            )
+    # Confirm mode
+    confirmation = await require_confirmation(
+        context,
+        f"Permanently delete {item_name}? This cannot be undone.",
+    )
 
-        # User confirmed - delete the item
-        if request.type == ItemType.PRODUCT:
-            await services.client.products.delete(request.id)
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.info(
-                "item_delete_completed",
-                item_type=ItemType.PRODUCT,
-                item_id=request.id,
-                duration_ms=duration_ms,
-            )
-            return DeleteItemResponse(
-                id=request.id,
-                type=ItemType.PRODUCT,
-                message=f"Product ID {request.id} deleted successfully",
-            )
-
-        elif request.type == ItemType.MATERIAL:
-            await services.client.materials.delete(request.id)
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.info(
-                "item_delete_completed",
-                item_type=ItemType.MATERIAL,
-                item_id=request.id,
-                duration_ms=duration_ms,
-            )
-            return DeleteItemResponse(
-                id=request.id,
-                type=ItemType.MATERIAL,
-                message=f"Material ID {request.id} deleted successfully",
-            )
-
-        elif request.type == ItemType.SERVICE:
-            await services.client.services.delete(request.id)
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.info(
-                "item_delete_completed",
-                item_type=ItemType.SERVICE,
-                item_id=request.id,
-                duration_ms=duration_ms,
-            )
-            return DeleteItemResponse(
-                id=request.id,
-                type=ItemType.SERVICE,
-                message=f"Service ID {request.id} deleted successfully",
-            )
-
-        else:
-            raise ValueError(f"Invalid item type: {request.type}")
-
-    except Exception as e:
-        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-        logger.error(
-            "item_delete_failed",
-            item_type=request.type,
-            item_id=request.id,
-            error=str(e),
-            error_type=type(e).__name__,
-            duration_ms=duration_ms,
-            exc_info=True,
+    if confirmation != ConfirmationResult.CONFIRMED:
+        return DeleteItemResponse(
+            id=request.id,
+            type=request.type,
+            is_preview=True,
+            success=False,
+            message=f"Deletion of {item_name} {confirmation} by user",
         )
-        raise
+
+    # Execute deletion
+    await helper.delete(request.id)
+
+    # Invalidate only the affected type + variants
+    cache = getattr(services, "cache", None)
+    if cache:
+        await cache.mark_dirty(request.type.value)
+        await cache.mark_dirty(EntityType.VARIANT)
+
+    return DeleteItemResponse(
+        id=request.id,
+        type=request.type,
+        message=f"{request.type.value.title()} ID {request.id} deleted successfully",
+    )
 
 
 @observe_tool
@@ -1015,101 +687,40 @@ def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolRes
     )
 
 
+@cache_read(EntityType.VARIANT)
 async def _get_variant_details_impl(
     request: GetVariantDetailsRequest, context: Context
 ) -> VariantDetailsResponse:
-    """Implementation of get_variant_details tool.
-
-    Args:
-        request: Request with SKU
-        context: Server context with KatanaClient
-
-    Returns:
-        Detailed variant information
-
-    Raises:
-        ValueError: If SKU is empty, invalid, or variant not found
-        Exception: If API call fails for other reasons
-    """
+    """Look up variant details by SKU from cache."""
     if not request.sku or not request.sku.strip():
         raise ValueError("SKU cannot be empty")
 
-    start_time = time.monotonic()
-    logger.info("variant_details_started", sku=request.sku)
+    services = get_services(context)
+    v = await services.cache.get_by_sku(request.sku)
 
-    try:
-        services = get_services(context)
+    if not v:
+        raise ValueError(f"Variant with SKU '{request.sku}' not found")
 
-        # Search for the variant by SKU
-        # The search method returns a list, we need to find exact match
-        variants = await services.client.variants.search(request.sku, limit=100)
-
-        # Find exact SKU match (case-insensitive)
-        matching_variant = None
-        for variant in variants:
-            if variant.sku and variant.sku.lower() == request.sku.lower():
-                matching_variant = variant
-                break
-
-        if not matching_variant:
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.info(
-                "variant_details_not_found",
-                sku=request.sku,
-                duration_ms=duration_ms,
-            )
-            raise ValueError(f"Variant with SKU '{request.sku}' not found")
-
-        # Build detailed response from KatanaVariant domain model
-        response = VariantDetailsResponse(
-            id=matching_variant.id,
-            sku=matching_variant.sku,
-            name=matching_variant.get_display_name(),
-            sales_price=matching_variant.sales_price,
-            purchase_price=matching_variant.purchase_price,
-            type=matching_variant.type_,
-            product_id=matching_variant.product_id,
-            material_id=matching_variant.material_id,
-            product_or_material_name=matching_variant.product_or_material_name,
-            internal_barcode=matching_variant.internal_barcode,
-            registered_barcode=matching_variant.registered_barcode,
-            supplier_item_codes=matching_variant.supplier_item_codes,
-            lead_time=matching_variant.lead_time,
-            minimum_order_quantity=matching_variant.minimum_order_quantity,
-            config_attributes=matching_variant.config_attributes,
-            custom_fields=matching_variant.custom_fields,
-            created_at=matching_variant.created_at.isoformat()
-            if matching_variant.created_at
-            else None,
-            updated_at=matching_variant.updated_at.isoformat()
-            if matching_variant.updated_at
-            else None,
-        )
-
-        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-        logger.info(
-            "variant_details_completed",
-            sku=request.sku,
-            variant_id=matching_variant.id,
-            name=matching_variant.get_display_name(),
-            duration_ms=duration_ms,
-        )
-        return response
-
-    except ValueError:
-        # Re-raise validation errors
-        raise
-    except Exception as e:
-        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-        logger.error(
-            "variant_details_failed",
-            sku=request.sku,
-            error=str(e),
-            error_type=type(e).__name__,
-            duration_ms=duration_ms,
-            exc_info=True,
-        )
-        raise
+    return VariantDetailsResponse(
+        id=v["id"],
+        sku=v.get("sku"),
+        name=v.get("display_name") or v.get("sku") or "",
+        sales_price=v.get("sales_price"),
+        purchase_price=v.get("purchase_price"),
+        type=v.get("type") or v.get("type_"),
+        product_id=v.get("product_id"),
+        material_id=v.get("material_id"),
+        product_or_material_name=v.get("parent_name"),
+        internal_barcode=v.get("internal_barcode"),
+        registered_barcode=v.get("registered_barcode"),
+        supplier_item_codes=v.get("supplier_item_codes") or [],
+        lead_time=v.get("lead_time"),
+        minimum_order_quantity=v.get("minimum_order_quantity"),
+        config_attributes=v.get("config_attributes") or [],
+        custom_fields=v.get("custom_fields") or [],
+        created_at=v.get("created_at"),
+        updated_at=v.get("updated_at"),
+    )
 
 
 @observe_tool

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from fastmcp import Context
 
+from katana_mcp.cache import CatalogCache
 from katana_public_api_client import KatanaClient
 
 
@@ -16,17 +17,16 @@ class Services:
     """Container for services available to tools.
 
     This dataclass provides type-safe access to services that tools need.
-    Currently contains only the KatanaClient, but can be extended with
-    additional services as needed.
-
-    This same dataclass is used as the server lifespan context (yielded by
+    The same instance is used as the server lifespan context (yielded by
     the lifespan function in server.py) and returned by get_services().
 
     Attributes:
         client: The KatanaClient instance for API operations
+        cache: Persistent SQLite catalog cache with FTS5 search
     """
 
     client: KatanaClient
+    cache: CatalogCache
 
 
 def get_services(context: Context) -> Services:
