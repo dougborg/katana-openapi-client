@@ -1237,6 +1237,7 @@ dependencies = [
     { name = "fastmcp" },
     { name = "katana-openapi-client" },
     { name = "platformdirs" },
+    { name = "prefab-ui" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "structlog" },
@@ -1248,6 +1249,7 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=2.13.0" },
     { name = "katana-openapi-client", editable = "." },
     { name = "platformdirs", specifier = ">=4.0.0" },
+    { name = "prefab-ui", specifier = ">=0.18,<0.19" },
     { name = "pydantic", specifier = ">=2.12.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "structlog", specifier = ">=25.5.0" },
@@ -2064,6 +2066,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/40/f1/6d86a29246dfd2e9b6237f0b5823717f60cad94d47ddc26afa916d21f525/pre_commit-4.5.1.tar.gz", hash = "sha256:eb545fcff725875197837263e977ea257a402056661f09dae08e4b149b030a61", size = 198232, upload-time = "2025-12-16T21:14:33.552Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5d/19/fd3ef348460c80af7bb4669ea7926651d1f95c23ff2df18b9d24bab4f3fa/pre_commit-4.5.1-py2.py3-none-any.whl", hash = "sha256:3b3afd891e97337708c1674210f8eba659b52a38ea5f822ff142d10786221f77", size = 226437, upload-time = "2025-12-16T21:14:32.409Z" },
+]
+
+[[package]]
+name = "prefab-ui"
+version = "0.18.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cyclopts" },
+    { name = "pydantic" },
+    { name = "rich" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/39/3f/b0f01a7b0488724322abfaa1369e40f55b7d291b2357b0646a131528e79f/prefab_ui-0.18.5.tar.gz", hash = "sha256:66f4f0d33ddb0b370684f9a2792886d32942ec91d114bf8b35b3954f87014ccb", size = 4042301, upload-time = "2026-04-07T20:27:39.008Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1a/6b/c70b0d7ba3d2ec750b92686481d2952775d4123ff7973505229b513a89e6/prefab_ui-0.18.5-py3-none-any.whl", hash = "sha256:f4681a5ac464949dd26432df9594ef96066d03150cb3b9e595fb6999f9eb433c", size = 1843059, upload-time = "2026-04-07T20:27:37.106Z" },
 ]
 
 [[package]]

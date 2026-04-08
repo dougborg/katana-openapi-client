@@ -75,6 +75,7 @@ class ItemInfo(BaseModel):
     id: int
     sku: str
     name: str
+    item_type: str = "unknown"
     is_sellable: bool
     stock_level: int | None = None
 
@@ -89,7 +90,9 @@ class SearchItemsResponse(BaseModel):
 def _search_response_to_tool_result(
     response: SearchItemsResponse, query: str
 ) -> ToolResult:
-    """Convert SearchItemsResponse to ToolResult with markdown template."""
+    """Convert SearchItemsResponse to ToolResult with markdown + Prefab UI."""
+    from katana_mcp.tools.prefab_ui import build_search_results_ui
+
     # Build items table for template
     if response.items:
         items_table = "\n".join(
@@ -99,14 +102,17 @@ def _search_response_to_tool_result(
     else:
         items_table = "No items found matching your query."
 
-    # Count by type (we don't have type info in ItemInfo, so use placeholders)
-    product_count = sum(1 for item in response.items if item.is_sellable)
-    material_count = response.total_count - product_count
-    service_count = 0
+    product_count = sum(1 for item in response.items if item.item_type == "product")
+    material_count = sum(1 for item in response.items if item.item_type == "material")
+    service_count = sum(1 for item in response.items if item.item_type == "service")
+
+    items_dicts = [item.model_dump() for item in response.items]
+    ui = build_search_results_ui(items_dicts, query, response.total_count)
 
     return make_tool_result(
         response,
         "item_search_results",
+        ui=ui,
         query=query,
         result_count=response.total_count,
         items_table=items_table,
@@ -136,6 +142,7 @@ async def _search_items_impl(
             id=v["id"],
             sku=v.get("sku") or "",
             name=v.get("display_name") or v.get("sku") or "",
+            item_type=v.get("type") or "unknown",
             is_sellable=v.get("type") == "product",
             stock_level=None,
         )
@@ -293,10 +300,15 @@ async def create_item(
 
     Creates the item with a single variant. Returns the new item ID.
     """
+    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
+
     response = await _create_item_impl(request, context)
+    ui = build_item_mutation_ui(response.model_dump(), "Created")
+
     return make_tool_result(
         response,
         "item_created",
+        ui=ui,
         id=response.id,
         name=response.name,
         item_type=response.type,
@@ -364,10 +376,15 @@ async def get_item(
     Returns item properties like name, UOM, category, and flags (sellable, producible).
     For variant-level details (pricing, barcodes, supplier codes), use get_variant_details instead.
     """
+    from katana_mcp.tools.prefab_ui import build_item_detail_ui
+
     response = await _get_item_impl(request, context)
+    ui = build_item_detail_ui(response.model_dump())
+
     return make_tool_result(
         response,
         "item_details",
+        ui=ui,
         sku="N/A",
         name=response.name,
         item_type=response.type,
@@ -483,10 +500,15 @@ async def update_item(
     Only provided fields are updated; omitted fields remain unchanged.
     Requires the item ID and type. Use search_items first if you need to find the item.
     """
+    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
+
     response = await _update_item_impl(request, context)
+    ui = build_item_mutation_ui(response.model_dump(), "Updated")
+
     return make_tool_result(
         response,
         "item_updated",
+        ui=ui,
         id=response.id,
         name=response.name,
         item_type=response.type,
@@ -588,10 +610,15 @@ async def delete_item(
     deleted, or confirm=true to execute (will prompt for confirmation).
     Requires the item ID and type.
     """
+    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
+
     response = await _delete_item_impl(request, context)
+    ui = build_item_mutation_ui(response.model_dump(), "Deleted")
+
     return make_tool_result(
         response,
         "item_deleted",
+        ui=ui,
         id=response.id,
         item_type=response.type,
         message=response.message,
@@ -646,7 +673,9 @@ class VariantDetailsResponse(BaseModel):
 
 
 def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolResult:
-    """Convert VariantDetailsResponse to ToolResult with markdown template."""
+    """Convert VariantDetailsResponse to ToolResult with markdown + Prefab UI."""
+    from katana_mcp.tools.prefab_ui import build_variant_details_ui
+
     # Build supplier info text
     if response.supplier_item_codes:
         supplier_info = "\n".join(f"- {code}" for code in response.supplier_item_codes)
@@ -665,9 +694,12 @@ def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolRes
     item_type = response.type or "unknown"
     description = response.product_or_material_name or "No description"
 
+    ui = build_variant_details_ui(response.model_dump())
+
     return make_tool_result(
         response,
         "item_details",
+        ui=ui,
         sku=response.sku,
         name=response.name,
         item_type=item_type,

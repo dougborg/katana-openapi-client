@@ -1,64 +1,52 @@
 """Utilities for creating ToolResult responses with template rendering.
 
 This module provides helpers for converting Pydantic response models
-to FastMCP ToolResult objects with both:
-- Human-readable markdown content (from templates)
-- Machine-readable structured content (from Pydantic model)
+to FastMCP ToolResult objects with:
+- Human-readable markdown content (from templates) for non-Prefab clients
+- Machine-readable structured content (from Pydantic model) for programmatic access
+- Prefab UI (via structuredContent) for Claude Desktop and other Prefab-capable hosts
 
-This dual-output approach provides:
-- Type safety via Pydantic validation
-- Clean markdown for AI/human readability
-- Structured JSON for programmatic access
-- Backward compatibility with all MCP clients
+When a PrefabApp is provided, it takes priority as structured_content. Claude Desktop
+renders the Prefab UI; other clients fall back to markdown content.
 """
 
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel
 
 from katana_mcp.templates import format_template
 
+if TYPE_CHECKING:
+    from prefab_ui.app import PrefabApp
+
 
 def make_tool_result(
     response: BaseModel,
     template_name: str,
+    *,
+    ui: PrefabApp | None = None,
     **template_vars: Any,
 ) -> ToolResult:
-    """Create a ToolResult with both markdown and structured content.
+    """Create a ToolResult with markdown, structured content, and optional Prefab UI.
 
-    The structured_content always comes from the Pydantic model (response.model_dump()).
-    The template_vars are used ONLY for template rendering and override/extend
-    the response fields as needed for display formatting.
+    The structured_content is either:
+    - A PrefabApp JSON envelope (if ``ui`` is provided) — rendered by Claude Desktop
+    - The Pydantic model dict (fallback for programmatic access)
+
+    Markdown content from templates is always included for non-Prefab clients.
 
     Args:
-        response: Pydantic model response from the tool (used for structured_content)
+        response: Pydantic model response from the tool
         template_name: Name of the markdown template (without .md extension)
-        **template_vars: Variables for template rendering. These can include:
-            - Formatted versions of response fields (e.g., prices as "$1,234.56")
-            - Computed fields (e.g., bullet lists from arrays)
-            - Additional context not in the response model
+        ui: Optional PrefabApp to use as structured_content for Prefab-capable hosts
+        **template_vars: Variables for template rendering
 
     Returns:
-        ToolResult with:
-        - content: Markdown rendered from template using template_vars
-        - structured_content: Dict from Pydantic model (unmodified)
-
-    Example:
-        response = PurchaseOrderResponse(order_number="PO-001", total_cost=1500.0, ...)
-        return make_tool_result(
-            response,
-            "order_created",
-            # Override total_cost with formatted version for display
-            total_cost=1500.0,  # Template uses ${total_cost:,.2f}
-            currency="USD",
-            # Add computed field not in response
-            next_actions_text="- Review order\\n- Track shipment",
-        )
+        ToolResult with markdown content and structured_content (Prefab or dict)
     """
-    # Get structured data from Pydantic model (always unmodified)
-    structured_data = response.model_dump()
-
     # Render markdown from template using provided vars
     try:
         markdown = format_template(template_name, **template_vars)
@@ -68,6 +56,15 @@ def make_tool_result(
             f"# Response\n\n```json\n{response.model_dump_json(indent=2)}\n```\n\n"
             f"Template error: {e}"
         )
+
+    # When Prefab UI is provided, include both the UI envelope and the response
+    # data so programmatic MCP clients can still access structured fields
+    if ui is not None:
+        prefab_json = ui.to_json()
+        prefab_json["data"] = response.model_dump()
+        structured_data = prefab_json
+    else:
+        structured_data = response.model_dump()
 
     return ToolResult(
         content=markdown,

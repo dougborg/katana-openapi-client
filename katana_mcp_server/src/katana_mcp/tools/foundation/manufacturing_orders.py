@@ -83,8 +83,8 @@ class ManufacturingOrderResponse(BaseModel):
     production_deadline_date: datetime | None = None
     additional_info: str | None = None
     is_preview: bool
-    warnings: list[str] = []
-    next_actions: list[str] = []
+    warnings: list[str] = Field(default_factory=list)
+    next_actions: list[str] = Field(default_factory=list)
     message: str
 
 
@@ -236,13 +236,25 @@ async def create_manufacturing_order(
     planned_quantity, and location_id. Recipe and operation rows are created
     automatically from the product's recipe. Use search_items to find variant IDs.
     """
+    from katana_mcp.tools.prefab_ui import (
+        build_order_created_ui,
+        build_order_preview_ui,
+    )
+
     response = await _create_manufacturing_order_impl(request, context)
 
     next_actions_text = "\n".join(f"- {a}" for a in response.next_actions) or "None"
 
+    order_dict = response.model_dump()
+    if response.is_preview:
+        ui = build_order_preview_ui(order_dict, "Manufacturing Order")
+    else:
+        ui = build_order_created_ui(order_dict, "Manufacturing Order")
+
     return make_tool_result(
         response,
         "manufacturing_order_created",
+        ui=ui,
         id=response.id or "N/A",
         order_no=response.order_no or "N/A",
         variant_id=response.variant_id,

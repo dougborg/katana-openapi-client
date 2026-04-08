@@ -113,8 +113,8 @@ class SalesOrderResponse(BaseModel):
     currency: str | None = None
     delivery_date: str | None = None
     is_preview: bool
-    warnings: list[str] = []
-    next_actions: list[str] = []
+    warnings: list[str] = Field(default_factory=list)
+    next_actions: list[str] = Field(default_factory=list)
     message: str
 
 
@@ -309,13 +309,25 @@ async def create_sales_order(
     least one line item with variant_id and quantity. Supports optional pricing
     overrides, discounts, delivery dates, and billing/shipping addresses.
     """
+    from katana_mcp.tools.prefab_ui import (
+        build_order_created_ui,
+        build_order_preview_ui,
+    )
+
     response = await _create_sales_order_impl(request, context)
 
     next_actions_text = "\n".join(f"- {a}" for a in response.next_actions) or "None"
 
+    order_dict = response.model_dump()
+    if response.is_preview:
+        ui = build_order_preview_ui(order_dict, "Sales Order")
+    else:
+        ui = build_order_created_ui(order_dict, "Sales Order")
+
     return make_tool_result(
         response,
         "sales_order_created",
+        ui=ui,
         id=response.id or "N/A",
         order_number=response.order_number,
         customer_id=response.customer_id,
