@@ -67,7 +67,12 @@ class FulfillOrderResponse(BaseModel):
 
 
 def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResult:
-    """Convert FulfillOrderResponse to ToolResult with markdown template."""
+    """Convert FulfillOrderResponse to ToolResult with markdown + Prefab UI."""
+    from katana_mcp.tools.prefab_ui import (
+        build_fulfill_preview_ui,
+        build_fulfill_success_ui,
+    )
+
     # Format lists for template
     inventory_updates_text = (
         "\n".join(f"- {update}" for update in response.inventory_updates)
@@ -81,9 +86,16 @@ def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResu
         else "No next steps"
     )
 
+    response_dict = response.model_dump()
+    if response.is_preview:
+        ui = build_fulfill_preview_ui(response_dict)
+    else:
+        ui = build_fulfill_success_ui(response_dict)
+
     return make_tool_result(
         response,
         "order_fulfilled",
+        ui=ui,
         order_type=response.order_type.title(),
         order_number=response.order_number,
         order_id=response.order_id,
@@ -96,308 +108,233 @@ def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResu
     )
 
 
-async def _fulfill_order_impl(
+async def _fulfill_manufacturing_order(
     request: FulfillOrderRequest, context: Context
 ) -> FulfillOrderResponse:
-    """Implementation of fulfill_order tool.
-
-    Fulfills manufacturing orders by marking them as DONE, or fulfills sales
-    orders by creating a sales order fulfillment.
-
-    Manufacturing orders:
-    - Fetches the order to get current status
-    - Preview mode: Shows what would happen (status change to DONE)
-    - Confirm mode: Updates order status to DONE via PATCH /manufacturing_orders/{id}
-
-    Sales orders:
-    - Fetches the order to get current status
-    - Preview mode: Shows what would happen (create fulfillment)
-    - Confirm mode: Creates fulfillment via POST /sales_order_fulfillments
-
-    Args:
-        request: Request with order ID, type, and confirm flag
-        context: Server context with KatanaClient
-
-    Returns:
-        FulfillOrderResponse with details of fulfillment
-
-    Raises:
-        ValueError: If validation fails
-        Exception: If API call fails
-    """
-    logger.info(
-        f"{'Previewing' if not request.confirm else 'Fulfilling'} {request.order_type} order {request.order_id}"
+    """Fulfill a manufacturing order by marking it as DONE."""
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order as api_get_manufacturing_order,
     )
 
     services = get_services(context)
+    mo_response = await api_get_manufacturing_order.asyncio_detailed(
+        id=request.order_id, client=services.client
+    )
+    mo = unwrap_as(mo_response, ManufacturingOrder)
+    order_number = unwrap_unset(mo.order_no, f"MO-{request.order_id}")
+    current_status = mo.status.value if mo.status else "UNKNOWN"
 
+    inventory_updates = [
+        "Manufacturing order completion will update inventory based on BOM",
+        "Finished goods will be added to stock",
+        "Raw materials will be consumed from inventory",
+    ]
+
+    warnings: list[str] = []
+    if current_status == "DONE":
+        warnings.append(f"Manufacturing order {order_number} is already completed")
+    elif current_status == "BLOCKED":
+        warnings.append(
+            f"Manufacturing order {order_number} is blocked - review before completing"
+        )
+
+    if not request.confirm:
+        next_actions = (
+            ["Order is already completed - no action needed"]
+            if current_status == "DONE"
+            else [
+                "Review the manufacturing order details",
+                "Verify all production steps are complete",
+                "Set confirm=true to mark order as DONE",
+            ]
+        )
+        return FulfillOrderResponse(
+            order_id=request.order_id,
+            order_type="manufacturing",
+            order_number=order_number,
+            status=current_status,
+            is_preview=True,
+            inventory_updates=inventory_updates,
+            warnings=warnings,
+            next_actions=next_actions,
+            message=f"Preview: Would mark manufacturing order {order_number} as DONE (currently {current_status})",
+        )
+
+    if current_status == "DONE":
+        return FulfillOrderResponse(
+            order_id=request.order_id,
+            order_type="manufacturing",
+            order_number=order_number,
+            status=current_status,
+            is_preview=False,
+            inventory_updates=[],
+            warnings=warnings,
+            next_actions=["Order is already completed"],
+            message=f"Manufacturing order {order_number} is already completed",
+        )
+
+    confirmation = await require_confirmation(
+        context,
+        f"Mark manufacturing order {order_number} as DONE and update inventory?",
+    )
+    if confirmation != ConfirmationResult.CONFIRMED:
+        return FulfillOrderResponse(
+            order_id=request.order_id,
+            order_type="manufacturing",
+            order_number=order_number,
+            status=current_status,
+            is_preview=True,
+            inventory_updates=inventory_updates,
+            warnings=warnings,
+            message=f"Manufacturing order fulfillment {confirmation} by user",
+            next_actions=["Review the order details and try again with confirm=true"],
+        )
+
+    from katana_public_api_client.api.manufacturing_order import (
+        update_manufacturing_order as api_update_manufacturing_order,
+    )
+    from katana_public_api_client.models.manufacturing_order_status import (
+        ManufacturingOrderStatus,
+    )
+
+    update_req = UpdateManufacturingOrderRequest(
+        status=ManufacturingOrderStatus.DONE,
+    )
+    update_response = await api_update_manufacturing_order.asyncio_detailed(
+        id=request.order_id, client=services.client, body=update_req
+    )
+    updated_mo = unwrap_as(update_response, ManufacturingOrder)
+    new_status = updated_mo.status.value if updated_mo.status else "UNKNOWN"
+
+    logger.info(f"Successfully marked manufacturing order {order_number} as DONE")
+    return FulfillOrderResponse(
+        order_id=request.order_id,
+        order_type="manufacturing",
+        order_number=order_number,
+        status=new_status,
+        is_preview=False,
+        inventory_updates=inventory_updates,
+        warnings=warnings,
+        next_actions=[
+            f"Manufacturing order {order_number} completed",
+            "Inventory has been updated",
+            "Check stock levels for finished goods",
+        ],
+        message=f"Successfully marked manufacturing order {order_number} as DONE",
+    )
+
+
+async def _fulfill_sales_order(
+    request: FulfillOrderRequest, context: Context
+) -> FulfillOrderResponse:
+    """Fulfill a sales order by creating a fulfillment record."""
+    from katana_public_api_client.api.sales_order import (
+        get_sales_order as api_get_sales_order,
+    )
+
+    services = get_services(context)
+    so_response = await api_get_sales_order.asyncio_detailed(
+        id=request.order_id, client=services.client
+    )
+    so = unwrap_as(so_response, SalesOrder)
+    order_number = unwrap_unset(so.order_no, f"SO-{request.order_id}")
+    current_status = so.status.value if so.status else "UNKNOWN"
+
+    inventory_updates = [
+        "Sales order fulfillment will reduce available inventory",
+        "Items will be marked as shipped/fulfilled",
+        "Stock levels will be updated accordingly",
+    ]
+
+    warnings: list[str] = []
+    if current_status in ("DELIVERED", "PARTIALLY_DELIVERED"):
+        warnings.append(f"Sales order {order_number} may already be delivered")
+
+    if not request.confirm:
+        next_actions = (
+            [
+                "Order may already be delivered - verify before creating additional fulfillment"
+            ]
+            if current_status in ("DELIVERED", "PARTIALLY_DELIVERED")
+            else [
+                "Review the sales order details",
+                "Verify items are ready to ship",
+                "Set confirm=true to create fulfillment",
+            ]
+        )
+        return FulfillOrderResponse(
+            order_id=request.order_id,
+            order_type="sales",
+            order_number=order_number,
+            status=current_status,
+            is_preview=True,
+            inventory_updates=inventory_updates,
+            warnings=warnings,
+            next_actions=next_actions,
+            message=f"Preview: Would fulfill sales order {order_number} (currently {current_status})",
+        )
+
+    # Sales orders can have multiple fulfillments, so we don't prevent
+    # fulfillment based on status
+    confirmation = await require_confirmation(
+        context,
+        f"Fulfill sales order {order_number} and update inventory?",
+    )
+    if confirmation != ConfirmationResult.CONFIRMED:
+        return FulfillOrderResponse(
+            order_id=request.order_id,
+            order_type="sales",
+            order_number=order_number,
+            status=current_status,
+            is_preview=True,
+            inventory_updates=inventory_updates,
+            warnings=warnings,
+            message=f"Sales order fulfillment {confirmation} by user",
+            next_actions=["Review the order details and try again with confirm=true"],
+        )
+
+    from katana_public_api_client.api.sales_order_fulfillment import (
+        create_sales_order_fulfillment as api_create_sales_order_fulfillment,
+    )
+
+    fulfillment_body = CreateSalesOrderFulfillmentRequest(
+        sales_order_id=request.order_id
+    )
+    fulfillment_response = await api_create_sales_order_fulfillment.asyncio_detailed(
+        client=services.client, body=fulfillment_body
+    )
+    if not is_success(fulfillment_response):
+        unwrap(fulfillment_response)
+
+    logger.info(f"Successfully created fulfillment for sales order {order_number}")
+    return FulfillOrderResponse(
+        order_id=request.order_id,
+        order_type="sales",
+        order_number=order_number,
+        status="FULFILLED",
+        is_preview=False,
+        inventory_updates=inventory_updates,
+        warnings=warnings,
+        next_actions=[
+            f"Sales order {order_number} fulfilled",
+            "Inventory has been updated",
+            "Fulfillment record created",
+        ],
+        message=f"Successfully fulfilled sales order {order_number}",
+    )
+
+
+async def _fulfill_order_impl(
+    request: FulfillOrderRequest, context: Context
+) -> FulfillOrderResponse:
+    """Dispatch to the appropriate fulfillment handler."""
+    logger.info(
+        f"{'Previewing' if not request.confirm else 'Fulfilling'} {request.order_type} order {request.order_id}"
+    )
     try:
         if request.order_type == "manufacturing":
-            # Fetch manufacturing order
-            from katana_public_api_client.api.manufacturing_order import (
-                get_manufacturing_order as api_get_manufacturing_order,
-            )
-
-            mo_response = await api_get_manufacturing_order.asyncio_detailed(
-                id=request.order_id, client=services.client
-            )
-
-            # unwrap_as() raises typed exceptions on error, returns typed ManufacturingOrder
-            mo = unwrap_as(mo_response, ManufacturingOrder)
-
-            # Extract order number safely using unwrap_unset
-            order_number = unwrap_unset(mo.order_no, f"MO-{request.order_id}")
-
-            # Extract current status
-            current_status = mo.status.value if mo.status else "UNKNOWN"
-
-            # Build inventory update messages
-            inventory_updates = [
-                "Manufacturing order completion will update inventory based on BOM",
-                "Finished goods will be added to stock",
-                "Raw materials will be consumed from inventory",
-            ]
-
-            # Check current status and provide warnings
-            warnings = []
-            if current_status == "DONE":
-                warnings.append(
-                    f"Manufacturing order {order_number} is already completed"
-                )
-            elif current_status == "BLOCKED":
-                warnings.append(
-                    f"Manufacturing order {order_number} is blocked - review before completing"
-                )
-
-            # Preview mode - return what would happen
-            if not request.confirm:
-                logger.info(
-                    f"Preview mode: Would complete manufacturing order {order_number}"
-                )
-
-                next_actions = [
-                    "Review the manufacturing order details",
-                    "Verify all production steps are complete",
-                    "Set confirm=true to mark order as DONE",
-                ]
-
-                if current_status == "DONE":
-                    next_actions = ["Order is already completed - no action needed"]
-
-                return FulfillOrderResponse(
-                    order_id=request.order_id,
-                    order_type="manufacturing",
-                    order_number=order_number,
-                    status=current_status,
-                    is_preview=True,
-                    inventory_updates=inventory_updates,
-                    warnings=warnings,
-                    next_actions=next_actions,
-                    message=f"Preview: Would mark manufacturing order {order_number} as DONE (currently {current_status})",
-                )
-
-            # Confirm mode - use elicitation to get user confirmation
-            if current_status == "DONE":
-                logger.info(f"Manufacturing order {order_number} is already completed")
-                return FulfillOrderResponse(
-                    order_id=request.order_id,
-                    order_type="manufacturing",
-                    order_number=order_number,
-                    status=current_status,
-                    is_preview=False,
-                    inventory_updates=[],
-                    warnings=warnings,
-                    next_actions=["Order is already completed"],
-                    message=f"Manufacturing order {order_number} is already completed",
-                )
-
-            # Get user confirmation before marking as done
-            confirmation = await require_confirmation(
-                context,
-                f"Mark manufacturing order {order_number} as DONE and update inventory?",
-            )
-
-            if confirmation != ConfirmationResult.CONFIRMED:
-                logger.info(
-                    f"User did not confirm fulfillment of manufacturing order {order_number}"
-                )
-                return FulfillOrderResponse(
-                    order_id=request.order_id,
-                    order_type="manufacturing",
-                    order_number=order_number,
-                    status=current_status,
-                    is_preview=True,
-                    inventory_updates=inventory_updates,
-                    warnings=warnings,
-                    message=f"Manufacturing order fulfillment {confirmation} by user",
-                    next_actions=[
-                        "Review the order details and try again with confirm=true"
-                    ],
-                )
-
-            # User confirmed - update order status to DONE
-            from katana_public_api_client.api.manufacturing_order import (
-                update_manufacturing_order as api_update_manufacturing_order,
-            )
-
-            update_request = UpdateManufacturingOrderRequest()
-            # Set status via additional_properties since status field is not in the model
-            update_request.additional_properties["status"] = "DONE"
-
-            update_response = await api_update_manufacturing_order.asyncio_detailed(
-                id=request.order_id, client=services.client, body=update_request
-            )
-
-            # unwrap_as() raises typed exceptions on error, returns typed ManufacturingOrder
-            updated_mo = unwrap_as(update_response, ManufacturingOrder)
-            new_status = updated_mo.status.value if updated_mo.status else "UNKNOWN"
-
-            logger.info(
-                f"Successfully marked manufacturing order {order_number} as DONE"
-            )
-
-            return FulfillOrderResponse(
-                order_id=request.order_id,
-                order_type="manufacturing",
-                order_number=order_number,
-                status=new_status,
-                is_preview=False,
-                inventory_updates=inventory_updates,
-                warnings=warnings,
-                next_actions=[
-                    f"Manufacturing order {order_number} completed",
-                    "Inventory has been updated",
-                    "Check stock levels for finished goods",
-                ],
-                message=f"Successfully marked manufacturing order {order_number} as DONE",
-            )
-
-        else:  # sales order
-            # Fetch sales order
-            from katana_public_api_client.api.sales_order import (
-                get_sales_order as api_get_sales_order,
-            )
-
-            so_response = await api_get_sales_order.asyncio_detailed(
-                id=request.order_id, client=services.client
-            )
-
-            # unwrap_as() raises typed exceptions on error, returns typed SalesOrder
-            so = unwrap_as(so_response, SalesOrder)
-
-            # Extract order number safely using unwrap_unset
-            order_number = unwrap_unset(so.order_no, f"SO-{request.order_id}")
-
-            # Extract current status
-            current_status = so.status.value if so.status else "UNKNOWN"
-
-            # Build inventory update messages
-            inventory_updates = [
-                "Sales order fulfillment will reduce available inventory",
-                "Items will be marked as shipped/fulfilled",
-                "Stock levels will be updated accordingly",
-            ]
-
-            # Check current status and provide warnings
-            warnings = []
-            if current_status in ["DELIVERED", "PARTIALLY_DELIVERED"]:
-                warnings.append(f"Sales order {order_number} may already be delivered")
-
-            # Preview mode - return what would happen
-            if not request.confirm:
-                logger.info(f"Preview mode: Would fulfill sales order {order_number}")
-
-                next_actions = [
-                    "Review the sales order details",
-                    "Verify items are ready to ship",
-                    "Set confirm=true to create fulfillment",
-                ]
-
-                if current_status in ["DELIVERED", "PARTIALLY_DELIVERED"]:
-                    next_actions = [
-                        "Order may already be delivered - verify before creating additional fulfillment"
-                    ]
-
-                return FulfillOrderResponse(
-                    order_id=request.order_id,
-                    order_type="sales",
-                    order_number=order_number,
-                    status=current_status,
-                    is_preview=True,
-                    inventory_updates=inventory_updates,
-                    warnings=warnings,
-                    next_actions=next_actions,
-                    message=f"Preview: Would fulfill sales order {order_number} (currently {current_status})",
-                )
-
-            # Confirm mode - use elicitation to get user confirmation before creating fulfillment
-            # Note: Sales orders in Katana can have multiple fulfillments, so we don't
-            # prevent fulfillment based on status
-
-            # Get user confirmation
-            confirmation = await require_confirmation(
-                context,
-                f"Create fulfillment for sales order {order_number} and update inventory?",
-            )
-
-            if confirmation != ConfirmationResult.CONFIRMED:
-                logger.info(
-                    f"User did not confirm fulfillment of sales order {order_number}"
-                )
-                return FulfillOrderResponse(
-                    order_id=request.order_id,
-                    order_type="sales",
-                    order_number=order_number,
-                    status=current_status,
-                    is_preview=True,
-                    inventory_updates=inventory_updates,
-                    warnings=warnings,
-                    message=f"Sales order fulfillment {confirmation} by user",
-                    next_actions=[
-                        "Review the order details and try again with confirm=true"
-                    ],
-                )
-
-            # User confirmed - create sales order fulfillment
-            from katana_public_api_client.api.sales_order_fulfillment import (
-                create_sales_order_fulfillment as api_create_sales_order_fulfillment,
-            )
-
-            fulfillment_body = CreateSalesOrderFulfillmentRequest(
-                sales_order_id=request.order_id
-            )
-
-            fulfillment_response = (
-                await api_create_sales_order_fulfillment.asyncio_detailed(
-                    client=services.client, body=fulfillment_body
-                )
-            )
-
-            # Use is_success for 201 Created response
-            if not is_success(fulfillment_response):
-                # unwrap will raise with appropriate error details
-                unwrap(fulfillment_response)
-
-            logger.info(
-                f"Successfully created fulfillment for sales order {order_number}"
-            )
-
-            return FulfillOrderResponse(
-                order_id=request.order_id,
-                order_type="sales",
-                order_number=order_number,
-                status="FULFILLED",
-                is_preview=False,
-                inventory_updates=inventory_updates,
-                warnings=warnings,
-                next_actions=[
-                    f"Sales order {order_number} fulfilled",
-                    "Inventory has been updated",
-                    "Fulfillment record created",
-                ],
-                message=f"Successfully fulfilled sales order {order_number}",
-            )
-
+            return await _fulfill_manufacturing_order(request, context)
+        return await _fulfill_sales_order(request, context)
     except Exception as e:
         logger.error(f"Failed to fulfill {request.order_type} order: {e}")
         raise

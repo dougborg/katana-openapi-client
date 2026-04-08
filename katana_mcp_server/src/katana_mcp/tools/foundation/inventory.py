@@ -131,10 +131,15 @@ async def check_inventory(
     Use before creating orders to verify stock availability. Returns zero stock
     if the SKU is not found (does not raise an error).
     """
+    from katana_mcp.tools.prefab_ui import build_inventory_check_ui
+
     response = await _check_inventory_impl(request, context)
+    ui = build_inventory_check_ui(response.model_dump())
+
     return make_tool_result(
         response,
         "inventory_check",
+        ui=ui,
         sku=response.sku,
         product_name=response.product_name,
         available_stock=response.available_stock,
@@ -266,6 +271,8 @@ async def list_low_stock_items(
 
     Default threshold is 10 units, default limit is 50 items.
     """
+    from katana_mcp.tools.prefab_ui import build_low_stock_ui
+
     response = await _list_low_stock_items_impl(request, context)
 
     if response.items:
@@ -276,9 +283,13 @@ async def list_low_stock_items(
     else:
         items_table = "No items below threshold."
 
+    items_dicts = [item.model_dump() for item in response.items]
+    ui = build_low_stock_ui(items_dicts, request.threshold, response.total_count)
+
     return make_tool_result(
         response,
         "low_stock_report",
+        ui=ui,
         threshold=request.threshold,
         total_count=response.total_count,
         items_table=items_table,

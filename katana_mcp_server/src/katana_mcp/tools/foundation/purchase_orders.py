@@ -87,13 +87,18 @@ class PurchaseOrderResponse(BaseModel):
     total_cost: float | None = None
     currency: str | None = None
     is_preview: bool
-    warnings: list[str] = []
-    next_actions: list[str] = []
+    warnings: list[str] = Field(default_factory=list)
+    next_actions: list[str] = Field(default_factory=list)
     message: str
 
 
 def _po_response_to_tool_result(response: PurchaseOrderResponse) -> ToolResult:
-    """Convert PurchaseOrderResponse to ToolResult with markdown template."""
+    """Convert PurchaseOrderResponse to ToolResult with markdown + Prefab UI."""
+    from katana_mcp.tools.prefab_ui import (
+        build_order_created_ui,
+        build_order_preview_ui,
+    )
+
     # Format next_actions as bullet list for template
     next_actions_text = "\n".join(f"- {action}" for action in response.next_actions)
 
@@ -103,9 +108,16 @@ def _po_response_to_tool_result(response: PurchaseOrderResponse) -> ToolResult:
 
     template_name = "order_preview" if response.is_preview else "order_created"
 
+    order_dict = response.model_dump()
+    if response.is_preview:
+        ui = build_order_preview_ui(order_dict, "Purchase Order")
+    else:
+        ui = build_order_created_ui(order_dict, "Purchase Order")
+
     return make_tool_result(
         response,
         template_name,
+        ui=ui,
         id=response.id,
         order_number=response.order_number,
         supplier_id=response.supplier_id,
@@ -303,21 +315,26 @@ class ReceivePurchaseOrderResponse(BaseModel):
     """Response from receiving purchase order items."""
 
     order_id: int
-    order_number: str = "stub_not_implemented"
+    order_number: str
     items_received: int = 0
     is_preview: bool = True
-    warnings: list[str] = []
-    next_actions: list[str] = []
-    message: str = "Receive purchase order tool is a stub - not yet implemented"
+    warnings: list[str] = Field(default_factory=list)
+    next_actions: list[str] = Field(default_factory=list)
+    message: str
 
 
 def _receive_response_to_tool_result(
     response: ReceivePurchaseOrderResponse,
 ) -> ToolResult:
-    """Convert ReceivePurchaseOrderResponse to ToolResult with markdown template."""
+    """Convert ReceivePurchaseOrderResponse to ToolResult with markdown + Prefab UI."""
+    from katana_mcp.tools.prefab_ui import build_receipt_ui
+
+    ui = build_receipt_ui(response.model_dump())
+
     return make_tool_result(
         response,
         "order_received",
+        ui=ui,
         order_id=response.order_id,
         order_number=response.order_number,
         items_received=response.items_received,
@@ -516,7 +533,7 @@ class VerifyOrderDocumentResponse(BaseModel):
     order_id: int
     matches: list[MatchResult] = []
     discrepancies: list[Discrepancy] = []
-    suggested_actions: list[str] = []
+    suggested_actions: list[str] = Field(default_factory=list)
     overall_status: str = Field(..., description="match, partial_match, or no_match")
     message: str
 
@@ -524,7 +541,9 @@ class VerifyOrderDocumentResponse(BaseModel):
 def _verify_response_to_tool_result(
     response: VerifyOrderDocumentResponse,
 ) -> ToolResult:
-    """Convert VerifyOrderDocumentResponse to ToolResult with markdown template."""
+    """Convert VerifyOrderDocumentResponse to ToolResult with markdown + Prefab UI."""
+    from katana_mcp.tools.prefab_ui import build_verification_ui
+
     # Format matches and discrepancies as text for template
     if response.matches:
         matches_text = "\n".join(
@@ -551,9 +570,12 @@ def _verify_response_to_tool_result(
     else:
         template_name = "order_verification_no_match"
 
+    ui = build_verification_ui(response.model_dump())
+
     return make_tool_result(
         response,
         template_name,
+        ui=ui,
         order_id=response.order_id,
         overall_status=response.overall_status,
         message=response.message,
