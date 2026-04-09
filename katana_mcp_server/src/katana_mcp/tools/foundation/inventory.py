@@ -556,26 +556,8 @@ async def _create_stock_adjustment_impl(
             rows_summary=rows_summary,
         )
 
-    # Generate next SA number by scanning existing adjustments for max SA-{N}
-    import re
-
-    from katana_public_api_client.api.stock_adjustment import (
-        get_all_stock_adjustments,
-    )
-    from katana_public_api_client.utils import unwrap_data
-
-    sa_response = await get_all_stock_adjustments.asyncio_detailed(
-        client=services.client, limit=200
-    )
-    existing = unwrap_data(sa_response, default=[])
-
-    sa_pattern = re.compile(r"^SA-(\d+)$")
-    max_num = 0
-    for sa in existing:
-        match = sa_pattern.match(sa.stock_adjustment_number)
-        if match:
-            max_num = max(max_num, int(match.group(1)))
-    adj_number = f"SA-{max_num + 1}"
+    # Generate a collision-resistant SA number using timestamp
+    adj_number = f"SA-{datetime.now(tz=UTC).strftime('%Y%m%d-%H%M%S')}"
 
     api_request = APICreateStockAdjustmentRequest(
         location_id=request.location_id,
