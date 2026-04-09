@@ -2,6 +2,7 @@ from enum import StrEnum
 
 
 class FindPurchaseOrdersStatus(StrEnum):
+    DRAFT = "DRAFT"
     NOT_RECEIVED = "NOT_RECEIVED"
     PARTIALLY_RECEIVED = "PARTIALLY_RECEIVED"
     RECEIVED = "RECEIVED"

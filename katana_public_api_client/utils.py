@@ -9,6 +9,7 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING, Any, overload
 
 from .client_types import Response, Unset
+from .domain.converters import unwrap_unset
 from .models.detailed_error_response import DetailedErrorResponse
 from .models.enum_validation_error import EnumValidationError
 from .models.error_response import ErrorResponse
@@ -69,8 +70,8 @@ class ValidationError(APIError):
             error_response: The detailed error response with validation details
         """
         super().__init__(message, status_code, error_response)
-        self.validation_errors = (
-            error_response.details if error_response and error_response.details else []
+        self.validation_errors = unwrap_unset(
+            getattr(error_response, "details", None), []
         )
 
     def __str__(self) -> str:
@@ -238,13 +239,16 @@ def unwrap[T](
             else "No error message provided"
         )
 
-        # Handle nested error format
+        # Handle nested error format — Katana wraps errors in {"error": {...}}
         nested = parsed_error.additional_properties
         if isinstance(nested, dict) and "error" in nested:
             nested_error = nested["error"]
             if isinstance(nested_error, dict):
                 error_name = str(nested_error.get("name", error_name))
                 error_message = str(nested_error.get("message", error_message))
+                # Re-parse as DetailedErrorResponse to capture details
+                if "details" in nested_error:
+                    parsed_error = DetailedErrorResponse.from_dict(nested_error)
 
         message = f"{error_name}: {error_message}"
 

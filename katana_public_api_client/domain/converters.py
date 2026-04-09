@@ -47,15 +47,15 @@ def to_unset[T](value: T | None) -> T | Unset:
     return UNSET if value is None else value
 
 
-def unwrap_unset[T](value: T | Unset, default: T | None = None) -> T | None:
-    """Unwrap an Unset sentinel value.
+def unwrap_unset[T](value: T | Unset | None, default: T | None = None) -> T | None:
+    """Unwrap an Unset or None sentinel value.
 
     Args:
-        value: Value that might be Unset
-        default: Default value to return if Unset
+        value: Value that might be Unset or None
+        default: Default value to return if Unset or None
 
     Returns:
-        The unwrapped value, or default if value is Unset
+        The unwrapped value, or default if value is Unset or None
 
     Example:
         ```python
@@ -64,9 +64,10 @@ def unwrap_unset[T](value: T | Unset, default: T | None = None) -> T | None:
         unwrap_unset(42)  # 42
         unwrap_unset(UNSET)  # None
         unwrap_unset(UNSET, 0)  # 0
+        unwrap_unset(None, 0)  # 0
         ```
     """
-    if isinstance(value, Unset):
+    if value is None or isinstance(value, Unset):
         return default
     return value
 
