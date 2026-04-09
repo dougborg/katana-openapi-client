@@ -424,6 +424,34 @@ class UpdateItemRequest(BaseModel):
     is_purchasable: bool | None = Field(None, description="Can be purchased")
     default_supplier_id: int | None = Field(None, description="Default supplier ID")
     additional_info: str | None = Field(None, description="Additional notes")
+    # Variant-level fields — resolved automatically via SKU or first variant
+    sku: str | None = Field(
+        None,
+        description="SKU to identify which variant to update (uses first variant if omitted)",
+    )
+    supplier_item_codes: list[str] | None = Field(
+        None, description="Supplier item codes (replaces all existing codes)"
+    )
+    registered_barcode: str | None = Field(None, description="UPC / registered barcode")
+    internal_barcode: str | None = Field(None, description="Internal barcode")
+    sales_price: float | None = Field(None, description="Sales price")
+    purchase_price: float | None = Field(None, description="Purchase price")
+    lead_time: int | None = Field(None, description="Lead time in days")
+
+    @property
+    def has_variant_fields(self) -> bool:
+        """Check if any variant-level fields are set."""
+        return any(
+            v is not None
+            for v in [
+                self.supplier_item_codes,
+                self.registered_barcode,
+                self.internal_barcode,
+                self.sales_price,
+                self.purchase_price,
+                self.lead_time,
+            ]
+        )
 
 
 class UpdateItemResponse(BaseModel):
@@ -474,7 +502,68 @@ async def _update_item_impl(
     else:
         update_data = UpdateServiceRequest(**common)
 
-    result = await helper.update(request.id, update_data)
+    # Check if any item-level fields are set
+    has_item_fields = any(
+        v is not None
+        for v in [
+            request.name,
+            request.uom,
+            request.category_name,
+            request.is_sellable,
+            request.is_producible,
+            request.is_purchasable,
+            request.default_supplier_id,
+            request.additional_info,
+        ]
+    )
+
+    item_name = ""
+    if has_item_fields:
+        result = await helper.update(request.id, update_data)
+        item_name = result.name or ""
+
+    # Update variant-level fields if any are provided
+    if request.has_variant_fields:
+        from katana_public_api_client.api.variant import update_variant
+        from katana_public_api_client.models.update_variant_request import (
+            UpdateVariantRequest,
+        )
+        from katana_public_api_client.utils import unwrap
+
+        # Resolve variant ID from SKU or get from cache
+        if request.sku:
+            variant = await services.cache.get_by_sku(sku=request.sku)
+            if not variant:
+                raise ValueError(f"SKU '{request.sku}' not found")
+            variant_id = variant["id"]
+        else:
+            # Find the first variant for this item via cache
+            variant = await services.cache.get_by_id(
+                entity_type="variant",
+                entity_id=request.id,
+            )
+            if not variant:
+                raise ValueError(
+                    f"No variant found for item ID {request.id}. "
+                    "Provide a SKU to identify the variant."
+                )
+            variant_id = variant["id"]
+
+        variant_update = UpdateVariantRequest(
+            supplier_item_codes=to_unset(request.supplier_item_codes),
+            registered_barcode=to_unset(request.registered_barcode),
+            internal_barcode=to_unset(request.internal_barcode),
+            sales_price=to_unset(request.sales_price),
+            purchase_price=to_unset(request.purchase_price),
+            lead_time=to_unset(request.lead_time),
+        )
+
+        resp = await update_variant.asyncio_detailed(
+            id=variant_id, client=services.client, body=variant_update
+        )
+        variant_result = unwrap(resp)
+        if not item_name and variant_result:
+            item_name = getattr(variant_result, "sku", "") or ""
 
     # Invalidate only the affected type + variants
     cache = getattr(services, "cache", None)
@@ -483,10 +572,10 @@ async def _update_item_impl(
         await cache.mark_dirty(EntityType.VARIANT)
 
     return UpdateItemResponse(
-        id=result.id,
-        name=result.name or "",
+        id=request.id,
+        name=item_name or "Unknown",
         type=request.type,
-        message=f"{request.type.value.title()} '{result.name or 'Unknown'}' (ID {result.id}) updated successfully",
+        message=f"{request.type.value.title()} (ID {request.id}) updated successfully",
     )
 
 
