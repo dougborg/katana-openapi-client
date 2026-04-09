@@ -66,9 +66,9 @@ class CreatePurchaseOrderRequest(BaseModel):
     items: list[PurchaseOrderItem] = Field(..., description="Line items", min_length=1)
     notes: str | None = Field(None, description="Order notes (additional_info)")
     currency: str | None = Field(None, description="Currency code (e.g., USD, EUR)")
-    status: Literal["NOT_RECEIVED"] | None = Field(
+    status: Literal["DRAFT", "NOT_RECEIVED"] | None = Field(
         None,
-        description="Initial status — only 'NOT_RECEIVED' is allowed by the API",
+        description="Initial status — 'DRAFT' or 'NOT_RECEIVED' (default: NOT_RECEIVED)",
     )
     confirm: bool = Field(
         False, description="If false, returns preview. If true, creates order."

@@ -44,12 +44,14 @@ class PurchaseOrderEntityType(StrEnum):
 
 
 class PurchaseOrderStatus(StrEnum):
+    draft = "DRAFT"
     not_received = "NOT_RECEIVED"
     partially_received = "PARTIALLY_RECEIVED"
     received = "RECEIVED"
 
 
 class CreatePurchaseOrderInitialStatus(StrEnum):
+    draft = "DRAFT"
     not_received = "NOT_RECEIVED"
 
 
