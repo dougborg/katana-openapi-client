@@ -15,7 +15,7 @@ from collections.abc import Awaitable, Callable
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any, cast
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse, urlunparse
 
 import httpx
 from dotenv import load_dotenv
@@ -42,6 +42,59 @@ from .models.required_validation_error import RequiredValidationError
 from .models.too_big_validation_error import TooBigValidationError
 from .models.too_small_validation_error import TooSmallValidationError
 from .models.unrecognized_keys_validation_error import UnrecognizedKeysValidationError
+
+# Patterns used to identify sensitive query parameters and body fields in logs.
+# Values matching these patterns are redacted to prevent information disclosure.
+# See also: katana_mcp_server/.../logging.py filter_sensitive_data() for the MCP equivalent.
+_SENSITIVE_PARAMS: frozenset[str] = frozenset(
+    {
+        "api_key",
+        "auth",
+        "authorization",
+        "credential",
+        "email",
+        "key",
+        "password",
+        "secret",
+        "token",
+    }
+)
+
+_REDACTED = "***"
+
+
+def _is_sensitive(name: str) -> bool:
+    """Check if a parameter/field name matches any sensitive pattern."""
+    lower = name.lower()
+    return any(pattern in lower for pattern in _SENSITIVE_PARAMS)
+
+
+def _sanitize_url(url: str) -> str:
+    """Redact sensitive query parameter values from a URL for safe logging."""
+    try:
+        parsed = urlparse(url)
+        if not parsed.query:
+            return url
+        params = parse_qs(parsed.query, keep_blank_values=True)
+        parts = []
+        for k, values in params.items():
+            if _is_sensitive(k):
+                parts.append(f"{k}={_REDACTED}")
+            else:
+                parts.extend(f"{k}={v}" for v in values)
+        clean_query = "&".join(parts)
+        return urlunparse(parsed._replace(query=clean_query))
+    except Exception:
+        # If URL parsing fails, strip the query string entirely
+        base, _, _ = url.partition("?")
+        return f"{base}?{_REDACTED}"
+
+
+def _sanitize_body(body: Any) -> Any:
+    """Redact sensitive field values from a dict for safe logging."""
+    if not isinstance(body, dict):
+        return "[non-dict body]"
+    return {k: _REDACTED if _is_sensitive(k) else v for k, v in body.items()}
 
 
 class RateLimitAwareRetry(Retry):
@@ -202,7 +255,7 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         Assumes error responses are always typed (DetailedErrorResponse or ErrorResponse).
         """
         method = request.method
-        url = str(request.url)
+        url = _sanitize_url(str(request.url))
         status_code = response.status_code
 
         # Capture request body for validation error context
@@ -246,7 +299,7 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                         f"details type: {type(detailed_error.details)}, "
                         f"details value: {detailed_error.details}, "
                         f"is Unset: {isinstance(detailed_error.details, Unset)}, "
-                        f"raw error_data: {error_data}"
+                        f"raw error_data: {_sanitize_body(error_data)}"
                     )
                     self._log_detailed_error(
                         detailed_error, method, url, status_code, request_body
@@ -268,7 +321,8 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
 
         # Fallback: log raw error data if parsing failed
         self.logger.error(
-            f"Client error {status_code} for {method} {url} - Raw error: {error_data}"
+            f"Client error {status_code} for {method} {url} - "
+            f"Raw error: {_sanitize_body(error_data)}"
         )
 
     def _log_detailed_error(
@@ -334,6 +388,9 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                     field_path = detail.path.lstrip("/")
                     if "/" not in field_path:
                         sent_value = request_body.get(field_path)
+                    # Redact sensitive field values to prevent information disclosure
+                    if sent_value is not None and _is_sensitive(field_path):
+                        sent_value = _REDACTED
 
                 # Use isinstance for type-safe error handling
                 if isinstance(detail, EnumValidationError):
@@ -443,9 +500,8 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         log_message += f"\n  Error: {error_name} - {error_message}"
 
         if error.additional_properties:
-            formatted = ", ".join(
-                f"{k}: {v!r}" for k, v in error.additional_properties.items()
-            )
+            sanitized = _sanitize_body(error.additional_properties)
+            formatted = ", ".join(f"{k}: {v!r}" for k, v in sanitized.items())
             log_message += f"\n  Additional info: {formatted}"
         self.logger.error(log_message)
 
@@ -583,7 +639,7 @@ class PaginationTransport(AsyncHTTPTransport):
             )
             page_size = 250
 
-        self.logger.info("Auto-paginating request: %s", request.url)
+        self.logger.info("Auto-paginating request: %s", _sanitize_url(str(request.url)))
 
         for page_num in range(1, self.max_pages + 1):
             # Determine limit for this request
@@ -1109,6 +1165,18 @@ class KatanaClient(AuthenticatedClient):
             if not netrc_path.exists():
                 return None
 
+            # Warn if .netrc is readable by group or others (POSIX only)
+            if os.name != "nt":
+                mode = netrc_path.stat().st_mode
+                if mode & 0o077:
+                    import warnings
+
+                    warnings.warn(
+                        f"~/.netrc has insecure permissions ({oct(mode & 0o777)}). "
+                        "This may expose your API key. Run: chmod 600 ~/.netrc",
+                        stacklevel=2,
+                    )
+
             auth = netrc.netrc(str(netrc_path))
             authenticators = auth.authenticators(host)
 
@@ -1196,6 +1264,14 @@ class KatanaClient(AuthenticatedClient):
 
         self.logger: Logger = logger or logging.getLogger(__name__)
         self.max_pages = max_pages
+
+        # Warn if SSL verification is disabled — risk of MITM attacks
+        if httpx_kwargs.get("verify") is False:
+            self.logger.warning(
+                "SSL certificate verification is disabled (verify=False). "
+                "This exposes the connection to MITM attacks. "
+                "Only use this for local development."
+            )
 
         # Domain class instances (lazy-loaded)
         self._products: Products | None = None
@@ -1398,5 +1474,5 @@ class KatanaClient(AuthenticatedClient):
 
         self.logger.debug(
             f"Response: {response.status_code} {response.request.method} "
-            f"{response.request.url!s} ({duration:.2f}s)"
+            f"{_sanitize_url(str(response.request.url))} ({duration:.2f}s)"
         )
