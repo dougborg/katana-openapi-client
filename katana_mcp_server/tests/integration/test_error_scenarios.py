@@ -104,11 +104,11 @@ class TestAPIErrorHandling:
     """Test handling of API errors."""
 
     async def test_check_inventory_not_found(self):
-        """Test handling when product is not found."""
+        """Test handling when SKU is not found in cache."""
         context, lifespan_ctx = create_mock_context()
 
-        # Mock client returning None (product not found)
-        lifespan_ctx.client.inventory.check_stock = AsyncMock(return_value=None)
+        # Cache returns None (SKU not found)
+        lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
 
         request = CheckInventoryRequest(sku="NONEXISTENT-SKU")
         result = await _check_inventory_impl(request, context)
@@ -146,14 +146,20 @@ class TestAPIErrorHandling:
         """Test that API errors are properly propagated."""
         context, lifespan_ctx = create_mock_context()
 
-        # Mock client raising an exception
-        lifespan_ctx.client.inventory.check_stock = AsyncMock(
-            side_effect=Exception("API Error: Rate limit exceeded")
+        # Cache finds the variant but API call fails
+        lifespan_ctx.cache.get_by_sku = AsyncMock(
+            return_value={"id": 1, "sku": "TEST-SKU", "display_name": "Test"}
         )
 
-        request = CheckInventoryRequest(sku="TEST-SKU")
-        with pytest.raises(Exception, match="Rate limit exceeded"):
-            await _check_inventory_impl(request, context)
+        with patch(
+            "katana_public_api_client.api.inventory"
+            ".get_all_inventory_point.asyncio_detailed",
+            new_callable=AsyncMock,
+            side_effect=Exception("API Error: Rate limit exceeded"),
+        ):
+            request = CheckInventoryRequest(sku="TEST-SKU")
+            with pytest.raises(Exception, match="Rate limit exceeded"):
+                await _check_inventory_impl(request, context)
 
 
 @pytest.mark.asyncio
@@ -164,14 +170,20 @@ class TestNetworkErrorHandling:
         """Test handling of connection errors."""
         context, lifespan_ctx = create_mock_context()
 
-        # Mock client raising connection error
-        lifespan_ctx.client.inventory.check_stock = AsyncMock(
-            side_effect=ConnectionError("Unable to connect to API server")
+        # Cache finds the variant but connection fails
+        lifespan_ctx.cache.get_by_sku = AsyncMock(
+            return_value={"id": 1, "sku": "TEST-SKU", "display_name": "Test"}
         )
 
-        request = CheckInventoryRequest(sku="TEST-SKU")
-        with pytest.raises(ConnectionError, match="Unable to connect"):
-            await _check_inventory_impl(request, context)
+        with patch(
+            "katana_public_api_client.api.inventory"
+            ".get_all_inventory_point.asyncio_detailed",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("Unable to connect to API server"),
+        ):
+            request = CheckInventoryRequest(sku="TEST-SKU")
+            with pytest.raises(ConnectionError, match="Unable to connect"):
+                await _check_inventory_impl(request, context)
 
     async def test_timeout_error_handling(self):
         """Test handling of timeout errors."""

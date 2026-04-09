@@ -328,9 +328,9 @@ class TestInventoryDataConsistency:
             )
 
             # All values should be non-negative
-            assert inventory.available_stock >= 0, "Available stock cannot be negative"
-            assert inventory.in_production >= 0, "In production cannot be negative"
+            assert inventory.in_stock >= 0, "In stock cannot be negative"
             assert inventory.committed >= 0, "Committed cannot be negative"
+            assert inventory.expected >= 0, "Expected cannot be negative"
 
             # Product name should be a string
             assert isinstance(inventory.product_name, str)

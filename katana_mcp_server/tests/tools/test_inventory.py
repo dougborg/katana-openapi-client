@@ -34,59 +34,80 @@ def _patch_cache_sync():
         yield
 
 
+_INVENTORY_API = "katana_public_api_client.api.inventory.get_all_inventory_point"
+_UNWRAP_DATA = "katana_public_api_client.utils.unwrap_data"
+
+
 @pytest.mark.asyncio
 async def test_check_inventory():
-    """Test check_inventory tool with mocked client."""
+    """Test check_inventory tool with cached variant + inventory API."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock Product with stock_information
-    mock_product = MagicMock()
-    mock_product.name = "Test Widget"
-    mock_stock = MagicMock()
-    mock_stock.available = 100
-    mock_stock.allocated = 30
-    mock_stock.in_stock = 150
-    mock_product.stock_information = mock_stock
+    # Mock cached variant lookup
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
+    )
 
-    lifespan_ctx.client.inventory.check_stock = AsyncMock(return_value=mock_product)
+    # Mock inventory API response
+    mock_inv = MagicMock()
+    mock_inv.quantity_in_stock = "150.0"
+    mock_inv.quantity_committed = "30.0"
+    mock_inv.quantity_expected = "50.0"
 
-    request = CheckInventoryRequest(sku="WIDGET-001")
-    result = await _check_inventory_impl(request, context)
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_UNWRAP_DATA, return_value=[mock_inv]),
+    ):
+        mock_api.return_value = MagicMock()
+        request = CheckInventoryRequest(sku="WIDGET-001")
+        result = await _check_inventory_impl(request, context)
 
     assert result.sku == "WIDGET-001"
     assert result.product_name == "Test Widget"
-    assert result.available_stock == 100
-    assert result.in_production == 0  # Not available in API yet
-    assert result.committed == 30
-    lifespan_ctx.client.inventory.check_stock.assert_called_once_with("WIDGET-001")
+    assert result.in_stock == 150.0
+    assert result.available_stock == 120.0  # 150 - 30
+    assert result.committed == 30.0
+    assert result.expected == 50.0
 
 
 @pytest.mark.asyncio
-async def test_check_inventory_missing_fields():
-    """Test check_inventory handles missing optional fields."""
+async def test_check_inventory_multiple_locations():
+    """Test check_inventory sums stock across multiple locations."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock Product with missing stock_information
-    mock_product = MagicMock()
-    mock_product.name = ""
-    mock_product.stock_information = None
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
+    )
 
-    lifespan_ctx.client.inventory.check_stock = AsyncMock(return_value=mock_product)
+    # Two locations with stock
+    mock_inv_1 = MagicMock()
+    mock_inv_1.quantity_in_stock = "100.0"
+    mock_inv_1.quantity_committed = "20.0"
+    mock_inv_1.quantity_expected = "30.0"
 
-    request = CheckInventoryRequest(sku="WIDGET-002")
-    result = await _check_inventory_impl(request, context)
+    mock_inv_2 = MagicMock()
+    mock_inv_2.quantity_in_stock = "50.0"
+    mock_inv_2.quantity_committed = "10.0"
+    mock_inv_2.quantity_expected = "20.0"
 
-    assert result.sku == "WIDGET-002"
-    assert result.product_name == ""  # Default empty string
-    assert result.available_stock == 0  # Default to 0
-    assert result.committed == 0  # Default to 0
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[mock_inv_1, mock_inv_2]),
+    ):
+        request = CheckInventoryRequest(sku="WIDGET-001")
+        result = await _check_inventory_impl(request, context)
+
+    assert result.in_stock == 150.0
+    assert result.available_stock == 120.0  # 150 - 30
+    assert result.committed == 30.0
+    assert result.expected == 50.0
 
 
 @pytest.mark.asyncio
 async def test_check_inventory_not_found():
-    """Test check_inventory when SKU not found."""
+    """Test check_inventory when SKU not found in cache."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.client.inventory.check_stock = AsyncMock(return_value=None)
+    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
 
     request = CheckInventoryRequest(sku="NOT-FOUND")
     result = await _check_inventory_impl(request, context)
@@ -95,6 +116,8 @@ async def test_check_inventory_not_found():
     assert result.product_name == ""
     assert result.available_stock == 0
     assert result.committed == 0
+    assert result.expected == 0
+    assert result.in_stock == 0
 
 
 @pytest.mark.asyncio
@@ -577,11 +600,10 @@ async def test_check_inventory_integration(katana_context):
         # Verify response structure
         assert result.sku == "TEST-SKU-001"
         assert isinstance(result.product_name, str)
-        assert isinstance(result.available_stock, int)
-        assert isinstance(result.in_production, int)
-        assert isinstance(result.committed, int)
-        assert result.available_stock >= 0
-        assert result.committed >= 0
+        assert isinstance(result.available_stock, float)
+        assert isinstance(result.in_stock, float)
+        assert isinstance(result.committed, float)
+        assert isinstance(result.expected, float)
 
     except Exception as e:
         # Network/auth errors are acceptable in integration tests
@@ -683,7 +705,8 @@ async def test_check_inventory_nonexistent_sku_integration(katana_context):
         assert result.sku == "NONEXISTENT-SKU-99999"
         assert result.available_stock == 0
         assert result.committed == 0
-        # product_name may be empty for nonexistent SKU
+        assert result.in_stock == 0
+        assert result.expected == 0
         assert isinstance(result.product_name, str)
 
     except Exception as e:
