@@ -292,7 +292,7 @@ Check current stock levels for an item.
 {"sku": "WIDGET-001"}
 ```
 
-**Returns:** Stock levels (available_stock, in_production, committed).
+**Returns:** Stock levels (in_stock, available_stock, committed, expected).
 
 ---
 
@@ -304,6 +304,17 @@ Find items that are below their reorder threshold.
 - `limit` (optional): Maximum items to return (default: 50)
 
 **Returns:** List of items needing reorder with current stock vs threshold.
+
+---
+
+### get_inventory_movements
+Get inventory movement history for a SKU — every stock change with dates and causes.
+
+**Parameters:**
+- `sku` (required): SKU to get movements for
+- `limit` (optional): Maximum movements to return (default: 50)
+
+**Returns:** Movement history with dates, quantity changes, balances, resource types, and order numbers.
 
 ---
 

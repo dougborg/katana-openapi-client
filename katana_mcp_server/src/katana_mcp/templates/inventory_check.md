@@ -4,9 +4,10 @@
 
 | Metric | Quantity |
 |--------|----------|
+| **In Stock** | {in_stock} |
 | **Available** | {available_stock} |
 | **Committed** | {committed} |
-| **In Production** | {in_production} |
+| **Expected** | {expected} |
 
 ## Next Steps
 
