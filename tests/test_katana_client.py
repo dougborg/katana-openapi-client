@@ -691,6 +691,26 @@ class TestSanitizeBody:
         _sanitize_body(body)
         assert body["password"] == "secret"
 
+    def test_redacts_nested_dict_keys(self):
+        body = {
+            "user": {"name": "John", "password": "secret123"},
+            "public": "data",
+        }
+        result = _sanitize_body(body)
+        assert result["user"]["password"] == "***"
+        assert result["user"]["name"] == "John"
+        assert result["public"] == "data"
+
+    def test_redacts_list_with_dicts(self):
+        body = {
+            "items": [{"id": 1, "api_key": "key123"}, {"id": 2, "api_key": "key456"}]
+        }
+        result = _sanitize_body(body)
+        assert result["items"][0]["api_key"] == "***"
+        assert result["items"][1]["api_key"] == "***"
+        assert result["items"][0]["id"] == 1
+        assert result["items"][1]["id"] == 2
+
 
 @pytest.mark.unit
 class TestIsSensitive:

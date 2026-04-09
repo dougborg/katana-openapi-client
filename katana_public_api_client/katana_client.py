@@ -15,7 +15,7 @@ from collections.abc import Awaitable, Callable
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any, cast
-from urllib.parse import parse_qs, urlparse, urlunparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse, urlunparse
 
 import httpx
 from dotenv import load_dotenv
@@ -45,7 +45,8 @@ from .models.unrecognized_keys_validation_error import UnrecognizedKeysValidatio
 
 # Patterns used to identify sensitive query parameters and body fields in logs.
 # Values matching these patterns are redacted to prevent information disclosure.
-# See also: katana_mcp_server/.../logging.py filter_sensitive_data() for the MCP equivalent.
+# See also: katana_mcp_server/src/katana_mcp/logging.py filter_sensitive_data()
+# for the MCP equivalent.
 _SENSITIVE_PARAMS: frozenset[str] = frozenset(
     {
         "api_key",
@@ -76,13 +77,20 @@ def _sanitize_url(url: str) -> str:
         if not parsed.query:
             return url
         params = parse_qs(parsed.query, keep_blank_values=True)
-        parts = []
+        sanitized = {}
         for k, values in params.items():
             if _is_sensitive(k):
-                parts.append(f"{k}={_REDACTED}")
+                sanitized[k] = [_REDACTED]
             else:
-                parts.extend(f"{k}={v}" for v in values)
-        clean_query = "&".join(parts)
+                sanitized[k] = values
+        # Use urlencode with custom quote function that preserves * characters
+        clean_query = urlencode(
+            sanitized,
+            doseq=True,
+            quote_via=lambda s, safe="", encoding=None, errors=None: quote(
+                s, safe=safe + "*", encoding=encoding, errors=errors
+            ),
+        )
         return urlunparse(parsed._replace(query=clean_query))
     except Exception:
         # If URL parsing fails, strip the query string entirely
@@ -91,10 +99,22 @@ def _sanitize_url(url: str) -> str:
 
 
 def _sanitize_body(body: Any) -> Any:
-    """Redact sensitive field values from a dict for safe logging."""
+    """Redact sensitive field values from nested dict/list bodies for safe logging."""
+
+    def _sanitize_value(value: Any) -> Any:
+        """Recursively sanitize nested structures."""
+        if isinstance(value, dict):
+            return {
+                k: _REDACTED if _is_sensitive(k) else _sanitize_value(v)
+                for k, v in value.items()
+            }
+        if isinstance(value, list):
+            return [_sanitize_value(item) for item in value]
+        return value
+
     if not isinstance(body, dict):
         return "[non-dict body]"
-    return {k: _REDACTED if _is_sensitive(k) else v for k, v in body.items()}
+    return _sanitize_value(body)
 
 
 class RateLimitAwareRetry(Retry):
