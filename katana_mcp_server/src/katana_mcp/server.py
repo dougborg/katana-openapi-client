@@ -120,11 +120,13 @@ async def lifespan(server: FastMCP) -> AsyncIterator[Services]:
         raise
     except Exception as e:
         # Unexpected errors during initialization
+        # Note: exc_info intentionally omitted to avoid leaking file paths and
+        # module internals in production logs. The exception is re-raised for
+        # the caller to handle debugging.
         logger.error(
             "initialization_failed",
             error_type=type(e).__name__,
             error=str(e),
-            exc_info=True,
         )
         raise
     finally:

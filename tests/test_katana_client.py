@@ -14,6 +14,9 @@ from katana_public_api_client.katana_client import (
     PaginationTransport,
     RateLimitAwareRetry,
     ResilientAsyncTransport,
+    _is_sensitive,
+    _sanitize_body,
+    _sanitize_url,
 )
 
 
@@ -616,3 +619,144 @@ class TestKatanaClient:
         # At minimum, verify the client was created successfully with the transport
         assert client._base_url == "https://api.example.com"
         assert "transport" in client._httpx_args
+
+
+@pytest.mark.unit
+class TestSanitizeUrl:
+    """Test URL sanitization for safe logging."""
+
+    def test_redacts_sensitive_params(self):
+        url = "https://api.example.com/v1/products?api_key=secret123&token=abc"
+        result = _sanitize_url(url)
+        assert "secret123" not in result
+        assert "abc" not in result
+        assert "api_key=***" in result
+        assert "token=***" in result
+
+    def test_preserves_safe_params(self):
+        url = "https://api.example.com/v1/products?page=1&limit=50"
+        result = _sanitize_url(url)
+        assert result == url
+
+    def test_mixed_sensitive_and_safe_params(self):
+        url = "https://api.example.com/v1?page=1&api_key=secret&limit=50"
+        result = _sanitize_url(url)
+        assert "page=1" in result
+        assert "limit=50" in result
+        assert "api_key=***" in result
+        assert "secret" not in result
+
+    def test_no_query_string(self):
+        url = "https://api.example.com/v1/products"
+        assert _sanitize_url(url) == url
+
+    def test_empty_string(self):
+        assert _sanitize_url("") == ""
+
+    def test_preserves_path(self):
+        url = "https://api.example.com/v1/products/123?api_key=secret"
+        result = _sanitize_url(url)
+        assert "/v1/products/123" in result
+
+
+@pytest.mark.unit
+class TestSanitizeBody:
+    """Test request body sanitization for safe logging."""
+
+    def test_redacts_sensitive_keys(self):
+        body = {"password": "secret123", "name": "test"}
+        result = _sanitize_body(body)
+        assert result["password"] == "***"
+        assert result["name"] == "test"
+
+    def test_preserves_safe_keys(self):
+        body = {"name": "Product", "quantity": 10}
+        result = _sanitize_body(body)
+        assert result == body
+
+    def test_case_insensitive_matching(self):
+        body = {"API_KEY": "secret", "Authorization": "Bearer xyz"}
+        result = _sanitize_body(body)
+        assert result["API_KEY"] == "***"
+        assert result["Authorization"] == "***"
+
+    def test_non_dict_input(self):
+        assert _sanitize_body("string") == "[non-dict body]"
+        assert _sanitize_body(42) == "[non-dict body]"
+        assert _sanitize_body(None) == "[non-dict body]"
+        assert _sanitize_body([1, 2]) == "[non-dict body]"
+
+    def test_does_not_mutate_original(self):
+        body = {"password": "secret", "name": "test"}
+        _sanitize_body(body)
+        assert body["password"] == "secret"
+
+    def test_redacts_nested_dict_keys(self):
+        body = {
+            "user": {"name": "John", "password": "secret123"},
+            "public": "data",
+        }
+        result = _sanitize_body(body)
+        assert result["user"]["password"] == "***"
+        assert result["user"]["name"] == "John"
+        assert result["public"] == "data"
+
+    def test_redacts_list_with_dicts(self):
+        body = {
+            "items": [{"id": 1, "api_key": "key123"}, {"id": 2, "api_key": "key456"}]
+        }
+        result = _sanitize_body(body)
+        assert result["items"][0]["api_key"] == "***"
+        assert result["items"][1]["api_key"] == "***"
+        assert result["items"][0]["id"] == 1
+        assert result["items"][1]["id"] == 2
+
+
+@pytest.mark.unit
+class TestIsSensitive:
+    """Test sensitive field name detection."""
+
+    def test_exact_matches(self):
+        assert _is_sensitive("api_key")
+        assert _is_sensitive("password")
+        assert _is_sensitive("token")
+
+    def test_substring_matches(self):
+        assert _is_sensitive("user_email")
+        assert _is_sensitive("auth_token")
+        assert _is_sensitive("my_secret_field")
+
+    def test_case_insensitive(self):
+        assert _is_sensitive("API_KEY")
+        assert _is_sensitive("Password")
+        assert _is_sensitive("TOKEN")
+
+    def test_non_sensitive(self):
+        assert not _is_sensitive("name")
+        assert not _is_sensitive("quantity")
+        assert not _is_sensitive("status")
+        assert not _is_sensitive("page")
+
+
+@pytest.mark.unit
+class TestSecurityWarnings:
+    """Test security-related warnings in KatanaClient."""
+
+    @patch.dict(os.environ, {"KATANA_API_KEY": "test-api-key-12345"})
+    def test_ssl_disabled_logs_warning(self):
+        """KatanaClient should warn when SSL verification is disabled."""
+        mock_logger = MagicMock()
+        KatanaClient(logger=mock_logger, verify=False)
+
+        mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args[0][0]
+        assert "SSL certificate verification is disabled" in call_args
+        assert "MITM" in call_args
+
+    @patch.dict(os.environ, {"KATANA_API_KEY": "test-api-key-12345"})
+    def test_ssl_enabled_no_warning(self):
+        """KatanaClient should not warn when SSL verification is enabled (default)."""
+        mock_logger = MagicMock()
+        KatanaClient(logger=mock_logger)
+
+        mock_logger.warning.assert_not_called()
