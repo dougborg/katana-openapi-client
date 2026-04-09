@@ -54,9 +54,9 @@ logger = get_logger(__name__)
 _NO_INCREMENTAL_DEBOUNCE = 300  # 5 minutes
 
 
-def _timestamp_to_iso(ts: float) -> str:
-    """Convert a unix timestamp to ISO 8601 string for API filtering."""
-    return datetime.fromtimestamp(ts, tz=UTC).isoformat()
+def _timestamp_to_datetime(ts: float) -> datetime:
+    """Convert a unix timestamp to a timezone-aware datetime for API filtering."""
+    return datetime.fromtimestamp(ts, tz=UTC)
 
 
 def _attrs_to_dicts(attrs_list: list[Any]) -> list[dict[str, Any]]:
@@ -229,7 +229,9 @@ async def _ensure_synced(
 
     # Fetch from API (incremental if possible)
     updated_at_min = (
-        _timestamp_to_iso(last_synced) if last_synced and supports_incremental else None
+        _timestamp_to_datetime(last_synced)
+        if last_synced and supports_incremental
+        else None
     )
     entities = await fetch_fn(services.client, updated_at_min=updated_at_min)
 
@@ -248,7 +250,9 @@ async def _ensure_synced(
 # ── API fetch functions ──────────────────────────────────────────────
 
 
-async def _fetch_variants(client: Any, updated_at_min: str | None = None) -> list[dict]:
+async def _fetch_variants(
+    client: Any, updated_at_min: datetime | None = None
+) -> list[dict]:
     kwargs: dict[str, Any] = {
         "client": client,
         "extend": [GetAllVariantsExtendItem.PRODUCT_OR_MATERIAL],
@@ -264,7 +268,7 @@ async def _fetch_variants(client: Any, updated_at_min: str | None = None) -> lis
 async def _fetch_generic(
     api_module: Any,
     client: Any,
-    updated_at_min: str | None = None,
+    updated_at_min: datetime | None = None,
     supports_incremental: bool = True,
     extra_kwargs: dict[str, Any] | None = None,
 ) -> list[dict]:
@@ -278,34 +282,38 @@ async def _fetch_generic(
     return _attrs_to_dicts(unwrap_data(response))
 
 
-async def _fetch_products(client: Any, updated_at_min: str | None = None) -> list[dict]:
+async def _fetch_products(
+    client: Any, updated_at_min: datetime | None = None
+) -> list[dict]:
     return await _fetch_generic(get_all_products, client, updated_at_min)
 
 
 async def _fetch_materials(
-    client: Any, updated_at_min: str | None = None
+    client: Any, updated_at_min: datetime | None = None
 ) -> list[dict]:
     return await _fetch_generic(get_all_materials, client, updated_at_min)
 
 
-async def _fetch_services(client: Any, updated_at_min: str | None = None) -> list[dict]:
+async def _fetch_services(
+    client: Any, updated_at_min: datetime | None = None
+) -> list[dict]:
     return await _fetch_generic(get_all_services, client, updated_at_min)
 
 
 async def _fetch_suppliers(
-    client: Any, updated_at_min: str | None = None
+    client: Any, updated_at_min: datetime | None = None
 ) -> list[dict]:
     return await _fetch_generic(get_all_suppliers, client, updated_at_min)
 
 
 async def _fetch_customers(
-    client: Any, updated_at_min: str | None = None
+    client: Any, updated_at_min: datetime | None = None
 ) -> list[dict]:
     return await _fetch_generic(get_all_customers, client, updated_at_min)
 
 
 async def _fetch_locations(
-    client: Any, updated_at_min: str | None = None
+    client: Any, updated_at_min: datetime | None = None
 ) -> list[dict]:
     return await _fetch_generic(
         get_all_locations, client, updated_at_min, supports_incremental=False
@@ -313,20 +321,22 @@ async def _fetch_locations(
 
 
 async def _fetch_tax_rates(
-    client: Any, updated_at_min: str | None = None
+    client: Any, updated_at_min: datetime | None = None
 ) -> list[dict]:
     return await _fetch_generic(get_all_tax_rates, client, updated_at_min)
 
 
 async def _fetch_operators(
-    client: Any, updated_at_min: str | None = None
+    client: Any, updated_at_min: datetime | None = None
 ) -> list[dict]:
     return await _fetch_generic(
         get_all_operators, client, updated_at_min, supports_incremental=False
     )
 
 
-async def _fetch_factory(client: Any, updated_at_min: str | None = None) -> list[dict]:
+async def _fetch_factory(
+    client: Any, updated_at_min: datetime | None = None
+) -> list[dict]:
     """Factory is a single record, not a list endpoint."""
     from katana_public_api_client.utils import unwrap
 
