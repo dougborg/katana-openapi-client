@@ -2,6 +2,109 @@
 
 <!-- version list -->
 
+## v0.50.0 (2026-04-09)
+
+### Bug Fixes
+
+- Address Copilot review feedback on security PR
+  ([#310](https://github.com/dougborg/katana-openapi-client/pull/310),
+  [`57a55a3`](https://github.com/dougborg/katana-openapi-client/commit/57a55a3e621800a3456b531050826f1983541ea2))
+
+- Remediate critical security findings from codebase audit
+  ([#310](https://github.com/dougborg/katana-openapi-client/pull/310),
+  [`57a55a3`](https://github.com/dougborg/katana-openapi-client/commit/57a55a3e621800a3456b531050826f1983541ea2))
+
+- Restore ty exclusion for test_generate_tools_json.py, remove unused cast import
+  ([#307](https://github.com/dougborg/katana-openapi-client/pull/307),
+  [`d0003bc`](https://github.com/dougborg/katana-openapi-client/commit/d0003bcf796e20855c571ab3984d2e81cbc59364))
+
+- **client**: Add DRAFT PO status, fix unwrap_unset and validation error details
+  ([`1d8a4e9`](https://github.com/dougborg/katana-openapi-client/commit/1d8a4e9f0c7db8afe3d4f7d2205ccb3db90d9af9))
+
+- **client**: Sanitize sensitive data in transport error logs
+  ([#310](https://github.com/dougborg/katana-openapi-client/pull/310),
+  [`57a55a3`](https://github.com/dougborg/katana-openapi-client/commit/57a55a3e621800a3456b531050826f1983541ea2))
+
+- **mcp**: Address PR review feedback — UI actions, validation, tests
+  ([`bc2e96a`](https://github.com/dougborg/katana-openapi-client/commit/bc2e96a6cfb5ac2c6562693d6f8cd083ea33c9bf))
+
+- **mcp**: Fix cache sync datetime type and prefab UI positional args
+  ([`83d07ed`](https://github.com/dougborg/katana-openapi-client/commit/83d07ed0f6fb82d60cc636e04d5fe219fd78ad7d))
+
+- **mcp**: Remove stack trace from initialization error log
+  ([#310](https://github.com/dougborg/katana-openapi-client/pull/310),
+  [`57a55a3`](https://github.com/dougborg/katana-openapi-client/commit/57a55a3e621800a3456b531050826f1983541ea2))
+
+- **mcp**: Rewrite check_inventory to use inventory API, add movements and stock
+  adjustment tools
+  ([`f9fe8e6`](https://github.com/dougborg/katana-openapi-client/commit/f9fe8e62a7553dd80735cbc7ad39e07a3d427833))
+
+- **ts**: Patch npm dependency vulnerabilities via pnpm overrides
+  ([#310](https://github.com/dougborg/katana-openapi-client/pull/310),
+  [`57a55a3`](https://github.com/dougborg/katana-openapi-client/commit/57a55a3e621800a3456b531050826f1983541ea2))
+
+### Chores
+
+- Upgrade all dependencies including FastMCP 2.x → 3.x
+  ([#307](https://github.com/dougborg/katana-openapi-client/pull/307),
+  [`d0003bc`](https://github.com/dougborg/katana-openapi-client/commit/d0003bcf796e20855c571ab3984d2e81cbc59364))
+
+- Upgrade all dependencies including FastMCP 3.x migration
+  ([#307](https://github.com/dougborg/katana-openapi-client/pull/307),
+  [`d0003bc`](https://github.com/dougborg/katana-openapi-client/commit/d0003bcf796e20855c571ab3984d2e81cbc59364))
+
+- **deps)(deps**: Bump katana-mcp-server
+  ([#308](https://github.com/dougborg/katana-openapi-client/pull/308),
+  [`d524e5a`](https://github.com/dougborg/katana-openapi-client/commit/d524e5a233d972cd5fe59a224ed5a1a2f323d415))
+
+- **release**: Mcp v0.32.0
+  ([`009c696`](https://github.com/dougborg/katana-openapi-client/commit/009c696e2593753ccbbf0d4ecbc71b70e95c8310))
+
+- **release**: Mcp v0.33.0
+  ([`7713c3a`](https://github.com/dougborg/katana-openapi-client/commit/7713c3a4d818091614e700029f55503f5774b1e0))
+
+### Features
+
+- **client**: Improve search with tokenization, fuzzy matching, and scoring
+  ([#304](https://github.com/dougborg/katana-openapi-client/pull/304),
+  [`a53bf31`](https://github.com/dougborg/katana-openapi-client/commit/a53bf31e7fad64a389e4faa8199d6b7f5fa905c9))
+
+- **mcp**: Add cache invalidation to item write operations
+  ([#304](https://github.com/dougborg/katana-openapi-client/pull/304),
+  [`a53bf31`](https://github.com/dougborg/katana-openapi-client/commit/a53bf31e7fad64a389e4faa8199d6b7f5fa905c9))
+
+- **mcp**: Add get_manufacturing_order tool, update_item handles variant fields
+  ([`34f3ff6`](https://github.com/dougborg/katana-openapi-client/commit/34f3ff620649bd93eb53a7cd7e4f4d85b0420dd7))
+
+- **mcp**: Add persistent SQLite catalog cache with FTS5 search
+  ([#304](https://github.com/dougborg/katana-openapi-client/pull/304),
+  [`a53bf31`](https://github.com/dougborg/katana-openapi-client/commit/a53bf31e7fad64a389e4faa8199d6b7f5fa905c9))
+
+- **mcp**: Add Prefab UI for interactive tool responses in Claude Desktop
+  ([`bcc6ad9`](https://github.com/dougborg/katana-openapi-client/commit/bcc6ad9e559502c7b137ba9192ae9b06f5fae8f8))
+
+- **mcp**: Persistent SQLite catalog cache with FTS5 search
+  ([#304](https://github.com/dougborg/katana-openapi-client/pull/304),
+  [`a53bf31`](https://github.com/dougborg/katana-openapi-client/commit/a53bf31e7fad64a389e4faa8199d6b7f5fa905c9))
+
+- **mcp**: Wire SQLite cache into Services, search, and variant tools
+  ([#304](https://github.com/dougborg/katana-openapi-client/pull/304),
+  [`a53bf31`](https://github.com/dougborg/katana-openapi-client/commit/a53bf31e7fad64a389e4faa8199d6b7f5fa905c9))
+
+### Refactoring
+
+- **client**: Remove VariantCache from client library
+  ([#304](https://github.com/dougborg/katana-openapi-client/pull/304),
+  [`a53bf31`](https://github.com/dougborg/katana-openapi-client/commit/a53bf31e7fad64a389e4faa8199d6b7f5fa905c9))
+
+- **mcp**: Address review — targeted invalidation, EntityType enum, batch sync
+  ([#304](https://github.com/dougborg/katana-openapi-client/pull/304),
+  [`a53bf31`](https://github.com/dougborg/katana-openapi-client/commit/a53bf31e7fad64a389e4faa8199d6b7f5fa905c9))
+
+- **mcp**: Extract cache decorators, remove tool boilerplate
+  ([#304](https://github.com/dougborg/katana-openapi-client/pull/304),
+  [`a53bf31`](https://github.com/dougborg/katana-openapi-client/commit/a53bf31e7fad64a389e4faa8199d6b7f5fa905c9))
+
 ## v0.49.1 (2026-03-26)
 
 ### Bug Fixes
