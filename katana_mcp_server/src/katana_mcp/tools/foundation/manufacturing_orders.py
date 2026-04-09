@@ -20,6 +20,7 @@ from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreateManufacturingOrderRequest as APICreateManufacturingOrderRequest,
@@ -266,6 +267,156 @@ async def create_manufacturing_order(
     )
 
 
+# ============================================================================
+# Tool 2: get_manufacturing_order
+# ============================================================================
+
+
+class GetManufacturingOrderRequest(BaseModel):
+    """Request to look up manufacturing orders."""
+
+    order_no: str | None = Field(
+        default=None, description="Order number to look up (e.g., '#WEB20082 / 1')"
+    )
+    order_id: int | None = Field(default=None, description="Manufacturing order ID")
+
+
+class ManufacturingOrderInfo(BaseModel):
+    """Manufacturing order details."""
+
+    id: int
+    order_no: str | None
+    status: str | None
+    variant_id: int | None
+    planned_quantity: float | None
+    actual_quantity: float | None
+    location_id: int | None
+    order_created_date: str | None
+    production_deadline_date: str | None
+    done_date: str | None
+    is_linked_to_sales_order: bool | None
+    sales_order_id: int | None
+    ingredient_availability: str | None
+    total_cost: float | None
+    material_cost: float | None
+    operations_cost: float | None
+    additional_info: str | None
+
+
+class GetManufacturingOrderResponse(BaseModel):
+    """Response containing manufacturing orders."""
+
+    orders: list[ManufacturingOrderInfo]
+    total_count: int
+
+
+async def _get_manufacturing_order_impl(
+    request: GetManufacturingOrderRequest, context: Context
+) -> GetManufacturingOrderResponse:
+    """Look up manufacturing orders by order number or ID."""
+    from katana_public_api_client.api.manufacturing_order import (
+        get_all_manufacturing_orders,
+    )
+    from katana_public_api_client.utils import unwrap_data
+
+    if not request.order_no and not request.order_id:
+        raise ValueError("Either order_no or order_id must be provided")
+
+    services = get_services(context)
+
+    kwargs: dict = {"client": services.client, "limit": 50}
+    if request.order_id:
+        kwargs["ids"] = [request.order_id]
+    if request.order_no:
+        kwargs["order_no"] = request.order_no
+
+    response = await get_all_manufacturing_orders.asyncio_detailed(**kwargs)
+    attrs_list = unwrap_data(response)
+
+    orders = [
+        ManufacturingOrderInfo(
+            id=mo.id,
+            order_no=unwrap_unset(mo.order_no, None),
+            status=unwrap_unset(mo.status, None),
+            variant_id=unwrap_unset(mo.variant_id, None),
+            planned_quantity=unwrap_unset(mo.planned_quantity, None),
+            actual_quantity=unwrap_unset(mo.actual_quantity, None),
+            location_id=unwrap_unset(mo.location_id, None),
+            order_created_date=mo.order_created_date.isoformat()
+            if not isinstance(mo.order_created_date, type(UNSET))
+            and mo.order_created_date
+            else None,
+            production_deadline_date=mo.production_deadline_date.isoformat()
+            if not isinstance(mo.production_deadline_date, type(UNSET))
+            and mo.production_deadline_date
+            else None,
+            done_date=mo.done_date.isoformat()
+            if not isinstance(mo.done_date, type(UNSET)) and mo.done_date
+            else None,
+            is_linked_to_sales_order=unwrap_unset(mo.is_linked_to_sales_order, None),
+            sales_order_id=unwrap_unset(mo.sales_order_id, None),
+            ingredient_availability=unwrap_unset(mo.ingredient_availability, None),
+            total_cost=unwrap_unset(mo.total_cost, None),
+            material_cost=unwrap_unset(mo.material_cost, None),
+            operations_cost=unwrap_unset(mo.operations_cost, None),
+            additional_info=unwrap_unset(mo.additional_info, None),
+        )
+        for mo in attrs_list
+    ]
+
+    return GetManufacturingOrderResponse(orders=orders, total_count=len(orders))
+
+
+@observe_tool
+@unpack_pydantic_params
+async def get_manufacturing_order(
+    request: Annotated[GetManufacturingOrderRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Look up manufacturing orders by order number or ID.
+
+    Returns order details including status, quantities, costs, linked sales order,
+    and production timeline. Use to investigate production issues or track order progress.
+
+    Provide either order_no (e.g., '#WEB20082 / 1') or order_id.
+    """
+    from katana_mcp.tools.tool_result_utils import make_simple_result
+
+    response = await _get_manufacturing_order_impl(request, context)
+
+    if not response.orders:
+        return make_simple_result(
+            f"No manufacturing orders found for "
+            f"{'order_no=' + request.order_no if request.order_no else 'order_id=' + str(request.order_id)}",
+            structured_data=response.model_dump(),
+        )
+
+    # Build markdown summary
+    lines = []
+    for o in response.orders:
+        lines.append(f"## MO {o.order_no or o.id}")
+        lines.append(f"- **Status**: {o.status}")
+        lines.append(f"- **Variant ID**: {o.variant_id}")
+        lines.append(
+            f"- **Quantity**: {o.actual_quantity or 0} / {o.planned_quantity} planned"
+        )
+        if o.is_linked_to_sales_order:
+            lines.append(f"- **Sales Order ID**: {o.sales_order_id}")
+        if o.total_cost is not None:
+            lines.append(f"- **Total Cost**: ${o.total_cost:,.2f}")
+        if o.production_deadline_date:
+            lines.append(f"- **Deadline**: {o.production_deadline_date}")
+        if o.done_date:
+            lines.append(f"- **Completed**: {o.done_date}")
+        if o.additional_info:
+            lines.append(f"- **Notes**: {o.additional_info}")
+        lines.append("")
+
+    return make_simple_result(
+        "\n".join(lines),
+        structured_data=response.model_dump(),
+    )
+
+
 def register_tools(mcp: FastMCP) -> None:
     """Register all manufacturing order tools with the FastMCP instance.
 
@@ -274,9 +425,20 @@ def register_tools(mcp: FastMCP) -> None:
     """
     from mcp.types import ToolAnnotations
 
+    _read = ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
+
     mcp.tool(
         tags={"orders", "manufacturing", "write"},
         annotations=ToolAnnotations(
             readOnlyHint=False, destructiveHint=False, openWorldHint=True
         ),
     )(create_manufacturing_order)
+    mcp.tool(
+        tags={"orders", "manufacturing", "read"},
+        annotations=_read,
+    )(get_manufacturing_order)
