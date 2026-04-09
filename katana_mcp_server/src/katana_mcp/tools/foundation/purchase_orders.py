@@ -531,8 +531,8 @@ class VerifyOrderDocumentResponse(BaseModel):
     """Response from verifying an order document."""
 
     order_id: int
-    matches: list[MatchResult] = []
-    discrepancies: list[Discrepancy] = []
+    matches: list[MatchResult] = Field(default_factory=list)
+    discrepancies: list[Discrepancy] = Field(default_factory=list)
     suggested_actions: list[str] = Field(default_factory=list)
     overall_status: str = Field(..., description="match, partial_match, or no_match")
     message: str

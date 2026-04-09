@@ -208,14 +208,18 @@ def build_item_detail_ui(
                         variant="default" if item["is_producible"] else "secondary",
                     )
 
-        with CardFooter():
-            Button(
-                label="Get Variant Details",
-                variant="outline",
-                on_click=SendMessage(
-                    f"Get variant details for item ID {item.get('id', '')}"
-                ),
-            )
+        with CardFooter(), Row(gap=2):
+            if item.get("sku"):
+                Button(
+                    label="Get Variant Details",
+                    variant="outline",
+                    on_click=SendMessage(f"Get variant details for SKU {item['sku']}"),
+                )
+                Button(
+                    label="Check Inventory",
+                    variant="outline",
+                    on_click=SendMessage(f"Check inventory for SKU {item['sku']}"),
+                )
     return app
 
 
@@ -639,13 +643,12 @@ def build_item_mutation_ui(
                     variant="outline",
                     on_click=SendMessage(f"Get variant details for SKU {item['sku']}"),
                 )
-            Button(
-                label="Check Inventory",
-                variant="outline",
-                on_click=SendMessage(
-                    f"Check inventory for item ID {item.get('id', '')}"
-                ),
-            )
+            if item.get("sku"):
+                Button(
+                    label="Check Inventory",
+                    variant="outline",
+                    on_click=SendMessage(f"Check inventory for SKU {item['sku']}"),
+                )
     return app
 
 

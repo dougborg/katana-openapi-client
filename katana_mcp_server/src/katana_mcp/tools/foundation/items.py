@@ -106,7 +106,8 @@ def _search_response_to_tool_result(
     material_count = sum(1 for item in response.items if item.item_type == "material")
     service_count = sum(1 for item in response.items if item.item_type == "service")
 
-    items_dicts = [item.model_dump() for item in response.items]
+    # Filter out items without SKU — drill-down requires SKU for get_variant_details
+    items_dicts = [item.model_dump() for item in response.items if item.sku]
     ui = build_search_results_ui(items_dicts, query, response.total_count)
 
     return make_tool_result(
@@ -530,24 +531,17 @@ async def _update_item_impl(
         )
         from katana_public_api_client.utils import unwrap
 
-        # Resolve variant ID from SKU or get from cache
-        if request.sku:
-            variant = await services.cache.get_by_sku(sku=request.sku)
-            if not variant:
-                raise ValueError(f"SKU '{request.sku}' not found")
-            variant_id = variant["id"]
-        else:
-            # Find the first variant for this item via cache
-            variant = await services.cache.get_by_id(
-                entity_type="variant",
-                entity_id=request.id,
+        # Variant-level fields require SKU to identify which variant to update.
+        # request.id is the parent item ID, not a variant ID.
+        if not request.sku:
+            raise ValueError(
+                "Variant-level updates (barcodes, supplier codes, prices) "
+                "require 'sku' to identify the variant."
             )
-            if not variant:
-                raise ValueError(
-                    f"No variant found for item ID {request.id}. "
-                    "Provide a SKU to identify the variant."
-                )
-            variant_id = variant["id"]
+        variant = await services.cache.get_by_sku(sku=request.sku)
+        if not variant:
+            raise ValueError(f"SKU '{request.sku}' not found")
+        variant_id = variant["id"]
 
         variant_update = UpdateVariantRequest(
             supplier_item_codes=to_unset(request.supplier_item_codes),

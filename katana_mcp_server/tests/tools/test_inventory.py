@@ -5,8 +5,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from katana_mcp.tools.foundation.inventory import (
     CheckInventoryRequest,
+    CreateStockAdjustmentRequest,
+    GetInventoryMovementsRequest,
     LowStockRequest,
+    StockAdjustmentRow,
     _check_inventory_impl,
+    _create_stock_adjustment_impl,
+    _get_inventory_movements_impl,
     _list_low_stock_items_impl,
 )
 from katana_mcp.tools.foundation.items import (
@@ -298,6 +303,117 @@ async def test_search_items_multiple_results():
     assert result.items[0].sku == "SKU-000"
     assert result.items[0].is_sellable is True
     assert result.items[1].is_sellable is False
+
+
+# ============================================================================
+# get_inventory_movements Tests
+# ============================================================================
+
+_MOVEMENTS_API = (
+    "katana_public_api_client.api.inventory_movements.get_all_inventory_movements"
+)
+
+
+@pytest.mark.asyncio
+async def test_get_inventory_movements():
+    """Test get_inventory_movements with mocked API."""
+    context, lifespan_ctx = create_mock_context()
+
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
+    )
+
+    mock_movement = MagicMock()
+    mock_movement.movement_date.isoformat.return_value = "2026-04-01T12:00:00+00:00"
+    mock_movement.quantity_change = -5.0
+    mock_movement.balance_after = 10.0
+    mock_movement.resource_type.value = "ProductionIngredient"
+    mock_movement.caused_by_order_no = "MO-123"
+    mock_movement.value_per_unit = 25.50
+
+    with (
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[mock_movement]),
+    ):
+        request = GetInventoryMovementsRequest(sku="WIDGET-001")
+        result = await _get_inventory_movements_impl(request, context)
+
+    assert result.sku == "WIDGET-001"
+    assert result.total_count == 1
+    assert result.movements[0].quantity_change == -5.0
+    assert result.movements[0].caused_by_order_no == "MO-123"
+
+
+@pytest.mark.asyncio
+async def test_get_inventory_movements_not_found():
+    """Test get_inventory_movements when SKU not found."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+
+    request = GetInventoryMovementsRequest(sku="NOT-FOUND")
+    result = await _get_inventory_movements_impl(request, context)
+
+    assert result.sku == "NOT-FOUND"
+    assert result.total_count == 0
+    assert result.movements == []
+
+
+# ============================================================================
+# create_stock_adjustment Tests
+# ============================================================================
+
+_SA_API = "katana_public_api_client.api.stock_adjustment.create_stock_adjustment"
+
+
+@pytest.mark.asyncio
+async def test_create_stock_adjustment_preview():
+    """Test stock adjustment preview mode."""
+    context, lifespan_ctx = create_mock_context()
+
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
+    )
+
+    request = CreateStockAdjustmentRequest(
+        location_id=1,
+        rows=[StockAdjustmentRow(sku="WIDGET-001", quantity=5)],
+        reason="Test adjustment",
+        confirm=False,
+    )
+    result = await _create_stock_adjustment_impl(request, context)
+
+    assert result.is_preview is True
+    assert "WIDGET-001" in result.rows_summary
+    assert "+5.0" in result.rows_summary
+
+
+@pytest.mark.asyncio
+async def test_create_stock_adjustment_sku_not_found():
+    """Test stock adjustment with unknown SKU."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+
+    request = CreateStockAdjustmentRequest(
+        location_id=1,
+        rows=[StockAdjustmentRow(sku="BAD-SKU", quantity=1)],
+        confirm=False,
+    )
+    with pytest.raises(ValueError, match="SKU 'BAD-SKU' not found"):
+        await _create_stock_adjustment_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_create_stock_adjustment_empty_rows():
+    """Test stock adjustment with no rows."""
+    context, _ = create_mock_context()
+
+    request = CreateStockAdjustmentRequest(
+        location_id=1,
+        rows=[],
+        confirm=False,
+    )
+    with pytest.raises(ValueError, match="At least one adjustment row"):
+        await _create_stock_adjustment_impl(request, context)
 
 
 # ============================================================================

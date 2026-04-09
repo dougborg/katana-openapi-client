@@ -318,6 +318,30 @@ Get inventory movement history for a SKU — every stock change with dates and c
 
 ---
 
+### create_stock_adjustment
+Create a stock adjustment to correct inventory levels.
+
+**Parameters:**
+- `location_id` (required): Location ID for the adjustment
+- `rows` (required): List of `{sku, quantity, cost_per_unit?}` — positive to add, negative to remove
+- `reason` (optional): Reason for adjustment
+- `confirm` (required): Set false to preview, true to create
+
+**Returns:** Adjustment ID and summary of changes.
+
+---
+
+### get_manufacturing_order
+Look up manufacturing orders by order number or ID.
+
+**Parameters:**
+- `order_no` (optional): Order number (e.g., '#WEB20082 / 1')
+- `order_id` (optional): Manufacturing order ID
+
+**Returns:** Order details including status, quantities, costs, linked sales order, and timeline.
+
+---
+
 ### create_item
 Create a new item (product, material, or service).
 
