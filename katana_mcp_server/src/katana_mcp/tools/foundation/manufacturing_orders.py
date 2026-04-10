@@ -37,20 +37,47 @@ logger = get_logger(__name__)
 
 
 class CreateManufacturingOrderRequest(BaseModel):
-    """Request to create a manufacturing order."""
+    """Request to create a manufacturing order.
 
-    variant_id: int = Field(..., description="Variant ID to manufacture")
-    planned_quantity: float = Field(
-        ..., description="Planned quantity to produce", gt=0
+    Two modes:
+    - **Standalone**: Provide variant_id, planned_quantity, location_id. Creates
+      an MO not linked to any sales order.
+    - **Make-to-order (linked)**: Provide sales_order_row_id. Creates an MO
+      directly linked to the sales order row. variant_id, planned_quantity, and
+      location_id are inferred from the sales order row; passing them explicitly
+      is optional and will be ignored by the API.
+    """
+
+    variant_id: int | None = Field(
+        None,
+        description="Variant ID to manufacture (required for standalone MOs)",
     )
-    location_id: int = Field(..., description="Production location ID")
+    planned_quantity: float | None = Field(
+        None,
+        description="Planned quantity (required for standalone MOs)",
+        gt=0,
+    )
+    location_id: int | None = Field(
+        None, description="Production location ID (required for standalone MOs)"
+    )
+    sales_order_row_id: int | None = Field(
+        None,
+        description="Sales order row ID — when provided, creates a make-to-order "
+        "MO linked to that sales order row (uses /manufacturing_order_make_to_order).",
+    )
+    create_subassemblies: bool = Field(
+        default=False,
+        description="Make-to-order only: also create MOs for subassemblies. Ignored for standalone MOs.",
+    )
     order_created_date: datetime | None = Field(
-        None, description="Order creation date (defaults to current time)"
+        None, description="Order creation date (standalone mode only)"
     )
     production_deadline_date: datetime | None = Field(
-        None, description="Production deadline date (optional)"
+        None, description="Production deadline date (standalone mode only)"
     )
-    additional_info: str | None = Field(None, description="Additional notes (optional)")
+    additional_info: str | None = Field(
+        None, description="Additional notes (standalone mode only)"
+    )
     confirm: bool = Field(
         False, description="If false, returns preview. If true, creates order."
     )
@@ -95,42 +122,62 @@ async def _create_manufacturing_order_impl(
 ) -> ManufacturingOrderResponse:
     """Implementation of create_manufacturing_order tool.
 
-    Args:
-        request: Request with manufacturing order details
-        context: Server context with KatanaClient
-
-    Returns:
-        Manufacturing order response with details
-
-    Raises:
-        ValueError: If validation fails
-        Exception: If API call fails
+    Branches based on whether `sales_order_row_id` is provided:
+    - Provided → make-to-order endpoint (linked to the sales order)
+    - Not provided → standard create endpoint (standalone MO)
     """
+    # Validate input based on mode
+    is_make_to_order = request.sales_order_row_id is not None
+    if not is_make_to_order:
+        missing = [
+            name
+            for name, val in [
+                ("variant_id", request.variant_id),
+                ("planned_quantity", request.planned_quantity),
+                ("location_id", request.location_id),
+            ]
+            if val is None
+        ]
+        if missing:
+            raise ValueError(
+                f"Standalone MO creation requires: {', '.join(missing)}. "
+                "Alternatively, provide sales_order_row_id for a make-to-order linked MO."
+            )
+
     logger.info(
-        f"{'Previewing' if not request.confirm else 'Creating'} manufacturing order for variant {request.variant_id}"
+        f"{'Previewing' if not request.confirm else 'Creating'} manufacturing order "
+        f"({'make-to-order' if is_make_to_order else 'standalone'})"
     )
 
-    # Preview mode - just return details without API call
+    # Preview mode — return the plan without calling the API
     if not request.confirm:
-        logger.info(
-            f"Preview mode: MO for variant {request.variant_id}, quantity {request.planned_quantity}"
-        )
+        if is_make_to_order:
+            preview_msg = (
+                f"Preview: Make-to-order MO from sales_order_row_id="
+                f"{request.sales_order_row_id}"
+                + (" (with subassemblies)" if request.create_subassemblies else "")
+            )
+        else:
+            preview_msg = (
+                f"Preview: Manufacturing order for variant {request.variant_id}, "
+                f"quantity {request.planned_quantity}"
+            )
 
-        # Generate warnings for missing optional fields
         warnings = []
-        if request.production_deadline_date is None:
-            warnings.append(
-                "No production_deadline_date specified - order will have no deadline"
-            )
-        if request.additional_info is None:
-            warnings.append(
-                "No additional_info specified - consider adding notes for context"
-            )
+        if not is_make_to_order:
+            if request.production_deadline_date is None:
+                warnings.append(
+                    "No production_deadline_date specified - order will have no deadline"
+                )
+            if request.additional_info is None:
+                warnings.append(
+                    "No additional_info specified - consider adding notes for context"
+                )
 
         return ManufacturingOrderResponse(
-            variant_id=request.variant_id,
-            planned_quantity=request.planned_quantity,
-            location_id=request.location_id,
+            variant_id=request.variant_id or 0,
+            planned_quantity=request.planned_quantity or 0,
+            location_id=request.location_id or 0,
             order_created_date=request.order_created_date,
             production_deadline_date=request.production_deadline_date,
             additional_info=request.additional_info,
@@ -140,23 +187,25 @@ async def _create_manufacturing_order_impl(
                 "Review the order details",
                 "Set confirm=true to create the manufacturing order",
             ],
-            message=f"Preview: Manufacturing order for variant {request.variant_id}, quantity {request.planned_quantity}",
+            message=preview_msg,
         )
 
-    # Confirm mode - use elicitation to get user confirmation before creating
-    confirmation = await require_confirmation(
-        context,
-        f"Create manufacturing order for variant {request.variant_id} with quantity {request.planned_quantity}?",
+    # Confirm mode — elicit confirmation
+    confirm_msg = (
+        f"Create make-to-order MO from sales_order_row_id={request.sales_order_row_id}?"
+        if is_make_to_order
+        else (
+            f"Create manufacturing order for variant {request.variant_id} "
+            f"with quantity {request.planned_quantity}?"
+        )
     )
+    confirmation = await require_confirmation(context, confirm_msg)
 
     if confirmation != ConfirmationResult.CONFIRMED:
-        logger.info(
-            f"User did not confirm creation of manufacturing order for variant {request.variant_id}"
-        )
         return ManufacturingOrderResponse(
-            variant_id=request.variant_id,
-            planned_quantity=request.planned_quantity,
-            location_id=request.location_id,
+            variant_id=request.variant_id or 0,
+            planned_quantity=request.planned_quantity or 0,
+            location_id=request.location_id or 0,
             order_created_date=request.order_created_date,
             production_deadline_date=request.production_deadline_date,
             additional_info=request.additional_info,
@@ -165,43 +214,66 @@ async def _create_manufacturing_order_impl(
             next_actions=["Review the order details and try again with confirm=true"],
         )
 
-    # User confirmed - create the manufacturing order via API
+    # Execute
     try:
         services = get_services(context)
 
-        # Build API request
-        api_request = APICreateManufacturingOrderRequest(
-            variant_id=request.variant_id,
-            planned_quantity=request.planned_quantity,
-            location_id=request.location_id,
-            order_created_date=to_unset(request.order_created_date),
-            production_deadline_date=to_unset(request.production_deadline_date),
-            additional_info=to_unset(request.additional_info),
-        )
+        if is_make_to_order:
+            from katana_public_api_client.api.manufacturing_order import (
+                make_to_order_manufacturing_order as api_mto,
+            )
+            from katana_public_api_client.models.make_to_order_manufacturing_order_request import (
+                MakeToOrderManufacturingOrderRequest,
+            )
 
-        # Call API
-        from katana_public_api_client.api.manufacturing_order import (
-            create_manufacturing_order as api_create_manufacturing_order,
-        )
+            mto_request = MakeToOrderManufacturingOrderRequest(
+                sales_order_row_id=request.sales_order_row_id,
+                create_subassemblies=request.create_subassemblies,
+            )
+            response = await api_mto.asyncio_detailed(
+                client=services.client, body=mto_request
+            )
+        else:
+            api_request = APICreateManufacturingOrderRequest(
+                variant_id=request.variant_id,
+                planned_quantity=request.planned_quantity,
+                location_id=request.location_id,
+                order_created_date=to_unset(request.order_created_date),
+                production_deadline_date=to_unset(request.production_deadline_date),
+                additional_info=to_unset(request.additional_info),
+            )
 
-        response = await api_create_manufacturing_order.asyncio_detailed(
-            client=services.client, body=api_request
-        )
+            from katana_public_api_client.api.manufacturing_order import (
+                create_manufacturing_order as api_create_manufacturing_order,
+            )
 
-        # unwrap_as() raises typed exceptions on error, returns typed ManufacturingOrder
+            response = await api_create_manufacturing_order.asyncio_detailed(
+                client=services.client, body=api_request
+            )
+
         mo = unwrap_as(response, ManufacturingOrder)
         logger.info(f"Successfully created manufacturing order ID {mo.id}")
 
-        # Extract values using unwrap_unset for clean UNSET handling
         order_no = unwrap_unset(mo.order_no, None)
-        variant_id = unwrap_unset(mo.variant_id, request.variant_id)
-        planned_quantity = unwrap_unset(mo.planned_quantity, request.planned_quantity)
-        location_id = unwrap_unset(mo.location_id, request.location_id)
+        variant_id = unwrap_unset(mo.variant_id, request.variant_id or 0)
+        planned_quantity = unwrap_unset(
+            mo.planned_quantity, request.planned_quantity or 0
+        )
+        location_id = unwrap_unset(mo.location_id, request.location_id or 0)
         order_created_date = unwrap_unset(mo.order_created_date, None)
         production_deadline_date = unwrap_unset(mo.production_deadline_date, None)
         additional_info = unwrap_unset(mo.additional_info, None)
         mo_status = unwrap_unset(mo.status, None)
         status = mo_status.value if mo_status else None
+
+        next_actions = [
+            f"Manufacturing order created with ID {mo.id}",
+        ]
+        if is_make_to_order:
+            next_actions.append(
+                f"Linked to sales order (sales_order_id={unwrap_unset(mo.sales_order_id, 'N/A')})"
+            )
+        next_actions.append("Use production tools to track and complete the order")
 
         return ManufacturingOrderResponse(
             id=mo.id,
@@ -214,10 +286,7 @@ async def _create_manufacturing_order_impl(
             production_deadline_date=production_deadline_date,
             additional_info=additional_info,
             is_preview=False,
-            next_actions=[
-                f"Manufacturing order created with ID {mo.id}",
-                "Use production tools to track and complete the order",
-            ],
+            next_actions=next_actions,
             message=f"Successfully created manufacturing order {order_no or mo.id} (ID: {mo.id})",
         )
 
@@ -233,10 +302,20 @@ async def create_manufacturing_order(
 ) -> ToolResult:
     """Create a manufacturing order to produce items.
 
+    Two modes:
+
+    **Standalone MO** (not linked to a sales order):
+    Provide `variant_id`, `planned_quantity`, and `location_id`. Recipe and
+    operation rows are copied from the product's recipe.
+
+    **Make-to-order MO** (linked to a sales order row):
+    Provide `sales_order_row_id`. Everything else (variant, quantity, location)
+    is inferred from the sales order row. Optionally set `create_subassemblies=true`
+    to also create MOs for subassemblies. This is what you want when processing
+    a new sales order that needs production.
+
     Two-step flow: confirm=false to preview, confirm=true to create (prompts
-    for confirmation). Requires variant_id of the product to manufacture,
-    planned_quantity, and location_id. Recipe and operation rows are created
-    automatically from the product's recipe. Use search_items to find variant IDs.
+    for confirmation).
     """
     from katana_mcp.tools.prefab_ui import (
         build_order_created_ui,

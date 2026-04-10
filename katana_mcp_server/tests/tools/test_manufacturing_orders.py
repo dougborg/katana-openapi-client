@@ -852,3 +852,45 @@ async def test_batch_plan_explicit_change_with_variant_id():
 
     assert len(planned) == 3  # 2 deletes + 1 add
     assert warnings == []
+
+
+@pytest.mark.asyncio
+async def test_create_manufacturing_order_make_to_order_preview():
+    """Make-to-order preview mode: sales_order_row_id only, no other fields required."""
+    context, _ = create_mock_context()
+
+    request = CreateManufacturingOrderRequest(
+        sales_order_row_id=105664660,
+        confirm=False,
+    )
+    result = await _create_manufacturing_order_impl(request, context)
+
+    assert result.is_preview is True
+    assert "Make-to-order" in result.message or "make-to-order" in result.message
+    assert "105664660" in result.message
+
+
+@pytest.mark.asyncio
+async def test_create_manufacturing_order_standalone_requires_fields():
+    """Standalone mode without required fields raises ValueError."""
+    context, _ = create_mock_context()
+
+    request = CreateManufacturingOrderRequest(confirm=False)
+    with pytest.raises(ValueError, match="variant_id"):
+        await _create_manufacturing_order_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_create_manufacturing_order_make_to_order_with_subassemblies():
+    """Make-to-order with create_subassemblies=true."""
+    context, _ = create_mock_context()
+
+    request = CreateManufacturingOrderRequest(
+        sales_order_row_id=105664660,
+        create_subassemblies=True,
+        confirm=False,
+    )
+    result = await _create_manufacturing_order_impl(request, context)
+
+    assert result.is_preview is True
+    assert "subassemblies" in result.message
