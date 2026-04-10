@@ -546,7 +546,8 @@ async def test_get_variant_details():
     lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=cached_variant)
 
     request = GetVariantDetailsRequest(sku="WIDGET-001")
-    result = await _get_variant_details_impl(request, context)
+    _var_results = await _get_variant_details_impl(request, context)
+    result = _var_results[0]
 
     assert result.id == 123
     assert result.sku == "WIDGET-001"
@@ -585,7 +586,8 @@ async def test_get_variant_details_case_insensitive():
 
     # Search with lowercase SKU
     request = GetVariantDetailsRequest(sku="widget-001")
-    result = await _get_variant_details_impl(request, context)
+    _var_results = await _get_variant_details_impl(request, context)
+    result = _var_results[0]
 
     assert result.id == 123
     assert result.sku == "WIDGET-001"
@@ -649,7 +651,8 @@ async def test_get_variant_details_minimal_fields():
     lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=cached_variant)
 
     request = GetVariantDetailsRequest(sku="MIN-001")
-    result = await _get_variant_details_impl(request, context)
+    _var_results = await _get_variant_details_impl(request, context)
+    result = _var_results[0]
 
     assert result.id == 123
     assert result.sku == "MIN-001"
@@ -684,7 +687,8 @@ async def test_get_variant_details_with_timestamps():
     lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=cached_variant)
 
     request = GetVariantDetailsRequest(sku="TIME-001")
-    result = await _get_variant_details_impl(request, context)
+    _var_results = await _get_variant_details_impl(request, context)
+    result = _var_results[0]
 
     assert result.created_at == "2024-01-01T12:00:00+00:00"
     assert result.updated_at == "2024-06-01T14:30:00+00:00"
@@ -850,7 +854,8 @@ async def test_get_variant_details_integration(katana_context):
     request = GetVariantDetailsRequest(sku="TEST-001")
 
     try:
-        result = await _get_variant_details_impl(request, katana_context)
+        _var_results = await _get_variant_details_impl(request, katana_context)
+        result = _var_results[0]
 
         # Verify response structure
         assert isinstance(result.id, int)

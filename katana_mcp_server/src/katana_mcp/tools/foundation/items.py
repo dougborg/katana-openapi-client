@@ -714,9 +714,25 @@ async def delete_item(
 
 
 class GetVariantDetailsRequest(BaseModel):
-    """Request to get variant details by SKU."""
+    """Request to get variant details by SKU(s) or variant ID(s).
 
-    sku: str = Field(..., description="SKU to look up")
+    Accepts a single sku/variant_id OR a list (skus/variant_ids) for batch lookups.
+    """
+
+    sku: str | None = Field(
+        default=None,
+        description="Single SKU to look up (exact case-insensitive match)",
+    )
+    variant_id: int | None = Field(
+        default=None,
+        description="Single variant ID to look up directly",
+    )
+    skus: list[str] | None = Field(
+        default=None, description="Batch: list of SKUs to look up"
+    )
+    variant_ids: list[int] | None = Field(
+        default=None, description="Batch: list of variant IDs to look up"
+    )
 
 
 class VariantDetailsResponse(BaseModel):
@@ -802,23 +818,11 @@ def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolRes
     )
 
 
-@cache_read(EntityType.VARIANT)
-async def _get_variant_details_impl(
-    request: GetVariantDetailsRequest, context: Context
-) -> VariantDetailsResponse:
-    """Look up variant details by SKU from cache."""
-    if not request.sku or not request.sku.strip():
-        raise ValueError("SKU cannot be empty")
-
-    services = get_services(context)
-    v = await services.cache.get_by_sku(request.sku)
-
-    if not v:
-        raise ValueError(f"Variant with SKU '{request.sku}' not found")
-
+def _dict_to_variant_details(v: dict[str, Any]) -> VariantDetailsResponse:
+    """Build a VariantDetailsResponse from a cache/API variant dict."""
     return VariantDetailsResponse(
         id=v["id"],
-        sku=v.get("sku"),
+        sku=v.get("sku") or "",
         name=v.get("display_name") or v.get("sku") or "",
         sales_price=v.get("sales_price"),
         purchase_price=v.get("purchase_price"),
@@ -838,20 +842,116 @@ async def _get_variant_details_impl(
     )
 
 
+async def _fetch_variant_by_id(services: Any, variant_id: int) -> dict[str, Any] | None:
+    """Look up a variant by ID — cache first, then API fallback."""
+    v = await services.cache.get_by_id(EntityType.VARIANT, variant_id)
+    if v:
+        return v
+    # Cache miss — fetch from API
+    from katana_public_api_client.api.variant import get_variant
+    from katana_public_api_client.utils import unwrap
+
+    response = await get_variant.asyncio_detailed(id=variant_id, client=services.client)
+    variant_obj = unwrap(response)
+    if variant_obj is None:
+        return None
+    return variant_obj.to_dict()
+
+
+@cache_read(EntityType.VARIANT)
+async def _get_variant_details_impl(
+    request: GetVariantDetailsRequest, context: Context
+) -> list[VariantDetailsResponse]:
+    """Look up one or more variants by SKU(s) or variant ID(s).
+
+    Returns a list of matching variants. Raises ValueError if any are not found.
+    """
+    skus: list[str] = []
+    variant_ids: list[int] = []
+
+    if request.sku is not None:
+        # Validate explicit single SKU (even empty string)
+        if not request.sku.strip():
+            raise ValueError("SKU cannot be empty")
+        skus.append(request.sku)
+    if request.skus:
+        skus.extend(request.skus)
+    if request.variant_id is not None:
+        variant_ids.append(request.variant_id)
+    if request.variant_ids:
+        variant_ids.extend(request.variant_ids)
+
+    if not skus and not variant_ids:
+        raise ValueError(
+            "Must provide at least one of: sku, variant_id, skus, variant_ids"
+        )
+
+    services = get_services(context)
+    results: list[VariantDetailsResponse] = []
+
+    # Look up by SKUs (cache only)
+    for sku in skus:
+        sku_clean = sku.strip()
+        if not sku_clean:
+            raise ValueError("SKU cannot be empty")
+        v = await services.cache.get_by_sku(sku_clean)
+        if not v:
+            raise ValueError(f"Variant with SKU '{sku_clean}' not found")
+        results.append(_dict_to_variant_details(v))
+
+    # Look up by variant IDs (cache + API fallback)
+    for variant_id in variant_ids:
+        v = await _fetch_variant_by_id(services, variant_id)
+        if v is None:
+            raise ValueError(f"Variant ID {variant_id} not found")
+        results.append(_dict_to_variant_details(v))
+
+    return results
+
+
 @observe_tool
 @unpack_pydantic_params
 async def get_variant_details(
     request: Annotated[GetVariantDetailsRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Get comprehensive variant details by SKU — pricing, barcodes, supplier codes, and more.
+    """Get comprehensive variant details by SKU(s) or variant ID(s).
 
-    Use after search_items to get full details on a specific item. Returns the variant ID
-    needed for create_purchase_order and create_sales_order line items.
+    Returns pricing, barcodes, supplier codes, and more. Accepts a single SKU
+    (`sku`) or variant ID (`variant_id`), or batch lookups via `skus` / `variant_ids`.
 
-    Performs an exact case-insensitive SKU match. Raises ValueError if SKU not found.
+    Use after search_items, or pass variant IDs from other sources (PO line
+    items, MO recipe rows) to resolve them to SKUs and full details.
+
+    Tries the cache first; falls back to the API for variant IDs not in cache.
+    Raises ValueError if any requested variant is not found.
     """
-    response = await _get_variant_details_impl(request, context)
-    return _variant_details_to_tool_result(response)
+    responses = await _get_variant_details_impl(request, context)
+
+    # If a single-variant request, return the single-variant markdown + UI
+    is_single = len(responses) == 1 and not request.skus and not request.variant_ids
+    if is_single:
+        return _variant_details_to_tool_result(responses[0])
+
+    # Batch response: summary + table
+    lines = [
+        f"## Variant Details ({len(responses)} variants)",
+        "",
+        "| ID | SKU | Name | Sales Price | Purchase Price |",
+        "|----|-----|------|-------------|----------------|",
+    ]
+    for v in responses:
+        lines.append(
+            f"| {v.id} | {v.sku} | {v.name} | "
+            f"{'$' + format(v.sales_price, ',.2f') if v.sales_price is not None else 'N/A'} | "
+            f"{'$' + format(v.purchase_price, ',.2f') if v.purchase_price is not None else 'N/A'} |"
+        )
+
+    from katana_mcp.tools.tool_result_utils import make_simple_result
+
+    return make_simple_result(
+        "\n".join(lines),
+        structured_data={"variants": [v.model_dump() for v in responses]},
+    )
 
 
 def register_tools(mcp: FastMCP) -> None:

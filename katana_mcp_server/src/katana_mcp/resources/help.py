@@ -460,10 +460,13 @@ Add a new ingredient to a manufacturing order's recipe.
 
 **Parameters:**
 - `manufacturing_order_id` (required): MO ID
-- `sku` (required): SKU of ingredient to add
+- `sku` (optional): SKU of ingredient (resolved via cache)
+- `variant_id` (optional): Variant ID directly (use when SKU isn't in cache)
 - `planned_quantity_per_unit` (required): Qty needed per manufactured unit
 - `notes` (optional): Notes
 - `confirm` (required): false=preview, true=add
+
+Provide either `sku` or `variant_id`.
 
 ---
 

@@ -543,7 +543,14 @@ class AddRecipeRowRequest(BaseModel):
     """Request to add an ingredient row to a manufacturing order."""
 
     manufacturing_order_id: int = Field(..., description="Manufacturing order ID")
-    sku: str = Field(..., description="SKU of the variant to add as an ingredient")
+    sku: str | None = Field(
+        default=None,
+        description="SKU of the variant to add (resolved via cache). Use this OR variant_id.",
+    )
+    variant_id: int | None = Field(
+        default=None,
+        description="Variant ID to add directly. Use when the SKU isn't in the cache.",
+    )
     planned_quantity_per_unit: float = Field(
         ..., description="Planned quantity needed per manufactured unit", gt=0
     )
@@ -560,7 +567,7 @@ class AddRecipeRowResponse(BaseModel):
     id: int | None
     manufacturing_order_id: int
     variant_id: int
-    sku: str
+    sku: str | None
     planned_quantity_per_unit: float
     is_preview: bool
     message: str
@@ -578,41 +585,49 @@ async def _add_recipe_row_impl(
     )
     from katana_public_api_client.utils import APIError, unwrap
 
+    if not request.sku and not request.variant_id:
+        raise ValueError("Either sku or variant_id must be provided")
+
     services = get_services(context)
 
-    # Resolve SKU to variant_id
-    variant = await services.cache.get_by_sku(sku=request.sku)
-    if not variant:
-        raise ValueError(f"SKU '{request.sku}' not found")
-    variant_id = variant["id"]
-    display_name = variant.get("display_name") or request.sku
+    # Resolve variant_id — either from SKU via cache, or use directly
+    if request.variant_id:
+        variant_id = request.variant_id
+        sku = request.sku  # may be None
+        display_name = sku or f"variant {variant_id}"
+    else:
+        variant = await services.cache.get_by_sku(sku=request.sku)
+        if not variant:
+            raise ValueError(f"SKU '{request.sku}' not found")
+        variant_id = variant["id"]
+        sku = request.sku
+        display_name = variant.get("display_name") or sku
 
     if not request.confirm:
         return AddRecipeRowResponse(
             id=None,
             manufacturing_order_id=request.manufacturing_order_id,
             variant_id=variant_id,
-            sku=request.sku,
+            sku=sku,
             planned_quantity_per_unit=request.planned_quantity_per_unit,
             is_preview=True,
             message=(
                 f"Preview: Would add {request.planned_quantity_per_unit}x "
-                f"{request.sku} ({display_name}) to MO "
-                f"{request.manufacturing_order_id}"
+                f"{display_name} to MO {request.manufacturing_order_id}"
             ),
         )
 
     confirmation = await require_confirmation(
         context,
-        f"Add {request.planned_quantity_per_unit}x {request.sku} "
-        f"({display_name}) to MO {request.manufacturing_order_id}?",
+        f"Add {request.planned_quantity_per_unit}x {display_name} "
+        f"to MO {request.manufacturing_order_id}?",
     )
     if confirmation != ConfirmationResult.CONFIRMED:
         return AddRecipeRowResponse(
             id=None,
             manufacturing_order_id=request.manufacturing_order_id,
             variant_id=variant_id,
-            sku=request.sku,
+            sku=sku,
             planned_quantity_per_unit=request.planned_quantity_per_unit,
             is_preview=True,
             message=f"Add recipe row {confirmation} by user",
@@ -638,7 +653,7 @@ async def _add_recipe_row_impl(
         id=new_id,
         manufacturing_order_id=request.manufacturing_order_id,
         variant_id=variant_id,
-        sku=request.sku,
+        sku=sku,
         planned_quantity_per_unit=request.planned_quantity_per_unit,
         is_preview=False,
         message=f"Added recipe row (ID {new_id}) to MO {request.manufacturing_order_id}",
@@ -653,8 +668,8 @@ async def add_manufacturing_order_recipe_row(
     """Add a new ingredient row to a manufacturing order's recipe.
 
     Two-step flow: confirm=false to preview, confirm=true to add (prompts
-    for confirmation). Resolves the SKU to a variant_id automatically via
-    the cache.
+    for confirmation). Provide either `sku` (resolved to variant_id via the
+    cache) or `variant_id` directly.
 
     Use this to add missing ingredients to an MO or build up a custom recipe.
     To remove an ingredient, use delete_manufacturing_order_recipe_row.
