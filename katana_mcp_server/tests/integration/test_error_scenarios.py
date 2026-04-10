@@ -111,7 +111,8 @@ class TestAPIErrorHandling:
         lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
 
         request = CheckInventoryRequest(sku="NONEXISTENT-SKU")
-        result = await _check_inventory_impl(request, context)
+        _inv_results = await _check_inventory_impl(request, context)
+        result = _inv_results[0]
 
         # Should return zero stock, not error
         assert result.sku == "NONEXISTENT-SKU"

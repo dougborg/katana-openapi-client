@@ -104,7 +104,10 @@ class TestInventorySearchWorkflow:
         first_item = search_result.items[0]
         inventory_request = CheckInventoryRequest(sku=first_item.sku)
 
-        inventory = await _check_inventory_impl(inventory_request, integration_context)
+        _inv_results = await _check_inventory_impl(
+            inventory_request, integration_context
+        )
+        inventory = _inv_results[0]
 
         # Verify inventory response
         assert inventory.sku == first_item.sku
@@ -158,9 +161,10 @@ class TestInventorySearchWorkflow:
         # Step 3: Check inventory for each item with details
         for details in details_results:
             inventory_request = CheckInventoryRequest(sku=details.sku)
-            inventory = await _check_inventory_impl(
+            _inv_results = await _check_inventory_impl(
                 inventory_request, integration_context
             )
+            inventory = _inv_results[0]
 
             # Verify consistency
             assert inventory.sku == details.sku
@@ -209,9 +213,10 @@ class TestLowStockWorkflow:
 
             # Get detailed inventory check
             inventory_request = CheckInventoryRequest(sku=item.sku)
-            inventory = await _check_inventory_impl(
+            _inv_results = await _check_inventory_impl(
                 inventory_request, integration_context
             )
+            inventory = _inv_results[0]
 
             # Verify SKU matches
             assert inventory.sku == item.sku
@@ -326,9 +331,10 @@ class TestInventoryDataConsistency:
                 continue
 
             inventory_request = CheckInventoryRequest(sku=item.sku)
-            inventory = await _check_inventory_impl(
+            _inv_results = await _check_inventory_impl(
                 inventory_request, integration_context
             )
+            inventory = _inv_results[0]
 
             # All values should be non-negative
             assert inventory.in_stock >= 0, "In stock cannot be negative"

@@ -7,7 +7,7 @@ and managing inventory operations.
 from __future__ import annotations
 
 import time
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
@@ -26,9 +26,21 @@ logger = get_logger(__name__)
 
 
 class CheckInventoryRequest(BaseModel):
-    """Request model for checking inventory."""
+    """Request model for checking inventory.
 
-    sku: str = Field(..., description="Product SKU to check")
+    Accepts a single sku/variant_id OR a list (skus/variant_ids) for batch lookups.
+    """
+
+    sku: str | None = Field(default=None, description="Single SKU to check")
+    variant_id: int | None = Field(
+        default=None, description="Single variant ID to check"
+    )
+    skus: list[str] | None = Field(
+        default=None, description="Batch: list of SKUs to check"
+    )
+    variant_ids: list[int] | None = Field(
+        default=None, description="Batch: list of variant IDs to check"
+    )
 
 
 class StockInfo(BaseModel):
@@ -42,87 +54,119 @@ class StockInfo(BaseModel):
     in_stock: float
 
 
-async def _check_inventory_impl(
-    request: CheckInventoryRequest, context: Context
+async def _fetch_stock_for_variant(
+    services: Any, variant_id: int, sku: str, product_name: str
 ) -> StockInfo:
-    """Look up variant by SKU via cache, then query the inventory endpoint."""
+    """Query the inventory endpoint and sum stock across all locations."""
     from katana_public_api_client.api.inventory import get_all_inventory_point
     from katana_public_api_client.domain.converters import unwrap_unset
     from katana_public_api_client.utils import unwrap_data
 
-    if not request.sku or not request.sku.strip():
-        raise ValueError("SKU cannot be empty")
+    response = await get_all_inventory_point.asyncio_detailed(
+        client=services.client, variant_id=variant_id
+    )
+    inventory_items = unwrap_data(response)
+
+    total_in_stock = 0.0
+    total_committed = 0.0
+    total_expected = 0.0
+    for inv in inventory_items:
+        total_in_stock += float(unwrap_unset(inv.quantity_in_stock, "0"))
+        total_committed += float(unwrap_unset(inv.quantity_committed, "0"))
+        total_expected += float(unwrap_unset(inv.quantity_expected, "0"))
+
+    return StockInfo(
+        sku=sku,
+        product_name=product_name,
+        available_stock=total_in_stock - total_committed,
+        committed=total_committed,
+        expected=total_expected,
+        in_stock=total_in_stock,
+    )
+
+
+async def _check_inventory_impl(
+    request: CheckInventoryRequest, context: Context
+) -> list[StockInfo]:
+    """Look up one or more variants by SKU/ID and return their stock info."""
+    skus: list[str] = []
+    variant_ids: list[int] = []
+
+    if request.sku is not None:
+        if not request.sku.strip():
+            raise ValueError("SKU cannot be empty")
+        skus.append(request.sku)
+    if request.skus:
+        skus.extend(request.skus)
+    if request.variant_id is not None:
+        variant_ids.append(request.variant_id)
+    if request.variant_ids:
+        variant_ids.extend(request.variant_ids)
+
+    if not skus and not variant_ids:
+        raise ValueError(
+            "Must provide at least one of: sku, variant_id, skus, variant_ids"
+        )
 
     start_time = time.monotonic()
-    logger.info("inventory_check_started", sku=request.sku)
+    logger.info(
+        "inventory_check_started",
+        sku_count=len(skus),
+        variant_id_count=len(variant_ids),
+    )
 
     try:
         services = get_services(context)
+        results: list[StockInfo] = []
 
-        # 1. Resolve SKU → variant_id via the cached catalog
-        variant = await services.cache.get_by_sku(sku=request.sku)
-        if not variant:
-            duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-            logger.warning(
-                "inventory_check_not_found", sku=request.sku, duration_ms=duration_ms
+        for sku in skus:
+            variant = await services.cache.get_by_sku(sku=sku)
+            if not variant:
+                logger.warning("inventory_check_not_found", sku=sku)
+                results.append(
+                    StockInfo(
+                        sku=sku,
+                        product_name="",
+                        available_stock=0,
+                        committed=0,
+                        expected=0,
+                        in_stock=0,
+                    )
+                )
+                continue
+            results.append(
+                await _fetch_stock_for_variant(
+                    services,
+                    variant["id"],
+                    sku,
+                    variant.get("display_name") or variant.get("sku") or "",
+                )
             )
-            return StockInfo(
-                sku=request.sku,
-                product_name="",
-                available_stock=0,
-                committed=0,
-                expected=0,
-                in_stock=0,
+
+        for variant_id in variant_ids:
+            variant = await services.cache.get_by_id("variant", variant_id)
+            sku = variant.get("sku", "") if variant else ""
+            product_name = (
+                variant.get("display_name") or variant.get("sku") or ""
+                if variant
+                else ""
             )
-
-        variant_id = variant["id"]
-        product_name = variant.get("display_name") or variant.get("sku") or ""
-
-        # 2. Query the inventory endpoint filtered by variant_id
-        response = await get_all_inventory_point.asyncio_detailed(
-            client=services.client, variant_id=variant_id
-        )
-        inventory_items = unwrap_data(response)
-
-        # 3. Sum across all locations
-        total_in_stock = 0.0
-        total_committed = 0.0
-        total_expected = 0.0
-
-        for inv in inventory_items:
-            total_in_stock += float(unwrap_unset(inv.quantity_in_stock, "0"))
-            total_committed += float(unwrap_unset(inv.quantity_committed, "0"))
-            total_expected += float(unwrap_unset(inv.quantity_expected, "0"))
-
-        available = total_in_stock - total_committed
-
-        stock_info = StockInfo(
-            sku=request.sku,
-            product_name=product_name,
-            available_stock=available,
-            committed=total_committed,
-            expected=total_expected,
-            in_stock=total_in_stock,
-        )
+            results.append(
+                await _fetch_stock_for_variant(services, variant_id, sku, product_name)
+            )
 
         duration_ms = round((time.monotonic() - start_time) * 1000, 2)
         logger.info(
             "inventory_check_completed",
-            sku=request.sku,
-            product_name=stock_info.product_name,
-            in_stock=stock_info.in_stock,
-            committed=stock_info.committed,
-            expected=stock_info.expected,
-            available_stock=stock_info.available_stock,
+            count=len(results),
             duration_ms=duration_ms,
         )
-        return stock_info
+        return results
 
     except Exception as e:
         duration_ms = round((time.monotonic() - start_time) * 1000, 2)
         logger.error(
             "inventory_check_failed",
-            sku=request.sku,
             error=str(e),
             error_type=type(e).__name__,
             duration_ms=duration_ms,
@@ -136,26 +180,55 @@ async def _check_inventory_impl(
 async def check_inventory(
     request: Annotated[CheckInventoryRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Check current stock levels (available, committed, in production) for a SKU.
+    """Check current stock levels for one or more SKUs or variant IDs.
 
-    Use before creating orders to verify stock availability. Returns zero stock
-    if the SKU is not found (does not raise an error).
+    Accepts a single sku/variant_id or a batch list (skus/variant_ids). Returns
+    available, committed, expected, and in_stock quantities summed across all
+    locations.
+
+    Use before creating orders to verify stock availability, or with a batch
+    list to check multiple ingredients at once (e.g. all EXPECTED items in an
+    MO recipe).
     """
     from katana_mcp.tools.prefab_ui import build_inventory_check_ui
 
-    response = await _check_inventory_impl(request, context)
-    ui = build_inventory_check_ui(response.model_dump())
+    results = await _check_inventory_impl(request, context)
 
-    return make_tool_result(
-        response,
-        "inventory_check",
-        ui=ui,
-        sku=response.sku,
-        product_name=response.product_name,
-        in_stock=response.in_stock,
-        available_stock=response.available_stock,
-        committed=response.committed,
-        expected=response.expected,
+    # Single-variant request: preserve the rich Prefab card output
+    is_single = len(results) == 1 and not request.skus and not request.variant_ids
+    if is_single:
+        response = results[0]
+        ui = build_inventory_check_ui(response.model_dump())
+        return make_tool_result(
+            response,
+            "inventory_check",
+            ui=ui,
+            sku=response.sku,
+            product_name=response.product_name,
+            in_stock=response.in_stock,
+            available_stock=response.available_stock,
+            committed=response.committed,
+            expected=response.expected,
+        )
+
+    # Batch response: summary table
+    from katana_mcp.tools.tool_result_utils import make_simple_result
+
+    lines = [
+        f"## Inventory Check ({len(results)} items)",
+        "",
+        "| SKU | Product | In Stock | Committed | Available | Expected |",
+        "|-----|---------|---------:|----------:|----------:|---------:|",
+    ]
+    for r in results:
+        lines.append(
+            f"| {r.sku} | {r.product_name[:40]} "
+            f"| {r.in_stock} | {r.committed} "
+            f"| {r.available_stock} | {r.expected} |"
+        )
+    return make_simple_result(
+        "\n".join(lines),
+        structured_data={"items": [r.model_dump() for r in results]},
     )
 
 

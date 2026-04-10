@@ -98,10 +98,11 @@ class TestMCPParameterPassing:
         sig2 = inspect.signature(check_inventory)
         params2 = list(sig2.parameters.keys())
 
-        assert params2 == ["sku", "context"], (
-            "check_inventory has flattened params: sku, context"
+        assert params2 == ["sku", "variant_id", "skus", "variant_ids", "context"], (
+            "check_inventory has flattened params: sku, variant_id, skus, variant_ids, context"
         )
-        assert sig2.parameters["sku"].annotation is str
+        # sku is optional now (can be None)
+        assert sig2.parameters["sku"].default is None
 
 
 class TestMCPProtocolSimulation:

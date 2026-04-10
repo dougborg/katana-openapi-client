@@ -65,7 +65,8 @@ async def test_check_inventory():
     ):
         mock_api.return_value = MagicMock()
         request = CheckInventoryRequest(sku="WIDGET-001")
-        result = await _check_inventory_impl(request, context)
+        _inv_results = await _check_inventory_impl(request, context)
+        result = _inv_results[0]
 
     assert result.sku == "WIDGET-001"
     assert result.product_name == "Test Widget"
@@ -100,7 +101,8 @@ async def test_check_inventory_multiple_locations():
         patch(_UNWRAP_DATA, return_value=[mock_inv_1, mock_inv_2]),
     ):
         request = CheckInventoryRequest(sku="WIDGET-001")
-        result = await _check_inventory_impl(request, context)
+        _inv_results = await _check_inventory_impl(request, context)
+        result = _inv_results[0]
 
     assert result.in_stock == 150.0
     assert result.available_stock == 120.0  # 150 - 30
@@ -115,7 +117,8 @@ async def test_check_inventory_not_found():
     lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
 
     request = CheckInventoryRequest(sku="NOT-FOUND")
-    result = await _check_inventory_impl(request, context)
+    _inv_results = await _check_inventory_impl(request, context)
+    result = _inv_results[0]
 
     assert result.sku == "NOT-FOUND"
     assert result.product_name == ""
@@ -715,7 +718,8 @@ async def test_check_inventory_integration(katana_context):
     request = CheckInventoryRequest(sku="TEST-SKU-001")
 
     try:
-        result = await _check_inventory_impl(request, katana_context)
+        _inv_results = await _check_inventory_impl(request, katana_context)
+        result = _inv_results[0]
 
         # Verify response structure
         assert result.sku == "TEST-SKU-001"
@@ -819,7 +823,8 @@ async def test_check_inventory_nonexistent_sku_integration(katana_context):
     request = CheckInventoryRequest(sku="NONEXISTENT-SKU-99999")
 
     try:
-        result = await _check_inventory_impl(request, katana_context)
+        _inv_results = await _check_inventory_impl(request, katana_context)
+        result = _inv_results[0]
 
         # Should return zero stock, not error
         assert result.sku == "NONEXISTENT-SKU-99999"
@@ -917,3 +922,33 @@ async def test_get_variant_details_nonexistent_integration(katana_context):
         assert any(
             word in error_msg for word in ["connection", "network", "auth", "timeout"]
         ), f"Unexpected error: {e}"
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_batch_skus():
+    """Batch check_inventory with multiple SKUs."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        side_effect=[
+            {"id": 101, "sku": "WIDGET-A", "display_name": "Widget A"},
+            {"id": 102, "sku": "WIDGET-B", "display_name": "Widget B"},
+        ]
+    )
+
+    mock_inv = MagicMock()
+    mock_inv.quantity_in_stock = "10.0"
+    mock_inv.quantity_committed = "3.0"
+    mock_inv.quantity_expected = "5.0"
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[mock_inv]),
+    ):
+        request = CheckInventoryRequest(skus=["WIDGET-A", "WIDGET-B"])
+        results = await _check_inventory_impl(request, context)
+
+    assert len(results) == 2
+    assert results[0].sku == "WIDGET-A"
+    assert results[1].sku == "WIDGET-B"
+    assert results[0].in_stock == 10.0
+    assert results[0].available_stock == 7.0
