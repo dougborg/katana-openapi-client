@@ -706,3 +706,142 @@ def build_receipt_ui(
                     ),
                 )
     return app
+
+
+# ============================================================================
+# Batch Recipe Update UI
+# ============================================================================
+
+
+def build_batch_recipe_update_ui(response: dict[str, Any]) -> PrefabApp:
+    """Build a batch recipe update card with per-group tables and summary metrics.
+
+    Shows one row per planned sub-op grouped by replacement group_label.
+    Preview mode shows all ops as PENDING; executed mode shows SUCCESS/FAILED/SKIPPED.
+    """
+    is_preview = response.get("is_preview", True)
+    results = response.get("results", [])
+    warnings = response.get("warnings", [])
+    message = response.get("message", "")
+
+    # Group sub-ops by group_label for display
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for op in results:
+        label = op.get("group_label") or "Other"
+        groups.setdefault(label, []).append(op)
+
+    # Augment each row with display-friendly fields (flatten nested structure)
+    flat_rows: list[dict[str, Any]] = []
+    for label, ops in groups.items():
+        for op in ops:
+            sku_or_variant = op.get("sku") or (
+                f"variant {op['variant_id']}" if op.get("variant_id") else ""
+            )
+            flat_rows.append(
+                {
+                    "group": label,
+                    "mo_id": op.get("manufacturing_order_id"),
+                    "action": (op.get("op_type") or "").upper(),
+                    "row_id": op.get("recipe_row_id") or "(new)",
+                    "sku": sku_or_variant,
+                    "qty": op.get("planned_quantity_per_unit") or "",
+                    "status": (op.get("status") or "pending").upper(),
+                    "error": op.get("error") or "",
+                }
+            )
+
+    total = response.get("total_ops", 0)
+    success = response.get("success_count", 0)
+    failed = response.get("failed_count", 0)
+    skipped = response.get("skipped_count", 0)
+
+    mode_label = "PREVIEW" if is_preview else "RESULTS"
+    mode_variant = (
+        "secondary" if is_preview else ("destructive" if failed > 0 else "default")
+    )
+
+    with (
+        PrefabApp(
+            state={
+                "rows": flat_rows,
+                "summary": {
+                    "total": total,
+                    "success": success,
+                    "failed": failed,
+                    "skipped": skipped,
+                },
+                "is_preview": is_preview,
+                "warnings": warnings,
+                "groups": list(groups.keys()),
+            },
+            css_class="p-4",
+        ) as app,
+        Column(gap=4),
+    ):
+        with Row(gap=2):
+            H3(content="Batch Recipe Update")
+            Badge(label=mode_label, variant=mode_variant)
+            Badge(label=f"{total} ops", variant="outline")
+
+        with Row(gap=4):
+            Metric(label="Total", value=str(total))
+            if not is_preview:
+                Metric(label="Success", value=str(success))
+                Metric(label="Failed", value=str(failed))
+                Metric(label="Skipped", value=str(skipped))
+
+        # One big table with all ops, grouped visually by the group column
+        DataTable(
+            columns=[
+                DataTableColumn(key="group", header="Group", sortable=True),
+                DataTableColumn(key="mo_id", header="MO", sortable=True),
+                DataTableColumn(key="action", header="Action"),
+                DataTableColumn(key="row_id", header="Row ID"),
+                DataTableColumn(key="sku", header="SKU"),
+                DataTableColumn(key="qty", header="Qty", align="right"),
+                DataTableColumn(key="status", header="Status", sortable=True),
+                DataTableColumn(key="error", header="Error"),
+            ],
+            rows="rows",
+            search=True,
+            paginated=True,
+            page_size=25,
+        )
+
+        if warnings:
+            Muted(content=f"Warnings ({len(warnings)}):")
+            for w in warnings:
+                Text(content=f"- {w}")
+
+        Text(content=message)
+
+        # Action buttons
+        with Row(gap=2):
+            if is_preview:
+                Button(
+                    label="Execute batch",
+                    variant="default",
+                    on_click=SendMessage(
+                        "Re-run the previous batch_update_manufacturing_order_recipes "
+                        "call with confirm=true"
+                    ),
+                )
+            elif failed > 0:
+                Button(
+                    label="Review failed ops",
+                    variant="outline",
+                    on_click=SendMessage(
+                        "List the failed sub-operations from the last batch update "
+                        "and suggest recovery steps"
+                    ),
+                )
+            else:
+                Button(
+                    label="Verify recipes",
+                    variant="outline",
+                    on_click=SendMessage(
+                        "Verify the updated manufacturing order recipes"
+                    ),
+                )
+
+    return app

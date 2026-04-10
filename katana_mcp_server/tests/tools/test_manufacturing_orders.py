@@ -605,3 +605,250 @@ async def test_delete_recipe_row_preview():
     assert result.is_preview is True
     assert result.recipe_row_id == 5001
     assert "Preview" in result.message
+
+
+# ============================================================================
+# batch_update_manufacturing_order_recipes
+# ============================================================================
+
+from katana_mcp.tools.foundation.manufacturing_orders import (  # noqa: E402
+    BatchUpdateRecipesRequest,
+    ExplicitChange,
+    SubOpStatus,
+    VariantReplacement,
+    VariantSpec,
+    _batch_update_impl,
+    _plan_batch_update,
+)
+
+
+def _mock_recipe_rows(rows_data: list[dict]) -> list:
+    """Helper to build a list of mock RecipeRowInfo-like objects."""
+    mocks = []
+    for r in rows_data:
+        m = MagicMock()
+        for k, v in r.items():
+            setattr(m, k, v)
+        mocks.append(m)
+    return mocks
+
+
+@pytest.mark.asyncio
+async def test_batch_plan_replacement_basic():
+    """Plan a simple replacement across one MO."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        side_effect=[
+            {"id": 100, "sku": "OLD-FORK", "display_name": "Old Fork"},
+            {"id": 200, "sku": "NEW-FORK", "display_name": "New Fork"},
+            {"id": 201, "sku": "AIR-SHAFT", "display_name": "Air Shaft"},
+        ]
+    )
+
+    # Mock the recipe fetch
+    from katana_mcp.tools.foundation.manufacturing_orders import RecipeRowInfo
+
+    async def fake_get_recipe(req, ctx):
+        from katana_mcp.tools.foundation.manufacturing_orders import (
+            GetManufacturingOrderRecipeResponse,
+        )
+
+        return GetManufacturingOrderRecipeResponse(
+            manufacturing_order_id=req.manufacturing_order_id,
+            rows=[
+                RecipeRowInfo(
+                    id=5001,
+                    variant_id=100,
+                    sku="OLD-FORK",
+                    planned_quantity_per_unit=1.0,
+                    total_actual_quantity=None,
+                    ingredient_availability="IN_STOCK",
+                    notes=None,
+                    cost=None,
+                ),
+            ],
+            total_count=1,
+        )
+
+    with patch(
+        "katana_mcp.tools.foundation.manufacturing_orders._get_manufacturing_order_recipe_impl",
+        side_effect=fake_get_recipe,
+    ):
+        request = BatchUpdateRecipesRequest(
+            replacements=[
+                VariantReplacement(
+                    manufacturing_order_ids=[9999],
+                    old_sku="OLD-FORK",
+                    new_components=[
+                        VariantSpec(sku="NEW-FORK", planned_quantity_per_unit=1.0),
+                        VariantSpec(sku="AIR-SHAFT", planned_quantity_per_unit=1.0),
+                    ],
+                )
+            ],
+        )
+        planned, warnings = await _plan_batch_update(request, context)
+
+    # Expect: 1 delete + 2 adds
+    assert len(planned) == 3
+    deletes = [p for p in planned if p.op_type == "delete"]
+    adds = [p for p in planned if p.op_type == "add"]
+    assert len(deletes) == 1
+    assert len(adds) == 2
+    assert deletes[0].recipe_row_id == 5001
+    assert adds[0].sku == "NEW-FORK"
+    assert adds[1].sku == "AIR-SHAFT"
+    # All grouped under the same label
+    assert all(p.group_label == "OLD-FORK → [NEW-FORK, AIR-SHAFT]" for p in planned)
+    assert warnings == []
+
+
+@pytest.mark.asyncio
+async def test_batch_plan_skips_mo_missing_old_variant():
+    """Non-strict mode: MOs without the old variant are skipped with a warning."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        side_effect=[
+            {"id": 100, "sku": "OLD-FORK"},
+            {"id": 200, "sku": "NEW-FORK"},
+        ]
+    )
+
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        GetManufacturingOrderRecipeResponse,
+    )
+
+    async def fake_get_recipe(req, ctx):
+        return GetManufacturingOrderRecipeResponse(
+            manufacturing_order_id=req.manufacturing_order_id,
+            rows=[],  # empty — old variant not present
+            total_count=0,
+        )
+
+    with patch(
+        "katana_mcp.tools.foundation.manufacturing_orders._get_manufacturing_order_recipe_impl",
+        side_effect=fake_get_recipe,
+    ):
+        request = BatchUpdateRecipesRequest(
+            replacements=[
+                VariantReplacement(
+                    manufacturing_order_ids=[9999],
+                    old_sku="OLD-FORK",
+                    new_components=[
+                        VariantSpec(sku="NEW-FORK", planned_quantity_per_unit=1.0),
+                    ],
+                    strict=False,
+                )
+            ],
+        )
+        planned, warnings = await _plan_batch_update(request, context)
+
+    assert len(warnings) == 1
+    assert "not in recipe" in warnings[0]
+    # Skipped add placeholder emitted for visibility
+    assert len(planned) == 1
+    assert planned[0].status == SubOpStatus.SKIPPED
+
+
+@pytest.mark.asyncio
+async def test_batch_plan_strict_raises_on_missing():
+    """Strict mode: MOs without the old variant raise an error."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        side_effect=[
+            {"id": 100, "sku": "OLD-FORK"},
+            {"id": 200, "sku": "NEW-FORK"},
+        ]
+    )
+
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        GetManufacturingOrderRecipeResponse,
+    )
+
+    async def fake_get_recipe(req, ctx):
+        return GetManufacturingOrderRecipeResponse(
+            manufacturing_order_id=req.manufacturing_order_id,
+            rows=[],
+            total_count=0,
+        )
+
+    with patch(
+        "katana_mcp.tools.foundation.manufacturing_orders._get_manufacturing_order_recipe_impl",
+        side_effect=fake_get_recipe,
+    ):
+        request = BatchUpdateRecipesRequest(
+            replacements=[
+                VariantReplacement(
+                    manufacturing_order_ids=[9999],
+                    old_sku="OLD-FORK",
+                    new_components=[
+                        VariantSpec(sku="NEW-FORK", planned_quantity_per_unit=1.0),
+                    ],
+                    strict=True,
+                )
+            ],
+        )
+        with pytest.raises(ValueError, match="not in recipe"):
+            await _plan_batch_update(request, context)
+
+
+@pytest.mark.asyncio
+async def test_batch_plan_empty_request_raises():
+    """Empty request should raise."""
+    context, _ = create_mock_context()
+    request = BatchUpdateRecipesRequest()
+    with pytest.raises(ValueError, match="at least one replacement or change"):
+        await _batch_update_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_batch_impl_preview_mode():
+    """Preview mode returns the plan without calling the API."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 200, "sku": "NEW-FORK"}
+    )
+
+    request = BatchUpdateRecipesRequest(
+        changes=[
+            ExplicitChange(
+                manufacturing_order_id=9999,
+                remove_row_ids=[5001],
+                add_variants=[
+                    VariantSpec(sku="NEW-FORK", planned_quantity_per_unit=1.0)
+                ],
+            )
+        ],
+        confirm=False,
+    )
+    response = await _batch_update_impl(request, context)
+
+    assert response.is_preview is True
+    assert response.total_ops == 2
+    assert response.success_count == 0
+    assert "Preview" in response.message
+
+
+@pytest.mark.asyncio
+async def test_batch_plan_explicit_change_with_variant_id():
+    """Explicit changes accept variant_id directly without SKU lookup."""
+    context, lifespan_ctx = create_mock_context()
+    # Should not be called — variant_id is direct
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        side_effect=AssertionError("should not be called")
+    )
+
+    request = BatchUpdateRecipesRequest(
+        changes=[
+            ExplicitChange(
+                manufacturing_order_id=9999,
+                remove_row_ids=[5001, 5002],
+                add_variants=[
+                    VariantSpec(variant_id=40010545, planned_quantity_per_unit=1.0),
+                ],
+            )
+        ],
+    )
+    planned, warnings = await _plan_batch_update(request, context)
+
+    assert len(planned) == 3  # 2 deletes + 1 add
+    assert warnings == []
