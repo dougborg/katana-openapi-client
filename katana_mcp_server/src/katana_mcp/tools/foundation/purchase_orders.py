@@ -792,6 +792,162 @@ async def verify_order_document(
     return _verify_response_to_tool_result(response)
 
 
+# ============================================================================
+# Tool: get_purchase_order
+# ============================================================================
+
+
+class GetPurchaseOrderRequest(BaseModel):
+    """Request to look up a purchase order by number or ID."""
+
+    order_no: str | None = Field(
+        default=None, description="Purchase order number (e.g., 'PO-1022')"
+    )
+    order_id: int | None = Field(default=None, description="Purchase order ID")
+
+
+class PurchaseOrderRowInfo(BaseModel):
+    """Summary of a purchase order line item."""
+
+    id: int
+    variant_id: int | None
+    quantity: float | None
+    price_per_unit: float | None
+    arrival_date: str | None
+    received_date: str | None
+    total: float | None
+
+
+class GetPurchaseOrderResponse(BaseModel):
+    """Response containing purchase order details."""
+
+    id: int
+    order_no: str | None
+    status: str | None
+    supplier_id: int | None
+    location_id: int | None
+    currency: str | None
+    expected_arrival_date: str | None
+    total: float | None
+    rows: list[PurchaseOrderRowInfo]
+
+
+def _po_row_info(row: Any) -> PurchaseOrderRowInfo:
+    """Extract row info from an attrs PurchaseOrderRow."""
+    arrival = unwrap_unset(row.arrival_date, None)
+    received = unwrap_unset(row.received_date, None)
+    return PurchaseOrderRowInfo(
+        id=row.id,
+        variant_id=unwrap_unset(row.variant_id, None),
+        quantity=unwrap_unset(row.quantity, None),
+        price_per_unit=unwrap_unset(row.price_per_unit, None),
+        arrival_date=arrival.isoformat() if arrival else None,
+        received_date=received.isoformat() if received else None,
+        total=unwrap_unset(row.total, None),
+    )
+
+
+async def _get_purchase_order_impl(
+    request: GetPurchaseOrderRequest, context: Context
+) -> GetPurchaseOrderResponse:
+    """Look up a PO by order_no or ID and return structured details."""
+    from katana_public_api_client.api.purchase_order import (
+        find_purchase_orders,
+        get_purchase_order as api_get_purchase_order,
+    )
+    from katana_public_api_client.utils import unwrap_data
+
+    if not request.order_no and not request.order_id:
+        raise ValueError("Either order_no or order_id must be provided")
+
+    services = get_services(context)
+
+    if request.order_id:
+        response = await api_get_purchase_order.asyncio_detailed(
+            id=request.order_id, client=services.client
+        )
+        po = unwrap(response)
+        if po is None:
+            raise ValueError(f"Purchase order ID {request.order_id} not found")
+    else:
+        response = await find_purchase_orders.asyncio_detailed(
+            client=services.client, order_no=request.order_no, limit=1
+        )
+        orders = unwrap_data(response, default=[])
+        if not orders:
+            raise ValueError(f"Purchase order '{request.order_no}' not found")
+        po = orders[0]
+
+    # Extract rows
+    raw_rows = unwrap_unset(po.purchase_order_rows, [])
+    rows = [_po_row_info(r) for r in raw_rows] if raw_rows else []
+
+    expected_arrival = unwrap_unset(po.expected_arrival_date, None)
+    status = unwrap_unset(po.status, None)
+    status_str = status.value if hasattr(status, "value") else status
+
+    return GetPurchaseOrderResponse(
+        id=po.id,
+        order_no=unwrap_unset(po.order_no, None),
+        status=status_str,
+        supplier_id=unwrap_unset(po.supplier_id, None),
+        location_id=unwrap_unset(po.location_id, None),
+        currency=unwrap_unset(po.currency, None),
+        expected_arrival_date=expected_arrival.isoformat()
+        if expected_arrival
+        else None,
+        total=unwrap_unset(po.total, None),
+        rows=rows,
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def get_purchase_order(
+    request: Annotated[GetPurchaseOrderRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Look up a purchase order by order number or ID.
+
+    Returns order details including status, supplier, location, total, and all
+    line items with variant_ids, quantities, prices, and arrival dates. Use to
+    inspect a PO before receiving, or to find the variant IDs of items on order.
+
+    Provide either order_no (e.g., 'PO-1022') or order_id.
+    """
+    from katana_mcp.tools.tool_result_utils import make_simple_result
+
+    response = await _get_purchase_order_impl(request, context)
+
+    lines = [
+        f"## PO {response.order_no or response.id}",
+        f"- **Status**: {response.status}",
+    ]
+    if response.supplier_id is not None:
+        lines.append(f"- **Supplier ID**: {response.supplier_id}")
+    if response.location_id is not None:
+        lines.append(f"- **Location ID**: {response.location_id}")
+    if response.total is not None:
+        lines.append(f"- **Total**: {response.total} {response.currency or ''}")
+    if response.expected_arrival_date:
+        lines.append(f"- **Expected Arrival**: {response.expected_arrival_date}")
+
+    if response.rows:
+        lines.append("")
+        lines.append("### Line Items")
+        lines.append("| Row ID | Variant ID | Qty | Price | Arrival | Received |")
+        lines.append("|--------|-----------|-----|-------|---------|----------|")
+        for r in response.rows:
+            lines.append(
+                f"| {r.id} | {r.variant_id} | {r.quantity} | {r.price_per_unit} "
+                f"| {r.arrival_date or 'N/A'} | {r.received_date or 'N/A'} |"
+            )
+
+    return make_simple_result(
+        "\n".join(lines),
+        structured_data=response.model_dump(),
+    )
+
+
 def register_tools(mcp: FastMCP) -> None:
     """Register all purchase order tools with the FastMCP instance.
 
@@ -818,4 +974,7 @@ def register_tools(mcp: FastMCP) -> None:
     )
     mcp.tool(tags={"orders", "purchasing", "read"}, annotations=_read)(
         verify_order_document
+    )
+    mcp.tool(tags={"orders", "purchasing", "read"}, annotations=_read)(
+        get_purchase_order
     )

@@ -2,16 +2,18 @@
 
 import os
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from katana_mcp.tools.foundation.purchase_orders import (
     DiscrepancyType,
     DocumentItem,
+    GetPurchaseOrderRequest,
     ReceiveItemRequest,
     ReceivePurchaseOrderRequest,
     ReceivePurchaseOrderResponse,
     VerifyOrderDocumentRequest,
+    _get_purchase_order_impl,
     _receive_purchase_order_impl,
     _verify_order_document_impl,
 )
@@ -1320,3 +1322,112 @@ async def test_receive_purchase_order_response_structure():
     assert len(result.next_actions) > 0
     assert isinstance(result.message, str)
     assert "Successfully received" in result.message
+
+
+# ============================================================================
+# get_purchase_order tests
+# ============================================================================
+
+_PO_FIND = "katana_public_api_client.api.purchase_order.find_purchase_orders"
+_PO_GET = "katana_public_api_client.api.purchase_order.get_purchase_order"
+_UNWRAP_DATA = "katana_public_api_client.utils.unwrap_data"
+_UNWRAP = "katana_mcp.tools.foundation.purchase_orders.unwrap"
+
+
+def _make_mock_po(order_no: str = "PO-TEST") -> MagicMock:
+    """Create a mock PO with rows."""
+    row1 = MagicMock()
+    row1.id = 7001
+    row1.variant_id = 100
+    row1.quantity = 3.0
+    row1.price_per_unit = 250.0
+    row1.arrival_date = datetime(2026, 4, 15, tzinfo=UTC)
+    row1.received_date = UNSET
+    row1.total = 750.0
+
+    row2 = MagicMock()
+    row2.id = 7002
+    row2.variant_id = 101
+    row2.quantity = 3.0
+    row2.price_per_unit = 50.0
+    row2.arrival_date = datetime(2026, 4, 15, tzinfo=UTC)
+    row2.received_date = UNSET
+    row2.total = 150.0
+
+    po = MagicMock()
+    po.id = 12345
+    po.order_no = order_no
+    po.status = UNSET
+    po.supplier_id = 999
+    po.location_id = 160411
+    po.currency = "USD"
+    po.expected_arrival_date = datetime(2026, 4, 15, tzinfo=UTC)
+    po.total = 900.0
+    po.purchase_order_rows = [row1, row2]
+    return po
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_by_number():
+    """Look up a PO by order_no via find_purchase_orders."""
+    context, _ = create_mock_context()
+    mock_po = _make_mock_po("PO-1022")
+
+    with (
+        patch(f"{_PO_FIND}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[mock_po]),
+    ):
+        request = GetPurchaseOrderRequest(order_no="PO-1022")
+        result = await _get_purchase_order_impl(request, context)
+
+    assert result.id == 12345
+    assert result.order_no == "PO-1022"
+    assert result.supplier_id == 999
+    assert result.location_id == 160411
+    assert result.total == 900.0
+    assert len(result.rows) == 2
+    assert result.rows[0].id == 7001
+    assert result.rows[0].variant_id == 100
+    assert result.rows[1].variant_id == 101
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_not_found():
+    """Looking up a non-existent PO raises."""
+    context, _ = create_mock_context()
+
+    with (
+        patch(f"{_PO_FIND}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = GetPurchaseOrderRequest(order_no="PO-NONE")
+        with pytest.raises(ValueError, match="Purchase order 'PO-NONE' not found"):
+            await _get_purchase_order_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_requires_identifier():
+    """Must provide order_no or order_id."""
+    context, _ = create_mock_context()
+
+    request = GetPurchaseOrderRequest()
+    with pytest.raises(ValueError, match="order_no or order_id"):
+        await _get_purchase_order_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_by_id():
+    """Look up a PO by ID via get_purchase_order."""
+    context, _ = create_mock_context()
+    mock_po = _make_mock_po("PO-BYID")
+
+    with (
+        patch(f"{_PO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP, return_value=mock_po),
+    ):
+        request = GetPurchaseOrderRequest(order_id=12345)
+        result = await _get_purchase_order_impl(request, context)
+
+    assert result.id == 12345
+    assert result.order_no == "PO-BYID"
+    assert len(result.rows) == 2

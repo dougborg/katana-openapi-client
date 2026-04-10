@@ -1,12 +1,18 @@
 """Tests for manufacturing order MCP tools."""
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from katana_mcp.tools.foundation.manufacturing_orders import (
+    AddRecipeRowRequest,
     CreateManufacturingOrderRequest,
+    DeleteRecipeRowRequest,
+    GetManufacturingOrderRecipeRequest,
+    _add_recipe_row_impl,
     _create_manufacturing_order_impl,
+    _delete_recipe_row_impl,
+    _get_manufacturing_order_recipe_impl,
 )
 
 from katana_public_api_client.client_types import UNSET
@@ -440,3 +446,126 @@ async def test_create_manufacturing_order_minimal_fields_integration(katana_cont
                 "location",
             ]
         ), f"Unexpected error: {e}"
+
+
+# ============================================================================
+# Recipe row tools — get, add, delete
+# ============================================================================
+
+_RECIPE_API = "katana_public_api_client.api.manufacturing_order_recipe"
+_UNWRAP_DATA = "katana_public_api_client.utils.unwrap_data"
+
+
+@pytest.mark.asyncio
+async def test_get_manufacturing_order_recipe():
+    """Test listing recipe rows for an MO."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(
+        side_effect=[
+            {"id": 101, "sku": "FORK-001"},
+            {"id": 102, "sku": "BOLT-004"},
+        ]
+    )
+
+    mock_row1 = MagicMock()
+    mock_row1.id = 5001
+    mock_row1.variant_id = 101
+    mock_row1.planned_quantity_per_unit = 1.0
+    mock_row1.total_actual_quantity = 0.0
+    mock_row1.ingredient_availability = "IN_STOCK"
+    mock_row1.notes = None
+    mock_row1.cost = 250.0
+
+    mock_row2 = MagicMock()
+    mock_row2.id = 5002
+    mock_row2.variant_id = 102
+    mock_row2.planned_quantity_per_unit = 4.0
+    mock_row2.total_actual_quantity = 0.0
+    mock_row2.ingredient_availability = "IN_STOCK"
+    mock_row2.notes = None
+    mock_row2.cost = 2.0
+
+    with (
+        patch(
+            f"{_RECIPE_API}.get_all_manufacturing_order_recipe_rows.asyncio_detailed",
+            new_callable=AsyncMock,
+        ),
+        patch(_UNWRAP_DATA, return_value=[mock_row1, mock_row2]),
+    ):
+        request = GetManufacturingOrderRecipeRequest(manufacturing_order_id=9999)
+        result = await _get_manufacturing_order_recipe_impl(request, context)
+
+    assert result.total_count == 2
+    assert result.rows[0].id == 5001
+    assert result.rows[0].sku == "FORK-001"
+    assert result.rows[1].sku == "BOLT-004"
+
+
+@pytest.mark.asyncio
+async def test_get_manufacturing_order_recipe_empty():
+    """Test listing recipe rows when MO has no ingredients."""
+    context, _ = create_mock_context()
+
+    with (
+        patch(
+            f"{_RECIPE_API}.get_all_manufacturing_order_recipe_rows.asyncio_detailed",
+            new_callable=AsyncMock,
+        ),
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = GetManufacturingOrderRecipeRequest(manufacturing_order_id=9999)
+        result = await _get_manufacturing_order_recipe_impl(request, context)
+
+    assert result.total_count == 0
+    assert result.rows == []
+
+
+@pytest.mark.asyncio
+async def test_add_recipe_row_preview():
+    """Preview adding a recipe row returns without calling the API."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 555, "sku": "FORK-NEW", "display_name": "New Fork"}
+    )
+
+    request = AddRecipeRowRequest(
+        manufacturing_order_id=9999,
+        sku="FORK-NEW",
+        planned_quantity_per_unit=1.0,
+        confirm=False,
+    )
+    result = await _add_recipe_row_impl(request, context)
+
+    assert result.is_preview is True
+    assert result.variant_id == 555
+    assert result.sku == "FORK-NEW"
+    assert "Preview" in result.message
+
+
+@pytest.mark.asyncio
+async def test_add_recipe_row_sku_not_found():
+    """Adding a recipe row with an unknown SKU raises."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+
+    request = AddRecipeRowRequest(
+        manufacturing_order_id=9999,
+        sku="UNKNOWN",
+        planned_quantity_per_unit=1.0,
+        confirm=False,
+    )
+    with pytest.raises(ValueError, match="SKU 'UNKNOWN' not found"):
+        await _add_recipe_row_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_delete_recipe_row_preview():
+    """Preview deleting a recipe row returns without calling the API."""
+    context, _ = create_mock_context()
+
+    request = DeleteRecipeRowRequest(recipe_row_id=5001, confirm=False)
+    result = await _delete_recipe_row_impl(request, context)
+
+    assert result.is_preview is True
+    assert result.recipe_row_id == 5001
+    assert "Preview" in result.message
