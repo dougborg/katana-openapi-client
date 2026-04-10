@@ -168,18 +168,20 @@ Example response structure:
 
 ## Resources
 
-The server provides read-only resources for browsing data:
+The server provides read-only resources for browsing cached reference data.
+Transactional data (orders, stock movements) uses tools instead.
 
-| Resource                        | Description                 |
-| ------------------------------- | --------------------------- |
-| `katana://help`                 | Help index and quick start  |
-| `katana://help/workflows`       | Workflow documentation      |
-| `katana://help/tools`           | Tool reference              |
-| `katana://help/resources`       | Resource documentation      |
-| `katana://inventory/items`      | Browse inventory items      |
-| `katana://sales-orders`         | Browse sales orders         |
-| `katana://purchase-orders`      | Browse purchase orders      |
-| `katana://manufacturing-orders` | Browse manufacturing orders |
+| Resource                   | Description                             |
+| -------------------------- | --------------------------------------- |
+| `katana://help`            | Help index and quick start              |
+| `katana://help/workflows`  | Workflow documentation                  |
+| `katana://help/tools`      | Tool reference                          |
+| `katana://help/resources`  | Resource documentation                  |
+| `katana://inventory/items` | Browse product/material/service catalog |
+| `katana://suppliers`       | Supplier directory with contact info    |
+| `katana://locations`       | Warehouses and facilities               |
+| `katana://tax-rates`       | Configured tax rates                    |
+| `katana://operators`       | Manufacturing operators                 |
 
 ## Safety Patterns
 

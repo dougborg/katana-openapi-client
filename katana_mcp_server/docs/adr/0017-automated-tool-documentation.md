@@ -57,7 +57,7 @@ async def create_purchase_order(
     - `verify_order_document` - Validate supplier invoice
 
     **Related Resources**:
-    - `katana://purchase-orders` - View all purchase orders
+    - `katana://suppliers` - Look up supplier_id for PO creation
 
     Args:
         request: Purchase order creation request with supplier, items, etc.

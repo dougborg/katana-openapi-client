@@ -409,11 +409,15 @@ Current version: **0.25.0**
 
 ### Available Resources
 
+Resources expose cached reference data (small, stable datasets). For transactional data
+(orders, stock movements), use the corresponding tools.
+
 - `katana://inventory/items` - Complete catalog of products, materials, services
-- `katana://inventory/stock-movements` - Recent stock transfers and adjustments
-- `katana://orders/sales-orders` - Recent sales orders
-- `katana://orders/purchase-orders` - Recent purchase orders
-- `katana://orders/manufacturing-orders` - Active manufacturing orders
+- `katana://suppliers` - Supplier directory with contact info
+- `katana://locations` - Warehouses and facilities
+- `katana://tax-rates` - Configured tax rates
+- `katana://operators` - Manufacturing operators
+- `katana://help` - Workflow guides and tool reference
 
 ## Links
 
