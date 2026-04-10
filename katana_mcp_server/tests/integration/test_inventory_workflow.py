@@ -63,9 +63,10 @@ class TestInventorySearchWorkflow:
         details_request = GetVariantDetailsRequest(sku=first_item.sku)
 
         try:
-            details = await _get_variant_details_impl(
+            _var_results = await _get_variant_details_impl(
                 details_request, integration_context
             )
+            details = _var_results[0]
         except ValueError as e:
             # SKU might have been deleted between search and details call
             if "not found" in str(e).lower():
@@ -142,9 +143,10 @@ class TestInventorySearchWorkflow:
         for item in items_to_check:
             try:
                 details_request = GetVariantDetailsRequest(sku=item.sku)
-                details = await _get_variant_details_impl(
+                _var_results = await _get_variant_details_impl(
                     details_request, integration_context
                 )
+                details = _var_results[0]
                 details_results.append(details)
             except ValueError:
                 # Item not found - skip it
@@ -278,9 +280,10 @@ class TestInventoryDataConsistency:
         for item in search_result.items[:5]:
             try:
                 details_request = GetVariantDetailsRequest(sku=item.sku)
-                details = await _get_variant_details_impl(
+                _var_results = await _get_variant_details_impl(
                     details_request, integration_context
                 )
+                details = _var_results[0]
 
                 # IDs should match
                 assert details.id == item.id, (

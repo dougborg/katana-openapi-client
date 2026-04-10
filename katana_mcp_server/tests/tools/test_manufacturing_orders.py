@@ -559,6 +559,42 @@ async def test_add_recipe_row_sku_not_found():
 
 
 @pytest.mark.asyncio
+async def test_add_recipe_row_by_variant_id():
+    """Adding a recipe row by variant_id skips the cache lookup."""
+    context, lifespan_ctx = create_mock_context()
+    # Cache.get_by_sku should NOT be called
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        side_effect=AssertionError("should not be called")
+    )
+
+    request = AddRecipeRowRequest(
+        manufacturing_order_id=9999,
+        variant_id=40010545,
+        planned_quantity_per_unit=1.0,
+        confirm=False,
+    )
+    result = await _add_recipe_row_impl(request, context)
+
+    assert result.is_preview is True
+    assert result.variant_id == 40010545
+    assert result.sku is None
+
+
+@pytest.mark.asyncio
+async def test_add_recipe_row_requires_identifier():
+    """Must provide sku or variant_id."""
+    context, _ = create_mock_context()
+
+    request = AddRecipeRowRequest(
+        manufacturing_order_id=9999,
+        planned_quantity_per_unit=1.0,
+        confirm=False,
+    )
+    with pytest.raises(ValueError, match="sku or variant_id"):
+        await _add_recipe_row_impl(request, context)
+
+
+@pytest.mark.asyncio
 async def test_delete_recipe_row_preview():
     """Preview deleting a recipe row returns without calling the API."""
     context, _ = create_mock_context()
