@@ -339,6 +339,321 @@ async def create_sales_order(
     )
 
 
+# ============================================================================
+# Tool 2: list_sales_orders
+# ============================================================================
+
+
+class ListSalesOrdersRequest(BaseModel):
+    """Request to list/filter sales orders."""
+
+    limit: int = Field(default=50, description="Max orders to return (default 50)")
+    order_no: str | None = Field(default=None, description="Filter by exact order_no")
+    customer_id: int | None = Field(default=None, description="Filter by customer ID")
+    location_id: int | None = Field(default=None, description="Filter by location ID")
+    status: str | None = Field(
+        default=None, description="Filter by sales order status (e.g. NOT_SHIPPED)"
+    )
+    production_status: str | None = Field(
+        default=None,
+        description="Filter by production status (NONE, NOT_STARTED, IN_PROGRESS, BLOCKED, DONE, NOT_APPLICABLE)",
+    )
+    needs_work_orders: bool = Field(
+        default=False,
+        description="Convenience: filter to orders with production_status=NONE (no MOs created yet)",
+    )
+
+
+class SalesOrderRowInfo(BaseModel):
+    """Summary of a sales order line item."""
+
+    id: int
+    variant_id: int | None
+    sku: str | None
+    quantity: float | None
+    price_per_unit: float | None
+    linked_manufacturing_order_id: int | None
+
+
+class SalesOrderSummary(BaseModel):
+    """Summary row for a sales order in a list."""
+
+    id: int
+    order_no: str | None
+    customer_id: int | None
+    location_id: int | None
+    status: str | None
+    production_status: str | None
+    invoicing_status: str | None
+    created_at: str | None
+    delivery_date: str | None
+    total: float | None
+    currency: str | None
+    row_count: int
+
+
+class ListSalesOrdersResponse(BaseModel):
+    """Response containing a list of sales orders."""
+
+    orders: list[SalesOrderSummary]
+    total_count: int
+
+
+async def _list_sales_orders_impl(
+    request: ListSalesOrdersRequest, context: Context
+) -> ListSalesOrdersResponse:
+    """List sales orders with filters."""
+    from katana_public_api_client.api.sales_order import get_all_sales_orders
+    from katana_public_api_client.utils import unwrap_data
+
+    services = get_services(context)
+
+    kwargs: dict = {
+        "client": services.client,
+        "limit": request.limit,
+    }
+    if request.order_no:
+        kwargs["order_no"] = request.order_no
+    if request.customer_id:
+        kwargs["customer_id"] = request.customer_id
+    if request.location_id:
+        kwargs["location_id"] = request.location_id
+    if request.status:
+        kwargs["status"] = request.status
+    if request.production_status:
+        kwargs["production_status"] = request.production_status
+    elif request.needs_work_orders:
+        kwargs["production_status"] = "NONE"
+
+    response = await get_all_sales_orders.asyncio_detailed(**kwargs)
+    attrs_list = unwrap_data(response, default=[])
+
+    orders: list[SalesOrderSummary] = []
+    for so in attrs_list:
+        rows = unwrap_unset(so.sales_order_rows, []) or []
+        created_at = unwrap_unset(so.created_at, None)
+        delivery_date = unwrap_unset(so.delivery_date, None)
+        status = unwrap_unset(so.status, None)
+        production_status = unwrap_unset(so.production_status, None)
+        invoicing_status = unwrap_unset(so.invoicing_status, None)
+        orders.append(
+            SalesOrderSummary(
+                id=so.id,
+                order_no=unwrap_unset(so.order_no, None),
+                customer_id=unwrap_unset(so.customer_id, None),
+                location_id=unwrap_unset(so.location_id, None),
+                status=status.value if hasattr(status, "value") else status,
+                production_status=production_status.value
+                if hasattr(production_status, "value")
+                else production_status,
+                invoicing_status=invoicing_status.value
+                if hasattr(invoicing_status, "value")
+                else invoicing_status,
+                created_at=created_at.isoformat() if created_at else None,
+                delivery_date=delivery_date.isoformat() if delivery_date else None,
+                total=unwrap_unset(so.total, None),
+                currency=unwrap_unset(so.currency, None),
+                row_count=len(rows),
+            )
+        )
+
+    return ListSalesOrdersResponse(orders=orders, total_count=len(orders))
+
+
+@observe_tool
+@unpack_pydantic_params
+async def list_sales_orders(
+    request: Annotated[ListSalesOrdersRequest, Unpack()], context: Context
+) -> ToolResult:
+    """List sales orders with filters.
+
+    Use this for discovery workflows — find recent orders, orders needing work
+    orders, orders for a specific customer, etc. Returns summary info (order_no,
+    status, production_status, totals, row count).
+
+    **Common filters:**
+    - `needs_work_orders=true` — orders with no MOs yet (production_status=NONE)
+    - `status="NOT_SHIPPED"` — unshipped orders
+    - `customer_id=N` — orders for a specific customer
+
+    For full line-item details on a specific order, use `get_sales_order` next.
+    """
+    from katana_mcp.tools.tool_result_utils import make_simple_result
+
+    response = await _list_sales_orders_impl(request, context)
+
+    if not response.orders:
+        md = "No sales orders match the given filters."
+    else:
+        lines = [
+            f"## Sales Orders ({response.total_count})",
+            "",
+            "| Order # | Status | Production | Rows | Total | Created |",
+            "|---------|--------|------------|------|-------|---------|",
+        ]
+        for o in response.orders:
+            total_str = f"{o.total:.2f} {o.currency or ''}" if o.total else "—"
+            lines.append(
+                f"| {o.order_no or o.id} | {o.status or '—'} "
+                f"| {o.production_status or '—'} | {o.row_count} "
+                f"| {total_str} | {o.created_at or '—'} |"
+            )
+        md = "\n".join(lines)
+
+    return make_simple_result(md, structured_data=response.model_dump())
+
+
+# ============================================================================
+# Tool 3: get_sales_order
+# ============================================================================
+
+
+class GetSalesOrderRequest(BaseModel):
+    """Request to look up a single sales order with line items."""
+
+    order_no: str | None = Field(default=None, description="Sales order number")
+    order_id: int | None = Field(default=None, description="Sales order ID")
+
+
+class GetSalesOrderResponse(BaseModel):
+    """Full sales order details."""
+
+    id: int
+    order_no: str | None
+    customer_id: int | None
+    location_id: int | None
+    status: str | None
+    production_status: str | None
+    created_at: str | None
+    delivery_date: str | None
+    total: float | None
+    currency: str | None
+    additional_info: str | None
+    rows: list[SalesOrderRowInfo]
+
+
+async def _get_sales_order_impl(
+    request: GetSalesOrderRequest, context: Context
+) -> GetSalesOrderResponse:
+    """Look up a single sales order by order_no or order_id with line items."""
+    from katana_public_api_client.api.sales_order import (
+        get_all_sales_orders,
+        get_sales_order as api_get_sales_order,
+    )
+    from katana_public_api_client.utils import unwrap, unwrap_data
+
+    if not request.order_no and not request.order_id:
+        raise ValueError("Either order_no or order_id must be provided")
+
+    services = get_services(context)
+
+    if request.order_id:
+        response = await api_get_sales_order.asyncio_detailed(
+            id=request.order_id, client=services.client
+        )
+        so = unwrap(response)
+        if so is None:
+            raise ValueError(f"Sales order ID {request.order_id} not found")
+    else:
+        response = await get_all_sales_orders.asyncio_detailed(
+            client=services.client, order_no=request.order_no, limit=1
+        )
+        orders = unwrap_data(response, default=[])
+        if not orders:
+            raise ValueError(f"Sales order '{request.order_no}' not found")
+        so = orders[0]
+
+    raw_rows = unwrap_unset(so.sales_order_rows, []) or []
+    row_infos: list[SalesOrderRowInfo] = []
+    for r in raw_rows:
+        variant_id = unwrap_unset(r.variant_id, None)
+        sku: str | None = None
+        if variant_id is not None:
+            variant = await services.cache.get_by_id("variant", variant_id)
+            if variant:
+                sku = variant.get("sku")
+        row_infos.append(
+            SalesOrderRowInfo(
+                id=r.id,
+                variant_id=variant_id,
+                sku=sku,
+                quantity=unwrap_unset(r.quantity, None),
+                price_per_unit=unwrap_unset(r.price_per_unit, None),
+                linked_manufacturing_order_id=unwrap_unset(
+                    r.linked_manufacturing_order_id, None
+                ),
+            )
+        )
+
+    created_at = unwrap_unset(so.created_at, None)
+    delivery_date = unwrap_unset(so.delivery_date, None)
+    status = unwrap_unset(so.status, None)
+    production_status = unwrap_unset(so.production_status, None)
+
+    return GetSalesOrderResponse(
+        id=so.id,
+        order_no=unwrap_unset(so.order_no, None),
+        customer_id=unwrap_unset(so.customer_id, None),
+        location_id=unwrap_unset(so.location_id, None),
+        status=status.value if hasattr(status, "value") else status,
+        production_status=production_status.value
+        if hasattr(production_status, "value")
+        else production_status,
+        created_at=created_at.isoformat() if created_at else None,
+        delivery_date=delivery_date.isoformat() if delivery_date else None,
+        total=unwrap_unset(so.total, None),
+        currency=unwrap_unset(so.currency, None),
+        additional_info=unwrap_unset(so.additional_info, None),
+        rows=row_infos,
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def get_sales_order(
+    request: Annotated[GetSalesOrderRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Look up a sales order by number or ID with all line items.
+
+    Returns order details (status, production_status, customer, delivery date)
+    plus rows with variant_id, SKU, quantity, price, and per-row production
+    status. Use with `list_sales_orders` for discovery workflows.
+    """
+    from katana_mcp.tools.tool_result_utils import make_simple_result
+
+    response = await _get_sales_order_impl(request, context)
+
+    lines = [
+        f"## Sales Order {response.order_no or response.id}",
+        f"- **Status**: {response.status}",
+        f"- **Production**: {response.production_status}",
+    ]
+    if response.customer_id is not None:
+        lines.append(f"- **Customer ID**: {response.customer_id}")
+    if response.location_id is not None:
+        lines.append(f"- **Location ID**: {response.location_id}")
+    if response.total is not None:
+        lines.append(f"- **Total**: {response.total} {response.currency or ''}")
+    if response.delivery_date:
+        lines.append(f"- **Delivery**: {response.delivery_date}")
+    if response.additional_info:
+        lines.append(f"- **Notes**: {response.additional_info}")
+
+    if response.rows:
+        lines.append("")
+        lines.append("### Line Items")
+        lines.append("| Row ID | SKU | Variant | Qty | Price | Linked MO |")
+        lines.append("|--------|-----|---------|-----|-------|-----------|")
+        for r in response.rows:
+            lines.append(
+                f"| {r.id} | {r.sku or '—'} | {r.variant_id or '—'} "
+                f"| {r.quantity} | {r.price_per_unit or '—'} "
+                f"| {r.linked_manufacturing_order_id or '—'} |"
+            )
+
+    return make_simple_result("\n".join(lines), structured_data=response.model_dump())
+
+
 def register_tools(mcp: FastMCP) -> None:
     """Register all sales order tools with the FastMCP instance.
 
@@ -347,9 +662,24 @@ def register_tools(mcp: FastMCP) -> None:
     """
     from mcp.types import ToolAnnotations
 
+    _read = ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
+
     mcp.tool(
         tags={"orders", "sales", "write"},
         annotations=ToolAnnotations(
             readOnlyHint=False, destructiveHint=False, openWorldHint=True
         ),
     )(create_sales_order)
+    mcp.tool(
+        tags={"orders", "sales", "read"},
+        annotations=_read,
+    )(list_sales_orders)
+    mcp.tool(
+        tags={"orders", "sales", "read"},
+        annotations=_read,
+    )(get_sales_order)
