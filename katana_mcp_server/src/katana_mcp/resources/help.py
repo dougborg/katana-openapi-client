@@ -479,6 +479,28 @@ Remove an ingredient from a manufacturing order's recipe.
 
 ---
 
+### batch_update_manufacturing_order_recipes
+Batch-update recipe rows across one or more MOs with ONE confirmation.
+
+**Use modes (mixable):**
+- `replacements`: "replace variant X with [Y, Z] across these MOs" — ideal
+  for swapping a component across many MOs in one shot.
+- `changes`: explicit per-MO row deletes and additions (escape hatch).
+
+**Parameters:**
+- `replacements` (optional): list of `{manufacturing_order_ids, old_sku or
+  old_variant_id, new_components, strict}`
+- `changes` (optional): list of `{manufacturing_order_id, remove_row_ids,
+  add_variants}`
+- `continue_on_error` (optional, default true): run all ops even if some fail
+- `confirm` (required): false=preview, true=execute (single batch confirmation)
+
+**Returns:** All sub-operations with individual status (success/failed/skipped),
+grouped by replacement. Old rows are deleted first, then new rows added in
+reverse order so they appear adjacent in Katana's natural sort order.
+
+---
+
 ### create_sales_order
 Create a sales order.
 

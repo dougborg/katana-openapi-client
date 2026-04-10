@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import pytest
 from katana_mcp.tools.prefab_ui import (
+    build_batch_recipe_update_ui,
     build_fulfill_preview_ui,
     build_fulfill_success_ui,
     build_inventory_check_ui,
@@ -266,4 +267,129 @@ class TestBuildReceiptUI:
             "items_received": 5,
         }
         app = build_receipt_ui(response)
+        _assert_valid_prefab(app)
+
+
+class TestBuildBatchRecipeUpdateUI:
+    def test_preview_with_replacements(self):
+        response = {
+            "is_preview": True,
+            "total_ops": 3,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 0,
+            "results": [
+                {
+                    "op_type": "delete",
+                    "manufacturing_order_id": 9999,
+                    "recipe_row_id": 5001,
+                    "variant_id": 100,
+                    "sku": "OLD-FORK",
+                    "status": "pending",
+                    "group_label": "OLD-FORK → [NEW-FORK, AIR-SHAFT]",
+                },
+                {
+                    "op_type": "add",
+                    "manufacturing_order_id": 9999,
+                    "variant_id": 200,
+                    "sku": "NEW-FORK",
+                    "planned_quantity_per_unit": 1.0,
+                    "status": "pending",
+                    "group_label": "OLD-FORK → [NEW-FORK, AIR-SHAFT]",
+                },
+                {
+                    "op_type": "add",
+                    "manufacturing_order_id": 9999,
+                    "variant_id": 201,
+                    "sku": "AIR-SHAFT",
+                    "planned_quantity_per_unit": 1.0,
+                    "status": "pending",
+                    "group_label": "OLD-FORK → [NEW-FORK, AIR-SHAFT]",
+                },
+            ],
+            "warnings": [],
+            "message": "Preview: 3 sub-operations planned",
+        }
+        app = build_batch_recipe_update_ui(response)
+        _assert_valid_prefab(app)
+
+    def test_executed_with_mixed_results(self):
+        response = {
+            "is_preview": False,
+            "total_ops": 3,
+            "success_count": 2,
+            "failed_count": 1,
+            "skipped_count": 0,
+            "results": [
+                {
+                    "op_type": "delete",
+                    "manufacturing_order_id": 9999,
+                    "recipe_row_id": 5001,
+                    "status": "success",
+                    "group_label": "group1",
+                },
+                {
+                    "op_type": "add",
+                    "manufacturing_order_id": 9999,
+                    "variant_id": 200,
+                    "sku": "NEW-FORK",
+                    "planned_quantity_per_unit": 1.0,
+                    "status": "success",
+                    "group_label": "group1",
+                    "recipe_row_id": 9001,
+                },
+                {
+                    "op_type": "add",
+                    "manufacturing_order_id": 9999,
+                    "variant_id": 201,
+                    "sku": "BAD",
+                    "planned_quantity_per_unit": 1.0,
+                    "status": "failed",
+                    "error": "422 validation error",
+                    "group_label": "group1",
+                },
+            ],
+            "warnings": [],
+            "message": "Batch update completed: 2 succeeded, 1 failed",
+        }
+        app = build_batch_recipe_update_ui(response)
+        _assert_valid_prefab(app)
+
+    def test_empty_results(self):
+        response = {
+            "is_preview": True,
+            "total_ops": 0,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 0,
+            "results": [],
+            "warnings": [],
+            "message": "Nothing to do",
+        }
+        app = build_batch_recipe_update_ui(response)
+        _assert_valid_prefab(app)
+
+    def test_with_warnings(self):
+        response = {
+            "is_preview": True,
+            "total_ops": 1,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 1,
+            "results": [
+                {
+                    "op_type": "add",
+                    "manufacturing_order_id": 9999,
+                    "variant_id": 200,
+                    "sku": "NEW-FORK",
+                    "planned_quantity_per_unit": 1.0,
+                    "status": "skipped",
+                    "error": "Old variant not present in this MO",
+                    "group_label": "OLD-FORK → [NEW-FORK]",
+                },
+            ],
+            "warnings": ["MO 9999: old variant 100 not in recipe — skipping"],
+            "message": "Preview with warnings",
+        }
+        app = build_batch_recipe_update_ui(response)
         _assert_valid_prefab(app)
