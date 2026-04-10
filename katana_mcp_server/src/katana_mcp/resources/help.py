@@ -163,7 +163,7 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
 ### Steps
 
 1. **Check manufacturing order status**
-   Access `katana://manufacturing-orders` resource to see active orders.
+   Use `get_manufacturing_order` tool with the order_no or order_id.
 
 2. **Verify materials available**
    ```json
@@ -191,7 +191,7 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
 ### Steps
 
 1. **Check order details**
-   Access `katana://sales-orders` resource.
+   Use sales order tools to find order details.
 
 2. **Verify stock available**
    ```json
@@ -441,89 +441,69 @@ Complete a manufacturing or sales order.
 HELP_RESOURCES = """
 # Katana Resources Reference
 
-Available data resources for browsing system state.
+Resources provide read-only **reference data** from the cache — small, stable
+data you need as context. For transactional data (orders, movements), use the
+corresponding tools (e.g., `get_manufacturing_order`, `get_inventory_movements`).
 
 ---
 
 ## Inventory Resources
 
 ### katana://inventory/items
-Complete catalog with stock levels.
+Complete catalog of products, materials, and services.
 
 **Contains:**
 - All products, materials, services
-- Item type and capabilities
-- Summary statistics
-- Total counts
+- Item type and capabilities (is_sellable, is_producible, is_purchasable)
+- Summary counts by type
 
-**Use when:** Browsing catalog, checking item types, getting overview.
-
----
-
-### katana://inventory/stock-movements
-Recent inventory movements (transfers, adjustments).
-
-**Contains:**
-- Stock transfers between locations
-- Manual stock adjustments
-- Movement timestamps and users
-- Source/destination locations
-
-**Use when:** Auditing inventory changes, tracking movements.
+**Use when:** Browsing the catalog, checking item types, getting an overview.
 
 ---
 
-### katana://inventory/stock-adjustments
-Manual stock adjustments (corrections, damage, shrinkage).
+## Reference Data Resources
+
+### katana://suppliers
+All suppliers with contact info.
 
 **Contains:**
-- Adjustment reasons and values
-- Financial impact
-- Before/after quantities
-- User who made adjustment
+- id, name, email, phone, currency, comment
+- Summary count
 
-**Use when:** Investigating discrepancies, audit trail.
+**Use when:** Looking up `supplier_id` for `create_purchase_order`.
 
 ---
 
-## Order Resources
-
-### katana://sales-orders
-Open/pending sales orders.
+### katana://locations
+All warehouses and facilities.
 
 **Contains:**
-- Customer and order info
-- Due dates and status
-- Item counts and totals
-- Fulfillment status
+- id, name, address, city, country, is_primary
+- Summary count
 
-**Use when:** Checking orders to fulfill, customer status.
+**Use when:** Looking up `location_id` for orders or inventory checks.
 
 ---
 
-### katana://purchase-orders
-Open/pending purchase orders.
+### katana://tax-rates
+All configured tax rates.
 
 **Contains:**
-- Supplier and order info
-- Expected delivery dates
-- Receipt status
-- Item totals
+- id, name, rate, display_name, default flags
+- Summary count
 
-**Use when:** Checking expected deliveries, receiving status.
+**Use when:** Looking up `tax_rate_id` for sales order line items.
 
 ---
 
-### katana://manufacturing-orders
-Active manufacturing work orders.
+### katana://operators
+All manufacturing operators.
 
 **Contains:**
-- Product and quantity info
-- Completion percentage
-- Material availability
-- Blocking status
+- id, name
+- Summary count
 
-**Use when:** Checking production status, material needs.
+**Use when:** Assigning operators to manufacturing order operations.
 
 ---
 

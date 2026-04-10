@@ -1,476 +1,144 @@
 """Inventory resources for Katana MCP Server.
 
-Provides read-only access to inventory data including items, stock movements,
-and stock adjustments.
+Provides cache-backed read-only access to the item catalog (products,
+materials, services). Stock movements are exposed via the `get_inventory_movements`
+tool, not as a resource.
 """
 
 # NOTE: Do not use 'from __future__ import annotations' in this module
 # FastMCP requires Context to be the actual class, not a string annotation
 
-import asyncio
+import json
 import time
 from datetime import UTC, datetime
+from typing import Any
 
 from fastmcp import Context, FastMCP
-from pydantic import BaseModel, Field
 
+from katana_mcp.cache import EntityType
+from katana_mcp.cache_sync import (
+    ensure_materials_synced,
+    ensure_products_synced,
+    ensure_services_synced,
+)
 from katana_mcp.logging import get_logger
 from katana_mcp.services import get_services
-from katana_public_api_client.domain.converters import unwrap_unset
-from katana_public_api_client.utils import unwrap_data
 
 logger = get_logger(__name__)
 
 
-# ============================================================================
-# Resource 1: katana://inventory/items
-# ============================================================================
+def _filter_deleted(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Filter out entities marked as deleted."""
+    return [e for e in entities if not e.get("deleted_at")]
 
 
-class InventoryItemsSummary(BaseModel):
-    """Summary statistics for inventory items."""
-
-    total_items: int = Field(..., description="Total number of items across all types")
-    products: int = Field(..., description="Number of finished products")
-    materials: int = Field(..., description="Number of raw materials/components")
-    services: int = Field(..., description="Number of services")
-    items_in_response: int = Field(..., description="Number of items in this response")
-    low_stock_count: int | None = Field(
-        None, description="Number of items below reorder threshold (if available)"
-    )
-
-
-class InventoryItemsResource(BaseModel):
-    """Response structure for inventory items resource."""
-
-    generated_at: str = Field(
-        ..., description="ISO timestamp when resource was generated"
-    )
-    summary: InventoryItemsSummary = Field(..., description="Summary statistics")
-    items: list[dict] = Field(..., description="List of inventory items with details")
-    next_actions: list[str] = Field(
-        default_factory=list, description="Suggested next actions"
-    )
-
-
-async def _get_inventory_items_impl(context: Context) -> InventoryItemsResource:
-    """Implementation of inventory items resource.
-
-    Fetches all products, materials, and services from Katana and aggregates
-    them into a unified inventory view with stock levels and type information.
-
-    Args:
-        context: FastMCP context for accessing the Katana client
-
-    Returns:
-        Structured inventory data with summary and items list
-
-    Raises:
-        Exception: If API calls fail
-    """
-    logger.info("inventory_items_resource_started")
-    start_time = time.monotonic()
-
-    try:
-        services = get_services(context)
-
-        # Fetch all item types concurrently
-        products, materials, services_items = await asyncio.gather(
-            services.client.products.list(limit=100),
-            services.client.materials.list(limit=100),
-            services.client.services.list(limit=100),
-        )
-
-        # Aggregate into unified item list
-        items = []
-
-        # Add products - KatanaProduct has required id/name, optional bool fields
-        # Default to False if None (conservative approach for boolean flags)
-        for product in products:
-            items.append(
-                {
-                    "id": product.id,
-                    "name": product.name,
-                    "type": "product",
-                    "is_sellable": product.is_sellable
-                    if product.is_sellable is not None
-                    else False,
-                    "is_producible": product.is_producible
-                    if product.is_producible is not None
-                    else False,
-                    "is_purchasable": product.is_purchasable
-                    if product.is_purchasable is not None
-                    else False,
-                }
-            )
-
-        # Add materials - KatanaMaterial has required id/name
-        # Materials are always purchasable, never sellable or producible
-        for material in materials:
-            items.append(
-                {
-                    "id": material.id,
-                    "name": material.name,
-                    "type": "material",
-                    "is_sellable": False,
-                    "is_producible": False,
-                    "is_purchasable": True,
-                }
-            )
-
-        # Add services - KatanaService has required id/name, optional is_sellable
-        # Default to True for services (services are typically sellable)
-        for service in services_items:
-            items.append(
-                {
-                    "id": service.id,
-                    "name": service.name,
-                    "type": "service",
-                    "is_sellable": service.is_sellable
-                    if service.is_sellable is not None
-                    else True,
-                    "is_producible": False,
-                    "is_purchasable": False,
-                }
-            )
-
-        # Build summary
-        summary = InventoryItemsSummary(
-            total_items=len(products) + len(materials) + len(services_items),
-            products=len(products),
-            materials=len(materials),
-            services=len(services_items),
-            items_in_response=len(items),
-        )
-
-        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-        logger.info(
-            "inventory_items_resource_completed",
-            total_items=summary.total_items,
-            duration_ms=duration_ms,
-        )
-
-        return InventoryItemsResource(
-            generated_at=datetime.now(UTC).isoformat(),
-            summary=summary,
-            items=items,
-            next_actions=[
-                "Use search_items tool to find specific items by name or SKU",
-                "Use check_inventory tool to get detailed stock levels for a specific SKU",
-                "Use list_low_stock_items tool to identify items needing reorder",
-            ],
-        )
-
-    except Exception as e:
-        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-        logger.error(
-            "inventory_items_resource_failed",
-            error=str(e),
-            error_type=type(e).__name__,
-            duration_ms=duration_ms,
-            exc_info=True,
-        )
-        raise
-
-
-async def get_inventory_items(context: Context) -> dict:
-    """Get inventory items resource.
-
-    Provides complete catalog view with current inventory levels for all products,
-    materials, and services in the Katana system.
+async def get_inventory_items(context: Context) -> str:
+    """Complete catalog view for browsing products, materials, and services.
 
     **Resource URI:** `katana://inventory/items`
 
-    **Purpose:** Complete catalog view for searching and accessing items
+    **Purpose:** Browse the complete item catalog. Reads from the SQLite cache
+    for fast access — cache is synced from the Katana API on-demand.
 
-    **Refresh Rate:** On-demand (no caching in v0.1.0)
-
-    **Data Includes:**
-    - All products, materials, and services
-    - Item type and capabilities (sellable, producible, purchasable)
-    - Summary statistics by type
-    - Total item counts
-
-    **Use Cases:**
-    - Browse complete catalog
-    - Find items by type
-    - Get overview of inventory
-    - Identify total item counts
+    **Contains:**
+    - All products, materials, and services with id, name, type
+    - Item capabilities (is_sellable, is_producible, is_purchasable)
+    - Summary counts by type
 
     **Related Tools:**
-    - `search_items` - Search for specific items by name or SKU
-    - `check_inventory` - Get detailed stock info for a specific SKU
-    - `list_low_stock_items` - Find items needing reorder
+    - `search_items` - Find specific items by name or SKU (FTS5 search)
+    - `get_variant_details` - Get pricing and supplier codes by SKU
+    - `check_inventory` - Get current stock levels for a SKU
+    """
+    start = time.monotonic()
+    services = get_services(context)
 
-    **Example Response:**
-    ```json
-    {
-      "generated_at": "2024-01-15T10:30:00Z",
-      "summary": {
-        "total_items": 150,
-        "products": 50,
-        "materials": 95,
-        "services": 5,
-        "items_in_response": 150
-      },
-      "items": [
+    # Ensure cache is fresh for all three item types
+    await ensure_products_synced(services)
+    await ensure_materials_synced(services)
+    await ensure_services_synced(services)
+
+    # Read from cache
+    products_raw = await services.cache.get_all(EntityType.PRODUCT)
+    materials_raw = await services.cache.get_all(EntityType.MATERIAL)
+    services_raw = await services.cache.get_all(EntityType.SERVICE)
+
+    products = _filter_deleted(products_raw)
+    materials = _filter_deleted(materials_raw)
+    service_items = _filter_deleted(services_raw)
+
+    items: list[dict[str, Any]] = []
+
+    for p in products:
+        items.append(
+            {
+                "id": p.get("id"),
+                "name": p.get("name"),
+                "type": "product",
+                "is_sellable": bool(p.get("is_sellable")),
+                "is_producible": bool(p.get("is_producible")),
+                "is_purchasable": bool(p.get("is_purchasable")),
+            }
+        )
+
+    for m in materials:
+        items.append(
+            {
+                "id": m.get("id"),
+                "name": m.get("name"),
+                "type": "material",
+                "is_sellable": False,
+                "is_producible": False,
+                "is_purchasable": True,
+            }
+        )
+
+    for s in service_items:
+        items.append(
+            {
+                "id": s.get("id"),
+                "name": s.get("name"),
+                "type": "service",
+                "is_sellable": bool(s.get("is_sellable", True)),
+                "is_producible": False,
+                "is_purchasable": False,
+            }
+        )
+
+    duration_ms = round((time.monotonic() - start) * 1000, 2)
+    logger.info(
+        "inventory_items_resource",
+        total=len(items),
+        duration_ms=duration_ms,
+    )
+
+    return json.dumps(
         {
-          "id": 123,
-          "name": "Widget Pro",
-          "type": "product",
-          "is_sellable": true,
-          "is_producible": true,
-          "is_purchasable": false
-        }
-      ],
-      "next_actions": [...]
-    }
-    ```
-
-    Args:
-        context: FastMCP context providing access to Katana client
-
-    Returns:
-        Dictionary containing inventory items data with summary and items list
-    """
-    response = await _get_inventory_items_impl(context)
-    return response.model_dump()
-
-
-# ============================================================================
-# Resource 2: katana://inventory/stock-movements
-# ============================================================================
-
-
-class StockMovementsSummary(BaseModel):
-    """Summary statistics for stock movements."""
-
-    total_movements: int = Field(..., description="Total number of movements")
-    movements_in_response: int = Field(
-        ..., description="Number of movements in this response"
-    )
-    movement_types: dict[str, int] = Field(
-        ..., description="Count of movements by type (transfer, adjustment)"
-    )
-
-
-class StockMovementsResource(BaseModel):
-    """Response structure for stock movements resource."""
-
-    generated_at: str = Field(
-        ..., description="ISO timestamp when resource was generated"
-    )
-    summary: StockMovementsSummary = Field(..., description="Summary statistics")
-    movements: list[dict] = Field(
-        ..., description="List of recent stock movements (transfers and adjustments)"
-    )
-    next_actions: list[str] = Field(
-        default_factory=list, description="Suggested next actions"
-    )
-
-
-async def _get_stock_movements_impl(context: Context) -> StockMovementsResource:
-    """Implementation of stock movements resource.
-
-    Fetches recent stock transfers and adjustments from Katana and aggregates
-    them into a unified view of inventory movements.
-
-    Args:
-        context: FastMCP context for accessing the Katana client
-
-    Returns:
-        Structured stock movements data with summary and movements list
-
-    Raises:
-        Exception: If API calls fail
-    """
-    logger.info("stock_movements_resource_started")
-    start_time = time.monotonic()
-
-    try:
-        services = get_services(context)
-
-        # Import the generated API functions
-        from katana_public_api_client.api.stock_adjustment import (
-            get_all_stock_adjustments,
-        )
-        from katana_public_api_client.api.stock_transfer import (
-            get_all_stock_transfers,
-        )
-
-        # Fetch recent stock transfers and adjustments concurrently
-        transfers_response, adjustments_response = await asyncio.gather(
-            get_all_stock_transfers.asyncio_detailed(client=services.client, limit=50),
-            get_all_stock_adjustments.asyncio_detailed(
-                client=services.client, limit=50
-            ),
-        )
-
-        # Parse responses - extract data list from Response objects
-        transfers = unwrap_data(transfers_response, raise_on_error=False, default=[])
-        adjustments = unwrap_data(
-            adjustments_response, raise_on_error=False, default=[]
-        )
-
-        # Aggregate into unified movements list
-        movements = []
-
-        # Add transfers - attrs models have all fields defined, use unwrap_unset for optional
-        for transfer in transfers:
-            # Prefer transfer_date, fall back to updated_at
-            transfer_date = unwrap_unset(transfer.transfer_date, None)
-            updated_at = unwrap_unset(transfer.updated_at, None)
-            timestamp = (
-                transfer_date.isoformat()
-                if transfer_date
-                else (updated_at.isoformat() if updated_at else None)
-            )
-            status = unwrap_unset(transfer.status, None)
-
-            movements.append(
-                {
-                    "id": transfer.id,
-                    "timestamp": timestamp,
-                    "type": "transfer",
-                    "number": unwrap_unset(transfer.stock_transfer_number, None),
-                    "source_location_id": unwrap_unset(
-                        transfer.source_location_id, None
-                    ),
-                    "target_location_id": unwrap_unset(
-                        transfer.target_location_id, None
-                    ),
-                    "status": status.value if status else None,
-                    "notes": unwrap_unset(transfer.additional_info, None),
-                }
-            )
-
-        # Add adjustments - attrs models have all fields defined, use unwrap_unset for optional
-        for adjustment in adjustments:
-            # Prefer stock_adjustment_date, fall back to updated_at
-            adjustment_date = unwrap_unset(adjustment.stock_adjustment_date, None)
-            updated_at = unwrap_unset(adjustment.updated_at, None)
-            timestamp = (
-                adjustment_date.isoformat()
-                if adjustment_date
-                else (updated_at.isoformat() if updated_at else None)
-            )
-
-            movements.append(
-                {
-                    "id": adjustment.id,
-                    "timestamp": timestamp,
-                    "type": "adjustment",
-                    "number": unwrap_unset(adjustment.stock_adjustment_number, None),
-                    "location_id": unwrap_unset(adjustment.location_id, None),
-                    "status": None,  # Adjustments have no status; included for schema consistency
-                    "reason": unwrap_unset(adjustment.reason, None),
-                    "notes": unwrap_unset(adjustment.additional_info, None),
-                }
-            )
-
-        # Sort by timestamp (most recent first)
-        movements.sort(key=lambda m: m.get("timestamp") or "", reverse=True)
-
-        # Count movement types
-        movement_types = {"transfer": len(transfers), "adjustment": len(adjustments)}
-
-        # Build summary
-        summary = StockMovementsSummary(
-            total_movements=len(transfers) + len(adjustments),
-            movements_in_response=len(movements),
-            movement_types=movement_types,
-        )
-
-        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-        logger.info(
-            "stock_movements_resource_completed",
-            total_movements=summary.total_movements,
-            duration_ms=duration_ms,
-        )
-
-        return StockMovementsResource(
-            generated_at=datetime.now(UTC).isoformat(),
-            summary=summary,
-            movements=movements,
-            next_actions=[
-                "Review recent adjustments for accuracy",
-                "Check transfer statuses for pending movements",
-                "Audit patterns in stock movements",
+            "generated_at": datetime.now(UTC).isoformat(),
+            "summary": {
+                "total_items": len(items),
+                "products": len(products),
+                "materials": len(materials),
+                "services": len(service_items),
+            },
+            "items": items,
+            "next_actions": [
+                "Use search_items tool to find specific items by name or SKU",
+                "Use check_inventory tool to get detailed stock levels for a SKU",
+                "Use list_low_stock_items tool to identify items needing reorder",
             ],
-        )
-
-    except Exception as e:
-        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
-        logger.error(
-            "stock_movements_resource_failed",
-            error=str(e),
-            error_type=type(e).__name__,
-            duration_ms=duration_ms,
-            exc_info=True,
-        )
-        raise
-
-
-async def get_stock_movements(context: Context) -> dict:
-    """Get stock movements resource.
-
-    Provides unified view of recent inventory movements including stock transfers
-    between locations and manual stock adjustments.
-
-    **Resource URI:** `katana://inventory/stock-movements`
-
-    **Purpose:** Track inventory changes and audit trail
-
-    **Refresh Rate:** On-demand (no caching in v0.1.0)
-
-    **Data Includes:**
-    - Recent stock transfers between locations
-    - Manual stock adjustments
-    - Movement timestamps and statuses
-    - Location information
-    - Reference numbers and notes
-
-    **Use Cases:**
-    - Monitor recent inventory activity
-    - Audit stock changes
-    - Track transfer status
-    - Investigate discrepancies
-
-    **Related Tools:**
-    - `check_inventory` - Get current stock levels
-    - `create_purchase_order` - Order more stock
-
-    Args:
-        context: FastMCP context providing access to Katana client
-
-    Returns:
-        Dictionary containing stock movements data with summary and movements list
-    """
-    response = await _get_stock_movements_impl(context)
-    return response.model_dump()
+        }
+    )
 
 
 def register_resources(mcp: FastMCP) -> None:
-    """Register all inventory resources with the FastMCP instance.
-
-    Args:
-        mcp: FastMCP server instance to register resources with
-    """
-    # Register katana://inventory/items resource
+    """Register inventory resources with the FastMCP instance."""
     mcp.resource(
         uri="katana://inventory/items",
         name="Inventory Items",
         description="Complete catalog of all products, materials, and services",
         mime_type="application/json",
     )(get_inventory_items)
-
-    # Register katana://inventory/stock-movements resource
-    mcp.resource(
-        uri="katana://inventory/stock-movements",
-        name="Stock Movements",
-        description="Recent inventory movements (transfers and adjustments)",
-        mime_type="application/json",
-    )(get_stock_movements)
 
 
 __all__ = ["register_resources"]

@@ -180,13 +180,15 @@ All create/modify/delete operations use a two-step confirm pattern:
 
 ## Resources
 
-Browse current state without making changes:
-- katana://inventory/items — full catalog with item types
-- katana://inventory/stock-movements — recent transfers and adjustments
-- katana://sales-orders — open sales orders
-- katana://purchase-orders — open purchase orders
-- katana://manufacturing-orders — active production orders
+Browse cached reference data:
+- katana://inventory/items — full catalog (products, materials, services)
+- katana://suppliers — supplier directory for purchase orders
+- katana://locations — warehouses/facilities for orders and inventory
+- katana://tax-rates — configured tax rates for sales orders
+- katana://operators — manufacturing operators for operation assignments
 - katana://help — detailed workflow guides and tool reference
+
+For transactional data (orders, stock movements), use the corresponding tools.
 """,
 )
 

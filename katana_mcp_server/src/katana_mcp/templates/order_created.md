@@ -16,7 +16,6 @@
 
 - Use `receive_purchase_order` tool when items arrive
 - Use `verify_order_document` tool to validate supplier invoice/packing slip
-- Check `katana://purchase-orders` resource for status updates
 
 ______________________________________________________________________
 
