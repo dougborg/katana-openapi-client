@@ -413,11 +413,32 @@ Create a manufacturing work order.
 
 ---
 
+### search_customers
+Search customers by name or email.
+
+**Parameters:**
+- `query` (required): Search term
+- `limit` (optional): Maximum results (default: 20)
+
+**Returns:** List of customers with id, name, email, phone, currency.
+
+---
+
+### get_customer
+Get full details for a customer by ID.
+
+**Parameters:**
+- `customer_id` (required): Customer ID
+
+**Returns:** Full customer details (name, email, phone, currency, category, comment).
+
+---
+
 ### create_sales_order
 Create a sales order.
 
 **Parameters:**
-- `customer_id` (required): Customer ID
+- `customer_id` (required): Customer ID (use `search_customers` to find)
 - `order_number` (required): Unique sales order number
 - `items` (required): Array of items with variant_id, quantity, and optional price_per_unit
 - `confirm` (required): false=preview, true=create

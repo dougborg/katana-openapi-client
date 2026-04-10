@@ -6,6 +6,7 @@ They provide granular control and are the building blocks for workflow tools.
 Organization:
 - items.py: Search and manage items (variants, products, materials, services)
 - inventory.py: Stock checking, low stock alerts, inventory operations
+- customers.py: Search and look up customers
 - purchase_orders.py: Create, receive, and verify purchase orders
 - sales_orders.py: Create sales orders
 - catalog.py: Create products and materials (dedicated catalog management)
@@ -16,6 +17,7 @@ Organization:
 from fastmcp import FastMCP
 
 from .catalog import register_tools as register_catalog_tools
+from .customers import register_tools as register_customers_tools
 from .inventory import register_tools as register_inventory_tools
 from .items import register_tools as register_items_tools
 from .manufacturing_orders import register_tools as register_manufacturing_order_tools
@@ -32,6 +34,7 @@ def register_all_foundation_tools(mcp: FastMCP) -> None:
     """
     register_items_tools(mcp)
     register_inventory_tools(mcp)
+    register_customers_tools(mcp)
     register_purchase_order_tools(mcp)
     register_sales_order_tools(mcp)
     register_catalog_tools(mcp)
