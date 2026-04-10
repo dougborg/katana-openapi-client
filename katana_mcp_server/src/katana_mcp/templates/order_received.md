@@ -15,8 +15,7 @@ Stock levels have been automatically updated for all received items.
 ## Next Steps
 
 - Verify inventory counts in Katana
-- Check `katana://inventory/items` resource for updated stock levels
-- Review purchase order status at `katana://purchase-orders`
+- Use `check_inventory` tool to see updated stock levels for specific SKUs
 
 ______________________________________________________________________
 
