@@ -148,14 +148,12 @@ async def main():
             get_help_tools,
             get_help_workflows,
         )
-        from katana_mcp.resources.inventory import (
-            get_inventory_items,
-            get_stock_movements,
-        )
-        from katana_mcp.resources.orders import (
-            get_manufacturing_orders,
-            get_purchase_orders,
-            get_sales_orders,
+        from katana_mcp.resources.inventory import get_inventory_items
+        from katana_mcp.resources.reference import (
+            get_locations,
+            get_operators,
+            get_suppliers,
+            get_tax_rates,
         )
 
         # Test resources
@@ -186,22 +184,16 @@ async def main():
             )
         )
         results.append(
-            await run_resource_test(
-                "katana://inventory/stock-movements", get_stock_movements, context
-            )
+            await run_resource_test("katana://suppliers", get_suppliers, context)
         )
         results.append(
-            await run_resource_test("katana://sales-orders", get_sales_orders, context)
+            await run_resource_test("katana://locations", get_locations, context)
         )
         results.append(
-            await run_resource_test(
-                "katana://purchase-orders", get_purchase_orders, context
-            )
+            await run_resource_test("katana://tax-rates", get_tax_rates, context)
         )
         results.append(
-            await run_resource_test(
-                "katana://manufacturing-orders", get_manufacturing_orders, context
-            )
+            await run_resource_test("katana://operators", get_operators, context)
         )
 
         # Print summary
