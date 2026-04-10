@@ -417,6 +417,346 @@ async def get_manufacturing_order(
     )
 
 
+# ============================================================================
+# Tool 3: get_manufacturing_order_recipe
+# ============================================================================
+
+
+class GetManufacturingOrderRecipeRequest(BaseModel):
+    """Request to list ingredient rows for a manufacturing order."""
+
+    manufacturing_order_id: int = Field(..., description="Manufacturing order ID")
+
+
+class RecipeRowInfo(BaseModel):
+    """Summary of a manufacturing order recipe row (ingredient)."""
+
+    id: int
+    variant_id: int | None
+    sku: str | None
+    planned_quantity_per_unit: float | None
+    total_actual_quantity: float | None
+    ingredient_availability: str | None
+    notes: str | None
+    cost: float | None
+
+
+class GetManufacturingOrderRecipeResponse(BaseModel):
+    """Response containing recipe rows for an MO."""
+
+    manufacturing_order_id: int
+    rows: list[RecipeRowInfo]
+    total_count: int
+
+
+async def _get_manufacturing_order_recipe_impl(
+    request: GetManufacturingOrderRecipeRequest, context: Context
+) -> GetManufacturingOrderRecipeResponse:
+    """Read the ingredient rows for a manufacturing order."""
+    from katana_public_api_client.api.manufacturing_order_recipe import (
+        get_all_manufacturing_order_recipe_rows,
+    )
+    from katana_public_api_client.utils import unwrap_data
+
+    services = get_services(context)
+
+    response = await get_all_manufacturing_order_recipe_rows.asyncio_detailed(
+        client=services.client,
+        manufacturing_order_id=request.manufacturing_order_id,
+    )
+    raw_rows = unwrap_data(response, default=[])
+
+    # Enrich each row with the variant SKU from the cache
+    rows: list[RecipeRowInfo] = []
+    for row in raw_rows:
+        variant_id = unwrap_unset(row.variant_id, None)
+        sku: str | None = None
+        if variant_id is not None:
+            variant = await services.cache.get_by_id("variant", variant_id)
+            if variant:
+                sku = variant.get("sku")
+
+        rows.append(
+            RecipeRowInfo(
+                id=row.id,
+                variant_id=variant_id,
+                sku=sku,
+                planned_quantity_per_unit=unwrap_unset(
+                    row.planned_quantity_per_unit, None
+                ),
+                total_actual_quantity=unwrap_unset(row.total_actual_quantity, None),
+                ingredient_availability=unwrap_unset(row.ingredient_availability, None),
+                notes=unwrap_unset(row.notes, None),
+                cost=unwrap_unset(row.cost, None),
+            )
+        )
+
+    return GetManufacturingOrderRecipeResponse(
+        manufacturing_order_id=request.manufacturing_order_id,
+        rows=rows,
+        total_count=len(rows),
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def get_manufacturing_order_recipe(
+    request: Annotated[GetManufacturingOrderRecipeRequest, Unpack()],
+    context: Context,
+) -> ToolResult:
+    """List the ingredient (recipe) rows for a manufacturing order.
+
+    Returns each row with its ID, variant ID, SKU, planned quantity per unit,
+    ingredient availability, and cost. Use this before adding or deleting
+    recipe rows so you can identify the rows to modify.
+    """
+    from katana_mcp.tools.tool_result_utils import make_simple_result
+
+    response = await _get_manufacturing_order_recipe_impl(request, context)
+
+    if not response.rows:
+        md = f"No recipe rows found for MO ID {response.manufacturing_order_id}."
+    else:
+        lines = [
+            f"## Recipe for MO {response.manufacturing_order_id}",
+            f"{response.total_count} ingredient rows",
+            "",
+            "| Row ID | Variant ID | SKU | Qty/Unit | Availability |",
+            "|--------|-----------|-----|----------|--------------|",
+        ]
+        for r in response.rows:
+            lines.append(
+                f"| {r.id} | {r.variant_id} | {r.sku or 'N/A'} | "
+                f"{r.planned_quantity_per_unit} | {r.ingredient_availability or 'N/A'} |"
+            )
+        md = "\n".join(lines)
+
+    return make_simple_result(md, structured_data=response.model_dump())
+
+
+# ============================================================================
+# Tool 4: add_manufacturing_order_recipe_row
+# ============================================================================
+
+
+class AddRecipeRowRequest(BaseModel):
+    """Request to add an ingredient row to a manufacturing order."""
+
+    manufacturing_order_id: int = Field(..., description="Manufacturing order ID")
+    sku: str = Field(..., description="SKU of the variant to add as an ingredient")
+    planned_quantity_per_unit: float = Field(
+        ..., description="Planned quantity needed per manufactured unit", gt=0
+    )
+    notes: str | None = Field(default=None, description="Optional notes")
+    confirm: bool = Field(
+        default=False,
+        description="Set false to preview, true to add (prompts for confirmation)",
+    )
+
+
+class AddRecipeRowResponse(BaseModel):
+    """Response from adding a recipe row."""
+
+    id: int | None
+    manufacturing_order_id: int
+    variant_id: int
+    sku: str
+    planned_quantity_per_unit: float
+    is_preview: bool
+    message: str
+
+
+async def _add_recipe_row_impl(
+    request: AddRecipeRowRequest, context: Context
+) -> AddRecipeRowResponse:
+    """Add a new ingredient row to a manufacturing order."""
+    from katana_public_api_client.api.manufacturing_order_recipe import (
+        create_manufacturing_order_recipe_rows,
+    )
+    from katana_public_api_client.models.create_manufacturing_order_recipe_row_request import (
+        CreateManufacturingOrderRecipeRowRequest,
+    )
+    from katana_public_api_client.utils import APIError, unwrap
+
+    services = get_services(context)
+
+    # Resolve SKU to variant_id
+    variant = await services.cache.get_by_sku(sku=request.sku)
+    if not variant:
+        raise ValueError(f"SKU '{request.sku}' not found")
+    variant_id = variant["id"]
+    display_name = variant.get("display_name") or request.sku
+
+    if not request.confirm:
+        return AddRecipeRowResponse(
+            id=None,
+            manufacturing_order_id=request.manufacturing_order_id,
+            variant_id=variant_id,
+            sku=request.sku,
+            planned_quantity_per_unit=request.planned_quantity_per_unit,
+            is_preview=True,
+            message=(
+                f"Preview: Would add {request.planned_quantity_per_unit}x "
+                f"{request.sku} ({display_name}) to MO "
+                f"{request.manufacturing_order_id}"
+            ),
+        )
+
+    confirmation = await require_confirmation(
+        context,
+        f"Add {request.planned_quantity_per_unit}x {request.sku} "
+        f"({display_name}) to MO {request.manufacturing_order_id}?",
+    )
+    if confirmation != ConfirmationResult.CONFIRMED:
+        return AddRecipeRowResponse(
+            id=None,
+            manufacturing_order_id=request.manufacturing_order_id,
+            variant_id=variant_id,
+            sku=request.sku,
+            planned_quantity_per_unit=request.planned_quantity_per_unit,
+            is_preview=True,
+            message=f"Add recipe row {confirmation} by user",
+        )
+
+    api_request = CreateManufacturingOrderRecipeRowRequest(
+        manufacturing_order_id=request.manufacturing_order_id,
+        variant_id=variant_id,
+        planned_quantity_per_unit=request.planned_quantity_per_unit,
+        notes=to_unset(request.notes),
+    )
+
+    response = await create_manufacturing_order_recipe_rows.asyncio_detailed(
+        client=services.client, body=api_request
+    )
+    try:
+        result = unwrap(response)
+    except APIError as e:
+        raise ValueError(str(e)) from e
+
+    new_id = getattr(result, "id", None) if result else None
+    return AddRecipeRowResponse(
+        id=new_id,
+        manufacturing_order_id=request.manufacturing_order_id,
+        variant_id=variant_id,
+        sku=request.sku,
+        planned_quantity_per_unit=request.planned_quantity_per_unit,
+        is_preview=False,
+        message=f"Added recipe row (ID {new_id}) to MO {request.manufacturing_order_id}",
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def add_manufacturing_order_recipe_row(
+    request: Annotated[AddRecipeRowRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Add a new ingredient row to a manufacturing order's recipe.
+
+    Two-step flow: confirm=false to preview, confirm=true to add (prompts
+    for confirmation). Resolves the SKU to a variant_id automatically via
+    the cache.
+
+    Use this to add missing ingredients to an MO or build up a custom recipe.
+    To remove an ingredient, use delete_manufacturing_order_recipe_row.
+    """
+    from katana_mcp.tools.tool_result_utils import make_simple_result
+
+    response = await _add_recipe_row_impl(request, context)
+    status = "PREVIEW" if response.is_preview else "ADDED"
+    md = f"## Recipe Row ({status})\n\n{response.message}"
+    return make_simple_result(md, structured_data=response.model_dump())
+
+
+# ============================================================================
+# Tool 5: delete_manufacturing_order_recipe_row
+# ============================================================================
+
+
+class DeleteRecipeRowRequest(BaseModel):
+    """Request to delete an ingredient row from a manufacturing order."""
+
+    recipe_row_id: int = Field(..., description="Recipe row ID to delete")
+    confirm: bool = Field(
+        default=False,
+        description="Set false to preview, true to delete (prompts for confirmation)",
+    )
+
+
+class DeleteRecipeRowResponse(BaseModel):
+    """Response from deleting a recipe row."""
+
+    recipe_row_id: int
+    is_preview: bool
+    message: str
+
+
+async def _delete_recipe_row_impl(
+    request: DeleteRecipeRowRequest, context: Context
+) -> DeleteRecipeRowResponse:
+    """Delete an ingredient row from a manufacturing order."""
+    from katana_public_api_client.api.manufacturing_order_recipe import (
+        delete_manufacturing_order_recipe_row,
+    )
+    from katana_public_api_client.utils import APIError, is_success, unwrap
+
+    services = get_services(context)
+
+    if not request.confirm:
+        return DeleteRecipeRowResponse(
+            recipe_row_id=request.recipe_row_id,
+            is_preview=True,
+            message=f"Preview: Would delete recipe row {request.recipe_row_id}",
+        )
+
+    confirmation = await require_confirmation(
+        context,
+        f"Delete recipe row {request.recipe_row_id}? This cannot be undone.",
+    )
+    if confirmation != ConfirmationResult.CONFIRMED:
+        return DeleteRecipeRowResponse(
+            recipe_row_id=request.recipe_row_id,
+            is_preview=True,
+            message=f"Delete recipe row {confirmation} by user",
+        )
+
+    response = await delete_manufacturing_order_recipe_row.asyncio_detailed(
+        client=services.client, id=request.recipe_row_id
+    )
+
+    if not is_success(response):
+        try:
+            unwrap(response)
+        except APIError as e:
+            raise ValueError(str(e)) from e
+        raise ValueError(f"Failed to delete recipe row {request.recipe_row_id}")
+
+    return DeleteRecipeRowResponse(
+        recipe_row_id=request.recipe_row_id,
+        is_preview=False,
+        message=f"Deleted recipe row {request.recipe_row_id}",
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def delete_manufacturing_order_recipe_row(
+    request: Annotated[DeleteRecipeRowRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Delete an ingredient row from a manufacturing order's recipe.
+
+    Two-step flow: confirm=false to preview, confirm=true to delete (prompts
+    for confirmation). Find the recipe_row_id with get_manufacturing_order_recipe.
+
+    Use with add_manufacturing_order_recipe_row to replace an ingredient.
+    """
+    from katana_mcp.tools.tool_result_utils import make_simple_result
+
+    response = await _delete_recipe_row_impl(request, context)
+    status = "PREVIEW" if response.is_preview else "DELETED"
+    md = f"## Recipe Row ({status})\n\n{response.message}"
+    return make_simple_result(md, structured_data=response.model_dump())
+
+
 def register_tools(mcp: FastMCP) -> None:
     """Register all manufacturing order tools with the FastMCP instance.
 
@@ -431,14 +771,30 @@ def register_tools(mcp: FastMCP) -> None:
         idempotentHint=True,
         openWorldHint=True,
     )
+    _write = ToolAnnotations(
+        readOnlyHint=False, destructiveHint=False, openWorldHint=True
+    )
+    _destructive_write = ToolAnnotations(
+        readOnlyHint=False, destructiveHint=True, openWorldHint=True
+    )
 
     mcp.tool(
         tags={"orders", "manufacturing", "write"},
-        annotations=ToolAnnotations(
-            readOnlyHint=False, destructiveHint=False, openWorldHint=True
-        ),
+        annotations=_write,
     )(create_manufacturing_order)
     mcp.tool(
         tags={"orders", "manufacturing", "read"},
         annotations=_read,
     )(get_manufacturing_order)
+    mcp.tool(
+        tags={"orders", "manufacturing", "read"},
+        annotations=_read,
+    )(get_manufacturing_order_recipe)
+    mcp.tool(
+        tags={"orders", "manufacturing", "write"},
+        annotations=_write,
+    )(add_manufacturing_order_recipe_row)
+    mcp.tool(
+        tags={"orders", "manufacturing", "write"},
+        annotations=_destructive_write,
+    )(delete_manufacturing_order_recipe_row)

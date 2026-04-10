@@ -398,6 +398,17 @@ Verify a supplier document (invoice, packing slip) against a PO.
 
 ---
 
+### get_purchase_order
+Look up a purchase order by order number or ID with all line items.
+
+**Parameters:**
+- `order_no` (optional): PO number (e.g., "PO-1022")
+- `order_id` (optional): PO ID
+
+**Returns:** Order details (status, supplier, total) plus rows with variant_id, quantity, price, arrival/received dates.
+
+---
+
 ## Manufacturing & Sales Tools
 
 ### create_manufacturing_order
@@ -431,6 +442,37 @@ Get full details for a customer by ID.
 - `customer_id` (required): Customer ID
 
 **Returns:** Full customer details (name, email, phone, currency, category, comment).
+
+---
+
+### get_manufacturing_order_recipe
+List the ingredient rows for a manufacturing order.
+
+**Parameters:**
+- `manufacturing_order_id` (required): MO ID
+
+**Returns:** List of recipe rows with row ID, variant ID, SKU, planned qty/unit, availability.
+
+---
+
+### add_manufacturing_order_recipe_row
+Add a new ingredient to a manufacturing order's recipe.
+
+**Parameters:**
+- `manufacturing_order_id` (required): MO ID
+- `sku` (required): SKU of ingredient to add
+- `planned_quantity_per_unit` (required): Qty needed per manufactured unit
+- `notes` (optional): Notes
+- `confirm` (required): false=preview, true=add
+
+---
+
+### delete_manufacturing_order_recipe_row
+Remove an ingredient from a manufacturing order's recipe.
+
+**Parameters:**
+- `recipe_row_id` (required): Recipe row ID (from get_manufacturing_order_recipe)
+- `confirm` (required): false=preview, true=delete
 
 ---
 
