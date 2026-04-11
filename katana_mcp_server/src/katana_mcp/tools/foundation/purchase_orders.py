@@ -182,7 +182,7 @@ async def _create_purchase_order_impl(
     # Confirm mode - use elicitation to get user confirmation before creating
     confirmation = await require_confirmation(
         context,
-        f"Create purchase order {request.order_number} with {len(request.items)} items totaling {total_cost:.2f}?",
+        f"Place purchase order {request.order_number} with {len(request.items)} items totaling {total_cost:.2f}?",
     )
 
     if confirmation != ConfirmationResult.CONFIRMED:
