@@ -22,6 +22,7 @@ from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     enum_to_str,
+    format_md_table,
     iso_or_none,
     make_tool_result,
 )
@@ -488,20 +489,21 @@ async def list_sales_orders(
     if not response.orders:
         md = "No sales orders match the given filters."
     else:
-        lines = [
-            f"## Sales Orders ({response.total_count})",
-            "",
-            "| Order # | Status | Production | Rows | Total | Created |",
-            "|---------|--------|------------|------|-------|---------|",
-        ]
-        for o in response.orders:
-            total_str = f"{o.total:.2f} {o.currency or ''}" if o.total else "—"
-            lines.append(
-                f"| {o.order_no or o.id} | {o.status or '—'} "
-                f"| {o.production_status or '—'} | {o.row_count} "
-                f"| {total_str} | {o.created_at or '—'} |"
-            )
-        md = "\n".join(lines)
+        table = format_md_table(
+            headers=["Order #", "Status", "Production", "Rows", "Total", "Created"],
+            rows=[
+                [
+                    o.order_no or o.id,
+                    o.status or "—",
+                    o.production_status or "—",
+                    o.row_count,
+                    f"{o.total:.2f} {o.currency or ''}" if o.total else "—",
+                    o.created_at or "—",
+                ]
+                for o in response.orders
+            ],
+        )
+        md = f"## Sales Orders ({response.total_count})\n\n{table}"
 
     return make_simple_result(md, structured_data=response.model_dump())
 
@@ -644,14 +646,22 @@ async def get_sales_order(
     if response.rows:
         lines.append("")
         lines.append("### Line Items")
-        lines.append("| Row ID | SKU | Variant | Qty | Price | Linked MO |")
-        lines.append("|--------|-----|---------|-----|-------|-----------|")
-        for r in response.rows:
-            lines.append(
-                f"| {r.id} | {r.sku or '—'} | {r.variant_id or '—'} "
-                f"| {r.quantity} | {r.price_per_unit or '—'} "
-                f"| {r.linked_manufacturing_order_id or '—'} |"
+        lines.append(
+            format_md_table(
+                headers=["Row ID", "SKU", "Variant", "Qty", "Price", "Linked MO"],
+                rows=[
+                    [
+                        r.id,
+                        r.sku or "—",
+                        r.variant_id or "—",
+                        r.quantity,
+                        r.price_per_unit or "—",
+                        r.linked_manufacturing_order_id or "—",
+                    ]
+                    for r in response.rows
+                ],
             )
+        )
 
     return make_simple_result("\n".join(lines), structured_data=response.model_dump())
 

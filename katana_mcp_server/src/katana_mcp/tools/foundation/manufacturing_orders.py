@@ -21,7 +21,7 @@ from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
-from katana_mcp.tools.tool_result_utils import make_tool_result
+from katana_mcp.tools.tool_result_utils import format_md_table, make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
@@ -611,19 +611,23 @@ async def get_manufacturing_order_recipe(
     if not response.rows:
         md = f"No recipe rows found for MO ID {response.manufacturing_order_id}."
     else:
-        lines = [
-            f"## Recipe for MO {response.manufacturing_order_id}",
-            f"{response.total_count} ingredient rows",
-            "",
-            "| Row ID | Variant ID | SKU | Qty/Unit | Availability |",
-            "|--------|-----------|-----|----------|--------------|",
-        ]
-        for r in response.rows:
-            lines.append(
-                f"| {r.id} | {r.variant_id} | {r.sku or 'N/A'} | "
-                f"{r.planned_quantity_per_unit} | {r.ingredient_availability or 'N/A'} |"
-            )
-        md = "\n".join(lines)
+        table = format_md_table(
+            headers=["Row ID", "Variant ID", "SKU", "Qty/Unit", "Availability"],
+            rows=[
+                [
+                    r.id,
+                    r.variant_id,
+                    r.sku or "N/A",
+                    r.planned_quantity_per_unit,
+                    r.ingredient_availability or "N/A",
+                ]
+                for r in response.rows
+            ],
+        )
+        md = (
+            f"## Recipe for MO {response.manufacturing_order_id}\n"
+            f"{response.total_count} ingredient rows\n\n{table}"
+        )
 
     return make_simple_result(md, structured_data=response.model_dump())
 
@@ -1336,22 +1340,25 @@ def _render_batch_markdown(response: BatchUpdateRecipesResponse) -> str:
     for label, ops in groups.items():
         lines.append(f"### {label}")
         lines.append("")
-        lines.append("| MO | Action | Row ID | SKU | Qty | Status | Error |")
-        lines.append("|----|--------|--------|-----|-----|--------|-------|")
-        for op in ops:
-            row_id = str(op.recipe_row_id) if op.recipe_row_id else "(new)"
-            sku = op.sku or (f"variant {op.variant_id}" if op.variant_id else "")
-            qty = (
-                str(op.planned_quantity_per_unit)
-                if op.planned_quantity_per_unit is not None
-                else "—"
+        lines.append(
+            format_md_table(
+                headers=["MO", "Action", "Row ID", "SKU", "Qty", "Status", "Error"],
+                rows=[
+                    [
+                        op.manufacturing_order_id,
+                        op.op_type.upper(),
+                        str(op.recipe_row_id) if op.recipe_row_id else "(new)",
+                        op.sku or (f"variant {op.variant_id}" if op.variant_id else ""),
+                        str(op.planned_quantity_per_unit)
+                        if op.planned_quantity_per_unit is not None
+                        else "—",
+                        op.status.upper(),
+                        op.error or "",
+                    ]
+                    for op in ops
+                ],
             )
-            status = op.status.upper()
-            error = op.error or ""
-            lines.append(
-                f"| {op.manufacturing_order_id} | {op.op_type.upper()} | {row_id} "
-                f"| {sku} | {qty} | {status} | {error} |"
-            )
+        )
         lines.append("")
 
     if response.warnings:

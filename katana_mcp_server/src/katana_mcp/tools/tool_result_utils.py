@@ -44,6 +44,29 @@ def iso_or_none(dt: datetime | None) -> str | None:
     return dt.isoformat() if dt else None
 
 
+def format_md_table(
+    headers: list[str],
+    rows: list[list[Any]],
+) -> str:
+    """Format a simple markdown table from headers and row data.
+
+    Each row cell is rendered via str(); use "—" or "" for missing values.
+    Returns an empty string if `rows` is empty.
+
+    Example:
+        format_md_table(
+            ["Name", "Qty"],
+            [["Apple", 3], ["Banana", 5]],
+        )
+    """
+    if not rows:
+        return ""
+    header_line = "| " + " | ".join(headers) + " |"
+    sep_line = "|" + "|".join("---" for _ in headers) + "|"
+    body_lines = ["| " + " | ".join(str(cell) for cell in row) + " |" for row in rows]
+    return "\n".join([header_line, sep_line, *body_lines])
+
+
 def make_tool_result(
     response: BaseModel,
     template_name: str,
