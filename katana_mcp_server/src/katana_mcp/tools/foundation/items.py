@@ -848,17 +848,23 @@ def _dict_to_variant_details(v: dict[str, Any]) -> VariantDetailsResponse:
 
 
 async def _fetch_variant_by_id(services: Any, variant_id: int) -> dict[str, Any] | None:
-    """Look up a variant by ID — cache first, then API fallback."""
+    """Look up a variant by ID — cache first, then API fallback.
+
+    Returns None if the variant is not found. Uses ``raise_on_error=False``
+    so a 404 (or an ErrorResponse body) becomes ``None`` instead of a raw
+    ``APIError``, which is what callers expect as the "not found" sentinel.
+    """
     v = await services.cache.get_by_id(EntityType.VARIANT, variant_id)
     if v:
         return v
     # Cache miss — fetch from API
     from katana_public_api_client.api.variant import get_variant
+    from katana_public_api_client.models import ErrorResponse
     from katana_public_api_client.utils import unwrap
 
     response = await get_variant.asyncio_detailed(id=variant_id, client=services.client)
-    variant_obj = unwrap(response)
-    if variant_obj is None:
+    variant_obj = unwrap(response, raise_on_error=False)
+    if variant_obj is None or isinstance(variant_obj, ErrorResponse):
         return None
     return variant_obj.to_dict()
 

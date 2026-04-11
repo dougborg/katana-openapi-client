@@ -872,8 +872,10 @@ async def _get_purchase_order_impl(
         response = await api_get_purchase_order.asyncio_detailed(
             id=request.order_id, client=services.client
         )
-        po_result = unwrap(response)
-        if isinstance(po_result, ErrorResponse):
+        # raise_on_error=False turns 404s and ErrorResponse payloads into None
+        # so we can raise a user-friendly ValueError instead of a raw APIError.
+        po_result = unwrap(response, raise_on_error=False)
+        if po_result is None or isinstance(po_result, ErrorResponse):
             raise ValueError(f"Purchase order ID {request.order_id} not found")
         po = po_result
     else:
