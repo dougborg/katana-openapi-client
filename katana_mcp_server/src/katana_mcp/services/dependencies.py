@@ -70,4 +70,9 @@ def get_services(context: Context) -> Services:
     Returns:
         Services: The lifespan context containing client and other services
     """
+    if context.request_context is None:
+        raise RuntimeError(
+            "get_services() called outside a request context — "
+            "services are only available during tool/resource invocations"
+        )
     return context.request_context.lifespan_context

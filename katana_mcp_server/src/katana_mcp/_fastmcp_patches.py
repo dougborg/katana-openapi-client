@@ -68,7 +68,10 @@ def _update_signature_to_match_annotations(
         for param_name, p in sig.parameters.items()
         if param_name in new_annotations or param_name in ("args", "kwargs")
     ]
-    fn.__signature__ = sig.replace(parameters=new_params)
+    # __signature__ is a valid but dynamic attribute on functions; assigning
+    # it overrides inspect.signature()'s fallback to code-object introspection.
+    # Use __dict__ to avoid static-typing friction around the dynamic attribute.
+    fn.__dict__["__signature__"] = sig.replace(parameters=new_params)
 
 
 @lru_cache(maxsize=5000)
@@ -158,14 +161,22 @@ def apply_fastmcp_patches() -> None:
     It patches get_cached_typeadapter to update __signature__ when creating
     new function objects with modified annotations.
     """
-    import fastmcp.tools.tool
-    import fastmcp.utilities.types
+    import importlib
 
     if _state["patched"]:
         return
 
-    fastmcp.utilities.types.get_cached_typeadapter = _patched_get_cached_typeadapter
-    # Also patch the local reference in fastmcp.tools.tool
-    fastmcp.tools.tool.get_cached_typeadapter = _patched_get_cached_typeadapter
+    # Patch the source module. Each fastmcp submodule that uses
+    # get_cached_typeadapter imports it by name, so we also rebind the local
+    # references in those submodules via importlib to ensure the patched
+    # version is actually used at call sites.
+    for module_name in (
+        "fastmcp.utilities.types",
+        "fastmcp.tools.function_parsing",
+        "fastmcp.tools.function_tool",
+        "fastmcp.tools.tool_transform",
+    ):
+        module = importlib.import_module(module_name)
+        module.__dict__["get_cached_typeadapter"] = _patched_get_cached_typeadapter
 
     _state["patched"] = True

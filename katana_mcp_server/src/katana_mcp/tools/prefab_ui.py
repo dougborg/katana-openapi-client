@@ -92,8 +92,8 @@ def build_search_results_ui(
             rows="items",
             search=True,
             paginated=True,
-            page_size=20,
-            on_row_click=CallTool(
+            pageSize=20,
+            onRowClick=CallTool(
                 "get_variant_details",
                 arguments={"sku": "{{ sku }}"},
                 on_success=SetState("detail", RESULT),
@@ -805,7 +805,7 @@ def build_batch_recipe_update_ui(response: dict[str, Any]) -> PrefabApp:
             rows="rows",
             search=True,
             paginated=True,
-            page_size=25,
+            pageSize=25,
         )
 
         if warnings:

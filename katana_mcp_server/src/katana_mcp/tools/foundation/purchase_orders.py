@@ -860,6 +860,7 @@ async def _get_purchase_order_impl(
         find_purchase_orders,
         get_purchase_order as api_get_purchase_order,
     )
+    from katana_public_api_client.models import ErrorResponse
     from katana_public_api_client.utils import unwrap_data
 
     if not request.order_no and not request.order_id:
@@ -871,14 +872,17 @@ async def _get_purchase_order_impl(
         response = await api_get_purchase_order.asyncio_detailed(
             id=request.order_id, client=services.client
         )
-        po = unwrap(response)
-        if po is None:
+        po_result = unwrap(response)
+        if isinstance(po_result, ErrorResponse):
             raise ValueError(f"Purchase order ID {request.order_id} not found")
+        po = po_result
     else:
-        response = await find_purchase_orders.asyncio_detailed(
+        if not request.order_no:
+            raise ValueError("order_no is required when order_id is not provided")
+        list_response = await find_purchase_orders.asyncio_detailed(
             client=services.client, order_no=request.order_no, limit=1
         )
-        orders = unwrap_data(response, default=[])
+        orders = unwrap_data(list_response, default=[])
         if not orders:
             raise ValueError(f"Purchase order '{request.order_no}' not found")
         po = orders[0]

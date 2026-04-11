@@ -234,6 +234,7 @@ async def _create_manufacturing_order_impl(
                 MakeToOrderManufacturingOrderRequest,
             )
 
+            assert request.sales_order_row_id is not None
             mto_request = MakeToOrderManufacturingOrderRequest(
                 sales_order_row_id=request.sales_order_row_id,
                 create_subassemblies=request.create_subassemblies,
@@ -242,6 +243,9 @@ async def _create_manufacturing_order_impl(
                 client=services.client, body=mto_request
             )
         else:
+            assert request.variant_id is not None
+            assert request.planned_quantity is not None
+            assert request.location_id is not None
             api_request = APICreateManufacturingOrderRequest(
                 variant_id=request.variant_id,
                 planned_quantity=request.planned_quantity,
