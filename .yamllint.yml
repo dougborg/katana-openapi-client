@@ -36,6 +36,7 @@ rules:
 # Ignore these paths completely
 ignore: |
   .venv/
+  .claude/worktrees/
   node_modules/
   dist/
   build/
