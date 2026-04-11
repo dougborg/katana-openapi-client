@@ -147,15 +147,15 @@ async def _create_manufacturing_order_impl(
             if val is None
         ]
         if missing:
+            missing_fields = ", ".join(missing)
             raise ValueError(
-                f"Standalone MO creation requires: {', '.join(missing)}. "
+                f"Standalone MO requires: {missing_fields}. "
                 "Alternatively, provide sales_order_row_id for a make-to-order linked MO."
             )
 
-    logger.info(
-        f"{'Previewing' if not request.confirm else 'Creating'} manufacturing order "
-        f"({'make-to-order' if is_make_to_order else 'standalone'})"
-    )
+    mode = "make-to-order" if is_make_to_order else "standalone"
+    action = "Previewing" if not request.confirm else "Starting"
+    logger.info(f"{action} manufacturing order ({mode})")
 
     # Preview mode — return the plan without calling the API
     if not request.confirm:
@@ -1322,7 +1322,7 @@ def _render_batch_markdown(response: BatchUpdateRecipesResponse) -> str:
     """Render a BatchUpdateRecipesResponse as markdown for fallback clients."""
     mode = "PREVIEW" if response.is_preview else "RESULTS"
     lines = [
-        f"## Batch Recipe Update — {mode}",
+        f"## Batch Recipe Edits — {mode}",
         "",
         f"- **Total operations**: {response.total_ops}",
     ]

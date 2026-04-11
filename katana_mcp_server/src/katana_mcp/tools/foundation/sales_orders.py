@@ -197,7 +197,7 @@ async def _create_sales_order_impl(
     # Confirm mode - use elicitation to get user confirmation before creating
     confirmation = await require_confirmation(
         context,
-        f"Create sales order {request.order_number} for customer {request.customer_id} "
+        f"Place sales order {request.order_number} for customer {request.customer_id} "
         f"with {len(request.items)} items?",
     )
 

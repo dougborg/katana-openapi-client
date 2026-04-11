@@ -172,7 +172,7 @@ def build_variant_details_ui(
                 label="Create Purchase Order",
                 variant="outline",
                 on_click=SendMessage(
-                    f"Create a purchase order for SKU {variant.get('sku', '')}"
+                    f"Draft a purchase order for SKU {variant.get('sku', '')}"
                 ),
             )
     return app
@@ -248,7 +248,7 @@ def build_inventory_check_ui(
                 label="Reorder",
                 variant="outline",
                 on_click=SendMessage(
-                    f"Create a purchase order to reorder SKU {stock.get('sku', '')}"
+                    f"Draft a purchase order to reorder SKU {stock.get('sku', '')}"
                 ),
             )
             Button(
@@ -378,7 +378,7 @@ def build_order_preview_ui(
                     label="Confirm & Create",
                     variant="default",
                     on_click=SendMessage(
-                        f"Create the {order_type.lower()} with confirm=true"
+                        f"Place the {order_type.lower()} with confirm=true"
                     ),
                 )
                 Button(
@@ -779,7 +779,7 @@ def build_batch_recipe_update_ui(response: dict[str, Any]) -> PrefabApp:
         Column(gap=4),
     ):
         with Row(gap=2):
-            H3(content="Batch Recipe Update")
+            H3(content="Batch Recipe Edits")
             Badge(label=mode_label, variant=mode_variant)
             Badge(label=f"{total} ops", variant="outline")
 
