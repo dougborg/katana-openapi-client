@@ -22,6 +22,10 @@ This classification guides where to focus review attention.
 1. Read every changed file in full context (not just the diff lines)
 1. Check surrounding code for broken assumptions - changes may invalidate logic in
    adjacent functions or callers that aren't in the diff
+1. For every function whose signature or behavior changed, run `LSP findReferences` (or
+   `LSP incomingCalls`) to enumerate callers. Read each caller and confirm it still
+   works with the new semantics. This catches ripple effects that a diff-only review
+   misses — a diff only shows what changed, not what depends on it.
 1. Run `uv run poe check` to verify everything passes
 1. Produce the structured review below
 
@@ -78,8 +82,8 @@ criticisms.
 
 Verify these for every review (see CLAUDE.md for details on each):
 
-- [ ] Generated files not manually edited; pydantic models regenerated if the
-  OpenAPI client was regenerated
+- [ ] Generated files not manually edited; pydantic models regenerated if the OpenAPI
+  client was regenerated
 - [ ] Resilience at transport layer, not wrapping API methods
   ([ADR-001](katana_public_api_client/docs/adr/0001-transport-layer-resilience.md))
 - [ ] Full type annotations; UNSET/response handling per CLAUDE.md patterns

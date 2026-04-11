@@ -55,9 +55,12 @@ Use `@pytest.mark.parametrize` when testing the same logic with multiple inputs.
 
 ## Process
 
-1. Identify the target code and read it thoroughly
-1. List all functions/methods that need tests
-1. For each function, enumerate test cases using the edge case checklist
+1. Identify the target code. Use `LSP documentSymbol` on the target file to get the full
+   list of functions/classes + line numbers without reading the whole file, then
+   `LSP hover` on each one to get its signature, type hints, and docstring.
+1. For each function, use `LSP findReferences` to see existing callers — real-world call
+   sites often reveal the intended contract and edge cases the docstring omits.
+1. Enumerate test cases using the edge case checklist
 1. Write tests following the naming convention and AAA pattern
 1. Run `uv run poe test` to verify all tests pass
 1. Run `uv run poe test-coverage` to check coverage meets targets
