@@ -14,41 +14,38 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 from dotenv import load_dotenv
 from fastmcp import Context
 
 from katana_public_api_client import KatanaClient
-from katana_public_api_client.client import AuthenticatedClient
 
 # Add project root to path for local MCP server imports
 _project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(_project_root / "katana_mcp_server" / "src"))
 
-if TYPE_CHECKING:
-    pass
+from katana_mcp.cache import CatalogCache  # noqa: E402
+from katana_mcp.services.dependencies import Services  # noqa: E402
 
 
-def create_test_context(client: AuthenticatedClient) -> Context:
-    """Create a test context with real KatanaClient.
+def create_test_context(services: Services) -> Context:
+    """Create a test context wrapping a real Services container.
+
+    The cache-backed resources call ``get_services(context)`` and expect
+    ``context.request_context.lifespan_context`` to be a ``Services`` instance
+    with both ``client`` and ``cache`` attributes.
 
     Args:
-        client: Real KatanaClient instance
+        services: Real Services container with an opened CatalogCache
 
     Returns:
         Mock Context object with proper FastMCP structure
     """
     context = MagicMock(spec=Context)
     mock_request_context = MagicMock()
-    mock_lifespan_context = MagicMock()
-
-    # Attach real client to mock context
-    mock_lifespan_context.client = client
-    mock_request_context.lifespan_context = mock_lifespan_context
+    mock_request_context.lifespan_context = services
     context.request_context = mock_request_context
-
     return context
 
 
@@ -67,28 +64,42 @@ async def run_resource_test(resource_name: str, resource_func, context: Context)
     try:
         result = await resource_func(context)
 
-        # Print summary
+        # Resources may return dict or JSON string — normalize to dict for inspection
+        parsed: dict | None = None
         if isinstance(result, dict):
-            if "summary" in result:
-                print(f"✓ Summary: {json.dumps(result['summary'], indent=2)}")
-            if "generated_at" in result:
-                print(f"✓ Generated at: {result['generated_at']}")
-            if "next_actions" in result:
+            parsed = result
+        elif isinstance(result, str):
+            try:
+                loaded = json.loads(result)
+                if isinstance(loaded, dict):
+                    parsed = loaded
+            except json.JSONDecodeError:
                 print(
-                    f"✓ Next actions: {len(result.get('next_actions', []))} suggestions"
+                    f"✗ ERROR: {resource_name} returned non-JSON string: {result[:100]}"
+                )
+                return False
+
+        if parsed is not None:
+            if "summary" in parsed:
+                print(f"✓ Summary: {json.dumps(parsed['summary'], indent=2)}")
+            if "generated_at" in parsed:
+                print(f"✓ Generated at: {parsed['generated_at']}")
+            if "next_actions" in parsed:
+                print(
+                    f"✓ Next actions: {len(parsed.get('next_actions', []))} suggestions"
                 )
 
             # Print data counts
             data_keys = [
                 k
-                for k in result
+                for k in parsed
                 if k not in ["summary", "generated_at", "next_actions"]
             ]
             for key in data_keys:
-                if isinstance(result[key], list):
-                    print(f"✓ {key}: {len(result[key])} items")
-                elif isinstance(result[key], dict):
-                    print(f"✓ {key}: {len(result[key])} entries")
+                if isinstance(parsed[key], list):
+                    print(f"✓ {key}: {len(parsed[key])} items")
+                elif isinstance(parsed[key], dict):
+                    print(f"✓ {key}: {len(parsed[key])} entries")
 
             print(f"\n✓ SUCCESS: {resource_name} returned data")
             return True
@@ -130,7 +141,7 @@ async def main():
     print(f"API Base URL: {base_url}")
     print("API Key: [configured]")
 
-    # Initialize KatanaClient
+    # Initialize KatanaClient and open catalog cache
     async with KatanaClient(
         api_key=api_key,
         base_url=base_url,
@@ -138,79 +149,82 @@ async def main():
         max_retries=3,
         max_pages=10,
     ) as client:
-        # Create test context
-        context = create_test_context(client)
+        cache = CatalogCache()
+        await cache.open()
+        try:
+            services = Services(client=client, cache=cache)
+            context = create_test_context(services)
+            await _run_tests(context)
+        finally:
+            await cache.close()
 
-        # Import resource handlers
-        from katana_mcp.resources.help import (
-            get_help_index,
-            get_help_resources,
-            get_help_tools,
-            get_help_workflows,
-        )
-        from katana_mcp.resources.inventory import get_inventory_items
-        from katana_mcp.resources.reference import (
-            get_locations,
-            get_operators,
-            get_suppliers,
-            get_tax_rates,
-        )
 
-        # Test resources
-        results = []
+async def _run_tests(context: Context) -> None:
+    """Run all resource tests against the given context."""
+    # Import resource handlers
+    from katana_mcp.resources.help import (
+        get_help_index,
+        get_help_resources,
+        get_help_tools,
+        get_help_workflows,
+    )
+    from katana_mcp.resources.inventory import get_inventory_items
+    from katana_mcp.resources.reference import (
+        get_locations,
+        get_operators,
+        get_suppliers,
+        get_tax_rates,
+    )
 
-        # Help resources (should always work - no API calls)
-        results.append(
-            await run_resource_test("katana://help", get_help_index, context)
-        )
-        results.append(
-            await run_resource_test(
-                "katana://help/resources", get_help_resources, context
-            )
-        )
-        results.append(
-            await run_resource_test("katana://help/tools", get_help_tools, context)
-        )
-        results.append(
-            await run_resource_test(
-                "katana://help/workflows", get_help_workflows, context
-            )
-        )
+    # Test resources
+    results = []
 
-        # Data resources (require API access)
-        results.append(
-            await run_resource_test(
-                "katana://inventory/items", get_inventory_items, context
-            )
-        )
-        results.append(
-            await run_resource_test("katana://suppliers", get_suppliers, context)
-        )
-        results.append(
-            await run_resource_test("katana://locations", get_locations, context)
-        )
-        results.append(
-            await run_resource_test("katana://tax-rates", get_tax_rates, context)
-        )
-        results.append(
-            await run_resource_test("katana://operators", get_operators, context)
-        )
+    # Help resources (should always work - no API calls)
+    results.append(await run_resource_test("katana://help", get_help_index, context))
+    results.append(
+        await run_resource_test("katana://help/resources", get_help_resources, context)
+    )
+    results.append(
+        await run_resource_test("katana://help/tools", get_help_tools, context)
+    )
+    results.append(
+        await run_resource_test("katana://help/workflows", get_help_workflows, context)
+    )
 
-        # Print summary
-        print(f"\n{'=' * 60}")
-        print("Test Summary")
-        print(f"{'=' * 60}")
-        passed = sum(results)
-        total = len(results)
-        print(f"Passed: {passed}/{total}")
-        print(f"Failed: {total - passed}/{total}")
+    # Data resources (require API access)
+    results.append(
+        await run_resource_test(
+            "katana://inventory/items", get_inventory_items, context
+        )
+    )
+    results.append(
+        await run_resource_test("katana://suppliers", get_suppliers, context)
+    )
+    results.append(
+        await run_resource_test("katana://locations", get_locations, context)
+    )
+    results.append(
+        await run_resource_test("katana://tax-rates", get_tax_rates, context)
+    )
+    results.append(
+        await run_resource_test("katana://operators", get_operators, context)
+    )
 
-        if all(results):
-            print("\n✓ All resources are working correctly!")
-            sys.exit(0)
-        else:
-            print("\n✗ Some resources failed. Check errors above.")
-            sys.exit(1)
+    # Print summary
+    print(f"\n{'=' * 60}")
+    print("Test Summary")
+    print(f"{'=' * 60}")
+    passed = sum(results)
+    total = len(results)
+    print(f"Passed: {passed}/{total}")
+    print(f"Failed: {total - passed}/{total}")
+
+    if all(results):
+        print("\n✓ All resources are working correctly!")
+        sys.exit(0)
+    else:
+        print("\n✗ Some resources failed. Check errors above.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
