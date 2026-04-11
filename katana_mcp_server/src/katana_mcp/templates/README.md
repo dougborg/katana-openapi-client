@@ -15,7 +15,7 @@ templates) and structured JSON data (from Pydantic models).
 ## Usage
 
 ```python
-from fastmcp.tools.tool import ToolResult
+from fastmcp.tools import ToolResult
 from katana_mcp.templates import format_template
 
 # Format template and return dual-format response

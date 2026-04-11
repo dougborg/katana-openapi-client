@@ -11,7 +11,7 @@ import time
 from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
-from fastmcp.tools.tool import ToolResult
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from katana_mcp.cache import EntityType
