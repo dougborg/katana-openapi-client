@@ -2,6 +2,12 @@
   "venvPath": ".",
   "venv": ".venv",
   "pythonVersion": "3.14",
+  "include": [
+    "katana_mcp_server",
+    "katana_public_api_client",
+    "tests",
+    "scripts"
+  ],
   "exclude": [
     ".venv",
     ".claude/worktrees",
