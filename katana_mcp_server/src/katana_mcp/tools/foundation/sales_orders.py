@@ -345,7 +345,7 @@ async def create_sales_order(
         order_number=response.order_number,
         customer_id=response.customer_id,
         status=response.status or ("PREVIEW" if response.is_preview else "N/A"),
-        total=f"${response.total:,.2f}" if response.total else "N/A",
+        total=f"${response.total:,.2f}" if response.total is not None else "N/A",
         currency=response.currency or "N/A",
         message=response.message,
         next_actions_text=next_actions_text,
@@ -497,7 +497,7 @@ async def list_sales_orders(
                     o.status or "—",
                     o.production_status or "—",
                     o.row_count,
-                    f"{o.total:.2f} {o.currency or ''}" if o.total else "—",
+                    f"{o.total:.2f} {o.currency or ''}" if o.total is not None else "—",
                     o.created_at or "—",
                 ]
                 for o in response.orders
