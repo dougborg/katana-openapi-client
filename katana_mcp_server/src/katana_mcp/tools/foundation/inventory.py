@@ -47,6 +47,7 @@ class CheckInventoryRequest(BaseModel):
 class StockInfo(BaseModel):
     """Stock information for a variant."""
 
+    variant_id: int | None = None
     sku: str
     product_name: str
     available_stock: float
@@ -77,6 +78,7 @@ async def _fetch_stock_for_variant(
         total_expected += float(unwrap_unset(inv.quantity_expected, "0"))
 
     return StockInfo(
+        variant_id=variant_id,
         sku=sku,
         product_name=product_name,
         available_stock=total_in_stock - total_committed,
@@ -156,6 +158,7 @@ async def _check_inventory_impl(
             if not variant:
                 logger.warning("inventory_check_not_found", variant_id=variant_id)
                 return StockInfo(
+                    variant_id=variant_id,
                     sku="",
                     product_name="",
                     available_stock=0,

@@ -128,15 +128,18 @@ def unpack_pydantic_params(func: Callable) -> Callable:
                         field_default = field_info.default
                     elif field_info.default_factory is not None:
                         # Pydantic factories can accept zero args or one
-                        # (validated_data). Call via Any to dispatch at runtime.
+                        # (validated_data). Prefer zero-arg invocation and fall
+                        # back to passing an empty validated-data dict. Built-in
+                        # types like `list` / `dict` don't have an introspectable
+                        # signature, so try the call directly.
                         factory: Any = field_info.default_factory
                         try:
-                            factory_params = len(inspect.signature(factory).parameters)
-                            field_default = (
-                                factory({}) if factory_params >= 1 else factory()
-                            )
-                        except (TypeError, ValueError):
-                            field_default = inspect.Parameter.empty
+                            field_default = factory()
+                        except TypeError:
+                            try:
+                                field_default = factory({})
+                            except TypeError:
+                                field_default = inspect.Parameter.empty
                     else:
                         field_default = inspect.Parameter.empty
 
