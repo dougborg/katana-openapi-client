@@ -6,6 +6,7 @@ and managing inventory operations.
 
 from __future__ import annotations
 
+import asyncio
 import time
 from typing import Annotated, Any
 
@@ -13,6 +14,7 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
+from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.tool_result_utils import make_tool_result
@@ -117,43 +119,62 @@ async def _check_inventory_impl(
 
     try:
         services = get_services(context)
-        results: list[StockInfo] = []
 
-        for sku in skus:
-            variant = await services.cache.get_by_sku(sku=sku)
+        # Phase 1: resolve all SKUs and variant_ids to variant dicts in parallel
+        sku_variants, id_variants = await asyncio.gather(
+            asyncio.gather(*(services.cache.get_by_sku(sku=s) for s in skus)),
+            asyncio.gather(
+                *(
+                    services.cache.get_by_id(EntityType.VARIANT, v_id)
+                    for v_id in variant_ids
+                )
+            ),
+        )
+
+        # Phase 2: fetch stock for all resolved variants in parallel
+        async def _fetch_for_sku(sku: str, variant: dict | None) -> StockInfo:
             if not variant:
                 logger.warning("inventory_check_not_found", sku=sku)
-                results.append(
-                    StockInfo(
-                        sku=sku,
-                        product_name="",
-                        available_stock=0,
-                        committed=0,
-                        expected=0,
-                        in_stock=0,
-                    )
+                return StockInfo(
+                    sku=sku,
+                    product_name="",
+                    available_stock=0,
+                    committed=0,
+                    expected=0,
+                    in_stock=0,
                 )
-                continue
-            results.append(
-                await _fetch_stock_for_variant(
-                    services,
-                    variant["id"],
-                    sku,
-                    variant.get("display_name") or variant.get("sku") or "",
-                )
+            return await _fetch_stock_for_variant(
+                services,
+                variant["id"],
+                sku,
+                variant.get("display_name") or variant.get("sku") or "",
             )
 
-        for variant_id in variant_ids:
-            variant = await services.cache.get_by_id("variant", variant_id)
+        async def _fetch_for_variant_id(
+            variant_id: int, variant: dict | None
+        ) -> StockInfo:
             sku = variant.get("sku", "") if variant else ""
             product_name = (
                 variant.get("display_name") or variant.get("sku") or ""
                 if variant
                 else ""
             )
-            results.append(
-                await _fetch_stock_for_variant(services, variant_id, sku, product_name)
+            return await _fetch_stock_for_variant(
+                services, variant_id, sku, product_name
             )
+
+        sku_results, id_results = await asyncio.gather(
+            asyncio.gather(
+                *(_fetch_for_sku(s, v) for s, v in zip(skus, sku_variants, strict=True))
+            ),
+            asyncio.gather(
+                *(
+                    _fetch_for_variant_id(v_id, v)
+                    for v_id, v in zip(variant_ids, id_variants, strict=True)
+                )
+            ),
+        )
+        results: list[StockInfo] = [*sku_results, *id_results]
 
         duration_ms = round((time.monotonic() - start_time) * 1000, 2)
         logger.info(

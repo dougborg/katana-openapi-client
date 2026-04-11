@@ -8,6 +8,7 @@ These tools provide:
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 
@@ -15,10 +16,15 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
+from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
-from katana_mcp.tools.tool_result_utils import make_tool_result
+from katana_mcp.tools.tool_result_utils import (
+    enum_to_str,
+    iso_or_none,
+    make_tool_result,
+)
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
@@ -33,6 +39,12 @@ from katana_public_api_client.models import (
 from katana_public_api_client.utils import unwrap_as
 
 logger = get_logger(__name__)
+
+
+async def _none_coro() -> None:
+    """Helper coroutine returning None for asyncio.gather placeholder slots."""
+    return None
+
 
 # ============================================================================
 # Tool 1: create_sales_order
@@ -431,26 +443,17 @@ async def _list_sales_orders_impl(
     orders: list[SalesOrderSummary] = []
     for so in attrs_list:
         rows = unwrap_unset(so.sales_order_rows, []) or []
-        created_at = unwrap_unset(so.created_at, None)
-        delivery_date = unwrap_unset(so.delivery_date, None)
-        status = unwrap_unset(so.status, None)
-        production_status = unwrap_unset(so.production_status, None)
-        invoicing_status = unwrap_unset(so.invoicing_status, None)
         orders.append(
             SalesOrderSummary(
                 id=so.id,
                 order_no=unwrap_unset(so.order_no, None),
                 customer_id=unwrap_unset(so.customer_id, None),
                 location_id=unwrap_unset(so.location_id, None),
-                status=status.value if hasattr(status, "value") else status,
-                production_status=production_status.value
-                if hasattr(production_status, "value")
-                else production_status,
-                invoicing_status=invoicing_status.value
-                if hasattr(invoicing_status, "value")
-                else invoicing_status,
-                created_at=created_at.isoformat() if created_at else None,
-                delivery_date=delivery_date.isoformat() if delivery_date else None,
+                status=enum_to_str(unwrap_unset(so.status, None)),
+                production_status=enum_to_str(unwrap_unset(so.production_status, None)),
+                invoicing_status=enum_to_str(unwrap_unset(so.invoicing_status, None)),
+                created_at=iso_or_none(unwrap_unset(so.created_at, None)),
+                delivery_date=iso_or_none(unwrap_unset(so.delivery_date, None)),
                 total=unwrap_unset(so.total, None),
                 currency=unwrap_unset(so.currency, None),
                 row_count=len(rows),
@@ -564,19 +567,25 @@ async def _get_sales_order_impl(
         so = orders[0]
 
     raw_rows = unwrap_unset(so.sales_order_rows, []) or []
+
+    # Parallelize variant lookups across all rows (N+1 fix)
+    variant_ids = [unwrap_unset(r.variant_id, None) for r in raw_rows]
+    variants = await asyncio.gather(
+        *(
+            services.cache.get_by_id(EntityType.VARIANT, v_id)
+            if v_id is not None
+            else _none_coro()
+            for v_id in variant_ids
+        )
+    )
+
     row_infos: list[SalesOrderRowInfo] = []
-    for r in raw_rows:
-        variant_id = unwrap_unset(r.variant_id, None)
-        sku: str | None = None
-        if variant_id is not None:
-            variant = await services.cache.get_by_id("variant", variant_id)
-            if variant:
-                sku = variant.get("sku")
+    for r, variant in zip(raw_rows, variants, strict=True):
         row_infos.append(
             SalesOrderRowInfo(
                 id=r.id,
-                variant_id=variant_id,
-                sku=sku,
+                variant_id=unwrap_unset(r.variant_id, None),
+                sku=variant.get("sku") if variant else None,
                 quantity=unwrap_unset(r.quantity, None),
                 price_per_unit=unwrap_unset(r.price_per_unit, None),
                 linked_manufacturing_order_id=unwrap_unset(
@@ -585,22 +594,15 @@ async def _get_sales_order_impl(
             )
         )
 
-    created_at = unwrap_unset(so.created_at, None)
-    delivery_date = unwrap_unset(so.delivery_date, None)
-    status = unwrap_unset(so.status, None)
-    production_status = unwrap_unset(so.production_status, None)
-
     return GetSalesOrderResponse(
         id=so.id,
         order_no=unwrap_unset(so.order_no, None),
         customer_id=unwrap_unset(so.customer_id, None),
         location_id=unwrap_unset(so.location_id, None),
-        status=status.value if hasattr(status, "value") else status,
-        production_status=production_status.value
-        if hasattr(production_status, "value")
-        else production_status,
-        created_at=created_at.isoformat() if created_at else None,
-        delivery_date=delivery_date.isoformat() if delivery_date else None,
+        status=enum_to_str(unwrap_unset(so.status, None)),
+        production_status=enum_to_str(unwrap_unset(so.production_status, None)),
+        created_at=iso_or_none(unwrap_unset(so.created_at, None)),
+        delivery_date=iso_or_none(unwrap_unset(so.delivery_date, None)),
         total=unwrap_unset(so.total, None),
         currency=unwrap_unset(so.currency, None),
         additional_info=unwrap_unset(so.additional_info, None),

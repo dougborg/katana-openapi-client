@@ -6,6 +6,7 @@ Items are things with SKUs - they appear in the "Items" tab of the Katana UI.
 
 from __future__ import annotations
 
+import asyncio
 from enum import StrEnum
 from typing import Annotated, Any
 
@@ -887,21 +888,24 @@ async def _get_variant_details_impl(
         )
 
     services = get_services(context)
+
+    # Validate SKUs aren't blank before dispatching
+    sku_cleaned = [s.strip() for s in skus]
+    if any(not clean for clean in sku_cleaned):
+        raise ValueError("SKU cannot be empty")
+
+    # Parallelize both groups of lookups
+    sku_variants, id_variants = await asyncio.gather(
+        asyncio.gather(*(services.cache.get_by_sku(s) for s in sku_cleaned)),
+        asyncio.gather(*(_fetch_variant_by_id(services, v) for v in variant_ids)),
+    )
+
     results: list[VariantDetailsResponse] = []
-
-    # Look up by SKUs (cache only)
-    for sku in skus:
-        sku_clean = sku.strip()
-        if not sku_clean:
-            raise ValueError("SKU cannot be empty")
-        v = await services.cache.get_by_sku(sku_clean)
+    for sku, v in zip(sku_cleaned, sku_variants, strict=True):
         if not v:
-            raise ValueError(f"Variant with SKU '{sku_clean}' not found")
+            raise ValueError(f"Variant with SKU '{sku}' not found")
         results.append(_dict_to_variant_details(v))
-
-    # Look up by variant IDs (cache + API fallback)
-    for variant_id in variant_ids:
-        v = await _fetch_variant_by_id(services, variant_id)
+    for variant_id, v in zip(variant_ids, id_variants, strict=True):
         if v is None:
             raise ValueError(f"Variant ID {variant_id} not found")
         results.append(_dict_to_variant_details(v))
