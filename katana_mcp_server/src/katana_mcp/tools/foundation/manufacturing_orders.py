@@ -21,7 +21,11 @@ from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
-from katana_mcp.tools.tool_result_utils import format_md_table, make_tool_result
+from katana_mcp.tools.tool_result_utils import (
+    format_md_table,
+    make_tool_result,
+    none_coro,
+)
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
@@ -32,11 +36,6 @@ from katana_public_api_client.models import (
 from katana_public_api_client.utils import unwrap_as
 
 logger = get_logger(__name__)
-
-
-async def _none_coro() -> None:
-    """Helper coroutine returning None for asyncio.gather placeholder slots."""
-    return None
 
 
 # ============================================================================
@@ -57,19 +56,20 @@ class CreateManufacturingOrderRequest(BaseModel):
     """
 
     variant_id: int | None = Field(
-        None,
+        default=None,
         description="Variant ID to manufacture (required for standalone MOs)",
     )
     planned_quantity: float | None = Field(
-        None,
+        default=None,
         description="Planned quantity (required for standalone MOs)",
         gt=0,
     )
     location_id: int | None = Field(
-        None, description="Production location ID (required for standalone MOs)"
+        default=None,
+        description="Production location ID (required for standalone MOs)",
     )
     sales_order_row_id: int | None = Field(
-        None,
+        default=None,
         description="Sales order row ID — when provided, creates a make-to-order "
         "MO linked to that sales order row (uses /manufacturing_order_make_to_order).",
     )
@@ -78,16 +78,17 @@ class CreateManufacturingOrderRequest(BaseModel):
         description="Make-to-order only: also create MOs for subassemblies. Ignored for standalone MOs.",
     )
     order_created_date: datetime | None = Field(
-        None, description="Order creation date (standalone mode only)"
+        default=None, description="Order creation date (standalone mode only)"
     )
     production_deadline_date: datetime | None = Field(
-        None, description="Production deadline date (standalone mode only)"
+        default=None, description="Production deadline date (standalone mode only)"
     )
     additional_info: str | None = Field(
-        None, description="Additional notes (standalone mode only)"
+        default=None, description="Additional notes (standalone mode only)"
     )
     confirm: bool = Field(
-        False, description="If false, returns preview. If true, creates order."
+        default=False,
+        description="If false, returns preview. If true, creates order.",
     )
 
 
@@ -218,7 +219,7 @@ async def _create_manufacturing_order_impl(
             production_deadline_date=request.production_deadline_date,
             additional_info=request.additional_info,
             is_preview=True,
-            message=f"Manufacturing order creation {confirmation} by user",
+            message=f"User {confirmation} the manufacturing order",
             next_actions=["Review the order details and try again with confirm=true"],
         )
 
@@ -267,11 +268,9 @@ async def _create_manufacturing_order_impl(
         logger.info(f"Successfully created manufacturing order ID {mo.id}")
 
         order_no = unwrap_unset(mo.order_no, None)
-        variant_id = unwrap_unset(mo.variant_id, request.variant_id or 0)
-        planned_quantity = unwrap_unset(
-            mo.planned_quantity, request.planned_quantity or 0
-        )
-        location_id = unwrap_unset(mo.location_id, request.location_id or 0)
+        variant_id = unwrap_unset(mo.variant_id, request.variant_id)
+        planned_quantity = unwrap_unset(mo.planned_quantity, request.planned_quantity)
+        location_id = unwrap_unset(mo.location_id, request.location_id)
         order_created_date = unwrap_unset(mo.order_created_date, None)
         production_deadline_date = unwrap_unset(mo.production_deadline_date, None)
         additional_info = unwrap_unset(mo.additional_info, None)
@@ -564,7 +563,7 @@ async def _get_manufacturing_order_recipe_impl(
         *(
             services.cache.get_by_id(EntityType.VARIANT, v_id)
             if v_id is not None
-            else _none_coro()
+            else none_coro()
             for v_id in variant_ids_raw
         )
     )
@@ -789,7 +788,7 @@ async def _add_recipe_row_impl(
             sku=sku,
             planned_quantity_per_unit=request.planned_quantity_per_unit,
             is_preview=True,
-            message=f"Add recipe row {confirmation} by user",
+            message=f"User {confirmation} adding the recipe row",
         )
 
     result = await _api_create_recipe_row(
@@ -877,7 +876,7 @@ async def _delete_recipe_row_impl(
         return DeleteRecipeRowResponse(
             recipe_row_id=request.recipe_row_id,
             is_preview=True,
-            message=f"Recipe row removal {confirmation} by user",
+            message=f"User {confirmation} removing the recipe row",
         )
 
     await _api_delete_recipe_row(services, request.recipe_row_id)
@@ -1258,6 +1257,21 @@ async def _batch_update_impl(
     if not request.replacements and not request.changes:
         raise ValueError("Must provide at least one replacement or change")
 
+    # 0. Upfront estimate — reject oversized batches BEFORE planning fetches
+    # recipes for every MO. Each replacement touches its mo_id list once per
+    # new component plus one delete; each change contributes explicit row counts.
+    # The 2x multiplier is a generous headroom for the delete+add pairing.
+    estimate = sum(
+        len(rep.manufacturing_order_ids) * (len(rep.new_components) + 1) * 2
+        for rep in request.replacements
+    ) + sum(len(ch.remove_row_ids) + len(ch.add_variants) for ch in request.changes)
+    if estimate > MAX_BATCH_OPS * 4:
+        raise ValueError(
+            f"Batch estimate is {estimate} operations, which exceeds "
+            f"{MAX_BATCH_OPS * 4} before planning. Split into smaller batches "
+            "so we don't fetch recipes for hundreds of MOs up front."
+        )
+
     # 1. Plan
     planned, warnings = await _plan_batch_update(request, context)
     total = len(planned)
@@ -1305,7 +1319,7 @@ async def _batch_update_impl(
             skipped_count=skipped,
             results=planned,
             warnings=warnings,
-            message=f"Batch update {confirmation} by user",
+            message=f"User {confirmation} the batch recipe update",
         )
 
     # 4. Execute

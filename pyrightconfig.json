@@ -18,6 +18,12 @@
     "katana_public_api_client/client.py",
     "katana_public_api_client/models_pydantic/_generated"
   ],
+  "executionEnvironments": [
+    {
+      "root": "katana_mcp_server",
+      "extraPaths": ["."]
+    }
+  ],
   "reportMissingImports": "error",
   "reportMissingTypeStubs": "none"
 }

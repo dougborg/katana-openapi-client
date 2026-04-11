@@ -44,6 +44,16 @@ def iso_or_none(dt: datetime | None) -> str | None:
     return dt.isoformat() if dt else None
 
 
+async def none_coro() -> None:
+    """Awaitable that resolves to None.
+
+    Use as a placeholder in ``asyncio.gather`` when some slots have no real
+    coroutine to await — e.g. enriching a list where some rows are already
+    resolved. Avoids per-module re-definitions of the same helper.
+    """
+    return None
+
+
 def format_md_table(
     headers: list[str],
     rows: list[list[Any]],

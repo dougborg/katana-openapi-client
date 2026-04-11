@@ -1,14 +1,18 @@
 """Tests for sales order MCP tools."""
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from katana_mcp.tools.foundation.sales_orders import (
     CreateSalesOrderRequest,
+    GetSalesOrderRequest,
+    ListSalesOrdersRequest,
     SalesOrderAddress,
     SalesOrderItem,
     _create_sales_order_impl,
+    _get_sales_order_impl,
+    _list_sales_orders_impl,
 )
 
 from katana_public_api_client.client_types import UNSET
@@ -527,3 +531,292 @@ async def test_create_sales_order_confirm_integration(katana_context):
                 "invalid",
             ]
         ), f"Unexpected error: {e}"
+
+
+# ============================================================================
+# list_sales_orders tests
+# ============================================================================
+
+_SO_GET_ALL = "katana_public_api_client.api.sales_order.get_all_sales_orders"
+_SO_GET = "katana_public_api_client.api.sales_order.get_sales_order"
+_SO_UNWRAP_DATA = "katana_public_api_client.utils.unwrap_data"
+_SO_UNWRAP_AS = "katana_public_api_client.utils.unwrap_as"
+
+
+def _make_mock_so(
+    *,
+    id: int = 12345,
+    order_no: str = "SO-TEST",
+    customer_id: int = 42,
+    location_id: int = 1,
+    status: str = "PENDING",
+    production_status: str = "NONE",
+    total: float | None = 999.0,
+    currency: str = "USD",
+    rows: list | None = None,
+) -> MagicMock:
+    """Build a mock SalesOrder attrs object for testing."""
+    so = MagicMock()
+    so.id = id
+    so.order_no = order_no
+    so.customer_id = customer_id
+    so.location_id = location_id
+    so.status = status
+    so.production_status = production_status
+    so.invoicing_status = UNSET
+    so.created_at = datetime(2026, 4, 10, 9, 0, tzinfo=UTC)
+    so.delivery_date = datetime(2026, 4, 20, 12, 0, tzinfo=UTC)
+    so.total = total
+    so.currency = currency
+    so.additional_info = UNSET
+    so.sales_order_rows = rows if rows is not None else []
+    return so
+
+
+def _make_mock_row(
+    *,
+    id: int,
+    variant_id: int,
+    quantity: float,
+    price_per_unit: float,
+    linked_mo_id: int | None = None,
+) -> MagicMock:
+    """Build a mock sales order row."""
+    r = MagicMock()
+    r.id = id
+    r.variant_id = variant_id
+    r.quantity = quantity
+    r.price_per_unit = price_per_unit
+    r.linked_manufacturing_order_id = (
+        linked_mo_id if linked_mo_id is not None else UNSET
+    )
+    return r
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_passes_explicit_filters():
+    """All explicit non-None filters end up in the API kwargs."""
+    context, _ = create_mock_context()
+    captured_kwargs: dict = {}
+
+    async def fake_asyncio_detailed(**kwargs):
+        captured_kwargs.update(kwargs)
+        return MagicMock()
+
+    request = ListSalesOrdersRequest(
+        order_no="SO-100",
+        customer_id=42,
+        location_id=7,
+        status="PENDING",
+        limit=25,
+    )
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake_asyncio_detailed),
+        patch(_SO_UNWRAP_DATA, return_value=[]),
+    ):
+        result = await _list_sales_orders_impl(request, context)
+
+    assert captured_kwargs["order_no"] == "SO-100"
+    assert captured_kwargs["customer_id"] == 42
+    assert captured_kwargs["location_id"] == 7
+    assert captured_kwargs["status"] == "PENDING"
+    assert captured_kwargs["limit"] == 25
+    assert "production_status" not in captured_kwargs
+    assert result.total_count == 0
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_zero_valued_filters_are_passed_through():
+    """customer_id=0 / location_id=0 must be passed as filters, not dropped."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    request = ListSalesOrdersRequest(customer_id=0, location_id=0)
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SO_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_sales_orders_impl(request, context)
+
+    assert captured["customer_id"] == 0
+    assert captured["location_id"] == 0
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_needs_work_orders_shortcut():
+    """needs_work_orders=True sets production_status=NONE."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    request = ListSalesOrdersRequest(needs_work_orders=True)
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SO_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_sales_orders_impl(request, context)
+
+    assert captured["production_status"] == "NONE"
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_explicit_production_status_wins_over_shortcut():
+    """Explicit production_status overrides needs_work_orders=True."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    request = ListSalesOrdersRequest(
+        production_status="IN_PROGRESS",
+        needs_work_orders=True,
+    )
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SO_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_sales_orders_impl(request, context)
+
+    assert captured["production_status"] == "IN_PROGRESS"
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_returns_summary_rows():
+    """Response rows carry order_no, totals, and row_count."""
+    context, _ = create_mock_context()
+    mock_so = _make_mock_so(
+        id=42,
+        order_no="SO-42",
+        total=1234.56,
+        rows=[
+            _make_mock_row(id=1, variant_id=100, quantity=2, price_per_unit=500.0),
+            _make_mock_row(id=2, variant_id=101, quantity=1, price_per_unit=234.56),
+        ],
+    )
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_DATA, return_value=[mock_so]),
+    ):
+        result = await _list_sales_orders_impl(ListSalesOrdersRequest(), context)
+
+    assert result.total_count == 1
+    assert result.orders[0].id == 42
+    assert result.orders[0].order_no == "SO-42"
+    assert result.orders[0].total == 1234.56
+    assert result.orders[0].row_count == 2
+
+
+# ============================================================================
+# get_sales_order tests
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_requires_identifier():
+    """Must provide order_no or order_id."""
+    context, _ = create_mock_context()
+
+    request = GetSalesOrderRequest()
+    with pytest.raises(ValueError, match="order_no or order_id"):
+        await _get_sales_order_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_by_id():
+    """Look up by order_id via api_get_sales_order → unwrap_as."""
+    context, _ = create_mock_context()
+    mock_so = _make_mock_so(
+        id=777,
+        order_no="SO-777",
+        rows=[_make_mock_row(id=10, variant_id=500, quantity=3, price_per_unit=99.0)],
+    )
+
+    with (
+        patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_AS, return_value=mock_so),
+    ):
+        request = GetSalesOrderRequest(order_id=777)
+        result = await _get_sales_order_impl(request, context)
+
+    assert result.id == 777
+    assert result.order_no == "SO-777"
+    assert len(result.rows) == 1
+    assert result.rows[0].id == 10
+    assert result.rows[0].variant_id == 500
+    assert result.rows[0].quantity == 3
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_by_number():
+    """Look up by order_no via get_all_sales_orders → unwrap_data → first row."""
+    context, _ = create_mock_context()
+    mock_so = _make_mock_so(id=5, order_no="#WEB20394")
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_DATA, return_value=[mock_so]),
+    ):
+        request = GetSalesOrderRequest(order_no="#WEB20394")
+        result = await _get_sales_order_impl(request, context)
+
+    assert result.id == 5
+    assert result.order_no == "#WEB20394"
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_not_found_by_number_raises():
+    """Empty results from get_all_sales_orders raises ValueError."""
+    context, _ = create_mock_context()
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_DATA, return_value=[]),
+    ):
+        request = GetSalesOrderRequest(order_no="#MISSING")
+        with pytest.raises(ValueError, match="'#MISSING' not found"):
+            await _get_sales_order_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_enriches_row_sku_from_cache():
+    """Row-level variant cache hits populate SalesOrderRowInfo.sku."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Cache returns a variant dict for variant_id 500
+    async def fake_get_by_id(_entity_type, variant_id):
+        if variant_id == 500:
+            return {"id": 500, "sku": "BIKE-A", "display_name": "Bike A"}
+        return None
+
+    lifespan_ctx.cache.get_by_id = AsyncMock(side_effect=fake_get_by_id)
+
+    mock_so = _make_mock_so(
+        id=9,
+        rows=[
+            _make_mock_row(id=1, variant_id=500, quantity=1, price_per_unit=100),
+            _make_mock_row(id=2, variant_id=999, quantity=1, price_per_unit=50),
+        ],
+    )
+
+    with (
+        patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_AS, return_value=mock_so),
+    ):
+        result = await _get_sales_order_impl(GetSalesOrderRequest(order_id=9), context)
+
+    assert result.rows[0].sku == "BIKE-A"  # cache hit
+    assert result.rows[1].sku is None  # cache miss

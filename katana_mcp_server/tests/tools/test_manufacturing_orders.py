@@ -6,13 +6,20 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from katana_mcp.tools.foundation.manufacturing_orders import (
     AddRecipeRowRequest,
+    BatchUpdateRecipesRequest,
     CreateManufacturingOrderRequest,
     DeleteRecipeRowRequest,
+    ExplicitChange,
     GetManufacturingOrderRecipeRequest,
+    SubOpStatus,
+    VariantReplacement,
+    VariantSpec,
     _add_recipe_row_impl,
+    _batch_update_impl,
     _create_manufacturing_order_impl,
     _delete_recipe_row_impl,
     _get_manufacturing_order_recipe_impl,
+    _plan_batch_update,
 )
 
 from katana_public_api_client.client_types import UNSET
@@ -610,16 +617,6 @@ async def test_delete_recipe_row_preview():
 # ============================================================================
 # batch_update_manufacturing_order_recipes
 # ============================================================================
-
-from katana_mcp.tools.foundation.manufacturing_orders import (  # noqa: E402
-    BatchUpdateRecipesRequest,
-    ExplicitChange,
-    SubOpStatus,
-    VariantReplacement,
-    VariantSpec,
-    _batch_update_impl,
-    _plan_batch_update,
-)
 
 
 def _mock_recipe_rows(rows_data: list[dict]) -> list:
