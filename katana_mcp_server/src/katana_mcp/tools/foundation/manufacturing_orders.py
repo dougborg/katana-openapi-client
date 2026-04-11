@@ -972,10 +972,17 @@ class SubOpStatus(StrEnum):
     SKIPPED = "skipped"
 
 
+class OpType(StrEnum):
+    """Sub-operation type within a batch recipe update."""
+
+    DELETE = "delete"
+    ADD = "add"
+
+
 class SubOpResult(BaseModel):
     """Result of a single delete or add within the batch."""
 
-    op_type: str  # "delete" | "add"
+    op_type: OpType
     manufacturing_order_id: int
     recipe_row_id: int | None = None  # existing row (delete) or new row (add result)
     variant_id: int | None = None
@@ -1016,6 +1023,18 @@ async def _plan_batch_update(
     planned: list[SubOpResult] = []
     warnings: list[str] = []
 
+    # Cache recipe fetches within this plan phase — if multiple replacements
+    # target the same MO, we only fetch its recipe once.
+    recipe_cache: dict[int, GetManufacturingOrderRecipeResponse] = {}
+
+    async def _get_cached_recipe(mo_id: int) -> GetManufacturingOrderRecipeResponse:
+        if mo_id not in recipe_cache:
+            recipe_cache[mo_id] = await _get_manufacturing_order_recipe_impl(
+                GetManufacturingOrderRecipeRequest(manufacturing_order_id=mo_id),
+                context,
+            )
+        return recipe_cache[mo_id]
+
     # Phase A: expand replacements into per-MO delete+add ops
     for rep in request.replacements:
         # Resolve old variant
@@ -1042,12 +1061,9 @@ async def _plan_batch_update(
         )
 
         for mo_id in rep.manufacturing_order_ids:
-            # Fetch the MO's recipe to find matching rows
+            # Fetch the MO's recipe (cached per-MO to avoid duplicates)
             try:
-                recipe = await _get_manufacturing_order_recipe_impl(
-                    GetManufacturingOrderRecipeRequest(manufacturing_order_id=mo_id),
-                    context,
-                )
+                recipe = await _get_cached_recipe(mo_id)
             except Exception as e:
                 msg = f"MO {mo_id}: failed to fetch recipe: {e}"
                 if rep.strict:
@@ -1065,7 +1081,7 @@ async def _plan_batch_update(
                 for v_id, sku, qty, _notes in resolved_new:
                     planned.append(
                         SubOpResult(
-                            op_type="add",
+                            op_type=OpType.ADD,
                             manufacturing_order_id=mo_id,
                             variant_id=v_id,
                             sku=sku,
@@ -1080,7 +1096,7 @@ async def _plan_batch_update(
             for row in matching_rows:
                 planned.append(
                     SubOpResult(
-                        op_type="delete",
+                        op_type=OpType.DELETE,
                         manufacturing_order_id=mo_id,
                         recipe_row_id=row.id,
                         variant_id=row.variant_id,
@@ -1091,7 +1107,7 @@ async def _plan_batch_update(
             for v_id, sku, qty, _notes in resolved_new:
                 planned.append(
                     SubOpResult(
-                        op_type="add",
+                        op_type=OpType.ADD,
                         manufacturing_order_id=mo_id,
                         variant_id=v_id,
                         sku=sku,
@@ -1106,7 +1122,7 @@ async def _plan_batch_update(
         for row_id in ch.remove_row_ids:
             planned.append(
                 SubOpResult(
-                    op_type="delete",
+                    op_type=OpType.DELETE,
                     manufacturing_order_id=ch.manufacturing_order_id,
                     recipe_row_id=row_id,
                     group_label=group_label,
@@ -1118,7 +1134,7 @@ async def _plan_batch_update(
             )
             planned.append(
                 SubOpResult(
-                    op_type="add",
+                    op_type=OpType.ADD,
                     manufacturing_order_id=ch.manufacturing_order_id,
                     variant_id=v_id,
                     sku=sku,
@@ -1160,8 +1176,8 @@ async def _execute_batch_update(
                     op.error = "Aborted after earlier failure"
             continue
 
-        deletes = [o for o in ops if o.op_type == "delete"]
-        adds = [o for o in ops if o.op_type == "add"]
+        deletes = [o for o in ops if o.op_type == OpType.DELETE]
+        adds = [o for o in ops if o.op_type == OpType.ADD]
 
         # Deletes first
         for op in deletes:
@@ -1248,9 +1264,11 @@ async def _batch_update_impl(
         )
 
     # 3. Single confirmation for the batch
-    del_count = sum(1 for o in planned if o.op_type == "delete")
+    del_count = sum(1 for o in planned if o.op_type == OpType.DELETE)
     add_count = sum(
-        1 for o in planned if o.op_type == "add" and o.status != SubOpStatus.SKIPPED
+        1
+        for o in planned
+        if o.op_type == OpType.ADD and o.status != SubOpStatus.SKIPPED
     )
     mo_count = len({o.manufacturing_order_id for o in planned})
     confirmation = await require_confirmation(
