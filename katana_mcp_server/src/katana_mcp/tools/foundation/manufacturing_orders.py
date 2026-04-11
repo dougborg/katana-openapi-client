@@ -14,7 +14,7 @@ from enum import StrEnum
 from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
-from fastmcp.tools.tool import ToolResult
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from katana_mcp.cache import EntityType
@@ -1400,7 +1400,7 @@ async def batch_update_manufacturing_order_recipes(
     - continue_on_error=true (default): run all sub-ops, mixed results ok.
     - continue_on_error=false: stop at first failure; remaining ops become SKIPPED.
     """
-    from fastmcp.tools.tool import ToolResult
+    from fastmcp.tools import ToolResult
 
     from katana_mcp.tools.prefab_ui import build_batch_recipe_update_ui
 

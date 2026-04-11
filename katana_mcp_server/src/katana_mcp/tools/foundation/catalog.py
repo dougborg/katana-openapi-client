@@ -10,7 +10,7 @@ import time
 from typing import Annotated
 
 from fastmcp import Context, FastMCP
-from fastmcp.tools.tool import ToolResult
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
