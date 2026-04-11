@@ -233,22 +233,25 @@ async def check_inventory(
         )
 
     # Batch response: summary table
-    from katana_mcp.tools.tool_result_utils import make_simple_result
+    from katana_mcp.tools.tool_result_utils import format_md_table, make_simple_result
 
-    lines = [
-        f"## Inventory Check ({len(results)} items)",
-        "",
-        "| SKU | Product | In Stock | Committed | Available | Expected |",
-        "|-----|---------|---------:|----------:|----------:|---------:|",
-    ]
-    for r in results:
-        lines.append(
-            f"| {r.sku} | {r.product_name[:40]} "
-            f"| {r.in_stock} | {r.committed} "
-            f"| {r.available_stock} | {r.expected} |"
-        )
+    table = format_md_table(
+        headers=["SKU", "Product", "In Stock", "Committed", "Available", "Expected"],
+        rows=[
+            [
+                r.sku,
+                r.product_name[:40],
+                r.in_stock,
+                r.committed,
+                r.available_stock,
+                r.expected,
+            ]
+            for r in results
+        ],
+    )
+    md = f"## Inventory Check ({len(results)} items)\n\n{table}"
     return make_simple_result(
-        "\n".join(lines),
+        md,
         structured_data={"items": [r.model_dump() for r in results]},
     )
 
@@ -535,18 +538,23 @@ async def get_inventory_movements(
     Use to investigate stock discrepancies or trace how inventory levels changed over time.
     Default limit is 50 movements, ordered most recent first.
     """
+    from katana_mcp.tools.tool_result_utils import format_md_table
+
     response = await _get_inventory_movements_impl(request, context)
 
     if response.movements:
-        movements_table = "\n".join(
-            f"| {m.movement_date} | {m.quantity_change:+.1f} | {m.balance_after:.1f}"
-            f" | {m.resource_type} | {m.caused_by_order_no or 'N/A'} |"
-            for m in response.movements
-        )
-        movements_md = (
-            "| Date | Change | Balance | Type | Order |\n"
-            "|------|--------|---------|------|-------|\n"
-            f"{movements_table}"
+        movements_md = format_md_table(
+            headers=["Date", "Change", "Balance", "Type", "Order"],
+            rows=[
+                [
+                    m.movement_date,
+                    f"{m.quantity_change:+.1f}",
+                    f"{m.balance_after:.1f}",
+                    m.resource_type,
+                    m.caused_by_order_no or "N/A",
+                ]
+                for m in response.movements
+            ],
         )
     else:
         movements_md = "No movements found."

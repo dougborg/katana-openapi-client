@@ -23,6 +23,7 @@ from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     enum_to_str,
+    format_md_table,
     iso_or_none,
     make_tool_result,
 )
@@ -936,13 +937,29 @@ async def get_purchase_order(
     if response.rows:
         lines.append("")
         lines.append("### Line Items")
-        lines.append("| Row ID | Variant ID | Qty | Price | Arrival | Received |")
-        lines.append("|--------|-----------|-----|-------|---------|----------|")
-        for r in response.rows:
-            lines.append(
-                f"| {r.id} | {r.variant_id} | {r.quantity} | {r.price_per_unit} "
-                f"| {r.arrival_date or 'N/A'} | {r.received_date or 'N/A'} |"
+        lines.append(
+            format_md_table(
+                headers=[
+                    "Row ID",
+                    "Variant ID",
+                    "Qty",
+                    "Price",
+                    "Arrival",
+                    "Received",
+                ],
+                rows=[
+                    [
+                        r.id,
+                        r.variant_id,
+                        r.quantity,
+                        r.price_per_unit,
+                        r.arrival_date or "N/A",
+                        r.received_date or "N/A",
+                    ]
+                    for r in response.rows
+                ],
             )
+        )
 
     return make_simple_result(
         "\n".join(lines),

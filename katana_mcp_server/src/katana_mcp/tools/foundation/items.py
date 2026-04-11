@@ -18,7 +18,11 @@ from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
-from katana_mcp.tools.tool_result_utils import make_tool_result
+from katana_mcp.tools.tool_result_utils import (
+    format_md_table,
+    make_simple_result,
+    make_tool_result,
+)
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import to_unset
 from katana_public_api_client.models import (
@@ -937,23 +941,23 @@ async def get_variant_details(
         return _variant_details_to_tool_result(responses[0])
 
     # Batch response: summary + table
-    lines = [
-        f"## Variant Details ({len(responses)} variants)",
-        "",
-        "| ID | SKU | Name | Sales Price | Purchase Price |",
-        "|----|-----|------|-------------|----------------|",
-    ]
-    for v in responses:
-        lines.append(
-            f"| {v.id} | {v.sku} | {v.name} | "
-            f"{'$' + format(v.sales_price, ',.2f') if v.sales_price is not None else 'N/A'} | "
-            f"{'$' + format(v.purchase_price, ',.2f') if v.purchase_price is not None else 'N/A'} |"
-        )
-
-    from katana_mcp.tools.tool_result_utils import make_simple_result
+    table = format_md_table(
+        headers=["ID", "SKU", "Name", "Sales Price", "Purchase Price"],
+        rows=[
+            [
+                v.id,
+                v.sku,
+                v.name,
+                f"${v.sales_price:,.2f}" if v.sales_price is not None else "N/A",
+                f"${v.purchase_price:,.2f}" if v.purchase_price is not None else "N/A",
+            ]
+            for v in responses
+        ],
+    )
+    markdown = f"## Variant Details ({len(responses)} variants)\n\n{table}"
 
     return make_simple_result(
-        "\n".join(lines),
+        markdown,
         structured_data={"variants": [v.model_dump() for v in responses]},
     )
 
