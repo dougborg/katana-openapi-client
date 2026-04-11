@@ -75,9 +75,10 @@ async def get_inventory_items(context: Context) -> str:
                 "id": p.get("id"),
                 "name": p.get("name"),
                 "type": "product",
-                "is_sellable": bool(p.get("is_sellable")),
-                "is_producible": bool(p.get("is_producible")),
-                "is_purchasable": bool(p.get("is_purchasable")),
+                # Default None to False for products (conservative: unset means not flagged)
+                "is_sellable": p.get("is_sellable") is True,
+                "is_producible": p.get("is_producible") is True,
+                "is_purchasable": p.get("is_purchasable") is True,
             }
         )
 
@@ -99,7 +100,8 @@ async def get_inventory_items(context: Context) -> str:
                 "id": s.get("id"),
                 "name": s.get("name"),
                 "type": "service",
-                "is_sellable": bool(s.get("is_sellable", True)),
+                # Services default to sellable when field is missing/None
+                "is_sellable": s.get("is_sellable") is not False,
                 "is_producible": False,
                 "is_purchasable": False,
             }
