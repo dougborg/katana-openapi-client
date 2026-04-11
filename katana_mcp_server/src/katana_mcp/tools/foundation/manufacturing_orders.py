@@ -112,9 +112,9 @@ class ManufacturingOrderResponse(BaseModel):
 
     id: int | None = None
     order_no: str | None = None
-    variant_id: int
-    planned_quantity: float
-    location_id: int
+    variant_id: int | None = None
+    planned_quantity: float | None = None
+    location_id: int | None = None
     status: str | None = None
     order_created_date: datetime | None = None
     production_deadline_date: datetime | None = None
@@ -183,9 +183,9 @@ async def _create_manufacturing_order_impl(
                 )
 
         return ManufacturingOrderResponse(
-            variant_id=request.variant_id or 0,
-            planned_quantity=request.planned_quantity or 0,
-            location_id=request.location_id or 0,
+            variant_id=request.variant_id,
+            planned_quantity=request.planned_quantity,
+            location_id=request.location_id,
             order_created_date=request.order_created_date,
             production_deadline_date=request.production_deadline_date,
             additional_info=request.additional_info,
@@ -211,9 +211,9 @@ async def _create_manufacturing_order_impl(
 
     if confirmation != ConfirmationResult.CONFIRMED:
         return ManufacturingOrderResponse(
-            variant_id=request.variant_id or 0,
-            planned_quantity=request.planned_quantity or 0,
-            location_id=request.location_id or 0,
+            variant_id=request.variant_id,
+            planned_quantity=request.planned_quantity,
+            location_id=request.location_id,
             order_created_date=request.order_created_date,
             production_deadline_date=request.production_deadline_date,
             additional_info=request.additional_info,
@@ -733,15 +733,17 @@ async def _api_delete_recipe_row(services: Any, recipe_row_id: int) -> None:
 async def _resolve_variant_ref(
     services: Any, *, sku: str | None, variant_id: int | None
 ) -> tuple[int, str | None, str]:
-    """Resolve a (sku, variant_id) pair to (variant_id, sku, display_name).
+    """Resolve ``(sku, variant_id)`` inputs to ``(variant_id, sku, display_name)``.
 
-    Exactly one of sku/variant_id must be provided. Raises ValueError if the
-    SKU is not in the cache.
+    At least one of ``sku`` or ``variant_id`` must be provided. If both are
+    provided, ``variant_id`` takes precedence and ``sku`` is returned as given
+    without re-validating that it matches the variant. Raises ``ValueError``
+    if neither is provided or if a provided SKU is not found in the cache.
     """
     if variant_id is not None:
         return variant_id, sku, sku or f"variant {variant_id}"
     if not sku:
-        raise ValueError("Either sku or variant_id must be provided")
+        raise ValueError("At least one of sku or variant_id must be provided")
     variant = await services.cache.get_by_sku(sku=sku)
     if not variant:
         raise ValueError(f"SKU '{sku}' not found")
@@ -996,6 +998,7 @@ class SubOpResult(BaseModel):
     variant_id: int | None = None
     sku: str | None = None
     planned_quantity_per_unit: float | None = None
+    notes: str | None = None
     status: SubOpStatus = SubOpStatus.PENDING
     error: str | None = None
     group_label: str | None = None
@@ -1086,7 +1089,7 @@ async def _plan_batch_update(
                 if rep.strict:
                     raise ValueError(msg)
                 warnings.append(msg + " — skipping")
-                for v_id, sku, qty, _notes in resolved_new:
+                for v_id, sku, qty, notes in resolved_new:
                     planned.append(
                         SubOpResult(
                             op_type=OpType.ADD,
@@ -1094,6 +1097,7 @@ async def _plan_batch_update(
                             variant_id=v_id,
                             sku=sku,
                             planned_quantity_per_unit=qty,
+                            notes=notes,
                             status=SubOpStatus.SKIPPED,
                             group_label=group_label,
                             error="Old variant not present in this MO",
@@ -1112,7 +1116,7 @@ async def _plan_batch_update(
                         group_label=group_label,
                     )
                 )
-            for v_id, sku, qty, _notes in resolved_new:
+            for v_id, sku, qty, notes in resolved_new:
                 planned.append(
                     SubOpResult(
                         op_type=OpType.ADD,
@@ -1120,6 +1124,7 @@ async def _plan_batch_update(
                         variant_id=v_id,
                         sku=sku,
                         planned_quantity_per_unit=qty,
+                        notes=notes,
                         group_label=group_label,
                     )
                 )
@@ -1147,6 +1152,7 @@ async def _plan_batch_update(
                     variant_id=v_id,
                     sku=sku,
                     planned_quantity_per_unit=spec.planned_quantity_per_unit,
+                    notes=spec.notes,
                     group_label=group_label,
                 )
             )
@@ -1158,7 +1164,6 @@ async def _execute_batch_update(
     planned: list[SubOpResult],
     request: BatchUpdateRecipesRequest,
     context: Context,
-    notes_by_index: dict[int, str | None] | None = None,
 ) -> list[SubOpResult]:
     """Execute the planned sub-ops, grouped by (mo_id, group_label).
 
@@ -1176,7 +1181,7 @@ async def _execute_batch_update(
         buckets.setdefault(key, []).append(op)
 
     aborted = False
-    for (mo_id, _label), ops in buckets.items():
+    for (mo_id, _group_label), ops in buckets.items():
         if aborted:
             for op in ops:
                 if op.status == SubOpStatus.PENDING:
@@ -1190,7 +1195,9 @@ async def _execute_batch_update(
         # Deletes first
         for op in deletes:
             try:
-                await _api_delete_recipe_row(services, op.recipe_row_id or 0)
+                if op.recipe_row_id is None:
+                    raise ValueError("DELETE op requires recipe_row_id")
+                await _api_delete_recipe_row(services, op.recipe_row_id)
                 op.status = SubOpStatus.SUCCESS
             except Exception as e:
                 op.status = SubOpStatus.FAILED
@@ -1216,12 +1223,16 @@ async def _execute_batch_update(
         # the last-created row appears first, matching the user's intended order.
         for op in reversed(adds):
             try:
+                if op.variant_id is None:
+                    raise ValueError("ADD op requires variant_id")
+                if op.planned_quantity_per_unit is None:
+                    raise ValueError("ADD op requires planned_quantity_per_unit")
                 result = await _api_create_recipe_row(
                     services,
                     manufacturing_order_id=mo_id,
-                    variant_id=op.variant_id or 0,
-                    planned_quantity_per_unit=op.planned_quantity_per_unit or 1.0,
-                    notes=None,
+                    variant_id=op.variant_id,
+                    planned_quantity_per_unit=op.planned_quantity_per_unit,
+                    notes=op.notes,
                 )
                 op.recipe_row_id = getattr(result, "id", None) if result else None
                 op.status = SubOpStatus.SUCCESS
@@ -1285,12 +1296,13 @@ async def _batch_update_impl(
         f"across {mo_count} MOs. Cannot be undone.",
     )
     if confirmation != ConfirmationResult.CONFIRMED:
+        skipped = sum(1 for o in planned if o.status == SubOpStatus.SKIPPED)
         return BatchUpdateRecipesResponse(
             is_preview=True,
             total_ops=total,
             success_count=0,
             failed_count=0,
-            skipped_count=0,
+            skipped_count=skipped,
             results=planned,
             warnings=warnings,
             message=f"Batch update {confirmation} by user",
