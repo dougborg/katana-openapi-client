@@ -382,7 +382,7 @@ pipx install --force dist/katana_mcp_server-*.whl
 
 ## Version
 
-Current version: **0.25.0**
+Current version: **0.33.0**
 
 ### Available Tools
 

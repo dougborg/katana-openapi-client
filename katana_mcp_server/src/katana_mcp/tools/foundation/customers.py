@@ -14,14 +14,11 @@ from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
 from katana_mcp.cache import EntityType
-from katana_mcp.logging import get_logger, observe_tool
+from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.tool_result_utils import make_simple_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
-
-logger = get_logger(__name__)
-
 
 # ============================================================================
 # Tool 1: search_customers
