@@ -15,6 +15,7 @@ Features:
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Literal
 
 from dotenv import load_dotenv
 from fastmcp import FastMCP
@@ -232,7 +233,11 @@ register_all_resources(mcp)
 register_all_prompts(mcp)
 
 
-def main(transport: str = "stdio", host: str = "127.0.0.1", port: int = 8765) -> None:
+def main(
+    transport: Literal["stdio", "http", "sse", "streamable-http"] = "stdio",
+    host: str = "127.0.0.1",
+    port: int = 8765,
+) -> None:
     """Main entry point for the Katana MCP Server.
 
     This function is called when running the server via:

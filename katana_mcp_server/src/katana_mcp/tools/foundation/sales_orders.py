@@ -27,7 +27,7 @@ from katana_mcp.tools.tool_result_utils import (
     make_tool_result,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
-from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.client_types import UNSET, Unset
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     AddressEntityType,
@@ -236,7 +236,7 @@ async def _create_sales_order_impl(
             so_rows.append(row)
 
         # Build addresses if provided
-        addresses_list: list[APISalesOrderAddress] | type[UNSET] = UNSET
+        addresses_list: list[APISalesOrderAddress] | Unset = UNSET
         if request.addresses:
             addresses_list = []
             for addr in request.addresses:
@@ -545,7 +545,8 @@ async def _get_sales_order_impl(
         get_all_sales_orders,
         get_sales_order as api_get_sales_order,
     )
-    from katana_public_api_client.utils import unwrap, unwrap_data
+    from katana_public_api_client.models import SalesOrder
+    from katana_public_api_client.utils import unwrap_as, unwrap_data
 
     if not request.order_no and not request.order_id:
         raise ValueError("Either order_no or order_id must be provided")
@@ -556,14 +557,14 @@ async def _get_sales_order_impl(
         response = await api_get_sales_order.asyncio_detailed(
             id=request.order_id, client=services.client
         )
-        so = unwrap(response)
-        if so is None:
-            raise ValueError(f"Sales order ID {request.order_id} not found")
+        so = unwrap_as(response, SalesOrder)
     else:
-        response = await get_all_sales_orders.asyncio_detailed(
+        if not request.order_no:
+            raise ValueError("order_no is required when order_id is not provided")
+        list_response = await get_all_sales_orders.asyncio_detailed(
             client=services.client, order_no=request.order_no, limit=1
         )
-        orders = unwrap_data(response, default=[])
+        orders = unwrap_data(list_response, default=[])
         if not orders:
             raise ValueError(f"Sales order '{request.order_no}' not found")
         so = orders[0]

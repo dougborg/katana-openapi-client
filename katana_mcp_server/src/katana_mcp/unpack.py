@@ -126,8 +126,17 @@ def unpack_pydantic_params(func: Callable) -> Callable:
                     # Handle default values - convert PydanticUndefined to inspect.Parameter.empty
                     if field_info.default is not PydanticUndefined:
                         field_default = field_info.default
-                    elif field_info.default_factory:
-                        field_default = field_info.default_factory()
+                    elif field_info.default_factory is not None:
+                        # Pydantic factories can accept zero args or one
+                        # (validated_data). Call via Any to dispatch at runtime.
+                        factory: Any = field_info.default_factory
+                        try:
+                            factory_params = len(inspect.signature(factory).parameters)
+                            field_default = (
+                                factory({}) if factory_params >= 1 else factory()
+                            )
+                        except (TypeError, ValueError):
+                            field_default = inspect.Parameter.empty
                     else:
                         field_default = inspect.Parameter.empty
 
