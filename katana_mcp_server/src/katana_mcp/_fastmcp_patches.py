@@ -161,22 +161,22 @@ def apply_fastmcp_patches() -> None:
     It patches get_cached_typeadapter to update __signature__ when creating
     new function objects with modified annotations.
     """
-    import importlib
+    import fastmcp.tools.function_parsing
+    import fastmcp.tools.function_tool
+    import fastmcp.tools.tool_transform
+    import fastmcp.utilities.types
 
     if _state["patched"]:
         return
 
-    # Patch the source module. Each fastmcp submodule that uses
-    # get_cached_typeadapter imports it by name, so we also rebind the local
-    # references in those submodules via importlib to ensure the patched
-    # version is actually used at call sites.
-    for module_name in (
-        "fastmcp.utilities.types",
-        "fastmcp.tools.function_parsing",
-        "fastmcp.tools.function_tool",
-        "fastmcp.tools.tool_transform",
-    ):
-        module = importlib.import_module(module_name)
-        module.__dict__["get_cached_typeadapter"] = _patched_get_cached_typeadapter
+    # Each fastmcp submodule imports get_cached_typeadapter by name at module
+    # load time, so patching the source alone is not enough — we have to rebind
+    # the local references in every submodule that imports it. Assign via
+    # __dict__ so pyright doesn't flag the dynamic attribute write.
+    patch = _patched_get_cached_typeadapter
+    fastmcp.utilities.types.__dict__["get_cached_typeadapter"] = patch
+    fastmcp.tools.function_parsing.__dict__["get_cached_typeadapter"] = patch
+    fastmcp.tools.function_tool.__dict__["get_cached_typeadapter"] = patch
+    fastmcp.tools.tool_transform.__dict__["get_cached_typeadapter"] = patch
 
     _state["patched"] = True

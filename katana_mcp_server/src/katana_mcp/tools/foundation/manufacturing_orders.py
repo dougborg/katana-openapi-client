@@ -200,10 +200,10 @@ async def _create_manufacturing_order_impl(
 
     # Confirm mode — elicit confirmation
     confirm_msg = (
-        f"Create make-to-order MO from sales_order_row_id={request.sales_order_row_id}?"
+        f"Start make-to-order MO from sales_order_row_id={request.sales_order_row_id}?"
         if is_make_to_order
         else (
-            f"Create manufacturing order for variant {request.variant_id} "
+            f"Start manufacturing order for variant {request.variant_id} "
             f"with quantity {request.planned_quantity}?"
         )
     )
@@ -869,13 +869,13 @@ async def _delete_recipe_row_impl(
 
     confirmation = await require_confirmation(
         context,
-        f"Delete recipe row {request.recipe_row_id}? This cannot be undone.",
+        f"Remove recipe row {request.recipe_row_id}? This cannot be undone.",
     )
     if confirmation != ConfirmationResult.CONFIRMED:
         return DeleteRecipeRowResponse(
             recipe_row_id=request.recipe_row_id,
             is_preview=True,
-            message=f"Delete recipe row {confirmation} by user",
+            message=f"Recipe row removal {confirmation} by user",
         )
 
     await _api_delete_recipe_row(services, request.recipe_row_id)
@@ -883,7 +883,7 @@ async def _delete_recipe_row_impl(
     return DeleteRecipeRowResponse(
         recipe_row_id=request.recipe_row_id,
         is_preview=False,
-        message=f"Deleted recipe row {request.recipe_row_id}",
+        message=f"Removed recipe row {request.recipe_row_id}",
     )
 
 
