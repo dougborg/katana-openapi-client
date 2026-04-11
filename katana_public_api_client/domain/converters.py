@@ -7,7 +7,7 @@ and data processing.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 from ..client_types import UNSET, Unset
 
@@ -47,6 +47,14 @@ def to_unset[T](value: T | None) -> T | Unset:
     return UNSET if value is None else value
 
 
+@overload
+def unwrap_unset[T](value: T | Unset | None) -> T | None: ...
+
+
+@overload
+def unwrap_unset[T](value: T | Unset | None, default: T) -> T: ...
+
+
 def unwrap_unset[T](value: T | Unset | None, default: T | None = None) -> T | None:
     """Unwrap an Unset or None sentinel value.
 
@@ -55,7 +63,9 @@ def unwrap_unset[T](value: T | Unset | None, default: T | None = None) -> T | No
         default: Default value to return if Unset or None
 
     Returns:
-        The unwrapped value, or default if value is Unset or None
+        The unwrapped value, or default if value is Unset or None. When a
+        non-None default is provided, the return type is narrowed to ``T``
+        (never None).
 
     Example:
         ```python
